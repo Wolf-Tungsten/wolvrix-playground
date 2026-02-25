@@ -17,6 +17,8 @@ export TOOL_EXTENSION := $(or $(TOOL_EXTENSION),$(shell grep '^export TOOL_EXTEN
 export VERILATOR := $(or $(VERILATOR),$(shell grep '^export VERILATOR=' $(ENV_FILE) 2>/dev/null | cut -d'"' -f2))
 
 DUT ?=
+CASE ?=
+LOG_ONLY_SIM ?= 0
 
 BUILD_DIR ?= build
 WOLVRIX_BUILD_DIR ?= $(WOLVRIX_DIR)/build
@@ -58,6 +60,22 @@ endif
 HDLBITS_ROOT := $(CURDIR)/testcase/hdlbits
 HDLBITS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_emit.tcl
 
+# OpenC910 paths / options
+C910_ROOT := $(CURDIR)/testcase/openc910
+C910_SMART_RUN_DIR := $(C910_ROOT)/smart_run
+C910_WORK_DIR ?= $(C910_SMART_RUN_DIR)/work
+C910_SMART_CODE_BASE ?= $(abspath $(C910_ROOT)/C910_RTL_FACTORY)
+SMART_ENV ?= $(C910_SMART_RUN_DIR)/env.sh
+SMART_SIM ?= verilator
+SMART_CASE ?= coremark
+C910_SIM_MAX_CYCLE ?= 0
+C910_WAVEFORM ?= 0
+C910_LOG_DIR := $(BUILD_DIR)/logs/c910
+C910_WAVEFORM_DIR ?= $(C910_LOG_DIR)
+C910_LOG_DIR_ABS = $(abspath $(C910_LOG_DIR))
+C910_WAVEFORM_DIR_ABS = $(abspath $(C910_WAVEFORM_DIR))
+C910_WAVEFORM_PATH_ABS = $(if $(C910_WAVEFORM_PATH),$(if $(filter /%,$(C910_WAVEFORM_PATH)),$(C910_WAVEFORM_PATH),$(abspath $(C910_WAVEFORM_PATH))),)
+
 # HDLBits paths
 DUT_SRC := $(HDLBITS_ROOT)/dut/dut_$(DUT).v
 TB_SRC := $(HDLBITS_ROOT)/tb/tb_$(DUT).cpp
@@ -70,7 +88,7 @@ VERILATOR_PREFIX := Vdut_$(DUT)
 TB_SOURCES := $(wildcard $(HDLBITS_ROOT)/tb/tb_*.cpp)
 HDLBITS_DUTS := $(sort $(patsubst tb_%,%,$(basename $(notdir $(TB_SOURCES)))))
 
-.PHONY: all build check-id run_hdlbits_test run_all_hdlbits_tests
+.PHONY: all build check-id run_hdlbits_test run_all_hdlbits_tests run_c910_test clean
 
 all: build
 
@@ -123,3 +141,49 @@ run_all_hdlbits_tests: $(WOLVRIX_APP)
 		echo "==== Running DUT=$$dut ===="; \
 		$(MAKE) --no-print-directory run_hdlbits_test DUT=$$dut || exit $$?; \
 	done
+
+ifneq ($(strip $(SKIP_WOLF_BUILD)),1)
+RUN_C910_TEST_DEPS := build
+endif
+
+run_c910_test: $(RUN_C910_TEST_DEPS)
+	@CASE_NAME="$(if $(CASE),$(CASE),$(SMART_CASE))"; \
+	LOG_FILE="$(if $(LOG_FILE),$(LOG_FILE),$(C910_LOG_DIR)/c910_$${CASE_NAME}_$(shell date +%Y%m%d_%H%M%S).log)"; \
+	WAVEFORM_FILE="$(if $(C910_WAVEFORM_PATH_ABS),$(C910_WAVEFORM_PATH_ABS),$(C910_WAVEFORM_DIR_ABS)/c910_$${CASE_NAME}_$(shell date +%Y%m%d_%H%M%S).fst)"; \
+	WAVEFORM_DIR="$$(dirname "$$WAVEFORM_FILE")"; \
+	mkdir -p "$(C910_LOG_DIR_ABS)" "$$WAVEFORM_DIR"; \
+	if [ -z "$(TOOL_EXTENSION)" ] && [ -f "$(SMART_ENV)" ]; then \
+		. "$(SMART_ENV)"; \
+	fi; \
+	echo "[RUN] smart_run CASE=$$CASE_NAME SIM=$(SMART_SIM)"; \
+	echo "[RUN] C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=$(C910_WAVEFORM)"; \
+	echo "[LOG] Capturing output to: $$LOG_FILE"; \
+	if [ "$(C910_WAVEFORM)" = "1" ]; then \
+		echo "[WAVEFORM] Will save FST to: $$WAVEFORM_FILE"; \
+	fi; \
+	if [ "$(LOG_ONLY_SIM)" != "0" ]; then \
+		C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=$(C910_WAVEFORM) C910_WAVEFORM_PATH="$$WAVEFORM_FILE" \
+		$(MAKE) --no-print-directory -C $(C910_SMART_RUN_DIR) runcase \
+			CASE=$$CASE_NAME SIM=$(SMART_SIM) \
+			C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=$(C910_WAVEFORM) \
+			BUILD_DIR="$(abspath $(C910_WORK_DIR))" \
+			CODE_BASE_PATH="$${CODE_BASE_PATH:-$(C910_SMART_CODE_BASE)}" \
+			TOOL_EXTENSION="$$TOOL_EXTENSION" \
+			VERILATOR="$(VERILATOR)" \
+			WOLVRIX_BIN="$(WOLVRIX_APP)" 2>&1 | \
+			tee >(awk 'f{print} index($$0,"obj_dir/Vsim_top"){f=1; next}' > "$$LOG_FILE"); \
+	else \
+		C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=$(C910_WAVEFORM) C910_WAVEFORM_PATH="$$WAVEFORM_FILE" \
+		$(MAKE) --no-print-directory -C $(C910_SMART_RUN_DIR) runcase \
+			CASE=$$CASE_NAME SIM=$(SMART_SIM) \
+			C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=$(C910_WAVEFORM) \
+			BUILD_DIR="$(abspath $(C910_WORK_DIR))" \
+			CODE_BASE_PATH="$${CODE_BASE_PATH:-$(C910_SMART_CODE_BASE)}" \
+			TOOL_EXTENSION="$$TOOL_EXTENSION" \
+			VERILATOR="$(VERILATOR)" \
+			WOLVRIX_BIN="$(WOLVRIX_APP)" 2>&1 | tee "$$LOG_FILE"; \
+	fi
+
+clean:
+	@rm -rf build
+	@rm -rf $(C910_WORK_DIR)
