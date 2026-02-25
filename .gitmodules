@@ -1,0 +1,13 @@
+[submodule "wolvrix"]
+	path = wolvrix
+	url = https://github.com/Wolf-Tungsten/wolvrix.git
+
+[submodule "testcase/hdlbits"]
+	path = testcase/hdlbits
+	url = https://github.com/Wolf-Tungsten/HDLBits-Verilog-Solutions.git
+[submodule "testcase/openc910"]
+	path = testcase/openc910
+	url = https://github.com/Wolf-Tungsten/openc910.git
+[submodule "testcase/xiangshan"]
+	path = testcase/xiangshan
+	url = https://github.com/Wolf-Tungsten/XiangShan.git
