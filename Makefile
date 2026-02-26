@@ -1,6 +1,7 @@
 SHELL := /bin/bash
 
 WOLVRIX_DIR ?= $(CURDIR)/wolvrix
+PYTHON ?= python3
 
 # Check env.sh must exist and has been sourced
 ENV_FILE := $(CURDIR)/env.sh
@@ -59,16 +60,16 @@ WOLF_EMIT_FLAGS += --timeout $(WOLF_TIMEOUT)
 endif
 
 HDLBITS_ROOT := $(CURDIR)/testcase/hdlbits
-HDLBITS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_emit.tcl
+HDLBITS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_hdlbits_emit.py
 
 # OpenC910 paths / options
 C910_ROOT := $(CURDIR)/testcase/openc910
 C910_SMART_RUN_DIR := $(C910_ROOT)/smart_run
 C910_WORK_DIR ?= $(C910_SMART_RUN_DIR)/work
 C910_SMART_CODE_BASE ?= $(abspath $(C910_ROOT)/C910_RTL_FACTORY)
-SMART_ENV ?= $(C910_SMART_RUN_DIR)/env.sh
-SMART_SIM ?= verilator
-SMART_CASE ?= coremark
+C910_SMART_ENV ?= $(C910_SMART_RUN_DIR)/env.sh
+C910_SMART_SIM ?= verilator
+C910_SMART_CASE ?= coremark
 C910_SIM_MAX_CYCLE ?= 0
 C910_WAVEFORM ?= 0
 C910_LOG_DIR := $(BUILD_DIR)/logs/c910
@@ -146,16 +147,16 @@ XS_WOLF_DEFINE_FLAGS_LOG := $(foreach d,$(XS_SIM_DEFINES),-D $(d))
 XS_DIFFTEST_MACROS := $(XS_ROOT)/build/generated-src/DifftestMacros.svh
 
 # HDLBits paths
-DUT_SRC := $(HDLBITS_ROOT)/dut/dut_$(DUT).v
-TB_SRC := $(HDLBITS_ROOT)/tb/tb_$(DUT).cpp
-OUT_DIR := $(BUILD_DIR)/hdlbits/$(DUT)
-EMITTED_DUT := $(OUT_DIR)/dut_$(DUT).v
-EMITTED_JSON := $(OUT_DIR)/dut_$(DUT).json
-SIM_BIN_NAME := sim_$(DUT)
-SIM_BIN := $(OUT_DIR)/$(SIM_BIN_NAME)
-VERILATOR_PREFIX := Vdut_$(DUT)
-TB_SOURCES := $(wildcard $(HDLBITS_ROOT)/tb/tb_*.cpp)
-HDLBITS_DUTS := $(sort $(patsubst tb_%,%,$(basename $(notdir $(TB_SOURCES)))))
+HDLBITS_DUT_SRC := $(HDLBITS_ROOT)/dut/dut_$(DUT).v
+HDLBITS_TB_SRC := $(HDLBITS_ROOT)/tb/tb_$(DUT).cpp
+HDLBITS_OUT_DIR := $(BUILD_DIR)/hdlbits/$(DUT)
+HDLBITS_EMITTED_DUT := $(HDLBITS_OUT_DIR)/dut_$(DUT).v
+HDLBITS_EMITTED_JSON := $(HDLBITS_OUT_DIR)/dut_$(DUT).json
+HDLBITS_SIM_BIN_NAME := sim_$(DUT)
+HDLBITS_SIM_BIN := $(HDLBITS_OUT_DIR)/$(HDLBITS_SIM_BIN_NAME)
+HDLBITS_VERILATOR_PREFIX := Vdut_$(DUT)
+HDLBITS_TB_SOURCES := $(wildcard $(HDLBITS_ROOT)/tb/tb_*.cpp)
+HDLBITS_DUTS := $(sort $(patsubst tb_%,%,$(basename $(notdir $(HDLBITS_TB_SOURCES)))))
 
 .PHONY: all build check-id run_hdlbits_test run_all_hdlbits_tests run_c910_test \
 	xs_rtl xs_wolf_filelist xs_wolf_emit xs_ref_emu xs_wolf_emu run_xs_json_test \
@@ -168,8 +169,8 @@ check-id:
 		echo "DUT must be a three-digit number (e.g. DUT=001)"; \
 		exit 1; \
 	fi
-	@test -f $(DUT_SRC) || { echo "Missing DUT source: $(DUT_SRC)"; exit 1; }
-	@test -f $(TB_SRC) || { echo "Missing testbench: $(TB_SRC)"; exit 1; }
+	@test -f $(HDLBITS_DUT_SRC) || { echo "Missing DUT source: $(HDLBITS_DUT_SRC)"; exit 1; }
+	@test -f $(HDLBITS_TB_SRC) || { echo "Missing testbench: $(HDLBITS_TB_SRC)"; exit 1; }
 
 build:
 	env -u MAKE_TERMOUT $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
@@ -177,28 +178,29 @@ build:
 
 $(WOLVRIX_APP): build
 
-$(EMITTED_DUT) $(EMITTED_JSON): $(DUT_SRC) $(WOLVRIX_APP) $(HDLBITS_WOLVRIX_SCRIPT) check-id
-	@mkdir -p $(OUT_DIR)
-	WOLVRIX_SOURCES=$(DUT_SRC) \
-	WOLVRIX_TOP=top_module \
-	WOLVRIX_SV_OUT=$(EMITTED_DUT) \
-	WOLVRIX_JSON_OUT=$(EMITTED_JSON) \
-	WOLVRIX_STORE_JSON=1 \
-	WOLVRIX_LOG_LEVEL=$(WOLF_LOG) \
-	$(WOLVRIX_APP) -f $(HDLBITS_WOLVRIX_SCRIPT)
+.PHONY: py_install
+py_install:
+	$(PYTHON) -m pip install -e $(WOLVRIX_DIR)
 
-$(SIM_BIN): $(EMITTED_DUT) $(TB_SRC) check-id
-	@mkdir -p $(OUT_DIR)
-	$(VERILATOR) $(VERILATOR_FLAGS) --cc $(EMITTED_DUT) --exe $(TB_SRC) \
-		--top-module top_module --prefix $(VERILATOR_PREFIX) -Mdir $(OUT_DIR) -o $(SIM_BIN_NAME)
-	CCACHE_DISABLE=1 $(MAKE) -C $(OUT_DIR) -f $(VERILATOR_PREFIX).mk $(SIM_BIN_NAME)
+$(HDLBITS_EMITTED_DUT) $(HDLBITS_EMITTED_JSON): $(HDLBITS_DUT_SRC) $(HDLBITS_WOLVRIX_SCRIPT) check-id
+	@mkdir -p $(HDLBITS_OUT_DIR)
+	$(PYTHON) $(HDLBITS_WOLVRIX_SCRIPT) $(DUT) $(HDLBITS_OUT_DIR)
+
+$(HDLBITS_SIM_BIN): $(HDLBITS_EMITTED_DUT) $(HDLBITS_TB_SRC) check-id
+	@mkdir -p $(HDLBITS_OUT_DIR)
+	$(VERILATOR) $(VERILATOR_FLAGS) --cc $(HDLBITS_EMITTED_DUT) --exe $(HDLBITS_TB_SRC) \
+		--top-module top_module --prefix $(HDLBITS_VERILATOR_PREFIX) -Mdir $(HDLBITS_OUT_DIR) -o $(HDLBITS_SIM_BIN_NAME)
+	CCACHE_DISABLE=1 $(MAKE) -C $(HDLBITS_OUT_DIR) -f $(HDLBITS_VERILATOR_PREFIX).mk $(HDLBITS_SIM_BIN_NAME)
 
 run_hdlbits_test:
 ifneq ($(strip $(DUT)),)
   ifeq ($(DUT),$(filter $(DUT),$(HDLBITS_DUTS)))
-	@$(MAKE) --no-print-directory $(SIM_BIN)
-	@echo "[RUN] ./$(SIM_BIN)"
-	@cd $(OUT_DIR) && ./$(SIM_BIN_NAME)
+	@if [ "$(SKIP_PY_INSTALL)" != "1" ]; then \
+		$(MAKE) --no-print-directory py_install; \
+	fi
+	@$(MAKE) --no-print-directory $(HDLBITS_SIM_BIN)
+	@echo "[RUN] ./$(HDLBITS_SIM_BIN)"
+	@cd $(HDLBITS_OUT_DIR) && ./$(HDLBITS_SIM_BIN_NAME)
   else
 	$(error DUT=$(DUT) not found; available: $(HDLBITS_DUTS))
   endif
@@ -207,10 +209,11 @@ else
 	@$(MAKE) --no-print-directory run_all_hdlbits_tests
 endif
 
-run_all_hdlbits_tests: $(WOLVRIX_APP)
+run_all_hdlbits_tests:
+	@$(MAKE) --no-print-directory py_install
 	@for dut in $(HDLBITS_DUTS); do \
 		echo "==== Running DUT=$$dut ===="; \
-		$(MAKE) --no-print-directory run_hdlbits_test DUT=$$dut || exit $$?; \
+		$(MAKE) --no-print-directory run_hdlbits_test DUT=$$dut SKIP_PY_INSTALL=1 || exit $$?; \
 	done
 
 ifneq ($(strip $(SKIP_WOLF_BUILD)),1)
@@ -218,15 +221,15 @@ RUN_C910_TEST_DEPS := build
 endif
 
 run_c910_test: $(RUN_C910_TEST_DEPS)
-	@CASE_NAME="$(if $(CASE),$(CASE),$(SMART_CASE))"; \
+	@CASE_NAME="$(if $(CASE),$(CASE),$(C910_SMART_CASE))"; \
 	LOG_FILE="$(if $(LOG_FILE),$(LOG_FILE),$(C910_LOG_DIR)/c910_$${CASE_NAME}_$(shell date +%Y%m%d_%H%M%S).log)"; \
 	WAVEFORM_FILE="$(if $(C910_WAVEFORM_PATH_ABS),$(C910_WAVEFORM_PATH_ABS),$(C910_WAVEFORM_DIR_ABS)/c910_$${CASE_NAME}_$(shell date +%Y%m%d_%H%M%S).fst)"; \
 	WAVEFORM_DIR="$$(dirname "$$WAVEFORM_FILE")"; \
 	mkdir -p "$(C910_LOG_DIR_ABS)" "$$WAVEFORM_DIR"; \
-	if [ -z "$(TOOL_EXTENSION)" ] && [ -f "$(SMART_ENV)" ]; then \
-		. "$(SMART_ENV)"; \
+	if [ -z "$(TOOL_EXTENSION)" ] && [ -f "$(C910_SMART_ENV)" ]; then \
+		. "$(C910_SMART_ENV)"; \
 	fi; \
-	echo "[RUN] smart_run CASE=$$CASE_NAME SIM=$(SMART_SIM)"; \
+	echo "[RUN] smart_run CASE=$$CASE_NAME SIM=$(C910_SMART_SIM)"; \
 	echo "[RUN] C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=$(C910_WAVEFORM)"; \
 	echo "[LOG] Capturing output to: $$LOG_FILE"; \
 	if [ "$(C910_WAVEFORM)" = "1" ]; then \
@@ -235,7 +238,7 @@ run_c910_test: $(RUN_C910_TEST_DEPS)
 	if [ "$(LOG_ONLY_SIM)" != "0" ]; then \
 		C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=$(C910_WAVEFORM) C910_WAVEFORM_PATH="$$WAVEFORM_FILE" \
 		$(MAKE) --no-print-directory -C $(C910_SMART_RUN_DIR) runcase \
-			CASE=$$CASE_NAME SIM=$(SMART_SIM) \
+			CASE=$$CASE_NAME SIM=$(C910_SMART_SIM) \
 			C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=$(C910_WAVEFORM) \
 			BUILD_DIR="$(abspath $(C910_WORK_DIR))" \
 			CODE_BASE_PATH="$${CODE_BASE_PATH:-$(C910_SMART_CODE_BASE)}" \
@@ -246,7 +249,7 @@ run_c910_test: $(RUN_C910_TEST_DEPS)
 	else \
 		C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=$(C910_WAVEFORM) C910_WAVEFORM_PATH="$$WAVEFORM_FILE" \
 		$(MAKE) --no-print-directory -C $(C910_SMART_RUN_DIR) runcase \
-			CASE=$$CASE_NAME SIM=$(SMART_SIM) \
+			CASE=$$CASE_NAME SIM=$(C910_SMART_SIM) \
 			C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=$(C910_WAVEFORM) \
 			BUILD_DIR="$(abspath $(C910_WORK_DIR))" \
 			CODE_BASE_PATH="$${CODE_BASE_PATH:-$(C910_SMART_CODE_BASE)}" \
@@ -291,33 +294,33 @@ xs_wolf_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 	@mkdir -p "$(XS_WOLF_EMIT_DIR_ABS)"
 	@mkdir -p "$(XS_LOG_DIR_ABS)"
 	@$(eval RUN_ID := $(RUN_ID))
-	@$(eval BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_build_$(RUN_ID).log)
-	@$(eval READ_ARGS_FILE := $(XS_WOLF_EMIT_DIR_ABS)/wolvrix_read_args.txt)
-	@echo "[LOG] Capturing wolf emit output to: $(BUILD_LOG_FILE)"
-	@printf '' > "$(BUILD_LOG_FILE)"
-	@printf '' > "$(READ_ARGS_FILE)"
-	@printf "%s\n" $(XS_WOLF_INCLUDE_FLAGS) $(XS_WOLF_DEFINE_FLAGS) >> "$(READ_ARGS_FILE)"
+	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_build_$(RUN_ID).log)
+	@$(eval XS_READ_ARGS_FILE := $(XS_WOLF_EMIT_DIR_ABS)/wolvrix_read_args.txt)
+	@echo "[LOG] Capturing wolf emit output to: $(XS_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_READ_ARGS_FILE)"
+	@printf "%s\n" $(XS_WOLF_INCLUDE_FLAGS) $(XS_WOLF_DEFINE_FLAGS) >> "$(XS_READ_ARGS_FILE)"
 	@{ \
 		if [ "$(XS_JSON_ROUNDTRIP)" = "1" ]; then \
-			echo "[CMD] WOLVRIX_FILELIST=$(XS_WOLF_FILELIST_ABS) WOLVRIX_TOP=$(XS_SIM_TOP) WOLVRIX_SV_OUT=$(XS_WOLF_EMIT_ABS) WOLVRIX_JSON_OUT=$(XS_WOLF_JSON) WOLVRIX_JSON_ROUNDTRIP=1 WOLVRIX_READ_ARGS_FILE=$(READ_ARGS_FILE) WOLVRIX_LOG_LEVEL=$(WOLF_LOG) $(WOLVRIX_APP) -f $(XS_WOLVRIX_SCRIPT)"; \
+			echo "[CMD] WOLVRIX_FILELIST=$(XS_WOLF_FILELIST_ABS) WOLVRIX_TOP=$(XS_SIM_TOP) WOLVRIX_SV_OUT=$(XS_WOLF_EMIT_ABS) WOLVRIX_JSON_OUT=$(XS_WOLF_JSON) WOLVRIX_JSON_ROUNDTRIP=1 WOLVRIX_READ_ARGS_FILE=$(XS_READ_ARGS_FILE) WOLVRIX_LOG_LEVEL=$(WOLF_LOG) $(WOLVRIX_APP) -f $(XS_WOLVRIX_SCRIPT)"; \
 			WOLVRIX_FILELIST=$(XS_WOLF_FILELIST_ABS) \
 			WOLVRIX_TOP=$(XS_SIM_TOP) \
 			WOLVRIX_SV_OUT=$(XS_WOLF_EMIT_ABS) \
 			WOLVRIX_JSON_OUT=$(XS_WOLF_JSON) \
 			WOLVRIX_JSON_ROUNDTRIP=1 \
-			WOLVRIX_READ_ARGS_FILE=$(READ_ARGS_FILE) \
+			WOLVRIX_READ_ARGS_FILE=$(XS_READ_ARGS_FILE) \
 			WOLVRIX_LOG_LEVEL=$(WOLF_LOG) \
 			$(WOLVRIX_APP) -f $(XS_WOLVRIX_SCRIPT); \
 		else \
-			echo "[CMD] WOLVRIX_FILELIST=$(XS_WOLF_FILELIST_ABS) WOLVRIX_TOP=$(XS_SIM_TOP) WOLVRIX_SV_OUT=$(XS_WOLF_EMIT_ABS) WOLVRIX_READ_ARGS_FILE=$(READ_ARGS_FILE) WOLVRIX_LOG_LEVEL=$(WOLF_LOG) $(WOLVRIX_APP) -f $(XS_WOLVRIX_SCRIPT)"; \
+			echo "[CMD] WOLVRIX_FILELIST=$(XS_WOLF_FILELIST_ABS) WOLVRIX_TOP=$(XS_SIM_TOP) WOLVRIX_SV_OUT=$(XS_WOLF_EMIT_ABS) WOLVRIX_READ_ARGS_FILE=$(XS_READ_ARGS_FILE) WOLVRIX_LOG_LEVEL=$(WOLF_LOG) $(WOLVRIX_APP) -f $(XS_WOLVRIX_SCRIPT)"; \
 			WOLVRIX_FILELIST=$(XS_WOLF_FILELIST_ABS) \
 			WOLVRIX_TOP=$(XS_SIM_TOP) \
 			WOLVRIX_SV_OUT=$(XS_WOLF_EMIT_ABS) \
-			WOLVRIX_READ_ARGS_FILE=$(READ_ARGS_FILE) \
+			WOLVRIX_READ_ARGS_FILE=$(XS_READ_ARGS_FILE) \
 			WOLVRIX_LOG_LEVEL=$(WOLF_LOG) \
 			$(WOLVRIX_APP) -f $(XS_WOLVRIX_SCRIPT); \
 		fi; \
-	} 2>&1 | tee -a "$(BUILD_LOG_FILE)"
+	} 2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
 
 xs_ref_emu: $(XS_SIM_TOP_V)
 	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
@@ -326,10 +329,10 @@ xs_ref_emu: $(XS_SIM_TOP_V)
 	@echo "[RUN] Building XiangShan ref emu..."
 	@mkdir -p "$(XS_LOG_DIR_ABS)"
 	@$(eval RUN_ID := $(if $(RUN_ID),$(RUN_ID),$(shell date +%Y%m%d_%H%M%S)))
-	@$(eval BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_ref_build_$(RUN_ID).log)
-	@echo "[LOG] Capturing build output to: $(BUILD_LOG_FILE)"
-	@printf '' > "$(BUILD_LOG_FILE)"
-	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_REF_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_RTL_DIR_ABS) SIM_TOP_V=$(XS_SIM_TOP_V) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(BUILD_LOG_FILE)"
+	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_ref_build_$(RUN_ID).log)
+	@echo "[LOG] Capturing build output to: $(XS_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_BUILD_LOG_FILE)"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_REF_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_RTL_DIR_ABS) SIM_TOP_V=$(XS_SIM_TOP_V) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(XS_BUILD_LOG_FILE)"
 	NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
 		BUILD_DIR=$(XS_REF_BUILD_ABS) \
 		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
@@ -344,16 +347,16 @@ xs_ref_emu: $(XS_SIM_TOP_V)
 		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
 		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
 		$(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,) \
-		2>&1 | tee "$(BUILD_LOG_FILE)"
+		2>&1 | tee "$(XS_BUILD_LOG_FILE)"
 
 xs_wolf_emu: xs_wolf_emit
 	@echo "[RUN] Building XiangShan wolf emu..."
 	@mkdir -p "$(XS_LOG_DIR_ABS)"
 	@$(eval RUN_ID := $(if $(RUN_ID),$(RUN_ID),$(shell date +%Y%m%d_%H%M%S)))
-	@$(eval BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_build_$(RUN_ID).log)
-	@echo "[LOG] Capturing build output to: $(BUILD_LOG_FILE)"
-	@printf '' >> "$(BUILD_LOG_FILE)"
-	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_WOLF_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_WOLF_EMIT_DIR_ABS) SIM_TOP_V=$(XS_WOLF_EMIT_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) SIM_VSRC= $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(BUILD_LOG_FILE)"
+	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_build_$(RUN_ID).log)
+	@echo "[LOG] Capturing build output to: $(XS_BUILD_LOG_FILE)"
+	@printf '' >> "$(XS_BUILD_LOG_FILE)"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_WOLF_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_WOLF_EMIT_DIR_ABS) SIM_TOP_V=$(XS_WOLF_EMIT_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) SIM_VSRC= $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(XS_BUILD_LOG_FILE)"
 	NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
 		BUILD_DIR=$(XS_WOLF_BUILD_ABS) \
 		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
@@ -369,7 +372,7 @@ xs_wolf_emu: xs_wolf_emit
 		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
 		SIM_VSRC= \
 		$(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,) \
-		2>&1 | tee -a "$(BUILD_LOG_FILE)"
+		2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
 
 xs_diff_clean:
 	rm -rf "$(XS_REF_BUILD_ABS)/verilator-compile" \
