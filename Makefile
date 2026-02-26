@@ -32,31 +32,13 @@ VERILATOR ?= $(or $(shell echo $$VERILATOR),verilator)
 VERILATOR_FLAGS ?= -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNDRIVEN \
 	-Wno-SYNCASYNCNET
 
-SINGLE_THREAD ?= 0
 ifeq ($(origin WOLF_LOG), undefined)
 WOLF_LOG := info
-WOLF_LOG_DEFAULT := 1
-else
-WOLF_LOG_DEFAULT := 0
 endif
 WOLF_TIMER ?= 0
-WOLF_TIMEOUT ?= 600
-WOLF_EMIT_FLAGS ?=
 
 ifneq ($(strip $(WOLF_TIMER)),0)
 WOLF_LOG := debug
-endif
-ifneq ($(strip $(SINGLE_THREAD)),0)
-WOLF_EMIT_FLAGS += --single-thread
-endif
-ifneq ($(strip $(WOLF_LOG)),)
-WOLF_EMIT_FLAGS += --log $(WOLF_LOG)
-endif
-ifneq ($(strip $(WOLF_TIMER)),0)
-WOLF_EMIT_FLAGS += --profile-timer
-endif
-ifneq ($(strip $(WOLF_TIMEOUT)),)
-WOLF_EMIT_FLAGS += --timeout $(WOLF_TIMEOUT)
 endif
 
 HDLBITS_ROOT := $(CURDIR)/testcase/hdlbits
@@ -106,7 +88,6 @@ XS_LOG_DIR := $(BUILD_DIR)/logs/xs
 XS_WAVEFORM_DIR ?= $(XS_LOG_DIR)
 XS_LOG_DIR_ABS = $(abspath $(XS_LOG_DIR))
 XS_WAVEFORM_DIR_ABS = $(abspath $(XS_WAVEFORM_DIR))
-XS_WAVEFORM_PATH_ABS = $(if $(XS_WAVEFORM_PATH),$(if $(filter /%,$(XS_WAVEFORM_PATH)),$(XS_WAVEFORM_PATH),$(abspath $(XS_WAVEFORM_PATH))),)
 
 XS_WORK_BASE ?= $(BUILD_DIR)/xs
 XS_RTL_BUILD ?= $(XS_WORK_BASE)/rtl
@@ -119,9 +100,6 @@ XS_WOLF_EMIT ?= $(XS_WOLF_EMIT_DIR)/wolf_emit.sv
 XS_WOLF_FILELIST ?= $(XS_WOLF_EMIT_DIR)/xs_wolf.f
 XS_SIM_DEFINES ?= DIFFTEST
 XS_SIM_DEFINES += $(XS_ZERO_INIT_DEFINES)
-XS_WOLF_EMIT_FLAGS ?=
-
-XS_WORK_BASE_ABS := $(abspath $(XS_WORK_BASE))
 XS_ROOT_ABS := $(abspath $(XS_ROOT))
 XS_NOOP_HOME ?= $(XS_ROOT_ABS)
 XS_RTL_BUILD_ABS := $(abspath $(XS_RTL_BUILD))
@@ -135,15 +113,12 @@ XS_WOLF_FILELIST_ABS := $(abspath $(XS_WOLF_FILELIST))
 XS_SIM_TOP_V := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).$(XS_RTL_SUFFIX)
 XS_WOLF_JSON ?= $(XS_WOLF_EMIT_DIR_ABS)/xs_wolf.json
 XS_JSON_ROUNDTRIP ?= 0
-XS_WOLF_JSON_EMIT_FLAGS ?= --store-json --top $(XS_SIM_TOP)
-XS_WOLF_JSON_LOAD_FLAGS ?= --emit-sv --top $(XS_SIM_TOP)
 
 XS_DIFFTEST_GEN_DIR ?= $(XS_ROOT)/build/generated-src
 XS_DIFFTEST_GEN_DIR_ABS := $(abspath $(XS_DIFFTEST_GEN_DIR))
 XS_WOLF_INCLUDE_DIRS ?= $(XS_RTL_DIR_ABS) $(XS_VSRC_DIR_ABS) $(XS_DIFFTEST_GEN_DIR_ABS)
 XS_WOLF_INCLUDE_FLAGS := $(foreach d,$(XS_WOLF_INCLUDE_DIRS),-I $(d))
 XS_WOLF_DEFINE_FLAGS := $(foreach d,$(XS_SIM_DEFINES),-D "$(d)")
-XS_WOLF_DEFINE_FLAGS_LOG := $(foreach d,$(XS_SIM_DEFINES),-D $(d))
 XS_DIFFTEST_MACROS := $(XS_ROOT)/build/generated-src/DifftestMacros.svh
 
 # HDLBits paths

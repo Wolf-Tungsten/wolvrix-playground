@@ -19,6 +19,9 @@ Edit `env.sh` if you need:
 Run from the playground root:
 
 ```bash
+# Python bindings (required for wolvrix emit steps)
+make py_install
+
 # HDLBits
 make run_hdlbits_test DUT=001
 make run_all_hdlbits_tests
@@ -27,10 +30,10 @@ make run_all_hdlbits_tests
 make run_c910_test
 
 # XiangShan
-make xs_rtl
-make xs_wolf_emit
-make xs_ref_emu
-make run_xs_diff
+make run_xs_diff -j
+
+# XS bugcases (standalone)
+make -C testcase/xs-bugcase/CASE_006 run
 ```
 
 ## Outputs
@@ -46,3 +49,6 @@ make run_xs_diff
 - Build outputs: `build/xs/`
 - Logs/waveforms: `build/logs/xs/`
 - Generated-src/macros: `testcase/xiangshan/build/generated-src/`
+
+### XS bugcases
+- Outputs: `build/xs_bugcase/CASE_*/`

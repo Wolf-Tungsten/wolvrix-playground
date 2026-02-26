@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Core sources live in `wolvrix/lib/src/` with headers in `wolvrix/lib/include/`; the Python CLI/bindings live under `wolvrix/app/pycli` and package `wolvrix`.
+- Core sources live in `wolvrix/lib/src/` with headers in `wolvrix/lib/include/`; the Python bindings live under `wolvrix/app/pybind` and package `wolvrix`.
 - Wolvrix tests sit under `wolvrix/tests/{grh,ingest,transform,emit,store}` with module fixtures under `wolvrix/tests/<module>/data`; shared suites live in `testcase/{hdlbits,openc910,xiangshan,xs-bugcase}`. Test-only artifacts are written to `wolvrix/build/artifacts` (created by CMake).
 - Source files:
   - `wolvrix/lib/src/grh.cpp` - GRH (Graph RTL Hierarchy) implementation
@@ -18,10 +18,10 @@
 ## Build, Test, and Development Commands
 - Configure: `cmake -S wolvrix -B wolvrix/build` (requires CMake 3.20+ and a C++20 compiler).
 - Build: `cmake --build wolvrix/build -j$(nproc)`; builds the core library and native extension.
-- Python package: `python3 -m pip install -e wolvrix` (provides `wolvrix` CLI and `python3 -m wolvrix`).
+- Python package: `python3 -m pip install -e wolvrix` (provides importable bindings).
 - Tests: `ctest --test-dir wolvrix/build --output-on-failure` after configuring; CTest wraps the per-target executables.
 - HDLBits flow: `make run_hdlbits_test DUT=001` (or `make run_all_hdlbits_tests`) builds the parser, emits SV/JSON, and runs Verilator; needs Verilator in PATH.
-- Manual run example: `wolvrix read-sv path/to/file.sv -- --top top --out out.json` then `wolvrix write-sv --in out.json --out out.sv`.
+- Manual run example: `PYTHONPATH=wolvrix/app/pybind python3 scripts/wolvrix_emit.py` (configure `WOLVRIX_*` env vars as needed).
 
 ## Coding Style & Naming Conventions
 - C++20 code with 4-space indentation and braces on the same line as control statements; keep includes ordered and minimal.
@@ -42,9 +42,3 @@
 - Commits follow conventional prefixes (`feat`, `fix`, `test`, `docs`, `chore`, `bump`); keep scopes brief (e.g., `feat: optimize slice emit`).
 - Keep changes atomic and include updated fixtures/docs when behavior shifts; run `ctest` and relevant `make run_hdlbits_test` targets before pushing.
 - PRs should explain intent, list tests executed, and link related issues; include CLI output snippets or artifact notes when helpful for reviewers.
-
-## AI Agent Notifications
-- When completing a significant milestone or reaching a point that requires user interaction, send a notification using the notification tool.
-- Use the MCP tool `wechat_work_notify` (server in `tools/mcp-notify-server.py`, configured via `.codex/config.toml`) to send a WeChat Work notification.
-- The tool reads the webhook URL from the `WX_WEBHOOK_URL` environment variable (already configured in the environment), unless overridden per call.
-- **Message content**: Use the same summary text already reported to the user in CLI (keep it concise).

@@ -3,3 +3,4 @@ build/
 .metals/
 .scala-build/
 .vscode/
+tmp/

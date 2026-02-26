@@ -16,12 +16,11 @@ REF_DIR := $(OUT_DIR_BASE)/ref
 WOLF_DIR := $(OUT_DIR_BASE)/wolf
 
 PYTHON ?= python3
-WOLVRIX_PYCLI := $(ROOT)/wolvrix/app/pycli
-WOLVRIX ?= PYTHONPATH=$(WOLVRIX_PYCLI)$(if $(PYTHONPATH),:$(PYTHONPATH),) $(PYTHON) -m wolvrix
-WOLF_PASSES := xmr-resolve const-fold redundant-elim memory-init-check dead-code-elim stats
+WOLVRIX_PYBIND := $(ROOT)/wolvrix/app/pybind
+WOLVRIX_PY ?= PYTHONPATH=$(WOLVRIX_PYBIND)$(if $(PYTHONPATH),:$(PYTHONPATH),) $(PYTHON)
+WOLVRIX_XS_SCRIPT := $(ROOT)/scripts/wolvrix_xs_emit.py
 WOLF_SV := $(WOLF_DIR)/wolf_emit.sv
 WOLF_JSON := $(WOLF_DIR)/grh.json
-WOLF_JSON_TMP := $(WOLF_DIR)/grh.tmp.json
 WOLF_READ_ARGS := $(WOLF_DIR)/wolvrix_read_args.txt
 WOLF_LOG ?= warn
 
@@ -69,26 +68,7 @@ run: clean $(BIN)
 $(WOLF_SV): $(FILELIST)
 	@mkdir -p $(WOLF_DIR)
 	@printf "" > $(WOLF_READ_ARGS)
-	@set -e; \
-	read_entry="$$(awk 'NF && $$1 !~ /^#/ && $$1 !~ /^\+incdir\+/' $(FILELIST) | head -n 1)"; \
-	if [ -z "$$read_entry" ]; then \
-		echo "[$(CASE_TAG)] no SV source found in $(FILELIST)"; \
-		exit 1; \
-	fi; \
-	case "$$read_entry" in \
-		/*) ;; \
-		*) read_entry="$(CASE_DIR)/$$read_entry" ;; \
-	esac; \
-	read_args="$$(if [ -s $(WOLF_READ_ARGS) ]; then xargs < $(WOLF_READ_ARGS); fi)"; \
-	$(WOLVRIX) read-sv --out $(WOLF_JSON_TMP) --log-level $(WOLF_LOG) "$$read_entry" -- -f $(FILELIST) --top $(DUT_TOP) $$read_args; \
-	json_in="$(WOLF_JSON_TMP)"; \
-	for pass in $(WOLF_PASSES); do \
-		json_out="$(WOLF_JSON_TMP).next"; \
-		$(WOLVRIX) transform --in "$$json_in" --out "$$json_out" $$pass; \
-		mv "$$json_out" "$$json_in"; \
-	done; \
-	mv "$$json_in" "$(WOLF_JSON)"; \
-	$(WOLVRIX) write-sv --in "$(WOLF_JSON)" --out "$(WOLF_SV)"
+	@$(WOLVRIX_PY) $(WOLVRIX_XS_SCRIPT) $(FILELIST) $(DUT_TOP) $(WOLF_SV) $(WOLF_JSON) $(WOLF_READ_ARGS) $(WOLF_LOG)
 $(REF_LIB): $(TB_V) $(FILELIST)
 	@if ! command -v $(VERILATOR) >/dev/null 2>&1; then \
 		echo "[$(CASE_TAG)] verilator not found in PATH"; \
