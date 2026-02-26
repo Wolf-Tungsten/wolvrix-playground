@@ -217,7 +217,7 @@ run_all_hdlbits_tests:
 	done
 
 ifneq ($(strip $(SKIP_WOLF_BUILD)),1)
-RUN_C910_TEST_DEPS := build
+RUN_C910_TEST_DEPS := py_install
 endif
 
 run_c910_test: $(RUN_C910_TEST_DEPS)
@@ -244,7 +244,7 @@ run_c910_test: $(RUN_C910_TEST_DEPS)
 			CODE_BASE_PATH="$${CODE_BASE_PATH:-$(C910_SMART_CODE_BASE)}" \
 			TOOL_EXTENSION="$$TOOL_EXTENSION" \
 			VERILATOR="$(VERILATOR)" \
-			WOLVRIX_BIN="$(WOLVRIX_APP)" 2>&1 | \
+			PYTHON="$(PYTHON)" 2>&1 | \
 			tee >(awk 'f{print} index($$0,"obj_dir/Vsim_top"){f=1; next}' > "$$LOG_FILE"); \
 	else \
 		C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=$(C910_WAVEFORM) C910_WAVEFORM_PATH="$$WAVEFORM_FILE" \
@@ -255,7 +255,7 @@ run_c910_test: $(RUN_C910_TEST_DEPS)
 			CODE_BASE_PATH="$${CODE_BASE_PATH:-$(C910_SMART_CODE_BASE)}" \
 			TOOL_EXTENSION="$$TOOL_EXTENSION" \
 			VERILATOR="$(VERILATOR)" \
-			WOLVRIX_BIN="$(WOLVRIX_APP)" 2>&1 | tee "$$LOG_FILE"; \
+			PYTHON="$(PYTHON)" 2>&1 | tee "$$LOG_FILE"; \
 	fi
 
 # XiangShan: generate sim-verilog
