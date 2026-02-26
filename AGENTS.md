@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Core sources live in `wolvrix/lib/src/` with headers in `wolvrix/lib/include/`; the Tcl/REPL app lives under `wolvrix/app/wolvrix` and links the core library (`wolvrix-lib`).
+- Core sources live in `wolvrix/lib/src/` with headers in `wolvrix/lib/include/`; the Python CLI/bindings live under `wolvrix/app/pycli` and package `wolvrix`.
 - Wolvrix tests sit under `wolvrix/tests/{grh,ingest,transform,emit,store}` with module fixtures under `wolvrix/tests/<module>/data`; shared suites live in `testcase/{hdlbits,openc910,xiangshan,xs-bugcase}`. Test-only artifacts are written to `wolvrix/build/artifacts` (created by CMake).
 - Source files:
   - `wolvrix/lib/src/grh.cpp` - GRH (Graph RTL Hierarchy) implementation
@@ -17,10 +17,11 @@
 
 ## Build, Test, and Development Commands
 - Configure: `cmake -S wolvrix -B wolvrix/build` (requires CMake 3.20+ and a C++20 compiler).
-- Build: `cmake --build wolvrix/build -j$(nproc)`; resulting binary is `wolvrix/build/bin/wolvrix`.
+- Build: `cmake --build wolvrix/build -j$(nproc)`; builds the core library and native extension.
+- Python package: `python3 -m pip install -e wolvrix` (provides `wolvrix` CLI and `python3 -m wolvrix`).
 - Tests: `ctest --test-dir wolvrix/build --output-on-failure` after configuring; CTest wraps the per-target executables.
 - HDLBits flow: `make run_hdlbits_test DUT=001` (or `make run_all_hdlbits_tests`) builds the parser, emits SV/JSON, and runs Verilator; needs Verilator in PATH.
-- Manual run example: `./wolvrix/build/bin/wolvrix -c "read_sv path/to/file.sv --top top; write_sv -o out.sv"`.
+- Manual run example: `wolvrix read-sv path/to/file.sv -- --top top --out out.json` then `wolvrix write-sv --in out.json --out out.sv`.
 
 ## Coding Style & Naming Conventions
 - C++20 code with 4-space indentation and braces on the same line as control statements; keep includes ordered and minimal.
