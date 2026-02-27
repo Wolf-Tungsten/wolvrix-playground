@@ -133,7 +133,7 @@ HDLBITS_VERILATOR_PREFIX := Vdut_$(DUT)
 HDLBITS_TB_SOURCES := $(wildcard $(HDLBITS_ROOT)/tb/tb_*.cpp)
 HDLBITS_DUTS := $(sort $(patsubst tb_%,%,$(basename $(notdir $(HDLBITS_TB_SOURCES)))))
 
-.PHONY: all build check-id run_hdlbits_test run_all_hdlbits_tests run_c910_test \
+.PHONY: all build check-id run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	xs_rtl xs_wolf_filelist xs_wolf_emit xs_ref_emu xs_wolf_emu run_xs_json_test \
 	xs_diff_clean run_xs_ref_emu run_xs_wolf_emu run_xs_diff clean
 
@@ -226,6 +226,42 @@ run_c910_test: $(RUN_C910_TEST_DEPS)
 		$(MAKE) --no-print-directory -C $(C910_SMART_RUN_DIR) runcase \
 			CASE=$$CASE_NAME SIM=$(C910_SMART_SIM) \
 			C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=$(C910_WAVEFORM) \
+			BUILD_DIR="$(abspath $(C910_WORK_DIR))" \
+			CODE_BASE_PATH="$${CODE_BASE_PATH:-$(C910_SMART_CODE_BASE)}" \
+			TOOL_EXTENSION="$$TOOL_EXTENSION" \
+			VERILATOR="$(VERILATOR)" \
+			PYTHON="$(PYTHON)" 2>&1 | tee "$$LOG_FILE"; \
+	fi
+
+run_c910_ref_test:
+	@CASE_NAME="$(if $(CASE),$(CASE),$(C910_SMART_CASE))"; \
+	LOG_FILE="$(if $(LOG_FILE),$(LOG_FILE),$(C910_LOG_DIR)/c910_ref_$${CASE_NAME}_$(shell date +%Y%m%d_%H%M%S).log)"; \
+	WAVEFORM_FILE="$(if $(C910_WAVEFORM_PATH_ABS),$(C910_WAVEFORM_PATH_ABS),$(C910_WAVEFORM_DIR_ABS)/c910_ref_$${CASE_NAME}_$(shell date +%Y%m%d_%H%M%S).fst)"; \
+	WAVEFORM_DIR="$$(dirname "$$WAVEFORM_FILE")"; \
+	mkdir -p "$(C910_LOG_DIR_ABS)" "$$WAVEFORM_DIR"; \
+	if [ -z "$(TOOL_EXTENSION)" ] && [ -f "$(C910_SMART_ENV)" ]; then \
+		. "$(C910_SMART_ENV)"; \
+	fi; \
+	echo "[RUN] smart_run CASE=$$CASE_NAME SIM=verilator_ref"; \
+	echo "[RUN] C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=1"; \
+	echo "[LOG] Capturing output to: $$LOG_FILE"; \
+	echo "[WAVEFORM] Will save FST to: $$WAVEFORM_FILE"; \
+	if [ "$(LOG_ONLY_SIM)" != "0" ]; then \
+		C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=1 C910_WAVEFORM_PATH="$$WAVEFORM_FILE" \
+		$(MAKE) --no-print-directory -C $(C910_SMART_RUN_DIR) runcase \
+			CASE=$$CASE_NAME SIM=verilator_ref \
+			C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=1 \
+			BUILD_DIR="$(abspath $(C910_WORK_DIR))" \
+			CODE_BASE_PATH="$${CODE_BASE_PATH:-$(C910_SMART_CODE_BASE)}" \
+			TOOL_EXTENSION="$$TOOL_EXTENSION" \
+			VERILATOR="$(VERILATOR)" \
+			PYTHON="$(PYTHON)" 2>&1 | \
+			tee >(awk 'f{print} index($$0,"obj_dir/Vsim_top"){f=1; next}' > "$$LOG_FILE"); \
+	else \
+		C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=1 C910_WAVEFORM_PATH="$$WAVEFORM_FILE" \
+		$(MAKE) --no-print-directory -C $(C910_SMART_RUN_DIR) runcase \
+			CASE=$$CASE_NAME SIM=verilator_ref \
+			C910_SIM_MAX_CYCLE=$(C910_SIM_MAX_CYCLE) C910_WAVEFORM=1 \
 			BUILD_DIR="$(abspath $(C910_WORK_DIR))" \
 			CODE_BASE_PATH="$${CODE_BASE_PATH:-$(C910_SMART_CODE_BASE)}" \
 			TOOL_EXTENSION="$$TOOL_EXTENSION" \

@@ -28,6 +28,7 @@ make run_all_hdlbits_tests
 
 # OpenC910
 make run_c910_test
+make run_c910_ref_test
 
 # XiangShan
 make run_xs_diff -j
