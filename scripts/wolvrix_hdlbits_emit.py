@@ -2,7 +2,6 @@
 
 import sys
 from pathlib import Path
-
 import wolvrix
 
 if len(sys.argv) != 3:
@@ -26,15 +25,17 @@ design = wolvrix.read_sv(
     log_level="info",
 )
 
-for pass_name in [
+pipeline = [
     "xmr-resolve",
+    "multidriven-guard",
+    ("hier-flatten", ["-sym-protect", "hierarchy"]),
     "const-fold",
     "redundant-elim",
     "memory-init-check",
     "dead-code-elim",
     "stats",
-]:
-    design.run_pass(pass_name)
+]
+design.run_pipeline(pipeline)
 
 design.write_json(str(json_out))
 design = wolvrix.read_json(str(json_out))

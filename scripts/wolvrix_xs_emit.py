@@ -4,7 +4,6 @@ import shlex
 import sys
 import time
 from pathlib import Path
-
 import wolvrix
 
 
@@ -56,6 +55,8 @@ log(f"read_sv done {int((time.perf_counter() - start) * 1000)}ms")
 
 for pass_name in [
     "xmr-resolve",
+    "multidriven-guard",
+    "hier-flatten",
     "const-fold",
     "redundant-elim",
     "memory-init-check",
