@@ -53,19 +53,20 @@ design = wolvrix.read_sv(
 )
 log(f"read_sv done {int((time.perf_counter() - start) * 1000)}ms")
 
-for pass_name in [
+pipeline = [
     "xmr-resolve",
     "multidriven-guard",
+    "blackbox-guard",
     "hier-flatten",
-    "const-fold",
-    "redundant-elim",
+    ("simplify", ["-semantics", "2state"]),
     "memory-init-check",
-    "dead-code-elim",
     "stats",
-]:
+]
+for pass_spec in pipeline:
+    pass_name = pass_spec[0] if isinstance(pass_spec, (tuple, list)) else pass_spec
     start = time.perf_counter()
     log(f"pass {pass_name} start")
-    design.run_pass(pass_name, diagnostics=log_level)
+    design.run_pipeline([pass_spec], diagnostics=log_level)
     log(f"pass {pass_name} done {int((time.perf_counter() - start) * 1000)}ms")
 
 start = time.perf_counter()

@@ -105,10 +105,8 @@ def main() -> int:
     if skip_transform != "1":
         for pass_name in [
             "xmr-resolve",
-            "const-fold",
-            "redundant-elim",
+            "simplify",
             "memory-init-check",
-            "dead-code-elim",
             "stats",
         ]:
             try:

@@ -264,21 +264,19 @@
 1. `xmr-resolve`
 2. `hier-flatten`
 3. `blackbox-guard`
-4. `const-fold`
-5. `redundant-elim`
-6. `dead-code-elim`
-7. `seq-event-normalize`
-8. `comb-loop-elim`
-9. `activity-source-build`
-10. `event-group-build`
-11. `comb-cone-partition`
-12. `activity-comb-propagate-build`
-13. `activity-toposort`
-14. `activity-region-build`
-15. `activity-seq-update-build`
-16. `activity-schedule-lower`
+4. `simplify`
+5. `seq-event-normalize`
+6. `comb-loop-elim`
+7. `activity-source-build`
+8. `event-group-build`
+9. `comb-cone-partition`
+10. `activity-comb-propagate-build`
+11. `activity-toposort`
+12. `activity-region-build`
+13. `activity-seq-update-build`
+14. `activity-schedule-lower`
 
-`clock-gate-lower` 放在 6 与 7 之间（可选）。
+`clock-gate-lower` 放在 4 与 5 之间（可选）。
 
 ---
 

@@ -29,10 +29,8 @@ pipeline = [
     "xmr-resolve",
     "multidriven-guard",
     ("hier-flatten", ["-sym-protect", "hierarchy"]),
-    "const-fold",
-    "redundant-elim",
+    "simplify",
     "memory-init-check",
-    "dead-code-elim",
     "stats",
 ]
 design.run_pipeline(pipeline)
