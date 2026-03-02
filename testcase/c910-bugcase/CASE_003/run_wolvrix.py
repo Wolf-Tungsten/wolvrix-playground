@@ -8,8 +8,9 @@ from pathlib import Path
 
 import wolvrix
 
+
 def log(message: str) -> None:
-    sys.stderr.write(f"[c910-bugcase-001] {message}\n")
+    sys.stderr.write(f"[c910-bugcase-003] {message}\n")
     sys.stderr.flush()
 
 
@@ -18,7 +19,7 @@ def main() -> int:
     repo_root = (case_dir / "../../..").resolve()
     filelist = case_dir / "filelist.f"
 
-    out_dir = Path(os.environ.get("OUT_DIR", repo_root / "build" / "c910_bugcase" / "CASE_001"))
+    out_dir = Path(os.environ.get("OUT_DIR", repo_root / "build" / "c910_bugcase" / "CASE_003"))
     out_dir.mkdir(parents=True, exist_ok=True)
 
     log_level = os.environ.get("WOLF_LOG", "info")
@@ -47,6 +48,9 @@ def main() -> int:
     pipeline = [
         "xmr-resolve",
         "multidriven-guard",
+        "blackbox-guard",
+        "latch-transparent-read",
+        "slice-index-const",
         ("hier-flatten", ["-sym-protect", "hierarchy"]),
         "comb-loop-elim",
     ]

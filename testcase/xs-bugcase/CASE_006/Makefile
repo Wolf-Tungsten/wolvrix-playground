@@ -22,7 +22,7 @@ WOLVRIX_XS_SCRIPT := $(ROOT)/scripts/wolvrix_xs_emit.py
 WOLF_SV := $(WOLF_DIR)/wolf_emit.sv
 WOLF_JSON := $(WOLF_DIR)/grh.json
 WOLF_READ_ARGS := $(WOLF_DIR)/wolvrix_read_args.txt
-WOLF_LOG ?= warn
+WOLF_LOG ?= info
 
 VERILATOR ?= $(or $(shell echo $$VERILATOR),verilator)
 VERILATOR_COVERAGE ?= verilator_coverage

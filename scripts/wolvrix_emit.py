@@ -57,7 +57,7 @@ def main() -> int:
         json_out = str(Path(sv_out).parent / "grh.json")
 
     output_dir = getenv("WOLVRIX_OUTPUT_DIR")
-    log_level = getenv("WOLVRIX_LOG_LEVEL", "warn")
+log_level = getenv("WOLVRIX_LOG_LEVEL", "info")
 
     sources = split_args(sources_text)
     if not sources and not filelist:
@@ -96,7 +96,14 @@ def main() -> int:
     ensure_parent_dir(json_out)
 
     try:
-        design = wolvrix.read_sv(path, slang_args=read_args, log_level=log_level)
+        design, _read_diags = wolvrix.read_sv(
+            path,
+            slang_args=read_args,
+            log_level=log_level,
+            diagnostics="warn",
+            print_diagnostics_level="warn",
+            raise_diagnostics_level="error",
+        )
     except Exception as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -105,12 +112,19 @@ def main() -> int:
     if skip_transform != "1":
         for pass_name in [
             "xmr-resolve",
+            "latch-transparent-read",
             "simplify",
             "memory-init-check",
             "stats",
         ]:
             try:
-                design.run_pass(pass_name)
+                design.run_pass(
+                    pass_name,
+                    diagnostics="warn",
+                    log_level=log_level,
+                    print_diagnostics_level="warn",
+                    raise_diagnostics_level="error",
+                )
             except Exception as exc:
                 print(str(exc), file=sys.stderr)
                 return 1

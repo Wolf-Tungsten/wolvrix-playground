@@ -8,8 +8,9 @@ from pathlib import Path
 
 import wolvrix
 
+
 def log(message: str) -> None:
-    sys.stderr.write(f"[c910-bugcase-001] {message}\n")
+    sys.stderr.write(f"[c910-bugcase-004] {message}\n")
     sys.stderr.flush()
 
 
@@ -18,11 +19,11 @@ def main() -> int:
     repo_root = (case_dir / "../../..").resolve()
     filelist = case_dir / "filelist.f"
 
-    out_dir = Path(os.environ.get("OUT_DIR", repo_root / "build" / "c910_bugcase" / "CASE_001"))
+    out_dir = Path(os.environ.get("OUT_DIR", repo_root / "build" / "c910_bugcase" / "CASE_004"))
     out_dir.mkdir(parents=True, exist_ok=True)
 
     log_level = os.environ.get("WOLF_LOG", "info")
-    top_name = os.environ.get("WOLF_TOP", "sim_top")
+    top_name = os.environ.get("WOLF_TOP", "ct_idu_id_decd")
     emitted_sv = out_dir / f"{top_name}_wolf.sv"
     json_path = out_dir / f"{top_name}_wolf.json"
 
@@ -47,6 +48,9 @@ def main() -> int:
     pipeline = [
         "xmr-resolve",
         "multidriven-guard",
+        "blackbox-guard",
+        "latch-transparent-read",
+        "slice-index-const",
         ("hier-flatten", ["-sym-protect", "hierarchy"]),
         "comb-loop-elim",
     ]

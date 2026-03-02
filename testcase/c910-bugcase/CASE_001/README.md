@@ -17,7 +17,7 @@ import wolvrix
 filelist = "testcase/c910-bugcase/CASE_001/filelist.f"
 args = ["-f", filelist, "--top", "sim_top"]
 
-design = wolvrix.read_sv(None, slang_args=args)
+design, _read_diags = wolvrix.read_sv(None, slang_args=args)
 # xmr-resolve first to match the C910 pipeline
 for name in ["xmr-resolve", "multidriven-guard", "hier-flatten"]:
     design.run_pass(name)

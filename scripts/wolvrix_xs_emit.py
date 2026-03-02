@@ -28,7 +28,7 @@ top_name = sys.argv[2]
 sv_out = sys.argv[3]
 json_out = sys.argv[4]
 read_args_file = sys.argv[5]
-log_level = sys.argv[6] if len(sys.argv) > 6 else "warn"
+log_level = sys.argv[6] if len(sys.argv) > 6 else "info"
 
 total_start = time.perf_counter()
 
@@ -45,11 +45,13 @@ if read_args_file:
 
 start = time.perf_counter()
 log("read_sv start")
-design = wolvrix.read_sv(
+design, _read_diags = wolvrix.read_sv(
     None,
     slang_args=read_args,
     log_level=log_level,
-    diagnostics=log_level,
+    diagnostics="warn",
+    print_diagnostics_level="warn",
+    raise_diagnostics_level="error",
 )
 log(f"read_sv done {int((time.perf_counter() - start) * 1000)}ms")
 
@@ -57,7 +59,9 @@ pipeline = [
     "xmr-resolve",
     "multidriven-guard",
     "blackbox-guard",
+    "latch-transparent-read",
     "hier-flatten",
+    "comb-loop-elim",
     ("simplify", ["-semantics", "2state"]),
     "memory-init-check",
     "stats",
@@ -66,7 +70,13 @@ for pass_spec in pipeline:
     pass_name = pass_spec[0] if isinstance(pass_spec, (tuple, list)) else pass_spec
     start = time.perf_counter()
     log(f"pass {pass_name} start")
-    design.run_pipeline([pass_spec], diagnostics=log_level)
+    design.run_pipeline(
+        [pass_spec],
+        diagnostics="warn",
+        log_level=log_level,
+        print_diagnostics_level="warn",
+        raise_diagnostics_level="error",
+    )
     log(f"pass {pass_name} done {int((time.perf_counter() - start) * 1000)}ms")
 
 start = time.perf_counter()
