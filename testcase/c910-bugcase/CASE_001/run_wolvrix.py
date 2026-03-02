@@ -38,8 +38,8 @@ def main() -> int:
         None,
         slang_args=["-f", str(filelist), "--top", top_name],
         log_level=log_level,
-        diagnostics="warn",
-        print_diagnostics_level="warn",
+        diagnostics="info",
+        print_diagnostics_level="info",
         raise_diagnostics_level="error",
     )
     log(f"read_sv done {int((time.perf_counter() - start) * 1000)}ms")
@@ -55,9 +55,9 @@ def main() -> int:
     log("pipeline start")
     design.run_pipeline(
         pipeline,
-        diagnostics="warn",
+        diagnostics="info",
         log_level=log_level,
-        print_diagnostics_level="warn",
+        print_diagnostics_level="info",
         raise_diagnostics_level="error",
     )
     log(f"pipeline done {int((time.perf_counter() - start) * 1000)}ms")

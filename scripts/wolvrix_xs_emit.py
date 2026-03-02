@@ -4,6 +4,7 @@ import shlex
 import sys
 import time
 from pathlib import Path
+import json
 import wolvrix
 
 
@@ -16,6 +17,27 @@ def parse_tokens(value: str) -> list[str]:
 def log(message: str) -> None:
     sys.stderr.write(f"[wolvrix-xs] {message}\n")
     sys.stderr.flush()
+
+
+def write_stats_json(diags: list[dict], out_dir: Path) -> None:
+    for diag in diags or []:
+        if diag.get("pass") != "stats":
+            continue
+        if str(diag.get("kind", "")).lower() != "info":
+            continue
+        payload = diag.get("message")
+        if not payload:
+            continue
+        try:
+            data = json.loads(payload)
+        except json.JSONDecodeError:
+            log("stats json parse failed")
+            return
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / "wolvrix_xs_stats.json"
+        out_path.write_text(json.dumps(data, ensure_ascii=True), encoding="utf-8")
+        log(f"stats json written {out_path}")
+        return
 
 
 if len(sys.argv) < 6:
@@ -49,8 +71,8 @@ design, _read_diags = wolvrix.read_sv(
     None,
     slang_args=read_args,
     log_level=log_level,
-    diagnostics="warn",
-    print_diagnostics_level="warn",
+    diagnostics="info",
+    print_diagnostics_level="info",
     raise_diagnostics_level="error",
 )
 log(f"read_sv done {int((time.perf_counter() - start) * 1000)}ms")
@@ -70,13 +92,15 @@ for pass_spec in pipeline:
     pass_name = pass_spec[0] if isinstance(pass_spec, (tuple, list)) else pass_spec
     start = time.perf_counter()
     log(f"pass {pass_name} start")
-    design.run_pipeline(
+    _changed, diags = design.run_pipeline(
         [pass_spec],
-        diagnostics="warn",
+        diagnostics="info",
         log_level=log_level,
-        print_diagnostics_level="warn",
+        print_diagnostics_level="info",
         raise_diagnostics_level="error",
     )
+    if pass_name == "stats":
+        write_stats_json(diags, Path("tmp"))
     log(f"pass {pass_name} done {int((time.perf_counter() - start) * 1000)}ms")
 
 start = time.perf_counter()
