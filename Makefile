@@ -328,12 +328,16 @@ run_xs_repcut: py_install
 		exit 1; \
 	fi
 	@mkdir -p "$(XS_WOLF_EMIT_DIR_ABS)"
+	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
+	@$(eval XS_REPCUT_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_$(RUN_ID).log)
 	@echo "[RUN] xs repcut strip-debug"
+	@echo "[LOG] repcut: $(XS_REPCUT_LOG_FILE)"
 	@echo "[CMD] $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) $(XS_WOLF_JSON) $(XS_WOLF_REPCUT_JSON) $(WOLF_LOG)"
 	@$(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) \
 		$(XS_WOLF_JSON) \
 		$(XS_WOLF_REPCUT_JSON) \
-		$(WOLF_LOG)
+		$(WOLF_LOG) \
+		2>&1 | tee "$(XS_REPCUT_LOG_FILE)"
 
 xs_ref_emu: $(XS_SIM_TOP_V)
 	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
@@ -477,3 +481,5 @@ clean:
 	@rm -rf build
 	@rm -rf $(C910_WORK_DIR)
 	@rm -rf $(XS_ROOT)/build
+XS_REPCUT_LOG_DIR ?= $(BUILD_DIR)/logs/xs-repcut
+XS_REPCUT_LOG_DIR_ABS := $(abspath $(XS_REPCUT_LOG_DIR))

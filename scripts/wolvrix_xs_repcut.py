@@ -48,4 +48,15 @@ json_out.parent.mkdir(parents=True, exist_ok=True)
 design.write_json(str(json_out))
 log(f"write_json done {int((time.perf_counter() - start) * 1000)}ms")
 
+start = time.perf_counter()
+log("read_json start (roundtrip)")
+design = wolvrix.read_json(str(json_out))
+log(f"read_json done (roundtrip) {int((time.perf_counter() - start) * 1000)}ms")
+
+start = time.perf_counter()
+sv_out = json_out.with_suffix(".sv")
+log(f"write_sv start {sv_out}")
+design.write_sv(str(sv_out))
+log(f"write_sv done {int((time.perf_counter() - start) * 1000)}ms")
+
 log(f"total done {int((time.perf_counter() - total_start) * 1000)}ms")
