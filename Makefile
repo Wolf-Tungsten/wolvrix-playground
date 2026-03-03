@@ -63,6 +63,7 @@ C910_WAVEFORM_PATH_ABS = $(if $(C910_WAVEFORM_PATH),$(if $(filter /%,$(C910_WAVE
 # XiangShan paths / options
 XS_ROOT := $(CURDIR)/testcase/xiangshan
 XS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_emit.py
+XS_WOLVRIX_REPCUT_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_repcut.py
 
 XS_SIM_MAX_CYCLE ?= 0
 XS_WAVEFORM ?= 0
@@ -112,6 +113,7 @@ XS_WOLF_EMIT_ABS := $(abspath $(XS_WOLF_EMIT))
 XS_WOLF_FILELIST_ABS := $(abspath $(XS_WOLF_FILELIST))
 XS_SIM_TOP_V := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).$(XS_RTL_SUFFIX)
 XS_WOLF_JSON ?= $(XS_WOLF_EMIT_DIR_ABS)/xs_wolf.json
+XS_WOLF_REPCUT_JSON ?= $(XS_WOLF_EMIT_DIR_ABS)/xs_wolf_repcut.json
 XS_JSON_ROUNDTRIP ?= 0
 
 XS_DIFFTEST_GEN_DIR ?= $(XS_ROOT)/build/generated-src
@@ -135,7 +137,7 @@ HDLBITS_DUTS := $(sort $(patsubst tb_%,%,$(basename $(notdir $(HDLBITS_TB_SOURCE
 
 .PHONY: all build check-id run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	xs_rtl xs_wolf_filelist xs_wolf_emit xs_ref_emu xs_wolf_emu run_xs_json_test \
-	xs_diff_clean run_xs_ref_emu run_xs_wolf_emu run_xs_diff clean
+	run_xs_repcut xs_diff_clean run_xs_ref_emu run_xs_wolf_emu run_xs_diff clean
 
 all: build
 
@@ -319,6 +321,19 @@ xs_wolf_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(XS_READ_ARGS_FILE) \
 			$(WOLF_LOG); \
 	} 2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
+
+run_xs_repcut: py_install
+	@if [ ! -f "$(XS_WOLF_JSON)" ]; then \
+		echo "[FAIL] xs repcut: missing json $(XS_WOLF_JSON)"; \
+		exit 1; \
+	fi
+	@mkdir -p "$(XS_WOLF_EMIT_DIR_ABS)"
+	@echo "[RUN] xs repcut strip-debug"
+	@echo "[CMD] $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) $(XS_WOLF_JSON) $(XS_WOLF_REPCUT_JSON) $(WOLF_LOG)"
+	@$(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) \
+		$(XS_WOLF_JSON) \
+		$(XS_WOLF_REPCUT_JSON) \
+		$(WOLF_LOG)
 
 xs_ref_emu: $(XS_SIM_TOP_V)
 	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
