@@ -114,6 +114,8 @@ XS_WOLF_FILELIST_ABS := $(abspath $(XS_WOLF_FILELIST))
 XS_SIM_TOP_V := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).$(XS_RTL_SUFFIX)
 XS_WOLF_JSON ?= $(XS_WOLF_EMIT_DIR_ABS)/xs_wolf.json
 XS_WOLF_REPCUT_JSON ?= $(XS_WOLF_EMIT_DIR_ABS)/xs_wolf_repcut.json
+XS_REPCUT_WORK_DIR ?= $(XS_WOLF_EMIT_DIR)/repcut_work
+XS_REPCUT_WORK_DIR_ABS := $(abspath $(XS_REPCUT_WORK_DIR))
 XS_JSON_ROUNDTRIP ?= 0
 
 XS_DIFFTEST_GEN_DIR ?= $(XS_ROOT)/build/generated-src
@@ -328,14 +330,16 @@ run_xs_repcut: py_install
 		exit 1; \
 	fi
 	@mkdir -p "$(XS_WOLF_EMIT_DIR_ABS)"
+	@mkdir -p "$(XS_REPCUT_WORK_DIR_ABS)"
 	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
 	@$(eval XS_REPCUT_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_$(RUN_ID).log)
 	@echo "[RUN] xs repcut strip-debug"
 	@echo "[LOG] repcut: $(XS_REPCUT_LOG_FILE)"
-	@echo "[CMD] $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) $(XS_WOLF_JSON) $(XS_WOLF_REPCUT_JSON) $(WOLF_LOG)"
+	@echo "[CMD] $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) $(XS_WOLF_JSON) $(XS_WOLF_REPCUT_JSON) $(XS_REPCUT_WORK_DIR_ABS) $(WOLF_LOG)"
 	@$(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) \
 		$(XS_WOLF_JSON) \
 		$(XS_WOLF_REPCUT_JSON) \
+		$(XS_REPCUT_WORK_DIR_ABS) \
 		$(WOLF_LOG) \
 		2>&1 | tee "$(XS_REPCUT_LOG_FILE)"
 

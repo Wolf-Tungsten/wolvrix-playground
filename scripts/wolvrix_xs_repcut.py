@@ -11,15 +11,22 @@ def log(message: str) -> None:
     sys.stderr.write(f"[wolvrix-xs-repcut] {message}\n")
     sys.stderr.flush()
 
+# repcut parameters (edit here)
+REPCUT_TARGET_GRAPH = "SimTop_int"
+REPCUT_PARTITION_COUNT = "32"
+REPCUT_IMBALANCE_FACTOR = "0.05"
+REPCUT_KAHYPAR_PATH = "KaHyPar"
+REPCUT_KEEP_INTERMEDIATE_FILES = True
 
-if len(sys.argv) < 3:
+if len(sys.argv) < 4:
     raise RuntimeError(
-        "usage: wolvrix_xs_repcut.py <json_in> <json_out> [log_level]"
+        "usage: wolvrix_xs_repcut.py <json_in> <json_out> <work_dir> [log_level]"
     )
 
 json_in = Path(sys.argv[1])
 json_out = Path(sys.argv[2])
-log_level = sys.argv[3] if len(sys.argv) > 3 else "info"
+repcut_work_dir = Path(sys.argv[3])
+log_level = sys.argv[4] if len(sys.argv) > 4 else "info"
 
 if not json_in.exists():
     raise RuntimeError(f"input json not found: {json_in}")
@@ -33,14 +40,42 @@ log(f"read_json done {int((time.perf_counter() - start) * 1000)}ms")
 
 start = time.perf_counter()
 log("pass strip-debug start")
-design.run_pipeline(
-    ["strip-debug"],
+design.run_pass(
+    "strip-debug",
     diagnostics="info",
     log_level=log_level,
     print_diagnostics_level="info",
     raise_diagnostics_level="error",
 )
 log(f"pass strip-debug done {int((time.perf_counter() - start) * 1000)}ms")
+
+start = time.perf_counter()
+log("pass repcut start")
+repcut_work_dir.mkdir(parents=True, exist_ok=True)
+repcut_args = [
+    "-target-graph",
+    REPCUT_TARGET_GRAPH,
+    "-partition-count",
+    REPCUT_PARTITION_COUNT,
+    "-imbalance-factor",
+    REPCUT_IMBALANCE_FACTOR,
+    "-work-dir",
+    str(repcut_work_dir),
+    "-kahypar-path",
+    REPCUT_KAHYPAR_PATH,
+]
+if REPCUT_KEEP_INTERMEDIATE_FILES:
+    repcut_args.append("-keep-intermediate-files")
+
+design.run_pass(
+    "repcut",
+    args=repcut_args,
+    diagnostics="info",
+    log_level=log_level,
+    print_diagnostics_level="info",
+    raise_diagnostics_level="error",
+)
+log(f"pass repcut done {int((time.perf_counter() - start) * 1000)}ms")
 
 start = time.perf_counter()
 log(f"write_json start {json_out}")
