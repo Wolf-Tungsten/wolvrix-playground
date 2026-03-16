@@ -13,9 +13,11 @@ def log(message: str) -> None:
 
 # repcut parameters (edit here)
 REPCUT_TARGET_GRAPH = "SimTop_int"
-REPCUT_PARTITION_COUNT = "32"
-REPCUT_IMBALANCE_FACTOR = "0.05"
-REPCUT_KAHYPAR_PATH = "KaHyPar"
+REPCUT_PARTITION_COUNT = "64"
+REPCUT_IMBALANCE_FACTOR = "0.015"
+REPCUT_PARTITIONER = "mt-kahypar"
+REPCUT_MTKAHYPAR_PRESET = "quality"
+REPCUT_MTKAHYPAR_THREADS = "0"
 REPCUT_KEEP_INTERMEDIATE_FILES = True
 
 if len(sys.argv) < 4:
@@ -61,8 +63,12 @@ repcut_args = [
     REPCUT_IMBALANCE_FACTOR,
     "-work-dir",
     str(repcut_work_dir),
-    "-kahypar-path",
-    REPCUT_KAHYPAR_PATH,
+    "-partitioner",
+    REPCUT_PARTITIONER,
+    "-mtkahypar-preset",
+    REPCUT_MTKAHYPAR_PRESET,
+    "-mtkahypar-threads",
+    REPCUT_MTKAHYPAR_THREADS,
 ]
 if REPCUT_KEEP_INTERMEDIATE_FILES:
     repcut_args.append("-keep-intermediate-files")

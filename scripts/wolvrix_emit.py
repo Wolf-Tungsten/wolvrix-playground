@@ -57,7 +57,7 @@ def main() -> int:
         json_out = str(Path(sv_out).parent / "grh.json")
 
     output_dir = getenv("WOLVRIX_OUTPUT_DIR")
-log_level = getenv("WOLVRIX_LOG_LEVEL", "info")
+    log_level = getenv("WOLVRIX_LOG_LEVEL", "info")
 
     sources = split_args(sources_text)
     if not sources and not filelist:
@@ -110,16 +110,19 @@ log_level = getenv("WOLVRIX_LOG_LEVEL", "info")
 
     skip_transform = getenv("WOLVRIX_SKIP_TRANSFORM", "0")
     if skip_transform != "1":
-        for pass_name in [
-            "xmr-resolve",
-            "latch-transparent-read",
-            "simplify",
-            "memory-init-check",
-            "stats",
-        ]:
+        pipeline = [
+            ("xmr-resolve", []),
+            ("mem-to-reg", ["-row-limit", "8"]),
+            ("latch-transparent-read", []),
+            ("simplify", []),
+            ("memory-init-check", []),
+            ("stats", []),
+        ]
+        for pass_name, pass_args in pipeline:
             try:
                 design.run_pass(
                     pass_name,
+                    args=pass_args,
                     diagnostics="warn",
                     log_level=log_level,
                     print_diagnostics_level="warn",
