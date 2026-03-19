@@ -79,6 +79,7 @@ log(f"read_sv done {int((time.perf_counter() - start) * 1000)}ms")
 
 pipeline = [
     "xmr-resolve",
+    "memory-read-retime",
     ("mem-to-reg", ["-row-limit", "512"]),
     "multidriven-guard",
     "blackbox-guard",

@@ -13,7 +13,7 @@ def log(message: str) -> None:
 
 # repcut parameters (edit here)
 REPCUT_TARGET_GRAPH = "SimTop_int"
-REPCUT_PARTITION_COUNT = "64"
+REPCUT_PARTITION_COUNT = "128"
 REPCUT_IMBALANCE_FACTOR = "0.015"
 REPCUT_PARTITIONER = "mt-kahypar"
 REPCUT_MTKAHYPAR_PRESET = "quality"
