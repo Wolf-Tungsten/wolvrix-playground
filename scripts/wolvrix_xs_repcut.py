@@ -113,9 +113,10 @@ design = wolvrix.read_json(str(json_out))
 log(f"read_json done (roundtrip) {int((time.perf_counter() - start) * 1000)}ms")
 
 start = time.perf_counter()
-sv_out = json_out.with_suffix(".sv")
-log(f"write_sv start {sv_out}")
-design.write_sv(str(sv_out))
+sv_out_arg = json_out.with_suffix(".sv")
+sv_out_dir = sv_out_arg.with_suffix("") if sv_out_arg.suffix == ".sv" else sv_out_arg
+log(f"write_sv start {sv_out_dir}")
+design.write_sv(str(sv_out_dir), top=[TOP_MODULE_PATH], split_modules=True)
 log(f"write_sv done {int((time.perf_counter() - start) * 1000)}ms")
 
 log(f"total done {int((time.perf_counter() - total_start) * 1000)}ms")
