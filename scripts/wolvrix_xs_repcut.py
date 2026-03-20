@@ -11,8 +11,13 @@ def log(message: str) -> None:
     sys.stderr.write(f"[wolvrix-xs-repcut] {message}\n")
     sys.stderr.flush()
 
+# pass targets (edit here if top symbol changes)
+TOP_MODULE_PATH = "SimTop"
+TOP_LOGIC_INSTANCE_PATH = "SimTop.logic_part"
+REPCUT_PATH = TOP_LOGIC_INSTANCE_PATH
+INSTANCE_INLINE_PATH = TOP_LOGIC_INSTANCE_PATH
+
 # repcut parameters (edit here)
-REPCUT_TARGET_GRAPH = "SimTop_int"
 REPCUT_PARTITION_COUNT = "32"
 REPCUT_IMBALANCE_FACTOR = "0.015"
 REPCUT_PARTITIONER = "mt-kahypar"
@@ -41,9 +46,10 @@ design = wolvrix.read_json(str(json_in))
 log(f"read_json done {int((time.perf_counter() - start) * 1000)}ms")
 
 start = time.perf_counter()
-log("pass strip-debug start")
+log(f"pass strip-debug start path={TOP_MODULE_PATH}")
 design.run_pass(
     "strip-debug",
+    args=["-path", TOP_MODULE_PATH],
     diagnostics="info",
     log_level=log_level,
     print_diagnostics_level="info",
@@ -52,11 +58,11 @@ design.run_pass(
 log(f"pass strip-debug done {int((time.perf_counter() - start) * 1000)}ms")
 
 start = time.perf_counter()
-log("pass repcut start")
+log(f"pass repcut start path={REPCUT_PATH}")
 repcut_work_dir.mkdir(parents=True, exist_ok=True)
 repcut_args = [
-    "-target-graph",
-    REPCUT_TARGET_GRAPH,
+    "-path",
+    REPCUT_PATH,
     "-partition-count",
     REPCUT_PARTITION_COUNT,
     "-imbalance-factor",
@@ -82,6 +88,18 @@ design.run_pass(
     raise_diagnostics_level="error",
 )
 log(f"pass repcut done {int((time.perf_counter() - start) * 1000)}ms")
+
+start = time.perf_counter()
+log(f"pass instance-inline start path={INSTANCE_INLINE_PATH}")
+design.run_pass(
+    "instance-inline",
+    args=["-path", INSTANCE_INLINE_PATH],
+    diagnostics="info",
+    log_level=log_level,
+    print_diagnostics_level="info",
+    raise_diagnostics_level="error",
+)
+log(f"pass instance-inline done {int((time.perf_counter() - start) * 1000)}ms")
 
 start = time.perf_counter()
 log(f"write_json start {json_out}")
