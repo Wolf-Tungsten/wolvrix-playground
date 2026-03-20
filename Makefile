@@ -70,7 +70,7 @@ XS_WAVEFORM ?= 0
 XS_WAVEFORM_FULL ?= 0
 XS_RAM_TRACE ?= 0
 XS_NUM_CORES ?= 1
-XS_EMU_THREADS ?= 4
+XS_EMU_THREADS ?= 2
 XS_SIM_TOP ?= SimTop
 XS_RTL_SUFFIX ?= sv
 XS_WITH_CHISELDB ?= 0
@@ -94,6 +94,7 @@ XS_WORK_BASE ?= $(BUILD_DIR)/xs
 XS_RTL_BUILD ?= $(XS_WORK_BASE)/rtl
 XS_REF_BUILD ?= $(XS_WORK_BASE)/ref
 XS_WOLF_BUILD ?= $(XS_WORK_BASE)/wolf
+XS_REPCUT_BUILD ?= $(XS_WORK_BASE)/repcut
 XS_RTL_DIR := $(XS_RTL_BUILD)/rtl
 XS_VSRC_DIR ?= $(XS_ROOT)/difftest/src/test/vsrc/common
 XS_WOLF_EMIT_DIR ?= $(XS_WOLF_BUILD)/wolf_emit
@@ -113,10 +114,15 @@ XS_WOLF_EMIT_ABS := $(abspath $(XS_WOLF_EMIT))
 XS_WOLF_FILELIST_ABS := $(abspath $(XS_WOLF_FILELIST))
 XS_SIM_TOP_V := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).$(XS_RTL_SUFFIX)
 XS_WOLF_JSON ?= $(XS_WOLF_EMIT_DIR_ABS)/xs_wolf.json
-XS_WOLF_REPCUT_JSON ?= $(XS_WOLF_EMIT_DIR_ABS)/xs_wolf_repcut.json
-XS_REPCUT_WORK_DIR ?= $(XS_WOLF_EMIT_DIR)/repcut_work
+XS_WOLF_REPCUT_JSON ?= $(XS_REPCUT_BUILD)/xs_wolf_repcut.json
+XS_WOLF_REPCUT_EMIT ?= $(XS_WOLF_REPCUT_JSON:.json=.sv)
+XS_REPCUT_WORK_DIR ?= $(XS_REPCUT_BUILD)/repcut_work
 XS_REPCUT_WORK_DIR_ABS := $(abspath $(XS_REPCUT_WORK_DIR))
+XS_REPCUT_BUILD_ABS := $(abspath $(XS_REPCUT_BUILD))
+XS_WOLF_REPCUT_EMIT_ABS := $(abspath $(XS_WOLF_REPCUT_EMIT))
 XS_JSON_ROUNDTRIP ?= 0
+XS_REPCUT_LOG_DIR ?= $(BUILD_DIR)/logs/xs-repcut
+XS_REPCUT_LOG_DIR_ABS := $(abspath $(XS_REPCUT_LOG_DIR))
 
 XS_DIFFTEST_GEN_DIR ?= $(XS_ROOT)/build/generated-src
 XS_DIFFTEST_GEN_DIR_ABS := $(abspath $(XS_DIFFTEST_GEN_DIR))
@@ -330,18 +336,70 @@ run_xs_repcut: py_install
 		exit 1; \
 	fi
 	@mkdir -p "$(XS_WOLF_EMIT_DIR_ABS)"
+	@mkdir -p "$(XS_REPCUT_BUILD_ABS)"
 	@mkdir -p "$(XS_REPCUT_WORK_DIR_ABS)"
 	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
 	@$(eval XS_REPCUT_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_$(RUN_ID).log)
 	@echo "[RUN] xs repcut strip-debug"
 	@echo "[LOG] repcut: $(XS_REPCUT_LOG_FILE)"
 	@echo "[CMD] $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) $(XS_WOLF_JSON) $(XS_WOLF_REPCUT_JSON) $(XS_REPCUT_WORK_DIR_ABS) $(WOLF_LOG)"
-	@$(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) \
+	@set -o pipefail; $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) \
 		$(XS_WOLF_JSON) \
 		$(XS_WOLF_REPCUT_JSON) \
 		$(XS_REPCUT_WORK_DIR_ABS) \
 		$(WOLF_LOG) \
 		2>&1 | tee "$(XS_REPCUT_LOG_FILE)"
+	@if [ ! -f "$(XS_WOLF_REPCUT_EMIT_ABS)" ]; then \
+		echo "[FAIL] xs repcut: missing emitted sv $(XS_WOLF_REPCUT_EMIT_ABS)"; \
+		exit 1; \
+	fi
+	@$(eval XS_REPCUT_BUILD_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_build_$(RUN_ID).log)
+	@echo "[RUN] Building XiangShan repcut emu..."
+	@echo "[LOG] repcut build: $(XS_REPCUT_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_REPCUT_BUILD_LOG_FILE)"
+	@echo "[CLEAN] Removing stale verilator-compile: $(XS_REPCUT_BUILD_ABS)/verilator-compile" | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
+	@rm -rf "$(XS_REPCUT_BUILD_ABS)/verilator-compile"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_REPCUT_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_WOLF_EMIT_DIR_ABS) SIM_TOP_V=$(XS_WOLF_REPCUT_EMIT_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) SIM_VSRC= $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
+	@set -o pipefail; NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
+		BUILD_DIR=$(XS_REPCUT_BUILD_ABS) \
+		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		RTL_DIR=$(XS_WOLF_EMIT_DIR_ABS) \
+		SIM_TOP_V=$(XS_WOLF_REPCUT_EMIT_ABS) \
+		NUM_CORES=$(XS_NUM_CORES) \
+		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
+		EMU_THREADS=$(XS_EMU_THREADS) \
+		EMU_RANDOMIZE=0 \
+		SIM_VFLAGS="$(XS_SIM_VFLAGS)" \
+		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
+		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
+		SIM_VSRC= \
+		$(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,) \
+		2>&1 | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
+	@if [ ! -x "$(XS_REPCUT_BUILD_ABS)/emu" ]; then \
+		echo "[FAIL] xs repcut: emu build did not produce executable $(XS_REPCUT_BUILD_ABS)/emu"; \
+		exit 1; \
+	fi
+	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
+		REPCUT_RUN_LOG="$(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_$${RUN_ID}.log"; \
+		REPCUT_WAVEFORM="$(XS_WAVEFORM_DIR_ABS)/xs_repcut_$${RUN_ID}.fst"; \
+		printf '' > "$$REPCUT_RUN_LOG"; \
+		echo "[RUN] xs repcut emu"; \
+		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_WAVEFORM=$(XS_WAVEFORM) XS_WAVEFORM_FULL=$(XS_WAVEFORM_FULL)"; \
+		echo "[LOG] repcut run: $$REPCUT_RUN_LOG"; \
+		if [ "$(XS_WAVEFORM)" = "1" ]; then \
+			echo "[WAVEFORM] repcut: $$REPCUT_WAVEFORM"; \
+		fi; \
+		echo "[CMD] cd $(XS_REPCUT_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b 0 $(if $(filter 1,$(XS_WAVEFORM_FULL)),-e -1,-e 0) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_WAVEFORM)),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$REPCUT_WAVEFORM,)"; \
+		set -o pipefail; cd "$(XS_REPCUT_BUILD_ABS)" && $(XS_EMU_PREFIX) ./emu \
+			-i "$(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin" \
+			--diff "$(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so" \
+			-b 0 $(if $(filter 1,$(XS_WAVEFORM_FULL)),-e -1,-e 0) \
+			$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) \
+			$(XS_RAM_TRACE_ARGS) \
+			$(if $(filter 1,$(XS_WAVEFORM)),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) \
+			$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$REPCUT_WAVEFORM,) \
+			2>&1 | tee "$$REPCUT_RUN_LOG"
 
 xs_ref_emu: $(XS_SIM_TOP_V)
 	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
@@ -485,5 +543,3 @@ clean:
 	@rm -rf build
 	@rm -rf $(C910_WORK_DIR)
 	@rm -rf $(XS_ROOT)/build
-XS_REPCUT_LOG_DIR ?= $(BUILD_DIR)/logs/xs-repcut
-XS_REPCUT_LOG_DIR_ABS := $(abspath $(XS_REPCUT_LOG_DIR))
