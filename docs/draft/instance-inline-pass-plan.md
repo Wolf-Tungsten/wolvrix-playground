@@ -175,9 +175,9 @@ using ValueMap = std::unordered_map<grh::ValueId, grh::ValueId, grh::ValueIdHash
 
 ## 8. 代码落点
 
-- 新增头文件：`wolvrix/lib/include/transform/instance_inline.hpp`
+- 新增头文件：`wolvrix/include/transform/instance_inline.hpp`
 - 新增实现：`wolvrix/lib/transform/instance_inline.cpp`
-- 注册入口：`wolvrix/lib/src/transform.cpp`
+- 注册入口：`wolvrix/lib/core/transform.cpp`
   - `availableTransformPasses()` 增加 `instance-inline`
   - `makePass()` 增加参数解析（`-path`）
 

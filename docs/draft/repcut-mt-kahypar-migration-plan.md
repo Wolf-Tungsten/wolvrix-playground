@@ -26,8 +26,8 @@
 - `wolvrix/lib/transform/repcut.cpp:2703` 附近：当前会写 `*.hgr`、`*.kahypar.cfg`、`*.kahypar.log`。
 - `wolvrix/lib/transform/repcut.cpp:2757`：通过 `runKaHyParCommand()` 调用 `KaHyPar` 外部进程。
 - `wolvrix/lib/transform/repcut.cpp:2798` 之后：从 `*.part*` 文件读取分区结果。
-- `wolvrix/lib/include/transform/repcut.hpp:18`：当前仅暴露 `kaHyParPath` 作为后端入口。
-- `wolvrix/lib/src/transform.cpp:1091`：CLI 参数解析目前仅支持 `-kahypar-path`。
+- `wolvrix/include/transform/repcut.hpp:18`：当前仅暴露 `kaHyParPath` 作为后端入口。
+- `wolvrix/lib/core/transform.cpp:1091`：CLI 参数解析目前仅支持 `-kahypar-path`。
 - `wolvrix/tests/transform/test_repcut_pass.cpp:21`：测试通过 `command -v KaHyPar` 判定是否跳过。
 
 ## 3. 迁移方案（推荐：C API 直连）

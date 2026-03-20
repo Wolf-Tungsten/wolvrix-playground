@@ -74,7 +74,7 @@
 
 ## 交付物
 - 代码：
-  - `lib/include/grh.hpp` / `lib/src/grh.cpp`
+  - `include/core/grh.hpp` / `lib/core/grh.cpp`
   - JSON load/store/emit 路径
 - 文档：
   - `docs/grh/grh-api.md`

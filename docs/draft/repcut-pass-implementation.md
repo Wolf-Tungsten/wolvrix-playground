@@ -1120,11 +1120,11 @@ void buildTopModule() {
 ### 5.1 头文件
 
 ```cpp
-// wolvrix/lib/include/transform/repcut.hpp
+// wolvrix/include/transform/repcut.hpp
 #ifndef WOLVRIX_TRANSFORM_REPCUT_HPP
 #define WOLVRIX_TRANSFORM_REPCUT_HPP
 
-#include "transform.hpp"
+#include "core/transform.hpp"
 #include <cstddef>
 #include <string>
 
@@ -1158,7 +1158,7 @@ private:
 
 ### 5.2 注册 Pass
 
-在 `wolvrix/lib/src/transform.cpp` 中添加：
+在 `wolvrix/lib/core/transform.cpp` 中添加：
 
 ```cpp
 #include "transform/repcut.hpp"

@@ -129,7 +129,7 @@ design.write_sv(output, top=None, split_modules=False)
 
 文件：
 
-- `wolvrix/lib/include/emit.hpp`
+- `wolvrix/include/core/emit.hpp`
 
 修改点：
 
@@ -139,7 +139,7 @@ design.write_sv(output, top=None, split_modules=False)
 
 文件：
 
-- `wolvrix/lib/src/emit.cpp`
+- `wolvrix/lib/core/emit.cpp`
 
 修改点：
 
@@ -157,7 +157,7 @@ design.write_sv(output, top=None, split_modules=False)
 
 文件：
 
-- `wolvrix/lib/src/emit.cpp`
+- `wolvrix/lib/core/emit.cpp`
 
 修改点：
 

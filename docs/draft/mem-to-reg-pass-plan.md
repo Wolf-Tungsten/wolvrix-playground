@@ -129,9 +129,9 @@ pass 内维护：
 ## 7. 实现落地分解（代码级）
 
 ## 7.1 文件落点
-- 新增头文件：`wolvrix/lib/include/transform/mem_to_reg.hpp`
+- 新增头文件：`wolvrix/include/transform/mem_to_reg.hpp`
 - 新增实现：`wolvrix/lib/transform/mem_to_reg.cpp`
-- 注册入口：`wolvrix/lib/src/transform.cpp`
+- 注册入口：`wolvrix/lib/core/transform.cpp`
   - include 新头文件
   - `availableTransformPasses()` 增加 `mem-to-reg`
   - `makePassByName()` 增加参数解析（`row-limit`、`strict-init`）

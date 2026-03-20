@@ -249,7 +249,7 @@ void recordTrueLoop(const LoopInfo& loop, const Graph& graph) {
 #ifndef WOLVRIX_TRANSFORM_COMB_LOOP_ELIM_HPP
 #define WOLVRIX_TRANSFORM_COMB_LOOP_ELIM_HPP
 
-#include "transform.hpp"
+#include "core/transform.hpp"
 #include <cstddef>
 
 namespace wolvrix::lib::transform
