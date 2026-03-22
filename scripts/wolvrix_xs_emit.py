@@ -5,7 +5,10 @@ import sys
 import time
 from pathlib import Path
 import json
-import wolvrix
+
+from _wolvrix_import import load_wolvrix
+
+wolvrix = load_wolvrix()
 
 
 def parse_tokens(value: str) -> list[str]:

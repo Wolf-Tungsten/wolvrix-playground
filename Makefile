@@ -23,9 +23,11 @@ LOG_ONLY_SIM ?= 0
 
 BUILD_DIR ?= build
 WOLVRIX_BUILD_DIR ?= $(WOLVRIX_DIR)/build
+WOLVRIX_PYTHON_DIR ?= $(WOLVRIX_BUILD_DIR)/python
 CMAKE ?= cmake
 WOLVRIX_APP := $(WOLVRIX_BUILD_DIR)/bin/wolvrix
 RUN_ID ?= $(shell date +%Y%m%d_%H%M%S)
+export PYTHONPATH := $(WOLVRIX_PYTHON_DIR)$(if $(PYTHONPATH),:$(PYTHONPATH),)
 
 # Verilator path (can be overridden via environment or env.sh)
 VERILATOR ?= $(or $(shell echo $$VERILATOR),verilator)
@@ -71,6 +73,7 @@ XS_WAVEFORM_FULL ?= 0
 XS_RAM_TRACE ?= 0
 XS_NUM_CORES ?= 1
 XS_EMU_THREADS ?= 2
+XS_VM_BUILD_JOBS ?= $(shell nproc)
 XS_SIM_TOP ?= SimTop
 XS_RTL_SUFFIX ?= sv
 XS_WITH_CHISELDB ?= 0
@@ -117,11 +120,18 @@ XS_WOLF_JSON ?= $(XS_WOLF_EMIT_DIR_ABS)/xs_wolf.json
 XS_WOLF_REPCUT_JSON ?= $(XS_REPCUT_BUILD)/xs_wolf_repcut.json
 XS_WOLF_REPCUT_EMIT_DIR ?= $(XS_WOLF_REPCUT_JSON:.json=)
 XS_WOLF_REPCUT_EMIT ?= $(XS_WOLF_REPCUT_EMIT_DIR)/$(XS_SIM_TOP).sv
-XS_REPCUT_WORK_DIR ?= $(XS_REPCUT_BUILD)/repcut_work
+XS_REPCUT_PACKAGE_ROOT ?= $(XS_REPCUT_BUILD)/package
+XS_WOLF_REPCUT_PACKAGE_DIR ?= $(XS_REPCUT_PACKAGE_ROOT)/xs_wolf_repcut_partitioned
+XS_REPCUT_WORK_DIR ?= $(XS_REPCUT_BUILD)/work
+XS_REPCUT_EMU_BUILD ?= $(XS_REPCUT_BUILD)/partitioned-emu
+XS_REPCUT_LEGACY_EMU_DIR ?= $(XS_REPCUT_BUILD)/emu
 XS_REPCUT_WORK_DIR_ABS := $(abspath $(XS_REPCUT_WORK_DIR))
 XS_REPCUT_BUILD_ABS := $(abspath $(XS_REPCUT_BUILD))
+XS_REPCUT_EMU_BUILD_ABS := $(abspath $(XS_REPCUT_EMU_BUILD))
+XS_REPCUT_LEGACY_EMU_DIR_ABS := $(abspath $(XS_REPCUT_LEGACY_EMU_DIR))
 XS_WOLF_REPCUT_EMIT_DIR_ABS := $(abspath $(XS_WOLF_REPCUT_EMIT_DIR))
 XS_WOLF_REPCUT_EMIT_ABS := $(abspath $(XS_WOLF_REPCUT_EMIT))
+XS_WOLF_REPCUT_PACKAGE_DIR_ABS := $(abspath $(XS_WOLF_REPCUT_PACKAGE_DIR))
 XS_JSON_ROUNDTRIP ?= 0
 XS_REPCUT_LOG_DIR ?= $(BUILD_DIR)/logs/xs-repcut
 XS_REPCUT_LOG_DIR_ABS := $(abspath $(XS_REPCUT_LOG_DIR))
@@ -147,7 +157,7 @@ HDLBITS_DUTS := $(sort $(patsubst tb_%,%,$(basename $(notdir $(HDLBITS_TB_SOURCE
 
 .PHONY: all build check-id run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	xs_rtl xs_wolf_filelist xs_wolf_emit xs_ref_emu xs_wolf_emu run_xs_json_test \
-	run_xs_repcut xs_diff_clean run_xs_ref_emu run_xs_wolf_emu run_xs_diff clean
+	run_xs_repcut run_xs_repcut_partitioned_smoke run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_wolf_emu run_xs_diff clean
 
 all: build
 
@@ -166,8 +176,13 @@ build:
 $(WOLVRIX_APP): build
 
 .PHONY: py_install
-py_install:
-	$(PYTHON) -m pip install -e $(WOLVRIX_DIR)
+py_install: build
+	@if [ -f "$(WOLVRIX_PYTHON_DIR)/wolvrix/_wolvrix.so" ]; then \
+		echo "[PY] Reusing build-tree wolvrix via PYTHONPATH=$(WOLVRIX_PYTHON_DIR)"; \
+	else \
+		echo "[PY] Installing editable wolvrix package"; \
+		$(PYTHON) -m pip install -e $(WOLVRIX_DIR); \
+	fi
 
 $(HDLBITS_EMITTED_DUT) $(HDLBITS_EMITTED_JSON): $(HDLBITS_DUT_SRC) $(HDLBITS_WOLVRIX_SCRIPT) check-id
 	@mkdir -p $(HDLBITS_OUT_DIR)
@@ -337,6 +352,10 @@ run_xs_repcut: py_install
 		echo "[FAIL] xs repcut: missing json $(XS_WOLF_JSON)"; \
 		exit 1; \
 	fi
+	@if [ -d "$(XS_REPCUT_LEGACY_EMU_DIR_ABS)" ]; then \
+		echo "[CLEAN] Removing stale legacy repcut emu dir: $(XS_REPCUT_LEGACY_EMU_DIR_ABS)"; \
+		rm -rf "$(XS_REPCUT_LEGACY_EMU_DIR_ABS)"; \
+	fi
 	@mkdir -p "$(XS_WOLF_REPCUT_EMIT_DIR_ABS)"
 	@mkdir -p "$(XS_REPCUT_BUILD_ABS)"
 	@mkdir -p "$(XS_REPCUT_WORK_DIR_ABS)"
@@ -361,7 +380,7 @@ run_xs_repcut: py_install
 	@printf '' > "$(XS_REPCUT_BUILD_LOG_FILE)"
 	@echo "[CLEAN] Removing stale verilator-compile: $(XS_REPCUT_BUILD_ABS)/verilator-compile" | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
 	@rm -rf "$(XS_REPCUT_BUILD_ABS)/verilator-compile"
-	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_REPCUT_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_WOLF_REPCUT_EMIT_DIR_ABS) SIM_TOP_V=$(XS_WOLF_REPCUT_EMIT_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) SIM_VSRC= $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_REPCUT_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_WOLF_REPCUT_EMIT_DIR_ABS) SIM_TOP_V=$(XS_WOLF_REPCUT_EMIT_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) SIM_VSRC= $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
 	@set -o pipefail; NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
 		BUILD_DIR=$(XS_REPCUT_BUILD_ABS) \
 		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
@@ -371,6 +390,7 @@ run_xs_repcut: py_install
 		NUM_CORES=$(XS_NUM_CORES) \
 		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
 		EMU_THREADS=$(XS_EMU_THREADS) \
+		VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) \
 		EMU_RANDOMIZE=0 \
 		SIM_VFLAGS="$(XS_SIM_VFLAGS)" \
 		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
@@ -403,6 +423,128 @@ run_xs_repcut: py_install
 			$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$REPCUT_WAVEFORM,) \
 			2>&1 | tee "$$REPCUT_RUN_LOG"
 
+run_xs_repcut_partitioned_smoke: py_install
+	@if [ ! -f "$(XS_WOLF_JSON)" ]; then \
+		echo "[FAIL] xs repcut partitioned: missing json $(XS_WOLF_JSON)"; \
+		exit 1; \
+	fi
+	@mkdir -p "$(XS_WOLF_REPCUT_EMIT_DIR_ABS)"
+	@mkdir -p "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)"
+	@mkdir -p "$(XS_REPCUT_BUILD_ABS)"
+	@mkdir -p "$(XS_REPCUT_WORK_DIR_ABS)"
+	@mkdir -p "$(XS_REPCUT_EMU_BUILD_ABS)"
+	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
+	@$(eval XS_REPCUT_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_partitioned_$(RUN_ID).log)
+	@echo "[RUN] xs repcut partitioned package"
+	@echo "[LOG] repcut partitioned: $(XS_REPCUT_LOG_FILE)"
+	@echo "[CMD] $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) $(XS_WOLF_JSON) $(XS_WOLF_REPCUT_JSON) $(XS_REPCUT_WORK_DIR_ABS) $(WOLF_LOG) $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)"
+	@set -o pipefail; $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) \
+		$(XS_WOLF_JSON) \
+		$(XS_WOLF_REPCUT_JSON) \
+		$(XS_REPCUT_WORK_DIR_ABS) \
+		$(WOLF_LOG) \
+		$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS) \
+		2>&1 | tee "$(XS_REPCUT_LOG_FILE)"
+	@if [ ! -f "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/manifest.json" ]; then \
+		echo "[FAIL] xs repcut partitioned: missing package manifest $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/manifest.json"; \
+		exit 1; \
+	fi
+	@$(eval XS_REPCUT_PACKAGE_BUILD_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_partitioned_build_$(RUN_ID).log)
+	@echo "[RUN] Building repcut partitioned smoke package..."
+	@echo "[LOG] repcut partitioned build: $(XS_REPCUT_PACKAGE_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_REPCUT_PACKAGE_BUILD_LOG_FILE)"
+	@echo "[CMD] $(MAKE) -C $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS) -j$$(nproc)" | tee -a "$(XS_REPCUT_PACKAGE_BUILD_LOG_FILE)"
+	@set -o pipefail; $(MAKE) -C "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)" -j"$$(nproc)" \
+		2>&1 | tee -a "$(XS_REPCUT_PACKAGE_BUILD_LOG_FILE)"
+	@if [ ! -x "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/build/partitioned-smoke" ]; then \
+		echo "[FAIL] xs repcut partitioned: missing smoke binary $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/build/partitioned-smoke"; \
+		exit 1; \
+	fi
+	@$(eval XS_REPCUT_PACKAGE_RUN_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_partitioned_run_$(RUN_ID).log)
+	@echo "[RUN] repcut partitioned smoke binary"
+	@echo "[LOG] repcut partitioned run: $(XS_REPCUT_PACKAGE_RUN_LOG_FILE)"
+	@printf '' > "$(XS_REPCUT_PACKAGE_RUN_LOG_FILE)"
+	@echo "[CMD] $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/build/partitioned-smoke" | tee -a "$(XS_REPCUT_PACKAGE_RUN_LOG_FILE)"
+	@set -o pipefail; "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/build/partitioned-smoke" \
+		2>&1 | tee -a "$(XS_REPCUT_PACKAGE_RUN_LOG_FILE)"
+
+run_xs_repcut_verilator: py_install
+	@if [ "$(XS_WAVEFORM)" != "0" ] || [ "$(XS_WAVEFORM_FULL)" != "0" ]; then \
+		echo "[FAIL] xs verilator repcut: waveform is not supported in partitioned backend yet"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(XS_WOLF_JSON)" ]; then \
+		echo "[FAIL] xs verilator repcut: missing json $(XS_WOLF_JSON)"; \
+		exit 1; \
+	fi
+	@if [ -e "$(XS_REPCUT_EMU_BUILD_ABS)" ] && [ ! -d "$(XS_REPCUT_EMU_BUILD_ABS)" ]; then \
+		echo "[CLEAN] Removing stale emu path: $(XS_REPCUT_EMU_BUILD_ABS)"; \
+		rm -f "$(XS_REPCUT_EMU_BUILD_ABS)"; \
+	fi
+	@mkdir -p "$(XS_WOLF_REPCUT_EMIT_DIR_ABS)"
+	@mkdir -p "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)"
+	@mkdir -p "$(XS_REPCUT_BUILD_ABS)"
+	@mkdir -p "$(XS_REPCUT_WORK_DIR_ABS)"
+	@mkdir -p "$(XS_REPCUT_EMU_BUILD_ABS)"
+	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
+	@$(eval XS_REPCUT_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_verilator_repcut_$(RUN_ID).log)
+	@echo "[RUN] xs verilator repcut package"
+	@echo "[LOG] xs verilator repcut: $(XS_REPCUT_LOG_FILE)"
+	@echo "[CMD] $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) $(XS_WOLF_JSON) $(XS_WOLF_REPCUT_JSON) $(XS_REPCUT_WORK_DIR_ABS) $(WOLF_LOG) $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)"
+	@set -o pipefail; $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) \
+		$(XS_WOLF_JSON) \
+		$(XS_WOLF_REPCUT_JSON) \
+		$(XS_REPCUT_WORK_DIR_ABS) \
+		$(WOLF_LOG) \
+		$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS) \
+		2>&1 | tee "$(XS_REPCUT_LOG_FILE)"
+	@if [ ! -f "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/manifest.json" ]; then \
+		echo "[FAIL] xs verilator repcut: missing package manifest $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/manifest.json"; \
+		exit 1; \
+	fi
+	@$(eval XS_REPCUT_BUILD_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_verilator_repcut_build_$(RUN_ID).log)
+	@echo "[RUN] Building XiangShan repcut verilator emu..."
+	@echo "[LOG] xs verilator repcut build: $(XS_REPCUT_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_REPCUT_BUILD_LOG_FILE)"
+	@echo "[CLEAN] Removing stale verilator-compile: $(XS_REPCUT_EMU_BUILD_ABS)/verilator-compile" | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
+	@rm -rf "$(XS_REPCUT_EMU_BUILD_ABS)/verilator-compile"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_REPCUT_EMU_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_WOLF_REPCUT_EMIT_DIR_ABS) SIM_TOP_V=$(XS_WOLF_REPCUT_EMIT_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) WOLVRIX_PARTITIONED_PACKAGE_DIR=$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)" | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
+	@set -o pipefail; NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
+		BUILD_DIR=$(XS_REPCUT_EMU_BUILD_ABS) \
+		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		RTL_DIR=$(XS_WOLF_REPCUT_EMIT_DIR_ABS) \
+		SIM_TOP_V=$(XS_WOLF_REPCUT_EMIT_ABS) \
+		NUM_CORES=$(XS_NUM_CORES) \
+		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
+		EMU_THREADS=$(XS_EMU_THREADS) \
+		VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) \
+		EMU_RANDOMIZE=0 \
+		SIM_VFLAGS="$(XS_SIM_VFLAGS)" \
+		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
+		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
+		WOLVRIX_PARTITIONED_PACKAGE_DIR=$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS) \
+		2>&1 | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
+	@if [ ! -x "$(XS_REPCUT_EMU_BUILD_ABS)/emu" ]; then \
+		echo "[FAIL] xs verilator repcut: emu build did not produce executable $(XS_REPCUT_EMU_BUILD_ABS)/emu"; \
+		exit 1; \
+	fi
+	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
+		REPCUT_RUN_LOG="$(XS_REPCUT_LOG_DIR_ABS)/xs_verilator_repcut_$${RUN_ID}.log"; \
+		printf '' > "$$REPCUT_RUN_LOG"; \
+		echo "[RUN] xs verilator repcut emu"; \
+		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE)"; \
+		echo "[LOG] xs verilator repcut run: $$REPCUT_RUN_LOG"; \
+		echo "[CMD] cd $(XS_REPCUT_EMU_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b 0 -e 0 $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS)"; \
+		set -o pipefail; cd "$(XS_REPCUT_EMU_BUILD_ABS)" && $(XS_EMU_PREFIX) ./emu \
+			-i "$(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin" \
+			--diff "$(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so" \
+			-b 0 \
+			-e 0 \
+			$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) \
+			$(XS_RAM_TRACE_ARGS) \
+			2>&1 | tee "$$REPCUT_RUN_LOG"
+
 xs_ref_emu: $(XS_SIM_TOP_V)
 	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
 		$(MAKE) --no-print-directory -B xs_rtl; \
@@ -413,7 +555,7 @@ xs_ref_emu: $(XS_SIM_TOP_V)
 	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_ref_build_$(RUN_ID).log)
 	@echo "[LOG] Capturing build output to: $(XS_BUILD_LOG_FILE)"
 	@printf '' > "$(XS_BUILD_LOG_FILE)"
-	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_REF_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_RTL_DIR_ABS) SIM_TOP_V=$(XS_SIM_TOP_V) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(XS_BUILD_LOG_FILE)"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_REF_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_RTL_DIR_ABS) SIM_TOP_V=$(XS_SIM_TOP_V) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(XS_BUILD_LOG_FILE)"
 	NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
 		BUILD_DIR=$(XS_REF_BUILD_ABS) \
 		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
@@ -423,6 +565,7 @@ xs_ref_emu: $(XS_SIM_TOP_V)
 		NUM_CORES=$(XS_NUM_CORES) \
 		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
 		EMU_THREADS=$(XS_EMU_THREADS) \
+		VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) \
 		EMU_RANDOMIZE=0 \
 		SIM_VFLAGS="$(XS_SIM_VFLAGS)" \
 		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
@@ -437,7 +580,7 @@ xs_wolf_emu: xs_wolf_emit
 	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_build_$(RUN_ID).log)
 	@echo "[LOG] Capturing build output to: $(XS_BUILD_LOG_FILE)"
 	@printf '' >> "$(XS_BUILD_LOG_FILE)"
-	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_WOLF_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_WOLF_EMIT_DIR_ABS) SIM_TOP_V=$(XS_WOLF_EMIT_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) SIM_VSRC= $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(XS_BUILD_LOG_FILE)"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_WOLF_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_WOLF_EMIT_DIR_ABS) SIM_TOP_V=$(XS_WOLF_EMIT_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) SIM_VSRC= $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(XS_BUILD_LOG_FILE)"
 	NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
 		BUILD_DIR=$(XS_WOLF_BUILD_ABS) \
 		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
@@ -447,6 +590,7 @@ xs_wolf_emu: xs_wolf_emit
 		NUM_CORES=$(XS_NUM_CORES) \
 		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
 		EMU_THREADS=$(XS_EMU_THREADS) \
+		VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) \
 		EMU_RANDOMIZE=0 \
 		SIM_VFLAGS="$(XS_SIM_VFLAGS)" \
 		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
@@ -458,7 +602,11 @@ xs_wolf_emu: xs_wolf_emit
 xs_diff_clean:
 	rm -rf "$(XS_REF_BUILD_ABS)/verilator-compile" \
 		"$(XS_WOLF_BUILD_ABS)/verilator-compile" \
-		"$(XS_WOLF_EMIT_DIR_ABS)"
+		"$(XS_WOLF_EMIT_DIR_ABS)" \
+		"$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)" \
+		"$(XS_REPCUT_EMU_BUILD_ABS)" \
+		"$(XS_REPCUT_LEGACY_EMU_DIR_ABS)" \
+		"$(XS_REPCUT_WORK_DIR_ABS)"
 
 run_xs_ref_emu:
 	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \

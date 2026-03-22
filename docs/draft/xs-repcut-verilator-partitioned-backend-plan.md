@@ -221,10 +221,18 @@ package/
 必须包含：
 
 - `top_module`
-- `clock_port`
-- `reset_port`
 - 顶层输入列表
 - 顶层输出列表
+
+这里不应额外要求单一 `clock_port` / `reset_port` 字段。
+
+原因是 post-repcut 设计可能存在：
+
+- 多个 clock
+- 多个 reset
+- 非标准命名的时序控制输入
+
+因此第一版 package manifest 只保留“顶层输入列表/顶层输出列表”这一层结构事实；是否把其中哪些输入当作 clock 或 reset，由上层 runtime / emulator 配置决定，而不是由 manifest 强加单一语义。
 
 ### 7.2 单元列表
 

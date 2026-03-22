@@ -3,8 +3,11 @@
 import sys
 import time
 from pathlib import Path
+import subprocess
 
-import wolvrix
+from _wolvrix_import import load_wolvrix
+
+wolvrix = load_wolvrix()
 
 
 def log(message: str) -> None:
@@ -27,13 +30,14 @@ REPCUT_KEEP_INTERMEDIATE_FILES = True
 
 if len(sys.argv) < 4:
     raise RuntimeError(
-        "usage: wolvrix_xs_repcut.py <json_in> <json_out> <work_dir> [log_level]"
+        "usage: wolvrix_xs_repcut.py <json_in> <json_out> <work_dir> [log_level] [package_out_dir]"
     )
 
 json_in = Path(sys.argv[1])
 json_out = Path(sys.argv[2])
 repcut_work_dir = Path(sys.argv[3])
 log_level = sys.argv[4] if len(sys.argv) > 4 else "info"
+package_out_dir = Path(sys.argv[5]) if len(sys.argv) > 5 else None
 
 if not json_in.exists():
     raise RuntimeError(f"input json not found: {json_in}")
@@ -118,5 +122,23 @@ sv_out_dir = sv_out_arg.with_suffix("") if sv_out_arg.suffix == ".sv" else sv_ou
 log(f"write_sv start {sv_out_dir}")
 design.write_sv(str(sv_out_dir), top=[TOP_MODULE_PATH], split_modules=True)
 log(f"write_sv done {int((time.perf_counter() - start) * 1000)}ms")
+
+if package_out_dir is not None:
+    start = time.perf_counter()
+    log(f"write_verilator_repcut_package start {package_out_dir}")
+    repo_root = Path(__file__).resolve().parents[1]
+    package_tool = repo_root / "wolvrix" / "build" / "bin" / "json-emit-verilator-repcut-package"
+    if not package_tool.exists():
+        raise RuntimeError(f"package tool not found: {package_tool}")
+    subprocess.run(
+        [
+            str(package_tool),
+            str(json_out.resolve()),
+            str(package_out_dir.resolve()),
+            TOP_MODULE_PATH,
+        ],
+        check=True,
+    )
+    log(f"write_verilator_repcut_package done {int((time.perf_counter() - start) * 1000)}ms")
 
 log(f"total done {int((time.perf_counter() - total_start) * 1000)}ms")
