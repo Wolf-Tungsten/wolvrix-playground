@@ -22,6 +22,33 @@
 
 换句话说，`emitVerilatorRepCutPackage` 的任务是把这个既有语义搬运到 host 侧 C++ runtime，而不是重新定义或修正它。
 
+### 2.1 已验证的 host 调度约束（2026-03-23）
+
+在 `make run_xs_repcut_verilator` 实测中，已经确认 `debug_part` 不能被当作普通逻辑分区参与“全局一次 scatter -> 全局一次 eval -> 全局一次 gather”。
+
+原因不是 `debug_part` 有普通组合回边，而是它包含一类需要在本次 host step 内立即生效的 DPI / 设备返回路径，例如：
+
+- `flash_read`
+- `sd_read`
+- `difftest_ram_read`
+- `jtag_tick`
+
+这些返回值经 `debug_part` 导出后会被逻辑分区在同一 host step 内消费。如果把 `debug_part` 输出也冻结到“本轮统一 gather 之后”再发布，会把这类返回值额外延后一拍，已验证会破坏 XiangShan partitioned emu 的启动期行为。
+
+因此当前已验证正确的 host 调度语义是：
+
+1. 先对全部分区做一次输入 scatter。
+2. 单独先 `eval(debug_part)`。
+3. 立即 gather `debug_part` 输出，并把这些输出重新写回其余分区输入。
+4. 再对其余 `part_*` 做 eval。
+5. 最后统一 gather 非 `debug_part` 分区输出。
+
+也就是说：
+
+- `debug_part` 是“环境交互相位”。
+- `part_*` 仍可保持“全量交换后再求值”的 repcut 逻辑语义。
+- 不能把 `debug_part` 与普通逻辑分区完全等价处理。
+
 ## 3. 结构边界
 
 后续实现必须使用当前已有的 post-repcut 结构作为唯一 RTL 输入边界。
@@ -309,8 +336,10 @@ package/
 1. 持有所有现有单元的 Verilated 对象。
 2. 保存跨单元信号缓存。
 3. 按 `serial_eval_order` 做串行基线求值。
-4. 可选按 `parallel_batches` 做运行时并行。
-5. 对外提供与当前 `VerilatorSim` 等价的接口。
+4. 对 `debug_part` 使用单独调度相位：
+   `scatter(all) -> eval(debug_part) -> gather(debug_part) -> refresh(debug-fed inputs) -> eval(part_*) -> gather(part_*)`。
+5. 可选按 `parallel_batches` 做运行时并行。
+6. 对外提供与当前 `VerilatorSim` 等价的接口。
 
 这里新增的是 C++ wrapper，不是 RTL wrapper。
 
@@ -455,6 +484,12 @@ verilator --cc SimTop_logic_part_repcut_part0.sv \
 
 `debug_part` 第一版建议固定在主线程执行。
 
+并且第一版必须满足：
+
+- `debug_part` 先于所有逻辑分区执行。
+- `debug_part` 的输出必须在逻辑分区 eval 前完成发布。
+- 不能把 `debug_part` 放进普通 `parallel_batches` 内与 `part_*` 同步求值。
+
 ## 17. 实施顺序
 
 ### P0
@@ -496,5 +531,9 @@ verilator --cc SimTop_logic_part_repcut_part0.sv \
 - `difftest_exit`
 - UART 输出
 - trap code
+
+补充一条已完成的阶段性验证：
+
+- 2026-03-23 已确认：对 `debug_part` 采用“先 eval、立即发布 DPI/设备返回值、再 eval 逻辑分区”的 host 调度后，`make run_xs_repcut_verilator` 流程正确。
 
 并行不作为第一验收条件。
