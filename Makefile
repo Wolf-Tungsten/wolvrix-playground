@@ -157,7 +157,7 @@ HDLBITS_DUTS := $(sort $(patsubst tb_%,%,$(basename $(notdir $(HDLBITS_TB_SOURCE
 
 .PHONY: all build check-id run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	xs_rtl xs_wolf_filelist xs_wolf_emit xs_ref_emu xs_wolf_emu run_xs_json_test \
-	run_xs_repcut run_xs_repcut_partitioned_smoke run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_wolf_emu run_xs_diff clean
+	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_wolf_emu run_xs_diff clean
 
 all: build
 
@@ -468,7 +468,16 @@ run_xs_repcut_partitioned_smoke: py_install
 	@set -o pipefail; "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/build/partitioned-smoke" \
 		2>&1 | tee -a "$(XS_REPCUT_PACKAGE_RUN_LOG_FILE)"
 
-run_xs_repcut_verilator: py_install
+build_xs_repcut_verilator:
+	@echo "[RUN] Rebuilding Wolvrix for XiangShan repcut emu..."
+	env -u MAKE_TERMOUT $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
+	$(CMAKE) --build $(WOLVRIX_BUILD_DIR) --clean-first
+	@if [ -f "$(WOLVRIX_PYTHON_DIR)/wolvrix/_wolvrix.so" ]; then \
+		echo "[PY] Reusing build-tree wolvrix via PYTHONPATH=$(WOLVRIX_PYTHON_DIR)"; \
+	else \
+		echo "[PY] Installing editable wolvrix package"; \
+		$(PYTHON) -m pip install -e $(WOLVRIX_DIR); \
+	fi
 	@if [ "$(XS_WAVEFORM)" != "0" ] || [ "$(XS_WAVEFORM_FULL)" != "0" ]; then \
 		echo "[FAIL] xs verilator repcut: waveform is not supported in partitioned backend yet"; \
 		exit 1; \
@@ -477,16 +486,17 @@ run_xs_repcut_verilator: py_install
 		echo "[FAIL] xs verilator repcut: missing json $(XS_WOLF_JSON)"; \
 		exit 1; \
 	fi
-	@if [ -e "$(XS_REPCUT_EMU_BUILD_ABS)" ] && [ ! -d "$(XS_REPCUT_EMU_BUILD_ABS)" ]; then \
-		echo "[CLEAN] Removing stale emu path: $(XS_REPCUT_EMU_BUILD_ABS)"; \
-		rm -f "$(XS_REPCUT_EMU_BUILD_ABS)"; \
-	fi
+	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
+	@echo "[CLEAN] Removing stale repcut package/work/emu build dirs"
+	@rm -rf "$(XS_WOLF_REPCUT_EMIT_DIR_ABS)" \
+		"$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)" \
+		"$(XS_REPCUT_WORK_DIR_ABS)" \
+		"$(XS_REPCUT_EMU_BUILD_ABS)"
 	@mkdir -p "$(XS_WOLF_REPCUT_EMIT_DIR_ABS)"
 	@mkdir -p "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)"
 	@mkdir -p "$(XS_REPCUT_BUILD_ABS)"
 	@mkdir -p "$(XS_REPCUT_WORK_DIR_ABS)"
 	@mkdir -p "$(XS_REPCUT_EMU_BUILD_ABS)"
-	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
 	@$(eval XS_REPCUT_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_verilator_repcut_$(RUN_ID).log)
 	@echo "[RUN] xs verilator repcut package"
 	@echo "[LOG] xs verilator repcut: $(XS_REPCUT_LOG_FILE)"
@@ -506,9 +516,7 @@ run_xs_repcut_verilator: py_install
 	@echo "[RUN] Building XiangShan repcut verilator emu..."
 	@echo "[LOG] xs verilator repcut build: $(XS_REPCUT_BUILD_LOG_FILE)"
 	@printf '' > "$(XS_REPCUT_BUILD_LOG_FILE)"
-	@echo "[CLEAN] Removing stale verilator-compile: $(XS_REPCUT_EMU_BUILD_ABS)/verilator-compile" | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
-	@rm -rf "$(XS_REPCUT_EMU_BUILD_ABS)/verilator-compile"
-	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_REPCUT_EMU_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_WOLF_REPCUT_EMIT_DIR_ABS) SIM_TOP_V=$(XS_WOLF_REPCUT_EMIT_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) WOLVRIX_PARTITIONED_PACKAGE_DIR=$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)" | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_REPCUT_EMU_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_WOLF_REPCUT_EMIT_DIR_ABS) SIM_TOP_V=$(XS_WOLF_REPCUT_EMIT_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=0 VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) WOLVRIX_PARTITIONED_PACKAGE_DIR=$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)" | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
 	@set -o pipefail; NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
 		BUILD_DIR=$(XS_REPCUT_EMU_BUILD_ABS) \
 		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
@@ -517,7 +525,7 @@ run_xs_repcut_verilator: py_install
 		SIM_TOP_V=$(XS_WOLF_REPCUT_EMIT_ABS) \
 		NUM_CORES=$(XS_NUM_CORES) \
 		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
-		EMU_THREADS=$(XS_EMU_THREADS) \
+		EMU_THREADS=0 \
 		VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) \
 		EMU_RANDOMIZE=0 \
 		SIM_VFLAGS="$(XS_SIM_VFLAGS)" \
@@ -529,14 +537,21 @@ run_xs_repcut_verilator: py_install
 		echo "[FAIL] xs verilator repcut: emu build did not produce executable $(XS_REPCUT_EMU_BUILD_ABS)/emu"; \
 		exit 1; \
 	fi
+
+run_xs_repcut_verilator:
+	@if [ ! -x "$(XS_REPCUT_EMU_BUILD_ABS)/emu" ]; then \
+		echo "[FAIL] xs verilator repcut: missing emu $(XS_REPCUT_EMU_BUILD_ABS)/emu; run 'make build_xs_repcut_verilator' first"; \
+		exit 1; \
+	fi
+	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
 	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
 		REPCUT_RUN_LOG="$(XS_REPCUT_LOG_DIR_ABS)/xs_verilator_repcut_$${RUN_ID}.log"; \
 		printf '' > "$$REPCUT_RUN_LOG"; \
 		echo "[RUN] xs verilator repcut emu"; \
-		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE)"; \
+		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_EMU_THREADS=$(XS_EMU_THREADS)"; \
 		echo "[LOG] xs verilator repcut run: $$REPCUT_RUN_LOG"; \
-		echo "[CMD] cd $(XS_REPCUT_EMU_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b 0 -e 0 $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS)"; \
-		set -o pipefail; cd "$(XS_REPCUT_EMU_BUILD_ABS)" && $(XS_EMU_PREFIX) ./emu \
+		echo "[CMD] cd $(XS_REPCUT_EMU_BUILD_ABS) && XS_EMU_THREADS=$(XS_EMU_THREADS) $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b 0 -e 0 $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS)"; \
+		set -o pipefail; cd "$(XS_REPCUT_EMU_BUILD_ABS)" && XS_EMU_THREADS="$(XS_EMU_THREADS)" $(XS_EMU_PREFIX) ./emu \
 			-i "$(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin" \
 			--diff "$(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so" \
 			-b 0 \
