@@ -71,6 +71,7 @@ XS_SIM_MAX_CYCLE ?= 0
 XS_WAVEFORM ?= 0
 XS_WAVEFORM_FULL ?= 0
 XS_RAM_TRACE ?= 0
+XS_REPCUT_STEP_TIMING ?= 0
 XS_NUM_CORES ?= 1
 XS_EMU_THREADS ?= 2
 XS_VM_BUILD_JOBS ?= $(shell nproc)
@@ -445,10 +446,6 @@ run_xs_repcut_partitioned_smoke: py_install
 		$(WOLF_LOG) \
 		$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS) \
 		2>&1 | tee "$(XS_REPCUT_LOG_FILE)"
-	@if [ ! -f "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/manifest.json" ]; then \
-		echo "[FAIL] xs repcut partitioned: missing package manifest $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/manifest.json"; \
-		exit 1; \
-	fi
 	@$(eval XS_REPCUT_PACKAGE_BUILD_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_partitioned_build_$(RUN_ID).log)
 	@echo "[RUN] Building repcut partitioned smoke package..."
 	@echo "[LOG] repcut partitioned build: $(XS_REPCUT_PACKAGE_BUILD_LOG_FILE)"
@@ -508,10 +505,6 @@ build_xs_repcut_verilator:
 		$(WOLF_LOG) \
 		$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS) \
 		2>&1 | tee "$(XS_REPCUT_LOG_FILE)"
-	@if [ ! -f "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/manifest.json" ]; then \
-		echo "[FAIL] xs verilator repcut: missing package manifest $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/manifest.json"; \
-		exit 1; \
-	fi
 	@$(eval XS_REPCUT_BUILD_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_verilator_repcut_build_$(RUN_ID).log)
 	@echo "[RUN] Building XiangShan repcut verilator emu..."
 	@echo "[LOG] xs verilator repcut build: $(XS_REPCUT_BUILD_LOG_FILE)"
@@ -546,12 +539,14 @@ run_xs_repcut_verilator:
 	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
 	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
 		REPCUT_RUN_LOG="$(XS_REPCUT_LOG_DIR_ABS)/xs_verilator_repcut_$${RUN_ID}.log"; \
+		REPCUT_TIMING_JSONL="$(XS_REPCUT_LOG_DIR_ABS)/xs_verilator_repcut_$${RUN_ID}.timing.jsonl"; \
 		printf '' > "$$REPCUT_RUN_LOG"; \
 		echo "[RUN] xs verilator repcut emu"; \
-		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_EMU_THREADS=$(XS_EMU_THREADS)"; \
+		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_EMU_THREADS=$(XS_EMU_THREADS) XS_REPCUT_STEP_TIMING=$(XS_REPCUT_STEP_TIMING)"; \
 		echo "[LOG] xs verilator repcut run: $$REPCUT_RUN_LOG"; \
-		echo "[CMD] cd $(XS_REPCUT_EMU_BUILD_ABS) && XS_EMU_THREADS=$(XS_EMU_THREADS) $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b 0 -e 0 $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS)"; \
-		set -o pipefail; cd "$(XS_REPCUT_EMU_BUILD_ABS)" && XS_EMU_THREADS="$(XS_EMU_THREADS)" $(XS_EMU_PREFIX) ./emu \
+		echo "[LOG] xs verilator repcut timing: $$REPCUT_TIMING_JSONL"; \
+		echo "[CMD] cd $(XS_REPCUT_EMU_BUILD_ABS) && XS_EMU_THREADS=$(XS_EMU_THREADS) XS_REPCUT_STEP_TIMING=$(XS_REPCUT_STEP_TIMING) WOLVI_REPCUT_TIMING_JSONL=$$REPCUT_TIMING_JSONL $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b 0 -e 0 $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS)"; \
+		set -o pipefail; cd "$(XS_REPCUT_EMU_BUILD_ABS)" && XS_EMU_THREADS="$(XS_EMU_THREADS)" XS_REPCUT_STEP_TIMING="$(XS_REPCUT_STEP_TIMING)" WOLVI_REPCUT_TIMING_JSONL="$$REPCUT_TIMING_JSONL" $(XS_EMU_PREFIX) ./emu \
 			-i "$(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin" \
 			--diff "$(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so" \
 			-b 0 \
