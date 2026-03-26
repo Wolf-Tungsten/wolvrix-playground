@@ -362,7 +362,7 @@ run_xs_repcut: py_install
 	@mkdir -p "$(XS_REPCUT_WORK_DIR_ABS)"
 	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
 	@$(eval XS_REPCUT_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_$(RUN_ID).log)
-	@echo "[RUN] xs repcut strip-debug"
+	@echo "[RUN] xs repcut"
 	@echo "[LOG] repcut: $(XS_REPCUT_LOG_FILE)"
 	@echo "[CMD] $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) $(XS_WOLF_JSON) $(XS_WOLF_REPCUT_JSON) $(XS_REPCUT_WORK_DIR_ABS) $(WOLF_LOG)"
 	@set -o pipefail; $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) \

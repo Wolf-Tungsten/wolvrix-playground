@@ -5,7 +5,6 @@ import os
 import sys
 import time
 from pathlib import Path
-import subprocess
 
 from _wolvrix_import import load_wolvrix
 
@@ -192,7 +191,12 @@ def _write_partition_features_fallback(work_dir: Path, payload: dict) -> Path | 
     return out_path
 
 
-_SINK_OP_KINDS = {"kRegisterWritePort", "kLatchWritePort", "kMemoryWritePort"}
+_SINK_OP_KINDS = {
+    "kRegisterWritePort",
+    "kLatchWritePort",
+    "kMemoryWritePort",
+    "kSystemTask",
+}
 _SOURCE_OP_KINDS = {"kConstant", "kRegisterReadPort", "kLatchReadPort"}
 _COMB_OP_KINDS = {
     "kConstant",
@@ -285,6 +289,31 @@ def _is_comb_op(op: dict) -> bool:
             return not bool(value)
         return True
     return kind in _COMB_OP_KINDS
+
+
+def _attr_bool(op: dict, key: str) -> bool:
+    attrs = op.get("attrs") or {}
+    value = attrs.get(key)
+    if isinstance(value, dict):
+        return bool(value.get("v"))
+    return bool(value)
+
+
+def _is_dpic_call_with_return(op: dict) -> bool:
+    return str(op.get("kind", "")) == "kDpicCall" and _attr_bool(op, "hasReturn")
+
+
+def _is_system_task_with_return(op: dict) -> bool:
+    return str(op.get("kind", "")) == "kSystemTask" and _attr_bool(op, "hasReturn")
+
+
+def _is_sink_op(op: dict) -> bool:
+    kind = str(op.get("kind", ""))
+    if kind == "kDpicCall":
+        return not _is_dpic_call_with_return(op)
+    if kind == "kSystemTask":
+        return not _is_system_task_with_return(op)
+    return kind in _SINK_OP_KINDS
 
 
 def _iter_graph_objects(json_path: Path):
@@ -380,7 +409,7 @@ def _build_partition_feature_record(graph_obj: dict, part_id: int, graph_name: s
         op_kind_counts[kind] = op_kind_counts.get(kind, 0) + 1
         if _is_comb_op(op):
             comb_op_count += 1
-        if kind in _SINK_OP_KINDS:
+        if _is_sink_op(op):
             sink_op_count += 1
         if kind in _SOURCE_OP_KINDS:
             source_op_count += 1
@@ -508,12 +537,10 @@ def _write_partition_features_from_final_json(
 
 # pass targets (edit here if top symbol changes)
 TOP_MODULE_PATH = "SimTop"
-TOP_LOGIC_INSTANCE_PATH = "SimTop.logic_part"
-REPCUT_PATH = TOP_LOGIC_INSTANCE_PATH
-INSTANCE_INLINE_PATH = TOP_LOGIC_INSTANCE_PATH
+REPCUT_PATH = TOP_MODULE_PATH
 
 # repcut parameters (edit here)
-REPCUT_PARTITION_COUNT = "128"
+REPCUT_PARTITION_COUNT = "32"
 REPCUT_IMBALANCE_FACTOR = "0.015"
 REPCUT_PARTITIONER = "mt-kahypar"
 REPCUT_MTKAHYPAR_PRESET = "quality"
@@ -542,18 +569,6 @@ design = wolvrix.read_json(str(json_in))
 log(f"read_json done {int((time.perf_counter() - start) * 1000)}ms")
 
 start = time.perf_counter()
-log(f"pass strip-debug start path={TOP_MODULE_PATH}")
-design.run_pass(
-    "strip-debug",
-    args=["-path", TOP_MODULE_PATH],
-    diagnostics="info",
-    log_level=log_level,
-    print_diagnostics_level="info",
-    raise_diagnostics_level="error",
-)
-log(f"pass strip-debug done {int((time.perf_counter() - start) * 1000)}ms")
-
-start = time.perf_counter()
 log(f"pass repcut start path={REPCUT_PATH}")
 repcut_work_dir.mkdir(parents=True, exist_ok=True)
 _, repcut_diags = _run_repcut_with_compat(
@@ -573,18 +588,6 @@ if repcut_stats is not None:
         fallback_path = _write_partition_features_fallback(repcut_work_dir, repcut_stats)
         if fallback_path is not None:
             log(f"repcut partition features fallback export {fallback_path}")
-
-start = time.perf_counter()
-log(f"pass instance-inline start path={INSTANCE_INLINE_PATH}")
-design.run_pass(
-    "instance-inline",
-    args=["-path", INSTANCE_INLINE_PATH],
-    diagnostics="info",
-    log_level=log_level,
-    print_diagnostics_level="info",
-    raise_diagnostics_level="error",
-)
-log(f"pass instance-inline done {int((time.perf_counter() - start) * 1000)}ms")
 
 start = time.perf_counter()
 log(f"write_json start {json_out}")
@@ -616,19 +619,8 @@ log(f"write_sv done {int((time.perf_counter() - start) * 1000)}ms")
 if package_out_dir is not None:
     start = time.perf_counter()
     log(f"write_verilator_repcut_package start {package_out_dir}")
-    repo_root = Path(__file__).resolve().parents[1]
-    package_tool = repo_root / "wolvrix" / "build" / "bin" / "json-emit-verilator-repcut-package"
-    if not package_tool.exists():
-        raise RuntimeError(f"package tool not found: {package_tool}")
-    subprocess.run(
-        [
-            str(package_tool),
-            str(json_out.resolve()),
-            str(package_out_dir.resolve()),
-            TOP_MODULE_PATH,
-        ],
-        check=True,
-    )
+    package_out_dir.mkdir(parents=True, exist_ok=True)
+    design.write_verilator_repcut_package(str(package_out_dir), top=[TOP_MODULE_PATH])
     log(f"write_verilator_repcut_package done {int((time.perf_counter() - start) * 1000)}ms")
 
 log(f"total done {int((time.perf_counter() - total_start) * 1000)}ms")
