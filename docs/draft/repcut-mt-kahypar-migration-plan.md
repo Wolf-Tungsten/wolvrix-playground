@@ -1,4 +1,4 @@
-# RepCut 使用已安装 mt-kahypar 迁移计划
+# RepCut 使用 vendored mt-kahypar 迁移计划
 
 ## 实施状态（2026-03-04）
 - M1-M4 已落地到代码：
@@ -6,9 +6,9 @@
   - `-kahypar-path` 参数已移除；新增 `-partitioner` / `-mtkahypar-preset` / `-mtkahypar-threads`。
   - `scripts/wolvrix_xs_repcut.py` 已改为新参数。
   - `transform-repcut` 测试改为基于 `WOLVRIX_HAVE_MT_KAHYPAR` 宏判定是否跳过。
-- 构建侧新增：
-  - `WOLVRIX_ENABLE_MT_KAHYPAR`（默认 ON）
-  - `WOLVRIX_HAVE_MT_KAHYPAR`（自动检测并导出）
+- 构建侧当前行为：
+  - 顶层 CMake 默认接入 vendored `external/mt-kahypar`
+  - `WOLVRIX_HAVE_MT_KAHYPAR` 由 target 是否成功生成自动导出
 
 ## 1. 目标与边界
 
@@ -65,17 +65,17 @@
   - 输出 warning（已弃用），但不立即报错，方便脚本平滑迁移。
 
 ## 阶段 D：构建系统集成
-- 目标是链接系统中已安装的 `mtkahypar`（例如 `/usr/lib` 或自定义前缀）。
-- CMake 建议：
-  - 增加开关：`WOLVRIX_ENABLE_MT_KAHYPAR`（默认 ON）。
-  - 优先使用 `find_library(mtkahypar ...)` + `find_path(mtkahypar.h ...)`。
+- 目标是默认链接 vendored `external/mt-kahypar`，不再要求用户显式传入开关或预先安装 `mtkahypar`。
+- CMake 现状：
+  - 顶层直接 `add_subdirectory(external/mt-kahypar)`。
+  - 默认构建静态 `mtkahypar` 并链接到 `wolvrix-lib`。
   - 链接成功时定义 `WOLVRIX_HAVE_MT_KAHYPAR=1`。
 - 注意事项（必须在计划中显式处理）：
   - `mt-kahypar` 子项目要求 CMake 3.26，而 wolvrix 当前文档是 3.20+。
   - `mt-kahypar` 默认会 `FetchContent` 拉依赖（CLI11 等），对离线/受限网络环境不友好。
-- 因此建议先采用“两步构建”：
-  1. 通过系统包管理器或独立安装流程安装 `libmtkahypar` 与头文件。
-  2. wolvrix 仅做“发现并链接”，不 vendor 内嵌构建 `mt-kahypar`。
+- 因此当前实现的重点变成：
+  1. 尽量把上游所需依赖策略收敛到顶层默认值中。
+  2. 在 README 中明确说明联网下载与可覆盖的 `KAHYPAR_*` 选项。
 
 ## 阶段 E：测试与回归
 - 更新 `wolvrix/tests/transform/test_repcut_pass.cpp`：

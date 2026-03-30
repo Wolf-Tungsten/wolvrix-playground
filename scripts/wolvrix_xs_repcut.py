@@ -165,28 +165,6 @@ def _extract_repcut_stats_diag(diags: list[dict]) -> dict | None:
     return None
 
 
-def _write_partition_features_fallback(work_dir: Path, payload: dict) -> Path | None:
-    graph = str(payload.get("graph", "")).strip()
-    k = payload.get("partition_count_requested")
-    records = payload.get("partition_static_features")
-    if not graph or k is None or not isinstance(records, list):
-        return None
-    out_path = work_dir / f"{graph}_repcut_k{k}.partition_features.jsonl"
-    with out_path.open("w", encoding="utf-8") as handle:
-        summary = {
-            "record_type": "partition_static_feature_summary",
-            "schema_version": 1,
-            "graph": graph,
-            "stem": f"{graph}_repcut_k{k}",
-            "partition_count": payload.get("partition_count_observed", len(records)),
-            "cross_value_count": payload.get("cross_values_total", 0),
-        }
-        handle.write(json.dumps(summary, ensure_ascii=True) + "\n")
-        for record in records:
-            row = {"record_type": "partition_static_features", "schema_version": 1}
-            row.update(record)
-            handle.write(json.dumps(row, ensure_ascii=True) + "\n")
-    return out_path
 
 
 _SINK_OP_KINDS = {
@@ -477,62 +455,6 @@ def _build_partition_feature_record(graph_obj: dict, part_id: int, graph_name: s
         "width_bucket_counts": width_bucket_counts,
         "op_kind_counts": dict(sorted(op_kind_counts.items())),
     }
-
-
-def _write_partition_features_from_final_json(
-    final_json_path: Path,
-    work_dir: Path,
-    payload: dict,
-) -> Path | None:
-    graph = str(payload.get("graph", "")).strip()
-    k = payload.get("partition_count_requested")
-    part_stats = payload.get("partition_graph_stats")
-    if not graph or k is None or not isinstance(part_stats, list) or not final_json_path.exists():
-        return None
-
-    wanted: dict[str, dict] = {}
-    for part in part_stats:
-        if not isinstance(part, dict):
-            continue
-        part_graph_name = str(part.get("graph", "")).strip()
-        if not part_graph_name:
-            continue
-        wanted[part_graph_name] = part
-
-    if not wanted:
-        return None
-
-    records_by_id: dict[int, dict] = {}
-    stem = f"{graph}_repcut_k{k}"
-    for graph_obj in _iter_graph_objects(final_json_path):
-        symbol = str(graph_obj.get("symbol", "")).strip()
-        part = wanted.get(symbol)
-        if part is None:
-            continue
-        part_id = int(part.get("index", len(records_by_id)))
-        weight = int(part.get("weight", 0) or 0)
-        records_by_id[part_id] = _build_partition_feature_record(graph_obj, part_id, graph, stem, weight)
-        if len(records_by_id) == len(wanted):
-            break
-
-    if not records_by_id:
-        return None
-
-    out_path = work_dir / f"{stem}.partition_features.jsonl"
-    with out_path.open("w", encoding="utf-8") as handle:
-        summary = {
-            "record_type": "partition_static_feature_summary",
-            "schema_version": 1,
-            "graph": graph,
-            "stem": stem,
-            "partition_count": payload.get("partition_count_observed", len(records_by_id)),
-            "cross_value_count": payload.get("cross_values_total", 0),
-        }
-        handle.write(json.dumps(summary, ensure_ascii=True) + "\n")
-        for part_id in sorted(records_by_id):
-            handle.write(json.dumps(records_by_id[part_id], ensure_ascii=True) + "\n")
-    return out_path
-
 # pass targets (edit here if top symbol changes)
 TOP_MODULE_PATH = "SimTop"
 REPCUT_PATH = TOP_MODULE_PATH
@@ -569,7 +491,7 @@ log(f"read_json done {int((time.perf_counter() - start) * 1000)}ms")
 start = time.perf_counter()
 log(f"pass repcut start path={REPCUT_PATH}")
 repcut_work_dir.mkdir(parents=True, exist_ok=True)
-_, repcut_diags = _run_repcut_with_compat(
+_run_repcut_with_compat(
     design,
     repcut_work_dir,
     diagnostics="info",
@@ -579,28 +501,11 @@ _, repcut_diags = _run_repcut_with_compat(
 )
 log(f"pass repcut done {int((time.perf_counter() - start) * 1000)}ms")
 
-repcut_stats = _extract_repcut_stats_diag(repcut_diags)
-if repcut_stats is not None:
-    feature_path = repcut_work_dir / f"{repcut_stats['graph']}_repcut_k{repcut_stats['partition_count_requested']}.partition_features.jsonl"
-    if not feature_path.exists():
-        fallback_path = _write_partition_features_fallback(repcut_work_dir, repcut_stats)
-        if fallback_path is not None:
-            log(f"repcut partition features fallback export {fallback_path}")
-
 start = time.perf_counter()
 log(f"write_json start {json_out}")
 json_out.parent.mkdir(parents=True, exist_ok=True)
 design.write_json(str(json_out))
 log(f"write_json done {int((time.perf_counter() - start) * 1000)}ms")
-
-if repcut_stats is not None:
-    feature_path = repcut_work_dir / f"{repcut_stats['graph']}_repcut_k{repcut_stats['partition_count_requested']}.partition_features.jsonl"
-    if not feature_path.exists():
-        fallback_path = _write_partition_features_from_final_json(json_out, repcut_work_dir, repcut_stats)
-        if fallback_path is not None:
-            log(f"repcut partition features json fallback export {fallback_path}")
-        else:
-            log(f"repcut partition features export missing after write_json: expected {feature_path}")
 
 start = time.perf_counter()
 log("read_json start (roundtrip)")

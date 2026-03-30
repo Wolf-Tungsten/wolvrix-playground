@@ -44,6 +44,10 @@ make run_xs_diff -j
 
 # XS bugcases (standalone)
 make -C testcase/xs-bugcase/CASE_006 run
+
+# XiangShan RepCut Verilator
+make build_xs_repcut_verilator -j
+make run_xs_repcut_verilator XS_EMU_THREADS=32 XS_REPCUT_STEP_TIMING=1 XS_SIM_MAX_CYCLE=30000
 ```
 
 ## Outputs
