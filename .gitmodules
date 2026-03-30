@@ -1,6 +1,7 @@
 [submodule "wolvrix"]
 	path = wolvrix
 	url = https://github.com/Wolf-Tungsten/wolvrix.git
+	branch = main
 
 [submodule "testcase/hdlbits"]
 	path = testcase/hdlbits
