@@ -23,11 +23,10 @@ LOG_ONLY_SIM ?= 0
 
 BUILD_DIR ?= build
 WOLVRIX_BUILD_DIR ?= $(WOLVRIX_DIR)/build
-WOLVRIX_PYTHON_DIR ?= $(WOLVRIX_BUILD_DIR)/python
 CMAKE ?= cmake
 WOLVRIX_APP := $(WOLVRIX_BUILD_DIR)/bin/wolvrix
+PIP ?= $(PYTHON) -m pip
 RUN_ID ?= $(shell date +%Y%m%d_%H%M%S)
-export PYTHONPATH := $(WOLVRIX_PYTHON_DIR)$(if $(PYTHONPATH),:$(PYTHONPATH),)
 
 # Verilator path (can be overridden via environment or env.sh)
 VERILATOR ?= $(or $(shell echo $$VERILATOR),verilator)
@@ -177,13 +176,9 @@ build:
 $(WOLVRIX_APP): build
 
 .PHONY: py_install
-py_install: build
-	@if [ -f "$(WOLVRIX_PYTHON_DIR)/wolvrix/_wolvrix.so" ]; then \
-		echo "[PY] Reusing build-tree wolvrix via PYTHONPATH=$(WOLVRIX_PYTHON_DIR)"; \
-	else \
-		echo "[PY] Installing editable wolvrix package"; \
-		$(PYTHON) -m pip install -e $(WOLVRIX_DIR); \
-	fi
+py_install:
+	@echo "[PY] Installing wolvrix into the current Python environment via scikit-build-core"
+	@PIP_DISABLE_PIP_VERSION_CHECK=1 $(PIP) install --no-build-isolation $(PIP_CONFIG_SETTINGS) -e $(WOLVRIX_DIR)
 
 $(HDLBITS_EMITTED_DUT) $(HDLBITS_EMITTED_JSON): $(HDLBITS_DUT_SRC) $(HDLBITS_WOLVRIX_SCRIPT) check-id
 	@mkdir -p $(HDLBITS_OUT_DIR)
@@ -466,15 +461,8 @@ run_xs_repcut_partitioned_smoke: py_install
 		2>&1 | tee -a "$(XS_REPCUT_PACKAGE_RUN_LOG_FILE)"
 
 build_xs_repcut_verilator:
-	@echo "[RUN] Rebuilding Wolvrix for XiangShan repcut emu..."
-	env -u MAKE_TERMOUT $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
-	$(CMAKE) --build $(WOLVRIX_BUILD_DIR) --clean-first
-	@if [ -f "$(WOLVRIX_PYTHON_DIR)/wolvrix/_wolvrix.so" ]; then \
-		echo "[PY] Reusing build-tree wolvrix via PYTHONPATH=$(WOLVRIX_PYTHON_DIR)"; \
-	else \
-		echo "[PY] Installing editable wolvrix package"; \
-		$(PYTHON) -m pip install -e $(WOLVRIX_DIR); \
-	fi
+	@echo "[RUN] Installing Wolvrix for XiangShan repcut emu via scikit-build-core..."
+	@$(MAKE) --no-print-directory py_install
 	@if [ "$(XS_WAVEFORM)" != "0" ] || [ "$(XS_WAVEFORM_FULL)" != "0" ]; then \
 		echo "[FAIL] xs verilator repcut: waveform is not supported in partitioned backend yet"; \
 		exit 1; \

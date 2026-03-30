@@ -9,7 +9,8 @@ combinational feedback loop, which triggers `comb-loop-elim` warnings.
 Run from repo root:
 
 ```
-PYTHONPATH=wolvrix/app/pybind python3 - <<'PY'
+python3 -m pip install --no-build-isolation -e wolvrix
+python3 - <<'PY'
 import wolvrix
 
 filelist = "testcase/c910-bugcase/CASE_002/filelist.f"

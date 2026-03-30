@@ -16,8 +16,8 @@ REF_DIR := $(OUT_DIR_BASE)/ref
 WOLF_DIR := $(OUT_DIR_BASE)/wolf
 
 PYTHON ?= python3
-WOLVRIX_PYBIND := $(ROOT)/wolvrix/app/pybind
-WOLVRIX_PY ?= PYTHONPATH=$(WOLVRIX_PYBIND)$(if $(PYTHONPATH),:$(PYTHONPATH),) $(PYTHON)
+WOLVRIX_PY ?= $(PYTHON)
+PIP ?= $(PYTHON) -m pip
 WOLVRIX_XS_SCRIPT := $(ROOT)/scripts/wolvrix_xs_emit.py
 WOLF_SV := $(WOLF_DIR)/wolf_emit.sv
 WOLF_JSON := $(WOLF_DIR)/grh.json
@@ -53,7 +53,10 @@ LDLIBS ?= -pthread
 CCACHE_DIR ?= $(OUT_DIR_BASE)/ccache
 export CCACHE_DIR
 
-.PHONY: run build_ref build_wolf clean
+.PHONY: run build_ref build_wolf clean install_wolvrix
+
+install_wolvrix:
+	@PIP_DISABLE_PIP_VERSION_CHECK=1 $(PIP) install --no-build-isolation $(PIP_CONFIG_SETTINGS) -e $(ROOT)/wolvrix
 
 run: $(BIN)
 	@if ! command -v $(VERILATOR_COVERAGE) >/dev/null 2>&1; then \

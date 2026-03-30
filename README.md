@@ -1,15 +1,24 @@
 # wolvrix-playground
 
-## Test Environment (optional)
+## Quick Start
 
-Copy and source the environment file:
+Initialize the Python virtual environment first, then load the playground environment:
 
 ```bash
+source setup_pyvenv.sh
+
 cp env.sh.template env.sh
 source env.sh
 ```
 
-Edit `env.sh` if you need:
+If `env.sh` already exists, just run:
+
+```bash
+source setup_pyvenv.sh
+source env.sh
+```
+
+Edit `env.sh` if needed:
 - `TOOL_EXTENSION`: RISC-V toolchain bin path (OpenC910)
 - `VERILATOR`: path to verilator (if not in PATH)
 - `NOOP_HOME`: XiangShan root (defaults to `testcase/xiangshan`)
@@ -19,7 +28,7 @@ Edit `env.sh` if you need:
 Run from the playground root:
 
 ```bash
-# Python bindings (required for wolvrix emit steps)
+# Python bindings (required for wolvrix emit steps, built via scikit-build-core)
 make py_install
 
 # HDLBits

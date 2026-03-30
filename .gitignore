@@ -5,3 +5,4 @@ build/
 .vscode/
 tmp/
 */**/__pycache__
+.venv/

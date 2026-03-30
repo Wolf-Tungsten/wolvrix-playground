@@ -18,11 +18,11 @@
 
 ## Build, Test, and Development Commands
 - Configure: `cmake -S wolvrix -B wolvrix/build` (requires CMake 3.20+ and a C++20 compiler).
-- Build: `cmake --build wolvrix/build -j$(nproc)`; builds the core library and native extension.
-- Python package: `python3 -m pip install -e wolvrix` (provides importable bindings).
+- Build: `cmake --build wolvrix/build -j$(nproc)`; builds the core library, CLI, and tests. Python installation is handled via `pip` + `scikit-build-core`.
+- Python package: `python3 -m pip install --no-build-isolation -e wolvrix` (provides importable bindings via scikit-build-core).
 - Tests: `ctest --test-dir wolvrix/build --output-on-failure` after configuring; CTest wraps the per-target executables.
 - HDLBits flow: `make run_hdlbits_test DUT=001` (or `make run_all_hdlbits_tests`) builds the parser, emits SV/JSON, and runs Verilator; needs Verilator in PATH.
-- Manual run example: `PYTHONPATH=wolvrix/app/pybind python3 scripts/wolvrix_emit.py` (configure `WOLVRIX_*` env vars as needed).
+- Manual run example: `python3 scripts/wolvrix_emit.py` after installing the package into the active environment (configure `WOLVRIX_*` env vars as needed).
 
 ## Coding Style & Naming Conventions
 - C++20 code with 4-space indentation and braces on the same line as control statements; keep includes ordered and minimal.

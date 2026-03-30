@@ -6,9 +6,7 @@ import sys
 import time
 from pathlib import Path
 
-from _wolvrix_import import load_wolvrix
-
-wolvrix = load_wolvrix()
+import wolvrix
 
 
 def log(message: str) -> None:

@@ -11,7 +11,8 @@ parent graph before flattening, which would later conflict in `hier-flatten`.
 Run from repo root:
 
 ```
-PYTHONPATH=wolvrix/app/pybind python3 - <<'PY'
+python3 -m pip install --no-build-isolation -e wolvrix
+python3 - <<'PY'
 import wolvrix
 
 filelist = "testcase/c910-bugcase/CASE_001/filelist.f"
