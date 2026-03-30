@@ -11,3 +11,6 @@
 [submodule "testcase/xiangshan"]
 	path = testcase/xiangshan
 	url = https://github.com/Wolf-Tungsten/XiangShan.git
+[submodule "xiangshan"]
+	url = https://github.com/OpenXiangShan/XiangShan.git
+	branch = dev-wolvrix
