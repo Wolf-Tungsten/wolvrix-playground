@@ -2,11 +2,9 @@
 
 ## Quick Start
 
-Initialize the Python virtual environment first, then load the playground environment:
+Copy the environment template and load the playground environment:
 
 ```bash
-source setup_pyvenv.sh
-
 cp env.sh.template env.sh
 source env.sh
 ```
@@ -14,9 +12,12 @@ source env.sh
 If `env.sh` already exists, just run:
 
 ```bash
-source setup_pyvenv.sh
 source env.sh
 ```
+
+Notes:
+- `source env.sh` will bootstrap `.venv` automatically and install `scikit-build-core`.
+- Edit `env.sh` before sourcing if you need to customize toolchain paths.
 
 Edit `env.sh` if needed:
 - `TOOL_EXTENSION`: RISC-V toolchain bin path (OpenC910)
