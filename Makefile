@@ -155,13 +155,18 @@ HDLBITS_VERILATOR_PREFIX := Vdut_$(DUT)
 HDLBITS_TB_SOURCES := $(wildcard $(HDLBITS_ROOT)/tb/tb_*.cpp)
 HDLBITS_DUTS := $(sort $(patsubst tb_%,%,$(basename $(notdir $(HDLBITS_TB_SOURCES)))))
 
-.PHONY: all build check-id run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
+.PHONY: all build init_submodule check_id run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	xs_rtl xs_wolf_filelist xs_wolf_emit xs_ref_emu xs_wolf_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_wolf_emu run_xs_diff clean
 
 all: build
 
-check-id:
+init_submodule:
+	@git submodule update --init --recursive wolvrix testcase/hdlbits testcase/openc910
+	@git submodule update --init testcase/xiangshan
+	@$(MAKE) --no-print-directory -C testcase/xiangshan init
+
+check_id:
 	@if [[ ! "$(DUT)" =~ ^[0-9]{3}$$ ]]; then \
 		echo "DUT must be a three-digit number (e.g. DUT=001)"; \
 		exit 1; \
@@ -180,11 +185,11 @@ py_install:
 	@echo "[PY] Installing wolvrix into the current Python environment via scikit-build-core"
 	@PIP_DISABLE_PIP_VERSION_CHECK=1 $(PIP) install --no-build-isolation $(PIP_CONFIG_SETTINGS) -e $(WOLVRIX_DIR)
 
-$(HDLBITS_EMITTED_DUT) $(HDLBITS_EMITTED_JSON): $(HDLBITS_DUT_SRC) $(HDLBITS_WOLVRIX_SCRIPT) check-id
+$(HDLBITS_EMITTED_DUT) $(HDLBITS_EMITTED_JSON): $(HDLBITS_DUT_SRC) $(HDLBITS_WOLVRIX_SCRIPT) check_id
 	@mkdir -p $(HDLBITS_OUT_DIR)
 	$(PYTHON) $(HDLBITS_WOLVRIX_SCRIPT) $(DUT) $(HDLBITS_OUT_DIR)
 
-$(HDLBITS_SIM_BIN): $(HDLBITS_EMITTED_DUT) $(HDLBITS_TB_SRC) check-id
+$(HDLBITS_SIM_BIN): $(HDLBITS_EMITTED_DUT) $(HDLBITS_TB_SRC) check_id
 	@mkdir -p $(HDLBITS_OUT_DIR)
 	$(VERILATOR) $(VERILATOR_FLAGS) --cc $(HDLBITS_EMITTED_DUT) --exe $(HDLBITS_TB_SRC) \
 		--top-module top_module --prefix $(HDLBITS_VERILATOR_PREFIX) -Mdir $(HDLBITS_OUT_DIR) -o $(HDLBITS_SIM_BIN_NAME)
