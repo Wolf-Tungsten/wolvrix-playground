@@ -53,7 +53,7 @@ void eval();
   - `kLatchWritePort`
 - effect sink：
   - 无返回值的 `kDpicCall`
-  - `kSystemTask`
+  - 无返回值的 `kSystemTask`
 - top-level observable sink：
   - 其 result 直接连接到 top-level `output` port value 的任何 `op`
   - 其 result 直接连接到 top-level `inout` 的 `out` value 的任何 `op`
@@ -510,3 +510,527 @@ TriggerTKDGroup -> X
 则最终得到的 `TKDGroup` 级图一定是 DAG。
 
 因此第 3 章步骤 4 中对全部 `TKDGroup` 使用 `toposort` 是有理论保证的，不需要额外处理 group 级环。
+
+## 5. 步骤 1 细化：`sink op` 正规化、收集与 `SinkTKDGroup` 构建
+
+本章细化第 3 章步骤 1，目标是在满足大图性能约束的前提下，完成以下工作：
+
+- 对 top-level observable sink 做正规化
+- 收集全部 `sink op`
+- 为每个事件敏感的 `sink op` 提取规范化后的 `TriggerKey`
+- 按 `TriggerKey` 构建 `SinkTKDGroup`
+- 把这一步的结果写入 scratchpad
+
+### 5.1 本步输入与输出
+
+输入是第 2 章约束下的单个 `GRH Graph`。
+
+在本步开始时：
+
+- 图中已经没有 `kInstance`
+- 图中已经没有 `kBlackbox`
+- 图中已经没有各类 `kXMR*`
+
+在本步结束时：
+
+- top-level observable sink 的边界已经完成正规化
+- graph 进入 frozen 状态
+- scratchpad 中已经具备 `SinkTKDGroup` 的完整信息
+
+本步至少输出以下 scratchpad 内容：
+
+- `sink_op_list`
+  - 全部 `sink op` 的线性列表
+- `sink_trigger_key_id`
+  - 每个 `sink op` 对应的 `TriggerKey` intern id
+- `sink_group_list`
+  - 全部 `SinkTKDGroup` 的线性列表
+- `sink_group_members`
+  - 每个 `SinkTKDGroup` 的成员 `op`
+- `sink_group_trigger_key_id`
+  - 每个 `SinkTKDGroup` 对应的 `TriggerKey` intern id
+- `op_to_sink_group`
+  - `sink op -> SinkTKDGroup` 的映射
+
+这里不要求在本步就生成后续 `SimpleTKDGroup` 或 `TKDGroup` 级依赖边。
+
+### 5.2 本步总流程
+
+步骤 1 推荐拆成四个子阶段：
+
+1. top-level observable sink 正规化  
+2. 单次扫描识别全部 `sink op`  
+3. 为每个 `sink op` 提取并 intern `TriggerKey`  
+4. 按 `TriggerKey` 建立 `SinkTKDGroup`
+
+这四个子阶段里，真正允许修改 graph 结构的只有第一个子阶段。
+
+从第二个子阶段开始，graph 就视为 frozen。
+
+### 5.3 子阶段 A：top-level observable sink 正规化
+
+这一步只处理 top-level port 绑定相关的 observable sink。
+
+需要先枚举：
+
+- `graph.outputPorts()`
+- `graph.inoutPorts()` 中的 `out`
+- `graph.inoutPorts()` 中的 `oe`
+
+对每个 top-level 可观察 value，找到其定义 `op`。
+
+若该 value 满足以下条件：
+
+- 直接绑定到 top-level `output` / `inout.out` / `inout.oe`
+- 同时还被其它内部 `op` 使用
+
+则需要在该 value 与 top-level port 绑定之间插入专用 `kAssign`。
+
+插入后的目标是：
+
+- top-level port 改为绑定到这个新 `kAssign` 的 result
+- 原始 value 继续保留给内部普通逻辑使用
+- 新 `kAssign` 成为真正的 top-level observable sink
+
+这样处理之后，top-level 可观察边界与内部复用边界被拆开，后续 `SinkTKDGroup` 的成员就都是边界清晰的 sink。
+
+这一步有两个实现约束：
+
+- 只处理直接 port 绑定，不做传递闭包扩张
+- 只在确实存在“对外可观察 + 内部复用”冲突时插入 `kAssign`；不要为所有 output/inout 绑定无差别插桩
+
+### 5.4 子阶段 B：单次扫描识别全部 `sink op`
+
+正规化完成后，对 graph 的 `operations()` 做一次线性扫描，识别全部 `sink op`。
+
+建议按 `OperationKind` 直接分类，避免额外的多轮筛选。
+
+当前至少要识别以下几类：
+
+- storage write sink
+  - `kRegisterWritePort`
+  - `kMemoryWritePort`
+  - `kLatchWritePort`
+- effect sink
+  - 无返回值 `kDpicCall`
+  - `kSystemTask`
+- top-level observable sink
+  - 正规化后专用于绑定 top-level `output` / `inout.out` / `inout.oe` 的 `kAssign`
+
+对每个识别出的 `sink op`，至少记录以下信息：
+
+- `opId`
+- `OperationKind`
+- 所属 `TriggerKey` 的 intern id
+- 需要时记录对应的 top-level port 绑定类别
+
+这里要强调两个点：
+
+- `sink op` 收集应当是一次线性扫描，时间复杂度目标为 `O(|Ops|)`
+- top-level observable sink 的识别应当依赖正规化后的明确边界，而不是再次从所有普通 `op` 结果上反查 port 绑定
+
+### 5.5 子阶段 C：提取并 intern `TriggerKey`
+
+对每个 `sink op`，需要提取它的 `TriggerKey`。
+
+提取规则与第 2 章保持一致：
+
+- 空键：没有事件触发项
+- 非空键：由若干 `(valId, eventEdge)` 二元组组成
+
+当前可按下述方式提取：
+
+- `kRegisterWritePort`
+  - 从事件 operands 与 `eventEdge` 属性提取
+- `kMemoryWritePort`
+  - 从事件 operands 与 `eventEdge` 属性提取
+- `kLatchWritePort`
+  - `TriggerKey` 为空键
+- 无返回值 `kDpicCall`
+  - 若带事件语义，则按其事件 operands 与 `eventEdge` 提取
+  - 若不带事件语义，则为空键
+- `kSystemTask`
+  - 按其事件语义提取；无事件时为空键
+- top-level observable `kAssign`
+  - 为空键
+
+提取出的 `TriggerKey` 必须先规范化，再做 intern。
+
+推荐的 intern 流程是：
+
+1. 生成临时二元组序列
+2. 按第 2 章规则排序和去重
+3. 在全局 `TriggerKey` 池中查找是否已有完全相同的键
+4. 若已有则复用已有 id
+5. 若没有则分配新 id
+
+本步后续所有分组逻辑都只使用 `TriggerKeyId`，不再反复操作原始二元组序列。
+
+### 5.6 子阶段 D：按 `TriggerKey` 建立 `SinkTKDGroup`
+
+当每个 `sink op` 都拥有稳定的 `TriggerKeyId` 后，就可以按该 id 建立 `SinkTKDGroup`。
+
+当前草案中，`SinkTKDGroup` 的分组键就是：
+
+```text
+SinkTKDGroupKey := TriggerKeyId
+```
+
+因此：
+
+- `TriggerKeyId` 相同的 `sink op` 进入同一个 `SinkTKDGroup`
+- `TriggerKeyId` 不同的 `sink op` 进入不同的 `SinkTKDGroup`
+
+建议在实现上维护：
+
+- `TriggerKeyId -> SinkTKDGroupId`
+- `SinkTKDGroupId -> member op list`
+- `opId -> SinkTKDGroupId`
+
+对任意 `SinkTKDGroup` `S`，其 `AffectedSinkSet(S)` 按定义恒为 `{S}`，因此这一步就可以把该信息直接写入 scratchpad。
+
+### 5.7 数据结构建议
+
+考虑到输入图可能达到 100M+ `op`，本步数据结构要尽量贴近线性内存布局。
+
+建议优先采用以下形式：
+
+- `std::vector<OpId>` 或等价紧凑数组存储 `sink op` 线性列表
+- `std::vector<TriggerKeyId>` 按 sink 顺序平行存储 key id
+- `std::vector<SinkTKDGroupId>` 按 sink 顺序平行存储 group id
+- `opId -> small integer` 使用稠密数组或压缩索引，避免高频哈希查找
+- `TriggerKey` 实体放到 intern 池中，group 侧只引用 `TriggerKeyId`
+
+不建议的做法包括：
+
+- 为每个 `op` 单独挂一个堆分配对象
+- 在扫描过程中频繁构造和销毁大 `std::vector`
+- 对同一个 `sink op` 多次重复解析 `eventEdge`
+- 在普通 `op` 上重复做 top-level port 反查
+
+### 5.8 性能约束
+
+本步必须满足以下性能目标：
+
+#### 5.8.1 图扫描次数要少
+
+推荐上限：
+
+- 1 次 top-level port 绑定扫描
+- 1 次正规化后的 `op` 线性扫描
+
+不要把“识别 sink”“提取 `TriggerKey`”“建立组”拆成多轮全图回扫。
+
+#### 5.8.2 `TriggerKey` 处理要做 intern
+
+大设计里大量时序写口会共享同一套时钟 / 复位触发键。
+
+如果不做 intern：
+
+- 会反复保存相同二元组序列
+- 会显著放大内存占用
+- 也会放大后续比较成本
+
+因此 `TriggerKey` 必须以“规范化序列 + intern id”的形式存储。
+
+#### 5.8.3 正规化插桩要最小化
+
+步骤 1 允许改图，但插桩范围必须严格受控。
+
+只在以下情况下插入专用 `kAssign`：
+
+- 某个 value 直接绑定 top-level 输出分量
+- 同一个 value 还被内部其它 `op` 使用
+
+其余没有内部复用的 top-level 绑定不需要插桩。
+
+#### 5.8.4 scratchpad 输出要面向后续步骤
+
+本步输出的数据布局要直接服务后续步骤，避免第 2 步、第 3 步再做昂贵重整。
+
+尤其是以下映射要一次建好：
+
+- `opId -> SinkTKDGroupId`
+- `SinkTKDGroupId -> TriggerKeyId`
+- `SinkTKDGroupId -> member op list`
+
+### 5.9 本步完成后的状态
+
+当第 5 章描述的步骤 1 完成后，系统应处于以下状态：
+
+- graph 已经完成 sink 正规化
+- graph 已经 frozen
+- 所有 `sink op` 都已经被识别
+- 所有 `sink op` 都已经绑定到唯一的 `TriggerKeyId`
+- 所有 `SinkTKDGroup` 都已经构建完成
+- 对任意 `SinkTKDGroup` `S`，都有 `AffectedSinkSet(S) = {S}`
+
+在这个状态上，后续第 6 章可以继续展开步骤 2，也就是全局 `TriggerTKDGroup` 的构建。
+
+## 6. 步骤 2 细化：全局 `TriggerTKDGroup` 构建
+
+本章细化第 3 章步骤 2，目标是在正规化后的 frozen graph 上，以尽可能低的额外开销构建唯一的全局 `TriggerTKDGroup`。
+
+这一步的核心任务是：
+
+- 找出所有非空 `TriggerKey` 真正引用到的事件 root value
+- 以这些 root value 为并集起点做一次全局 use-def 逆向回溯
+- 收集全部驱动触发判定所需的 `op`
+- 产出全局 `TriggerTKDGroup` 及其元数据
+
+### 6.1 本步输入与输出
+
+本步输入包括两部分：
+
+- 第 5 章结束后的 frozen `GRH Graph`
+- 第 5 章写入 scratchpad 的步骤 1 产物
+
+本步至少依赖以下 scratchpad 内容：
+
+- `sink_group_list`
+- `sink_group_trigger_key_id`
+- `op_to_sink_group`
+- `TriggerKey` intern 池本体
+
+本步至少输出以下 scratchpad 内容：
+
+- `trigger_root_value_list`
+  - 参与触发判定的去重后 root value 列表
+- `trigger_group_member_ops`
+  - 全局 `TriggerTKDGroup` 的成员 `op`
+- `op_in_trigger_group`
+  - `opId -> bool` 或等价标记
+- `trigger_group_id`
+  - 唯一全局 `TriggerTKDGroup` 的 id
+- `trigger_group_affected_sink_set`
+  - `AffectedSinkSet(TriggerTKDGroup)`
+
+这一步不修改 graph 结构。
+
+### 6.2 本步总流程
+
+步骤 2 推荐拆成四个子阶段：
+
+1. 从 `SinkTKDGroup` 收集全部非空 `TriggerKey`
+2. 从这些 `TriggerKey` 中展开并去重事件 root value
+3. 以 root value 并集为起点做一次全局逆向回溯
+4. 物化唯一的全局 `TriggerTKDGroup`
+
+这四个子阶段的设计目标是：
+
+- 不按每个 `sink op` 单独做回溯
+- 不按每个 `SinkTKDGroup` 单独做回溯
+- 整个步骤 2 对同一个 `op` 最多访问一次
+
+### 6.3 子阶段 A：收集全部非空 `TriggerKey`
+
+这一步不应从 `sink op` 重新扫描开始，而应直接复用第 5 章已经完成的 `SinkTKDGroup` 分组结果。
+
+推荐做法是：
+
+- 顺序扫描 `sink_group_list`
+- 读取每个 `SinkTKDGroup` 的 `TriggerKeyId`
+- 过滤掉空键
+- 对非空 `TriggerKeyId` 做去重
+
+这里优先从 `SinkTKDGroup` 而不是从 `sink op` 出发，有两个原因：
+
+- 相同 `TriggerKey` 的 `sink op` 在步骤 1 已经被聚合
+- 以 group 为粒度扫描能显著减少重复展开同一 `TriggerKey` 的次数
+
+本子阶段结束后，应得到：
+
+- `active_trigger_key_id_list`
+  - 全部参与本次 trigger 构建的非空 `TriggerKeyId`
+
+同时也可以直接得到：
+
+- `AffectedSinkSet(TriggerTKDGroup)`
+  - 它等于全部非空 `TriggerKey` 对应的 `SinkTKDGroup` 集合
+
+换句话说，哪些 `SinkTKDGroup` 带非空 `TriggerKey`，全局 `TriggerTKDGroup` 就最终影响哪些 `SinkTKDGroup`。
+
+### 6.4 子阶段 B：展开并去重事件 root value
+
+有了 `active_trigger_key_id_list` 后，就可以到 `TriggerKey` intern 池中取出每个 key 的规范化二元组序列。
+
+对每个非空 `TriggerKey`：
+
+- 枚举其中全部 `(valId, eventEdge)` 事件项
+- 提取其中的 `valId`
+- 把这些 `valId` 记为候选 trigger root value
+
+这里有一个关键点：
+
+- 对步骤 2 而言，是否 `posedge` / `negedge` 只影响“本拍是否触发”的判定逻辑
+- 但在构建 `TriggerTKDGroup` 时，逆向追溯的根是对应的事件 value 本身
+
+因此本子阶段做 group 成员收集时，根集合只需要按 `valId` 去重，不需要把 `(valId, eventEdge)` 当作不同回溯根。
+
+本子阶段结束后，应得到：
+
+- `trigger_root_value_list`
+  - 全部去重后的事件 root value
+
+### 6.5 子阶段 C：做一次全局 use-def 逆向回溯
+
+这是本步的核心。
+
+从 `trigger_root_value_list` 的并集出发，做一次全局 use-def 逆向回溯：
+
+1. 取一个 root value
+2. 查它是否有定义 `op`
+3. 若无定义 `op`，说明它是 graph 输入或等价源值，停止在该点
+4. 若有定义 `op`，且该 `op` 尚未访问，则：
+   - 把该 `op` 加入全局 `TriggerTKDGroup`
+   - 把该 `op` 的全部 operands 继续压入待访问 worklist
+5. 重复直到 worklist 为空
+
+这一步只做一次全局回溯，不按 root 分别重复跑。
+
+原因很直接：
+
+- 多个 `TriggerKey` 很可能共享同一段时钟树 / 复位树逻辑
+- 若按 key 或按 sink group 分开回溯，会在共享上游逻辑上产生大量重复工作
+- 全局并集回溯可以保证共享段只访问一次
+
+### 6.6 回溯边界与停止条件
+
+在子阶段 C 中，回溯边界需要明确。
+
+#### 6.6.1 无定义值立即停止
+
+若某个 value 没有定义 `op`，则停止回溯。
+
+这类 value 通常包括：
+
+- input port value
+- inout input value
+- 其它 graph 外源值
+
+#### 6.6.2 已访问 `op` 不重复展开
+
+若某个定义 `op` 已经被纳入全局 `TriggerTKDGroup`，则不重复展开其 operands。
+
+这条规则保证：
+
+- 每个 `op` 最多入组一次
+- 每条共享上游逻辑只展开一次
+
+#### 6.6.3 遇到 `sink op` 视为异常
+
+按当前模型，trigger 判定逻辑的上游不应依赖 `sink op`。
+
+原因是：
+
+- storage write sink、`kSystemTask`、无返回值 `kDpicCall` 本身不产生可继续传播的普通数据结果
+- top-level observable sink 在步骤 1 中已经被隔离到专用 `kAssign`
+
+因此如果在 trigger 逆向回溯中遇到已分类为 `sink op` 的 `op`，应将其视为输入不符合预期，至少要打诊断。
+
+这条约束也和第 4 章里的无环性证明保持一致。
+
+### 6.7 子阶段 D：物化唯一全局 `TriggerTKDGroup`
+
+当子阶段 C 结束后，所有被访问到的 `op` 就构成全局 `TriggerTKDGroup` 的成员集合。
+
+这一步需要把它物化成稳定的 scratchpad 结果，至少包括：
+
+- `trigger_group_id`
+- `trigger_group_member_ops`
+- `op_in_trigger_group`
+- `trigger_group_affected_sink_set`
+
+这里再次强调：
+
+- 全局 `TriggerTKDGroup` 只有一个
+- 它的成员由所有非空 `TriggerKey` 的事件 root value 的并集共同决定
+- 它的 `AffectedSinkSet` 等于全部带非空 `TriggerKey` 的 `SinkTKDGroup` 集合
+
+### 6.8 数据结构建议
+
+这一步的实现重点是“全局并集回溯 + 稠密 visited 标记”。
+
+建议优先采用：
+
+- `std::vector<ValueId>` 作为 `trigger_root_value_list`
+- `std::vector<OpId>` 作为 `trigger_group_member_ops`
+- `std::vector<uint8_t>` 或等价位图作为
+  - `value_seen`
+  - `op_seen`
+  - `trigger_key_seen`
+- `std::vector<ValueId>` 作为回溯 worklist
+
+推荐的数据流形态是：
+
+- 先按 `TriggerKeyId` 去重
+- 再按 `ValueId` 去重 root
+- 最后对 `OpId` 做一次全局 visited 回溯
+
+不建议的做法包括：
+
+- 为每个 `SinkTKDGroup` 单独跑一次 DFS / BFS
+- 为每个 `TriggerKey` 单独维护一份 visited 集
+- 在回溯过程中反复分配临时哈希集合
+- 在已经有 intern id 的前提下重新重复解析所有 `eventEdge`
+
+### 6.9 性能约束
+
+本步必须满足以下性能目标。
+
+#### 6.9.1 只做一次全局回溯
+
+步骤 2 的设计核心就是“并集回溯”。
+
+正确的复杂度目标应当接近：
+
+- `O(|active trigger keys| + |trigger roots| + |visited ops in trigger cone|)`
+
+而不是：
+
+- `O(sum over each sink group of its trigger cone size)`
+
+后者在共享时钟树很大的设计里会明显失控。
+
+#### 6.9.2 先按 `TriggerKeyId` 去重，再按 `ValueId` 去重
+
+这两层去重都必要：
+
+- 不先按 `TriggerKeyId` 去重，会对同一时钟域重复展开同一组事件项
+- 不再按 `ValueId` 去重，会让共享 root value 被重复压入 worklist
+
+这两层去重都应使用紧凑的整数 id 标记结构，不要依赖高频字符串比较。
+
+#### 6.9.3 不要重复读取 `sink op` 级事件信息
+
+第 5 章已经把 `TriggerKey` 做了规范化和 intern。
+
+因此本步应当：
+
+- 直接消费 `TriggerKeyId`
+- 从 intern 池取事件项
+
+不要重新从每个 `sink op` 的 operands / attributes 上重复解析一次事件信息。
+
+#### 6.9.4 `op_in_trigger_group` 必须可 `O(1)` 查询
+
+后续步骤 3 在构建 `SimpleTKDGroup` 时，需要快速跳过已经属于 `TriggerTKDGroup` 的 `op`。
+
+因此本步输出的成员判断结构必须支持：
+
+- `O(1)` 或接近 `O(1)` 的 `op ∈ TriggerTKDGroup` 查询
+
+最直接的方式就是按 `OpId` 建稠密位图或字节标记。
+
+### 6.10 本步完成后的状态
+
+当第 6 章描述的步骤 2 完成后，系统应处于以下状态：
+
+- graph 仍保持 frozen
+- 全部非空 `TriggerKey` 都已经被收集
+- 所有事件 root value 都已经去重
+- 全局 `TriggerTKDGroup` 已经构建完成
+- 对任意 `op`，都可以快速判断它是否属于 `TriggerTKDGroup`
+- `AffectedSinkSet(TriggerTKDGroup)` 已经可用
+
+在这个状态上，后续第 7 章可以继续展开步骤 3，也就是 `SimpleTKDGroup` 的构建。
