@@ -152,16 +152,80 @@ void eval();
 - 步骤 1 正规化阶段允许对 `GRH Graph` 做必要的结构修改
 - 正规化完成后，`TKDGroup` 构建阶段不再修改 `GRH Graph` 的结构
 - 可以补充少量不影响 id 稳定性的 attribute
-- 所有核心输出都写入 pass scratchpad，而不是回写成新的 graph 结构
+- 最终结果发布到 pass 指定的 scratchpad 路径下，而不是回写成新的 graph 结构
 
 也就是说，`ValueId` / `OperationId` 的稳定性是相对于“正规化完成后的 frozen graph”来讨论的。
 
-这里的“核心输出”至少包括：
+这里的“最终结果”至少包括：
 
 - `SinkTKDGroup` / `TriggerTKDGroup` / `SimpleTKDGroup` 的成员信息
 - `TKDGroup` 之间的依赖关系
 - 每个 `TKDGroup` 的 `AffectedSinkSet`
 - 最终的 `TKDGroup` 拓扑序
+
+### 2.6 scratchpad 组织约束
+
+scratchpad 的职责是让本 pass 向其它流程发布最终结果，不应用来堆放本 pass 内部的大量中间状态。
+
+因此有两条基本约束：
+
+- 仅发布后续流程确实需要消费的最终结果
+- 中间 worklist、visited 标记、临时分桶、阶段性列表默认只存在于 pass 内存中，不写入 scratchpad
+
+本 pass 的最终发布路径固定组织为：
+
+```text
+tkds/<modulePath>/...
+```
+
+其中：
+
+- `modulePath` 表示当前目标 `GRH Graph` 对应的模块路径标识
+- 同一个 module 的全部 TKD 结果都集中发布到这一前缀下
+- 不同 module 的结果天然隔离，避免 scratchpad key 冲突
+
+推荐形式：
+
+```text
+tkds/<modulePath>/meta
+tkds/<modulePath>/pools/triggerKeys
+tkds/<modulePath>/pools/affectedSinkSets
+tkds/<modulePath>/groups/sink
+tkds/<modulePath>/groups/trigger
+tkds/<modulePath>/groups/simple
+tkds/<modulePath>/index/opToTkdGroup
+tkds/<modulePath>/plan/edges
+tkds/<modulePath>/plan/topoOrder
+```
+
+其中：
+
+- `meta`
+  - 版本、构建参数、graph 标识等元信息
+- `pools/triggerKeys`
+  - `TriggerKey` intern 池的最终内容
+- `pools/affectedSinkSets`
+  - `AffectedSinkSet` intern 池的最终内容
+- `groups/sink`
+  - 全部 `SinkTKDGroup` 的最终结果
+- `groups/trigger`
+  - 全局 `TriggerTKDGroup` 的最终结果
+- `groups/simple`
+  - 全部 `SimpleTKDGroup` 的最终结果
+- `index/opToTkdGroup`
+  - 统一的 `opId -> TKDGroupId` 映射
+- `plan/edges`
+  - 最终 `TKDGroup` 级依赖边
+- `plan/topoOrder`
+  - 最终 `TKDGroup` 拓扑序
+
+若后续确实需要保留某些中间结果用于调试，应放到：
+
+```text
+tkds/<modulePath>/debug/...
+```
+
+并且默认关闭，不进入常规产物。
 
 ## 3. `TKDGroup` 构建总览
 
@@ -193,7 +257,7 @@ void eval();
 
 也就是说，`TKDGroup` 构建的产物不只是“若干 group + group 间依赖边”，还包括每个 group 的 `AffectedSinkSet`。
 
-这些产物都应写入 scratchpad。当前草案不要求把它们回写成新的 `GRH Graph` 结构。
+这些产物是本 pass 的最终逻辑产物。常规模式下，只有在步骤 4 完成后才统一发布到 `tkds/<modulePath>/...` 下；中间阶段结果默认留在 pass 内部，不单独写入 scratchpad。
 
 ### 3.2 步骤 1：正规化并收集 `sink op`，按 `TriggerKey` 形成 `SinkTKDGroup`
 
@@ -519,7 +583,7 @@ TriggerTKDGroup -> X
 - 收集全部 `sink op`
 - 为每个事件敏感的 `sink op` 提取规范化后的 `TriggerKey`
 - 按 `TriggerKey` 构建 `SinkTKDGroup`
-- 把这一步的结果写入 scratchpad
+- 产出这一步的内部结果
 
 ### 5.1 本步输入与输出
 
@@ -535,24 +599,24 @@ TriggerTKDGroup -> X
 
 - top-level observable sink 的边界已经完成正规化
 - graph 进入 frozen 状态
-- scratchpad 中已经具备 `SinkTKDGroup` 的完整信息
+- pass 内部已经具备 `SinkTKDGroup` 的完整结果
 
-本步至少输出以下 scratchpad 内容：
+本步至少需要得到以下内部结果：
 
-- `sink_op_list`
+- `sinkOpList`
   - 全部 `sink op` 的线性列表
-- `sink_trigger_key_id`
+- `sinkTriggerKeyId`
   - 每个 `sink op` 对应的 `TriggerKey` intern id
-- `sink_group_list`
+- `sinkGroupList`
   - 全部 `SinkTKDGroup` 的线性列表
-- `sink_group_members`
+- `sinkGroupMembers`
   - 每个 `SinkTKDGroup` 的成员 `op`
-- `sink_group_trigger_key_id`
+- `sinkGroupTriggerKeyId`
   - 每个 `SinkTKDGroup` 对应的 `TriggerKey` intern id
-- `op_to_sink_group`
+- `opToSinkGroup`
   - `sink op -> SinkTKDGroup` 的映射
 
-这里不要求在本步就生成后续 `SimpleTKDGroup` 或 `TKDGroup` 级依赖边。
+这些结果供本 pass 的后续步骤直接消费，默认不单独发布到 scratchpad。
 
 ### 5.2 本步总流程
 
@@ -687,7 +751,7 @@ SinkTKDGroupKey := TriggerKeyId
 - `SinkTKDGroupId -> member op list`
 - `opId -> SinkTKDGroupId`
 
-对任意 `SinkTKDGroup` `S`，其 `AffectedSinkSet(S)` 按定义恒为 `{S}`，因此这一步就可以把该信息直接写入 scratchpad。
+对任意 `SinkTKDGroup` `S`，其 `AffectedSinkSet(S)` 按定义恒为 `{S}`，因此这一步就已经能得到对应最终值。
 
 ### 5.7 数据结构建议
 
@@ -744,9 +808,9 @@ SinkTKDGroupKey := TriggerKeyId
 
 其余没有内部复用的 top-level 绑定不需要插桩。
 
-#### 5.8.4 scratchpad 输出要面向后续步骤
+#### 5.8.4 本步结果要直接服务后续步骤
 
-本步输出的数据布局要直接服务后续步骤，避免第 2 步、第 3 步再做昂贵重整。
+本步内部结果的数据布局要直接服务后续步骤，避免第 2 步、第 3 步再做昂贵重整。
 
 尤其是以下映射要一次建好：
 
@@ -783,26 +847,26 @@ SinkTKDGroupKey := TriggerKeyId
 本步输入包括两部分：
 
 - 第 5 章结束后的 frozen `GRH Graph`
-- 第 5 章写入 scratchpad 的步骤 1 产物
+- 第 5 章产生的步骤 1 产物
 
-本步至少依赖以下 scratchpad 内容：
+本步至少依赖以下步骤 1 产物：
 
-- `sink_group_list`
-- `sink_group_trigger_key_id`
-- `op_to_sink_group`
+- `sinkGroupList`
+- `sinkGroupTriggerKeyId`
+- `opToSinkGroup`
 - `TriggerKey` intern 池本体
 
-本步至少输出以下 scratchpad 内容：
+本步至少需要得到以下内部结果：
 
-- `trigger_root_value_list`
+- `triggerRootValueList`
   - 参与触发判定的去重后 root value 列表
-- `trigger_group_member_ops`
+- `triggerGroupMemberOps`
   - 全局 `TriggerTKDGroup` 的成员 `op`
-- `op_in_trigger_group`
+- `opInTriggerGroup`
   - `opId -> bool` 或等价标记
-- `trigger_group_id`
+- `triggerGroupId`
   - 唯一全局 `TriggerTKDGroup` 的 id
-- `trigger_group_affected_sink_set`
+- `triggerGroupAffectedSinkSet`
   - `AffectedSinkSet(TriggerTKDGroup)`
 
 这一步不修改 graph 结构。
@@ -828,7 +892,7 @@ SinkTKDGroupKey := TriggerKeyId
 
 推荐做法是：
 
-- 顺序扫描 `sink_group_list`
+- 顺序扫描 `sinkGroupList`
 - 读取每个 `SinkTKDGroup` 的 `TriggerKeyId`
 - 过滤掉空键
 - 对非空 `TriggerKeyId` 做去重
@@ -840,7 +904,7 @@ SinkTKDGroupKey := TriggerKeyId
 
 本子阶段结束后，应得到：
 
-- `active_trigger_key_id_list`
+- `activeTriggerKeyIdList`
   - 全部参与本次 trigger 构建的非空 `TriggerKeyId`
 
 同时也可以直接得到：
@@ -852,7 +916,7 @@ SinkTKDGroupKey := TriggerKeyId
 
 ### 6.4 子阶段 B：展开并去重事件 root value
 
-有了 `active_trigger_key_id_list` 后，就可以到 `TriggerKey` intern 池中取出每个 key 的规范化二元组序列。
+有了 `activeTriggerKeyIdList` 后，就可以到 `TriggerKey` intern 池中取出每个 key 的规范化二元组序列。
 
 对每个非空 `TriggerKey`：
 
@@ -869,14 +933,14 @@ SinkTKDGroupKey := TriggerKeyId
 
 本子阶段结束后，应得到：
 
-- `trigger_root_value_list`
+- `triggerRootValueList`
   - 全部去重后的事件 root value
 
 ### 6.5 子阶段 C：做一次全局 use-def 逆向回溯
 
 这是本步的核心。
 
-从 `trigger_root_value_list` 的并集出发，做一次全局 use-def 逆向回溯：
+从 `triggerRootValueList` 的并集出发，做一次全局 use-def 逆向回溯：
 
 1. 取一个 root value
 2. 查它是否有定义 `op`
@@ -934,12 +998,12 @@ SinkTKDGroupKey := TriggerKeyId
 
 当子阶段 C 结束后，所有被访问到的 `op` 就构成全局 `TriggerTKDGroup` 的成员集合。
 
-这一步需要把它物化成稳定的 scratchpad 结果，至少包括：
+这一步需要把它物化成稳定的内部结果，至少包括：
 
-- `trigger_group_id`
-- `trigger_group_member_ops`
-- `op_in_trigger_group`
-- `trigger_group_affected_sink_set`
+- `triggerGroupId`
+- `triggerGroupMemberOps`
+- `opInTriggerGroup`
+- `triggerGroupAffectedSinkSet`
 
 这里再次强调：
 
@@ -953,12 +1017,12 @@ SinkTKDGroupKey := TriggerKeyId
 
 建议优先采用：
 
-- `std::vector<ValueId>` 作为 `trigger_root_value_list`
-- `std::vector<OpId>` 作为 `trigger_group_member_ops`
+- `std::vector<ValueId>` 作为 `triggerRootValueList`
+- `std::vector<OpId>` 作为 `triggerGroupMemberOps`
 - `std::vector<uint8_t>` 或等价位图作为
-  - `value_seen`
-  - `op_seen`
-  - `trigger_key_seen`
+  - `valueSeen`
+  - `opSeen`
+  - `triggerKeySeen`
 - `std::vector<ValueId>` 作为回溯 worklist
 
 推荐的数据流形态是：
@@ -1012,7 +1076,7 @@ SinkTKDGroupKey := TriggerKeyId
 
 不要重新从每个 `sink op` 的 operands / attributes 上重复解析一次事件信息。
 
-#### 6.9.4 `op_in_trigger_group` 必须可 `O(1)` 查询
+#### 6.9.4 `opInTriggerGroup` 必须可 `O(1)` 查询
 
 后续步骤 3 在构建 `SimpleTKDGroup` 时，需要快速跳过已经属于 `TriggerTKDGroup` 的 `op`。
 
@@ -1034,3 +1098,625 @@ SinkTKDGroupKey := TriggerKeyId
 - `AffectedSinkSet(TriggerTKDGroup)` 已经可用
 
 在这个状态上，后续第 7 章可以继续展开步骤 3，也就是 `SimpleTKDGroup` 的构建。
+
+## 7. 步骤 3 细化：`SimpleTKDGroup` 构建
+
+本章细化第 3 章步骤 3，目标是在 frozen graph 上，把所有剩余普通逻辑 `op` 按 `AffectedSinkSet` 相同这一等价关系归并为若干个 `SimpleTKDGroup`。
+
+这一步的核心任务是：
+
+- 为每个普通 `op` 计算 `AffectedSinkSet(op)`
+- 跳过已经属于 `SinkTKDGroup` 或 `TriggerTKDGroup` 的 `op`
+- 把 `AffectedSinkSet(op)` 相同的普通 `op` 归并成 `SimpleTKDGroup`
+
+### 7.1 本步输入与输出
+
+本步输入包括：
+
+- frozen `GRH Graph`
+- 第 5 章产生的 `SinkTKDGroup` 结果
+- 第 6 章产生的全局 `TriggerTKDGroup` 结果
+
+本步至少依赖以下前序步骤产物：
+
+- `sinkGroupList`
+- `opToSinkGroup`
+- `opInTriggerGroup`
+- `triggerGroupId`
+- `AffectedSinkSet(TriggerTKDGroup)`
+
+本步至少需要得到以下内部结果：
+
+- `opAffectedSinkSetId`
+  - 每个普通 `op` 对应的 `AffectedSinkSet` intern id
+- `simpleGroupList`
+  - 全部 `SimpleTKDGroup` 的线性列表
+- `simpleGroupMembers`
+  - 每个 `SimpleTKDGroup` 的成员 `op`
+- `opToSimpleGroup`
+  - `opId -> SimpleTKDGroupId`
+- `simpleGroupAffectedSinkSet`
+  - 每个 `SimpleTKDGroup` 的 `AffectedSinkSet`
+
+这里的“普通 `op`”指：
+
+- 不属于任何 `SinkTKDGroup`
+- 不属于全局 `TriggerTKDGroup`
+- 本身属于可调度的可执行逻辑 `op`
+
+这里需要明确排除一类“声明性 / 载体性 `op`”。
+
+这类 `op` 不参与 `TKDGroup` 调度，即使它们也不属于 `SinkTKDGroup` 或 `TriggerTKDGroup`，也不应进入 `SimpleTKDGroup`。当前至少包括：
+
+- `kRegister`
+- `kMemory`
+- `kLatch`
+- `kDpicImport`
+
+如果后续 IR 再引入其它只表达声明、符号、对象定义、导入信息的 `op`，也应归入这一类并排除出 `TKDGroup`。
+
+### 7.2 本步总流程
+
+步骤 3 推荐拆成四个子阶段：
+
+1. 确定参与本步的 candidate `op` 集
+2. 计算每个 candidate `op` 的 `AffectedSinkSet(op)`
+3. 对 `AffectedSinkSet` 做 intern
+4. 按 `AffectedSinkSetId` 构建 `SimpleTKDGroup`
+
+整个步骤 3 的关键点是：
+
+- 不按每个 `SinkTKDGroup` 分别做一次逆向 DFS
+- 不按每个普通 `op` 单独做一次下游可达性搜索
+- 必须把 `AffectedSinkSet` 计算做成共享结果可复用的全局传播
+
+### 7.3 子阶段 A：确定 candidate `op` 集
+
+先对 graph 的全部 `op` 做一次线性扫描，确定哪些 `op` 属于本步候选集合。
+
+判定规则很直接：
+
+- 若 `op ∈ SinkTKDGroup`，跳过
+- 若 `op ∈ TriggerTKDGroup`，跳过
+- 若 `op` 是声明性 / 载体性 `op`，跳过
+- 其余可执行逻辑 `op` 进入 candidate 集
+
+因此，本步的 candidate 集不是“所有剩余 `op`”，而是“所有剩余、且真正参与求值的普通逻辑 `op`”。
+
+这里建议同时建立一个稠密状态数组，例如：
+
+- `0`: 非 candidate
+- `1`: candidate
+
+这样后续传播和分组都可以直接按 `OpId` 做 `O(1)` 判定。
+
+### 7.4 子阶段 B：计算 `AffectedSinkSet(op)`
+
+这是本步的核心。
+
+目标是对每个 candidate `op` 计算：
+
+```text
+AffectedSinkSet(op)
+```
+
+根据定义，它等于从该 `op` 出发沿 data dependency 路径最终可到达的全部 `SinkTKDGroup` 的集合。
+
+#### 7.4.1 推荐做法：全局反向传播
+
+这一步推荐采用多源、全局、单调的反向传播，而不是按 sink group 分别回溯。
+
+基本思路是：
+
+1. 把所有 `sink op` 作为传播源
+2. 对每个 `sink op`，把其所属的 `SinkTKDGroupId` 作为初始标签
+3. 沿 use-def 反方向，把 sink 影响集合逐步向上游传播
+4. 当某个 candidate `op` 的 `AffectedSinkSet` 发生增长时，再继续把增长后的集合传播到它的定义上游
+5. 直到所有 candidate `op` 的 `AffectedSinkSet` 收敛
+
+这里的“沿 use-def 反方向传播”具体指：
+
+- 若 `u -> v` 是一个 data dependency edge
+- 则 `AffectedSinkSet(v)` 的新增项需要继续传播到 `u`
+
+#### 7.4.2 为什么这一步会收敛
+
+这一步的传播是单调的：
+
+- 每个 `op` 的 `AffectedSinkSet(op)` 只会增长，不会删除元素
+- graph 本身无环
+- `SinkTKDGroup` 数量有限
+
+因此传播一定在有限步内收敛。
+
+#### 7.4.3 推荐的实现形态
+
+这一步推荐维护：
+
+- `opAffectedSinkSetId`
+  - 当前 `op` 的集合 intern id
+- `opPending`
+  - 当前 `op` 是否在传播 worklist 中
+- `worklist`
+  - 发生集合增长、需要继续向上游传播的 `op`
+
+初始化时：
+
+- 每个 `sink op` 对应的上游 operand 定义点获得该 sink 所属 `SinkTKDGroupId`
+- 多个 sink 对同一上游 `op` 的影响在这里自然做并集
+
+传播时：
+
+- 读出当前 `op` 的 `AffectedSinkSet`
+- 向其所有 operand 的定义 `op` 合并传播
+- 如果上游 `op` 的集合变大，则把该上游 `op` 放入 worklist
+
+### 7.5 边界条件
+
+#### 7.5.1 遇到无定义 value 直接停止
+
+若某个 operand value 没有定义 `op`，则在该点停止传播。
+
+这类 value 通常包括：
+
+- input port value
+- inout input value
+- 其它 graph 外源值
+
+#### 7.5.2 不跨越 `SinkTKDGroup`
+
+若某个上游定义 `op` 本身已经属于 `SinkTKDGroup`，则不继续把它作为普通 candidate 展开。
+
+理由很简单：
+
+- `SinkTKDGroup` 已经是单独的边界 group
+- 本步只负责剩余普通逻辑的 `AffectedSinkSet` 计算
+
+#### 7.5.3 不跨越 `TriggerTKDGroup`
+
+若某个上游定义 `op` 已经属于全局 `TriggerTKDGroup`，则不继续把它纳入 `SimpleTKDGroup` 候选。
+
+对应影响已经通过：
+
+- `opInTriggerGroup`
+- `AffectedSinkSet(TriggerTKDGroup)`
+
+在后续调度中单独处理。
+
+### 7.6 子阶段 C：对 `AffectedSinkSet` 做 intern
+
+由于大图中大量普通 `op` 会共享同一个 `AffectedSinkSet`，这一步必须做集合 intern。
+
+推荐方式是：
+
+1. 用规范形式表示一个 `AffectedSinkSet`
+2. 在全局集合池中查重
+3. 相同集合复用已有 `AffectedSinkSetId`
+4. 不同集合分配新 id
+
+这里的规范形式建议满足：
+
+- 成员 `SinkTKDGroupId` 升序
+- 无重复
+
+这样既方便比较，也方便后续按 id 直接分组。
+
+### 7.7 子阶段 D：按 `AffectedSinkSetId` 构建 `SimpleTKDGroup`
+
+当每个 candidate `op` 都拥有稳定的 `AffectedSinkSetId` 后，就可以按这个 id 构建 `SimpleTKDGroup`。
+
+当前草案中：
+
+```text
+SimpleTKDGroupKey := AffectedSinkSetId
+```
+
+因此：
+
+- `AffectedSinkSetId` 相同的 candidate `op` 进入同一个 `SimpleTKDGroup`
+- `AffectedSinkSetId` 不同的 candidate `op` 进入不同的 `SimpleTKDGroup`
+
+建议同时建立：
+
+- `AffectedSinkSetId -> SimpleTKDGroupId`
+- `SimpleTKDGroupId -> member op list`
+- `opId -> SimpleTKDGroupId`
+
+本步结束后，每个 `SimpleTKDGroup` 的 `AffectedSinkSet` 也就自然确定。
+
+所有未进入任何 `TKDGroup` 的声明性 / 载体性 `op` 会继续保留在 graph 中，但不属于调度计划的一部分。
+
+### 7.8 数据结构建议
+
+这一步的数据结构设计重点是“集合合并成本”。
+
+建议优先采用：
+
+- `std::vector<AffectedSinkSetId>` 按 `OpId` 平行存储
+- `std::vector<uint8_t>` 作为
+  - `opIsCandidate`
+  - `opPending`
+- `std::vector<OpId>` 作为传播 worklist
+- `AffectedSinkSet` intern 池
+
+对 `AffectedSinkSet` 的具体底层表示，建议按 `SinkTKDGroup` 总数选型：
+
+- 若 `SinkTKDGroup` 总数不大，可使用定长 bitset 或分块 bitset
+- 若 `SinkTKDGroup` 总数较大且大多数集合稀疏，可使用升序 id 列表或压缩位图
+
+无论选择哪种底层表示，都应满足：
+
+- 集合并集操作足够快
+- 可稳定生成规范形式
+- 可被 intern
+- 可高效做相等比较
+
+### 7.9 性能约束
+
+本步必须满足以下性能目标。
+
+#### 7.9.1 不做 per-sink-group 重复回溯
+
+禁止的实现方式：
+
+- 对每个 `SinkTKDGroup` 单独向上游跑一遍 DFS / BFS
+
+因为这会在共享组合逻辑上产生灾难性的重复访问。
+
+正确方向是：
+
+- 用全局多源反向传播一次性求出全部 candidate `op` 的 `AffectedSinkSet`
+
+#### 7.9.2 集合增长驱动 worklist
+
+只有当某个 `op` 的 `AffectedSinkSet` 真的变大时，才允许它再次进入 worklist。
+
+否则：
+
+- 会在大设计里产生大量无效重复传播
+- 会把复杂度从“接近线性”放大成“接近边数乘以重复次数”
+
+#### 7.9.3 `opToSimpleGroup` 必须支持 `O(1)` 查询
+
+后续第 8 章构建 group 级依赖边时，需要频繁把 `op` 映射到所属 `TKDGroup`。
+
+因此：
+
+- `opToSimpleGroup`
+- `opId -> SinkTKDGroupId`
+- `opInTriggerGroup`
+
+都应是 `O(1)` 或接近 `O(1)` 查询。
+
+#### 7.9.4 `AffectedSinkSet` intern 必须复用
+
+如果不做 intern：
+
+- 大量相同集合会被重复存储
+- group 构建阶段无法直接按 set id 分桶
+- 后续比较与判交成本都会升高
+
+因此 `AffectedSinkSet` 必须和 `TriggerKey` 一样，具备稳定的 intern id。
+
+### 7.10 本步完成后的状态
+
+当第 7 章描述的步骤 3 完成后，系统应处于以下状态：
+
+- 所有普通 candidate `op` 都已经拥有稳定的 `AffectedSinkSetId`
+- 所有 `SimpleTKDGroup` 都已经构建完成
+- 对任意普通 `op`，都可以快速判断其所属 `SimpleTKDGroup`
+- 对任意 `SimpleTKDGroup`，其 `AffectedSinkSet` 已经可用
+- 所有声明性 / 载体性 `op` 仍保留在 graph 中，但不属于任何 `TKDGroup`
+
+在这个状态上，后续第 8 章可以继续展开步骤 4，也就是 `TKDGroup` 级依赖建边与拓扑排序。
+
+## 8. 步骤 4 细化：`TKDGroup` 级依赖建边与拓扑排序
+
+本章细化第 3 章步骤 4，目标是把前面已经构建好的：
+
+- `SinkTKDGroup`
+- 全局 `TriggerTKDGroup`
+- `SimpleTKDGroup`
+
+统一提升到 `TKDGroup` 级，建立依赖边，并产出最终拓扑序。
+
+### 8.1 本步输入与输出
+
+本步输入包括：
+
+- frozen `GRH Graph`
+- 第 5 章的 `SinkTKDGroup`
+- 第 6 章的全局 `TriggerTKDGroup`
+- 第 7 章的 `SimpleTKDGroup`
+
+本步至少依赖以下前序步骤产物：
+
+- `opToSinkGroup`
+- `opInTriggerGroup`
+- `opToSimpleGroup`
+- `SinkTKDGroup` / `TriggerTKDGroup` / `SimpleTKDGroup` 的成员信息
+- 每类 group 的 `AffectedSinkSet`
+
+本步至少需要得到以下内部结果：
+
+- `tkdGroupList`
+  - 全部 `TKDGroup` 的线性列表
+- `opToTkdGroup`
+  - `opId -> TKDGroupId`
+- `tkdGroupEdgeList`
+  - `TKDGroup` 级依赖边
+- `tkdGroupTopoOrder`
+  - 最终拓扑序
+
+### 8.2 本步总流程
+
+步骤 4 推荐拆成四个子阶段：
+
+1. 统一 `TKDGroupId` 空间
+2. 建立 `opId -> TKDGroupId` 映射
+3. 扫描 op 级依赖边并提升为 `TKDGroup` 级边
+4. 注入 trigger precedence edge 并做 `toposort`
+
+### 8.3 子阶段 A：统一 `TKDGroupId` 空间
+
+前面几章构建的是三类不同 group。
+
+在本步开始时，建议先把它们统一到同一个 `TKDGroupId` 空间中。
+
+推荐顺序可以是：
+
+1. 全部 `SinkTKDGroup`
+2. 全局 `TriggerTKDGroup`
+3. 全部 `SimpleTKDGroup`
+
+只要最终 id 稠密且稳定，具体顺序不是关键。
+
+统一 id 空间后，每个 `TKDGroupId` 至少应携带：
+
+- group kind
+  - `sink`
+  - `trigger`
+  - `simple`
+- member op list
+- `AffectedSinkSet`
+
+### 8.4 子阶段 B：建立 `opId -> TKDGroupId`
+
+这一步要把前面分散的成员关系压成统一映射。
+
+推荐做法是一次线性扫描：
+
+- 若 `op ∈ SinkTKDGroup`，映射到对应 sink `TKDGroupId`
+- 否则若 `op ∈ TriggerTKDGroup`，映射到 trigger `TKDGroupId`
+- 否则若 `op ∈ SimpleTKDGroup`，映射到对应 simple `TKDGroupId`
+- 否则标记为“未参与 TKD 调度”
+
+这里应保留一个显式的未参与状态，而不是隐式用 `0` 或未初始化值代替。
+
+因为后面扫描 op 级边时，需要区分：
+
+- 边跨两个有效 `TKDGroup`
+- 边的一端不属于任何 `TKDGroup`
+
+### 8.5 子阶段 C：扫描 op 级依赖边并提升为 `TKDGroup` 级边
+
+这一步推荐做一次 graph 级线性边扫描。
+
+对每个 `opA`：
+
+- 枚举其 results
+- 枚举这些 result 的 users
+- 找到被使用方 `opB`
+- 读出 `GA = TKDGroup(opA)`
+- 读出 `GB = TKDGroup(opB)`
+
+之后分情况处理：
+
+- 若 `GA` 或 `GB` 为空，跳过
+- 若 `GA == GB`，跳过
+- 否则记录一条候选 group edge `GA -> GB`
+
+这一步只提升普通 data dependency edge，不处理 trigger precedence edge。
+
+#### 8.5.1 为什么一次边扫描就够
+
+前面几章已经把所有 group 成员都物化好了。
+
+因此本步不需要再做任何 reachability 分析，只需要做：
+
+- `op -> group` 查询
+- `group -> group` 候选边提升
+
+这一步的复杂度目标应接近：
+
+- `O(|op-level edges touched|)`
+
+### 8.6 子阶段 D：边去重、注入 trigger precedence edge、做 `toposort`
+
+子阶段 C 扫描得到的候选 group edge 可能有大量重复。
+
+因此需要先做一次 group edge 去重。
+
+推荐方式有两类：
+
+- 收集所有候选边后排序去重
+- 对每个源 group 维护紧凑的目标集合，再输出去重结果
+
+在 data dependency edge 去重完成后，再注入 trigger precedence edge：
+
+- 从全局 `TriggerTKDGroup` 指向每个其它 `TKDGroup`
+
+这里是否要跳过已经存在的同向 data dependency edge，不影响语义；最终只需要保证边集里无重复。
+
+当全部边准备完成后，就可以直接调用 `toposort` 组件。
+
+若 `toposort` 失败，则说明：
+
+- 输入 graph 违反了前置无环假设
+- 或者步骤 1~3 的实现偏离了本文定义
+
+在当前理论模型下，这里不应出现环。
+
+### 8.7 `AffectedSinkSet` 在本步中的角色
+
+本步不再重新计算任何 `AffectedSinkSet`。
+
+它在本步中的作用有两个：
+
+1. 作为 `SimpleTKDGroup` 已经完成的分组依据
+2. 作为后续运行时 `need-solve` 判定的直接元数据
+
+也就是说：
+
+- 第 8 章负责建边和排序
+- 不负责重新传播 sink 影响集合
+
+### 8.8 数据结构建议
+
+本步的数据结构重点是“边扫描”和“边去重”。
+
+建议优先采用：
+
+- `std::vector<TKDGroupId>` 按 `OpId` 平行存储 `opToTkdGroup`
+- `std::vector<std::pair<TKDGroupId, TKDGroupId>>` 存候选边
+- `std::vector<TKDGroupId>` 存最终拓扑序
+
+若 group 边数可能很大，也可以考虑：
+
+- 按源 group 分桶
+- 对桶内目标 id 排序去重
+
+不建议的做法包括：
+
+- 在边扫描过程中对每条边做高频字符串级判断
+- 在 `op -> group` 查询上使用重哈希结构
+- 在边去重上为每个 group 频繁分配零散小对象
+
+### 8.9 性能约束
+
+本步必须满足以下性能目标。
+
+#### 8.9.1 只做一次 op 级边扫描
+
+构建 `TKDGroup` 级依赖边时，不应对 graph 做多轮重复遍历。
+
+推荐上限：
+
+- 1 次统一的 op 级边扫描
+- 1 次候选边去重
+
+#### 8.9.2 `opToTkdGroup` 必须是稠密映射
+
+边扫描阶段会极高频查询：
+
+- `opA -> TKDGroupId`
+- `opB -> TKDGroupId`
+
+因此这个映射必须是：
+
+- 稠密数组
+- 或等价的 `O(1)` 结构
+
+#### 8.9.3 group 边去重要后置批处理
+
+大设计里，同一对 group 之间可能被许多 op 级边重复触发。
+
+因此更合理的方式通常是：
+
+- 先批量收集候选边
+- 再集中排序去重
+
+而不是在扫描每一条 op 级边时都立刻做重型去重判断。
+
+#### 8.9.4 不重新做 reachability
+
+第 5~7 章已经完成了：
+
+- sink 正规化
+- trigger 逆向并集回溯
+- `AffectedSinkSet` 传播
+- `SimpleTKDGroup` 构建
+
+因此第 8 章不能再重复做新的 reachability / cone 分析，否则整体复杂度会失控。
+
+### 8.10 本步完成后的状态
+
+当第 8 章描述的步骤 4 完成后，系统应处于以下状态：
+
+- 全部 `TKDGroup` 已统一到同一 id 空间
+- `opId -> TKDGroupId` 已经稳定可查
+- 全部 `TKDGroup` 级依赖边已经构建完成
+- trigger precedence edge 已经注入
+- 最终 `TKDGroup` 拓扑序已经生成
+
+到这里，静态调度计划的主体结构就已经完整具备了。后续若需要，可以再继续补运行时求解策略、`need-solve` 判定流程，以及代码生成接口。
+
+### 8.11 最终 scratchpad 发布
+
+步骤 1 到步骤 4 结束后，本 pass 再统一把最终结果发布到 `tkds/<modulePath>/...` 下。
+
+默认应发布的内容建议限制为：
+
+- `tkds/<modulePath>/meta`
+- `tkds/<modulePath>/pools/triggerKeys`
+- `tkds/<modulePath>/pools/affectedSinkSets`
+- `tkds/<modulePath>/groups/sink`
+- `tkds/<modulePath>/groups/trigger`
+- `tkds/<modulePath>/groups/simple`
+- `tkds/<modulePath>/index/opToTkdGroup`
+- `tkds/<modulePath>/plan/edges`
+- `tkds/<modulePath>/plan/topoOrder`
+
+各条目的推荐内容如下：
+
+- `tkds/<modulePath>/meta`
+  - 方案版本
+  - 构建时间或构建轮次
+  - 对应 graph 标识
+  - 统计信息，例如 `sinkGroup` / `simpleGroup` 数量、group 边数量
+- `tkds/<modulePath>/pools/triggerKeys`
+  - `TriggerKeyId -> TriggerKey` 的 intern 池内容
+  - 每个 `TriggerKey` 的规范化事件项序列
+  - 空键的固定 id
+- `tkds/<modulePath>/pools/affectedSinkSets`
+  - `AffectedSinkSetId -> {SinkTKDGroupId...}` 的 intern 池内容
+  - 每个集合的规范化成员序列
+- `tkds/<modulePath>/groups/sink`
+  - 全部 `SinkTKDGroup` 的定义
+  - 每个 group 的成员 `op`
+  - 每个 group 对应的 `TriggerKeyId`
+  - 每个 group 的 `AffectedSinkSet`
+- `tkds/<modulePath>/groups/trigger`
+  - 唯一全局 `TriggerTKDGroup` 的定义
+  - 成员 `op`
+  - 对应的事件 root value 集
+  - `AffectedSinkSet(TriggerTKDGroup)`
+- `tkds/<modulePath>/groups/simple`
+  - 全部 `SimpleTKDGroup` 的定义
+  - 每个 group 的成员 `op`
+  - 每个 group 对应的 `AffectedSinkSetId`
+  - 每个 group 的 `AffectedSinkSet`
+- `tkds/<modulePath>/index/opToTkdGroup`
+  - 统一的 `opId -> TKDGroupId` 映射
+  - 对未参与调度的 `op` 使用显式空值或哨兵值
+- `tkds/<modulePath>/plan/edges`
+  - 去重后的 `TKDGroup` 级依赖边列表
+  - 每条边的 `srcGroupId` 与 `dstGroupId`
+  - 若需要，也可附带边类型，区分 `dataDependency` 与 `triggerPrecedence`
+- `tkds/<modulePath>/plan/topoOrder`
+  - 最终 `TKDGroupId` 拓扑序列
+  - 若运行时需要 phase 信息，也可在此处附带预切分后的 phase 边界
+
+以下内容默认不发布：
+
+- worklist
+- visited 位图
+- 去重前候选边
+- 阶段性 root 列表
+- 仅供本 pass 内部复用的临时索引
+
+如果需要问题定位或性能剖析，可在 debug 模式下额外发布：
+
+- `tkds/<modulePath>/debug/...`
+
+但这不属于常规产物，默认关闭。
