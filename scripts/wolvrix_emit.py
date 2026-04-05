@@ -96,53 +96,34 @@ def main() -> int:
     ensure_parent_dir(json_out)
 
     try:
-        design, _read_diags = wolvrix.read_sv(
-            path,
-            slang_args=read_args,
-            log_level=log_level,
-            diagnostics="warn",
-            print_diagnostics_level="warn",
-            raise_diagnostics_level="error",
-        )
-    except Exception as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+        with wolvrix.Session() as sess:
+            sess.set_log_level(log_level)
+            sess.set_diagnostics_policy("error")
+            sess.read_sv(
+                path,
+                target_design_key="design.main",
+                slang_args=read_args,
+            )
 
-    skip_transform = getenv("WOLVRIX_SKIP_TRANSFORM", "0")
-    if skip_transform != "1":
-        pipeline = [
-            ("xmr-resolve", []),
-            ("mem-to-reg", ["-row-limit", "8"]),
-            ("latch-transparent-read", []),
-            ("simplify", []),
-            ("memory-init-check", []),
-            ("stats", []),
-        ]
-        for pass_name, pass_args in pipeline:
-            try:
-                design.run_pass(
-                    pass_name,
-                    args=pass_args,
-                    diagnostics="warn",
-                    log_level=log_level,
-                    print_diagnostics_level="warn",
-                    raise_diagnostics_level="error",
-                )
-            except Exception as exc:
-                print(str(exc), file=sys.stderr)
-                return 1
+            skip_transform = getenv("WOLVRIX_SKIP_TRANSFORM", "0")
+            if skip_transform != "1":
+                sess.run_pass("xmr-resolve", design="design.main")
+                sess.run_pass("mem-to-reg", design="design.main", row_limit=8)
+                sess.run_pass("latch-transparent-read", design="design.main")
+                sess.run_pass("simplify", design="design.main")
+                sess.run_pass("memory-init-check", design="design.main")
+                sess.run_pass("stats", design="design.main")
 
-    json_roundtrip = getenv("WOLVRIX_JSON_ROUNDTRIP", "0")
-    store_json = getenv("WOLVRIX_STORE_JSON", "0")
+            json_roundtrip = getenv("WOLVRIX_JSON_ROUNDTRIP", "0")
+            store_json = getenv("WOLVRIX_STORE_JSON", "0")
 
-    try:
-        if json_roundtrip == "1":
-            design.write_json(json_out)
-            design = wolvrix.read_json(json_out)
-        elif store_json == "1":
-            design.write_json(json_out)
+            if json_roundtrip == "1":
+                sess.store_json(design="design.main", output=json_out)
+                sess.read_json_file(json_out, target_design_key="design.main", replace=True)
+            elif store_json == "1":
+                sess.store_json(design="design.main", output=json_out)
 
-        design.write_sv(sv_out)
+            sess.emit_sv(design="design.main", output=sv_out)
     except Exception as exc:
         print(str(exc), file=sys.stderr)
         return 1

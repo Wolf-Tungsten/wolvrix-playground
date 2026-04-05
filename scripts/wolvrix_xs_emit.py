@@ -4,9 +4,8 @@ import shlex
 import sys
 import time
 from pathlib import Path
-import json
-
 import wolvrix
+from wolvrix.adapters.stats import StatsValue
 
 
 def parse_tokens(value: str) -> list[str]:
@@ -20,25 +19,14 @@ def log(message: str) -> None:
     sys.stderr.flush()
 
 
-def write_stats_json(diags: list[dict], out_dir: Path) -> None:
-    for diag in diags or []:
-        if diag.get("pass") != "stats":
-            continue
-        if str(diag.get("kind", "")).lower() != "info":
-            continue
-        payload = diag.get("message")
-        if not payload:
-            continue
-        try:
-            data = json.loads(payload)
-        except json.JSONDecodeError:
-            log("stats json parse failed")
-            return
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_path = out_dir / "wolvrix_xs_stats.json"
-        out_path.write_text(json.dumps(data, ensure_ascii=True), encoding="utf-8")
-        log(f"stats json written {out_path}")
-        return
+def write_stats_json(sess: wolvrix.Session, key: str, out_dir: Path) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "wolvrix_xs_stats.json"
+    value = sess.get(key)
+    if not isinstance(value, StatsValue):
+        raise TypeError(f"session key is not stats: {key}")
+    value.write_json(str(out_path))
+    log(f"stats json written {out_path}")
 
 
 if len(sys.argv) < 6:
@@ -68,57 +56,50 @@ if read_args_file:
 
 start = time.perf_counter()
 log("read_sv start")
-design, _read_diags = wolvrix.read_sv(
-    None,
-    slang_args=read_args,
-    log_level=log_level,
-    diagnostics="info",
-    print_diagnostics_level="info",
-    raise_diagnostics_level="error",
-)
-log(f"read_sv done {int((time.perf_counter() - start) * 1000)}ms")
-
-pipeline = [
-    "xmr-resolve",
-    "memory-read-retime",
-    ("mem-to-reg", ["-row-limit", "512"]),
-    "multidriven-guard",
-    "blackbox-guard",
-    "latch-transparent-read",
-    "hier-flatten",
-    "comb-loop-elim",
-    ("simplify", ["-semantics", "2state"]),
-    "memory-init-check",
-    "stats",
-]
-for pass_spec in pipeline:
-    pass_name = pass_spec[0] if isinstance(pass_spec, (tuple, list)) else pass_spec
-    start = time.perf_counter()
-    log(f"pass {pass_name} start")
-    _changed, diags = design.run_pipeline(
-        [pass_spec],
-        diagnostics="info",
-        log_level=log_level,
-        print_diagnostics_level="info",
-        raise_diagnostics_level="error",
+with wolvrix.Session() as sess:
+    sess.set_log_level(log_level)
+    sess.set_diagnostics_policy("error")
+    sess.read_sv(
+        None,
+        target_design_key="design.main",
+        slang_args=read_args,
     )
-    if pass_name == "stats":
-        write_stats_json(diags, Path("tmp"))
-    log(f"pass {pass_name} done {int((time.perf_counter() - start) * 1000)}ms")
+    log(f"read_sv done {int((time.perf_counter() - start) * 1000)}ms")
 
-start = time.perf_counter()
-log(f"write_json start {json_out}")
-design.write_json(json_out)
-log(f"write_json done {int((time.perf_counter() - start) * 1000)}ms")
+    pipeline: list[tuple[str, dict]] = [
+        ("xmr-resolve", {}),
+        ("memory-read-retime", {}),
+        ("mem-to-reg", {"row_limit": 512}),
+        ("multidriven-guard", {}),
+        ("blackbox-guard", {}),
+        ("latch-transparent-read", {}),
+        ("hier-flatten", {}),
+        ("comb-loop-elim", {}),
+        ("simplify", {"semantics": "2state"}),
+        ("memory-init-check", {}),
+        ("stats", {"statskey": "stats.main"}),
+    ]
+    for pass_name, pass_kwargs in pipeline:
+        start = time.perf_counter()
+        log(f"pass {pass_name} start")
+        sess.run_pass(pass_name, design="design.main", **pass_kwargs)
+        if pass_name == "stats":
+            write_stats_json(sess, "stats.main", Path("tmp"))
+        log(f"pass {pass_name} done {int((time.perf_counter() - start) * 1000)}ms")
 
-start = time.perf_counter()
-log("read_json start")
-design = wolvrix.read_json(json_out)
-log(f"read_json done {int((time.perf_counter() - start) * 1000)}ms")
+    start = time.perf_counter()
+    log(f"write_json start {json_out}")
+    sess.store_json(design="design.main", output=json_out)
+    log(f"write_json done {int((time.perf_counter() - start) * 1000)}ms")
 
-start = time.perf_counter()
-log(f"write_sv start {sv_out}")
-design.write_sv(sv_out)
-log(f"write_sv done {int((time.perf_counter() - start) * 1000)}ms")
+    start = time.perf_counter()
+    log("read_json start")
+    sess.read_json_file(json_out, target_design_key="design.main", replace=True)
+    log(f"read_json done {int((time.perf_counter() - start) * 1000)}ms")
 
-log(f"total done {int((time.perf_counter() - total_start) * 1000)}ms")
+    start = time.perf_counter()
+    log(f"write_sv start {sv_out}")
+    sess.emit_sv(design="design.main", output=sv_out)
+    log(f"write_sv done {int((time.perf_counter() - start) * 1000)}ms")
+
+    log(f"total done {int((time.perf_counter() - total_start) * 1000)}ms")

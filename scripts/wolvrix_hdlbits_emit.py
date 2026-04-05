@@ -19,33 +19,22 @@ out_dir.mkdir(parents=True, exist_ok=True)
 sv_out = out_dir / f"dut_{dut_id}.v"
 json_out = out_dir / f"dut_{dut_id}.json"
 
-design, _read_diags = wolvrix.read_sv(
-    str(dut_path),
-    slang_args=["--top", "top_module"],
-    log_level="info",
-    diagnostics="warn",
-    print_diagnostics_level="warn",
-    raise_diagnostics_level="error",
-)
-
-pipeline = [
-    "xmr-resolve",
-    "multidriven-guard",
-    "latch-transparent-read",
-    ("hier-flatten", ["-sym-protect", "hierarchy"]),
-    "comb-loop-elim",
-    "simplify",
-    "memory-init-check",
-    "stats",
-]
-design.run_pipeline(
-    pipeline,
-    diagnostics="warn",
-    log_level="info",
-    print_diagnostics_level="warn",
-    raise_diagnostics_level="error",
-)
-
-design.write_json(str(json_out))
-design = wolvrix.read_json(str(json_out))
-design.write_sv(str(sv_out))
+with wolvrix.Session() as sess:
+    sess.set_log_level("info")
+    sess.set_diagnostics_policy("error")
+    sess.read_sv(
+        str(dut_path),
+        target_design_key="design.main",
+        slang_args=["--top", "top_module"],
+    )
+    sess.run_pass("xmr-resolve", design="design.main")
+    sess.run_pass("multidriven-guard", design="design.main")
+    sess.run_pass("latch-transparent-read", design="design.main")
+    sess.run_pass("hier-flatten", design="design.main", sym_protect="hierarchy")
+    sess.run_pass("comb-loop-elim", design="design.main")
+    sess.run_pass("simplify", design="design.main")
+    sess.run_pass("memory-init-check", design="design.main")
+    sess.run_pass("stats", design="design.main")
+    sess.store_json(design="design.main", output=str(json_out))
+    sess.read_json_file(str(json_out), target_design_key="design.main", replace=True)
+    sess.emit_sv(design="design.main", output=str(sv_out))
