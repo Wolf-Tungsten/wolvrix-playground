@@ -105,6 +105,18 @@ supernode_active =
   - 类型：整数
   - 含义：局部 refine 的最大迭代轮数
 
+- `enable-replication`
+  - 类型：布尔
+  - 含义：启用低成本边界 op 复制
+
+- `replication-max-cost`
+  - 类型：整数
+  - 含义：允许复制的 op 成本上限
+
+- `replication-max-targets`
+  - 类型：整数
+  - 含义：单个源 op 允许复制到的目标 `supernode` 数量上限
+
 - `cost-model`
   - 类型：枚举
   - 取值：`edge-cut`
@@ -128,8 +140,11 @@ supernode_active =
 - `<path>.activity_schedule.dag`
 - `<path>.activity_schedule.topo_order`
 - `<path>.activity_schedule.head_eval_supernodes`
+- `<path>.activity_schedule.op_event_domains`
+- `<path>.activity_schedule.value_event_domains`
 - `<path>.activity_schedule.supernode_event_domains`
 - `<path>.activity_schedule.event_domain_sinks`
+- `<path>.activity_schedule.event_domain_sink_groups`
 
 这些结果需要支持两类快速查询：
 
@@ -150,33 +165,28 @@ supernode_active =
 - 充分而合理地利用多线程并行加速
 - 不把 `OperationId` 当作跨改图阶段的持久锚点；内部持久锚点使用 op symbol
 
-### 2.4 并行化策略
+### 2.4 并行化要求
 
-适合并行的步骤：
+当前实现仍为单线程。后续并行化优先放在以下步骤：
 
 - `phase A1`
-  - 按 op 分块收集局部统计信息
-  - 并行构建局部依赖边和局部候选集合
+  - 按 op 分块收集局部依赖和候选集合
 
 - `phase A3`
-  - 在互不重叠的局部区域并行收集粗化候选
-  - 合并提交按确定顺序执行
+  - 在互不重叠区域并行收集粗化候选
 
 - `phase A5`
-  - 并行计算候选迁移收益
-  - 提交阶段串行，或按不相交写集批量提交
+  - 并行计算边界迁移收益
 
 - `phase A6`
   - 并行筛选可复制边界 op
-  - 复制提交按目标 `supernode` 分桶后合并
 
 - `phase B1`
-  - 并行识别 sink 节点
+  - 并行识别 sink
   - 并行提取 `event-domain-signature`
 
 - `phase B2`
   - 以 sink 或 `event-domain-signature` 为粒度并行反标
-  - 局部标注结果统一合并
 
 需要串行的步骤：
 
@@ -201,22 +211,40 @@ supernode_active =
 - `enable-sibling-merge = true`
 - `enable-forward-merge = true`
 - `enable-refine = true`
+- `enable-replication = true`
+- `replication-max-cost = 2`
+- `replication-max-targets = 8`
 - `cost-model = edge-cut`
 
 ### 3.2 phase A1：建立划分视图
 
-建立轻量级划分视图，包含：
+建立轻量级划分视图。当前实现直接物化：
 
 - 参与划分的 op 列表
 - op 之间的组合依赖
 - 稳定拓扑序
-- 每个 op 的局部统计信息，例如 fanin、fanout、跨边数
 - 每个 op 的内部稳定锚点
+
+当前主结构：
+
+- `topoOps`
+- `topoSymbols`
+- `topoKinds`
+- `topoEdges`
+- `topoPosByOpIndex`
+
+`supernode` 级邻接关系不单独持久化，在后续 phase 中按当前划分结果重建。
 
 划分对象限定为可执行求值 op。
 
 - 不参与分图：`kRegister`、`kMemory`、`kLatch`
 - 参与分图但按特殊语义处理：`kRegisterWritePort`、`kMemoryWritePort`、`kLatchWritePort`、`kSystemTask`、`kDpicCall`
+
+这些特殊语义 op 在 phase A 中保留为稳定边界，不被粗化、跨段吞并或复制。原因有三点：
+
+- `kRegisterWritePort`、`kMemoryWritePort`、`kLatchWritePort` 是状态更新落点，也是 phase B 的核心 sink 类型
+- `kSystemTask`、`kDpicCall` 承载副作用或宿主交互语义，代码发射时通常需要独立处理
+- 将它们并入普通组合 `supernode` 会混合纯组合求值与状态更新 / 副作用边界，增加 `event-domain` 反标、起点识别、调度次序和复制合法性判断的复杂度
 
 GRH IR 已经提供分图所需的核心结构：
 
@@ -242,6 +270,8 @@ GRH IR 已经提供分图所需的核心结构：
 
 - 每个可参与划分的 op 先形成一个 seed `supernode`
 - 状态写口和副作用 op 单独保留，作为稳定边界
+
+这些 op 自身形成独立 `supernode`，并始终作为后续粗化、分段、refine、复制的阻隔点。
 
 ### 3.4 phase A3：局部粗化
 
@@ -276,72 +306,56 @@ GRH IR 已经提供分图所需的核心结构：
 
 ### 3.6 phase A5：局部 refine
 
-局部 refine 在已有分段结果上做局部迁移，继续减少跨 `supernode` 切边。
+局部 refine 在连续分段结果上做边界搬移，继续减少跨 `supernode` 切边。
 
-步骤：
+当前实现采用相邻 segment 边界 cluster 的局部迁移：
 
-1. 从边界 op 生成候选迁移
-2. 计算候选收益
-3. 检查合法性
-4. 提交正收益迁移
+1. 对每个相邻边界，检查左段末尾 cluster 能否移到右段
+2. 检查右段开头 cluster 能否移到左段
+3. 计算 cut gain
+4. 提交单轮最佳正收益迁移
 5. 迭代到收敛或达到 `refine-max-iter`
 
-候选迁移约束：
+约束：
 
-- 目标限定为相邻 `supernode` 或局部可达的前驱/后继 `supernode`
-- 优先支持单 op 迁移
-- 不破坏拓扑顺序
+- 只在相邻 segment 之间移动
+- 迁移对象是边界 cluster
 - 不违反 `supernode-max-size`
-- 不跨越状态写口和副作用边界
+- 不跨越稳定边界
 
 收益函数：
 
-- 迁移后内部化的边记为正收益
-- 新增跨 `supernode` 边记为负收益
-
-提交后同步更新：
-
-- `supernode -> op-symbol`
-- `op-symbol -> supernode`
-- 局部切边统计
-- 必要时更新 `supernode` DAG 与拓扑序
+- 内部化的边计正收益
+- 新增切边计负收益
 
 ### 3.7 phase A6：复制低成本边界 op
 
-`phase A6` 参考 GSim 的 replication 优化，在分段和 refine 之后复制低成本边界 op，减少跨 `supernode` 依赖。
+`phase A6` 在分段和 refine 之后复制低成本边界 op，减少跨 `supernode` 依赖。
 
-输入：
+当前实现条件：
 
-- `activity supernode`
-- `supernode` DAG
-- `supernode -> op-symbol`
-- `op-symbol -> supernode`
-
-输出：
-
-- 更新后的 `activity supernode`
-- 更新后的 `supernode` DAG
-- 更新后的 `supernode -> op-symbol`
-- 更新后的 `op-symbol -> supernode`
-
-可复制 op 条件：
-
-- 纯组合计算
-- 无副作用
-- 无状态语义
-- 表达式规模小，复制成本低
+- 仅复制单结果 op
+- 纯组合、无副作用、无状态语义
 - 位于 `supernode` 边界，且存在跨 `supernode` consumer
+- op 成本不超过 `replication-max-cost`
+- 目标 `supernode` 数量不超过 `replication-max-targets`
 
-候选类型：
+当前候选类型：
 
+- `kConstant`
 - `kAssign`
 - `kMux`
 - `kConcat`
+- `kReplicate`
 - `kSliceStatic`
 - `kSliceDynamic`
-- 简单逻辑和算术 op
+- 简单比较、逻辑、移位、`kAdd`、`kSub`
 
-禁止复制：
+不复制到以下目标：
+
+- 稳定边界 `supernode`
+
+禁止复制的语义边界：
 
 - `kSystemTask`
 - `kDpicCall`
@@ -355,18 +369,15 @@ GRH IR 已经提供分图所需的核心结构：
 - `kMemory`
 - `kLatch`
 
-复制触发条件：
+维护动作：
 
-- 原 op 计算成本低于阈值
-- 原 op 至少连接到一个外部 `supernode`
-- 复制后可减少跨 `supernode` 边
-
-复制后的维护：
-
-- 为复制出的 op 分配新 symbol
+- 为复制 op 和 result 分配新 symbol
 - 将目标 consumer 改写到复制后的 result
-- 原 op 是否保留取决于本 `supernode` 内是否仍有使用者
-- 同步更新 `supernode` DAG、`op-symbol -> supernode` 映射与局部统计信息
+- 若原 op 结果已无剩余 use，删除原 op
+- 更新 `supernode -> op-symbol`
+- 最终在 `phase A7` 统一重建 DAG 和拓扑序
+
+当前实现的复制粒度是单个边界 op，不做表达式树级递归复制。
 
 ### 3.8 phase A7：物化分图结果
 
@@ -393,7 +404,6 @@ GRH IR 已经提供分图所需的核心结构：
 
 - graph 输入
 - 状态读口
-- 外部可注入活动源
 
 ## 4. phase B event-domain 反标
 
