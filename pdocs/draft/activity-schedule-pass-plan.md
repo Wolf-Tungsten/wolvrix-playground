@@ -122,7 +122,9 @@ supernode_active =
 
 - `<path>.activity_schedule.supernodes`
 - `<path>.activity_schedule.supernode_to_ops`
+- `<path>.activity_schedule.supernode_to_op_symbols`
 - `<path>.activity_schedule.op_to_supernode`
+- `<path>.activity_schedule.op_symbol_to_supernode`
 - `<path>.activity_schedule.dag`
 - `<path>.activity_schedule.topo_order`
 - `<path>.activity_schedule.head_eval_supernodes`
@@ -134,6 +136,9 @@ supernode_active =
 - `supernode -> op` 集合
 - `op -> supernode`
 
+所有以 `op` 为键或值的 session 输出，都绑定到本 pass 完成时的最终 frozen graph snapshot。
+`op-symbol` 相关输出保留 phase A / phase B 内部稳定锚点，供调试、校验和跨 snapshot 对照使用。
+
 ### 2.3 实现约束
 
 输入图规模可能达到 `100M+ op`。实现约束：
@@ -143,6 +148,7 @@ supernode_active =
 - 分图和反标都复用现有 use-def 与 `supernode` 结果
 - 算法尽量采用线性或接近线性的遍历方式
 - 充分而合理地利用多线程并行加速
+- 不把 `OperationId` 当作跨改图阶段的持久锚点；内部持久锚点使用 op symbol
 
 ### 2.4 并行化策略
 
@@ -205,6 +211,7 @@ supernode_active =
 - op 之间的组合依赖
 - 稳定拓扑序
 - 每个 op 的局部统计信息，例如 fanin、fanout、跨边数
+- 每个 op 的内部稳定锚点
 
 划分对象限定为可执行求值 op。
 
@@ -221,7 +228,12 @@ GRH IR 已经提供分图所需的核心结构：
 - `OperationKind`
 - `core/toposort` 组件
 
-实现上直接复用 `Graph` 的 op/value 编号，统计信息采用按 `OperationId` / `ValueId` 编址的数组存储。
+实现要求：
+
+- 每个参与分图的 op 都必须有 symbol；若原 op 没有 symbol，则在进入分图阶段前补齐内部 symbol
+- phase A 和 phase B 内部所有需要跨改图阶段保留的 op 归属关系，都使用 `SymbolId`
+- 统计信息、工作队列、局部缓存仍可临时按当前 `OperationId` / `ValueId` 编址
+
 拓扑排序直接使用 `wolvrix` 的核心 `toposort` 组件，不重复实现独立拓扑排序逻辑。
 
 ### 3.3 phase A2：初始化 supernode seed
@@ -289,8 +301,8 @@ GRH IR 已经提供分图所需的核心结构：
 
 提交后同步更新：
 
-- `supernode -> op`
-- `op -> supernode`
+- `supernode -> op-symbol`
+- `op-symbol -> supernode`
 - 局部切边统计
 - 必要时更新 `supernode` DAG 与拓扑序
 
@@ -302,15 +314,15 @@ GRH IR 已经提供分图所需的核心结构：
 
 - `activity supernode`
 - `supernode` DAG
-- `supernode -> op`
-- `op -> supernode`
+- `supernode -> op-symbol`
+- `op-symbol -> supernode`
 
 输出：
 
 - 更新后的 `activity supernode`
 - 更新后的 `supernode` DAG
-- 更新后的 `supernode -> op`
-- 更新后的 `op -> supernode`
+- 更新后的 `supernode -> op-symbol`
+- 更新后的 `op-symbol -> supernode`
 
 可复制 op 条件：
 
@@ -351,10 +363,10 @@ GRH IR 已经提供分图所需的核心结构：
 
 复制后的维护：
 
-- 为复制出的 op 分配新 op id
+- 为复制出的 op 分配新 symbol
 - 将目标 consumer 改写到复制后的 result
 - 原 op 是否保留取决于本 `supernode` 内是否仍有使用者
-- 同步更新 `supernode` DAG、映射与局部统计信息
+- 同步更新 `supernode` DAG、`op-symbol -> supernode` 映射与局部统计信息
 
 ### 3.8 phase A7：物化分图结果
 
@@ -366,6 +378,16 @@ GRH IR 已经提供分图所需的核心结构：
 - `supernode` DAG
 - 拓扑序
 - `supernode -> is_head_eval_supernode`
+
+物化步骤：
+
+1. 完成 `phase A` 内全部图改写
+2. 对 graph 执行一次最终 `freeze()`
+3. 遍历 frozen graph，建立 `op-symbol -> frozen OperationId`
+4. 根据内部保存的 `op-symbol -> supernode` 关系，生成最终的 `supernode -> op` 和 `op -> supernode`
+5. 在同一份 frozen snapshot 上计算 `supernode` DAG、拓扑序和 `head-eval supernode` 标记
+
+这样可以避免在复制、删边、删 op 后直接持有失效的旧 `OperationId`。
 
 `is_head_eval_supernode` 由分图结果直接确定，用于标记在一次 `eval()` 入口可能首先被激活的 `supernode`。判定条件为该 `supernode` 直接消费以下来源之一：
 
@@ -412,7 +434,7 @@ sink 节点满足：
 
 ### 4.2 phase B2：反向标注 event-domain-set
 
-从每个 sink 出发，沿 use-def 反向传播，把对应 `event-domain-signature` 标到经过的 op、value 和 `supernode` 上。
+从每个 sink 出发，沿 use-def 反向传播，把对应 `event-domain-signature` 标到经过的 op、value 和 `supernode` 上。反标使用 `phase A7` 产出的最终 frozen snapshot。
 
 反标范围：
 
