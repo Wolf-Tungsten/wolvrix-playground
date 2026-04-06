@@ -12,6 +12,10 @@ def log(message: str) -> None:
     sys.stderr.flush()
 
 
+def report_diagnostics(diags: list[dict], *, min_level: str = "info") -> None:
+    wolvrix.print_diagnostics(diags, min_level=min_level)
+
+
 def _build_repcut_kwargs(
     work_dir: Path,
 ) -> dict:
@@ -62,44 +66,44 @@ with wolvrix.Session() as sess:
 
     start = time.perf_counter()
     log(f"read_json start {json_in}")
-    sess.read_json_file(str(json_in), target_design_key="design.main")
+    report_diagnostics(sess.read_json_file(str(json_in), out_design="design.main"))
     log(f"read_json done {int((time.perf_counter() - start) * 1000)}ms")
 
     start = time.perf_counter()
     log(f"pass repcut start path={REPCUT_PATH}")
     repcut_work_dir.mkdir(parents=True, exist_ok=True)
     repcut_kwargs = _build_repcut_kwargs(repcut_work_dir)
-    sess.run_pass("repcut", design="design.main", **repcut_kwargs)
+    report_diagnostics(sess.run_pass("repcut", design="design.main", **repcut_kwargs))
     log(f"pass repcut args argc={len(repcut_kwargs)}")
     log(f"pass repcut done {int((time.perf_counter() - start) * 1000)}ms")
 
     start = time.perf_counter()
     log(f"write_json start {json_out}")
     json_out.parent.mkdir(parents=True, exist_ok=True)
-    sess.store_json(design="design.main", output=str(json_out))
+    report_diagnostics(sess.store_json(design="design.main", output=str(json_out)))
     log(f"write_json done {int((time.perf_counter() - start) * 1000)}ms")
 
     start = time.perf_counter()
     log("read_json start (roundtrip)")
-    sess.read_json_file(str(json_out), target_design_key="design.main", replace=True)
+    report_diagnostics(sess.read_json_file(str(json_out), out_design="design.main", replace=True))
     log(f"read_json done (roundtrip) {int((time.perf_counter() - start) * 1000)}ms")
 
     start = time.perf_counter()
     sv_out_arg = json_out.with_suffix(".sv")
     sv_out_dir = sv_out_arg.with_suffix("") if sv_out_arg.suffix == ".sv" else sv_out_arg
     log(f"write_sv start {sv_out_dir}")
-    sess.emit_sv(design="design.main", output=str(sv_out_dir), top=[TOP_MODULE_PATH], split_modules=True)
+    report_diagnostics(sess.emit_sv(design="design.main", output=str(sv_out_dir), top=[TOP_MODULE_PATH], split_modules=True))
     log(f"write_sv done {int((time.perf_counter() - start) * 1000)}ms")
 
     if package_out_dir is not None:
         start = time.perf_counter()
         log(f"write_verilator_repcut_package start {package_out_dir}")
         package_out_dir.mkdir(parents=True, exist_ok=True)
-        sess.emit_verilator_repcut_package(
+        report_diagnostics(sess.emit_verilator_repcut_package(
             design="design.main",
             output=str(package_out_dir),
             top=[TOP_MODULE_PATH],
-        )
+        ))
         log(f"write_verilator_repcut_package done {int((time.perf_counter() - start) * 1000)}ms")
 
     log(f"total done {int((time.perf_counter() - total_start) * 1000)}ms")
