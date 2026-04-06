@@ -43,10 +43,6 @@ def read_extra_args_from_file(path_text: str) -> list[str]:
     return tokens
 
 
-def report_diagnostics(diags: list[dict], *, min_level: str = "info") -> None:
-    wolvrix.print_diagnostics(diags, min_level=min_level)
-
-
 def main() -> int:
     filelist = getenv("WOLVRIX_FILELIST")
     sources_text = getenv("WOLVRIX_SOURCES")
@@ -101,35 +97,35 @@ def main() -> int:
 
     try:
         with wolvrix.Session() as sess:
-            sess.set_log_level(log_level)
-            sess.set_diagnostics_policy("error")
-            report_diagnostics(sess.read_sv(
+            sess.log_level = log_level
+            sess.read_sv(
                 path,
                 out_design="design.main",
                 slang_args=read_args,
-            ))
+            )
 
             skip_transform = getenv("WOLVRIX_SKIP_TRANSFORM", "0")
             if skip_transform != "1":
-                report_diagnostics(sess.run_pass("xmr-resolve", design="design.main"))
-                report_diagnostics(sess.run_pass("mem-to-reg", design="design.main", row_limit=8))
-                report_diagnostics(sess.run_pass("latch-transparent-read", design="design.main"))
-                report_diagnostics(sess.run_pass("simplify", design="design.main"))
-                report_diagnostics(sess.run_pass("memory-init-check", design="design.main"))
-                report_diagnostics(sess.run_pass("stats", design="design.main"))
+                sess.run_pass("xmr-resolve", design="design.main")
+                sess.run_pass("mem-to-reg", design="design.main", row_limit=8)
+                sess.run_pass("latch-transparent-read", design="design.main")
+                sess.run_pass("simplify", design="design.main")
+                sess.run_pass("memory-init-check", design="design.main")
+                sess.run_pass("stats", design="design.main")
 
             json_roundtrip = getenv("WOLVRIX_JSON_ROUNDTRIP", "0")
             store_json = getenv("WOLVRIX_STORE_JSON", "0")
 
             if json_roundtrip == "1":
-                report_diagnostics(sess.store_json(design="design.main", output=json_out))
-                report_diagnostics(sess.read_json_file(json_out, out_design="design.main", replace=True))
+                sess.store_json(design="design.main", output=json_out)
+                sess.read_json_file(json_out, out_design="design.main", replace=True)
             elif store_json == "1":
-                report_diagnostics(sess.store_json(design="design.main", output=json_out))
+                sess.store_json(design="design.main", output=json_out)
 
-            report_diagnostics(sess.emit_sv(design="design.main", output=sv_out))
+            sess.emit_sv(design="design.main", output=sv_out)
     except Exception as exc:
-        print(str(exc), file=sys.stderr)
+        if not hasattr(exc, "diagnostics"):
+            print(str(exc), file=sys.stderr)
         return 1
 
     return 0

@@ -19,10 +19,6 @@ def log(message: str) -> None:
     sys.stderr.flush()
 
 
-def report_diagnostics(diags: list[dict], *, min_level: str = "info") -> None:
-    wolvrix.print_diagnostics(diags, min_level=min_level)
-
-
 def write_stats_json(sess: wolvrix.Session, key: str, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "wolvrix_xs_stats.json"
@@ -61,13 +57,12 @@ if read_args_file:
 start = time.perf_counter()
 log("read_sv start")
 with wolvrix.Session() as sess:
-    sess.set_log_level(log_level)
-    sess.set_diagnostics_policy("error")
-    report_diagnostics(sess.read_sv(
+    sess.log_level = log_level
+    sess.read_sv(
         None,
         out_design="design.main",
         slang_args=read_args,
-    ))
+    )
     log(f"read_sv done {int((time.perf_counter() - start) * 1000)}ms")
 
     pipeline: list[tuple[str, dict]] = [
@@ -86,24 +81,24 @@ with wolvrix.Session() as sess:
     for pass_name, pass_kwargs in pipeline:
         start = time.perf_counter()
         log(f"pass {pass_name} start")
-        report_diagnostics(sess.run_pass(pass_name, design="design.main", **pass_kwargs))
+        sess.run_pass(pass_name, design="design.main", **pass_kwargs)
         if pass_name == "stats":
             write_stats_json(sess, "stats.main", Path("tmp"))
         log(f"pass {pass_name} done {int((time.perf_counter() - start) * 1000)}ms")
 
     start = time.perf_counter()
     log(f"write_json start {json_out}")
-    report_diagnostics(sess.store_json(design="design.main", output=json_out))
+    sess.store_json(design="design.main", output=json_out)
     log(f"write_json done {int((time.perf_counter() - start) * 1000)}ms")
 
     start = time.perf_counter()
     log("read_json start")
-    report_diagnostics(sess.read_json_file(json_out, out_design="design.main", replace=True))
+    sess.read_json_file(json_out, out_design="design.main", replace=True)
     log(f"read_json done {int((time.perf_counter() - start) * 1000)}ms")
 
     start = time.perf_counter()
     log(f"write_sv start {sv_out}")
-    report_diagnostics(sess.emit_sv(design="design.main", output=sv_out))
+    sess.emit_sv(design="design.main", output=sv_out)
     log(f"write_sv done {int((time.perf_counter() - start) * 1000)}ms")
 
     log(f"total done {int((time.perf_counter() - total_start) * 1000)}ms")
