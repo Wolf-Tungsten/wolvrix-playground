@@ -171,8 +171,10 @@ emit 需要保留它们的 write/call 粒度，不提前把多个事件域、多
 为降低函数调用和编译器 IR 规模，调度以“批”为单位发射：
 
 - 一个批包含一段连续 `supernode`
-- 一个批对应一个静态函数
-- 一个编译单元可容纳多个批
+- 一个批对应一个 `eval_batch_<n>()`
+- 当前实现中，一个批对应一个 `grhsim_<top>_sched_<n>.cpp`
+- 切分参数由 `sched_batch_max_ops` 与 `sched_batch_max_estimated_lines` 控制
+- `sched_<n>.cpp` 的发射可由 `emit_parallelism` 并行执行
 
 顶层 `eval()` 调用顺序固定：
 
@@ -208,6 +210,10 @@ Logic 类型的任意位宽不采用单一大整数类型。按宽度分层：
 - 热门小位宽走标量 fast path
 - 中等位宽走固定长度 fast path
 - 超宽位宽走通用 word path
+- 当前实现中，`slice` / `concat` / `replicate` / `shift` 相关宽位 helper 已优先走按 word 路径，避免逐 bit 搬运
+- 当前实现中，宽位 `mul/div/mod` 已补入单字操作数 fast path
+- 当前实现中，宽位 `mul/div/mod` 对任意位宽 power-of-two 操作数已补入移位 fast path
+- 当前实现中，`65..128 bit` 的 `add/sub/compare/mul/div/mod` 已补入 `unsigned __int128` fast path
 
 ### 4.2 Logic/Real/String 表示
 
@@ -497,21 +503,18 @@ if (supernode_active_curr[id] && supernode_event_domain_hit[id]) { ... }
 
 每个批按以下预算切分：
 
-- 预计生成代码行数
-- 预计 AST/IR 规模
-- 宽位 helper 调用密度
-- 常量表规模
+- `sched_batch_max_ops`
+- `sched_batch_max_estimated_lines`
+- `supernode` 内 op kind 的静态发射代价估算
 
 ### 8.3 拆分规则
-
-建议规则：
 
 1. 先按 `topo_order` 线性扫描
 2. 累积到预算上限后切成一个批
 3. 若某个 `supernode` 本身极大，可单独成批
-4. 多个批再归并到若干 `.cpp` 文件
+4. 当前实现中，每个批独立落成一个 `sched_<n>.cpp`
 
-预算应以“估算 emitted statements / bytes”为主，而不是仅按 op 数。
+预算以“估算 emitted statements / lines”为主，并辅以 op 数上限。
 
 ### 8.4 跨编译单元接口
 
@@ -588,8 +591,19 @@ GrhSIM 对用户暴露的接口保持简单：
 
 ### 11.1 最高优先级
 
-1. 性能关键路径收敛。
-   尚未实现批切分、代码量预算、多个 `sched_<n>.cpp` / 多个编译单元拆分、宽位 fast path、多线程 emit 并行。
+已完成。
+
+已覆盖：
+
+- 批切分
+- 代码量预算
+- 多个 `sched_<n>.cpp` / 多编译单元拆分
+- emit 侧多线程并行
+- 宽位 `slice` / `concat` / `replicate` / `shift` 的 word fast path
+- `65..128 bit` 的 `add/sub/compare/mul/div/mod` 的 `u128` fast path
+- 宽位 `mul/div/mod` 的单字操作数 fast path
+- 宽位 `mul/div/mod` 的 power-of-two 操作数 fast path
+- `>128 bit` 一般除数的宽位 `div/mod` 多字对齐减法路径
 
 ### 11.2 高优先级
 
