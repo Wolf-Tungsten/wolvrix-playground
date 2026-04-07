@@ -176,6 +176,15 @@ emit 需要保留它们的 write/call 粒度，不提前把多个事件域、多
 - `dumpfile/dumpvars` 当前记录运行时配置，不在本阶段生成波形文件
 - 文件类任务依赖宿主先绑定输出句柄；当前约定 `1 -> stdout`、`2 -> stderr`
 
+当前实现中，`kDpicCall` 进一步按以下规则执行：
+
+- 已覆盖 `input/output/return`
+- 已覆盖 `Logic/Real/String` 参数与结果
+- 已覆盖宽位 `Logic` 输入/输出
+- call 实参与结果按 `kDpicImport` 名字匹配，不依赖 call 内部顺序与 import 顺序一致
+- emit 阶段会校验 `targetImportSymbol`、参数分组、结果个数、类型位宽、`eventEdge` 与事件输入个数
+- `inout` 不在当前输入范围内，出现即报错
+
 对 `kLatchWritePort`：
 
 - 没有 `eventEdge`
@@ -629,22 +638,19 @@ GrhSIM 对用户暴露的接口保持简单：
 
 ### 11.2 高优先级
 
-1. `kDpicCall` 完整语义。
-   当前仅支持基本 `input/output/inout/return` 调用路径；宽位参数、复杂类型、更多错误检查和性能优化未实现。
-
-2. 输出与 inout 建模。
+1. 输出与 inout 建模。
    当前仅实现 output 回写；尚未实现 `inout out/oe` 路径，也未做输出端口分组优化。
 
-3. 生成代码验证体系扩展。
+2. 生成代码验证体系扩展。
    当前仅有“生成 + make + harness 运行”的最小回归；尚未形成分层行为测试矩阵。
 
-4. supernode 调度拆分。
+3. supernode 调度拆分。
    当前仅发射单批调度代码；尚未实现批划分、批间布局优化、跨 TU 分发。
 
-5. event-term 预计算扩展。
+4. event-term 预计算扩展。
    当前仅支持可静态表达的 `<=64 bit` 纯组合锥；尚未覆盖宽位和更复杂事件锥。
 
-7. 输入前提校验完善。
+5. 输入前提校验完善。
    当前仅依赖文档约束；尚未系统校验“无组合环 / 无 XMR / 无 blackbox / 已展平”等全部前置条件。
 
 ### 11.3 中优先级
@@ -673,17 +679,14 @@ GrhSIM 对用户暴露的接口保持简单：
 8. 多写口风险诊断。
    当前已按草案放宽为“不保证顺序”；尚未补专门诊断或风险提示发射。
 
-9. `kDpicImport` 类型映射补强。
-   当前已生成 `extern "C"` 声明；尚未处理更复杂类型映射和更严格 ABI 约束。
-
-10. 副作用反馈策略细化。
+9. 副作用反馈策略细化。
     当前已有 `side_effect_feedback_` 通路；尚未细化哪些副作用必须反馈到下一轮 head 激活。
 
-11. 调试锚点扩展。
+10. 调试锚点扩展。
     当前已保留 `op symbol` 注释和产物级锚点；尚未系统输出 `supernode -> op symbol`、event-domain、state object 对照表。
 
-12. Python 接口测试。
+11. Python 接口测试。
     当前已接入 `emit_grhsim_cpp(...)`；尚未补 Python 侧专门测试。
 
-13. 透明锁存器前置诊断。
+12. 透明锁存器前置诊断。
     当前已将 `latch-transparent-read` 设为硬前置；尚未在 emit 入口给出明确失败诊断与定位信息。
