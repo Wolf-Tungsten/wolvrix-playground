@@ -164,6 +164,18 @@ emit 需要保留它们的 write/call 粒度，不提前把多个事件域、多
 - `eventEdge` 仅描述触发边沿
 - `procKind`、`hasTiming` 仍影响其运行时行为与调度位置
 
+当前实现中，`kSystemTask` 进一步按以下规则执行：
+
+- `initial + !hasTiming` 仅在第一次 `eval()` 中执行
+- `initial + hasTiming`、`always*` 仍按 `callCond && exactEventExpr` 执行
+- `final` 不进入常规 `eval()` 路径，在析构阶段统一执行
+- `display/write/strobe`、`info/warning/error/fatal`、`finish/stop`、`dumpfile/dumpvars`、`fwrite/fdisplay/fflush/fclose` 已支持
+- 文本输出采用 SystemVerilog 风格格式化；已覆盖常用 `%d/%u/%h/%x/%b/%o/%s/%c/%f/%e/%g/%t/%%`
+- `strobe` 在本次 `eval()` 的状态提交后统一刷新
+- `fatal/finish/stop` 在运行时记录退出码，并在刷新输出、执行 `final`、关闭文件句柄后直接终止宿主进程
+- `dumpfile/dumpvars` 当前记录运行时配置，不在本阶段生成波形文件
+- 文件类任务依赖宿主先绑定输出句柄；当前约定 `1 -> stdout`、`2 -> stderr`
+
 对 `kLatchWritePort`：
 
 - 没有 `eventEdge`
@@ -617,22 +629,19 @@ GrhSIM 对用户暴露的接口保持简单：
 
 ### 11.2 高优先级
 
-1. `kSystemTask` 完整语义。
-   当前仅支持基础执行和输出；尚未实现 SystemVerilog 风格格式化、完整任务族、`procKind/hasTiming` 的更细执行语义。
-
-2. `kDpicCall` 完整语义。
+1. `kDpicCall` 完整语义。
    当前仅支持基本 `input/output/inout/return` 调用路径；宽位参数、复杂类型、更多错误检查和性能优化未实现。
 
-3. 输出与 inout 建模。
+2. 输出与 inout 建模。
    当前仅实现 output 回写；尚未实现 `inout out/oe` 路径，也未做输出端口分组优化。
 
-4. 生成代码验证体系扩展。
+3. 生成代码验证体系扩展。
    当前仅有“生成 + make + harness 运行”的最小回归；尚未形成分层行为测试矩阵。
 
-5. supernode 调度拆分。
+4. supernode 调度拆分。
    当前仅发射单批调度代码；尚未实现批划分、批间布局优化、跨 TU 分发。
 
-6. event-term 预计算扩展。
+5. event-term 预计算扩展。
    当前仅支持可静态表达的 `<=64 bit` 纯组合锥；尚未覆盖宽位和更复杂事件锥。
 
 7. 输入前提校验完善。
