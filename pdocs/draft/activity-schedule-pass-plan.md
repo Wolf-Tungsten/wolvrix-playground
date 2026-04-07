@@ -165,6 +165,7 @@ supernode_active =
 - 算法尽量采用线性或接近线性的遍历方式
 - 充分而合理地利用多线程并行加速
 - 不把 `OperationId` 当作跨改图阶段的持久锚点；内部持久锚点使用 op symbol
+- 改图过程中不直接长期保存可失效的 `ValueUser.operation`、`OperationId`、`ValueId` 作为跨步骤身份；需要跨 mutation 保留归属时，先转成 symbol 或局部快照
 
 ### 2.4 并行化要求
 
@@ -370,13 +371,22 @@ GRH IR 已经提供分图所需的核心结构：
 - `kMemory`
 - `kLatch`
 
-维护动作：
+执行流程：
 
-- 为复制 op 和 result 分配新 symbol
-- 将目标 consumer 改写到复制后的 result
-- 若原 op 结果已无剩余 use，删除原 op
-- 更新 `supernode -> op-symbol`
-- 最终在 `phase A7` 统一重建 DAG 和拓扑序
+1. 按拓扑逆序扫描候选边界 op
+2. 对候选 op 的唯一 result 先抓取一份当前 use-list 快照
+3. 仅保留跨 `supernode`、且目标不是稳定边界的 consumer
+4. 按目标 `supernode` 分组；每个目标组各复制一份 op 和 result
+5. 将该目标组内 consumer 的对应 operand 改写到复制结果
+6. 若原 result 已无剩余 use，且不属于可观察边界值，则删除原 op
+7. 更新内部 `op-symbol -> supernode` 划分结果；`OperationId` 级映射留到 `phase A7` 统一重建
+
+复制时保持以下约束：
+
+- 单次只复制一个边界 op，不做递归表达式树展开
+- 先抓 use-list 快照，再改写 graph，避免在 mutation 过程中直接迭代失效 use-list
+- 新复制 op 和 result 立即分配新 symbol，作为后续阶段的稳定锚点
+- 原 op 是否删除，只看复制完成后的真实剩余 use，不依赖旧 `OperationId` 快照
 
 当前实现的复制粒度是单个边界 op，不做表达式树级递归复制。
 
@@ -396,7 +406,7 @@ GRH IR 已经提供分图所需的核心结构：
 1. 完成 `phase A` 内全部图改写
 2. 对 graph 执行一次最终 `freeze()`
 3. 遍历 frozen graph，建立 `op-symbol -> frozen OperationId`
-4. 根据内部保存的 `op-symbol -> supernode` 关系，生成最终的 `supernode -> op` 和 `op -> supernode`
+4. 根据内部保存的 `op-symbol -> supernode` 关系，生成最终的 `supernode -> op`、`op -> supernode`、`supernode -> op-symbol`
 5. 在同一份 frozen snapshot 上计算 `supernode` DAG、拓扑序和 `head-eval supernode` 标记
 
 这样可以避免在复制、删边、删 op 后直接持有失效的旧 `OperationId`。

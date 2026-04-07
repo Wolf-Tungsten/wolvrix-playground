@@ -9,7 +9,7 @@
 生成结果需要满足：
 
 1. 以极致仿真性能为首要目标。
-2. 直接服务 GrhSIM 的用户接口：设置输入、`eval()`、读取输出。
+2. 直接服务 GrhSIM 的用户接口：设置输入、`set_random_seed()`、`init()`、`eval()`、读取输出。
 3. 支持任意位宽 GRH value。
 4. 代码量可扩展到大设计，不因单文件过大导致编译器性能恶化。
 
@@ -84,12 +84,15 @@
 - 当前状态区
 - 按 write-port 粒度的状态更新区
 - side-effect staging 区
+- random seed / random state
 - 活动度位图
 - event-term 命中位图
 - event-domain 命中位图
 - 常量区
 
 状态更新区以 write-port 为基本执行单元，而不是按 `kRegister/kMemory/kLatch` 只保留一个抽象 `next-state` 槽。这样才能保留 GRH IR 中多写口、多事件、异步复位拆分后的语义。
+
+`init()` 在首次 `eval()` 前显式调用，用于物化 declaration init、`$random` 初值、memory 内嵌初始化，并建立 `prev_input` / `prev_event` 基线。`eval()` 热路径不承担初始化判断。
 
 热路径要求：
 
@@ -543,8 +546,10 @@ if (supernode_active_curr[id] && supernode_event_domain_hit[id]) { ... }
 GrhSIM 对用户暴露的接口保持简单：
 
 1. 设置输入
-2. 调用 `eval()`
-3. 读取输出
+2. 若需要控制 `$random`，调用 `set_random_seed(seed)`
+3. 首次 `eval()` 前调用 `init()`
+4. 调用 `eval()`
+5. 读取输出
 
 ### 9.2 调试接口
 
@@ -577,22 +582,13 @@ GrhSIM 对用户暴露的接口保持简单：
 2. 编译单元预算模型
 3. 批级代码布局优化
 
-## 11. 当前实现缺口
+## 11. 当前实现缺口 TODO List
 
-按以下列表推进，完成全部条目即视为完成 `cpp emit`。
+按以下剩余列表推进，完成全部条目即视为完成 `cpp emit`。
 
 ### 11.1 最高优先级
 
-1. 宽位 `Logic >64 bit` 的真实运行时表示。
-   当前仅有类型规划；尚未形成可执行的存储布局、helper 和发射路径。
-
-2. 宽位组合 op 发射。
-   尚未实现宽位 `concat/slice/arithmetic/compare/reduction/shift` 等核心路径。
-
-3. 状态初始化与 memory 初始化。
-   当前 register/latch/memory 默认零初始化；尚未实现 declaration attrs 中的 init 数据，也未实现 memory `initKind/initFile/initValue/initStart/initLen`。
-
-4. 性能关键路径收敛。
+1. 性能关键路径收敛。
    尚未实现批切分、代码量预算、多个 `sched_<n>.cpp` / 多个编译单元拆分、宽位 fast path、多线程 emit 并行。
 
 ### 11.2 高优先级
@@ -604,13 +600,13 @@ GrhSIM 对用户暴露的接口保持简单：
    当前仅覆盖算术右移、signed/unsigned 除模基础路径；signed 比较、混合 signedness、边界截断规则仍需统一收敛。
 
 3. `kMemoryReadPort` 完整支持。
-   当前仅支持异步读和整体 dirty 激活；宽位 memory element、初始化加载、读口性能优化未实现。
+   当前已支持异步读、宽位 memory element、以及 memory 初始化后的读出；读口性能优化仍未实现。
 
 4. `kRegisterWritePort` 完整支持。
-   当前仅支持基本提交和事件判定；多事件项组合、宽位 mask/data、更多 reset/enable 细节尚未覆盖。
+   当前已支持基本提交、事件判定和宽位 mask/data；多事件项组合、更多 reset/enable 细节尚未覆盖。
 
 5. `kMemoryWritePort` 完整支持。
-   当前仅支持整体 dirty、单行提交、顺序不保证；宽位 memory、初始化、mask 宽位路径、性能优化未实现。
+   当前已支持整体 dirty、单行提交、顺序不保证和宽位 data/mask 路径；性能优化仍未实现。
 
 6. `kSystemTask` 完整语义。
    当前仅支持基础执行和输出；尚未实现 SystemVerilog 风格格式化、完整任务族、`procKind/hasTiming` 的更细执行语义。
@@ -636,7 +632,7 @@ GrhSIM 对用户暴露的接口保持简单：
 ### 11.3 中优先级
 
 1. 用户接口补强。
-   当前仅支持设置输入、`eval()`、读取输出；尚未生成更完整的 reset/init 辅助接口。
+   当前已支持设置输入、`set_random_seed()`、显式 `init()`、`eval()`、读取输出；尚未生成更完整的 reset/init 辅助接口。
 
 2. session 数据一致性检查。
    当前已消费 `activity-schedule` session 数据；尚未校验其与 graph 最终快照的一致性。
@@ -651,10 +647,10 @@ GrhSIM 对用户暴露的接口保持简单：
    当前已支持 `posedge`/`negedge`/变化检测；尚未细化更复杂 event source 组合的性能模型。
 
 6. `kRegisterReadPort` / `kLatchReadPort` 收尾。
-   当前已实现基础路径；宽位结果和更细活动传播优化未实现。
+   当前已实现基础路径和宽位结果；更细活动传播优化未实现。
 
 7. `kLatchWritePort` 收尾。
-   当前已支持规整后的基本提交；更复杂锁存器组合场景和宽位路径未实现。
+   当前已支持规整后的基本提交和宽位路径；更复杂锁存器组合场景未实现。
 
 8. 多写口风险诊断。
    当前已按草案放宽为“不保证顺序”；尚未补专门诊断或风险提示发射。
