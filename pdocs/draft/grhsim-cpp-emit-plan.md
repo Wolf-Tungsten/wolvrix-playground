@@ -149,6 +149,16 @@ emit 需要保留它们的 write/call 粒度，不提前把多个事件域、多
 - reset / enable 优先级已编码在 `updateCond` 与 `nextValue` 相关组合逻辑中
 - 若同一 `eval()` 中同一存储对象的多个 write-port 同时生效，GrhSIM 不保证提交顺序；该行为直接暴露 RTL 本身的竞争风险
 
+当前实现中，`kMemoryWritePort` 的提交路径进一步做以下专门化：
+
+- 写地址在 `supernode` 求值时先归一化为待提交行号
+- 若 `rowCount` 是 2 的幂，行号直接走低位掩码
+- 若地址位宽可静态证明不越界，行号直接走无比较路径
+- 其他情况走通用索引 helper；越界写入按 no-op 处理
+- 常量全 0 mask 直接消去该写口的实际提交
+- 常量全 1 mask 走整行覆盖路径
+- 动态宽位 mask 走原地 word masked apply，不再先构造临时 merged 值
+
 对 `kSystemTask` 和 `kDpicCall`：
 
 - `eventEdge` 仅描述触发边沿
@@ -607,41 +617,26 @@ GrhSIM 对用户暴露的接口保持简单：
 
 ### 11.2 高优先级
 
-1. 小位宽组合 op 的完整覆盖。
-   当前已覆盖一批 `<=64 bit` 常见 op；仍需补齐剩余 op kind，并系统化 signed/unsigned 细节。
-
-2. signed 语义系统化。
-   当前仅覆盖算术右移、signed/unsigned 除模基础路径；signed 比较、混合 signedness、边界截断规则仍需统一收敛。
-
-3. `kMemoryReadPort` 完整支持。
-   当前已支持异步读、宽位 memory element、以及 memory 初始化后的读出；读口性能优化仍未实现。
-
-4. `kRegisterWritePort` 完整支持。
-   当前已支持基本提交、事件判定和宽位 mask/data；多事件项组合、更多 reset/enable 细节尚未覆盖。
-
-5. `kMemoryWritePort` 完整支持。
-   当前已支持整体 dirty、单行提交、顺序不保证和宽位 data/mask 路径；性能优化仍未实现。
-
-6. `kSystemTask` 完整语义。
+1. `kSystemTask` 完整语义。
    当前仅支持基础执行和输出；尚未实现 SystemVerilog 风格格式化、完整任务族、`procKind/hasTiming` 的更细执行语义。
 
-7. `kDpicCall` 完整语义。
+2. `kDpicCall` 完整语义。
    当前仅支持基本 `input/output/inout/return` 调用路径；宽位参数、复杂类型、更多错误检查和性能优化未实现。
 
-8. 输出与 inout 建模。
+3. 输出与 inout 建模。
    当前仅实现 output 回写；尚未实现 `inout out/oe` 路径，也未做输出端口分组优化。
 
-9. 生成代码验证体系扩展。
+4. 生成代码验证体系扩展。
    当前仅有“生成 + make + harness 运行”的最小回归；尚未形成分层行为测试矩阵。
 
-10. supernode 调度拆分。
-    当前仅发射单批调度代码；尚未实现批划分、批间布局优化、跨 TU 分发。
+5. supernode 调度拆分。
+   当前仅发射单批调度代码；尚未实现批划分、批间布局优化、跨 TU 分发。
 
-11. event-term 预计算扩展。
-    当前仅支持可静态表达的 `<=64 bit` 纯组合锥；尚未覆盖宽位和更复杂事件锥。
+6. event-term 预计算扩展。
+   当前仅支持可静态表达的 `<=64 bit` 纯组合锥；尚未覆盖宽位和更复杂事件锥。
 
-12. 输入前提校验完善。
-    当前仅依赖文档约束；尚未系统校验“无组合环 / 无 XMR / 无 blackbox / 已展平”等全部前置条件。
+7. 输入前提校验完善。
+   当前仅依赖文档约束；尚未系统校验“无组合环 / 无 XMR / 无 blackbox / 已展平”等全部前置条件。
 
 ### 11.3 中优先级
 
