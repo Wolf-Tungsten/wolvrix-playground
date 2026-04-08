@@ -111,11 +111,13 @@
 1. 采集输入变化
 2. 对事件值做精确求值；在不超过阈值时额外预计算 `event-term-hit`
 3. 由 `event-term-hit` 归约得到本次 `event-domain-set-hit`
-4. 由输入变化、状态变化、副作用反馈激活首批 `head-eval supernode`
+4. 首次 `eval()` 直接激活静态入口 `supernode`；后续 `eval()` 按输入变化和上一次 `eval()` 提交后记录的状态变化激活相关入口 `supernode`
 5. 按 `topo_order` 执行 `supernode`
 6. 执行并提交 write-port / `kSystemTask` / `kDpicCall`
-7. 根据状态变化与副作用结果生成下一轮可见活动度
+7. 记录下一次 `eval()` 入口所需的状态变化信息
 8. 刷新输出镜像
+
+单次 `eval()` 内只进行一次前向求值。`commit_state_updates()` 写入的新状态只对下一次 `eval()` 可见，不在本次 `eval()` 内触发第二轮组合传播。
 
 ### 3.2 Supernode 执行
 
@@ -123,12 +125,13 @@
 
 ```text
 if (event_domain_hit && activity_bit) {
+    clear_activity_bit();
     eval_ops_in_supernode();
     propagate_activity_to_successors();
 }
 ```
 
-生成代码时不做逐 op 通用调度器。每个 `supernode` 直接展开为一段连续代码。
+生成代码时不做逐 op 通用调度器。每个 `supernode` 直接展开为一段连续代码。活动位按 singular BFS / worklist 方式消耗；一个 `supernode` 在一次 `eval()` 中至多执行一次。
 
 ### 3.3 事件相关 op 执行
 
@@ -407,9 +410,8 @@ helper 设计原则：
 活动度按 `supernode` 编号存成紧凑 bitset：
 
 - `supernode_active_curr`
-- `supernode_active_next`
 
-单个 `supernode` 求值成功后，对其后继 `supernode` 置位。
+`supernode` 在被取出执行时立即清掉自身活动位。若本节点求值导致跨 `supernode` 边界的输入值发生变化，则对其后继 `supernode` 置位。
 
 ### 6.2 值变化判定
 
@@ -417,6 +419,8 @@ helper 设计原则：
 
 - 二态标量值：`old != new`
 - 宽位值：按对应 helper 比较
+
+`activity-schedule` 需要输出 `boundary value -> succ supernode` 的 fanout 信息。emit 时只在该 `boundary value` 真实变化后激活对应后继，不能用“当前 supernode 内任意值变化就激活全部 DAG 后继”的粗粒度规则代替。
 
 对同一后继 `supernode`，多个输入变化可 OR 到同一个活动位。
 
@@ -432,11 +436,11 @@ helper 设计原则：
 
 2. 跨周期状态传播
    - `kRegisterWritePort` / `kMemoryWritePort` 在提交后更新声明类存储
-   - 若声明类存储内容发生变化，则激活消费对应 read-port 结果的 `head-eval supernode`
+   - 若声明类存储内容发生变化，则记录对应 `head-eval supernode` 为下一次 `eval()` 的入口激活源
 
 3. `kLatch` 特殊处理
    - `latch-transparent-read` 已把透明读影响显式化到组合图
-   - emit 只需处理规整后的锁存器状态更新与后续激活
+   - emit 只需处理规整后的锁存器状态更新与下一次 `eval()` 的入口激活
 
 因此，声明类 op 在运行时扮演“状态容器”，而不是调度节点。
 
@@ -466,7 +470,7 @@ emit 时需要预先建立：
 - `kMemoryReadPort` -> 对应 `head-eval supernode` 集合
 - `kMemory` -> 依赖其 read-port 的 `head-eval supernode` 集合
 
-这样 `eval()` 开头和 `commit_state_updates()` 结尾都能常数时间定位首批激活节点。
+这样 `eval()` 开头可以常数时间定位首批激活节点；`commit_state_updates()` 只负责记录下一次 `eval()` 所需的入口激活信息。
 
 ## 7. Event-Domain 实现
 
@@ -589,8 +593,10 @@ GrhSIM 对用户暴露的接口保持简单：
 3. `init()` 同时清空外部输入与 `inout.in`，并重建内部状态、memory、上周期输入/事件快照与调度基线
 4. 通过与端口同名的 `public` 成员写入输入，读取输出；`inout` 也通过公开接口成员访问 `in/out/oe`
 5. 调用 `eval()`
-6. `eval()` 后直接读取对应 `public` 输出成员
+6. `eval()` 后读取对应 `public` 输出成员；由本次状态提交产生的变化从下一次 `eval()` 开始可见
 7. 若需要回到初始快照，再次调用 `init()`
+
+对双沿驱动测试流，若本次有效边沿写入状态，通常需要在后续另一边沿或下一次用户 `eval()` 后再采样依赖该状态的输出。
 
 ### 9.2 调试接口
 
@@ -650,7 +656,7 @@ GrhSIM 对用户暴露的接口保持简单：
    当前已消费 `activity-schedule` session 数据；尚未校验其与 graph 最终快照的一致性。
 
 3. head/source 激活策略细化。
-   当前已支持输入变化、状态反馈、副作用反馈、source supernode 激活；尚未细化不同 head-source 类型的独立激活策略。
+   当前已支持输入变化和上一次 `eval()` 提交后的状态变化激活；尚未细化不同 head-source 类型的独立激活策略。
 
 4. event-domain guard 优化。
    当前已支持预计算命中和超阈值恒命中降级；尚未做 domain 聚类后的布局优化与去重发射优化。
@@ -667,8 +673,8 @@ GrhSIM 对用户暴露的接口保持简单：
 8. 多写口风险诊断。
    当前已按草案放宽为“不保证顺序”；尚未补专门诊断或风险提示发射。
 
-9. 副作用反馈策略细化。
-    当前已有 `side_effect_feedback_` 通路；尚未细化哪些副作用必须反馈到下一轮 head 激活。
+9. 活动位热路径优化。
+   当前草案要求按 singular BFS / worklist 消耗活动位；具体位图、活跃列表或 epoch 方案尚未定稿。
 
 10. 调试锚点扩展。
     当前已保留 `op symbol` 注释和产物级锚点；尚未系统输出 `supernode -> op symbol`、event-domain、state object 对照表。
