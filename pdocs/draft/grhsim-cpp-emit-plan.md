@@ -9,7 +9,7 @@
 生成结果需要满足：
 
 1. 以极致仿真性能为首要目标。
-2. 直接服务 GrhSIM 的用户接口：设置输入与 `inout.in`、`set_random_seed()`、`init()`、`eval()`、读取 `output` 与 `inout.out/oe`。
+2. 直接服务 GrhSIM 的用户接口：通过与端口同名的 `public` 成员访问输入、输出与 `inout` 接口，并提供 `set_random_seed()`、`init()`、`eval()`。
 3. 支持任意位宽 GRH value。
 4. 代码量可扩展到大设计，不因单文件过大导致编译器性能恶化。
 
@@ -164,7 +164,7 @@ emit 需要保留它们的 write/call 粒度，不提前把多个事件域、多
 - `eventEdge` 仅描述触发边沿
 - `procKind`、`hasTiming` 仍影响其运行时行为与调度位置
 
-当前实现中，`kSystemTask` 进一步按以下规则执行：
+`kSystemTask` 进一步按以下规则执行：
 
 - `initial + !hasTiming` 仅在第一次 `eval()` 中执行
 - `initial + hasTiming`、`always*` 仍按 `callCond && exactEventExpr` 执行
@@ -174,9 +174,12 @@ emit 需要保留它们的 write/call 粒度，不提前把多个事件域、多
 - `strobe` 在本次 `eval()` 的状态提交后统一刷新
 - `fatal/finish/stop` 在运行时记录退出码，并在刷新输出、执行 `final`、关闭文件句柄后直接终止宿主进程
 - `dumpfile/dumpvars` 当前记录运行时配置，不在本阶段生成波形文件
-- 文件类任务依赖宿主先绑定输出句柄；当前约定 `1 -> stdout`、`2 -> stderr`
+- 文件句柄由 GrhSIM 运行时内部维护，不暴露宿主预绑定接口
+- `kSystemFunction($fopen)` 负责创建文件句柄；`0` 表示打开失败，`1/2` 预留为 `stdout/stderr`，运行时新分配句柄从 `3` 开始
+- `fwrite/fdisplay/fflush/fclose` 统一消费该句柄表；`fflush()` 无参时刷新 `stdout/stderr` 与全部已打开文件，`fclose(handle)` 关闭对应表项并释放句柄
+- `kSystemFunction($ferror)` 若进入输入范围，与 `$fopen` 和文件类 system task 共用同一文件表项状态
 
-当前实现中，`kDpicCall` 进一步按以下规则执行：
+`kDpicCall` 进一步按以下规则执行：
 
 - 已覆盖 `input/output/return`
 - 已覆盖 `Logic/Real/String` 参数与结果
@@ -584,9 +587,9 @@ GrhSIM 对用户暴露的接口保持简单：
 1. 若需要控制 `$random`，调用 `set_random_seed(seed)`
 2. 首次 `eval()` 前调用 `init()`
 3. `init()` 同时清空外部输入与 `inout.in`，并重建内部状态、memory、上周期输入/事件快照与调度基线
-4. 设置输入与 `inout.in`
+4. 通过与端口同名的 `public` 成员写入输入，读取输出；`inout` 也通过公开接口成员访问 `in/out/oe`
 5. 调用 `eval()`
-6. 读取 `output` 与 `inout.out/oe`
+6. `eval()` 后直接读取对应 `public` 输出成员
 7. 若需要回到初始快照，再次调用 `init()`
 
 ### 9.2 调试接口

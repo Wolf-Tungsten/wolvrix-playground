@@ -44,6 +44,8 @@ endif
 
 HDLBITS_ROOT := $(CURDIR)/testcase/hdlbits
 HDLBITS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_hdlbits_emit.py
+HDLBITS_GRHSIM_SCRIPT := $(CURDIR)/scripts/wolvrix_hdlbits_grhsim.py
+HDLBITS_GRHSIM_DRIVER := $(WOLVRIX_BUILD_DIR)/bin/hdlbits-grhsim-driver
 
 # OpenC910 paths / options
 C910_ROOT := $(CURDIR)/testcase/openc910
@@ -146,17 +148,21 @@ XS_DIFFTEST_MACROS := $(XS_ROOT)/build/generated-src/DifftestMacros.svh
 # HDLBits paths
 HDLBITS_DUT_SRC := $(HDLBITS_ROOT)/dut/dut_$(DUT).v
 HDLBITS_TB_SRC := $(HDLBITS_ROOT)/tb/tb_$(DUT).cpp
+HDLBITS_GRHTB_SRC := $(HDLBITS_ROOT)/grhtb/grhtb_$(DUT).cpp
 HDLBITS_OUT_DIR := $(BUILD_DIR)/hdlbits/$(DUT)
 HDLBITS_EMITTED_DUT := $(HDLBITS_OUT_DIR)/dut_$(DUT).v
 HDLBITS_EMITTED_JSON := $(HDLBITS_OUT_DIR)/dut_$(DUT).json
+HDLBITS_GRHSIM_BUILD_DIR := $(BUILD_DIR)/hdlbits-grhsim
 HDLBITS_SIM_BIN_NAME := sim_$(DUT)
 HDLBITS_SIM_BIN := $(HDLBITS_OUT_DIR)/$(HDLBITS_SIM_BIN_NAME)
 HDLBITS_VERILATOR_PREFIX := Vdut_$(DUT)
 HDLBITS_TB_SOURCES := $(wildcard $(HDLBITS_ROOT)/tb/tb_*.cpp)
 HDLBITS_DUTS := $(sort $(patsubst tb_%,%,$(basename $(notdir $(HDLBITS_TB_SOURCES)))))
+HDLBITS_GRHTB_SOURCES := $(wildcard $(HDLBITS_ROOT)/grhtb/grhtb_*.cpp)
+HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS_GRHTB_SOURCES)))))
 
 .PHONY: all build init_submodule check_id run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
-	xs_rtl xs_wolf_filelist xs_wolf_emit xs_ref_emu xs_wolf_emu run_xs_json_test \
+	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_wolf_filelist xs_wolf_emit xs_ref_emu xs_wolf_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_wolf_emu run_xs_diff clean
 
 all: build
@@ -174,11 +180,23 @@ check_id:
 	@test -f $(HDLBITS_DUT_SRC) || { echo "Missing DUT source: $(HDLBITS_DUT_SRC)"; exit 1; }
 	@test -f $(HDLBITS_TB_SRC) || { echo "Missing testbench: $(HDLBITS_TB_SRC)"; exit 1; }
 
+check_grhsim_id:
+	@if [[ ! "$(DUT)" =~ ^[0-9]{3}$$ ]]; then \
+		echo "DUT must be a three-digit number (e.g. DUT=001)"; \
+		exit 1; \
+	fi
+	@test -f $(HDLBITS_DUT_SRC) || { echo "Missing DUT source: $(HDLBITS_DUT_SRC)"; exit 1; }
+	@test -f $(HDLBITS_GRHTB_SRC) || { echo "Missing GrhSIM testbench: $(HDLBITS_GRHTB_SRC)"; exit 1; }
+
 build:
 	env -u MAKE_TERMOUT $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
 	$(CMAKE) --build $(WOLVRIX_BUILD_DIR)
 
 $(WOLVRIX_APP): build
+
+$(HDLBITS_GRHSIM_DRIVER):
+	env -u MAKE_TERMOUT $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
+	$(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target hdlbits-grhsim-driver -j$(shell nproc)
 
 .PHONY: py_install
 py_install:
@@ -217,6 +235,31 @@ run_all_hdlbits_tests:
 	@for dut in $(HDLBITS_DUTS); do \
 		echo "==== Running DUT=$$dut ===="; \
 		$(MAKE) --no-print-directory run_hdlbits_test DUT=$$dut SKIP_PY_INSTALL=1 || exit $$?; \
+	done
+
+run_hdlbits_grhsim:
+ifneq ($(strip $(DUT)),)
+  ifeq ($(DUT),$(filter $(DUT),$(HDLBITS_GRHSIM_DUTS)))
+	@$(MAKE) --no-print-directory $(HDLBITS_GRHSIM_DRIVER)
+	@$(MAKE) --no-print-directory -C $(HDLBITS_ROOT) run_grhtb \
+		DUT=$(DUT) \
+		PYTHON=$(PYTHON) \
+		BUILD_DIR=$(abspath $(HDLBITS_GRHSIM_BUILD_DIR)) \
+		GRHSIM_SCRIPT=$(HDLBITS_GRHSIM_SCRIPT) \
+		GRHSIM_DRIVER=$(HDLBITS_GRHSIM_DRIVER)
+  else
+	$(error DUT=$(DUT) not found in grhtb; available: $(HDLBITS_GRHSIM_DUTS))
+  endif
+else
+	@echo "DUT not set; running all available GrhSIM DUTs: $(HDLBITS_GRHSIM_DUTS)"
+	@$(MAKE) --no-print-directory run_all_hdlbits_grhsim_tests
+endif
+
+run_all_hdlbits_grhsim_tests:
+	@$(MAKE) --no-print-directory $(HDLBITS_GRHSIM_DRIVER)
+	@for dut in $(HDLBITS_GRHSIM_DUTS); do \
+		echo "==== Running GrhSIM DUT=$$dut ===="; \
+		$(MAKE) --no-print-directory run_hdlbits_grhsim DUT=$$dut SKIP_PY_INSTALL=1 || exit $$?; \
 	done
 
 ifneq ($(strip $(SKIP_WOLF_BUILD)),1)
