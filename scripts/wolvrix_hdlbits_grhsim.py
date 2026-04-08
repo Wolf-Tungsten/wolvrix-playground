@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 
-import os
-import subprocess
 import sys
 from pathlib import Path
+
+import wolvrix
+
+
+TOP_NAME = "top_module"
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def log(message: str) -> None:
@@ -11,29 +15,49 @@ def log(message: str) -> None:
     sys.stderr.flush()
 
 
-if len(sys.argv) != 3:
-    raise SystemExit("usage: wolvrix_hdlbits_grhsim.py <dut> <out-dir>")
+def run_pipeline(dut_path: Path, out_dir: Path) -> None:
+    json_out = out_dir / f"{dut_path.stem}.json"
 
-dut_id = sys.argv[1]
-out_dir = Path(sys.argv[2]).resolve()
+    with wolvrix.Session() as sess:
+        sess.log_level = "info"
+        sess.read_sv(
+            str(dut_path),
+            out_design="design.main",
+            slang_args=["--top", TOP_NAME],
+        )
+        sess.run_pass("xmr-resolve", design="design.main")
+        sess.run_pass("multidriven-guard", design="design.main")
+        sess.run_pass("latch-transparent-read", design="design.main")
+        sess.run_pass("hier-flatten", design="design.main", sym_protect="hierarchy")
+        sess.run_pass("comb-loop-elim", design="design.main")
+        sess.run_pass("simplify", design="design.main", semantics="2state")
+        sess.run_pass("memory-init-check", design="design.main")
+        sess.run_pass("stats", design="design.main")
+        sess.run_pass(
+            "activity-schedule",
+            design="design.main",
+            args=["-path", TOP_NAME, "-enable-replication", "true"],
+        )
+        sess.store_json(design="design.main", output=str(json_out), top=[TOP_NAME])
+        sess.emit_grhsim_cpp(design="design.main", output=str(out_dir), top=[TOP_NAME])
 
-repo_root = Path(__file__).resolve().parent.parent
-dut_path = repo_root / "testcase" / "hdlbits" / "dut" / f"dut_{dut_id}.v"
-if not dut_path.exists():
-    raise FileNotFoundError(f"DUT not found: {dut_path}")
 
-driver_path = Path(
-    os.environ.get(
-        "WOLVRIX_HDLBITS_GRHSIM_DRIVER",
-        repo_root / "wolvrix" / "build" / "bin" / "hdlbits-grhsim-driver",
-    )
-)
-if not driver_path.exists():
-    raise FileNotFoundError(f"GrhSIM driver not found: {driver_path}")
+def main() -> int:
+    if len(sys.argv) != 3:
+        raise SystemExit("usage: wolvrix_hdlbits_grhsim.py <dut> <out-dir>")
 
-out_dir.mkdir(parents=True, exist_ok=True)
-json_out = out_dir / f"dut_{dut_id}.json"
+    dut_id = sys.argv[1]
+    out_dir = Path(sys.argv[2]).resolve()
 
-cmd = [str(driver_path), str(dut_path), "top_module", str(out_dir), str(json_out)]
-log("exec " + " ".join(cmd))
-subprocess.run(cmd, check=True)
+    dut_path = REPO_ROOT / "testcase" / "hdlbits" / "dut" / f"dut_{dut_id}.v"
+    if not dut_path.exists():
+        raise FileNotFoundError(f"DUT not found: {dut_path}")
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    log(f"emit {dut_path} -> {out_dir}")
+    run_pipeline(dut_path, out_dir)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
