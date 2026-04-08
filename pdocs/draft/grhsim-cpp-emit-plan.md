@@ -9,7 +9,7 @@
 生成结果需要满足：
 
 1. 以极致仿真性能为首要目标。
-2. 直接服务 GrhSIM 的用户接口：设置输入、`set_random_seed()`、`init()`、`eval()`、读取输出。
+2. 直接服务 GrhSIM 的用户接口：设置输入与 `inout.in`、`set_random_seed()`、`init()`、`eval()`、读取 `output` 与 `inout.out/oe`。
 3. 支持任意位宽 GRH value。
 4. 代码量可扩展到大设计，不因单文件过大导致编译器性能恶化。
 
@@ -109,7 +109,7 @@
 `eval()` 的基本流程：
 
 1. 采集输入变化
-2. 从事件 source 出发，沿组合逻辑锥预计算基础 `event-term-hit`
+2. 对事件值做精确求值；在不超过阈值时额外预计算 `event-term-hit`
 3. 由 `event-term-hit` 归约得到本次 `event-domain-set-hit`
 4. 由输入变化、状态变化、副作用反馈激活首批 `head-eval supernode`
 5. 按 `topo_order` 执行 `supernode`
@@ -488,7 +488,9 @@ emit 时需要预先建立：
 
 ### 7.2 预计算范围控制
 
-事件预计算会冗余求解一部分组合逻辑。若不加约束，错误设计可能把 `clk` 接到大规模组合网络后再形成 `event value`，使每次 `eval()` 的预计算代价失控。
+事件值允许依赖组合逻辑，也允许依赖 `kRegisterReadPort`、`kLatchReadPort`、`kMemoryReadPort` 等状态读口形成更复杂的锥，例如 gated clock。
+
+事件预计算会冗余求解一部分事件值逻辑锥。若不加约束，错误设计可能把 `clk` 接到大规模组合网络后再形成 `event value`，使每次 `eval()` 的预计算代价失控。
 
 因此 emit 需要提供一个逻辑锥规模阈值，例如：
 
@@ -496,11 +498,11 @@ emit 时需要预先建立：
 
 对每个 `(event value, event edge)`：
 
-1. 统计其事件预计算逻辑锥中的组合 op 数
+1. 统计其事件值求值锥中的组合 / 读口相关 op 数
 2. 若不超过阈值，则生成预计算代码并参与 `event-term-hit`
 3. 若超过阈值，则该 term 不做预计算，依赖它的 `event-domain-signature` 在 guard 侧按恒命中处理
 
-此阈值服务性能控制，不改变事件敏感 op 自身的精确触发语义。
+此阈值只影响 guard 预计算，不改变事件敏感 op 自身的精确触发语义；即使 term 未预计算，sink 仍需按精确事件表达式判定是否触发。
 
 ### 7.3 Guard 发射
 
@@ -579,11 +581,13 @@ if (supernode_active_curr[id] && supernode_event_domain_hit[id]) { ... }
 
 GrhSIM 对用户暴露的接口保持简单：
 
-1. 设置输入
-2. 若需要控制 `$random`，调用 `set_random_seed(seed)`
-3. 首次 `eval()` 前调用 `init()`
-4. 调用 `eval()`
-5. 读取输出
+1. 若需要控制 `$random`，调用 `set_random_seed(seed)`
+2. 首次 `eval()` 前调用 `init()`
+3. `init()` 同时清空外部输入与 `inout.in`，并重建内部状态、memory、上周期输入/事件快照与调度基线
+4. 设置输入与 `inout.in`
+5. 调用 `eval()`
+6. 读取 `output` 与 `inout.out/oe`
+7. 若需要回到初始快照，再次调用 `init()`
 
 ### 9.2 调试接口
 
@@ -591,7 +595,7 @@ GrhSIM 对用户暴露的接口保持简单：
 
 - `supernode id -> 源 op symbol`
 - 状态对象名
-- 输入输出端口名
+- 输入 / 输出 / `inout` 端口名
 
 调试锚点不进入热路径。
 
@@ -620,43 +624,24 @@ GrhSIM 对用户暴露的接口保持简单：
 
 按以下剩余列表推进，完成全部条目即视为完成 `cpp emit`。
 
-### 11.1 最高优先级
+### 11.1 高优先级
 
-已完成。
-
-已覆盖：
-
-- 批切分
-- 代码量预算
-- 多个 `sched_<n>.cpp` / 多编译单元拆分
-- emit 侧多线程并行
-- 宽位 `slice` / `concat` / `replicate` / `shift` 的 word fast path
-- `65..128 bit` 的 `add/sub/compare/mul/div/mod` 的 `u128` fast path
-- 宽位 `mul/div/mod` 的单字操作数 fast path
-- 宽位 `mul/div/mod` 的 power-of-two 操作数 fast path
-- `>128 bit` 一般除数的宽位 `div/mod` 多字对齐减法路径
-
-### 11.2 高优先级
-
-1. 输出与 inout 建模。
-   当前仅实现 output 回写；尚未实现 `inout out/oe` 路径，也未做输出端口分组优化。
-
-2. 生成代码验证体系扩展。
+1. 生成代码验证体系扩展。
    当前仅有“生成 + make + harness 运行”的最小回归；尚未形成分层行为测试矩阵。
 
-3. supernode 调度拆分。
-   当前仅发射单批调度代码；尚未实现批划分、批间布局优化、跨 TU 分发。
+2. batch 划分与布局优化。
+   当前已支持批切分、`eval_batch_<n>()`、多个 `sched_<n>.cpp`、多编译单元输出与 emit 侧并行；尚未细化 cut policy、批间局部性布局与跨 TU 负载均衡。
 
-4. event-term 预计算扩展。
-   当前仅支持可静态表达的 `<=64 bit` 纯组合锥；尚未覆盖宽位和更复杂事件锥。
+3. event-value 共享锥进一步优化。
+   当前已按 `event value` 建立 `curr_evt_*` 共享缓存，并在 `eval()` 内对事件值闭包按拓扑物化共享临时量，`event-term-hit` 与 sink 的 `exact-event` 会复用同一份事件值与其中间锥；尚未做更激进的公共子图聚类、跨批布局优化与体积 / 寄存器压力联合权衡。
 
-5. 输入前提校验完善。
+4. 输入前提校验完善。
    当前仅依赖文档约束；尚未系统校验“无组合环 / 无 XMR / 无 blackbox / 已展平”等全部前置条件。
 
-### 11.3 中优先级
+### 11.2 中优先级
 
-1. 用户接口补强。
-   当前已支持设置输入、`set_random_seed()`、显式 `init()`、`eval()`、读取输出；尚未生成更完整的 reset/init 辅助接口。
+1. 输出镜像布局优化。
+   当前已支持 `output` 与 `inout.out/oe` 镜像；尚未细化端口分组、布局压缩与更强的缓存局部性优化。
 
 2. session 数据一致性检查。
    当前已消费 `activity-schedule` session 数据；尚未校验其与 graph 最终快照的一致性。
