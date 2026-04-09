@@ -631,56 +631,59 @@ GrhSIM 对用户暴露的接口保持简单：
 
 ## 11. 当前实现缺口 TODO List
 
-按以下剩余列表推进，完成全部条目即视为完成 `cpp emit`。
+结合当前 `build/hdlbits-grhsim` 生成代码观察，按以下剩余列表推进，完成全部条目即视为完成 `cpp emit`。
 
 ### 11.1 高优先级
 
-1. 生成代码验证体系扩展。
-   当前仅有“生成 + make + harness 运行”的最小回归；尚未形成分层行为测试矩阵。
+1. 稀疏活动执行仍是线性扫 `supernode`。
+   当前 `eval_batch_<n>()` 已支持按 contiguous topo word-segment 做 mask 跳过，并将节点级 `test_bit/clear_bit` 收敛为直接 word-bit 操作；但 batch 内仍按拓扑顺序逐节点细判。需要继续引入更强的 nonzero-word 扫描 / active frontier / 分层 worklist 方案，进一步降低稀疏活动时的空扫成本。
 
-2. batch 划分与布局优化。
+2. 输入基线与输出发布仍存在整值复制。
+   当前已去掉 `eval()` 入口的输入影子复制和输出双重镜像；剩余成本主要来自 `prev_in_*` 基线更新与 `refresh_outputs()` 的 public 输出发布，宽位端口上仍会放大搬运成本。需要继续压缩 public 布局与热路径布局之间的复制边界。
+
+3. 发射结果仍保留较多 no-op helper 包裹。
+   当前样例中仍可见部分恒值 `trunc`、无必要临时量和保守 helper 调用。需要继续做表达式级去冗余，让标量、小位宽和固定宽位路径更多落到直接赋值、直接位运算和更短的内联 helper。
+
+4. 宽位固定长度 fast path 仍不够激进。
+   当前 `65..256 bit` 已有基础支持，但生成代码中仍频繁走通用 word helper。需要继续把常见固定长度宽位算子收敛到更短的专用内联路径，减少循环、mask 和中间数组处理。
+
+5. batch 划分与布局优化。
    当前已支持批切分、`eval_batch_<n>()`、多个 `sched_<n>.cpp`、多编译单元输出与 emit 侧并行；尚未细化 cut policy、批间局部性布局与跨 TU 负载均衡。
 
-3. event-value 共享锥进一步优化。
-   当前已按 `event value` 建立 `curr_evt_*` 共享缓存，并在 `eval()` 内对事件值闭包按拓扑物化共享临时量，`event-term-hit` 与 sink 的 `exact-event` 会复用同一份事件值与其中间锥；尚未做更激进的公共子图聚类、跨批布局优化与体积 / 寄存器压力联合权衡。
+6. event-value 共享锥进一步优化。
+   当前已按 `event value` 建立 `curr_evt_*` 共享缓存，并在 `eval()` 内对事件值闭包按拓扑物化共享临时量；尚未做更激进的公共子图聚类、跨批布局优化与体积 / 寄存器压力联合权衡。
 
-4. 输入前提校验完善。
-   当前仅依赖文档约束；尚未系统校验“无组合环 / 无 XMR / 无 blackbox / 已展平”等全部前置条件。
+7. 输入前提校验完善。
+    当前仅依赖文档约束；尚未系统校验“无组合环 / 无 XMR / 无 blackbox / 已展平”等全部前置条件。
 
 ### 11.2 中优先级
 
-1. 输出镜像布局优化。
-   当前已支持 `output` 与 `inout.out/oe` 镜像；尚未细化端口分组、布局压缩与更强的缓存局部性优化。
+1. 生成代码验证体系扩展。
+   当前仅有“生成 + make + harness 运行”的最小回归；尚未形成分层行为测试矩阵，也缺少针对热路径退化的基准用例。
 
 2. session 数据一致性检查。
    当前已消费 `activity-schedule` session 数据；尚未校验其与 graph 最终快照的一致性。
 
-3. head/source 激活策略细化。
-   当前已支持输入变化和上一次 `eval()` 提交后的状态变化激活；尚未细化不同 head-source 类型的独立激活策略。
-
-4. event-domain guard 优化。
+3. event-domain guard 优化。
    当前已支持预计算命中和超阈值恒命中降级；尚未做 domain 聚类后的布局优化与去重发射优化。
 
-5. event 语义性能模型细化。
+4. event 语义性能模型细化。
    当前已支持 `posedge`/`negedge`/变化检测；尚未细化更复杂 event source 组合的性能模型。
 
-6. `kRegisterReadPort` / `kLatchReadPort` 收尾。
+5. `kRegisterReadPort` / `kLatchReadPort` 收尾。
    当前已实现基础路径和宽位结果；更细活动传播优化未实现。
 
-7. `kLatchWritePort` 收尾。
+6. `kLatchWritePort` 收尾。
    当前已支持规整后的基本提交和宽位路径；更复杂锁存器组合场景未实现。
 
-8. 多写口风险诊断。
+7. 多写口风险诊断。
    当前已按草案放宽为“不保证顺序”；尚未补专门诊断或风险提示发射。
 
-9. 活动位热路径优化。
-   当前草案要求按 singular BFS / worklist 消耗活动位；具体位图、活跃列表或 epoch 方案尚未定稿。
-
-10. 调试锚点扩展。
+8. 调试锚点扩展。
     当前已保留 `op symbol` 注释和产物级锚点；尚未系统输出 `supernode -> op symbol`、event-domain、state object 对照表。
 
-11. Python 接口测试。
+9. Python 接口测试。
     当前已接入 `emit_grhsim_cpp(...)`；尚未补 Python 侧专门测试。
 
-12. 透明锁存器前置诊断。
+10. 透明锁存器前置诊断。
     当前已将 `latch-transparent-read` 设为硬前置；尚未在 emit 入口给出明确失败诊断与定位信息。
