@@ -15,6 +15,27 @@ def log(message: str) -> None:
     sys.stderr.flush()
 
 
+def write_stable_header_alias(out_dir: Path) -> None:
+    stable_header = out_dir / "grhsim_top_module.hpp"
+    header_candidates = sorted(
+        path
+        for path in out_dir.glob("grhsim_*.hpp")
+        if path.name != stable_header.name and not path.name.endswith("_runtime.hpp")
+    )
+    if len(header_candidates) != 1:
+        return
+
+    actual_header = header_candidates[0]
+    actual_stem = actual_header.stem
+    actual_class = actual_stem.replace("grhsim_", "GrhSIM_", 1)
+    stable_header.write_text(
+        "#pragma once\n\n"
+        f'#include "{actual_header.name}"\n\n'
+        f"using GrhSIM_top_module = {actual_class};\n",
+        encoding="ascii",
+    )
+
+
 def run_pipeline(dut_path: Path, out_dir: Path) -> None:
     json_out = out_dir / f"{dut_path.stem}.json"
 
@@ -30,6 +51,8 @@ def run_pipeline(dut_path: Path, out_dir: Path) -> None:
         sess.run_pass("latch-transparent-read", design="design.main")
         sess.run_pass("hier-flatten", design="design.main", sym_protect="hierarchy")
         sess.run_pass("comb-loop-elim", design="design.main")
+        sess.run_pass("slice-index-const", design="design.main")
+        # simplify already bundles const-fold + redundant-elim + dead-code-elim.
         sess.run_pass("simplify", design="design.main", semantics="2state")
         sess.run_pass("memory-init-check", design="design.main")
         sess.run_pass("stats", design="design.main")
@@ -40,6 +63,7 @@ def run_pipeline(dut_path: Path, out_dir: Path) -> None:
         )
         sess.store_json(design="design.main", output=str(json_out), top=[TOP_NAME])
         sess.emit_grhsim_cpp(design="design.main", output=str(out_dir), top=[TOP_NAME])
+    write_stable_header_alias(out_dir)
 
 
 def main() -> int:

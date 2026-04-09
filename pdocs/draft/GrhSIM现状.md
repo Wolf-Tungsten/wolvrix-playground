@@ -15,7 +15,7 @@
 5. 调用 `eval()`
 6. 直接读取同名 `public` 输出成员
 
-状态更新在本次 `eval()` 末尾提交，对后续一次 `eval()` 生效；当前不做同次 `eval()` replay。
+状态写入当前采用“`propagate` 先暂存、`commit` 后提交”的两阶段模型：write-port 在调度阶段只记录 pending update，`commit_state_updates()` 在一轮调度结束后统一提交；如果提交后状态真实变化，会在同次 `eval()` 内重新激活对应状态读 supernode，直到活动集合收敛为空。因此状态影响可以在同次 `eval()` 内可见。
 
 ### 1.2 前置条件
 
@@ -75,62 +75,44 @@
 
 `phase A7` 采用 `SymbolId -> supernode` 作为中间稳定锚点，待最终 `freeze()` 后再恢复 `OperationId` 级映射；这样可以规避复制和插入 op 导致的 id 漂移。
 
-### 2.3 已实现的 event-domain Phase B
+### 2.3 当前静态依赖与入口元数据
 
-当前 `activity-schedule` 已实现 event-domain 反标：
+当前 `activity-schedule` 不再输出独立的 `event-domain` 调度层，静态依赖模型已经统一为一套 supernode DAG：
 
-1. `phase B1` 建立反标起点。当前 sink 包括：
-   - `kRegisterWritePort`
-   - `kMemoryWritePort`
-   - `kLatchWritePort`
-   - 无返回值 `kSystemTask`
-   - 无返回值 `kDpicCall`
-   - 直接驱动 `output` / `inout.out` / `inout.oe` 的 op
-2. 从 sink 提取正规 `event-domain-signature`，基本元素为 `(event value, event edge)`，并做稳定排序。
-3. `phase B2` 沿 use-def 反向传播，把 `event-domain-set` 标到 op、value、supernode。
+1. `value_fanout` 描述 value 跨 supernode 的活动传播目标。
+2. `topo_order` 给出 supernode 的静态执行顺序。
+3. event-sensitive operand 在静态分析里按普通依赖参与建图，不再单独抽取全局 event-domain。
+4. `state_read_supernodes` 把状态符号映射到其读者 supernode 集合，供运行时在状态提交后重新激活依赖该状态的 supernode。
 
-`event-domain` 允许为空；空集合表示该 sink 不受事件命中约束，每次 `eval()` 都可进入调度。
+其中 `state_read_supernodes` 的 key 是状态符号名，当前覆盖 `reg` / `latch` / `mem` 的读口；value 是读取该状态的 supernode id 列表，已去重并稳定化。
 
 ### 2.4 当前输出结构
 
 Pass 结果写入 session 的 `<path>.activity_schedule.*`：
 
-- `supernodes`
 - `supernode_to_ops`
-- `supernode_to_op_symbols`
 - `op_to_supernode`
-- `op_symbol_to_supernode`
-- `dag`
 - `value_fanout`
 - `topo_order`
-- `head_eval_supernodes`
-- `op_event_domains`
-- `value_event_domains`
-- `supernode_event_domains`
-- `event_domain_sinks`
-- `event_domain_sink_groups`
+- `state_read_supernodes`
 
 其中当前 emitter 直接消费的核心数据是：
 
 - `supernode_to_ops`
-- `dag`
 - `value_fanout`
 - `topo_order`
-- `head_eval_supernodes`
-- `supernode_event_domains`
-- `value_event_domains`
-- `event_domain_sinks`
-- `event_domain_sink_groups`
+- `state_read_supernodes`
 
 ### 2.5 当前调度语义
 
 当前文档和代码已经对齐为以下语义：
 
 - `supernode` 是调度与代码生成的基本单元
-- 一次 `eval()` 内，每个 `supernode` 最多执行一次
+- `activity-schedule` 只负责给出静态 supernode 划分、拓扑序和跨边界传播关系，不再承载事件域调度决策
 - 活动度按跨 `supernode` 边界的 value 变化传播，不按“整个 supernode 任意值变化”粗粒度传播
-- `head_eval_supernode` 只用于构建 `eval()` 入口 seed，不参与 guard 条件
-- `head_eval_supernode` 当前定义为直接消费 graph 输入或状态读口结果的 supernode
+- 当前运行时首次 `eval()` 会直接全量激活全部 supernode
+- 后续 `eval()` 的入口 seed 由“外部输入变化”与“状态提交后重新激活读者 supernode”共同决定
+- 同一个 `supernode` 在一次 `eval()` 内可以因状态提交再次变活并重复执行，直到达到固定点
 - 拓扑关系使用核心 `toposort` 组件构建
 
 ## 3. GrhSIM Cpp Emit 现状
@@ -154,19 +136,20 @@ Pass 结果写入 session 的 `<path>.activity_schedule.*`：
 
 当前 `eval()` 逻辑为：
 
-1. 检测输入变化
-2. 预计算 `event-term-hit`
-3. 归约得到 `event-domain-hit`
-4. 首次 `eval()` 激活首批 seed supernode；后续 `eval()` 根据输入变化和上一轮状态提交记录激活入口 supernode
-5. 按拓扑顺序执行 supernode 批
-6. 提交 write-port、副作用 op 和状态更新
-7. 刷新公开输出
+1. 首次 `eval()` 直接激活全部 supernode；后续 `eval()` 只根据外部输入变化激活相应入口 supernode
+2. 在当前活动集合上按拓扑批次执行 supernode，完成一轮 `propagate`
+3. `kRegisterWritePort` / `kMemoryWritePort` / `kLatchWritePort` 在 `propagate` 中只暂存 pending update，不直接改写状态
+4. 一轮调度结束后执行 `commit_state_updates()`
+5. 若某个状态提交后真实变化，则通过 `state_read_supernodes` 重新激活其读者 supernode
+6. 重复 “`propagate` -> `commit`” 直到没有活动 supernode
+7. 收敛后刷新公开输出，并更新输入基线与事件 sample 基线
 
 关键点：
 
-- 单次 `eval()` 只做一次前向传播
-- 状态写入本轮提交、下轮可见
-- 不做同轮 replay、observe cone 或事件闭包重算
+- 当前 `eval()` 是固定点收敛模型，不是单次单向前传
+- 状态写入在本轮 `commit` 后即可继续影响同次 `eval()` 的后续轮次
+- 全局 `event-domain-hit` 预计算已移除；事件判断在各个 event-sensitive op 内局部完成
+- 事件 sample 按 op 私有字段保存，op 执行后会立即刷新自己的上一采样值，避免同次 `eval()` 重复触发同一边沿
 
 ### 3.3 当前数据表示
 
@@ -184,15 +167,15 @@ Logic 当前按位宽分层表示：
 - 常见小位宽组合 op 发射
 - 宽位运行时表示与基础组合 helper
 - signed 语义的系统化落地
-- `kRegisterWritePort` 基本提交语义
-- `kMemoryWritePort` 基本提交语义，按整体 dirty 建模 memory 活动传播
-- `kLatchWritePort` 基本提交语义
+- `kRegisterWritePort` 延迟提交语义，提交后可在同次 `eval()` 内继续传播
+- `kMemoryWritePort` 延迟提交语义，按状态真实变化重新激活读者 supernode
+- `kLatchWritePort` 延迟提交语义，提交后可在同次 `eval()` 内继续传播
 - declaration init、memory 初始化、`$random` seed / state
 - `kSystemTask` 常用语义，包括文本输出、文件句柄输出、`fflush`、`fclose`、`dumpfile`、`dumpvars`、`info/warning/error/fatal/finish/stop`
 - `kSystemFunction` 中与文件句柄相关的常用能力，如 `fopen`、`ferror`
 - `kDpicCall` 输入 / 输出 / 返回值路径；当前不支持 `inout` 参数
 - `output` 与 `inout` 输出分量建模
-- event-domain 预计算与超阈值恒命中降级
+- event-sensitive op 的局部 exact-event 检测与 per-op previous-sample 缓存
 
 对多写口，当前策略是放宽为“不保证顺序”。
 
@@ -200,23 +183,27 @@ Logic 当前按位宽分层表示：
 
 已落地的热路径优化包括：
 
-- `supernode_active_curr_`、`event_term_hit_`、`event_domain_hit_` 静态化为定长数组
+- `supernode_active_curr_` 静态化为定长 bitset 数组
 - 去掉 `eval()` 入口输入影子复制
 - 去掉输出双重镜像，`refresh_outputs()` 直接发布 public 输出
-- `event_term_hit_` / `event_domain_hit_` 不再每轮全量清空
 - seed 激活按 word mask 合并
-- `touched_write_*` 加速 write-port 提交
+- `touched_write_*` 加速 pending write 提交
 - 活动位在 supernode 取出执行时立即清理
 - 跨 supernode 活动传播基于 `value_fanout`
 - batch 内已支持 contiguous topo word-segment 跳过
+- 事件检测改为 per-op 局部 sample，比全局 event-domain 位图更直接
 - 生成代码中保留必要注释和 `op symbol` 锚点
 
 ### 3.6 当前验证与使用
 
-当前 HDLBits GrhTB 已迁移 `001..039`，统一入口为：
+当前 HDLBits GrhTB 已迁移 `001..150`，统一入口为：
 
 - `make run_hdlbits_grhsim DUT=xxx`
 - `make run_all_hdlbits_grhsim_tests`
+
+已验证 `001..102, 104..126, 128..150` 可运行；`103` 当前仍阻塞在 emitter
+阶段的 `kRegisterWritePort nextValue width/type mismatch`，`127` 当前阻塞在
+emitter 阶段的 `unsupported constant emit`，两者都不是 GrhTB 缺失。
 
 当前脚本流程为：
 
