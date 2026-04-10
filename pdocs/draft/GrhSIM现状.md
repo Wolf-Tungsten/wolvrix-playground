@@ -1,5 +1,7 @@
 # GrhSIM现状
 
+`pdocs/draft/GrhSIM计划.md` 中提出的这轮调度模型重构目标已经完成，相关设计原则和当前落地语义已经并入本文，不再单独维护计划文档。
+
 ## 1. 范围
 
 ### 1.1 当前讨论对象
@@ -193,17 +195,24 @@ Logic 当前按位宽分层表示：
 - batch 内已支持 contiguous topo word-segment 跳过
 - 事件检测改为 per-op 局部 sample，比全局 event-domain 位图更直接
 - 生成代码中保留必要注释和 `op symbol` 锚点
+- 多 operand、全 scalar 的 `kConcat` 已增加 emitter 侧模式识别：
+  - 同宽 scalar concat 发射为 `grhsim_concat_uniform_scalars_u64/words(...)`
+  - 异宽 scalar concat 发射为 `grhsim_concat_scalars_u64/words(...)`
+  - helper 内部使用循环完成拼接，不再把整段 `concat_cursor -= ...; grhsim_insert_words(...)` 完全逐元素展开
+- 上述 concat helper 化已按 `py_install` 后的实际 GrhSIM 流程验证：
+  - `grhtb_043` 的 `sched_*.cpp` 总行数从 `27158` 降到 `26754`
+  - `grhtb_118` 的 `sched_*.cpp` 总行数从 `60034` 降到 `59116`
 
 ### 3.6 当前验证与使用
 
-当前 HDLBits GrhTB 已迁移 `001..150`，统一入口为：
+当前 HDLBits GrhTB 已迁移 `001..162`，统一入口为：
 
 - `make run_hdlbits_grhsim DUT=xxx`
 - `make run_all_hdlbits_grhsim_tests`
 
-已验证 `001..102, 104..126, 128..150` 可运行；`103` 当前仍阻塞在 emitter
-阶段的 `kRegisterWritePort nextValue width/type mismatch`，`127` 当前阻塞在
-emitter 阶段的 `unsupported constant emit`，两者都不是 GrhTB 缺失。
+已验证 `001..162` 可运行。此前 `103` 的寄存器写回位宽归一化问题与 `127`
+的含 `x` 常量发射问题都已修复；当前 GrhSIM 对 `Logic` 继续采用二值语义，
+常量中的 `x/z` 位在 emitter 中按 `0` 处理。
 
 当前脚本流程为：
 

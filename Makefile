@@ -2,6 +2,20 @@ SHELL := /bin/bash
 
 WOLVRIX_DIR ?= $(CURDIR)/wolvrix
 PYTHON ?= python3
+ifeq ($(origin CC), default)
+CC := clang
+endif
+ifeq ($(origin CC), undefined)
+CC := clang
+endif
+ifeq ($(origin CXX), default)
+CXX := clang++
+endif
+ifeq ($(origin CXX), undefined)
+CXX := clang++
+endif
+export CC
+export CXX
 
 # Check env.sh must exist and has been sourced
 ENV_FILE := $(CURDIR)/env.sh
@@ -188,7 +202,10 @@ check_grhsim_id:
 	@test -f $(HDLBITS_GRHTB_SRC) || { echo "Missing GrhSIM testbench: $(HDLBITS_GRHTB_SRC)"; exit 1; }
 
 build:
-	env -u MAKE_TERMOUT $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
+	env -u MAKE_TERMOUT $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_C_COMPILER=$(CC) \
+		-DCMAKE_CXX_COMPILER=$(CXX)
 	$(CMAKE) --build $(WOLVRIX_BUILD_DIR)
 
 $(WOLVRIX_APP): build

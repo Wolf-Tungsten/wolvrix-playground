@@ -1,144 +1,117 @@
 # GrhSIM 计划
 
-当下需要进行一次深入的重构，重新梳理eval的调度逻辑，实现和 verilator 等成熟仿真工具一致的调度逻辑。
+## 当前新增问题
 
-## 调度模型整理
+`build/hdlbits-grhsim/grhtb_118` 及同类宽总线 / 规则切片样例生成的 C++ 代码体量明显偏大，已经开始拖慢编译：
 
-- 不需要把event和数据分开，统一是为活动度的变动信号，activity-schedule 不需要再分析 event terms，cpp emit 的 supernode 调度也不需要再维护event + activity 两重判断逻辑，每个 supernode 只需要维护一个活动位
-- activity-schedule 分析超节点之间依赖关系时，把带event的信号当成普通信号分析，依赖关系分析不需要区分 event 和 data 信号
-- activity-schedule 要记录从声明性节点（如 kRegister）到源节点（如 kRegisterReadPort）之间的数据传递关系
-- 带有 event 的节点（如 kRegisterWritePort、kDPICall）要能识别事件信号是否触发，比如，要记录上次求解时的事件信号状态，以便判断本次是否需要求解
-- eval 的调度逻辑改成这样：
-    - 分为两个阶段 propagate 和 commit
-    - propagate 阶段按拓扑序求解所有 supernode
-        - 在发生 value 更新时按需激活受影响的后续 supernode
-        - 每个 supernode 求解时复位自己的活动位
-        - kRegisterWritePort、kMemoryWritePort、kLatchWritePort 的求解结果要延迟到 commit 阶段才能更新到 kRegister、kMemory、kLatch 中
-    - commit 阶段应用状态更新，并判断是否达到稳定点
-        - 把 kRegisterWritePort、kMemoryWritePort、kLatchWritePort 的结果更新到 kRegister、kMemory、kLatch 中
-        - 如果 kRegister、kLatch 的值发生变化，则要把它们所有对应读端口所在的 supernode 标记为活动的
-    - 稳定点的判断条件是：没有任何 supernode 被标记为活动的了
-    - 如果仍然有 supernode 被标记为活动的了，那么就继续进入 propagate 阶段
-- 首次执行前，将所有 supernode 标记为活动的，以确保第一次 eval 能获取 init 的结果
+- `grhtb_118`
+  - `grhsim_top_module_sched_3.cpp` 约 `24475` 行 / `1.18 MB`
+  - `grhsim_top_module_state.cpp` 约 `10281` 行 / `321 KB`
+  - `grhsim_top_module.hpp` 约 `10246` 行 / `411 KB`
 
-上面的原则可以整理成下面几条更明确的实现规则：
+抽样看，当前膨胀主要不是调度框架本身，而是 emitter 把大量重复的小操作逐条内联展开：
 
-1. 静态依赖图统一建模，不再维护 event/data 两套调度逻辑
+- 重复的 `cast + slice + trunc` 链被逐条发射成独立临时值
+- 大量常量赋值、单比特提取、规则位切片没有聚合
+- `state.cpp` / `hpp` 仍为每个临时值生成独立字段，导致声明区同步膨胀
+- activity-schedule 的复制优化会减少跨 supernode 依赖，但也可能放大最终代码体积
 
-   activity-schedule 只维护 supernode 之间的普通依赖关系。带有 event 语义的输入信号在建图时仍然按普通输入处理，因此 supernode 运行时只需要一个 `active bit`。
+本轮已经完成的部分：
 
-2. event 的语义保留在节点本地，而不是体现在全局调度图里
+- 多 operand、全 scalar 的 `kConcat` 已转为 emitter 侧 loop/helper 发射，详见 `pdocs/draft/GrhSIM现状.md`
 
-   对 `kRegisterWritePort`、`kMemoryWritePort`、`kLatchWritePort`、`kDPICall` 这类带 event 语义的节点，需要记录上一次求解时相关 event 信号的状态。本次执行时，节点自行判断 event 是否触发，例如是否出现 `posedge` / `negedge`，再决定是否产生有效结果。
+当前剩余的主要膨胀来源已不再是这部分 concat 展开，而是更广泛的切片、位提取、临时值落字段等模式。
 
-3. 声明性状态节点与其读端口之间的关系要显式记录
+## 优化目标
 
-   例如要记录 `kRegister -> kRegisterReadPort`、`kLatch -> kLatchReadPort` 的数据传递关系。这样在 commit 阶段状态值真的发生变化后，才能精确地重新激活所有依赖这些读端口的 supernode。
+目标不是单纯减少 op 数，而是降低最终 C++ 源码体积和编译时间，优先关注：
 
-4. eval 拆分为 `propagate` 和 `commit` 两阶段循环
+1. 减少 `sched_*.cpp` 的重复模板化表达式
+2. 减少 `hpp` / `state.cpp` 中的临时值字段数量
+3. 在不明显损伤运行时性能的前提下，控制 activity replication 带来的代码放大
 
-   `propagate` 阶段：
+## 计划项
 
-   - 按拓扑序执行所有当前 active 的 supernode
-   - supernode 执行时先清掉自己的活动位
-   - 如果某个普通输出值发生变化，则按需激活其后继 supernode
-   - `kRegisterWritePort`、`kMemoryWritePort`、`kLatchWritePort` 只能产出“待提交结果”，不能直接修改 `kRegister`、`kMemory`、`kLatch`
+### 1. emit 前结构归一化：如新增 GrhSIM pass，必须放在 `activity-schedule` 之前
 
-   `commit` 阶段：
+这里要明确区分两类事情：
 
-   - 把待提交结果真正写回 `kRegister`、`kMemory`、`kLatch`
-   - 如果 `kRegister` 或 `kLatch` 的值发生变化，就把所有对应读端口所在的 supernode 标记为 active
-   - 稳定点条件为：commit 结束后，没有任何 supernode 仍然是 active
-   - 如果还有 active supernode，则继续进入下一轮 `propagate`
+- 如果会修改 IR 图结构，增删 op / value，或改写依赖边，那么它必须发生在 `activity-schedule` 之前
+- 如果只是改变最终 C++ 的写法，例如发循环、共享 helper、局部变量替代字段，那么它不应该做成 pass，而应留在 emitter 内部
 
-5. 首次 eval 前需要全量激活
+原因很直接：`activity-schedule` 产出的 `supernode_to_ops`、`value_fanout`、`topo_order`、`state_read_supernodes` 都绑定当前 IR。任何在其后改图的 pass，都会把现有调度结果搞失效。
 
-   在第一次执行前，把所有 supernode 都标记为 active。这样才能保证 init 值、初始组合逻辑结果、以及首次 event 检查都被完整计算出来。
+因此，凡是“主要为了降低 GrhSIM 生成代码体积 / 编译时间”的图级优化，如果不适合并入通用 `simplify`，可以单独做成 GrhSIM 专用 pre-schedule pass，但不能放在 schedule 之后。
 
-## 举例说明
+建议新增一个独立 pass，例如：
 
-考虑下面这个最小例子：
+- `grhsim-pack`
+  或
+- `grhsim-codegen-normalize`
 
-```verilog
-logic clk, a, b, c, q, d, y;
+这类 pass 的职责是：
 
-assign d = a & b;
-always_ff @(posedge clk) q <= d;
-assign y = q | c;
-```
+- 识别“同一输入上大量规则 bit-slice / nibble-slice”的模式，重塑成更利于 emitter 发循环 / helper 的形态
+- 识别批量重复的位提取、规则切片、规则拼接模式
+- 为后续 emitter 模式化发射保留足够的结构信息，而不是继续逐 op 硬展开
+- 让 `activity-schedule` 直接在这种更稳定、更紧凑的图上做划分，而不是先按膨胀图调度、再事后改图
 
-可以拆成 3 个 supernode：
+边界要求：
 
-- `S1`：计算 `d = a & b`
-- `S2`：计算 `kRegisterWritePort(q)`，输入是 `clk` 和 `d`
-- `S3`：通过 `kRegisterReadPort(q)` 读取 `q`，再计算 `y = q | c`
+- 该 pass 可以显式以“降低 GrhSIM C++ 代码体积”为目标
+- 但不应破坏通用 IR 的基本可理解性和后续调试性
+- pass 若改图，必须在当前流程中的 `activity-schedule` 之前
+- `activity-schedule` 之后只允许做不改图的 emitter-local 优化，不再新增会破坏调度结果的后处理 pass
 
-依赖关系如下：
+### 2. 继续扩大 emitter 级别的模式化发射覆盖面
 
-- `S1 -> S2`，因为 `d` 是 `q` 写端口的输入
-- `clk -> S2`，虽然 `clk` 带 event 语义，但静态分析时仍按普通依赖处理
-- `kRegister(q) -> kRegisterReadPort(q) -> S3`，这条关系需要显式记录，供 commit 后回激活
+已完成的第一步是“多 operand scalar concat helper 化”；当前剩余需要继续推进的模式包括：
 
-假设初始状态为：
+- 对“从一个宽向量按固定步长切出很多小段”的模式，发成 `for` 循环
+- 对“批量 1-bit 提取”模式，发成共享 helper，而不是 N 份 `cast_words + slice_words`
+- 对大批量常量赋值，优先生成静态表或统一初始化逻辑
+- 对结构一致、仅索引不同的赋值块，支持 emit-time 模板化
 
-```text
-clk = 0, a = 1, b = 1, c = 0, q = 0
-```
+### 3. 收缩临时值存储面
 
-并且第一次 `eval` 前，所有 supernode 都已经被标记为 active。
+当前很多临时值即使只在单个 supernode 内短暂使用，也会进入类字段：
 
-### 第一次 eval
+- 区分“跨 batch / 跨轮次持久值”和“单 supernode 局部临时值”
+- 对只在单个 batch 内单次求值使用的中间值，优先发成局部变量，不进入 `hpp` / `state.cpp`
+- 对可由源值即时重算的 trivial 临时值，不单独保留字段
 
-第一轮 `propagate`：
+### 4. 给 activity replication 增加代码体积约束
 
-- `S1` 执行，得到 `d = 1`
-- `S2` 执行，检查到 `clk` 当前为 0，没有 `posedge`，因此不产生对 `q` 的有效写入
-- `S3` 执行，读取 `q = 0`，得到 `y = 0`
+当前 replication 主要优化 cut / 活动传播，但对代码体积不敏感。需要补：
 
-第一轮 `commit`：
+- 复制前估算新增 emit 体积
+- 对高展开成本 op 降低复制倾向
+- 在 `edge-cut` 之外引入“体积惩罚项”或单独阈值
+- 让 `118` 及同类“复制后大面积重复 slice/cast 链”的图不过度膨胀
 
-- 没有待提交的状态写入
-- 没有新的 supernode 被重新激活
-- 系统达到稳定点，第一次 `eval` 结束
+### 5. 建立体积与编译时间基准
 
-### 外部把 `clk` 从 0 改为 1 后再次 eval
+后续优化需要有稳定量化指标，至少记录：
 
-第一轮 `propagate`：
+- 每个 DUT 的 `hpp` / `state.cpp` / `sched_*.cpp` 行数与字节数
+- `g++ -O3` 编译单文件耗时
+- supernode 数、replication clone 数、最终 op 数
+- 重点跟踪 `118`，并增加 1~2 个宽总线类样例作为回归基准
 
-- `S2` 因为 `clk` 变化而被激活
-- `S2` 对比上次 event 状态 `clk = 0` 与本次 `clk = 1`，识别到 `posedge`
-- 因此 `S2` 生成一个待提交结果：`q := d = 1`
-- 注意，这一阶段还不能立刻把 `q` 改成 1
+## 实施顺序
 
-第一轮 `commit`：
+建议按下面顺序推进：
 
-- 把待提交结果写回 `kRegister(q)`，因此 `q: 0 -> 1`
-- 因为 `q` 发生变化，激活所有依赖 `kRegisterReadPort(q)` 的 supernode，也就是 `S3`
-- 此时仍然存在 active supernode，因此尚未稳定
+1. 先补基准统计，确认到底是 emit 展开、field 数量，还是 replication 主导
+2. 先做“局部临时值不落 field”这一层，通常风险最低、收益直接
+3. 再做切片 / 位提取模式化发射，优先打掉 `118` 和同类宽总线样例的主要重复块
+4. 最后再回头调整 activity replication 的成本模型
 
-第二轮 `propagate`：
+## 完成标准
 
-- `S3` 重新执行，读取到新的 `q = 1`
-- 得到 `y = 1 | 0 = 1`
+至少满足下面条件，才认为这轮优化完成：
 
-第二轮 `commit`：
-
-- 没有新的状态写入
-- 没有 supernode 继续保持 active
-- 系统达到稳定点，本次 `eval` 结束
-
-这个例子体现了两个关键点：
-
-- `q` 的状态更新必须延迟到 `commit` 阶段
-- 状态更新后不是整图重跑，而是只回激活依赖对应读端口的 supernode
-
-再看一个补充场景：如果此时 `clk` 保持为 1，只把 `a` 从 1 改成 0，那么：
-
-- `S1` 会把 `d` 从 1 算成 0
-- `S2` 会因为输入 `d` 变化而重新执行
-- 但 `S2` 检查 event 后发现这次没有新的 `posedge`
-- 因此不会产生新的 `q := 0` 提交
-- 最终 `q` 仍保持为 1
-
-这说明：带 event 语义的节点在静态依赖图里按普通依赖建模，但是否真的生效，仍由节点在运行时基于 event 状态自行判断。
-
+- `grhtb_118` 与新增宽总线回归样例的最大 `sched_*.cpp` 行数明显下降
+- `grhsim_top_module.hpp` 与 `grhsim_top_module_state.cpp` 体积同步下降
+- 编译时间可感知缩短
+- HDLBits GrhTB 全量回归不退化
