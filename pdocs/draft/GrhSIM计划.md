@@ -22,6 +22,44 @@
 
 当前剩余的主要膨胀来源已不再是这部分 concat 展开，而是更广泛的切片、位提取、临时值落字段等模式。
 
+### 已确认的 XS `SimTop` 体积爆炸根因（2026-04-10）
+
+对 `build/xs/grhsim/grhsim_emit/grhsim_SimTop_state.cpp` 的现场排查显示，这次不是单纯“字段太多”或“调度文件偏大”，而是 `state.cpp` 在 `init()` 中生成了海量 event baseline 初始化代码：
+
+- `grhsim_SimTop_state.cpp` 实际大小约 `816 GB`
+- `grhsim_SimTop.hpp` 中共有 `512091` 个 `prev_evt_*` 字段
+- 这些字段对应所有 event-sensitive op 的 previous-sample 缓存，覆盖：
+  - `385719` 个 `kRegisterWritePort`
+  - `3628` 个 `kMemoryWritePort`
+  - `7237` 个 `kSystemTask`
+  - `6527` 个 `kDpicCall`
+  - `410` 个 `kLatchWritePort`
+- 其中仅 `mem-to-reg` 的 `lower_write_port` 就产生了 `74384` 个额外 `kRegisterWritePort`
+
+根因已经确认，不是单一因素，而是下面几项叠加：
+
+1. `registerEventSamples(...)` 会为每个 event-sensitive op 的每个 event operand 单独创建一个 `prev_evt_*` 字段。
+2. `init()` 生成这些字段的初值时，不是引用现成的 `val_*` / 已物化中间值，而是对 sample 当前值调用 `pureExprForValue(...)`，把整棵组合表达式递归内联成源码。
+3. `pureExprForValue(...)` 的 cache 作用域仅限“单个 sample 初始化”；每次生成下一条 `prev_evt_* = ...;` 时都会重新建一套 cache，同一个巨大子表达式不能跨 sample 复用。
+4. `mem-to-reg` 会把 SRAM 写口拆成大量 `kRegisterWritePort`；这些新写口继续保留 `eventEdge`，于是 previous-sample 数量被进一步放大。
+5. 很多 event operand 不是简单的 `clock`，而是复杂派生时钟 / 门控时钟，例如 `...$_rcg_out_clock`。这类值本身就由很深的组合逻辑定义，一旦被 `pureExprForValue(...)` 展开，就会形成超长单行表达式。
+
+这会形成典型的乘法放大：
+
+- 单个复杂 event operand 的表达式树已经很大
+- 相同 operand 会被数百个写口复用
+- 但 emitter 在 `init()` 里会把它们分别重新展开，而不是共享引用
+
+抽样中，像 `cpu$l_soc$core_with_l2$core$frontend$inner_bpu$tage$tables_7$tage_entry_sram_bank3_way0$_rcg_out_clock` 这样的门控时钟，在图里有 `516` 个 users；同类结构在多个 table / bank 上重复出现。最终结果就是 `init()` 中出现几十万条 `prev_evt_* = <超长表达式>;`，把 `state.cpp` 直接推到百 GB 级。
+
+因此，这一类问题的优先修复方向已经明确，不应继续只盯着“局部 helper 化”：
+
+- `prev_evt` 应按 sample `ValueId` 去重，而不是按 op 私有字段重复保存
+- `init()` 不应对 event baseline 使用全量 `pureExprForValue(...)` 内联
+- event baseline 应优先引用已物化值，或改成首轮 `eval()` 后刷新
+- 对高复杂度表达式必须设置物化阈值，禁止无限制源码展开
+- `mem-to-reg` 之后的 event-sensitive 写口数量需要进入 GrhSIM 代码体积预算
+
 ## 优化目标
 
 目标不是单纯减少 op 数，而是降低最终 C++ 源码体积和编译时间，优先关注：

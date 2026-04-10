@@ -179,6 +179,13 @@ Logic 当前按位宽分层表示：
 - `output` 与 `inout` 输出分量建模
 - event-sensitive op 的局部 exact-event 检测与 per-op previous-sample 缓存
 
+当前已确认一个大规模设计上的实现缺陷：
+
+- previous-sample 虽然按 op 私有缓存能简化 exact-event 判定，但 `init()` 目前会为每个 `prev_evt_*` 重新递归展开 sample 当前值的整棵表达式树
+- 这套展开使用 `pureExprForValue(...)`，且 cache 不跨 sample 共享
+- 在 `mem-to-reg` 之后、且 event operand 包含复杂门控时钟时，`state.cpp` 可能被 `prev_evt_* = <超长表达式>;` 初始化段放大到不可接受的规模
+- `build/xs/grhsim/grhsim_emit/grhsim_SimTop_state.cpp` 的一次实测已达到约 `816 GB`
+
 对多写口，当前策略是放宽为“不保证顺序”。
 
 ### 3.5 当前热路径优化状态

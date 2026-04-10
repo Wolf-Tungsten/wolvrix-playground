@@ -79,6 +79,7 @@ C910_WAVEFORM_PATH_ABS = $(if $(C910_WAVEFORM_PATH),$(if $(filter /%,$(C910_WAVE
 # XiangShan paths / options
 XS_ROOT := $(CURDIR)/testcase/xiangshan
 XS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_emit.py
+XS_WOLVRIX_GRHSIM_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_grhsim.py
 XS_WOLVRIX_REPCUT_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_repcut.py
 
 XS_SIM_MAX_CYCLE ?= 0
@@ -112,12 +113,16 @@ XS_WORK_BASE ?= $(BUILD_DIR)/xs
 XS_RTL_BUILD ?= $(XS_WORK_BASE)/rtl
 XS_REF_BUILD ?= $(XS_WORK_BASE)/ref
 XS_WOLF_BUILD ?= $(XS_WORK_BASE)/wolf
+XS_GRHSIM_BUILD ?= $(XS_WORK_BASE)/grhsim
 XS_REPCUT_BUILD ?= $(XS_WORK_BASE)/repcut
 XS_RTL_DIR := $(XS_RTL_BUILD)/rtl
 XS_VSRC_DIR ?= $(XS_ROOT)/difftest/src/test/vsrc/common
 XS_WOLF_EMIT_DIR ?= $(XS_WOLF_BUILD)/wolf_emit
 XS_WOLF_EMIT ?= $(XS_WOLF_EMIT_DIR)/wolf_emit.sv
 XS_WOLF_FILELIST ?= $(XS_WOLF_EMIT_DIR)/xs_wolf.f
+XS_WOLF_GRHSIM_EMIT_DIR ?= $(XS_GRHSIM_BUILD)/grhsim_emit
+XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON ?= 0
+XS_WOLF_GRHSIM_POST_STATS_JSON ?= $(XS_GRHSIM_BUILD)/wolvrix_xs_post_stats.json
 XS_SIM_DEFINES ?= DIFFTEST
 XS_SIM_DEFINES += $(XS_ZERO_INIT_DEFINES)
 XS_ROOT_ABS := $(abspath $(XS_ROOT))
@@ -125,13 +130,17 @@ XS_NOOP_HOME ?= $(XS_ROOT_ABS)
 XS_RTL_BUILD_ABS := $(abspath $(XS_RTL_BUILD))
 XS_REF_BUILD_ABS := $(abspath $(XS_REF_BUILD))
 XS_WOLF_BUILD_ABS := $(abspath $(XS_WOLF_BUILD))
+XS_GRHSIM_BUILD_ABS := $(abspath $(XS_GRHSIM_BUILD))
 XS_RTL_DIR_ABS := $(abspath $(XS_RTL_DIR))
 XS_VSRC_DIR_ABS := $(abspath $(XS_VSRC_DIR))
 XS_WOLF_EMIT_DIR_ABS := $(abspath $(XS_WOLF_EMIT_DIR))
 XS_WOLF_EMIT_ABS := $(abspath $(XS_WOLF_EMIT))
 XS_WOLF_FILELIST_ABS := $(abspath $(XS_WOLF_FILELIST))
+XS_WOLF_GRHSIM_EMIT_DIR_ABS := $(abspath $(XS_WOLF_GRHSIM_EMIT_DIR))
+XS_WOLF_GRHSIM_POST_STATS_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_POST_STATS_JSON))
 XS_SIM_TOP_V := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).$(XS_RTL_SUFFIX)
 XS_WOLF_JSON ?= $(XS_WOLF_EMIT_DIR_ABS)/xs_wolf.json
+XS_WOLF_GRHSIM_JSON ?= $(XS_WOLF_GRHSIM_EMIT_DIR_ABS)/xs_wolf_grhsim.json
 XS_WOLF_REPCUT_JSON ?= $(XS_REPCUT_BUILD)/xs_wolf_repcut.json
 XS_WOLF_REPCUT_EMIT_DIR ?= $(XS_WOLF_REPCUT_JSON:.json=)
 XS_WOLF_REPCUT_EMIT ?= $(XS_WOLF_REPCUT_EMIT_DIR)/$(XS_SIM_TOP).sv
@@ -175,8 +184,8 @@ HDLBITS_GRHTB_SOURCES := $(wildcard $(HDLBITS_ROOT)/grhtb/grhtb_*.cpp)
 HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS_GRHTB_SOURCES)))))
 
 .PHONY: all build init_submodule check_id run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
-	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_wolf_filelist xs_wolf_emit xs_ref_emu xs_wolf_emu run_xs_json_test \
-	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_wolf_emu run_xs_diff clean
+	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_grhsim_emit xs_ref_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
+	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff clean
 
 all: build
 
@@ -400,6 +409,34 @@ xs_wolf_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(XS_SIM_TOP) \
 			$(XS_WOLF_EMIT_ABS) \
 			$(XS_WOLF_JSON) \
+			$(XS_READ_ARGS_FILE) \
+			$(WOLF_LOG); \
+	} 2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
+
+xs_wolf_grhsim_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
+	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
+		$(MAKE) --no-print-directory -B xs_rtl; \
+	fi
+	@rm -rf "$(XS_WOLF_GRHSIM_EMIT_DIR_ABS)"
+	@mkdir -p "$(XS_WOLF_GRHSIM_EMIT_DIR_ABS)"
+	@mkdir -p "$(dir $(XS_WOLF_GRHSIM_POST_STATS_JSON_ABS))"
+	@mkdir -p "$(XS_LOG_DIR_ABS)"
+	@$(eval RUN_ID := $(RUN_ID))
+	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_grhsim_build_$(RUN_ID).log)
+	@$(eval XS_READ_ARGS_FILE := $(XS_WOLF_GRHSIM_EMIT_DIR_ABS)/wolvrix_read_args.txt)
+	@echo "[LOG] Capturing wolf grhsim emit output to: $(XS_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_READ_ARGS_FILE)"
+	@printf "%s\n" $(XS_WOLF_INCLUDE_FLAGS) $(XS_WOLF_DEFINE_FLAGS) >> "$(XS_READ_ARGS_FILE)"
+	@{ \
+		echo "[CMD] WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON=$(XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON) WOLVRIX_XS_GRHSIM_POST_STATS_JSON=$(XS_WOLF_GRHSIM_POST_STATS_JSON_ABS) $(PYTHON) $(XS_WOLVRIX_GRHSIM_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) $(XS_WOLF_GRHSIM_EMIT_DIR_ABS) $(XS_WOLF_GRHSIM_JSON) $(XS_READ_ARGS_FILE) $(WOLF_LOG)"; \
+		WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON="$(XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON)" \
+		WOLVRIX_XS_GRHSIM_POST_STATS_JSON="$(XS_WOLF_GRHSIM_POST_STATS_JSON_ABS)" \
+		$(PYTHON) $(XS_WOLVRIX_GRHSIM_SCRIPT) \
+			$(XS_WOLF_FILELIST_ABS) \
+			$(XS_SIM_TOP) \
+			$(XS_WOLF_GRHSIM_EMIT_DIR_ABS) \
+			$(XS_WOLF_GRHSIM_JSON) \
 			$(XS_READ_ARGS_FILE) \
 			$(WOLF_LOG); \
 	} 2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
@@ -658,10 +695,35 @@ xs_wolf_emu: xs_wolf_emit
 		$(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,) \
 		2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
 
+xs_wolf_grhsim_emu: xs_wolf_grhsim_emit
+	@if [ "$(XS_WAVEFORM)" != "0" ] || [ "$(XS_WAVEFORM_FULL)" != "0" ]; then \
+		echo "[FAIL] xs wolf grhsim: waveform is not supported yet"; \
+		exit 1; \
+	fi
+	@echo "[RUN] Building XiangShan wolf grhsim emu..."
+	@mkdir -p "$(XS_LOG_DIR_ABS)"
+	@$(eval RUN_ID := $(if $(RUN_ID),$(RUN_ID),$(shell date +%Y%m%d_%H%M%S)))
+	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_grhsim_build_$(RUN_ID).log)
+	@echo "[LOG] Capturing build output to: $(XS_BUILD_LOG_FILE)"
+	@printf '' >> "$(XS_BUILD_LOG_FILE)"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_GRHSIM_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) NUM_CORES=$(XS_NUM_CORES) WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) GRHSIM=1 GRHSIM_MODEL_DIR=$(XS_WOLF_GRHSIM_EMIT_DIR_ABS)" | tee -a "$(XS_BUILD_LOG_FILE)"
+	NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
+		BUILD_DIR=$(XS_GRHSIM_BUILD_ABS) \
+		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		NUM_CORES=$(XS_NUM_CORES) \
+		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
+		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
+		GRHSIM=1 \
+		GRHSIM_MODEL_DIR=$(XS_WOLF_GRHSIM_EMIT_DIR_ABS) \
+		2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
+
 xs_diff_clean:
 	rm -rf "$(XS_REF_BUILD_ABS)/verilator-compile" \
 		"$(XS_WOLF_BUILD_ABS)/verilator-compile" \
+		"$(XS_GRHSIM_BUILD_ABS)/grhsim-compile" \
 		"$(XS_WOLF_EMIT_DIR_ABS)" \
+		"$(XS_WOLF_GRHSIM_EMIT_DIR_ABS)" \
+		"$(XS_WOLF_GRHSIM_POST_STATS_JSON_ABS)" \
 		"$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)" \
 		"$(XS_REPCUT_EMU_BUILD_ABS)" \
 		"$(XS_REPCUT_LEGACY_EMU_DIR_ABS)" \
@@ -714,6 +776,29 @@ run_xs_wolf_emu:
 		$(if $(filter 1,$(XS_WAVEFORM)),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) \
 		$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$WOLF_WAVEFORM,) \
 		2>&1 | tee "$$WOLF_LOG"
+
+run_xs_wolf_grhsim_emu:
+	@if [ "$(XS_WAVEFORM)" != "0" ] || [ "$(XS_WAVEFORM_FULL)" != "0" ]; then \
+		echo "[FAIL] xs wolf grhsim: waveform is not supported yet"; \
+		exit 1; \
+	fi
+	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
+	LOG_DIR="$(XS_LOG_DIR_ABS)"; \
+	mkdir -p "$$LOG_DIR"; \
+	GRHSIM_LOG="$$LOG_DIR/xs_wolf_grhsim_$${RUN_ID}.log"; \
+	printf '' > "$$GRHSIM_LOG"; \
+	echo "[RUN] xs wolf grhsim emu"; \
+	echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE)"; \
+	echo "[LOG] wolf grhsim: $$GRHSIM_LOG"; \
+	echo "[CMD] cd $(XS_GRHSIM_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b 0 -e 0 $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS)"; \
+	cd $(XS_GRHSIM_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu \
+		-i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin \
+		--diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so \
+		-b 0 \
+		-e 0 \
+		$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) \
+		$(XS_RAM_TRACE_ARGS) \
+		2>&1 | tee "$$GRHSIM_LOG"
 
 run_xs_json_test:
 	@RUN_ID="$$(date +%Y%m%d_%H%M%S)"; \
