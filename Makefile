@@ -198,19 +198,6 @@ py_install:
 	@echo "[PY] Installing wolvrix into the current Python environment via scikit-build-core"
 	@PIP_DISABLE_PIP_VERSION_CHECK=1 $(PIP) install --no-build-isolation $(PIP_CONFIG_SETTINGS) -e $(WOLVRIX_DIR)
 
-.PHONY: pybind_sync
-pybind_sync:
-	env -u MAKE_TERMOUT $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) -DCMAKE_BUILD_TYPE=Release -DSKBUILD_PLATLIB_DIR=python -DSKBUILD_PURELIB_DIR=python
-	@JOBS="$$(nproc 2>/dev/null || echo 8)"; \
-	if [ "$$JOBS" -gt 64 ]; then JOBS=64; fi; \
-	$(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target wolvrix_python -j"$$JOBS"
-	@SITE_PACKAGES="$$( $(PYTHON) -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])' )"; \
-	rm -rf "$$SITE_PACKAGES/wolvrix"; \
-	mkdir -p "$$SITE_PACKAGES/wolvrix"; \
-	cp -a $(WOLVRIX_BUILD_DIR)/python/wolvrix/. "$$SITE_PACKAGES/wolvrix/"; \
-	cp -a $(WOLVRIX_BUILD_DIR)/libwolvrix-lib.so "$$SITE_PACKAGES/wolvrix/"; \
-	echo "[PY] Synced wolvrix into $$SITE_PACKAGES/wolvrix"
-
 $(HDLBITS_EMITTED_DUT) $(HDLBITS_EMITTED_JSON): $(HDLBITS_DUT_SRC) $(HDLBITS_WOLVRIX_SCRIPT) check_id
 	@mkdir -p $(HDLBITS_OUT_DIR)
 	$(PYTHON) $(HDLBITS_WOLVRIX_SCRIPT) $(DUT) $(HDLBITS_OUT_DIR)
@@ -248,7 +235,9 @@ run_all_hdlbits_tests:
 run_hdlbits_grhsim:
 ifneq ($(strip $(DUT)),)
   ifeq ($(DUT),$(filter $(DUT),$(HDLBITS_GRHSIM_DUTS)))
-	@$(MAKE) --no-print-directory pybind_sync
+	@if [ "$(SKIP_PY_INSTALL)" != "1" ]; then \
+		$(MAKE) --no-print-directory py_install; \
+	fi
 	@$(MAKE) --no-print-directory -C $(HDLBITS_ROOT) run_grhtb \
 		DUT=$(DUT) \
 		PYTHON=$(PYTHON) \
@@ -263,10 +252,10 @@ else
 endif
 
 run_all_hdlbits_grhsim_tests:
-	@$(MAKE) --no-print-directory pybind_sync
+	@$(MAKE) --no-print-directory py_install
 	@for dut in $(HDLBITS_GRHSIM_DUTS); do \
 		echo "==== Running GrhSIM DUT=$$dut ===="; \
-		$(MAKE) --no-print-directory run_hdlbits_grhsim DUT=$$dut || exit $$?; \
+		$(MAKE) --no-print-directory run_hdlbits_grhsim DUT=$$dut SKIP_PY_INSTALL=1 || exit $$?; \
 	done
 
 ifneq ($(strip $(SKIP_WOLF_BUILD)),1)
