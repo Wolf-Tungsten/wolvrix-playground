@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
+import json
 import os
 import shlex
+import statistics
 import sys
 import time
 import traceback
@@ -9,6 +11,7 @@ from pathlib import Path
 
 import wolvrix
 from wolvrix.adapters.stats import StatsValue
+from wolvrix import _wolvrix as _native
 
 
 def parse_tokens(value: str) -> list[str]:
@@ -62,6 +65,56 @@ def require_ok(diags: list[dict], label: str) -> None:
         raise RuntimeError(f"{label} failed")
 
 
+def percentile(sorted_values: list[int], num: int, den: int) -> int:
+    if not sorted_values:
+        return 0
+    idx = (len(sorted_values) - 1) * num // den
+    return sorted_values[idx]
+
+
+def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> None:
+    raw = _native.session_export(sess._capsule, key=key, view="python")
+    supernode_to_ops = [list(map(int, ops)) for ops in raw]
+    sizes = sorted(len(ops) for ops in supernode_to_ops)
+    if sizes:
+        summary = {
+            "supernodes": len(sizes),
+            "ops_per_supernode": {
+                "min": sizes[0],
+                "mean": statistics.fmean(sizes),
+                "median": statistics.median(sizes),
+                "p90": percentile(sizes, 90, 100),
+                "p99": percentile(sizes, 99, 100),
+                "max": sizes[-1],
+            },
+        }
+    else:
+        summary = {
+            "supernodes": 0,
+            "ops_per_supernode": {
+                "min": 0,
+                "mean": 0.0,
+                "median": 0,
+                "p90": 0,
+                "p99": 0,
+                "max": 0,
+            },
+        }
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "activity_schedule_supernode_stats.json"
+    out_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
+    log(
+        "activity-schedule supernode stats "
+        f"supernodes={summary['supernodes']} "
+        f"ops_mean={summary['ops_per_supernode']['mean']:.3f} "
+        f"ops_median={summary['ops_per_supernode']['median']} "
+        f"ops_p90={summary['ops_per_supernode']['p90']} "
+        f"ops_p99={summary['ops_per_supernode']['p99']} "
+        f"ops_max={summary['ops_per_supernode']['max']}"
+    )
+    log(f"activity-schedule supernode stats written {out_path}")
+
+
 def main() -> int:
     if len(sys.argv) < 6:
         raise RuntimeError(
@@ -83,6 +136,7 @@ def main() -> int:
     resume_from_stats_json = env_flag("WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON")
     enable_mem_to_reg = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_MEM_TO_REG", default=False)
     mem_to_reg_row_limit = env_int("WOLVRIX_XS_GRHSIM_MEM_TO_REG_ROW_LIMIT", 64)
+    supernode_max_size = env_int("WOLVRIX_XS_GRHSIM_SUPERNODE_MAX_SIZE", 72)
 
     total_start = time.perf_counter()
 
@@ -120,8 +174,21 @@ def main() -> int:
         else:
             log("mem-to-reg disabled for GrhSIM flow")
         post_sched_pipeline: list[tuple[str, dict]] = [
-            ("activity-schedule", {"args": ["-path", top_name, "-enable-replication", "true"]}),
+            (
+                "activity-schedule",
+                {
+                    "args": [
+                        "-path",
+                        top_name,
+                        "-supernode-max-size",
+                        str(supernode_max_size),
+                        "-enable-replication",
+                        "true",
+                    ]
+                },
+            ),
         ]
+        log(f"activity-schedule supernode-max-size={supernode_max_size}")
 
         if resume_from_stats_json:
             if not post_stats_json.exists():
@@ -157,9 +224,12 @@ def main() -> int:
             log(f"pass {pass_name} start")
             diags = sess.run_pass(pass_name, design="design.main", **pass_kwargs)
             require_ok(diags, f"pass {pass_name}")
+            if pass_name == "activity-schedule":
+                write_supernode_stats(sess, f"{top_name}.activity_schedule.supernode_to_ops", cpp_out_dir)
             log(f"pass {pass_name} done {int((time.perf_counter() - start) * 1000)}ms")
 
-        write_design_json(sess, "design.main", top_name, Path(json_out), "write_json")
+        if json_out:
+            log(f"skip write_json after activity-schedule {json_out}")
 
         start = time.perf_counter()
         log(f"write_grhsim_cpp start {cpp_out_dir}")
