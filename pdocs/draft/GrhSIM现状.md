@@ -1,235 +1,263 @@
-# GrhSIM现状
+# GrhSIM 现状
 
-`pdocs/draft/GrhSIM计划.md` 中提出的这轮调度模型重构目标已经完成，相关设计原则和当前落地语义已经并入本文，不再单独维护计划文档。
+本文只描述当前 `grhsim-cpp emit` 的真实实现结构、运行流程、生成物职责和当前 XS 卡点，目的是让后续调试有共同语境。
 
-## 1. 范围
+## 1. 入口在哪里
 
-### 1.1 当前讨论对象
+- XS 驱动脚本：`scripts/wolvrix_xs_grhsim.py`
+- C++ emitter 主实现：`wolvrix/lib/emit/grhsim_cpp.cpp`
+- Emit 配置：`wolvrix/include/core/emit.hpp`
+- XS make 入口：`Makefile` 的 `xs_wolf_grhsim_emit`
 
-`GrhSIM` 是基于 Wolvrix 和 GRH IR 构建的 C++ 仿真器。当前已落地的是单线程 `full-cycle`、`activity-driven` 执行模型。
+当前 XS 流程里，`grhsim-cpp` 不是直接从 SV 发 C++，而是：
 
-用户接口当前为：
+1. 先生成/读取 GRH JSON
+2. 跑 `activity-schedule`
+3. 再由 `EmitGrhSimCpp` 把带 schedule session 的 GRH 发成 C++
 
-1. 构造模型对象
-2. 如需固定 `$random`，调用 `set_random_seed(seed)`
-3. 调用 `init()`
-4. 通过与顶层端口同名的 `public` 成员写输入
-5. 调用 `eval()`
-6. 直接读取同名 `public` 输出成员
+## 2. 端到端流程
 
-状态写入当前采用“`propagate` 先暂存、`commit` 后提交”的两阶段模型：write-port 在调度阶段只记录 pending update，`commit_state_updates()` 在一轮调度结束后统一提交；如果提交后状态真实变化，会在同次 `eval()` 内重新激活对应状态读 supernode，直到活动集合收敛为空。因此状态影响可以在同次 `eval()` 内可见。
+### 2.1 Python 侧流程
 
-### 1.2 前置条件
+`scripts/wolvrix_xs_grhsim.py` 当前关键步骤是：
 
-当前 GrhSIM 流程依赖以下前置条件：
+1. 读取前序统计/后处理 JSON
+2. 跳过 `mem-to-reg`（默认禁用）
+3. 跑 `activity-schedule -path <top> -enable-replication true`
+4. 写出 `xs_wolf_grhsim.json`
+5. 调 `emit_grhsim_cpp(...)`
 
-- 目标 graph 已展平
-- 无 `XMR`
-- 无 `blackbox`
-- 无组合逻辑环
-- 已运行 `latch-transparent-read`
-- 已运行 `activity-schedule`
-
-其中一部分前提已有代码检查：
-
-- `activity-schedule` 会拒绝层次类 op：`kInstance`、`kBlackbox`、`kXMRRead`、`kXMRWrite`
-- `emit_grhsim_cpp` 要求 session 中已有 `activity-schedule` 结果
-
-其余前提目前主要由流程保证。
-
-## 2. Activity Schedule 现状
-
-### 2.1 Pass 入口与参数
-
-`activity-schedule` 以 `-path <graph>` 指定目标 graph。当前默认参数：
-
-- `supernodeMaxSize = 64`
-- `enableCoarsen = true`
-- `enableChainMerge = true`
-- `enableSiblingMerge = true`
-- `enableForwardMerge = true`
-- `enableRefine = true`
-- `refineMaxIter = 4`
-- `enableReplication = true`
-- `replicationMaxCost = 2`
-- `replicationMaxTargets = 8`
-- `costModel = edge-cut`
-
-### 2.2 已实现的分图 Phase A
-
-当前 `activity-schedule` 已完整实现分图主流程：
-
-1. `phase A1` 建立划分视图，区分可划分 op、状态读口、稳定边界 op。
-2. `phase A2` 以 op 为 seed 初始化 supernode。
-3. `phase A3` 做局部粗化，包含 chain merge、sibling merge、forwarder merge。
-4. `phase A4` 在 coarse supernode 拓扑序上做连续分段动态规划，目标函数当前固定为 `edge-cut`。
-5. `phase A5` 做边界局部 refine，通过相邻分段间 cluster 搬移继续减 cut。
-6. `phase A6` 复制低成本边界 op，减少跨 supernode 依赖。
-7. `phase A7` 在全部改图结束后统一 `freeze()`，再一次性物化最终映射。
-
-稳定边界 op 当前保留为独立边界，不会被粗化、跨段吞并或复制：
-
-- `kRegisterWritePort`
-- `kMemoryWritePort`
-- `kLatchWritePort`
-- `kSystemTask`
-- `kDpicCall`
-
-`phase A7` 采用 `SymbolId -> supernode` 作为中间稳定锚点，待最终 `freeze()` 后再恢复 `OperationId` 级映射；这样可以规避复制和插入 op 导致的 id 漂移。
-
-### 2.3 当前静态依赖与入口元数据
-
-当前 `activity-schedule` 不再输出独立的 `event-domain` 调度层，静态依赖模型已经统一为一套 supernode DAG：
-
-1. `value_fanout` 描述 value 跨 supernode 的活动传播目标。
-2. `topo_order` 给出 supernode 的静态执行顺序。
-3. event-sensitive operand 在静态分析里按普通依赖参与建图，不再单独抽取全局 event-domain。
-4. `state_read_supernodes` 把状态符号映射到其读者 supernode 集合，供运行时在状态提交后重新激活依赖该状态的 supernode。
-
-其中 `state_read_supernodes` 的 key 是状态符号名，当前覆盖 `reg` / `latch` / `mem` 的读口；value 是读取该状态的 supernode id 列表，已去重并稳定化。
-
-### 2.4 当前输出结构
-
-Pass 结果写入 session 的 `<path>.activity_schedule.*`：
-
-- `supernode_to_ops`
-- `op_to_supernode`
-- `value_fanout`
-- `topo_order`
-- `state_read_supernodes`
-
-其中当前 emitter 直接消费的核心数据是：
+其中 `activity-schedule` 会把后续 C++ emit 需要的 session 数据塞进 session store，核心有四类：
 
 - `supernode_to_ops`
 - `value_fanout`
 - `topo_order`
 - `state_read_supernodes`
 
-### 2.5 当前调度语义
+`grhsim-cpp` 如果拿不到这四类 session 数据，会直接失败，说明它本质上是一个“基于 activity schedule 的 emitter”。
 
-当前文档和代码已经对齐为以下语义：
+### 2.2 C++ emitter 主流程
 
-- `supernode` 是调度与代码生成的基本单元
-- `activity-schedule` 只负责给出静态 supernode 划分、拓扑序和跨边界传播关系，不再承载事件域调度决策
-- 活动度按跨 `supernode` 边界的 value 变化传播，不按“整个 supernode 任意值变化”粗粒度传播
-- 当前运行时首次 `eval()` 会直接全量激活全部 supernode
-- 后续 `eval()` 的入口 seed 由“外部输入变化”与“状态提交后重新激活读者 supernode”共同决定
-- 同一个 `supernode` 在一次 `eval()` 内可以因状态提交再次变活并重复执行，直到达到固定点
-- 拓扑关系使用核心 `toposort` 组件构建
+`EmitGrhSimCpp::emitImpl(...)` 的大致结构是：
 
-## 3. GrhSIM Cpp Emit 现状
+1. 读取 top graph 和 `activity-schedule` session
+2. `buildModel(...)`
+3. 生成 `runtime.hpp`
+4. 生成 `grhsim_<top>.hpp`
+5. 生成 `grhsim_<top>_state.cpp`
+6. 生成 `grhsim_<top>_eval.cpp`
+7. 按 batch 并行生成 `grhsim_<top>_sched_*.cpp`
+8. 生成一个简单 Makefile
 
-### 3.1 输入与产物
+所有输出文件都走 `LimitedOutputStream`，默认单文件上限是 `4 GiB`。超过后 emit 失败，但保留超限半成品。
 
-`emit_grhsim_cpp` 直接消费当前内存中的 design 和 session 中的 `activity-schedule` 数据，不做 JSON round-trip。
+## 3. `buildModel(...)` 现在负责什么
 
-当前会生成：
+这是当前 emit 体积的核心分配器。
 
-- `grhsim_<top>.hpp`
-- `grhsim_<top>_runtime.hpp`
-- `grhsim_<top>_state.cpp`
-- `grhsim_<top>_eval.cpp`
-- `grhsim_<top>_sched_<n>.cpp`
-- 最小 `Makefile`
+### 3.1 它构建的对象
 
-调度批已经拆成多个 `sched_<n>.cpp`；发射阶段支持按 `emit_parallelism` 并行生成多个批文件。
+- 输入端口公开字段和 `prev_input_*`
+- 输出/双向口公开字段
+- 持久状态对象：`state_reg_*` / `state_latch_*` / `state_mem_*`
+- staged write 字段：`pending_*`
+- event baseline：`prev_evt_*`
+- event per-op guard：`seen_evt_*`
+- register write conflict 跟踪元数据
+- `valueFieldByValue`
 
-### 3.2 当前执行模型
+### 3.2 当前 value materialize 策略
 
-当前 `eval()` 逻辑为：
+现在已经不是“所有 graph value 都落成员字段”了。
 
-1. 首次 `eval()` 直接激活全部 supernode；后续 `eval()` 只根据外部输入变化激活相应入口 supernode
-2. 在当前活动集合上按拓扑批次执行 supernode，完成一轮 `propagate`
-3. `kRegisterWritePort` / `kMemoryWritePort` / `kLatchWritePort` 在 `propagate` 中只暂存 pending update，不直接改写状态
-4. 一轮调度结束后执行 `commit_state_updates()`
-5. 若某个状态提交后真实变化，则通过 `state_read_supernodes` 重新激活其读者 supernode
-6. 重复 “`propagate` -> `commit`” 直到没有活动 supernode
-7. 收敛后刷新公开输出，并更新输入基线与事件 sample 基线
+当前会被物化为 `val_*` 成员字段的主要是：
 
-关键点：
+- 输出口 / inout 可见值
+- 跨 supernode 边界传播的 value
+- event-sensitive op 的 sampled value
+- `dpi` 返回值 / 输出值
+- 必须跨阶段保留的少数 system-function 结果，例如 `fopen` / `ferror`
 
-- 当前 `eval()` 是固定点收敛模型，不是单次单向前传
-- 状态写入在本轮 `commit` 后即可继续影响同次 `eval()` 的后续轮次
-- 全局 `event-domain-hit` 预计算已移除；事件判断在各个 event-sensitive op 内局部完成
-- 事件 sample 按 op 私有字段保存，op 执行后会立即刷新自己的上一采样值，避免同次 `eval()` 重复触发同一边沿
+其余同 supernode 内部中间值，现在只保留名字映射，不再进 `.hpp` / `.state.cpp`，而是在 `sched_*.cpp` 里生成局部 `const auto val_*` 临时量。
 
-### 3.3 当前数据表示
+这一步已经显著降低了 `val_*` 规模。
 
-Logic 当前按位宽分层表示：
+## 4. 生成文件各自干什么
 
-- `1..64 bit`：标量整型 / `bool`
-- `65..128 bit`：优先走 `unsigned __int128` fast path
-- `129..256 bit`：固定长度 word 容器
-- `>256 bit`：通用 word 数组 helper
+### 4.1 `grhsim_<top>.hpp`
 
-当前按二值逻辑处理 `Logic`；`String` 和 `Real` 已有运行时表示与发射路径。
+这是类定义和成员字段总表，主要包含：
 
-### 3.4 当前已支持的主要语义
+- public ports
+- `val_*`
+- `state_*`
+- `pending_*`
+- `prev_evt_*`
+- `seen_evt_*`
+- `eval_batch_*()` 声明
 
-- 常见小位宽组合 op 发射
-- 宽位运行时表示与基础组合 helper
-- signed 语义的系统化落地
-- `kRegisterWritePort` 延迟提交语义，提交后可在同次 `eval()` 内继续传播
-- `kMemoryWritePort` 延迟提交语义，按状态真实变化重新激活读者 supernode
-- `kLatchWritePort` 延迟提交语义，提交后可在同次 `eval()` 内继续传播
-- declaration init、memory 初始化、`$random` seed / state
-- `kSystemTask` 常用语义，包括文本输出、文件句柄输出、`fflush`、`fclose`、`dumpfile`、`dumpvars`、`info/warning/error/fatal/finish/stop`
-- `kSystemFunction` 中与文件句柄相关的常用能力，如 `fopen`、`ferror`
-- `kDpicCall` 输入 / 输出 / 返回值路径；当前不支持 `inout` 参数
-- `output` 与 `inout` 输出分量建模
-- event-sensitive op 的局部 exact-event 检测与 per-op previous-sample 缓存
+如果头文件很大，通常说明下面几类之一还在爆：
 
-当前已确认一个大规模设计上的实现缺陷：
+- `val_*`
+- `pending_*`
+- `state_*`
 
-- previous-sample 虽然按 op 私有缓存能简化 exact-event 判定，但 `init()` 目前会为每个 `prev_evt_*` 重新递归展开 sample 当前值的整棵表达式树
-- 这套展开使用 `pureExprForValue(...)`，且 cache 不跨 sample 共享
-- 在 `mem-to-reg` 之后、且 event operand 包含复杂门控时钟时，`state.cpp` 可能被 `prev_evt_* = <超长表达式>;` 初始化段放大到不可接受的规模
-- `build/xs/grhsim/grhsim_emit/grhsim_SimTop_state.cpp` 的一次实测已达到约 `816 GB`
+### 4.2 `grhsim_<top>_state.cpp`
 
-对多写口，当前策略是放宽为“不保证顺序”。
+这里放：
 
-### 3.5 当前热路径优化状态
+- 构造/析构
+- `init()`
+- `commit_state_updates()`
+- `refresh_outputs()`
+- system task runtime 辅助实现
 
-已落地的热路径优化包括：
+它常常是最大文件，因为 `init()` 会线性展开初始化：
 
-- `supernode_active_curr_` 静态化为定长 bitset 数组
-- 去掉 `eval()` 入口输入影子复制
-- 去掉输出双重镜像，`refresh_outputs()` 直接发布 public 输出
-- seed 激活按 word mask 合并
-- `touched_write_*` 加速 pending write 提交
-- 活动位在 supernode 取出执行时立即清理
-- 跨 supernode 活动传播基于 `value_fanout`
-- batch 内已支持 contiguous topo word-segment 跳过
-- 事件检测改为 per-op 局部 sample，比全局 event-domain 位图更直接
-- 生成代码中保留必要注释和 `op symbol` 锚点
-- 多 operand、全 scalar 的 `kConcat` 已增加 emitter 侧模式识别：
-  - 同宽 scalar concat 发射为 `grhsim_concat_uniform_scalars_u64/words(...)`
-  - 异宽 scalar concat 发射为 `grhsim_concat_scalars_u64/words(...)`
-  - helper 内部使用循环完成拼接，不再把整段 `concat_cursor -= ...; grhsim_insert_words(...)` 完全逐元素展开
-- 上述 concat helper 化已按 `py_install` 后的实际 GrhSIM 流程验证：
-  - `grhtb_043` 的 `sched_*.cpp` 总行数从 `27158` 降到 `26754`
-  - `grhtb_118` 的 `sched_*.cpp` 总行数从 `60034` 降到 `59116`
+- materialized `val_*`
+- 所有 `pending_*`
+- `prev_input_*`
+- `prev_evt_*`
 
-### 3.6 当前验证与使用
+### 4.3 `grhsim_<top>_eval.cpp`
 
-当前 HDLBits GrhTB 已迁移 `001..162`，统一入口为：
+这里放主调度循环：
 
-- `make run_hdlbits_grhsim DUT=xxx`
-- `make run_all_hdlbits_grhsim_tests`
+1. 基于初始 eval 和输入变化设置活动 supernode 位图
+2. 反复调用 `eval_batch_*()`
+3. 每轮后调用 `commit_state_updates()`
+4. 直到 `active_word_count_ == 0`
+5. 刷新 event baseline
+6. 刷新 outputs
+7. 更新 `prev_input_*`
 
-已验证 `001..162` 可运行。此前 `103` 的寄存器写回位宽归一化问题与 `127`
-的含 `x` 常量发射问题都已修复；当前 GrhSIM 对 `Logic` 继续采用二值语义，
-常量中的 `x/z` 位在 emitter 中按 `0` 处理。
+### 4.4 `grhsim_<top>_sched_*.cpp`
 
-当前脚本流程为：
+每个 batch 对应一个 `eval_batch_N()`，内容是：
 
-1. `read_sv`
-2. `xmr-resolve`
-3. `multidriven-guard`
-4. `latch-transparent-read`
-5. `hier-flatten`
-6. `comb-loop-elim`
-7. `simplify semantics=2state`
-8. `memory-init-check`
-9. `activity-schedule`
-10. `emit_grhsim_cpp`
+- 遍历这个 batch 中的 supernode
+- 对每个 op 发代码
+- 组合 op 直接算值
+- 写口 op 不立即写状态，而是写入 `pending_*`
+- side-effect op 保持显式边界
+
+这里更接近“调度后的执行体”，不是状态定义处。
+
+## 5. 运行时语义目前是什么
+
+### 5.1 组合求值
+
+组合逻辑按 supernode 拓扑批量执行。
+
+当某个 materialized value 发生变化，且它在 `value_fanout` 中有跨 supernode 后继时，会重新激活后继 supernode。
+
+### 5.2 状态写入
+
+寄存器/锁存器/存储器写口不直接改 `state_*`，而是先写 `pending_*`。
+
+`commit_state_updates()` 统一提交这些 staged write，并在状态真正变化后重新激活对应 reader supernode。
+
+### 5.3 event-sensitive op
+
+event baseline 已经改成按 sampled `ValueId` 共享，不再按 op 私有复制。
+
+但 `seen_evt_*` 仍然按 op 保留，保证同一次 `eval()` 内不会重复触发同一个 event-sensitive op。
+
+## 6. 当前 XS 现场规模
+
+以下数字来自最近一次 XS 运行现场：
+
+- `graph_ops = 10,351,017`
+- `graph_values = 12,052,032`
+- `supernodes = 1,081,691`
+- `xs_wolf_grhsim.json = 6,142,427,027 bytes`
+- `grhsim_SimTop.hpp = 153,295,570 bytes`
+- `grhsim_SimTop_state.cpp = 4,294,967,296 bytes`
+
+进一步拆分：
+
+- `val_*` in header: `776,642`
+- `val_*` init lines in state.cpp: `776,642`
+- `pending_*` decl lines in header: `952,164`
+- `pending_*` init lines in state.cpp: `951,971`
+- `state_*` decl lines in header: `317,063`
+- `state_*` init lines in state.cpp: `113,791`
+- `prev_evt_*` decl lines in header: `420`
+- `prev_evt_*` init lines in state.cpp: `31`
+
+结论很明确：
+
+1. `prev_evt` 爆炸已经基本解决，不再是主瓶颈
+2. `val_*` 爆炸已经从约 `1205 万` 降到 `77.7 万`
+3. 现在新的最大瓶颈是 `pending_*`
+4. `state.cpp` 超限时，文件尾部已经落到 `pending_*` 初始化之后，说明 `init()` 仍然非常重
+
+## 7. 当前真正卡点
+
+不是“4GB 保险失效”，而是 emit 真的还在生成超过 4GB 的 `state.cpp`。
+
+最新现场显示：
+
+- emit 卡在 `write_grhsim_cpp start`
+- `state.cpp` 正好打满 4 GiB
+- 最新 build log 里还没有看到脚本级 `[FAIL]` / `[EXIT]`
+
+也就是说，现在有两条问题线并行存在：
+
+### 7.1 体积问题
+
+主问题已经从 `prev_evt` 转移到：
+
+- 海量 `pending_*` 字段
+- `init()` 里对这些 staged write 的逐字段清零
+
+### 7.2 失败可见性问题
+
+这次日志仍然停在 `write_grhsim_cpp start`，没有落出明确失败尾巴，说明：
+
+- 要么进程在 emitter 内部异常终止
+- 要么进程在脚本层之外被杀
+- 要么当前调用链还有未覆盖到的 silent exit 路径
+
+这和“为什么日志没有正常收口”是另一条独立调试线。
+
+## 8. 接下来调试时可以直接按这几个问题说
+
+为了避免“指令不够具体”，后续可以直接按下面的粒度给我任务：
+
+### A. 结构压缩类
+
+- 继续压缩 `pending_*`
+- 减少 `init()` 清零代码
+- 把某类 staged write 从“每写口一组字段”改成“按状态对象共享槽位”
+- 只保留会被真正触达的 staged write 元数据
+
+### B. emit 结构类
+
+- 把某类初始化从 `state.cpp` 挪到运行时 lazy init
+- 把某类 helper/表项从源码展开改成循环或表驱动
+- 把某类 value 从成员字段改回局部临时
+
+### C. 可观测性类
+
+- 把 `write_grhsim_cpp` 的失败路径补出确定日志
+- 把当前 emit 分阶段打印到日志
+- 打印每个输出文件完成前后的大小和耗时
+
+## 9. 当前最值得优先做的事
+
+如果只看“让 XS 先不过 4GB”，现在最该打的是：
+
+1. `pending_*` 结构收缩
+2. `state.cpp:init()` 中 staged write 初始化收缩
+
+如果只看“为什么这次还是静默停住”，最该打的是：
+
+1. `emit_grhsim_cpp` 调用链加阶段日志
+2. 确认超限/异常/被杀三类退出路径分别落什么日志
+
+---
+
+一句话总结：
+
+当前 `grhsim-cpp` 已经从“所有 value 全物化”的旧状态，进入了“schedule 驱动、边界 value 物化、内部 value 局部化”的新状态；但 XS 规模下新的主瓶颈已经转移到 `pending_*` 和 `state.cpp:init()`，而不是 `prev_evt_*`。
