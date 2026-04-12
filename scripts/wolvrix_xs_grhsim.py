@@ -137,6 +137,9 @@ def main() -> int:
     enable_mem_to_reg = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_MEM_TO_REG", default=False)
     mem_to_reg_row_limit = env_int("WOLVRIX_XS_GRHSIM_MEM_TO_REG_ROW_LIMIT", 64)
     supernode_max_size = env_int("WOLVRIX_XS_GRHSIM_SUPERNODE_MAX_SIZE", 72)
+    sched_batch_max_ops = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_OPS", 2048)
+    sched_batch_max_estimated_lines = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES", 8192)
+    emit_parallelism = env_int("WOLVRIX_XS_GRHSIM_EMIT_PARALLELISM", 8)
 
     total_start = time.perf_counter()
 
@@ -188,7 +191,12 @@ def main() -> int:
                 },
             ),
         ]
-        log(f"activity-schedule supernode-max-size={supernode_max_size}")
+        log(
+            "activity-schedule supernode-max-size="
+            f"{supernode_max_size} sched_batch_max_ops={sched_batch_max_ops} "
+            f"sched_batch_max_estimated_lines={sched_batch_max_estimated_lines} "
+            f"emit_parallelism={emit_parallelism}"
+        )
 
         if resume_from_stats_json:
             if not post_stats_json.exists():
@@ -233,7 +241,14 @@ def main() -> int:
 
         start = time.perf_counter()
         log(f"write_grhsim_cpp start {cpp_out_dir}")
-        diags = sess.emit_grhsim_cpp(design="design.main", output=str(cpp_out_dir), top=[top_name])
+        diags = sess.emit_grhsim_cpp(
+            design="design.main",
+            output=str(cpp_out_dir),
+            top=[top_name],
+            sched_batch_max_ops=sched_batch_max_ops,
+            sched_batch_max_estimated_lines=sched_batch_max_estimated_lines,
+            emit_parallelism=emit_parallelism,
+        )
         require_ok(diags, "emit_grhsim_cpp")
         log(f"write_grhsim_cpp done {int((time.perf_counter() - start) * 1000)}ms")
 
