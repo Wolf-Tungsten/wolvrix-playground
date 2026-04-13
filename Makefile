@@ -56,6 +56,8 @@ ifneq ($(strip $(WOLF_TIMER)),0)
 WOLF_LOG := debug
 endif
 
+WOLVRIX_GRHSIM_WAVEFORM ?= 0
+
 HDLBITS_ROOT := $(CURDIR)/testcase/hdlbits
 HDLBITS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_hdlbits_emit.py
 HDLBITS_GRHSIM_SCRIPT := $(CURDIR)/scripts/wolvrix_hdlbits_grhsim.py
@@ -108,6 +110,7 @@ XS_LOG_DIR := $(BUILD_DIR)/logs/xs
 XS_WAVEFORM_DIR ?= $(XS_LOG_DIR)
 XS_LOG_DIR_ABS = $(abspath $(XS_LOG_DIR))
 XS_WAVEFORM_DIR_ABS = $(abspath $(XS_WAVEFORM_DIR))
+XS_WAVEFORM_PATH_ABS = $(if $(XS_WAVEFORM_PATH),$(if $(filter /%,$(XS_WAVEFORM_PATH)),$(XS_WAVEFORM_PATH),$(abspath $(XS_WAVEFORM_PATH))),)
 
 XS_WORK_BASE ?= $(BUILD_DIR)/xs
 XS_RTL_BUILD ?= $(XS_WORK_BASE)/rtl
@@ -269,7 +272,8 @@ ifneq ($(strip $(DUT)),)
 		DUT=$(DUT) \
 		PYTHON=$(PYTHON) \
 		BUILD_DIR=$(abspath $(HDLBITS_GRHSIM_BUILD_DIR)) \
-		GRHSIM_SCRIPT=$(HDLBITS_GRHSIM_SCRIPT)
+		GRHSIM_SCRIPT=$(HDLBITS_GRHSIM_SCRIPT) \
+		WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM)
   else
 	$(error DUT=$(DUT) not found in grhtb; available: $(HDLBITS_GRHSIM_DUTS))
   endif
@@ -430,7 +434,7 @@ xs_wolf_grhsim_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 	@printf '' > "$(XS_READ_ARGS_FILE)"
 	@printf "%s\n" $(XS_WOLF_INCLUDE_FLAGS) $(XS_WOLF_DEFINE_FLAGS) >> "$(XS_READ_ARGS_FILE)"
 	@set -o pipefail; { \
-		echo "[CMD] WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON=$(XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON) WOLVRIX_XS_GRHSIM_POST_STATS_JSON=$(XS_WOLF_GRHSIM_POST_STATS_JSON_ABS) WOLVRIX_XS_GRHSIM_SUPERNODE_MAX_SIZE=$(XS_WOLF_GRHSIM_SUPERNODE_MAX_SIZE) $(PYTHON) $(XS_WOLVRIX_GRHSIM_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) $(XS_WOLF_GRHSIM_EMIT_DIR_ABS) $(XS_WOLF_GRHSIM_JSON) $(XS_READ_ARGS_FILE) $(WOLF_LOG)"; \
+		echo "[CMD] WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON=$(XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON) WOLVRIX_XS_GRHSIM_POST_STATS_JSON=$(XS_WOLF_GRHSIM_POST_STATS_JSON_ABS) WOLVRIX_XS_GRHSIM_SUPERNODE_MAX_SIZE=$(XS_WOLF_GRHSIM_SUPERNODE_MAX_SIZE) $(PYTHON) $(XS_WOLVRIX_GRHSIM_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) $(XS_WOLF_GRHSIM_EMIT_DIR_ABS) $(XS_WOLF_GRHSIM_JSON) $(XS_READ_ARGS_FILE) $(WOLF_LOG) --waveform $(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),declared-symbols,off)"; \
 		WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON="$(XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON)" \
 		WOLVRIX_XS_GRHSIM_POST_STATS_JSON="$(XS_WOLF_GRHSIM_POST_STATS_JSON_ABS)" \
 		WOLVRIX_XS_GRHSIM_SUPERNODE_MAX_SIZE="$(XS_WOLF_GRHSIM_SUPERNODE_MAX_SIZE)" \
@@ -440,7 +444,8 @@ xs_wolf_grhsim_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(XS_WOLF_GRHSIM_EMIT_DIR_ABS) \
 			$(XS_WOLF_GRHSIM_JSON) \
 			$(XS_READ_ARGS_FILE) \
-			$(WOLF_LOG); \
+			$(WOLF_LOG) \
+			--waveform $(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),declared-symbols,off); \
 	} 2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"; \
 	status=$$?; \
 	echo "[EXIT] xs_wolf_grhsim_emit $$status" | tee -a "$(XS_BUILD_LOG_FILE)"; \
@@ -701,17 +706,13 @@ xs_wolf_emu: xs_wolf_emit
 		2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
 
 xs_wolf_grhsim_emu: xs_wolf_grhsim_emit
-	@if [ "$(XS_WAVEFORM)" != "0" ] || [ "$(XS_WAVEFORM_FULL)" != "0" ]; then \
-		echo "[FAIL] xs wolf grhsim: waveform is not supported yet"; \
-		exit 1; \
-	fi
 	@echo "[RUN] Building XiangShan wolf grhsim emu..."
 	@mkdir -p "$(XS_LOG_DIR_ABS)"
 	@$(eval RUN_ID := $(if $(RUN_ID),$(RUN_ID),$(shell date +%Y%m%d_%H%M%S)))
 	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_grhsim_build_$(RUN_ID).log)
 	@echo "[LOG] Capturing build output to: $(XS_BUILD_LOG_FILE)"
 	@printf '' >> "$(XS_BUILD_LOG_FILE)"
-	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_GRHSIM_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) NUM_CORES=$(XS_NUM_CORES) WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) GRHSIM=1 GRHSIM_MODEL_DIR=$(XS_WOLF_GRHSIM_EMIT_DIR_ABS)" | tee -a "$(XS_BUILD_LOG_FILE)"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_GRHSIM_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) NUM_CORES=$(XS_NUM_CORES) WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) GRHSIM=1 GRHSIM_MODEL_DIR=$(XS_WOLF_GRHSIM_EMIT_DIR_ABS) WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM)" | tee -a "$(XS_BUILD_LOG_FILE)"
 	NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
 		BUILD_DIR=$(XS_GRHSIM_BUILD_ABS) \
 		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
@@ -720,6 +721,7 @@ xs_wolf_grhsim_emu: xs_wolf_grhsim_emit
 		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
 		GRHSIM=1 \
 		GRHSIM_MODEL_DIR=$(XS_WOLF_GRHSIM_EMIT_DIR_ABS) \
+		WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM) \
 		2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
 
 xs_diff_clean:
@@ -783,26 +785,31 @@ run_xs_wolf_emu:
 		2>&1 | tee "$$WOLF_LOG"
 
 run_xs_wolf_grhsim_emu:
-	@if [ "$(XS_WAVEFORM)" != "0" ] || [ "$(XS_WAVEFORM_FULL)" != "0" ]; then \
-		echo "[FAIL] xs wolf grhsim: waveform is not supported yet"; \
+	@if { [ "$(XS_WAVEFORM)" != "0" ] || [ -n "$(XS_WAVEFORM_PATH)" ]; } && [ "$(WOLVRIX_GRHSIM_WAVEFORM)" != "1" ]; then \
+		echo "[FAIL] xs wolf grhsim: runtime waveform requested, but model was emitted without waveform support; rebuild with WOLVRIX_GRHSIM_WAVEFORM=1"; \
 		exit 1; \
 	fi
 	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
 	LOG_DIR="$(XS_LOG_DIR_ABS)"; \
-	mkdir -p "$$LOG_DIR"; \
 	GRHSIM_LOG="$$LOG_DIR/xs_wolf_grhsim_$${RUN_ID}.log"; \
+	GRHSIM_WAVEFORM="$(if $(XS_WAVEFORM_PATH_ABS),$(XS_WAVEFORM_PATH_ABS),$(XS_WAVEFORM_DIR_ABS)/xs_wolf_grhsim_$${RUN_ID}.fst)"; \
+	mkdir -p "$$LOG_DIR" "$$(dirname "$$GRHSIM_WAVEFORM")"; \
 	printf '' > "$$GRHSIM_LOG"; \
 	echo "[RUN] xs wolf grhsim emu"; \
-	echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE)"; \
+	echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_WAVEFORM=$(XS_WAVEFORM) XS_WAVEFORM_FULL=$(XS_WAVEFORM_FULL) XS_WAVEFORM_PATH=$(if $(XS_WAVEFORM_PATH_ABS),$(XS_WAVEFORM_PATH_ABS),)"; \
 	echo "[LOG] wolf grhsim: $$GRHSIM_LOG"; \
-	echo "[CMD] cd $(XS_GRHSIM_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b 0 -e 0 $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS)"; \
+	if [ "$(XS_WAVEFORM)" = "1" ] || [ -n "$(XS_WAVEFORM_PATH)" ]; then \
+		echo "[WAVEFORM] wolf grhsim: $$GRHSIM_WAVEFORM"; \
+	fi; \
+	echo "[CMD] cd $(XS_GRHSIM_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b 0 $(if $(filter 1,$(XS_WAVEFORM_FULL)),-e -1,-e 0) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$GRHSIM_WAVEFORM,)"; \
 	cd $(XS_GRHSIM_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu \
 		-i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin \
 		--diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so \
-		-b 0 \
-		-e 0 \
+		-b 0 $(if $(filter 1,$(XS_WAVEFORM_FULL)),-e -1,-e 0) \
 		$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) \
 		$(XS_RAM_TRACE_ARGS) \
+		$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) \
+		$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$GRHSIM_WAVEFORM,) \
 		2>&1 | tee "$$GRHSIM_LOG"
 
 run_xs_json_test:

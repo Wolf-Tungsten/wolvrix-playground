@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import json
 import os
 import shlex
@@ -116,17 +117,22 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
 
 
 def main() -> int:
-    if len(sys.argv) < 6:
-        raise RuntimeError(
-            "usage: wolvrix_xs_grhsim.py <filelist> <top> <cpp_out_dir> <json_out> <read_args_file> [log_level]"
-        )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("filelist")
+    parser.add_argument("top")
+    parser.add_argument("cpp_out_dir")
+    parser.add_argument("json_out")
+    parser.add_argument("read_args_file")
+    parser.add_argument("log_level", nargs="?", default="info")
+    parser.add_argument("--waveform", choices=["off", "declared-symbols"], default="off")
+    args = parser.parse_args()
 
-    filelist = sys.argv[1]
-    top_name = sys.argv[2]
-    cpp_out_dir = Path(sys.argv[3]).resolve()
-    json_out = sys.argv[4]
-    read_args_file = sys.argv[5]
-    log_level = sys.argv[6] if len(sys.argv) > 6 else "info"
+    filelist = args.filelist
+    top_name = args.top
+    cpp_out_dir = Path(args.cpp_out_dir).resolve()
+    json_out = args.json_out
+    read_args_file = args.read_args_file
+    log_level = args.log_level
     post_stats_json = Path(
         os.environ.get(
             "WOLVRIX_XS_GRHSIM_POST_STATS_JSON",
@@ -195,7 +201,7 @@ def main() -> int:
             "activity-schedule supernode-max-size="
             f"{supernode_max_size} sched_batch_max_ops={sched_batch_max_ops} "
             f"sched_batch_max_estimated_lines={sched_batch_max_estimated_lines} "
-            f"emit_parallelism={emit_parallelism}"
+            f"emit_parallelism={emit_parallelism} waveform={args.waveform}"
         )
 
         if resume_from_stats_json:
@@ -248,6 +254,7 @@ def main() -> int:
             sched_batch_max_ops=sched_batch_max_ops,
             sched_batch_max_estimated_lines=sched_batch_max_estimated_lines,
             emit_parallelism=emit_parallelism,
+            waveform=args.waveform,
         )
         require_ok(diags, "emit_grhsim_cpp")
         log(f"write_grhsim_cpp done {int((time.perf_counter() - start) * 1000)}ms")
