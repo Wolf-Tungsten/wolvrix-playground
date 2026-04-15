@@ -57,6 +57,7 @@ WOLF_LOG := debug
 endif
 
 WOLVRIX_GRHSIM_WAVEFORM ?= 0
+WOLVRIX_GRHSIM_PERF ?= 0
 
 HDLBITS_ROOT := $(CURDIR)/testcase/hdlbits
 HDLBITS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_hdlbits_emit.py
@@ -88,6 +89,7 @@ XS_SIM_MAX_CYCLE ?= 0
 XS_WAVEFORM ?= 0
 XS_WAVEFORM_FULL ?= 0
 XS_COMMIT_TRACE ?= 0
+XS_PROGRESS_EVERY_CYCLES ?= 0
 XS_LOG_BEGIN ?= 0
 XS_LOG_END ?= $(if $(filter 1,$(XS_WAVEFORM_FULL)),-1,0)
 XS_RAM_TRACE ?= 0
@@ -276,7 +278,8 @@ ifneq ($(strip $(DUT)),)
 		PYTHON=$(PYTHON) \
 		BUILD_DIR=$(abspath $(HDLBITS_GRHSIM_BUILD_DIR)) \
 		GRHSIM_SCRIPT=$(HDLBITS_GRHSIM_SCRIPT) \
-		WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM)
+		WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM) \
+		WOLVRIX_GRHSIM_PERF=$(WOLVRIX_GRHSIM_PERF)
   else
 	$(error DUT=$(DUT) not found in grhtb; available: $(HDLBITS_GRHSIM_DUTS))
   endif
@@ -437,7 +440,7 @@ xs_wolf_grhsim_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 	@printf '' > "$(XS_READ_ARGS_FILE)"
 	@printf "%s\n" $(XS_WOLF_INCLUDE_FLAGS) $(XS_WOLF_DEFINE_FLAGS) >> "$(XS_READ_ARGS_FILE)"
 	@set -o pipefail; { \
-		echo "[CMD] WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON=$(XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON) WOLVRIX_XS_GRHSIM_POST_STATS_JSON=$(XS_WOLF_GRHSIM_POST_STATS_JSON_ABS) WOLVRIX_XS_GRHSIM_SUPERNODE_MAX_SIZE=$(XS_WOLF_GRHSIM_SUPERNODE_MAX_SIZE) $(PYTHON) $(XS_WOLVRIX_GRHSIM_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) $(XS_WOLF_GRHSIM_EMIT_DIR_ABS) $(XS_WOLF_GRHSIM_JSON) $(XS_READ_ARGS_FILE) $(WOLF_LOG) --waveform $(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),declared-symbols,off)"; \
+		echo "[CMD] WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON=$(XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON) WOLVRIX_XS_GRHSIM_POST_STATS_JSON=$(XS_WOLF_GRHSIM_POST_STATS_JSON_ABS) WOLVRIX_XS_GRHSIM_SUPERNODE_MAX_SIZE=$(XS_WOLF_GRHSIM_SUPERNODE_MAX_SIZE) $(PYTHON) $(XS_WOLVRIX_GRHSIM_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) $(XS_WOLF_GRHSIM_EMIT_DIR_ABS) $(XS_WOLF_GRHSIM_JSON) $(XS_READ_ARGS_FILE) $(WOLF_LOG) --waveform $(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),declared-symbols,off) --perf $(if $(filter 1,$(WOLVRIX_GRHSIM_PERF)),eval,off)"; \
 		WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON="$(XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON)" \
 		WOLVRIX_XS_GRHSIM_POST_STATS_JSON="$(XS_WOLF_GRHSIM_POST_STATS_JSON_ABS)" \
 		WOLVRIX_XS_GRHSIM_SUPERNODE_MAX_SIZE="$(XS_WOLF_GRHSIM_SUPERNODE_MAX_SIZE)" \
@@ -448,7 +451,8 @@ xs_wolf_grhsim_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(XS_WOLF_GRHSIM_JSON) \
 			$(XS_READ_ARGS_FILE) \
 			$(WOLF_LOG) \
-			--waveform $(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),declared-symbols,off); \
+			--waveform $(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),declared-symbols,off) \
+			--perf $(if $(filter 1,$(WOLVRIX_GRHSIM_PERF)),eval,off); \
 	} 2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"; \
 	status=$$?; \
 	echo "[EXIT] xs_wolf_grhsim_emit $$status" | tee -a "$(XS_BUILD_LOG_FILE)"; \
@@ -747,13 +751,13 @@ run_xs_ref_emu:
 	REF_WAVEFORM="$(XS_WAVEFORM_DIR_ABS)/xs_ref_$${RUN_ID}.fst"; \
 	printf '' > "$$REF_LOG"; \
 	echo "[RUN] xs ref emu"; \
-		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_WAVEFORM=$(XS_WAVEFORM) XS_WAVEFORM_FULL=$(XS_WAVEFORM_FULL) XS_COMMIT_TRACE=$(XS_COMMIT_TRACE) XS_LOG_BEGIN=$(XS_LOG_BEGIN) XS_LOG_END=$(XS_LOG_END)"; \
+		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_WAVEFORM=$(XS_WAVEFORM) XS_WAVEFORM_FULL=$(XS_WAVEFORM_FULL) XS_COMMIT_TRACE=$(XS_COMMIT_TRACE) XS_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) XS_LOG_BEGIN=$(XS_LOG_BEGIN) XS_LOG_END=$(XS_LOG_END)"; \
 		echo "[LOG] ref : $$REF_LOG"; \
 		if [ "$(XS_WAVEFORM)" = "1" ]; then \
 			echo "[WAVEFORM] ref : $$REF_WAVEFORM"; \
 		fi; \
-		echo "[CMD] cd $(XS_REF_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) $(if $(filter 1,$(XS_WAVEFORM)),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$REF_WAVEFORM,)"; \
-		cd $(XS_REF_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu \
+		echo "[CMD] cd $(XS_REF_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) $(if $(filter 1,$(XS_WAVEFORM)),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$REF_WAVEFORM,)"; \
+		cd $(XS_REF_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES="$(XS_PROGRESS_EVERY_CYCLES)" $(XS_EMU_PREFIX) ./emu \
 			-i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin \
 			--diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so \
 			-b $(XS_LOG_BEGIN) -e $(XS_LOG_END) \
@@ -772,13 +776,13 @@ run_xs_wolf_emu:
 	WOLF_WAVEFORM="$(XS_WAVEFORM_DIR_ABS)/xs_wolf_$${RUN_ID}.fst"; \
 	printf '' > "$$WOLF_LOG"; \
 	echo "[RUN] xs wolf emu"; \
-		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_WAVEFORM=$(XS_WAVEFORM) XS_WAVEFORM_FULL=$(XS_WAVEFORM_FULL) XS_COMMIT_TRACE=$(XS_COMMIT_TRACE) XS_LOG_BEGIN=$(XS_LOG_BEGIN) XS_LOG_END=$(XS_LOG_END)"; \
+		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_WAVEFORM=$(XS_WAVEFORM) XS_WAVEFORM_FULL=$(XS_WAVEFORM_FULL) XS_COMMIT_TRACE=$(XS_COMMIT_TRACE) XS_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) XS_LOG_BEGIN=$(XS_LOG_BEGIN) XS_LOG_END=$(XS_LOG_END)"; \
 		echo "[LOG] wolf: $$WOLF_LOG"; \
 		if [ "$(XS_WAVEFORM)" = "1" ]; then \
 			echo "[WAVEFORM] wolf: $$WOLF_WAVEFORM"; \
 		fi; \
-		echo "[CMD] cd $(XS_WOLF_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) $(if $(filter 1,$(XS_WAVEFORM)),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$WOLF_WAVEFORM,)"; \
-		cd $(XS_WOLF_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu \
+		echo "[CMD] cd $(XS_WOLF_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) $(if $(filter 1,$(XS_WAVEFORM)),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$WOLF_WAVEFORM,)"; \
+		cd $(XS_WOLF_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES="$(XS_PROGRESS_EVERY_CYCLES)" $(XS_EMU_PREFIX) ./emu \
 			-i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin \
 			--diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so \
 			-b $(XS_LOG_BEGIN) -e $(XS_LOG_END) \
@@ -801,13 +805,13 @@ run_xs_wolf_grhsim_emu:
 	mkdir -p "$$LOG_DIR" "$$(dirname "$$GRHSIM_WAVEFORM")"; \
 	printf '' > "$$GRHSIM_LOG"; \
 	echo "[RUN] xs wolf grhsim emu"; \
-		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_WAVEFORM=$(XS_WAVEFORM) XS_WAVEFORM_FULL=$(XS_WAVEFORM_FULL) XS_COMMIT_TRACE=$(XS_COMMIT_TRACE) XS_LOG_BEGIN=$(XS_LOG_BEGIN) XS_LOG_END=$(XS_LOG_END) XS_WAVEFORM_PATH=$(if $(XS_WAVEFORM_PATH_ABS),$(XS_WAVEFORM_PATH_ABS),)"; \
+		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_WAVEFORM=$(XS_WAVEFORM) XS_WAVEFORM_FULL=$(XS_WAVEFORM_FULL) XS_COMMIT_TRACE=$(XS_COMMIT_TRACE) XS_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) XS_LOG_BEGIN=$(XS_LOG_BEGIN) XS_LOG_END=$(XS_LOG_END) XS_WAVEFORM_PATH=$(if $(XS_WAVEFORM_PATH_ABS),$(XS_WAVEFORM_PATH_ABS),)"; \
 		echo "[LOG] wolf grhsim: $$GRHSIM_LOG"; \
 		if [ "$(XS_WAVEFORM)" = "1" ] || [ -n "$(XS_WAVEFORM_PATH)" ]; then \
 			echo "[WAVEFORM] wolf grhsim: $$GRHSIM_WAVEFORM"; \
 		fi; \
-		echo "[CMD] cd $(XS_GRHSIM_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$GRHSIM_WAVEFORM,)"; \
-		cd $(XS_GRHSIM_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu \
+		echo "[CMD] cd $(XS_GRHSIM_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$GRHSIM_WAVEFORM,)"; \
+		cd $(XS_GRHSIM_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES="$(XS_PROGRESS_EVERY_CYCLES)" $(XS_EMU_PREFIX) ./emu \
 			-i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin \
 			--diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so \
 			-b $(XS_LOG_BEGIN) -e $(XS_LOG_END) \

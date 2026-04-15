@@ -125,6 +125,7 @@ def main() -> int:
     parser.add_argument("read_args_file")
     parser.add_argument("log_level", nargs="?", default="info")
     parser.add_argument("--waveform", choices=["off", "declared-symbols"], default="off")
+    parser.add_argument("--perf", choices=["off", "eval"], default="off")
     args = parser.parse_args()
 
     filelist = args.filelist
@@ -201,7 +202,7 @@ def main() -> int:
             "activity-schedule supernode-max-size="
             f"{supernode_max_size} sched_batch_max_ops={sched_batch_max_ops} "
             f"sched_batch_max_estimated_lines={sched_batch_max_estimated_lines} "
-            f"emit_parallelism={emit_parallelism} waveform={args.waveform}"
+            f"emit_parallelism={emit_parallelism} waveform={args.waveform} perf={args.perf}"
         )
 
         if resume_from_stats_json:
@@ -255,6 +256,7 @@ def main() -> int:
             sched_batch_max_estimated_lines=sched_batch_max_estimated_lines,
             emit_parallelism=emit_parallelism,
             waveform=args.waveform,
+            perf=args.perf,
         )
         require_ok(diags, "emit_grhsim_cpp")
         log(f"write_grhsim_cpp done {int((time.perf_counter() - start) * 1000)}ms")

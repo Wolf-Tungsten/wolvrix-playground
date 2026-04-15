@@ -37,7 +37,7 @@ def write_stable_header_alias(out_dir: Path) -> None:
     )
 
 
-def run_pipeline(dut_path: Path, out_dir: Path, waveform_mode: str | None) -> None:
+def run_pipeline(dut_path: Path, out_dir: Path, waveform_mode: str | None, perf_mode: str | None) -> None:
     json_out = out_dir / f"{dut_path.stem}.json"
 
     with wolvrix.Session() as sess:
@@ -67,10 +67,13 @@ def run_pipeline(dut_path: Path, out_dir: Path, waveform_mode: str | None) -> No
             "design": "design.main",
             "output": str(out_dir),
             "top": [TOP_NAME],
+            "perf": perf_mode or "off",
         }
         if waveform_mode and waveform_mode != "off":
             emit_kwargs["waveform"] = waveform_mode
             log(f"emit waveform mode: {waveform_mode}")
+        if perf_mode and perf_mode != "off":
+            log(f"emit perf mode: {perf_mode}")
         sess.emit_grhsim_cpp(**emit_kwargs)
     write_stable_header_alias(out_dir)
 
@@ -80,6 +83,7 @@ def main() -> int:
     parser.add_argument("dut")
     parser.add_argument("out_dir")
     parser.add_argument("--waveform", choices=["off", "declared-symbols"], default="off")
+    parser.add_argument("--perf", choices=["off", "eval"], default="off")
     args = parser.parse_args()
 
     dut_id = args.dut
@@ -91,7 +95,7 @@ def main() -> int:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     log(f"emit {dut_path} -> {out_dir}")
-    run_pipeline(dut_path, out_dir, args.waveform)
+    run_pipeline(dut_path, out_dir, args.waveform, args.perf)
     return 0
 
 
