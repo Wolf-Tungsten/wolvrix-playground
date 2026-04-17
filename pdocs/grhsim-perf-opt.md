@@ -1,779 +1,372 @@
-## 2026-04-16 XiangShan GrhSIM perf snapshot
-
-### Method
+# GrhSIM XiangShan 性能优化 Checklist
+
+更新时间：`2026-04-17`
 
-- Binary: `build/xs/grhsim/grhsim-compile/emu`
-- Build reused as-is, no rebuild.
-- Workload: `testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`
-- Command:
+本文只关注 `grhsim` 在 XiangShan 上的运行时性能，不讨论功能正确性问题。
 
-```bash
-cd build/xs/grhsim/grhsim-compile
-/usr/bin/time -p perf record -o /tmp/xs_grhsim_perf_10000_20260416.data -F 999 -g -- \
-  ./emu -i /workspace/gaoruihao-dev-gpu/wolvrix-playground/testcase/xiangshan/ready-to-run/coremark-2-iteration.bin \
-  --no-diff -b 0 -e 0 -C 10000
-```
+## 1. 当前判断
 
-- Raw artifacts:
-  - `/tmp/xs_grhsim_perf_10000_20260416.data`
-  - `/tmp/xs_grhsim_perf_10000_20260416.symbols.txt`
-  - `/tmp/xs_grhsim_perf_10000_20260416.children.txt`
+- 当前性能瓶颈不在外层 `active-word` 扫描，而在被激活后的 `eval_batch_*` / supernode 本体执行成本。
+- `grhsim` 的活动调度外形已经和 `gsim` 同类：
+  - `grhsim`：`kSupernodeCount = 84314`，`kActiveFlagWordCount = 10540`，见 `build/xs/grhsim/grhsim_emit/grhsim_SimTop.hpp`
+  - `gsim`：`131580 superNodes`，`activeFlags[16448]`，见 `tmp/gsim_default_xiangshan/gsim.log` 和 `tmp/gsim_default_xiangshan/default-xiangshan/model/SimTop.h`
+- 但不能把 `grhsim op` 和 `gsim node` 直接对齐比较。
+- 当前更可靠的判断方式，是比较两边生成代码的体量、激活传播形态、值访问形态，以及 `grhsim` 自身 supernode body 的静态复杂度。
 
-### Run result
+## 2. 量化对比
 
-- Simulated cycles: `10000`
-- Retired instructions: `458`
-- IPC: `0.045818`
-- Host time: `236349 ms`
-- Average host cost per eval/cycle: `23.635 ms`
+### 2.1 生成源码规模
 
-### Function-level distribution inside eval path
+- `grhsim`
+  - 源码文件数：`10543`
+  - 其中 `sched cpp`：`10540`
+  - 源码总大小：`2454130926` bytes，约 `2.45 GB`
+  - 源码总行数：`32553560`
+- `gsim`
+  - 源码文件数：`168`
+  - 其中 `cpp`：`167`
+  - 源码总大小：`1668022994` bytes，约 `1.67 GB`
+  - 源码总行数：`10623792`
 
-`perf report --stdio --no-children --sort symbol` aggregation:
+结论：
 
-| bucket | self % | approx ms / eval | note |
-| --- | ---: | ---: | --- |
-| `GrhSIM_SimTop::eval_batch_*` | `67.34%` | `15.916` | main cost, includes inlined operator/helper logic |
-| `GrhSIM_SimTop::commit_state_shadow_chunk_*` | `23.36%` | `5.521` | shadow-state copyback |
-| `GrhSIM_SimTop::commit_state_updates` | `5.34%` | `1.262` | write-port commit / state update orchestration |
-| `GrhSIM_SimTop::eval` | `2.65%` | `0.626` | top-level dispatcher / loop body |
-| everything else | `1.31%` | `0.310` | libc/kernel/noise |
+- `grhsim` 文件数约为 `gsim` 的 `62.8x`
+- `grhsim` 源码总行数约为 `gsim` 的 `3.06x`
+- `grhsim` 源码总大小约为 `gsim` 的 `1.47x`
 
-Key point:
+### 2.2 可直接对齐的调度规模
 
-- Current XiangShan `grhsim` cost is dominated by `eval_batch_*` execution itself.
-- `commit` is still expensive, but secondary.
-- At function granularity, almost no standalone helper symbol is visible. This means most operator/helper work is already inlined into batch bodies, so its cost is accounted inside `eval_batch_*` self time.
+- `grhsim`
+  - supernode 数：`84314`
+  - batch / active-word 数：`10540`
+- `gsim`
+  - supernode 数：`131580`
+  - active-word 数：`16448`
+  - 数据来源：`tmp/gsim_default_xiangshan/gsim.log` 和 `tmp/gsim_default_xiangshan/default-xiangshan/model/SimTop.h`
 
-### Batch-level hotspot view
+结论：
 
-Top sampled batches by self overhead:
+- `grhsim` supernode 数比 `gsim` 更少，不是“supernode 太多导致调度慢”
+- 但这里不能继续推出“`grhsim` 每个 supernode 比 `gsim` 重多少”，因为两边内部基本单元语义不同
 
-| batch | self % | emitted file | LOC |
-| --- | ---: | --- | ---: |
-| `eval_batch_9311` | `0.16%` | `build/xs/grhsim/grhsim_emit/grhsim_SimTop_sched_9311.cpp` | `7613` |
-| `eval_batch_8086` | `0.16%` | `build/xs/grhsim/grhsim_emit/grhsim_SimTop_sched_8086.cpp` | `6118` |
-| `eval_batch_9323` | `0.15%` | `build/xs/grhsim/grhsim_emit/grhsim_SimTop_sched_9323.cpp` | `7613` |
-| `eval_batch_9316` | `0.15%` | `build/xs/grhsim/grhsim_emit/grhsim_SimTop_sched_9316.cpp` | `7613` |
-| `eval_batch_9315` | `0.15%` | `build/xs/grhsim/grhsim_emit/grhsim_SimTop_sched_9315.cpp` | `7613` |
-| `eval_batch_9296` | `0.15%` | `build/xs/grhsim/grhsim_emit/grhsim_SimTop_sched_9296.cpp` | `7613` |
-| `eval_batch_9289` | `0.15%` | `build/xs/grhsim/grhsim_emit/grhsim_SimTop_sched_9289.cpp` | `7613` |
-| `eval_batch_8088` | `0.15%` | `build/xs/grhsim/grhsim_emit/grhsim_SimTop_sched_8088.cpp` | `6107` |
+### 2.3 不可直接对齐但和性能有关的内部口径
 
-Hotspot concentration is weak:
+- `grhsim`
+  - supernode 内 op 统计：
+    - 平均：`64.80`
+    - 中位数：`71`
+    - 最大：`72`
+  - 数据来源：`build/xs/grhsim/grhsim_emit/activity_schedule_supernode_stats.json`
+- `gsim`
+  - `node` 统计来自 `gsim` 自己的图模型
+  - 从语义上更接近“值图 / 表达式树中的节点”或一部分 declared-symbol 级工作量
+  - 不能直接等同于 `grhsim` 的组合逻辑 `op`
 
-- top 8 batches sum to only `1.22%`
-- top 32 batches sum to only `4.54%`
-- top 128 batches sum to only `15.41%`
-- total sampled `eval_batch_*` symbols with non-zero self time: `3933`
+结论：
+
+- `grhsim op` 与 `gsim node` 不能做直接数量对比
+- 后续性能分析中，`grhsim` 侧仍可用 `op/supernode` 作为“自身复杂度”指标
+- 但不要再用 `gsim node/supernode` 去做横向结论
+
+### 2.4 热路径相关的 emitted 工作量
+
+- `grhsim`
+  - `// op _op_` 总数：`5463193`
+  - `// Supernode` 总数：`84314`
+  - `supernode_active_curr_[...] |= ...` 次数：`2456863`
+  - `value_*_slots_[]` 引用次数：`12923765`
+  - `state_*_slots_[]` 引用次数：`1454252`
+  - `local_value_...` 引用次数：`10818947`
+  - `symbol=` 条目数：`892104`
+- `gsim`
+  - `activeFlags[...] |= ...` 字节级写回：`477064`
+  - 宽激活写回：
+    - `uint16_t` 打包：`4106`
+    - `uint32_t` 打包：`14258`
+    - `uint64_t` 打包：`62773`
+  - `member` 声明数：`333768`
 
-Interpretation:
+结论：
 
-- There is no single pathological batch dominating runtime.
-- The problem is broad and structural: too many batches are still expensive when they do run.
-- The hottest sampled batches cluster in late topo-order regions, especially `8xxx` and `9xxx`, but each individual batch is still only around `0.14%` to `0.16%`.
+- `grhsim` 在热路径里仍然有大量 slot 访问
+- `gsim` 会大量使用宽掩码合并激活写回，`grhsim` 目前基本还是单字节 OR
+- 这两点已经足以解释一部分运行时差距，不需要依赖 `op`/`node` 的直接对齐
+
+### 2.5 eval 静态读写/激活统计
+
+这一轮专门统计了 `eval` 路径中展开出来的“读 / 写 / 激活”动作次数。
+
+说明：
+
+- 这是静态 emitted cpp 口径，不是运行时采样。
+- `grhsim` 与 `gsim` 语义仍不完全一致，因此这里只比较“代码形态上的热路径动作量”。
+
+#### GrhSIM 计数口径
 
-### Commit-side hotspot view
+统计范围：
 
-Top commit shadow chunks:
+- `build/xs/grhsim/grhsim_emit/grhsim_SimTop_sched_*.cpp`
+- `build/xs/grhsim/grhsim_emit/grhsim_SimTop_eval.cpp`
+
+口径：
+
+- `读 slot`
+  - 所有 `value_*_slots_[` / `state_*_slots_[` / `state_shadow_*_slots_[` / `state_mem_*_slots_[` / `event_edge_slots_[` 的引用次数
+  - 再减去其中作为赋值左值的次数
+- `写 slot`
+  - 上述 slot 出现在左值赋值 `... =` 的次数
+- `激活`
+  - `supernode_active_curr_[...] |= ...` 次数
+
+结果：
+
+- 总 slot 引用数：`14378017`
+- 读 slot：`12767753`
+- 写 slot：`1610264`
+- 激活写回：`2456863`
 
-| chunk | self % |
-| --- | ---: |
-| `commit_state_shadow_chunk_63` | `1.41%` |
-| `commit_state_shadow_chunk_64` | `1.09%` |
-| `commit_state_shadow_chunk_62` | `0.97%` |
-| `commit_state_shadow_chunk_61` | `0.93%` |
-| `commit_state_shadow_chunk_59` | `0.91%` |
-| `commit_state_shadow_chunk_60` | `0.81%` |
-| `commit_state_shadow_chunk_42` | `0.73%` |
-| `commit_state_shadow_chunk_41` | `0.56%` |
+#### GSim 计数口径
 
-Concentration here is somewhat stronger than batches, but still not single-point:
+统计范围：
 
-- top 8 commit-shadow chunks sum to `7.41%`
-- top 16 sum to `11.35%`
-- top 32 sum to `17.50%`
-- all `commit_state_shadow_chunk_*` sum to `23.36%`
+- `tmp/gsim_default_xiangshan/default-xiangshan/model/SimTop*.cpp`
 
-Interpretation:
+口径：
 
-- `commit` cost is spread across many state-shadow chunks.
-- This still points to structural copyback pressure rather than one bad chunk.
+- `gsim` 的 `Node` 语义和 `grhsim op` 不同，emitted cpp 中也没有直接保留 `Node` 类型标记
+- 因此这里采用 `node-like name` 代理口径：
+  - 统计所有带 `$` 的生成硬件名
+  - 排除明显的局部历史临时 `...$old$...`
+- `读 node-like`
+  - 这些名字的总引用次数减去直接赋值左值次数
+- `写 node-like`
+  - 直接赋值到这类名字的次数
+- `激活`
+  - `activeFlags[...] |= ...`
+  - 以及 `*(uint16_t/32_t/64_t*)&activeFlags[...] |= ...`
 
-### Conclusion
+结果：
 
-This 10k-cycle `perf` run says:
+- 总 node-like 引用数：`13210981`
+- 读 node-like：`11147230`
+- 写 node-like：`2063751`
+- 激活写回：`558201`
 
-1. The first optimization target remains `eval_batch_*` execution body, not dispatcher overhead.
-2. The second target remains commit shadow/copyback volume.
-3. Function-level `perf` does not show a single helper symbol dominating. The hot operator logic is already folded into batch self time.
-4. There is no single “giant batch” to surgically fix for an order-of-magnitude gain. The runtime issue is distributed across thousands of batches.
+#### 结论
 
-Practical implication:
+- 读量
+  - `grhsim`：`12767753`
+  - `gsim`：`11147230`
+  - `grhsim` 约高 `14.5%`
+- 写量
+  - `grhsim`：`1610264`
+  - `gsim`：`2063751`
+  - 这个口径下 `gsim` 更高
+  - 这不代表 `gsim` 更慢，因为两边写入对象语义不同
+- 激活写回
+  - `grhsim`：`2456863`
+  - `gsim`：`558201`
+  - `grhsim` 约为 `4.40x`
 
-- The next wins are likely to come from making each active batch cheaper on average, not from chasing one outlier batch.
-- Separately, reducing shadow commit traffic is still worthwhile because it is a stable `~28.7%` family cost (`commit_state_updates + commit_state_shadow_chunk_*`).
+这一轮最重要的结论：
 
-## 2026-04-16 Deeper eval_batch analysis
+- 当前最显著的差异不是“读得多很多”或“写得多很多”
+- 而是 `grhsim` 的激活传播明显更碎，激活写回次数远高于 `gsim`
+- 因此后续性能优化中，合并激活写回仍然是第一梯队目标
 
-### Goal
+## 3. 对性能的解释
 
-- Determine whether `eval_batch_*` is limited primarily by front-end pressure, branch behavior, or data access.
-- Determine whether the hottest batches are diverse, or whether they collapse into a few repeated emitted code shapes.
+### 3.1 外层调度不是主矛盾
 
-### Micro-architectural snapshot
+- `grhsim` 已经使用 `uint8_t` 活动字数组：
+  - `std::array<std::uint8_t, kActiveFlagWordCount> supernode_active_curr_{}`
+- `gsim` 也是：
+  - `uint8_t activeFlags[16448]`
+- 所以当前数量级差距不能主要归咎于“外层调度框架不同”
 
-Command:
+### 3.2 主矛盾是 supernode body 太重
 
-```bash
-perf stat -d -- build/xs/grhsim/grhsim-compile/emu \
-  -i testcase/xiangshan/ready-to-run/coremark-2-iteration.bin \
-  --no-diff -b 0 -e 0 -C 3000
-```
+- `grhsim` 的典型模式是：
+  - 从 `value_*_slots_[]` / `state_*_slots_[]` 读值
+  - 做 `if (old != new)` 检查
+  - 对一个或多个 `supernode_active_curr_[word] |= mask`
+  - 回写 slot
+- `gsim` 的典型模式是：
+  - 直接操作 member / `$NEXT` / `$old`
+  - 用局部临时拼接组合逻辑
+  - 用宽位掩码批量激活后继
 
-Observed:
+结论：
 
-- Host time: `72.8 s` for `3000` cycles
-- Instructions: `43.67 G`
-- Cycles: `268.39 G`
-- IPC: `0.16`
-- Branches: `15.16 G`
-- Branch misses: `1.95 G` (`12.87%`)
-- L1D load misses: `1.41 G` (`5.09%` of L1D loads)
+- `grhsim` 每次进入 active supernode 后，CPU 执行的分支、load/store、索引寻址都更多
+- 这比“扫多少个 active-word”更影响 `eval()` 延迟
 
-Interpretation:
+### 3.3 当前 emitter 已经暴露出的三个结构性问题
 
-- `eval_batch_*` is not just “doing a lot of arithmetic”.
-- IPC is extremely low, and branch miss rate is extremely high for CPU-side code.
-- This strongly suggests the hot path is dominated by huge amounts of control flow and scattered state/value accesses.
+- supernode 内 materialized op 过多
+  - 当前平均 `64.8 op/supernode`
+  - 这是 `grhsim` 自身的复杂度指标，不和 `gsim node` 直接比较
+- 激活传播太碎
+  - `grhsim`：约 `245.7 万` 次字节级 `|=`
+  - `gsim`：除了 `47.7 万` 次字节级 `|=`，还有大量 `u16/u32/u64` 合并写回
+  - 从静态 `eval` 读写统计看，`grhsim` 激活写回约为 `gsim` 的 `4.40x`
+- 值池访问仍然过重
+  - `value_*_slots_[]` 引用 `1292 万+`
+  - `local_value_...` 虽然很多，但仍未替代大量全局池访问
 
-Additional front-end-oriented sample:
+## 4. 优先级 Checklist
 
-```bash
-perf stat -e L1-icache-loads,L1-icache-load-misses,dTLB-loads,dTLB-load-misses,iTLB-loads,iTLB-load-misses -- \
-  build/xs/grhsim/grhsim-compile/emu \
-  -i testcase/xiangshan/ready-to-run/coremark-2-iteration.bin \
-  --no-diff -b 0 -e 0 -C 200
-```
+下面按“对单次 `eval` 预期收益”排序。
 
-Observed:
+### P0. 压缩 supernode 内部的 materialized op 数
 
-- `L1-icache-load-misses = 47.3 M`
-- `L1-icache-loads = 1697.5 M`
-- L1I miss rate about `2.79%`
+目标：
 
-Interpretation:
+- 让一个 active supernode 进入后，执行的基础动作数量显著下降
 
-- Front-end pressure is real, not hypothetical.
-- Even without trusting every TLB counter precisely, the L1I miss rate is already too high for code that is supposed to be a tight repeatedly executed simulator hot loop.
-- Combined with the branch-miss result, this points to oversized, branch-heavy emitted batch bodies as a first-class problem.
+现状证据：
 
-### Hot-batch disassembly pattern
+- `grhsim` 自身当前为 `5463193 op / 84314 supernode = 64.80 op/supernode`
+- 这说明当前一个 active supernode 内部平均要执行的组合逻辑动作仍然很多
+- 这里不再使用 `gsim node/supernode` 作为横向证据，因为语义不一致
 
-Using `perf annotate` on the existing `perf.data`:
+Checklist：
 
-- `GrhSIM_SimTop::eval_batch_9311`
-- `GrhSIM_SimTop::eval_batch_8086`
+- [ ] 继续扩大 same-supernode 内局部 SSA 化覆盖面
+- [ ] 能不 materialize 到 `value_*_slots_[]` 的中间值尽量不 materialize
+- [ ] 优先消灭只被同一 supernode 内后继消费的单次中间值
+- [ ] 优先消灭 trivial unary / binary / compare / cast / concat / slice 中的“池化但立刻再读”模式
+- [ ] 对宽位拼接、切片、拼位等热点模板，优先做 emitter 级直出优化，而不是增加 helper 层次
 
-Common repeated instruction pattern:
+判定标准：
 
-- test one activation/source predicate
-- branch around the body
-- load state/value slot
-- apply change-mask merge logic
-- write shadow/value slot back
-- test touched flag / conflict flag
-- append touched index
+- [ ] emitted `// op` 总数明显下降
+- [ ] `value_*_slots_[]` 引用次数明显下降
+- [ ] `eval_batch_*` 自身耗时下降
 
-Interpretation:
+### P1. 合并激活传播写回
 
-- The hottest emitted code is not dominated by one expensive helper call.
-- It is dominated by long straight-line repetition of small guarded update templates.
-- This is exactly the kind of code shape that hurts branch prediction, instruction cache locality, and general front-end efficiency.
+目标：
 
-### Static shape of hottest eval batches
+- 降低热路径上的 `supernode_active_curr_[...] |= ...` 次数
 
-Method:
+现状证据：
 
-- Took the first `16` `eval_batch_*` symbols from `/tmp/xs_grhsim_perf_10000_20260416.symbols.txt`.
-- Opened the corresponding emitted `grhsim_SimTop_sched_*.cpp` files.
-- Counted rough structural markers in the generated C++.
+- `grhsim`：`2456863` 次字节级激活写回
+- `gsim`：存在 `u16/u32/u64` 批量 OR
 
-Per-batch summary over those 16 hottest batches:
+Checklist：
 
-| metric | avg | median | min | max |
-| --- | ---: | ---: | ---: | ---: |
-| LOC | `7426.4` | `7614` | `6108` | `7614` |
-| `// op` count | `575.9` | `576` | `575` | `576` |
-| supernodes per batch | `8.0` | `8` | `8` | `8` |
-| `if (` count | `1083.5` | `1160` | `538` | `1160` |
-| `grhsim_*(` helper calls | `622.7` | `576` | `576` | `960` |
-| `grhsim_mark_pending_write` count | `567.0` | `576` | `504` | `576` |
-| `event_edge_slots_[]` refs | `1062.5` | `1149` | `459` | `1149` |
-| `value_*_slots_[]` refs | `2284.6` | `2304` | `2137` | `2304` |
-| `state_*_slots_[]` refs | `3070.1` | `3456` | `306` | `3456` |
-| `supernode_active_curr_[...] |=` count | `2.9` | `0` | `0` | `26` |
+- [ ] 同一 op 触发到同一 active-word 的多个 mask 先在 emitter 侧合并
+- [ ] 同一 supernode 内连续对相邻 active-word 的写回，尽量生成宽位 OR
+- [ ] 优先对 fanout 高、模板重复强的传播模式做聚合
+- [ ] 保证不破坏当前 topo 顺序和本轮激活语义
 
-Two especially important patterns:
+判定标准：
 
-- The `93xx` hot batch cluster is almost identical batch-to-batch:
-  - about `7614` LOC
-  - `576` ops
-  - `1160` `if`s
-  - `576` pending writes
-  - `1146` to `1149` event-edge references
-  - `3456` state-slot references
-  - `0` activation ORs
-- This looks like sink-heavy / state-update-heavy batches, not propagation-heavy batches.
+- [ ] `supernode_active_curr_[...] |= ...` 次数下降
+- [ ] 出现 `u16/u32/u64` 级别的批量写回
+- [ ] `eval_batch_*` 热点样本中的 store / branch 数下降
 
-- The `8086` / `8088` style hot batches are slightly shorter:
-  - about `6.1k` LOC
-  - still `575` to `576` ops
-  - fewer `if`s
-  - more helper calls
-  - some activation ORs still present
+### P2. 减少值池访问
 
-Interpretation:
+目标：
 
-- The hottest batches are not diverse. A large fraction collapse into a few repeated structural templates.
-- This is good news for optimization: emitter-level shape changes can pay off broadly.
-- It also means deeper per-op runtime logging is not immediately necessary to choose the next optimization direction.
+- 降低 `value_*_slots_[]` 和 `state_*_slots_[]` 的索引读写压力
 
-### Updated optimization priority for eval_batch
+现状证据：
 
-Priority 1:
+- `value_*_slots_[]` 引用 `12923765`
+- `state_*_slots_[]` 引用 `1454252`
 
-- Reduce emitted branch density and repeated guarded update templates inside sink/state-heavy batches.
-- In particular, attack the repeated:
-  - predicate test
-  - shadow-base select
-  - masked merge
-  - touched/conflict bookkeeping
-  - touched-index append
+Checklist：
 
-Priority 2:
+- [ ] same-supernode temporary value 默认改为局部变量，不落池
+- [ ] 仅对跨 supernode、跨 commit、跨 side-effect 边界的值保留池化
+- [ ] 对只读一次的 materialized 值做 late rematerialize
+- [ ] 对 state-read 后紧邻使用的模式，尽量变成局部快路径
 
-- Reduce front-end footprint of hot batches.
-- Large repeated straight-line batches around `6k` to `7.6k` LOC are already showing measurable L1I pain.
+判定标准：
 
-Priority 3:
+- [ ] `value_*_slots_[]` 引用次数下降
+- [ ] `eval_batch_*` 的 load 指令占比下降
 
-- Reduce random value/state pool traffic where possible, especially in sink-heavy write clusters.
+### P3. 让超节点内部更接近 gsim 的“直接 member + old/next”风格
 
-Not the first priority right now:
+目标：
 
-- dispatcher-level batch scanning
-- chasing one “bad” helper function
-- chasing one pathological batch outlier
+- 降低池化抽象带来的索引和中转成本
 
-### Practical conclusion
+说明：
 
-For the current `eval_batch_*` optimization phase, a deeper analysis pass was necessary, and it already changed the recommendation:
+- 这不是要求完全回退到 `gsim` 的 per-member 存储
+- 而是要求在 supernode 本体内部，代码形态尽量像 `gsim`
 
-- The next work should focus on restructuring emitted batch bodies, not on tiny arithmetic helper tweaks.
-- A promising target is the sink/state-write template itself, because it appears in many of the hottest batches nearly verbatim.
-- Additional intrusive runtime counters can be deferred until after the first emitted-code-shape simplification pass, unless that pass fails to move IPC / branch miss / L1I miss in the expected direction.
+Checklist：
 
-## 2026-04-16 Scalar state-write emit refactor: first perf result
+- [ ] 对 supernode 内部局部依赖链，优先生成本地变量链
+- [ ] 对 change-detect 模式，减少多余的中转 slot
+- [ ] 对简单 bool/u8/u16/u32/u64 路径，优先生成直读直写模板
 
-### Change summary
+### P4. 针对高重复模板做 emitter 专项压缩
 
-Implemented a first emit-side compression for sink-heavy scalar state writes:
+目标：
 
-- Added non-inlined scalar state-write helpers in `grhsim_SimTop_state.cpp`
-- Lowered continuous scalar register/latch write runs to:
-  - one shared `eventExpr` guard
-  - repeated helper calls
-- Removed repeated in-batch expansion of:
-  - shadow-base selection
-  - masked merge
-  - conflict bookkeeping
-  - touched-index append
+- 不追单个“巨热 batch”，而是优化一整类重复结构
 
-Observed emitted code shrink on previously hottest batches:
+Checklist：
 
-| batch | old LOC | new LOC | delta |
-| --- | ---: | ---: | ---: |
-| `9311` | `7613` | `1297` | `-83.0%` |
-| `8086` | `6118` | `5420` | `-11.4%` |
+- [ ] 统计最常见的 emitted op 模板
+- [ ] 按模板族优化，而不是按某个 batch 编号优化
+- [ ] 特别关注 sink-heavy / state-update-heavy 模式
+- [ ] 特别关注宽位 concat / slice / pack / compare 模式
 
-### Rebuild
+## 5. 暂不作为主攻方向的事项
 
-Command:
+下面这些不是没价值，而是当前不是第一优先级。
 
-```bash
-/usr/bin/time -p make xs_wolf_grhsim_emu WOLVRIX_GRHSIM_WAVEFORM=0 WOLVRIX_GRHSIM_PERF=0
-```
+- [ ] 继续优化 active-word 外层扫描
+  - 原因：当前证据表明外层框架不是主瓶颈
+- [ ] 继续压 supernode 数量
+  - 原因：`grhsim` supernode 数已经少于 `gsim`
+  - 当前问题是每个 supernode 太重
+- [ ] 单纯继续拆更多 cpp 文件
+  - 原因：这主要改善编译，不直接改善运行时 `eval`
+- [ ] 继续堆 runtime helper 封装
+  - 原因：之前经验表明热路径 helper 化容易引入额外开销
 
-Observed:
+## 6. 每轮优化后的复测项
 
-- full rebuild wall time: `650.10 s`
-- GrhSIM model compile still uses `clang++ -std=c++20 -O3`
+每次性能改动后，至少复测以下内容：
 
-### Perf stat comparison: 3000-cycle main run
+- [ ] `grhsim` emitted `// op` 总数
+- [ ] `supernode_active_curr_[...] |= ...` 次数
+- [ ] `value_*_slots_[]` 引用次数
+- [ ] `eval_batch_*` 自身采样占比
+- [ ] `commit_state_shadow_chunk_*` 占比
+- [ ] `1000` 周期和 `10000` 周期下的平均 host time / eval
 
-Command:
+建议统一记录格式：
 
-```bash
-perf stat -d -- build/xs/grhsim/grhsim-compile/emu \
-  -i testcase/xiangshan/ready-to-run/coremark-2-iteration.bin \
-  --no-diff -b 0 -e 0 -C 3000
-```
+- emit 规模
+  - supernode 数
+  - emitted op 数
+  - 激活写回次数
+  - 值池访问次数
+- 运行时
+  - `ms / eval`
+  - `ms / cycle`
+  - `perf report` top buckets
 
-Before:
+## 7. 当前建议路线
 
-- host time: `72.8359 s`
-- instructions: `43.6729 G`
-- cycles: `268.3878 G`
-- IPC: `0.16`
-- branch miss rate: `12.87%`
-- L1D miss rate: `5.09%`
+建议执行顺序：
 
-After:
+- [ ] 第一步：继续做 same-supernode 中间值局部化，压 `materialized op`
+- [ ] 第二步：做激活写回聚合，向 `gsim` 的宽 OR 形式靠拢
+- [ ] 第三步：按高频模板族继续压 `value_*_slots_[]` 访问
+- [ ] 第四步：再做一次 XiangShan `perf`，确认 `eval_batch_*` 是否出现明显回落
 
-- host time: `55.2955 s`
-- instructions: `61.5251 G`
-- cycles: `203.7590 G`
-- IPC: `0.30`
-- branch miss rate: `5.90%`
-- L1D miss rate: `3.77%`
+一句话总结：
 
-Delta:
-
-- host time: `-24.1%`
-- cycles: `-24.1%`
-- IPC: about `+87.5%`
-- branch miss rate: `-54.2%`
-- L1D miss rate: `-25.9%`
-
-Per-eval host cost estimate:
-
-- before: about `23.64 ms / eval`
-- after: about `18.43 ms / eval`
-
-Interpretation:
-
-- This change materially improved the actual `eval_batch_*` hot path.
-- The branch-miss collapse is the clearest confirmation that the repeated emitted write template was a major structural cost.
-- IPC improvement is large enough that the change is not merely “slightly better code size”; it is reducing control-flow/pathology in a meaningful way.
-
-### Perf stat comparison: 200-cycle front-end probe
-
-Command:
-
-```bash
-perf stat -e L1-icache-loads,L1-icache-load-misses,dTLB-loads,dTLB-load-misses,iTLB-loads,iTLB-load-misses -- \
-  build/xs/grhsim/grhsim-compile/emu \
-  -i testcase/xiangshan/ready-to-run/coremark-2-iteration.bin \
-  --no-diff -b 0 -e 0 -C 200
-```
-
-Before:
-
-- host time: `8.998 s`
-- `L1-icache-load-misses`: `47.29 M`
-- L1I miss rate: `2.79%`
-- `dTLB-load-misses`: `347.7 K`
-- `iTLB-load-misses`: `21.52 M`
-
-After:
-
-- host time: `6.721 s`
-- `L1-icache-load-misses`: `44.01 M`
-- L1I miss rate: `2.73%`
-- `dTLB-load-misses`: `180.8 K`
-- `iTLB-load-misses`: `18.60 M`
-
-Interpretation:
-
-- Front-end pressure improved, but not dramatically.
-- The stronger win is still from reducing branch/control-flow overhead.
-- There is still substantial instruction-fetch / TLB pressure left in the emitted codebase.
-
-### Updated conclusion
-
-This first `eval_batch_*` emit refactor is clearly worth keeping:
-
-- It gives a real end-to-end XiangShan speedup of about `24%` on the 3000-cycle perf probe.
-- It validates the thesis that sink/state-write template explosion was one of the main structural bottlenecks.
-
-But it is not enough for the long-term target:
-
-- `18.4 ms / eval` is still far from the sub-`1 ms / eval` goal.
-- The next major wins still need to come from broader batch-body simplification, not just this one template family.
-
-## TODO: Next eval_batch optimizations
-
-### P0. Scalar value change-detect template compression
-
-Target template:
-
-- `const auto next_value = ...;`
-- `if (value_*_slots_[...] != next_value) { ... }`
-
-Current scale:
-
-- about `1.396M` `next_value` materializations
-- about `1.410M` scalar `if (old != next_value)` guards
-
-Why it matters:
-
-- This is now the largest repeated template family left in emitted batch bodies.
-- It often immediately feeds activation propagation and/or event-edge updates.
-
-Possible direction:
-
-- compress repeated scalar assignment/change-detect into typed helpers
-- special-case pure “assign + activate” form
-- special-case “assign + classify_edge + activate” form
-
-Success metric:
-
-- lower branch miss rate further
-- lower `eval_batch_*` self time in `perf`
-- reduce emitted LOC in hot early/mid batches
-
-Status:
-
-- pending
-
-### P1. Value-change activation template compression
-
-Target template:
-
-- `supernode_active_curr_[...] |= ...`
-- especially repeated fanout propagation after scalar value change
-
-Current scale:
-
-- about `2.457M` activation OR statements in emitted schedules
-
-Why it matters:
-
-- This is the single largest repeated emitted side-effect pattern.
-- It is tightly coupled with P0, so compressing one without the other will leave a lot of overhead.
-
-Possible direction:
-
-- expand table-driven activation more aggressively
-- canonicalize repeated fanout sets into shared static tables
-- avoid re-emitting short unrolled activation clusters when loop/table form is cheaper
-
-Success metric:
-
-- lower branch count
-- lower I-cache footprint in hot batches
-- lower emitted total LOC
-
-Status:
-
-- pending
-
-### P2. Scalar state-read / state-derived value compare-and-publish compression
-
-Target template:
-
-- `if (value_*_slots_[...] != state_logic_*_slots_[...]) { ... }`
-- same logical family as scalar value change-detect, but RHS comes directly from state
-
-Current scale:
-
-- about `189k` direct scalar value-vs-state compare/update guards
-
-Why it matters:
-
-- This is another very common scalar publish pattern.
-- It should be compressible using the same typed helper strategy as P0.
-
-Possible direction:
-
-- introduce typed “publish from state if changed” helpers
-- fold direct state read + change detect + activation into one helper
-
-Success metric:
-
-- fewer repeated compare/store blocks
-- smaller hot read-heavy batches
-
-Status:
-
-- pending
-
-### P3. Wide value/state change-detect helper tightening
-
-Target template:
-
-- `if (grhsim_assign_words(...)) { ... }`
-- `grhsim_merge_words_masked(...)`
-
-Current scale:
-
-- about `10,699` `grhsim_assign_words(...)` change checks
-- about `1,813` `grhsim_merge_words_masked(...)` writes
-
-Why it matters:
-
-- The count is much lower than scalar templates, but each instance is individually expensive.
-
-Possible direction:
-
-- tighten helper implementation
-- reduce temporary materialization
-- specialize hottest widths if data shows concentration
-
-Success metric:
-
-- lower cycles per wide-heavy batch cluster
-- improved `perf annotate` around wide helpers
-
-Status:
-
-- pending
-
-### P4. Event-guard block coalescing
-
-Target template:
-
-- `if (((event_edge_slots_[...] == ...))) { ... }`
-
-Current scale:
-
-- about `12,344` explicit event-guard blocks
-
-Why it matters:
-
-- The first scalar state-write refactor already proved that shared event guards are valuable.
-- There are likely more cases where same-event blocks can be merged further.
-
-Possible direction:
-
-- coalesce same-event scalar publish/update runs
-- hoist event predicates and reduce repeated exact-event control flow
-
-Success metric:
-
-- lower branch miss
-- smaller batch source size in event-heavy regions
-
-Status:
-
-- pending
-
-## 2026-04-16 P0-P2 combined refactor: helperized scalar tracked update + centralized activation groups
-
-### Change summary
-
-Implemented P0-P2 together in `grhsim_cpp` emitter:
-
-- scalar tracked value update now lowers to typed helpers:
-  - `apply_tracked_scalar_value_bool`
-  - `apply_tracked_scalar_value_u8`
-  - `apply_tracked_scalar_value_u16`
-  - `apply_tracked_scalar_value_u32`
-  - `apply_tracked_scalar_value_u64`
-- helper semantics are unified:
-  - compare old/new
-  - optional `grhsim_classify_edge`
-  - optional same-word local activation via `activeWordFlags |= localMask`
-  - optional global activation propagation via shared activation-group table
-  - final store
-- direct scalar state-read publish now uses the same helper path when the value is materialized and tracked
-- per-site inline activation OR clusters were replaced by `activationGroupId + localMask` metadata
-- stale `old_word` temporaries in remaining inline activation emit were removed
-
-### Validation
-
-- `cmake --build wolvrix/build -j8`: pass
-- `make xs_wolf_grhsim_emit WOLVRIX_GRHSIM_WAVEFORM=0 WOLVRIX_GRHSIM_PERF=0`: pass
-- XiangShan emit wall time:
-  - `real 345.35 s`
-  - `write_grhsim_cpp 192462 ms`
-
-### Static emitted-code result
-
-Schedule-side template counts after this refactor:
-
-| metric | before | after |
-| --- | ---: | ---: |
-| scalar `next_value` materializations (`const auto next_value = static_cast<...>`) | `~1,395,941` | `21,600` |
-| scalar `if (old != next_value)` guards | `~1,409,585` | `35,248` |
-| total `const auto next_value = ...` in schedules | not recorded separately | `36,304` |
-| direct scalar `value != state_*` publish guards | `~189,098` | `0` |
-| inline `supernode_active_curr_[...] |= ...` in schedules | `~2,456,856` | `64,700` |
-| helper calls `apply_tracked_scalar_value_*` | `0` | `1,563,444` |
-| remaining inline local table blocks `kActivationMasks[]` in schedules | many | `15` |
-
-Representative schedule file sizes:
-
-| file | old LOC | new LOC | note |
-| --- | ---: | ---: | --- |
-| `grhsim_SimTop_sched_1.cpp` | not recorded | `2,370` | now helper-call heavy |
-| `grhsim_SimTop_sched_8086.cpp` | `6,118` | `5,279` | moderate shrink |
-| `grhsim_SimTop_sched_9311.cpp` | `1,297` | `1,297` | unchanged from previous sink-write refactor |
-
-### Important side effect
-
-The centralized activation-group registry is currently extremely large:
-
-- `grhsim_SimTop_state.cpp`: `49 MiB`
-- `grhsim_SimTop_state.cpp`: `965,283` LOC
-- unique tracked activation groups emitted into `state.cpp`: `229,848`
-
-Interpretation:
-
-- P0/P1/P2 were structurally achieved on the schedule side.
-- Branch-heavy compare/publish/activate templates were successfully collapsed.
-- But the current P1 implementation shifted a large amount of code volume into one giant `state.cpp`.
-
-This means the refactor is only half-finished from a compile-performance standpoint:
-
-- schedule TUs should compile faster and be much smaller
-- `state.cpp` is now a likely compile bottleneck
-- the next step should focus on compressing activation-group metadata further, not just celebrating schedule shrink
-
-### P5. Memory read / row-index template review
-
-Target template:
-
-- `const std::size_t row = grhsim_index_words(...);`
-
-Current scale:
-
-- about `889` row-index computations
-
-Why it matters:
-
-- Not the first bottleneck, but still worth keeping on the list for later.
-
-Possible direction:
-
-- hoist repeated row computation inside local clusters
-- avoid duplicate bounds/default paths when the same row is reused
-
-Success metric:
-
-- local improvements in memory-heavy batches
-
-Status:
-
-- deferred
-
-### P6. System-task / side-effect sink compression
-
-Target template:
-
-- `execute_system_task(...)`
-
-Current scale:
-
-- about `7,237` emitted system-task calls
-
-Why it matters:
-
-- Probably not the main performance bottleneck today.
-- Keep it tracked because it still contributes code size in sink-heavy regions.
-
-Possible direction:
-
-- reduce repeated argument materialization where safe
-- merge repeated formatting-side glue if it appears in hot batches
-
-Success metric:
-
-- secondary code-size reduction only
-
-Status:
-
-- deferred
-
-### Execution order
-
-Recommended order:
-
-1. P0 scalar value change-detect compression
-2. P1 activation template compression
-3. P2 scalar state-read publish compression
-4. Re-run XiangShan `perf`
-5. P3 wide helper tightening
-6. P4 event-guard coalescing
-
-Rationale:
-
-- P0 and P1 attack the largest remaining repeated template chain directly.
-- P2 is structurally similar and should compose naturally with P0.
-- P3/P4 are important, but should follow after the scalar template family is reduced.
-
-## 2026-04-16 rollback: tracked scalar helperization reverted
-
-Reason:
-
-- The `apply_tracked_scalar_value_*` / activation-group helperization moved hot-path scalar publish logic out of line and regressed runtime.
-- This section corrects the earlier mistaken perf reading: the `69.94s` result was measured on the helperized version, not on the intended rolled-back version.
-
-Rollback scope:
-
-- Reverted tracked scalar helper-call lowering in `wolvrix/lib/emit/grhsim_cpp.cpp`.
-- Removed emitted `apply_tracked_scalar_value_*` helpers and activation-group tables from generated `state.cpp`.
-- Restored expanded in-schedule `if (old != next) { edge; activate; assign; }` emission.
-- Kept the earlier scalar state-write sink compression (`apply_scalar_state_write_*`).
-
-Validation:
-
-- `cmake --build wolvrix/build -j8`: pass
-- `make xs_wolf_grhsim_emu WOLVRIX_GRHSIM_WAVEFORM=0 WOLVRIX_GRHSIM_PERF=0`: pass
-
-Emit / build facts:
-
-- XiangShan emit (`xs_wolf_grhsim_emit`) on 2026-04-16:
-  - `write_grhsim_cpp = 188439 ms`
-  - total emit path after stats-json resume: `313732 ms`
-- activity-schedule result:
-  - `supernodes = 84314`
-  - `ops_mean = 64.796`
-  - `ops_median = 71`
-  - `ops_p90 = 72`
-  - `ops_p99 = 72`
-  - `ops_max = 72`
-- generated artifacts after rollback:
-  - `build/xs/grhsim/grhsim_emit/grhsim_SimTop_state.cpp = 28781 B`
-  - `build/xs/grhsim/grhsim-compile/emu = 258875344 B`
-
-Perf comparison (`coremark-2-iteration.bin`, `-C 3000`):
-
-| version | host time | cycles | instructions | IPC | branch miss | L1D miss |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| helperized wrong version | `69.94 s` | `258.25 G` | `64.44 G` | `0.25` | `4.64%` | `3.82%` |
-| rolled-back current version | `60.88 s` | `224.68 G` | `61.57 G` | `0.27` | `5.97%` | `3.78%` |
-| earlier better baseline | `55.30 s` | `203.76 G` | not re-collected here | `0.30` | `5.90%` | `3.77%` |
-
-Interpretation:
-
-- Rolling back helperization recovered about `9.06 s` host time, about `13%` faster than the helperized version.
-- The rollback also reduced total cycles from `258.25 G` to `224.68 G`.
-- Even after rollback, current runtime is still slower than the earlier `55.30 s` baseline, so the helperization revert is necessary but not sufficient.
-
-## 2026-04-16 10000-cycle perf refresh
-
-Command:
-
-- `perf stat -d -- build/xs/grhsim/grhsim-compile/emu -i testcase/xiangshan/ready-to-run/coremark-2-iteration.bin --no-diff -b 0 -e 0 -C 10000`
-
-Observed execution state:
-
-- `pc = 0x800027c6`
-- `instrCnt = 458`
-- `cycleCnt = 9996`
-- `IPC = 0.045818`
-
-Perf result:
-
-| run | host time | cycles | instructions | IPC | branch miss | L1D miss |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `3000` cycles | `60.88 s` | `224.68 G` | `61.57 G` | `0.27` | `5.97%` | `3.78%` |
-| `10000` cycles | `230.88 s` | `851.56 G` | `203.40 G` | `0.24` | `6.04%` | `3.81%` |
-
-Interpretation:
-
-- Perf shape stays broadly consistent after extending to `10000` cycles.
-- The model does continue to make forward progress; this run no longer exhibits the earlier `pc=0x0 / instrCnt=3` early-stop signature.
-- Average host cost is still about `23.1 ms / simulated cycle`, which is far above the target.
+- 当前 `grhsim` 慢，不是因为“调度框架不对”，而是因为“一个被激活的 supernode 里要做的事情太多，而且太碎”。
