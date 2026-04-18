@@ -1,6 +1,6 @@
 # GrhSIM XiangShan 性能优化 Checklist
 
-更新时间：`2026-04-17`
+更新时间：`2026-04-18`
 
 本文只关注 `grhsim` 在 XiangShan 上的运行时性能，不讨论功能正确性问题。
 
@@ -370,3 +370,89 @@ Checklist：
 一句话总结：
 
 - 当前 `grhsim` 慢，不是因为“调度框架不对”，而是因为“一个被激活的 supernode 里要做的事情太多，而且太碎”。
+
+## 8. 2026-04-18 阶段记录
+
+本阶段完成了一个新的 emitter 级 I-cache 优化，并完成了对应的功能回归排查与性能复测。
+
+### 8.1 本阶段变更
+
+- 在 `wolvrix/lib/emit/grhsim_cpp.cpp` 中，为连续的 scalar state write run 新增了 arithmetic range 压缩：
+  - 生成 `scalar_state_write_*_range_desc`
+  - 生成 `apply_scalar_state_write_*_range(...)`
+  - 对长度至少为 `4` 的等差连续写序列，用一条 range helper 调用替代逐 op 展开
+- XiangShan 实际 emitted 代码已命中该优化，例如：
+  - `307 ops` 的 `u64` range 写
+  - `352 ops` 的 `u8` range 写
+
+### 8.2 本阶段回归与修复
+
+第一次接入后引入了一个功能回归：
+
+- `bool` 类型的 range helper 一度错误写入了
+  - `state_shadow_u8_slots_`
+  - `state_logic_u8_slots_`
+- 但 XiangShan 正常的 `bool` 写路径实际应写入
+  - `state_shadow_bool_slots_`
+  - `state_logic_bool_slots_`
+
+表现：
+
+- 初始版本会在启动后立即触发 `MSHR_64` / `DataSRAMBank` / `MissEntry` / `DCache` 断言，随后 `pc = 0x0` abort
+- 修正这个数组映射错误后，启动路径恢复正常
+
+最终确认：
+
+- `emit-grhsim-cpp` 单测重新通过
+- `xs_wolf_grhsim_emu` 已重编成功
+- `coremark` 10k 周期运行恢复到之前的正常启动轨迹
+
+### 8.3 本阶段稳定指标
+
+#### 功能稳定性
+
+- 10k 周期普通运行：
+  - `pc = 0x800027c6`
+  - `instrCnt = 458`
+  - `cycleCnt = 9996`
+  - `Host time spent = 87627 ms`
+
+#### perf stat
+
+测试命令：
+
+```bash
+perf stat -x, -e cycles,instructions,branches,branch-misses,cache-references,cache-misses,L1-dcache-loads,L1-dcache-load-misses,L1-icache-loads,L1-icache-load-misses,LLC-loads,LLC-load-misses,dTLB-loads,dTLB-load-misses,iTLB-loads,iTLB-load-misses \
+  build/xs/grhsim/emu \
+  -i testcase/xiangshan/ready-to-run/coremark-2-iteration.bin \
+  --diff testcase/xiangshan/ready-to-run/riscv64-nemu-interpreter-so \
+  -b 0 -e 0 -C 10000
+```
+
+结果：
+
+- `pc = 0x800027c6`
+- `instrCnt = 458`
+- `cycleCnt = 9996`
+- `Host time spent = 61855 ms`
+- `cycles = 351192334735`
+- `instructions = 90717684542`
+- `IPC = 0.26`
+- `branch-misses = 14.08%`
+- `cache-misses = 46.07%`
+- `L1-dcache-load-misses = 3.75%`
+- `L1-icache-load-misses = 10.58%`
+- `dTLB-load-misses = 0.67%`
+- `iTLB-load-misses = 61.11%`
+
+### 8.4 本阶段结论
+
+- 这轮 range 压缩确实已经进入 XiangShan 的真实热点 emitted 路径，不是只在单测里生效。
+- 本阶段最重要的收益不是单个 counter 的大幅变化，而是验证了：
+  - emitter 可以安全做大粒度 state-write run 压缩
+  - 代码体量 / I-cache 方向的优化是可落地的
+- 当前剩余最突出的前端瓶颈仍然是：
+  - `L1I miss = 10.58%`
+  - `iTLB miss = 61.11%`
+
+因此下一阶段仍应优先继续压缩 `eval_batch_*` 热路径代码体量，而不是回到 `active-word` 外层扫描。
