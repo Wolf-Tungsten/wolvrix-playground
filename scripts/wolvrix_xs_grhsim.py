@@ -76,7 +76,12 @@ def percentile(sorted_values: list[int], num: int, den: int) -> int:
 def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> None:
     raw = _native.session_export(sess._capsule, key=key, view="python")
     supernode_to_ops = [list(map(int, ops)) for ops in raw]
+    dag_key = key.rsplit("supernode_to_ops", 1)[0] + "dag"
+    dag_raw = _native.session_export(sess._capsule, key=dag_key, view="python")
+    dag = [list(map(int, succs)) for succs in dag_raw]
     sizes = sorted(len(ops) for ops in supernode_to_ops)
+    edge_count = sum(len(succs) for succs in dag)
+    out_degrees = sorted(len(succs) for succs in dag)
     if sizes:
         summary = {
             "supernodes": len(sizes),
@@ -88,11 +93,29 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
                 "p99": percentile(sizes, 99, 100),
                 "max": sizes[-1],
             },
+            "dag_edges": edge_count,
+            "out_degree_per_supernode": {
+                "min": out_degrees[0],
+                "mean": statistics.fmean(out_degrees),
+                "median": statistics.median(out_degrees),
+                "p90": percentile(out_degrees, 90, 100),
+                "p99": percentile(out_degrees, 99, 100),
+                "max": out_degrees[-1],
+            },
         }
     else:
         summary = {
             "supernodes": 0,
             "ops_per_supernode": {
+                "min": 0,
+                "mean": 0.0,
+                "median": 0,
+                "p90": 0,
+                "p99": 0,
+                "max": 0,
+            },
+            "dag_edges": 0,
+            "out_degree_per_supernode": {
                 "min": 0,
                 "mean": 0.0,
                 "median": 0,
@@ -107,11 +130,15 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
     log(
         "activity-schedule supernode stats "
         f"supernodes={summary['supernodes']} "
+        f"dag_edges={summary['dag_edges']} "
         f"ops_mean={summary['ops_per_supernode']['mean']:.3f} "
         f"ops_median={summary['ops_per_supernode']['median']} "
         f"ops_p90={summary['ops_per_supernode']['p90']} "
         f"ops_p99={summary['ops_per_supernode']['p99']} "
-        f"ops_max={summary['ops_per_supernode']['max']}"
+        f"ops_max={summary['ops_per_supernode']['max']} "
+        f"outdeg_mean={summary['out_degree_per_supernode']['mean']:.3f} "
+        f"outdeg_p99={summary['out_degree_per_supernode']['p99']} "
+        f"outdeg_max={summary['out_degree_per_supernode']['max']}"
     )
     log(f"activity-schedule supernode stats written {out_path}")
 
