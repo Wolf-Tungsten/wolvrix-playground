@@ -192,15 +192,21 @@ def main() -> int:
                         top_name,
                         "-supernode-max-size",
                         str(supernode_max_size),
+                        "-max-sink-supernode-op",
+                        "4096",
+                        "-max-dom-sink-supernode-op",
+                        "4096",
                         "-enable-replication",
-                        "true",
+                        "false",
                     ]
                 },
             ),
         ]
         log(
             "activity-schedule supernode-max-size="
-            f"{supernode_max_size} sched_batch_max_ops={sched_batch_max_ops} "
+            f"{supernode_max_size} max_sink_supernode_op=4096 "
+            f"max_dom_sink_supernode_op=4096 enable_replication=false "
+            f"sched_batch_max_ops={sched_batch_max_ops} "
             f"sched_batch_max_estimated_lines={sched_batch_max_estimated_lines} "
             f"emit_parallelism={emit_parallelism} waveform={args.waveform} perf={args.perf}"
         )
