@@ -15,9 +15,13 @@
 | `NO0005` | `2026-04-18` | [GSim vs GrhSIM CoreMark 性能特征对齐](./NO0005_gsim_grhsim_coremark_perf_alignment_20260418.md) | 基于 `NO0001` 与 `NO0002` 的性能对齐 |
 | `NO0006` | `2026-04-18` | [GSim / GrhSIM Simulation Speed Tracking Snapshot](./NO0006_gsim_grhsim_sim_speed_tracking_20260418.md) | 基于 baseline 与性能对齐的速度快照 |
 | `NO0007` | `2026-04-18` | [GSim / GrhSIM Supernode Edge-Step Tracking Snapshot](./NO0007_gsim_grhsim_supernode_edge_step_tracking_20260418.md) | 基于双边插桩结果的结构与 step/eval 跟踪 |
+| `NO0008` | `2026-04-19` | [Activity-Schedule Topo 延后与 Supernode-DP 重构计划](./NO0008_activity_schedule_topo_refactor_plan_20260419.md) | 评估 `sink/tail` 对 topo 的真实依赖，并制定“DP 前只对 coarse supernode topo”的重构计划 |
+| `NO0009` | `2026-04-19` | [Activity-Schedule Topo 重构后性能与 Supernode 结构画像](./NO0009_activity_schedule_topo_refactor_perf_and_supernode_profile_20260419.md) | 基于本轮实现后的 XiangShan `grhsim` 构建与运行日志，固化 `tail/coarsen` 热点、special partition 占比和 final supernode 重尾结构 |
+| `NO0010` | `2026-04-19` | [当前 GrhSIM Supernode 图结构相对 GSim 的差异](./NO0010_current_grhsim_supernode_graph_vs_gsim_20260419.md) | 只看静态 supernode 图结构，聚焦“少点多边、接近 gsim 宽口径依赖图、hub 更重”的当前差异 |
+| `NO0011` | `2026-04-20` | [当前 GrhSIM XiangShan CoreMark 50k Runtime Snapshot](./NO0011_current_grhsim_xiangshan_coremark_50k_runtime_snapshot_20260420.md) | 固化当前版本 `grhsim` 在 `XiangShan coremark` 上的 `50000-cycle` 运行结果、分段推进情况和 runtime 侧基线速度 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0008`。
+- 当前下一个可用记录编号为 `NO0012`。
