@@ -1,4 +1,6 @@
-# GrhSIM Default XiangShan 结构边与 Step 激活统计（2026-04-18）
+# NO0004 GrhSIM Default XiangShan 结构边与 Step 激活统计（2026-04-18）
+
+> 归档编号：`NO0004`。目录顺序见 [`README.md`](./README.md)。
 
 本文记录一次对 `grhsim` 的机理级插桩统计，目标是回答 3 个问题：
 

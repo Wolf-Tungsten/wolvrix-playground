@@ -1,11 +1,13 @@
-# GrhSIM Default XiangShan CoreMark Baseline（2026-04-18）
+# NO0002 GrhSIM Default XiangShan CoreMark Baseline（2026-04-18）
+
+> 归档编号：`NO0002`。目录顺序见 [`README.md`](./README.md)。
 
 本文记录一次本地 `grhsim` XiangShan + `coremark` 的实测基线，尽量对齐前一份 `gsim` baseline 的测试口径，并明确记录无法完全对齐的部分。
 
 ## 口径
 
 - workload：`tmp/gsim/ready-to-run/bin/coremark-NutShell.bin`
-- 选择原因：与 [gsim_default_xiangshan_coremark_baseline_20260418.md](/home/gaoruihao/wksp/wolvrix-playground/pdocs/grhsim_opt/gsim_default_xiangshan_coremark_baseline_20260418.md) 保持同一份 `coremark` binary
+- 选择原因：与 [NO0001 GSim Default XiangShan CoreMark Baseline](./NO0001_gsim_default_xiangshan_coremark_baseline_20260418.md) 保持同一份 `coremark` binary
 - CPU 绑定：`taskset 0x1`
 - `grhsim` 运行口径：`--no-diff`
 - clean emit 目录：`tmp/grhsim_default_xiangshan_coremark_20260418`

@@ -1,6 +1,8 @@
-# GSim vs GrhSIM CoreMark 性能特征对齐（2026-04-18）
+# NO0005 GSim vs GrhSIM CoreMark 性能特征对齐（2026-04-18）
 
-本文把 [gsim_default_xiangshan_coremark_baseline_20260418.md](/home/gaoruihao/wksp/wolvrix-playground/pdocs/grhsim_opt/gsim_default_xiangshan_coremark_baseline_20260418.md) 和 [grhsim_default_xiangshan_coremark_baseline_20260418.md](/home/gaoruihao/wksp/wolvrix-playground/pdocs/grhsim_opt/grhsim_default_xiangshan_coremark_baseline_20260418.md) 放到同一口径下做对齐，目标不是重复列数字，而是回答：
+> 归档编号：`NO0005`。目录顺序见 [`README.md`](./README.md)。
+
+本文把 [NO0001 GSim Default XiangShan CoreMark Baseline](./NO0001_gsim_default_xiangshan_coremark_baseline_20260418.md) 和 [NO0002 GrhSIM Default XiangShan CoreMark Baseline](./NO0002_grhsim_default_xiangshan_coremark_baseline_20260418.md) 放到同一口径下做对齐，目标不是重复列数字，而是回答：
 
 - 两者真正的差异主要落在哪一层
 - 后续 `grhsim` 优化应该优先追什么指标

@@ -1,4 +1,6 @@
-# GSim / GrhSIM Simulation Speed Tracking Snapshot（2026-04-18）
+# NO0006 GSim / GrhSIM Simulation Speed Tracking Snapshot（2026-04-18）
+
+> 归档编号：`NO0006`。目录顺序见 [`README.md`](./README.md)。
 
 这份文档单独记录当前 `gsim` / `grhsim` commit 下的仿真速度，作为后续优化过程的速度基线。
 
@@ -58,11 +60,11 @@
 ## 数据来源
 
 - `gsim` 基线文档：
-  - `/home/gaoruihao/wksp/wolvrix-playground/pdocs/grhsim_opt/gsim_default_xiangshan_coremark_baseline_20260418.md`
+  - [NO0001 GSim Default XiangShan CoreMark Baseline](./NO0001_gsim_default_xiangshan_coremark_baseline_20260418.md)
 - `grhsim` 基线文档：
-  - `/home/gaoruihao/wksp/wolvrix-playground/pdocs/grhsim_opt/grhsim_default_xiangshan_coremark_baseline_20260418.md`
+  - [NO0002 GrhSIM Default XiangShan CoreMark Baseline](./NO0002_grhsim_default_xiangshan_coremark_baseline_20260418.md)
 - `gsim/grhsim` perf 对齐文档：
-  - `/home/gaoruihao/wksp/wolvrix-playground/pdocs/grhsim_opt/gsim_grhsim_coremark_perf_alignment_20260418.md`
+  - [NO0005 GSim vs GrhSIM CoreMark 性能特征对齐](./NO0005_gsim_grhsim_coremark_perf_alignment_20260418.md)
 
 ## 后续建议
 

@@ -1,4 +1,6 @@
-# GSim Default XiangShan Activation Instrumentation（2026-04-18）
+# NO0003 GSim Default XiangShan Activation Instrumentation（2026-04-18）
+
+> 归档编号：`NO0003`。目录顺序见 [`README.md`](./README.md)。
 
 本文记录一次对 `gsim` 的机理级插桩实验，目标是回答 3 个问题：
 
@@ -245,7 +247,7 @@ cd tmp/gsim
 - 运行日志：
   - `tmp/gsim_default_xiangshan_instrument_20260418_run.log`
 - 产物文档：
-  - `pdocs/grhsim_opt/gsim_default_xiangshan_activation_instrument_20260418.md`
+  - `pdocs/grhsim_opt/NO0003_gsim_default_xiangshan_activation_instrument_20260418.md`
 
 ## 附注
 

@@ -1,4 +1,6 @@
-# GSim / GrhSIM Supernode Edge-Step Tracking Snapshot（2026-04-18）
+# NO0007 GSim / GrhSIM Supernode Edge-Step Tracking Snapshot（2026-04-18）
+
+> 归档编号：`NO0007`。目录顺序见 [`README.md`](./README.md)。
 
 这份文档单独记录当前 `gsim` / `grhsim` 的静态 supernode 边数与 step/eval 执行统计，并绑定当前 commit，便于后续优化过程做同口径跟踪。
 
@@ -100,13 +102,13 @@
 - `gsim` 结构统计：
   - `/home/gaoruihao/wksp/wolvrix-playground/tmp/gsim_default_xiangshan_instrument_20260418/default-xiangshan/model/gsim_instrumentation_summary.txt`
 - `gsim` 机制文档：
-  - `/home/gaoruihao/wksp/wolvrix-playground/pdocs/grhsim_opt/gsim_default_xiangshan_activation_instrument_20260418.md`
+  - [NO0003 GSim Default XiangShan Activation Instrumentation](./NO0003_gsim_default_xiangshan_activation_instrument_20260418.md)
 - `grhsim` 结构统计：
   - `/home/gaoruihao/wksp/wolvrix-playground/tmp/grhsim_default_xiangshan_activity_20260418/grhsim_emit/activity_schedule_supernode_stats.json`
 - `grhsim` 运行日志：
   - `/home/gaoruihao/wksp/wolvrix-playground/tmp/grhsim_default_xiangshan_activity_20260418/logs/coremark_nutshell_30k_activity_rerun.log`
 - `grhsim` 机制文档：
-  - `/home/gaoruihao/wksp/wolvrix-playground/pdocs/grhsim_opt/grhsim_default_xiangshan_activation_instrument_20260418.md`
+  - [NO0004 GrhSIM Default XiangShan 结构边与 Step 激活统计](./NO0004_grhsim_default_xiangshan_activation_instrument_20260418.md)
 
 ## 后续建议
 

@@ -1,4 +1,6 @@
-# GSim Default XiangShan CoreMark Baseline（2026-04-18）
+# NO0001 GSim Default XiangShan CoreMark Baseline（2026-04-18）
+
+> 归档编号：`NO0001`。目录顺序见 [`README.md`](./README.md)。
 
 本文记录一次本地 `gsim` `default-xiangshan` + `coremark` 的实测基线，作为后续 `grhsim` 优化的对照参考。
 
