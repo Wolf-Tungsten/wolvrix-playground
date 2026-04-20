@@ -21,9 +21,13 @@
 | `NO0011` | `2026-04-20` | [当前 GrhSIM XiangShan CoreMark 50k Runtime Snapshot](./NO0011_current_grhsim_xiangshan_coremark_50k_runtime_snapshot_20260420.md) | 固化当前版本 `grhsim` 在 `XiangShan coremark` 上的 `50000-cycle` 运行结果、分段推进情况和 runtime 侧基线速度 |
 | `NO0012` | `2026-04-20` | [当前 GrhSIM XiangShan CoreMark 30k Smoke Runtime Snapshot](./NO0012_current_grhsim_xiangshan_coremark_30k_smoke_runtime_snapshot_20260420.md) | 固化最近 emitter 调整之后的 `30000-cycle` bounded smoke run，记录稳定性、分段推进和当前 runtime 速度特征 |
 | `NO0013` | `2026-04-20` | [当前 GrhSIM XiangShan CoreMark 50k Aligned Rerun](./NO0013_current_grhsim_xiangshan_coremark_50k_aligned_rerun_20260420.md) | 严格按 `NO0011` 的 `50000-cycle` 口径复测最近 emitter 修改后的版本，确认功能仍对齐，但 runtime 性能相对旧基线明显回退 |
+| `NO0014` | `2026-04-20` | [Persistent Wide BitInt Storage 50k Alignment](./NO0014_persistent_wide_bitint_storage_50k_alignment_20260420.md) | 记录把宽 `persistent value/state` 切到 `_BitInt` 存储后的 `50k-cycle` 对齐复测，确认功能仍对齐，并回收了相对 `NO0013` 的部分性能回退 |
+| `NO0015` | `2026-04-20` | [Remove BitInt Words-Only 50k Alignment](./NO0015_remove_bitint_words_only_50k_alignment_20260420.md) | 记录把宽值 `_BitInt` 路线完全移除、统一回到 pure words helper 后的 `50k-cycle` 对齐复测，确认功能仍对齐，并进一步优于 `NO0014` |
+| `NO0016` | `2026-04-20` | [Disable Single-User Inline 50k Alignment](./NO0016_disable_single_user_inline_50k_alignment_20260420.md) | 记录在保持 words-only 路线不变时，仅关闭 single-user supernode local 内联并恢复显式 `local_value_` 后的 `50k-cycle` 对齐复测，确认功能仍对齐，但 runtime 相对 `NO0015` 再次回退 |
+| `NO0017` | `2026-04-20` | [Current Words-Only Selective-Inline 59k Snapshot](./NO0017_current_words_selective_inline_59k_snapshot_20260420.md) | 固化当前“去掉 `_BitInt`、宽值保留必要 local value、只内联 cheap scalar”的语义状态，并记录对应的 XiangShan `59000-cycle` 运行快照 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0014`。
+- 当前下一个可用记录编号为 `NO0018`。
