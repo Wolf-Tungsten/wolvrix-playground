@@ -19,9 +19,11 @@
 | `NO0009` | `2026-04-19` | [Activity-Schedule Topo 重构后性能与 Supernode 结构画像](./NO0009_activity_schedule_topo_refactor_perf_and_supernode_profile_20260419.md) | 基于本轮实现后的 XiangShan `grhsim` 构建与运行日志，固化 `tail/coarsen` 热点、special partition 占比和 final supernode 重尾结构 |
 | `NO0010` | `2026-04-19` | [当前 GrhSIM Supernode 图结构相对 GSim 的差异](./NO0010_current_grhsim_supernode_graph_vs_gsim_20260419.md) | 只看静态 supernode 图结构，聚焦“少点多边、接近 gsim 宽口径依赖图、hub 更重”的当前差异 |
 | `NO0011` | `2026-04-20` | [当前 GrhSIM XiangShan CoreMark 50k Runtime Snapshot](./NO0011_current_grhsim_xiangshan_coremark_50k_runtime_snapshot_20260420.md) | 固化当前版本 `grhsim` 在 `XiangShan coremark` 上的 `50000-cycle` 运行结果、分段推进情况和 runtime 侧基线速度 |
+| `NO0012` | `2026-04-20` | [当前 GrhSIM XiangShan CoreMark 30k Smoke Runtime Snapshot](./NO0012_current_grhsim_xiangshan_coremark_30k_smoke_runtime_snapshot_20260420.md) | 固化最近 emitter 调整之后的 `30000-cycle` bounded smoke run，记录稳定性、分段推进和当前 runtime 速度特征 |
+| `NO0013` | `2026-04-20` | [当前 GrhSIM XiangShan CoreMark 50k Aligned Rerun](./NO0013_current_grhsim_xiangshan_coremark_50k_aligned_rerun_20260420.md) | 严格按 `NO0011` 的 `50000-cycle` 口径复测最近 emitter 修改后的版本，确认功能仍对齐，但 runtime 性能相对旧基线明显回退 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0012`。
+- 当前下一个可用记录编号为 `NO0014`。
