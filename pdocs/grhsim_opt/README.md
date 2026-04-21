@@ -27,9 +27,10 @@
 | `NO0017` | `2026-04-20` | [Current Words-Only Selective-Inline 59k Snapshot](./NO0017_current_words_selective_inline_59k_snapshot_20260420.md) | 固化当前“去掉 `_BitInt`、宽值保留必要 local value、只内联 cheap scalar”的语义状态，并记录对应的 XiangShan `59000-cycle` 运行快照 |
 | `NO0018` | `2026-04-20` | [Pre-Coarsen State-Read Tail-Absorb Plan](./NO0018_pre_coarsen_state_read_tail_absorb_plan_20260420.md) | 记录把 `register/latch read` 的吸收复制前移到 `initialPartition` 之后、coarsen / DP 之前的实现计划，目标是消掉中间 read-head supernode |
 | `NO0019` | `2026-04-20` | [GrhSIM Value/State Slot Static-Array Plan](./NO0019_grhsim_value_state_slot_static_array_plan_20260420.md) | 规划把生成头文件中的 `value` / `state` slot 从 `std::vector` 改为 `std::array`，并为 memory state 引入 row-aware 静态分桶 |
+| `NO0020` | `2026-04-21` | [Batch Merge Precise Dispatch 50k Alignment](./NO0020_batch_merge_precise_dispatch_50k_alignment_20260421.md) | 记录 XiangShan batching 合并后的两轮 `50k` 复测，确认“全扫 batch”会导致回退，而“按 active word 即时派发”能在保持合批的同时把 `50k` 速度提升到 `100.94 cycles/s` |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0020`。
+- 当前下一个可用记录编号为 `NO0021`。
