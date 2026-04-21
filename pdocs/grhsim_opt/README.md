@@ -28,6 +28,7 @@
 | `NO0018` | `2026-04-20` | [Pre-Coarsen State-Read Tail-Absorb Plan](./NO0018_pre_coarsen_state_read_tail_absorb_plan_20260420.md) | 记录把 `register/latch read` 的吸收复制前移到 `initialPartition` 之后、coarsen / DP 之前的实现计划，目标是消掉中间 read-head supernode |
 | `NO0019` | `2026-04-20` | [GrhSIM Value/State Slot Static-Array Plan](./NO0019_grhsim_value_state_slot_static_array_plan_20260420.md) | 规划把生成头文件中的 `value` / `state` slot 从 `std::vector` 改为 `std::array`，并为 memory state 引入 row-aware 静态分桶 |
 | `NO0020` | `2026-04-21` | [Batch Merge Precise Dispatch 50k Alignment](./NO0020_batch_merge_precise_dispatch_50k_alignment_20260421.md) | 记录 XiangShan batching 合并后的两轮 `50k` 复测，确认“全扫 batch”会导致回退，而“按 active word 即时派发”能在保持合批的同时把 `50k` 速度提升到 `100.94 cycles/s` |
+| `NO0021` | `2026-04-21` | [Batch Merge Precise Dispatch 400 Target](./NO0021_batch_merge_precise_dispatch_400_target_20260421.md) | 延续 `NO0020` 将 `targetBatchCount` 降到 `400`（实际 432 batches）的实验，确认运行性能回退到 `92.83 cycles/s`，当前最优配置仍为 `800` |
 
 ## 编号说明
 
