@@ -173,6 +173,7 @@ def main() -> int:
     supernode_max_size = env_int("WOLVRIX_XS_GRHSIM_SUPERNODE_MAX_SIZE", 72)
     sched_batch_max_ops = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_OPS", 2048)
     sched_batch_max_estimated_lines = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES", 8192)
+    sched_batch_target_count = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_TARGET_COUNT", 0)
     emit_parallelism = env_int("WOLVRIX_XS_GRHSIM_EMIT_PARALLELISM", 8)
 
     total_start = time.perf_counter()
@@ -233,6 +234,7 @@ def main() -> int:
             f"enable_replication=false "
             f"sched_batch_max_ops={sched_batch_max_ops} "
             f"sched_batch_max_estimated_lines={sched_batch_max_estimated_lines} "
+            f"sched_batch_target_count={sched_batch_target_count} "
             f"emit_parallelism={emit_parallelism} waveform={args.waveform} perf={args.perf}"
         )
 
@@ -285,6 +287,7 @@ def main() -> int:
             top=[top_name],
             sched_batch_max_ops=sched_batch_max_ops,
             sched_batch_max_estimated_lines=sched_batch_max_estimated_lines,
+            sched_batch_target_count=sched_batch_target_count,
             emit_parallelism=emit_parallelism,
             waveform=args.waveform,
             perf=args.perf,
