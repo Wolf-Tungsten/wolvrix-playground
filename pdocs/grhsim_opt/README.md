@@ -30,9 +30,11 @@
 | `NO0020` | `2026-04-21` | [Batch Merge Precise Dispatch 50k Alignment](./NO0020_batch_merge_precise_dispatch_50k_alignment_20260421.md) | 记录 XiangShan batching 合并后的两轮 `50k` 复测，确认“全扫 batch”会导致回退，而“按 active word 即时派发”能在保持合批的同时把 `50k` 速度提升到 `100.94 cycles/s` |
 | `NO0021` | `2026-04-21` | [Batch Merge Precise Dispatch 400 Target](./NO0021_batch_merge_precise_dispatch_400_target_20260421.md) | 延续 `NO0020` 将 `targetBatchCount` 降到 `400`（实际 432 batches）的实验，确认运行性能回退到 `92.83 cycles/s`，当前最优配置仍为 `800` |
 | `NO0022` | `2026-04-21` | [GrhSIM Goto → `if (unlikely)` 分支提示优化](./NO0022_grhsim_goto_to_unlikely_branch_hint_20260421.md) | 将 grhsim 生成的活性跳过从 `goto` 改写为 `if (unlikely(...))` 包裹风格，50k 性能从 `109.15 cycles/s` 提升到 `115.42 cycles/s`（+5.74%） |
+| `NO0023` | `2026-04-23` | [GrhSIM Compute-Commit Two-Phase Eval Plan](./NO0023_grhsim_compute_commit_two_phase_eval_plan_20260423.md) | 细化 `sink supernode` 覆盖核对与新的 `compute/commit` 双阶段 `eval` 方案，目标是移除不必要的 `commit shadow` 并保留单次 `eval` 内的 fixed-point 收敛语义 |
+| `NO0024` | `2026-04-23` | [GrhSIM XiangShan Fresh Re-emit / Rebuild 50k Snapshot](./NO0024_grhsim_xiangshan_fresh_reemit_rebuild_50k_snapshot_20260423.md) | 记录一次从空 `grhsim` 产物开始的 fresh `emit -> build -> 50k` 复测，确认新 `emu` 可运行且功能正确，但本轮 runtime 含意外调试打印，速度值先视为污染下快照 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0021`。
+- 当前下一个可用记录编号为 `NO0025`。
