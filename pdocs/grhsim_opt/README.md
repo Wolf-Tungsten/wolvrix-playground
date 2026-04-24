@@ -33,9 +33,14 @@
 | `NO0023` | `2026-04-23` | [GrhSIM Compute-Commit Two-Phase Eval Plan](./NO0023_grhsim_compute_commit_two_phase_eval_plan_20260423.md) | 细化 `sink supernode` 覆盖核对与新的 `compute/commit` 双阶段 `eval` 方案，目标是移除不必要的 `commit shadow` 并保留单次 `eval` 内的 fixed-point 收敛语义 |
 | `NO0024` | `2026-04-23` | [GrhSIM XiangShan Fresh Re-emit / Rebuild 50k Snapshot](./NO0024_grhsim_xiangshan_fresh_reemit_rebuild_50k_snapshot_20260423.md) | 记录一次从空 `grhsim` 产物开始的 fresh `emit -> build -> 50k` 复测，确认新 `emu` 可运行且功能正确，但本轮 runtime 含意外调试打印，速度值先视为污染下快照 |
 | `NO0025` | `2026-04-23` | [GrhSIM Packed Value Storage Plan](./NO0025_grhsim_packed_value_storage_plan_20260423.md) | 规划把 `grhsim` emitter 中按类型/宽度分桶展开的 logic value storage 收敛为 packed arena，并用 `constexpr layout metadata + inline accessor` 取代分散字段与裸宏强转 |
+| `NO0026` | `2026-04-24` | [GrhSIM Emit `.o` MTime Compile Tail Snapshot](./NO0026_grhsim_emit_o_mtime_compile_tail_snapshot_20260424.md) | 只用 `build/xs/grhsim/grhsim_emit` 下 `.o` 文件的 `mtime` 做一次拖尾排序快照，确认当前总墙钟时间主要被少量尾部 `sched_9xx` 和 `state_init_2.o` 拖长 |
+| `NO0027` | `2026-04-24` | [GrhSIM Emit Real Compile Time Snapshot](./NO0027_grhsim_emit_real_compile_time_snapshot_20260424.md) | 在 `max_sink_supernode_op=768` 的 fresh re-emit 基础上，用 `clang + PCH + compile wrapper` 记录每个编译单元的真实编译耗时，确认当前最慢文件已扩散到一整段 `sched_9xx~13xx` 重尾，而不是只剩 `sched_945.cpp` |
+| `NO0028` | `2026-04-24` | [GrhSIM Emit Tail Compile Root Cause](./NO0028_grhsim_emit_tail_compile_root_cause_20260424.md) | 继续剖析“长度相近但后段 `sched` 文件异常慢”的根因，确认主瓶颈是 `event guard + side effect + masked commit write` 叠加后触发 LLVM `GVNPass` / MemorySSA 退化，而不是头文件解析或纯文本长度 |
+| `NO0029` | `2026-04-24` | [Sink Supernode Event Cluster Plan](./NO0029_sink_supernode_event_cluster_plan_20260424.md) | 细化“在 sink supernode 生成阶段按 event guard 聚类”的设计，目标是把 event guard 提升为外层统一分组条件，降低 guard 类型数、重复判断和 CFG 分裂，并为后续 guard-aware chunking 提供实施规则 |
+| `NO0030` | `2026-04-24` | [Sched 124 LLVM IR / `GVN` + `MemoryDependence` Root Cause 与优化计划](./NO0030_sched124_llvm_ir_gvn_memdep_root_cause_20260424.md) | 针对 `grhsim_SimTop_sched_124.cpp` 做单文件 `clang++`、`gdb attach` 与 raw LLVM IR 分析，确认当前拖尾根因已经下沉到 `eval_batch_124` 的超大 IR、lambda thunk、`std::array::operator[]` 调用和 `GVN + MemoryDependence + TBAA alias` 组合爆炸 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0026`。
+- 当前下一个可用记录编号为 `NO0031`。

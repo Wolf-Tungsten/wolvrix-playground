@@ -221,7 +221,7 @@ def main() -> int:
                         "-supernode-max-size",
                         str(supernode_max_size),
                         "-max-sink-supernode-op",
-                        "4096",
+                        "768",
                         "-enable-replication",
                         "false",
                     ]
@@ -230,7 +230,7 @@ def main() -> int:
         ]
         log(
             "activity-schedule supernode-max-size="
-            f"{supernode_max_size} max_sink_supernode_op=4096 "
+            f"{supernode_max_size} max_sink_supernode_op=768 "
             f"enable_replication=false "
             f"sched_batch_max_ops={sched_batch_max_ops} "
             f"sched_batch_max_estimated_lines={sched_batch_max_estimated_lines} "
