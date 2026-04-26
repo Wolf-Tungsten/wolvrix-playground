@@ -31,6 +31,7 @@ with wolvrix.Session() as sess:
     sess.run_pass("multidriven-guard", design="design.main")
     sess.run_pass("latch-transparent-read", design="design.main")
     sess.run_pass("hier-flatten", design="design.main", sym_protect="hierarchy")
+    sess.run_pass("comb-lane-pack", design="design.main")
     sess.run_pass("comb-loop-elim", design="design.main")
     sess.run_pass("simplify", design="design.main")
     sess.run_pass("memory-init-check", design="design.main")

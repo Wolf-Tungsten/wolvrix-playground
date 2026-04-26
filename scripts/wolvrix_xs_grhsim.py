@@ -143,6 +143,13 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
     log(f"activity-schedule supernode stats written {out_path}")
 
 
+def write_comb_lane_pack_report(sess: wolvrix.Session, key: str, out_path: Path) -> None:
+    raw = _native.session_export(sess._capsule, key=key, view="python")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(raw, indent=2, sort_keys=True), encoding="utf-8")
+    log(f"comb-lane-pack report written {out_path} groups={len(raw)}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("filelist")
@@ -175,6 +182,11 @@ def main() -> int:
     sched_batch_max_estimated_lines = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES", 8192)
     sched_batch_target_count = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_TARGET_COUNT", 800)
     emit_parallelism = env_int("WOLVRIX_XS_GRHSIM_EMIT_PARALLELISM", 8)
+    stop_after_pre_sched = env_flag("WOLVRIX_XS_GRHSIM_STOP_AFTER_PRE_SCHED", default=False)
+    comb_lane_pack_report = os.environ.get(
+        "WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_REPORT",
+        str(cpp_out_dir.parent / "comb_lane_pack_report_xs.json"),
+    )
 
     total_start = time.perf_counter()
 
@@ -201,6 +213,13 @@ def main() -> int:
             ("blackbox-guard", {}),
             ("latch-transparent-read", {}),
             ("hier-flatten", {}),
+            (
+                "comb-lane-pack",
+                {
+                    "enable_declared_roots": False,
+                    "out_comb_lane_pack_report": "comb-lane-pack.reports",
+                },
+            ),
             ("comb-loop-elim", {}),
             ("simplify", {"semantics": "2state"}),
             ("memory-init-check", {}),
@@ -262,10 +281,17 @@ def main() -> int:
                 log(f"pass {pass_name} start")
                 diags = sess.run_pass(pass_name, design="design.main", **pass_kwargs)
                 require_ok(diags, f"pass {pass_name}")
+                if pass_name == "comb-lane-pack":
+                    write_comb_lane_pack_report(sess, "comb-lane-pack.reports", Path(comb_lane_pack_report))
                 if pass_name == "stats":
                     write_stats_json(sess, "stats.main", cpp_out_dir)
                     write_design_json(sess, "design.main", top_name, post_stats_json, "write_post_stats_json")
                 log(f"pass {pass_name} done {int((time.perf_counter() - start) * 1000)}ms")
+
+        if stop_after_pre_sched:
+            log("stop after pre-sched enabled")
+            log(f"total done {int((time.perf_counter() - total_start) * 1000)}ms")
+            return 0
 
         for pass_name, pass_kwargs in post_sched_pipeline:
             start = time.perf_counter()

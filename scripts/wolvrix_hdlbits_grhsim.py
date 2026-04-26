@@ -51,6 +51,7 @@ def run_pipeline(dut_path: Path, out_dir: Path, waveform_mode: str | None, perf_
         sess.run_pass("multidriven-guard", design="design.main")
         sess.run_pass("latch-transparent-read", design="design.main")
         sess.run_pass("hier-flatten", design="design.main", sym_protect="hierarchy")
+        sess.run_pass("comb-lane-pack", design="design.main")
         sess.run_pass("comb-loop-elim", design="design.main")
         sess.run_pass("slice-index-const", design="design.main")
         # simplify already bundles const-fold + redundant-elim + dead-code-elim.
