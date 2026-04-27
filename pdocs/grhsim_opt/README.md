@@ -39,9 +39,11 @@
 | `NO0029` | `2026-04-24` | [Sink Supernode Event Cluster Plan](./NO0029_sink_supernode_event_cluster_plan_20260424.md) | 细化“在 sink supernode 生成阶段按 event guard 聚类”的设计，目标是把 event guard 提升为外层统一分组条件，降低 guard 类型数、重复判断和 CFG 分裂，并为后续 guard-aware chunking 提供实施规则 |
 | `NO0030` | `2026-04-24` | [Sched 124 LLVM IR / `GVN` + `MemoryDependence` Root Cause 与优化计划](./NO0030_sched124_llvm_ir_gvn_memdep_root_cause_20260424.md) | 针对 `grhsim_SimTop_sched_124.cpp` 做单文件 `clang++`、`gdb attach` 与 raw LLVM IR 分析，确认当前拖尾根因已经下沉到 `eval_batch_124` 的超大 IR、lambda thunk、`std::array::operator[]` 调用和 `GVN + MemoryDependence + TBAA alias` 组合爆炸 |
 | `NO0031` | `2026-04-27` | [GrhSIM Single Value Storage Plan](./NO0031_grhsim_single_value_storage_plan_20260427.md) | 回退“一个 value 一个成员变量”的 emitter 方向，收敛为单一 `value_storage_`，并明确 `4/8/words` 的布局、对齐、declared symbol 策略，以及和 `gsim` 宽度/存储风格的差异 |
+| `NO0032` | `2026-04-27` | [GrhSIM Single Value Storage State-Anchor 50k Snapshot](./NO0032_grhsim_single_value_storage_state_anchor_50k_snapshot_20260427.md) | 固化 `NO0031` 落地后的当前可用版本，确认 `state` 保持稳定布局、`value` 按 `state anchor` 重排的策略可稳定运行 `XiangShan coremark 50k`，当前速度为 `86.19 cycles/s` |
+| `NO0033` | `2026-04-27` | [Activity-Schedule Simplification Plan](./NO0033_activity_schedule_simplification_plan_20260427.md) | 规划收窄 `sink supernode` 语义、移除 `tail-supernode` 主路径，并把当前 `coarsen` 从多条局部规则 fixed-point 迭代收敛为更统一、可度量的 cluster merge 主路径 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0032`。
+- 当前下一个可用记录编号为 `NO0034`。
