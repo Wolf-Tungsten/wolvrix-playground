@@ -38,9 +38,10 @@
 | `NO0028` | `2026-04-24` | [GrhSIM Emit Tail Compile Root Cause](./NO0028_grhsim_emit_tail_compile_root_cause_20260424.md) | 继续剖析“长度相近但后段 `sched` 文件异常慢”的根因，确认主瓶颈是 `event guard + side effect + masked commit write` 叠加后触发 LLVM `GVNPass` / MemorySSA 退化，而不是头文件解析或纯文本长度 |
 | `NO0029` | `2026-04-24` | [Sink Supernode Event Cluster Plan](./NO0029_sink_supernode_event_cluster_plan_20260424.md) | 细化“在 sink supernode 生成阶段按 event guard 聚类”的设计，目标是把 event guard 提升为外层统一分组条件，降低 guard 类型数、重复判断和 CFG 分裂，并为后续 guard-aware chunking 提供实施规则 |
 | `NO0030` | `2026-04-24` | [Sched 124 LLVM IR / `GVN` + `MemoryDependence` Root Cause 与优化计划](./NO0030_sched124_llvm_ir_gvn_memdep_root_cause_20260424.md) | 针对 `grhsim_SimTop_sched_124.cpp` 做单文件 `clang++`、`gdb attach` 与 raw LLVM IR 分析，确认当前拖尾根因已经下沉到 `eval_batch_124` 的超大 IR、lambda thunk、`std::array::operator[]` 调用和 `GVN + MemoryDependence + TBAA alias` 组合爆炸 |
+| `NO0031` | `2026-04-27` | [GrhSIM Single Value Storage Plan](./NO0031_grhsim_single_value_storage_plan_20260427.md) | 回退“一个 value 一个成员变量”的 emitter 方向，收敛为单一 `value_storage_`，并明确 `4/8/words` 的布局、对齐、declared symbol 策略，以及和 `gsim` 宽度/存储风格的差异 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0031`。
+- 当前下一个可用记录编号为 `NO0032`。
