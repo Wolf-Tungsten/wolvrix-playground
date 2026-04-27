@@ -41,9 +41,10 @@
 | `NO0031` | `2026-04-27` | [GrhSIM Single Value Storage Plan](./NO0031_grhsim_single_value_storage_plan_20260427.md) | 回退“一个 value 一个成员变量”的 emitter 方向，收敛为单一 `value_storage_`，并明确 `4/8/words` 的布局、对齐、declared symbol 策略，以及和 `gsim` 宽度/存储风格的差异 |
 | `NO0032` | `2026-04-27` | [GrhSIM Single Value Storage State-Anchor 50k Snapshot](./NO0032_grhsim_single_value_storage_state_anchor_50k_snapshot_20260427.md) | 固化 `NO0031` 落地后的当前可用版本，确认 `state` 保持稳定布局、`value` 按 `state anchor` 重排的策略可稳定运行 `XiangShan coremark 50k`，当前速度为 `86.19 cycles/s` |
 | `NO0033` | `2026-04-27` | [Activity-Schedule Simplification Plan](./NO0033_activity_schedule_simplification_plan_20260427.md) | 规划收窄 `sink supernode` 语义、移除 `tail-supernode` 主路径，并把当前 `coarsen` 从多条局部规则 fixed-point 迭代收敛为更统一、可度量的 cluster merge 主路径 |
+| `NO0034` | `2026-04-27` | [Sink Activation Event-Delta Narrowing Plan](./NO0034_sink_activation_event_delta_plan_20260427.md) | 细化对 `kRegisterWritePort` / `kMemoryWritePort` 的 sink 激活收窄方案；`2026-04-28` 已追加实现复测结论，确认收益仅约 `+1.75%`、复杂度偏高，代码实现已撤回 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0034`。
+- 当前下一个可用记录编号为 `NO0035`。
