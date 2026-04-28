@@ -14,3 +14,6 @@
 	url = https://github.com/OpenXiangShan/XiangShan.git
 	branch = dev-wolvrix
 
+[submodule "reference/gsim"]
+	path = reference/gsim
+	url = https://github.com/OpenXiangShan/gsim.git

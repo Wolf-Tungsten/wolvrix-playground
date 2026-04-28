@@ -84,6 +84,8 @@ XS_ROOT := $(CURDIR)/testcase/xiangshan
 XS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_emit.py
 XS_WOLVRIX_GRHSIM_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_grhsim.py
 XS_WOLVRIX_REPCUT_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_repcut.py
+REF_GSIM_ROOT ?= $(CURDIR)/reference/gsim
+REF_GSIM_BIN ?= $(REF_GSIM_ROOT)/build/gsim/gsim
 
 XS_SIM_MAX_CYCLE ?= 0
 XS_WAVEFORM ?= 0
@@ -120,6 +122,7 @@ XS_WAVEFORM_PATH_ABS = $(if $(XS_WAVEFORM_PATH),$(if $(filter /%,$(XS_WAVEFORM_P
 XS_WORK_BASE ?= $(BUILD_DIR)/xs
 XS_RTL_BUILD ?= $(XS_WORK_BASE)/rtl
 XS_REF_BUILD ?= $(XS_WORK_BASE)/ref
+XS_GSIM_BUILD ?= $(XS_WORK_BASE)/gsim
 XS_WOLF_BUILD ?= $(XS_WORK_BASE)/wolf
 XS_GRHSIM_BUILD ?= $(XS_WORK_BASE)/grhsim
 XS_REPCUT_BUILD ?= $(XS_WORK_BASE)/repcut
@@ -137,6 +140,7 @@ XS_ROOT_ABS := $(abspath $(XS_ROOT))
 XS_NOOP_HOME ?= $(XS_ROOT_ABS)
 XS_RTL_BUILD_ABS := $(abspath $(XS_RTL_BUILD))
 XS_REF_BUILD_ABS := $(abspath $(XS_REF_BUILD))
+XS_GSIM_BUILD_ABS := $(abspath $(XS_GSIM_BUILD))
 XS_WOLF_BUILD_ABS := $(abspath $(XS_WOLF_BUILD))
 XS_GRHSIM_BUILD_ABS := $(abspath $(XS_GRHSIM_BUILD))
 XS_RTL_DIR_ABS := $(abspath $(XS_RTL_DIR))
@@ -147,6 +151,7 @@ XS_WOLF_FILELIST_ABS := $(abspath $(XS_WOLF_FILELIST))
 XS_WOLF_GRHSIM_EMIT_DIR_ABS := $(abspath $(XS_WOLF_GRHSIM_EMIT_DIR))
 XS_WOLF_GRHSIM_POST_STATS_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_POST_STATS_JSON))
 XS_SIM_TOP_V := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).$(XS_RTL_SUFFIX)
+XS_SIM_TOP_FIR := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).fir
 XS_WOLF_JSON ?= $(XS_WOLF_EMIT_DIR_ABS)/xs_wolf.json
 XS_WOLF_GRHSIM_JSON ?= $(XS_WOLF_GRHSIM_EMIT_DIR_ABS)/xs_wolf_grhsim.json
 XS_WOLF_GRHSIM_SUPERNODE_MAX_SIZE ?= 72
@@ -175,6 +180,7 @@ XS_WOLF_INCLUDE_DIRS ?= $(XS_RTL_DIR_ABS) $(XS_VSRC_DIR_ABS) $(XS_DIFFTEST_GEN_D
 XS_WOLF_INCLUDE_FLAGS := $(foreach d,$(XS_WOLF_INCLUDE_DIRS),-I $(d))
 XS_WOLF_DEFINE_FLAGS := $(foreach d,$(XS_SIM_DEFINES),-D "$(d)")
 XS_DIFFTEST_MACROS := $(XS_ROOT)/build/generated-src/DifftestMacros.svh
+XS_GSIM_BIN ?= $(REF_GSIM_BIN)
 
 # HDLBits paths
 HDLBITS_DUT_SRC := $(HDLBITS_ROOT)/dut/dut_$(DUT).v
@@ -193,14 +199,15 @@ HDLBITS_GRHTB_SOURCES := $(wildcard $(HDLBITS_ROOT)/grhtb/grhtb_*.cpp)
 HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS_GRHTB_SOURCES)))))
 
 .PHONY: all build init_submodule check_id run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
-	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_grhsim_emit xs_ref_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
-	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff clean
+	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
+	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff clean
 
 all: build
 
 init_submodule:
 	@git submodule update --init --recursive wolvrix testcase/hdlbits testcase/openc910
 	@git submodule update --init testcase/xiangshan
+	@git submodule update --init reference/gsim
 	@$(MAKE) --no-print-directory -C testcase/xiangshan init
 
 check_id:
@@ -686,6 +693,38 @@ xs_ref_emu: $(XS_SIM_TOP_V)
 		$(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,) \
 		2>&1 | tee "$(XS_BUILD_LOG_FILE)"
 
+xs_gsim_emu: $(XS_SIM_TOP_V)
+	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
+		$(MAKE) --no-print-directory -B xs_rtl; \
+	fi
+	@if [ ! -x "$(XS_GSIM_BIN)" ] && [ -f "$(REF_GSIM_ROOT)/Makefile" ]; then \
+		echo "[RUN] Building reference gsim..."; \
+		$(MAKE) --no-print-directory -C "$(REF_GSIM_ROOT)" build-gsim; \
+	fi
+	@echo "[RUN] Building XiangShan gsim emu..."
+	@mkdir -p "$(XS_LOG_DIR_ABS)"
+	@$(eval RUN_ID := $(if $(RUN_ID),$(RUN_ID),$(shell date +%Y%m%d_%H%M%S)))
+	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_gsim_build_$(RUN_ID).log)
+	@echo "[LOG] Capturing build output to: $(XS_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_BUILD_LOG_FILE)"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) $(if $(strip $(XS_VM_BUILD_JOBS)),-j $(XS_VM_BUILD_JOBS),) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_GSIM_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_RTL_DIR_ABS) SIM_TOP_V=$(XS_SIM_TOP_V) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) EMU_RANDOMIZE=0 WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) GSIM=1 GSIM_BIN=$(XS_GSIM_BIN)" | tee -a "$(XS_BUILD_LOG_FILE)"
+	NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) $(if $(strip $(XS_VM_BUILD_JOBS)),-j $(XS_VM_BUILD_JOBS),) -C $(XS_ROOT)/difftest emu \
+		BUILD_DIR=$(XS_GSIM_BUILD_ABS) \
+		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		RTL_DIR=$(XS_RTL_DIR_ABS) \
+		SIM_TOP_V=$(XS_SIM_TOP_V) \
+		NUM_CORES=$(XS_NUM_CORES) \
+		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
+		EMU_THREADS=$(XS_EMU_THREADS) \
+		VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) \
+		EMU_RANDOMIZE=0 \
+		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
+		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
+		GSIM=1 \
+		GSIM_BIN="$(XS_GSIM_BIN)" \
+		2>&1 | tee "$(XS_BUILD_LOG_FILE)"
+
 xs_wolf_emu: xs_wolf_emit
 	@echo "[RUN] Building XiangShan wolf emu..."
 	@mkdir -p "$(XS_LOG_DIR_ABS)"
@@ -733,6 +772,7 @@ xs_wolf_grhsim_emu: xs_wolf_grhsim_emit
 
 xs_diff_clean:
 	rm -rf "$(XS_REF_BUILD_ABS)/verilator-compile" \
+		"$(XS_GSIM_BUILD_ABS)/gsim-compile" \
 		"$(XS_WOLF_BUILD_ABS)/verilator-compile" \
 		"$(XS_GRHSIM_BUILD_ABS)/grhsim-compile" \
 		"$(XS_WOLF_EMIT_DIR_ABS)" \
@@ -767,6 +807,29 @@ run_xs_ref_emu:
 			$(if $(filter 1,$(XS_WAVEFORM)),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) \
 			$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$REF_WAVEFORM,) \
 			2>&1 | tee "$$REF_LOG"
+
+run_xs_gsim_emu:
+	@if [ "$(XS_WAVEFORM)" != "0" ] || [ -n "$(XS_WAVEFORM_PATH)" ]; then \
+		echo "[FAIL] xs gsim: waveform is unsupported in the current gsim simulator path"; \
+		exit 1; \
+	fi
+	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
+	LOG_DIR="$(XS_LOG_DIR_ABS)"; \
+	mkdir -p "$$LOG_DIR"; \
+	GSIM_LOG="$$LOG_DIR/xs_gsim_$${RUN_ID}.log"; \
+	printf '' > "$$GSIM_LOG"; \
+	echo "[RUN] xs gsim emu"; \
+		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_COMMIT_TRACE=$(XS_COMMIT_TRACE) XS_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) XS_LOG_BEGIN=$(XS_LOG_BEGIN) XS_LOG_END=$(XS_LOG_END)"; \
+		echo "[LOG] gsim: $$GSIM_LOG"; \
+		echo "[CMD] cd $(XS_GSIM_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,)"; \
+		cd $(XS_GSIM_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES="$(XS_PROGRESS_EVERY_CYCLES)" $(XS_EMU_PREFIX) ./emu \
+			-i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin \
+			--diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so \
+			-b $(XS_LOG_BEGIN) -e $(XS_LOG_END) \
+			$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) \
+			$(XS_RAM_TRACE_ARGS) \
+			$(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) \
+			2>&1 | tee "$$GSIM_LOG"
 
 run_xs_wolf_emu:
 	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \

@@ -42,9 +42,12 @@
 | `NO0032` | `2026-04-27` | [GrhSIM Single Value Storage State-Anchor 50k Snapshot](./NO0032_grhsim_single_value_storage_state_anchor_50k_snapshot_20260427.md) | 固化 `NO0031` 落地后的当前可用版本，确认 `state` 保持稳定布局、`value` 按 `state anchor` 重排的策略可稳定运行 `XiangShan coremark 50k`，当前速度为 `86.19 cycles/s` |
 | `NO0033` | `2026-04-27` | [Activity-Schedule Simplification Plan](./NO0033_activity_schedule_simplification_plan_20260427.md) | 规划收窄 `sink supernode` 语义、移除 `tail-supernode` 主路径，并把当前 `coarsen` 从多条局部规则 fixed-point 迭代收敛为更统一、可度量的 cluster merge 主路径 |
 | `NO0034` | `2026-04-27` | [Sink Activation Event-Delta Narrowing Plan](./NO0034_sink_activation_event_delta_plan_20260427.md) | 细化对 `kRegisterWritePort` / `kMemoryWritePort` 的 sink 激活收窄方案；`2026-04-28` 已追加实现复测结论，确认收益仅约 `+1.75%`、复杂度偏高，代码实现已撤回 |
+| `NO0035` | `2026-04-28` | [GrhSIM Compute / Commit 计时拆解与 3kHz 目标差距](./NO0035_grhsim_compute_commit_perf_breakdown_3khz_gap_20260428.md) | 基于带 `eval` perf trace 的 `XiangShan coremark 50k` 复测，拆出 `compute` / `commit` 的平均耗时、batch 热点、`round 1/2` 占比，并明确当前距离 `3 kHz` 目标的数量级差距 |
+| `NO0036` | `2026-04-28` | [GrhSIM 3kHz Runtime Optimization Plan](./NO0036_grhsim_3khz_runtime_optimization_plan_20260428.md) | 基于 `NO0035` 的瓶颈拆解，给出面向 `3 kHz` 目标的实施路线，按 `baseline -> commit 框架 -> compute 热 batch -> 整机外围` 四条主线组织工作与验收线 |
+| `NO0037` | `2026-04-28` | [GrhSIM Dynamic Active-Word Queue Failed Experiment](./NO0037_grhsim_dynamic_active_word_queue_failed_experiment_20260428.md) | 记录动态 active-word 队列实验的 smoke 回退与 `50k` 功能失败，确认这条路线无效且已撤回实现 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0035`。
+- 当前下一个可用记录编号为 `NO0038`。
