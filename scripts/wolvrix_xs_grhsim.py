@@ -183,6 +183,7 @@ def main() -> int:
     sched_batch_target_count = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_TARGET_COUNT", 800)
     emit_parallelism = env_int("WOLVRIX_XS_GRHSIM_EMIT_PARALLELISM", 8)
     stop_after_pre_sched = env_flag("WOLVRIX_XS_GRHSIM_STOP_AFTER_PRE_SCHED", default=False)
+    simplify_keep_declared_symbols = env_flag("WOLVRIX_XS_GRHSIM_SIMPLIFY_KEEP_DECLARED_SYMBOLS", default=False)
     comb_lane_pack_report = os.environ.get(
         "WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_REPORT",
         str(cpp_out_dir.parent / "comb_lane_pack_report_xs.json"),
@@ -208,6 +209,7 @@ def main() -> int:
         sess.diagnostics_raise_min_level = "none"
         pre_sched_pipeline: list[tuple[str, dict]] = [
             ("xmr-resolve", {}),
+            ("scalar-memory-pack", {}),
             ("memory-read-retime", {}),
             ("multidriven-guard", {}),
             ("blackbox-guard", {}),
@@ -254,7 +256,8 @@ def main() -> int:
             f"sched_batch_max_ops={sched_batch_max_ops} "
             f"sched_batch_max_estimated_lines={sched_batch_max_estimated_lines} "
             f"sched_batch_target_count={sched_batch_target_count} "
-            f"emit_parallelism={emit_parallelism} waveform={args.waveform} perf={args.perf}"
+            f"emit_parallelism={emit_parallelism} waveform={args.waveform} perf={args.perf} "
+            f"simplify_keep_declared_symbols={simplify_keep_declared_symbols}"
         )
 
         if resume_from_stats_json:
@@ -279,7 +282,10 @@ def main() -> int:
             for pass_name, pass_kwargs in pre_sched_pipeline:
                 start = time.perf_counter()
                 log(f"pass {pass_name} start")
-                diags = sess.run_pass(pass_name, design="design.main", **pass_kwargs)
+                run_pass_kwargs = dict(pass_kwargs)
+                if pass_name == "simplify":
+                    run_pass_kwargs["keep_declared_symbols"] = simplify_keep_declared_symbols
+                diags = sess.run_pass(pass_name, design="design.main", **run_pass_kwargs)
                 require_ok(diags, f"pass {pass_name}")
                 if pass_name == "comb-lane-pack":
                     write_comb_lane_pack_report(sess, "comb-lane-pack.reports", Path(comb_lane_pack_report))

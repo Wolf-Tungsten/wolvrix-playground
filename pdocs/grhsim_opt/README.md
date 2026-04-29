@@ -45,9 +45,19 @@
 | `NO0035` | `2026-04-28` | [GrhSIM Compute / Commit 计时拆解与 3kHz 目标差距](./NO0035_grhsim_compute_commit_perf_breakdown_3khz_gap_20260428.md) | 基于带 `eval` perf trace 的 `XiangShan coremark 50k` 复测，拆出 `compute` / `commit` 的平均耗时、batch 热点、`round 1/2` 占比，并明确当前距离 `3 kHz` 目标的数量级差距 |
 | `NO0036` | `2026-04-28` | [GrhSIM 3kHz Runtime Optimization Plan](./NO0036_grhsim_3khz_runtime_optimization_plan_20260428.md) | 基于 `NO0035` 的瓶颈拆解，给出面向 `3 kHz` 目标的实施路线，按 `baseline -> commit 框架 -> compute 热 batch -> 整机外围` 四条主线组织工作与验收线 |
 | `NO0037` | `2026-04-28` | [GrhSIM Dynamic Active-Word Queue Failed Experiment](./NO0037_grhsim_dynamic_active_word_queue_failed_experiment_20260428.md) | 记录动态 active-word 队列实验的 smoke 回退与 `50k` 功能失败，确认这条路线无效且已撤回实现 |
+| `NO0038` | `2026-04-28` | [GSim `Init -> graphPartition` 阶段变化记录](./NO0038_gsim_init_to_graphpartition_stage_changes_20260428.md) | 基于现成 stage stats 梳理 `SimTop` 上 `gsim` 从建图完成到最终 `graphPartition` 的规模变化，重点跟踪 `NODE_REG_SRC`、`NODE_OTHERS` 与 supernode 收缩路径 |
+| `NO0039` | `2026-04-28` | [GSim `RemoveDeadNodes0` 删除 `NODE_REG_SRC` 分类记录](./NO0039_gsim_removed_regsrc_in_removeDeadNodes0_classification_20260428.md) | 从 `TopoSort` 与 `RemoveDeadNodes0` dump 差集中精确提取 `128745` 个被删 `NODE_REG_SRC`，并按模块层级、名字家族与形态特征分类 |
+| `NO0040` | `2026-04-28` | [GSim 被删 `REG_SRC` 在 GrhSIM Post-Stats 中的存活检查](./NO0040_gsim_removed_regsrc_vs_grhsim_post_stats_survival_20260428.md) | 针对 `NO0039` 的几类代表性被删寄存器，检查它们在 `build/xs/grhsim/wolvrix_xs_post_stats.json` 的 `kRegister` 声明中是否仍然存活，并区分 exact / normalized / fuzzy 命中 |
+| `NO0041` | `2026-04-28` | [`core.memBlock exceptionVec` 在 GrhSIM 中存活的案例分析](./NO0041_core_memblock_exceptionvec_survival_case_study_20260428.md) | 聚焦 `core.memBlock exceptionVec` 代表样本，区分“该 bit 本身是否还有真实消费者”和“它是否只是因为 `keepDeclaredSymbols` 被保护存活” |
+| `NO0042` | `2026-04-28` | [GrhSIM `keepDeclaredSymbols` 开关 AB 对照](./NO0042_grhsim_keep_declared_symbols_ab_compare_20260428.md) | 用完全相同的 XiangShan `grhsim` 输入，对照 `keepDeclaredSymbols=true/false` 两份 `post_stats`，确认脚本开关有效，并证明 `exceptionVec_21` 这类无用户 bit 在 `keep=false` 下会直接消失 |
+| `NO0043` | `2026-04-29` | [GSim 被删 `REG_SRC` 在 GrhSIM `keepDeclaredSymbols=false` Post-Stats 中的存活检查](./NO0043_gsim_removed_regsrc_vs_grhsim_keepfalse_post_stats_20260429.md) | 延续 `NO0040` 的同一批代表类，但改用 `keep=false` 的 `grhsim post-stats` 重新对照，区分“原先只是 symbol 保活”的家族与“即使关掉 symbol 保护仍明显多保留”的家族 |
+| `NO0044` | `2026-04-29` | [`RemoveDeadNodes0` vs GrhSIM `keepDeclaredSymbols=false` 的 `129904` 全量差值归因](./NO0044_removeDeadNodes0_vs_grhsim_keepfalse_full_gap_attribution_20260429.md) | 不再停留在代表样本，而是对 `gsim RemoveDeadNodes0` surviving `REG_SRC` 与 `grhsim keep=false` 全部 `kRegister` 做全量匹配，把 `129904` 的净差值拆成可回加的互斥桶，并为最大的 residual 桶落出 `2116` 个顶层模块桶和 `38445` 个二级子桶 |
+| `NO0045` | `2026-04-29` | [`frontend inner_bpu$tage` 在 GSim / GrhSIM 中是否“被完全删除”的复核](./NO0045_frontend_inner_bpu_tage_gsim_vs_grhsim_recheck_20260429.md) | 直接对 `TopoSort` 与 `RemoveDeadNodes0` 生存集做前缀级集合对比，确认 `gsim` 在 `tage` 上仍保留 `1197` 个 `NODE_REG_SRC`，并解释 `residual_submodule_summary.tsv` 中 `0 -> 34845` 的误读来源 |
+| `NO0046` | `2026-04-29` | [`frontend.inner_bpu$tage` 中 GrhSIM 多出寄存器的主体原因：数组/存储展开](./NO0046_frontend_inner_bpu_tage_aggregate_expansion_conclusion_20260429.md) | 基于 `tage` 名字对齐的 `v3` refine 与 `v4 aggregate` 分组，确认该 case 中 `grhsim` 多出的寄存器主体并不是新增独立状态，而是 `gsim` 聚合数组/存储状态在 `grhsim` 中被细粒度展开 |
+| `NO0047` | `2026-04-29` | [Scalar Register Cluster -> Memory + Fill Pass 设计稿](./NO0047_scalar_register_cluster_to_memory_fill_plan_20260429.md) | 基于 `frontend.inner_bpu$tage.tables_1.usefulCtrs` 案例，论证不应在 `ingest` 阶段恢复 memory-like 状态，而应在 `transform` 中新增保守重写 pass，并引入 `kMemoryFillPort` 来表达整组 fill/reset |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0038`。
+- 当前下一个可用记录编号为 `NO0048`。
