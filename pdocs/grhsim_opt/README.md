@@ -55,9 +55,12 @@
 | `NO0045` | `2026-04-29` | [`frontend inner_bpu$tage` 在 GSim / GrhSIM 中是否“被完全删除”的复核](./NO0045_frontend_inner_bpu_tage_gsim_vs_grhsim_recheck_20260429.md) | 直接对 `TopoSort` 与 `RemoveDeadNodes0` 生存集做前缀级集合对比，确认 `gsim` 在 `tage` 上仍保留 `1197` 个 `NODE_REG_SRC`，并解释 `residual_submodule_summary.tsv` 中 `0 -> 34845` 的误读来源 |
 | `NO0046` | `2026-04-29` | [`frontend.inner_bpu$tage` 中 GrhSIM 多出寄存器的主体原因：数组/存储展开](./NO0046_frontend_inner_bpu_tage_aggregate_expansion_conclusion_20260429.md) | 基于 `tage` 名字对齐的 `v3` refine 与 `v4 aggregate` 分组，确认该 case 中 `grhsim` 多出的寄存器主体并不是新增独立状态，而是 `gsim` 聚合数组/存储状态在 `grhsim` 中被细粒度展开 |
 | `NO0047` | `2026-04-29` | [Scalar Register Cluster -> Memory + Fill Pass 设计稿](./NO0047_scalar_register_cluster_to_memory_fill_plan_20260429.md) | 基于 `frontend.inner_bpu$tage.tables_1.usefulCtrs` 案例，论证不应在 `ingest` 阶段恢复 memory-like 状态，而应在 `transform` 中新增保守重写 pass，并引入 `kMemoryFillPort` 来表达整组 fill/reset |
+| `NO0048` | `2026-04-30` | [Scalar-Memory-Pack Residual Point-Cond 方向记录](./NO0048_scalar_memory_pack_residual_point_cond_direction_20260430.md) | 基于 v7/v8 residual 分析，确认后续重点不该继续追 fill 侧，而应转向 point-condition / lowered mixed write 形态 |
+| `NO0049` | `2026-04-30` | [Scalar-Memory-Pack VTypeBuffer Follow-up](./NO0049_scalar_memory_pack_vtypebuffer_followup_20260430.md) | 记录把 `VTypeBuffer` 一类 `multiple point-update branches` residual 收进当前 matcher 的实现、测试与 replay 验证结果 |
+| `NO0050` | `2026-04-30` | [Scalar-Memory-Pack 与 GSim GraphPartition 剩余寄存器差值对照](./NO0050_scalar_memory_pack_vs_gsim_graphpartition_gap_20260430.md) | 用 `gsim graphPartition` 的 `NODE_REG_SRC` 直接对照 `scalar-memory-pack` 前后两份 GRH `kRegister`，量化当前 pass 相对 `gsim/FIRRTL` 还剩多少打散寄存器未收回，并归因到数组展开残留、非 memory-like 槽位状态与 matcher 结构限制 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0048`。
+- 当前下一个可用记录编号为 `NO0051`。
