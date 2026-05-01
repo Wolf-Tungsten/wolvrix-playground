@@ -3,6 +3,7 @@
 import argparse
 import json
 from collections import Counter, defaultdict
+import itertools
 from pathlib import Path
 import re
 
@@ -42,7 +43,7 @@ def top_prefixes(values: set[str], count: int) -> list[tuple[str, int]]:
 
 
 def normalize_name(value: str) -> str:
-    return value.replace("$", "_")
+    return re.sub(r"_+", "_", value.replace("$", "_"))
 
 
 def build_normalized_index(values: set[str]) -> dict[str, set[str]]:
@@ -58,6 +59,28 @@ def top_normalized_prefixes(values: set[str], count: int) -> list[tuple[str, int
         parts = value.split("_")
         prefix_counts["_".join(parts[:3])] += 1
     return prefix_counts.most_common(count)
+
+
+def strip_numeric_tokens_key(value: str) -> str:
+    parts = [part for part in value.split("_") if part and not part.isdigit()]
+    return "_".join(parts)
+
+
+def numeric_tokens(value: str) -> tuple[str, ...]:
+    return tuple(part for part in value.split("_") if part.isdigit())
+
+
+def numeric_elide_variants(value: str, max_removed: int = 3) -> set[str]:
+    parts = value.split("_")
+    numeric_positions = [i for i, part in enumerate(parts) if part.isdigit()]
+    variants: set[str] = set()
+    limit = min(max_removed, len(numeric_positions))
+    for removed_count in range(1, limit + 1):
+        for removed_positions in itertools.combinations(numeric_positions, removed_count):
+            variants.add("_".join(part for i, part in enumerate(parts) if i not in removed_positions))
+    variants.discard(value)
+    variants.discard("")
+    return variants
 
 
 def aggregate_base(value: str) -> str | None:
@@ -134,11 +157,78 @@ def analyze_match(gsim: set[str], grh: set[str], top: int) -> dict[str, object]:
     remaining_gsim -= prefix_refine_keys | prefix_expand_keys
     remaining_grh -= prefix_refine_targets | prefix_expand_targets
 
+    stripped_gsim_index = build_normalized_index({strip_numeric_tokens_key(key) for key in remaining_gsim})
+    stripped_grh_index = build_normalized_index({strip_numeric_tokens_key(key) for key in remaining_grh})
+    stripped_keys = (set(stripped_gsim_index) & set(stripped_grh_index)) - {""}
+
+    gsim_by_stripped: dict[str, set[str]] = defaultdict(set)
+    grh_by_stripped: dict[str, set[str]] = defaultdict(set)
+    for key in remaining_gsim:
+        stripped = strip_numeric_tokens_key(key)
+        if stripped:
+            gsim_by_stripped[stripped].add(key)
+    for key in remaining_grh:
+        stripped = strip_numeric_tokens_key(key)
+        if stripped:
+            grh_by_stripped[stripped].add(key)
+
+    numeric_permute_1to1: dict[str, set[str]] = {}
+    numeric_permute_NtoN: dict[str, set[str]] = {}
+    numeric_expand_gsim_to_grh: dict[str, set[str]] = {}
+    numeric_permute_gsim_keys: set[str] = set()
+    numeric_permute_grh_keys: set[str] = set()
+    numeric_permute_grouped_gsim_keys: set[str] = set()
+    numeric_permute_grouped_grh_keys: set[str] = set()
+    numeric_expand_gsim_keys: set[str] = set()
+    numeric_expand_grh_keys: set[str] = set()
+    for stripped in sorted(stripped_keys):
+        gsim_group = gsim_by_stripped[stripped]
+        grh_group = grh_by_stripped[stripped]
+        if len(gsim_group) == 1 and len(grh_group) == 1:
+            gsim_key = next(iter(gsim_group))
+            grh_key = next(iter(grh_group))
+            if gsim_key != grh_key and sorted(numeric_tokens(gsim_key)) == sorted(numeric_tokens(grh_key)):
+                numeric_permute_1to1[gsim_key] = {grh_key}
+                numeric_permute_gsim_keys.add(gsim_key)
+                numeric_permute_grh_keys.add(grh_key)
+            continue
+        if len(gsim_group) > 1 and len(gsim_group) == len(grh_group):
+            gsim_numeric_signatures = Counter(tuple(sorted(numeric_tokens(key))) for key in gsim_group)
+            grh_numeric_signatures = Counter(tuple(sorted(numeric_tokens(key))) for key in grh_group)
+            if gsim_numeric_signatures == grh_numeric_signatures:
+                numeric_permute_NtoN[stripped] = set(grh_group)
+                numeric_permute_grouped_gsim_keys.update(gsim_group)
+                numeric_permute_grouped_grh_keys.update(grh_group)
+                continue
+        if len(gsim_group) == 1 and len(grh_group) > 1:
+            gsim_key = next(iter(gsim_group))
+            numeric_expand_gsim_to_grh[gsim_key] = set(grh_group)
+            numeric_expand_gsim_keys.add(gsim_key)
+            numeric_expand_grh_keys.update(grh_group)
+
+    remaining_gsim -= numeric_permute_gsim_keys | numeric_permute_grouped_gsim_keys | numeric_expand_gsim_keys
+    remaining_grh -= numeric_permute_grh_keys | numeric_permute_grouped_grh_keys | numeric_expand_grh_keys
+
+    numeric_elide_gsim_to_grh: dict[str, set[str]] = defaultdict(set)
+    for grh_key in sorted(remaining_grh):
+        candidates = numeric_elide_variants(grh_key)
+        matches = [candidate for candidate in candidates if candidate in remaining_gsim]
+        if not matches:
+            continue
+        best = max(matches, key=lambda item: (len(item.split("_")), len(item), item))
+        numeric_elide_gsim_to_grh[best].add(grh_key)
+    numeric_elide_gsim_keys = set(numeric_elide_gsim_to_grh)
+    numeric_elide_grh_keys = set().union(*numeric_elide_gsim_to_grh.values()) if numeric_elide_gsim_to_grh else set()
+    remaining_gsim -= numeric_elide_gsim_keys
+    remaining_grh -= numeric_elide_grh_keys
+
     generated_grh_keys = {key for key in remaining_grh if key.startswith("_op_")}
     remaining_grh -= generated_grh_keys
 
     prefix_expand_delta = len(prefix_expand_targets) - len(prefix_expand_keys)
     aggregate_delta = len(aggregate_grh_keys) - len(aggregate_gsim_keys)
+    numeric_expand_delta = len(numeric_expand_grh_keys) - len(numeric_expand_gsim_keys)
+    numeric_elide_delta = len(numeric_elide_grh_keys) - len(numeric_elide_gsim_keys)
     generated_delta = len(generated_grh_keys)
     residual_delta = len(remaining_grh) - len(remaining_gsim)
 
@@ -178,6 +268,32 @@ def analyze_match(gsim: set[str], grh: set[str], top: int) -> dict[str, object]:
                 "netGapContribution": prefix_expand_delta,
                 "childCountHistogram": Counter(len(values) for values in prefix_expand_1toN.values()),
                 "sampleGroups": sample_pairs(prefix_expand_1toN, top),
+            },
+            "numericTokenPermutation1to1": {
+                "gsimKeys": len(numeric_permute_gsim_keys),
+                "grhKeys": len(numeric_permute_grh_keys),
+                "netGapContribution": 0,
+                "sampleGroups": sample_pairs(numeric_permute_1to1, top),
+            },
+            "numericTokenPermutationNtoN": {
+                "gsimKeys": len(numeric_permute_grouped_gsim_keys),
+                "grhKeys": len(numeric_permute_grouped_grh_keys),
+                "netGapContribution": 0,
+                "sampleGroups": sample_pairs(numeric_permute_NtoN, top),
+            },
+            "numericIndexExpand1toN": {
+                "gsimKeys": len(numeric_expand_gsim_keys),
+                "grhKeys": len(numeric_expand_grh_keys),
+                "netGapContribution": numeric_expand_delta,
+                "childCountHistogram": Counter(len(values) for values in numeric_expand_gsim_to_grh.values()),
+                "sampleGroups": sample_pairs(numeric_expand_gsim_to_grh, top),
+            },
+            "numericElideToExistingGsim1toN": {
+                "gsimKeys": len(numeric_elide_gsim_keys),
+                "grhKeys": len(numeric_elide_grh_keys),
+                "netGapContribution": numeric_elide_delta,
+                "childCountHistogram": Counter(len(values) for values in numeric_elide_gsim_to_grh.values()),
+                "sampleGroups": sample_pairs(numeric_elide_gsim_to_grh, top),
             },
             "generatedGrhOpNames": {
                 "gsimKeys": 0,
@@ -264,6 +380,54 @@ def main() -> int:
             {
                 "grh_keys": categories["generatedGrhOpNames"]["grhKeys"],
                 "net_gap": categories["generatedGrhOpNames"]["netGapContribution"],
+            },
+            ensure_ascii=True,
+            sort_keys=True,
+        )
+    )
+    print(
+        "numeric_token_permutation_1to1="
+        + json.dumps(
+            {
+                "gsim_keys": categories["numericTokenPermutation1to1"]["gsimKeys"],
+                "grh_keys": categories["numericTokenPermutation1to1"]["grhKeys"],
+                "net_gap": categories["numericTokenPermutation1to1"]["netGapContribution"],
+            },
+            ensure_ascii=True,
+            sort_keys=True,
+        )
+    )
+    print(
+        "numeric_token_permutation_NtoN="
+        + json.dumps(
+            {
+                "gsim_keys": categories["numericTokenPermutationNtoN"]["gsimKeys"],
+                "grh_keys": categories["numericTokenPermutationNtoN"]["grhKeys"],
+                "net_gap": categories["numericTokenPermutationNtoN"]["netGapContribution"],
+            },
+            ensure_ascii=True,
+            sort_keys=True,
+        )
+    )
+    print(
+        "numeric_index_expand_1toN="
+        + json.dumps(
+            {
+                "gsim_keys": categories["numericIndexExpand1toN"]["gsimKeys"],
+                "grh_keys": categories["numericIndexExpand1toN"]["grhKeys"],
+                "net_gap": categories["numericIndexExpand1toN"]["netGapContribution"],
+            },
+            ensure_ascii=True,
+            sort_keys=True,
+        )
+    )
+    print(
+        "numeric_elide_to_existing_gsim_1toN="
+        + json.dumps(
+            {
+                "gsim_keys": categories["numericElideToExistingGsim1toN"]["gsimKeys"],
+                "grh_keys": categories["numericElideToExistingGsim1toN"]["grhKeys"],
+                "net_gap": categories["numericElideToExistingGsim1toN"]["netGapContribution"],
             },
             ensure_ascii=True,
             sort_keys=True,
