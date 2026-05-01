@@ -180,6 +180,7 @@ XS_WOLF_INCLUDE_DIRS ?= $(XS_RTL_DIR_ABS) $(XS_VSRC_DIR_ABS) $(XS_DIFFTEST_GEN_D
 XS_WOLF_INCLUDE_FLAGS := $(foreach d,$(XS_WOLF_INCLUDE_DIRS),-I $(d))
 XS_WOLF_DEFINE_FLAGS := $(foreach d,$(XS_SIM_DEFINES),-D "$(d)")
 XS_DIFFTEST_MACROS := $(XS_ROOT)/build/generated-src/DifftestMacros.svh
+XS_DIFFTEST_GSIM_EXTMODULE := $(XS_ROOT)/build/generated-src/difftest-extmodule.cpp
 XS_GSIM_BIN ?= $(REF_GSIM_BIN)
 
 # HDLBits paths
@@ -199,7 +200,7 @@ HDLBITS_GRHTB_SOURCES := $(wildcard $(HDLBITS_ROOT)/grhtb/grhtb_*.cpp)
 HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS_GRHTB_SOURCES)))))
 
 .PHONY: all build init_submodule check_id run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
-	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
+	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff clean
 
 all: build
@@ -395,6 +396,25 @@ $(XS_SIM_TOP_V):
 		RTL_SUFFIX=$(XS_RTL_SUFFIX)
 
 xs_rtl: $(XS_SIM_TOP_V)
+
+xs_gsim_rtl:
+	@echo "[RUN] Generating XiangShan GSIM sim-verilog into $(XS_RTL_BUILD_ABS)..."
+	@mkdir -p "$(XS_LOG_DIR_ABS)"
+	@mkdir -p "$(XS_ROOT)/build"
+	@$(eval LOG_FILE := $(XS_LOG_DIR_ABS)/xs_gsim_simverilog_$(RUN_ID).log)
+	@echo "[LOG] Recording GSIM sim-verilog command to: $(LOG_FILE)"
+	@printf '' > "$(LOG_FILE)"
+	@FORCE_FLAG="$(if $(wildcard $(XS_DIFFTEST_GSIM_EXTMODULE)),,-B)"; \
+		echo "[CMD] $(MAKE) $$FORCE_FLAG -C $(XS_ROOT) sim-verilog BUILD_DIR=$(XS_RTL_BUILD_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) GSIM=1" | tee -a "$(LOG_FILE)"; \
+		NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) $$FORCE_FLAG -C "$(XS_ROOT)" sim-verilog \
+			BUILD_DIR="$(XS_RTL_BUILD_ABS)" \
+			NUM_CORES="$(XS_NUM_CORES)" \
+			RTL_SUFFIX="$(XS_RTL_SUFFIX)" \
+			GSIM=1
+	@if [ ! -f "$(XS_DIFFTEST_GSIM_EXTMODULE)" ]; then \
+		echo "[FAIL] xs gsim sim-verilog: missing generated extmodule $(XS_DIFFTEST_GSIM_EXTMODULE)"; \
+		exit 1; \
+	fi
 
 $(XS_WOLF_FILELIST_ABS): $(XS_SIM_TOP_V)
 	@mkdir -p "$(dir $@)"
@@ -693,10 +713,7 @@ xs_ref_emu: $(XS_SIM_TOP_V)
 		$(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,) \
 		2>&1 | tee "$(XS_BUILD_LOG_FILE)"
 
-xs_gsim_emu: $(XS_SIM_TOP_V)
-	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
-		$(MAKE) --no-print-directory -B xs_rtl; \
-	fi
+xs_gsim_emu: xs_gsim_rtl
 	@if [ ! -x "$(XS_GSIM_BIN)" ] && [ -f "$(REF_GSIM_ROOT)/Makefile" ]; then \
 		echo "[RUN] Building reference gsim..."; \
 		$(MAKE) --no-print-directory -C "$(REF_GSIM_ROOT)" build-gsim; \
