@@ -209,7 +209,6 @@ def main() -> int:
         sess.diagnostics_raise_min_level = "none"
         pre_sched_pipeline: list[tuple[str, dict]] = [
             ("xmr-resolve", {}),
-            ("scalar-memory-pack", {}),
             ("memory-read-retime", {}),
             ("multidriven-guard", {}),
             ("blackbox-guard", {}),
@@ -223,6 +222,8 @@ def main() -> int:
                 },
             ),
             ("comb-loop-elim", {}),
+            ("simplify", {"semantics": "2state"}),
+            ("merge-reg", {}),
             ("simplify", {"semantics": "2state"}),
             ("memory-init-check", {}),
             ("stats", {"out_stats": "stats.main"}),

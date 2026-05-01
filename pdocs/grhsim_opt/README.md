@@ -58,9 +58,11 @@
 | `NO0048` | `2026-04-30` | [Scalar-Memory-Pack Residual Point-Cond 方向记录](./NO0048_scalar_memory_pack_residual_point_cond_direction_20260430.md) | 基于 v7/v8 residual 分析，确认后续重点不该继续追 fill 侧，而应转向 point-condition / lowered mixed write 形态 |
 | `NO0049` | `2026-04-30` | [Scalar-Memory-Pack VTypeBuffer Follow-up](./NO0049_scalar_memory_pack_vtypebuffer_followup_20260430.md) | 记录把 `VTypeBuffer` 一类 `multiple point-update branches` residual 收进当前 matcher 的实现、测试与 replay 验证结果 |
 | `NO0050` | `2026-04-30` | [Scalar-Memory-Pack 与 GSim GraphPartition 剩余寄存器差值对照](./NO0050_scalar_memory_pack_vs_gsim_graphpartition_gap_20260430.md) | 用 `gsim graphPartition` 的 `NODE_REG_SRC` 直接对照 `scalar-memory-pack` 前后两份 GRH `kRegister`，量化当前 pass 相对 `gsim/FIRRTL` 还剩多少打散寄存器未收回，并归因到数组展开残留、非 memory-like 槽位状态与 matcher 结构限制 |
+| `NO0051` | `2026-04-30` | [Record Slot Repack Replay Progress](./NO0051_record_slot_repack_replay_progress_20260430.md) | 记录 `record-slot-repack` 在 scalar-memory-pack 产物上的 replay 推进、`Value::users()` 生命周期 bug 修复，以及 `loadQueueReplay.uop_*_pc` 等 family 的新增命中 |
+| `NO0052` | `2026-05-01` | [`merge_reg` 统一寄存器合并 Pass 方案](./NO0052_merge_reg_unified_register_pack_plan_20260501.md) | 规划把 scalar-to-memory、record-slot-to-wide-memory、shift-chain-to-wide-register 等寄存器合并策略收敛到统一 discovery / 排序 / report / ownership 框架下 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0051`。
+- 当前下一个可用记录编号为 `NO0053`。
