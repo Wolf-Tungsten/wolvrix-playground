@@ -170,7 +170,7 @@ def main() -> int:
     merge_reg_json = out_dir / f"after_{checkpoint_tag}_plus_merge_reg.json"
     checkpoint_stats_json = out_dir / f"after_{checkpoint_tag}_stats.json"
     merge_reg_stats_json = out_dir / f"after_{checkpoint_tag}_plus_merge_reg_stats.json"
-    merge_reg_memory_report_json = out_dir / "merge_reg_scalar_memory_pack_report.json"
+    merge_reg_memory_report_json = out_dir / "merge_reg_scalar_to_memory_report.json"
     summary_json = out_dir / "summary.json"
     checkpoint_source_json = (
         Path(args.resume_checkpoint_json).resolve()
@@ -192,7 +192,7 @@ def main() -> int:
             "merge_reg_residual_registers_txt": str(out_dir / "merge_reg_residual_registers.txt"),
             "merge_reg_created_registers_txt": str(out_dir / "merge_reg_created_registers.txt"),
             "merge_reg_register_report_json": str(out_dir / "merge_reg_register_report.json"),
-            "merge_reg_scalar_memory_pack_report_json": str(merge_reg_memory_report_json),
+            "merge_reg_scalar_to_memory_report_json": str(merge_reg_memory_report_json),
         },
         "with_stats": args.with_stats,
         "resume_checkpoint_json": str(checkpoint_source_json) if args.resume_checkpoint_json else None,
@@ -278,15 +278,15 @@ def main() -> int:
 
         start = time.perf_counter()
         log("pass merge-reg start")
-        previous_memory_report = os.environ.get("WOLVRIX_SCALAR_MEMORY_PACK_REPORT_JSON")
-        os.environ["WOLVRIX_SCALAR_MEMORY_PACK_REPORT_JSON"] = str(merge_reg_memory_report_json)
+        previous_memory_report = os.environ.get("WOLVRIX_MERGE_REG_SCALAR_TO_MEMORY_REPORT_JSON")
+        os.environ["WOLVRIX_MERGE_REG_SCALAR_TO_MEMORY_REPORT_JSON"] = str(merge_reg_memory_report_json)
         try:
             diags = sess.run_pass("merge-reg", design="design.main", keep_declared_symbols=False)
         finally:
             if previous_memory_report is None:
-                os.environ.pop("WOLVRIX_SCALAR_MEMORY_PACK_REPORT_JSON", None)
+                os.environ.pop("WOLVRIX_MERGE_REG_SCALAR_TO_MEMORY_REPORT_JSON", None)
             else:
-                os.environ["WOLVRIX_SCALAR_MEMORY_PACK_REPORT_JSON"] = previous_memory_report
+                os.environ["WOLVRIX_MERGE_REG_SCALAR_TO_MEMORY_REPORT_JSON"] = previous_memory_report
         require_ok(diags, "pass merge-reg")
         summary["timing_ms"]["merge_reg"] = int((time.perf_counter() - start) * 1000)
         summary["merge_reg_info"] = latest_info_message(diags, "merge-reg")

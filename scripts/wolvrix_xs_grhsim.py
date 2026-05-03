@@ -174,12 +174,6 @@ def main() -> int:
             str(cpp_out_dir / "wolvrix_xs_post_stats.json"),
         )
     ).resolve()
-    pre_merge_reg_json = Path(
-        os.environ.get(
-            "WOLVRIX_XS_GRHSIM_PRE_MERGE_REG_JSON",
-            str(cpp_out_dir.parent / "after_flatten_simplify.json"),
-        )
-    ).resolve()
     resume_from_stats_json = env_flag("WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON")
     enable_mem_to_reg = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_MEM_TO_REG", default=False)
     mem_to_reg_row_limit = env_int("WOLVRIX_XS_GRHSIM_MEM_TO_REG_ROW_LIMIT", 64)
@@ -192,24 +186,8 @@ def main() -> int:
     simplify_keep_declared_symbols = env_flag("WOLVRIX_XS_GRHSIM_SIMPLIFY_KEEP_DECLARED_SYMBOLS", default=False)
     merge_reg_options = {
         "enable_scalar_to_memory": env_flag("WOLVRIX_XS_GRHSIM_MERGE_REG_ENABLE_SCALAR_TO_MEMORY", default=True),
-        "enable_bundle_shift_pipeline_to_wide_register": env_flag(
-            "WOLVRIX_XS_GRHSIM_MERGE_REG_ENABLE_BUNDLE_SHIFT_PIPELINE_TO_WIDE_REGISTER",
-            default=True,
-        ),
         "enable_indexed_bundle_entry_to_wide_register": env_flag(
             "WOLVRIX_XS_GRHSIM_MERGE_REG_ENABLE_INDEXED_BUNDLE_ENTRY_TO_WIDE_REGISTER",
-            default=True,
-        ),
-        "enable_onehot_indexed_bank_to_wide_register": env_flag(
-            "WOLVRIX_XS_GRHSIM_MERGE_REG_ENABLE_ONEHOT_INDEXED_BANK_TO_WIDE_REGISTER",
-            default=True,
-        ),
-        "enable_bitset_to_wide_register": env_flag(
-            "WOLVRIX_XS_GRHSIM_MERGE_REG_ENABLE_BITSET_TO_WIDE_REGISTER",
-            default=True,
-        ),
-        "enable_shift_chain_to_wide_register": env_flag(
-            "WOLVRIX_XS_GRHSIM_MERGE_REG_ENABLE_SHIFT_CHAIN_TO_WIDE_REGISTER",
             default=True,
         ),
     }
@@ -309,7 +287,7 @@ def main() -> int:
             require_ok(diags, "read_sv")
             log(f"read_sv done {int((time.perf_counter() - start) * 1000)}ms")
 
-            for pass_index, (pass_name, pass_kwargs) in enumerate(pre_sched_pipeline):
+            for pass_name, pass_kwargs in pre_sched_pipeline:
                 start = time.perf_counter()
                 log(f"pass {pass_name} start")
                 run_pass_kwargs = dict(pass_kwargs)
@@ -319,19 +297,6 @@ def main() -> int:
                 require_ok(diags, f"pass {pass_name}")
                 if pass_name == "comb-lane-pack":
                     write_comb_lane_pack_report(sess, "comb-lane-pack.reports", Path(comb_lane_pack_report))
-                next_pass_name = (
-                    pre_sched_pipeline[pass_index + 1][0]
-                    if pass_index + 1 < len(pre_sched_pipeline)
-                    else None
-                )
-                if pass_name == "simplify" and next_pass_name == "merge-reg":
-                    write_design_json(
-                        sess,
-                        "design.main",
-                        top_name,
-                        pre_merge_reg_json,
-                        "write_pre_merge_reg_json",
-                    )
                 if pass_name == "stats":
                     write_stats_json(sess, "stats.main", cpp_out_dir)
                     write_design_json(sess, "design.main", top_name, post_stats_json, "write_post_stats_json")
