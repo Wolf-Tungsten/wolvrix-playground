@@ -60,9 +60,15 @@
 | `NO0050` | `2026-04-30` | [Scalar-Memory-Pack 与 GSim GraphPartition 剩余寄存器差值对照](./NO0050_scalar_memory_pack_vs_gsim_graphpartition_gap_20260430.md) | 用 `gsim graphPartition` 的 `NODE_REG_SRC` 直接对照 `scalar-memory-pack` 前后两份 GRH `kRegister`，量化当前 pass 相对 `gsim/FIRRTL` 还剩多少打散寄存器未收回，并归因到数组展开残留、非 memory-like 槽位状态与 matcher 结构限制 |
 | `NO0051` | `2026-04-30` | [Record Slot Repack Replay Progress](./NO0051_record_slot_repack_replay_progress_20260430.md) | 记录 `record-slot-repack` 在 scalar-memory-pack 产物上的 replay 推进、`Value::users()` 生命周期 bug 修复，以及 `loadQueueReplay.uop_*_pc` 等 family 的新增命中 |
 | `NO0052` | `2026-05-01` | [`merge_reg` 统一寄存器合并 Pass 方案](./NO0052_merge_reg_unified_register_pack_plan_20260501.md) | 规划把 scalar-to-memory、record-slot-to-wide-memory、shift-chain-to-wide-register 等寄存器合并策略收敛到统一 discovery / 排序 / report / ownership 框架下 |
+| `NO0053` | `2026-05-02` | [`merge-reg` Scalar-to-Memory Only CoreMark 50k Snapshot](./NO0053_merge_reg_scalar_to_memory_only_coremark_50k_20260502.md) | 记录只开启 `merge-reg` 的 `scalar-to-memory` 策略时，XS `grhsim` fresh build 与 `coremark` 50k bounded run 的结果；emu 可构建，但运行在 `AheadBtbReplacer.sv:179`、`cycleCnt=8687` 触发 assertion |
+| `NO0054` | `2026-05-02` | [`merge-reg` Bundle-Shift-Pipeline Only CoreMark 50k Snapshot](./NO0054_merge_reg_bundle_shift_pipeline_only_coremark_50k_20260502.md) | 记录只开启 `merge-reg` 的 `bundle-shift-pipeline-to-wide-register` 策略时，XS `grhsim` fresh build 与 `coremark` 50k bounded run 的结果；emu 可构建，运行跑满 `50000` cycle 并以 cycle limit 正常结束 |
+| `NO0055` | `2026-05-02` | [`merge-reg` Indexed-Bundle-Entry Only CoreMark 50k Snapshot](./NO0055_merge_reg_indexed_bundle_entry_only_coremark_50k_20260502.md) | 记录只开启 `merge-reg` 的 `indexed-bundle-entry-to-wide-register` 策略时，XS `grhsim` fresh build 与 `coremark` 50k bounded run 的结果；emu 可构建，运行跑满 `50000` cycle 并以 cycle limit 正常结束 |
+| `NO0056` | `2026-05-02` | [`merge-reg` OneHot-Indexed-Bank Only CoreMark 50k Snapshot](./NO0056_merge_reg_onehot_indexed_bank_only_coremark_50k_20260502.md) | 记录只开启 `merge-reg` 的 `onehot-indexed-bank-to-wide-register` 策略时，XS `grhsim` fresh build 与 `coremark` 50k bounded run 的结果；emu 可构建，运行跑满 `50000` cycle 并以 cycle limit 正常结束，但本轮 `rewritten_clusters=0` |
+| `NO0057` | `2026-05-02` | [`merge-reg` Bitset Only CoreMark 50k Snapshot](./NO0057_merge_reg_bitset_only_coremark_50k_20260502.md) | 记录只开启 `merge-reg` 的 `bitset-to-wide-register` 策略时，XS `grhsim` fresh build 与 `coremark` 50k bounded run 的结果；emu 可构建，`rewritten_clusters=1`，运行跑满 `50000` cycle 并以 cycle limit 正常结束 |
+| `NO0058` | `2026-05-02` | [`merge-reg` Shift-Chain Only CoreMark 50k Snapshot](./NO0058_merge_reg_shift_chain_only_coremark_50k_20260502.md) | 记录只开启 `merge-reg` 的 `shift-chain-to-wide-register` 策略时，XS `grhsim` fresh build 与 `coremark` 50k bounded run 的结果；emu 可构建，`rewritten_clusters=64`，运行跑满 `50000` cycle 并以 cycle limit 正常结束 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0053`。
+- 当前下一个可用记录编号为 `NO0059`。
