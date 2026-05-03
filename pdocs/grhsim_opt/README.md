@@ -73,9 +73,10 @@
 | `NO0063` | `2026-05-03` | [Remove `record-slot-repack`](./NO0063_remove_record_slot_repack_20260503.md) | 删除不再被当前 `merge-reg` 路径依赖的独立 `record-slot-repack` pass、源文件和测试目标 |
 | `NO0064` | `2026-05-03` | [Linearize XS GrhSIM Checkpoint Flow](./NO0064_linearize_xs_grhsim_checkpoint_flow_20260503.md) | 简化 `scripts/wolvrix_xs_grhsim.py`，删除 `merge-reg` 专用恢复点，只保留 `activity-schedule` 前的 post-stats checkpoint |
 | `NO0065` | `2026-05-03` | [XS GrhSIM Two-Strategy CoreMark 50k Snapshot](./NO0065_xs_grhsim_two_strategy_coremark_50k_20260503.md) | 在只保留 `scalar-to-memory` 与 `indexed-bundle-entry-to-wide-register` 后，重新 clean、emit、build emu 并运行 XiangShan `coremark` 50k；跑满 `50000` cycle，速度为 `131.61 cycles/s` |
+| `NO0066` | `2026-05-03` | [GrhSIM Helper Fast Path 尝试记录（当前无效或收益不足）](./NO0066_grhsim_helper_fastpath_attempts_20260503.md) | 记录三类 helper fast path emitter/runtime 尝试及其 50k 复测结果，确认前两类回退、第三类仅回收局部回退但总体仍慢于现有更优基线 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0066`。
+- 当前下一个可用记录编号为 `NO0067`。
