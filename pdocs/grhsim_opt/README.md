@@ -74,9 +74,12 @@
 | `NO0064` | `2026-05-03` | [Linearize XS GrhSIM Checkpoint Flow](./NO0064_linearize_xs_grhsim_checkpoint_flow_20260503.md) | 简化 `scripts/wolvrix_xs_grhsim.py`，删除 `merge-reg` 专用恢复点，只保留 `activity-schedule` 前的 post-stats checkpoint |
 | `NO0065` | `2026-05-03` | [XS GrhSIM Two-Strategy CoreMark 50k Snapshot](./NO0065_xs_grhsim_two_strategy_coremark_50k_20260503.md) | 在只保留 `scalar-to-memory` 与 `indexed-bundle-entry-to-wide-register` 后，重新 clean、emit、build emu 并运行 XiangShan `coremark` 50k；跑满 `50000` cycle，速度为 `131.61 cycles/s` |
 | `NO0066` | `2026-05-03` | [GrhSIM Helper Fast Path 尝试记录（当前无效或收益不足）](./NO0066_grhsim_helper_fastpath_attempts_20260503.md) | 记录三类 helper fast path emitter/runtime 尝试及其 50k 复测结果，确认前两类回退、第三类仅回收局部回退但总体仍慢于现有更优基线 |
+| `NO0067` | `2026-05-03` | [Batch 粗化实验：CoreMark 50k 性能未提升](./NO0067_batch_coarsen_coremark_50k_failure_20260503.md) | 记录强制粗化 batch 后的 XS `grhsim` 50k 结果：batch 数显著减少，但二进制变大、编译体感变慢，运行速度回退 |
+| `NO0068` | `2026-05-04` | [GrhSIM Task Arg Span Runtime 小优化记录](./NO0068_grhsim_task_arg_span_runtime_20260504.md) | 记录撤回 alias/read 实验后，将 system task runtime 参数视图改为 `std::span` 的小优化；测试通过，`.text` 小幅下降，但 50k runtime 仍为 `386551 ms` |
+| `NO0069` | `2026-05-04` | [GrhSIM Value 按位宽分桶 Storage 优化记录](./NO0069_grhsim_value_width_bucket_storage_20260504.md) | 记录将 logic value 从统一 `value_logic_storage_` 改为 typed width buckets；XS CoreMark 50k 通过，`.text` 减少约 `1.50%`，host time 从 `368178 ms` 降到 `349281 ms` |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0067`。
+- 当前下一个可用记录编号为 `NO0070`。
