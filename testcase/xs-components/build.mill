@@ -1,0 +1,25 @@
+package build
+
+import mill._
+import mill.scalalib._
+
+val pwd = os.Path(sys.env("MILL_WORKSPACE_ROOT"))
+
+object xscomponents extends ScalaModule {
+  def scalaVersion: T[String] = "2.13.17"
+
+  def sources = Task.Sources {
+    pwd / "src" / "main" / "scala"
+  }
+
+  def mvnDeps: T[Seq[Dep]] = Seq(
+    mvn"org.chipsalliance::chisel:7.3.0",
+    mvn"org.chipsalliance::firtool-resolver:2.0.1"
+  )
+
+  def scalacPluginMvnDeps: T[Seq[Dep]] = Seq(
+    mvn"org.chipsalliance:::chisel-plugin:7.3.0"
+  )
+
+  def scalacOptions: T[Seq[String]] = Seq("-language:reflectiveCalls", "-Ymacro-annotations")
+}
