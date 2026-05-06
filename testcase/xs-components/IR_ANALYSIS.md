@@ -104,7 +104,7 @@ Current GrhSIM activity-schedule stats:
 | DAG out-degree P99 | 9 |
 | DAG out-degree max | 81 |
 
-With the default `GRHSIM_SUPERNODE_MAX_SIZE=8`, GrhSIM deliberately emits many
+With the default `GRHSIM_MAX_COMPUTE_NODE_IN_COMPUTE_SUPERNODE=8`, GrhSIM deliberately emits many
 small compute supernodes. This exposes many intermediate values as
 schedule-visible slots, so the generated C++ must compare old/new values and
 activate downstream supernodes when a slot changes.

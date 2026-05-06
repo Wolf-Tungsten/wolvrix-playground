@@ -177,7 +177,12 @@ def main() -> int:
     resume_from_stats_json = env_flag("WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON")
     enable_mem_to_reg = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_MEM_TO_REG", default=False)
     mem_to_reg_row_limit = env_int("WOLVRIX_XS_GRHSIM_MEM_TO_REG_ROW_LIMIT", 64)
-    supernode_max_size = env_int("WOLVRIX_XS_GRHSIM_SUPERNODE_MAX_SIZE", 72)
+    max_compute_node_in_compute_supernode = env_int(
+        "WOLVRIX_XS_GRHSIM_MAX_COMPUTE_NODE_IN_COMPUTE_SUPERNODE",
+        16,
+    )
+    max_op_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_NODE", 8192)
+    max_op_in_commit_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE", 768)
     sched_batch_max_ops = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_OPS", 2048)
     sched_batch_max_estimated_lines = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES", 8192)
     sched_batch_target_count = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_TARGET_COUNT", 800)
@@ -244,23 +249,18 @@ def main() -> int:
             (
                 "activity-schedule",
                 {
-                    "args": [
-                        "-path",
-                        top_name,
-                        "-supernode-max-size",
-                        str(supernode_max_size),
-                        "-max-sink-supernode-op",
-                        "768",
-                        "-enable-replication",
-                        "false",
-                    ]
+                    "path": top_name,
+                    "max_compute_node_in_compute_supernode": max_compute_node_in_compute_supernode,
+                    "max_op_in_compute_node": max_op_in_compute_node,
+                    "max_op_in_commit_supernode": max_op_in_commit_supernode,
                 },
             ),
         ]
         log(
-            "activity-schedule supernode-max-size="
-            f"{supernode_max_size} max_sink_supernode_op=768 "
-            f"enable_replication=false "
+            "activity-schedule max_compute_node_in_compute_supernode="
+            f"{max_compute_node_in_compute_supernode} "
+            f"max_op_in_compute_node={max_op_in_compute_node} "
+            f"max_op_in_commit_supernode={max_op_in_commit_supernode} "
             f"sched_batch_max_ops={sched_batch_max_ops} "
             f"sched_batch_max_estimated_lines={sched_batch_max_estimated_lines} "
             f"sched_batch_target_count={sched_batch_target_count} "

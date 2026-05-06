@@ -128,14 +128,9 @@ def main() -> int:
             (
                 "activity-schedule",
                 {
-                    "args": [
-                        "-path",
-                        args.top,
-                        "-supernode-max-size",
-                        args.max_compute_node_in_compute_supernode,
-                        "-max-sink-supernode-op",
-                        args.max_op_in_commit_supernode,
-                    ]
+                    "path": args.top,
+                    "max_compute_node_in_compute_supernode": int(args.max_compute_node_in_compute_supernode),
+                    "max_op_in_commit_supernode": int(args.max_op_in_commit_supernode),
                 },
             ),
         ]

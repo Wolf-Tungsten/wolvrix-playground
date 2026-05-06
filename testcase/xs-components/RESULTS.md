@@ -78,7 +78,7 @@ activity-scheduled graph shape:
 
 - GSIM emits `10` final supernodes and `16` emitted supernode edges.
 - GrhSIM emits `123` activity-schedule supernodes and `391` DAG edges.
-- GrhSIM's default `supernode-max-size=8` keeps supernodes small
+- GrhSIM's default `max-compute-node-in-compute-supernode=8` keeps supernodes small
   (`ops_mean=6.699`, `ops_median=6`, `ops_max=9`).
 
 The extra static code is therefore expected in the current default setting: many

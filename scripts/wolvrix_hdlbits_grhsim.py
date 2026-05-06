@@ -61,7 +61,7 @@ def run_pipeline(dut_path: Path, out_dir: Path, waveform_mode: str | None, perf_
         sess.run_pass(
             "activity-schedule",
             design="design.main",
-            args=["-path", TOP_NAME, "-enable-replication", "true"],
+            path=TOP_NAME,
         )
         sess.store_json(design="design.main", output=str(json_out), top=[TOP_NAME])
         emit_kwargs = {
