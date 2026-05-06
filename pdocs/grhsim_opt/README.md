@@ -78,9 +78,10 @@
 | `NO0068` | `2026-05-04` | [GrhSIM Task Arg Span Runtime 小优化记录](./NO0068_grhsim_task_arg_span_runtime_20260504.md) | 记录撤回 alias/read 实验后，将 system task runtime 参数视图改为 `std::span` 的小优化；测试通过，`.text` 小幅下降，但 50k runtime 仍为 `386551 ms` |
 | `NO0069` | `2026-05-04` | [GrhSIM Value 按位宽分桶 Storage 优化记录](./NO0069_grhsim_value_width_bucket_storage_20260504.md) | 记录将 logic value 从统一 `value_logic_storage_` 改为 typed width buckets；XS CoreMark 50k 通过，`.text` 减少约 `1.50%`，host time 从 `368178 ms` 降到 `349281 ms` |
 | `NO0070` | `2026-05-05` | [GrhSIM Activity-Schedule ComputeNode 重构计划](./NO0070_grhsim_activity_schedule_computenode_rewrite_plan_20260505.md) | 重新定义 `source op` / `compute op` / `sink op`、`computeNode`、`commitSupernode` 与 `computeSupernode`，规划以 `computeNode` 对齐 GSIM `Node + ExprNode` 粒度的 activity-schedule 重构 |
+| `NO0071` | `2026-05-06` | [GrhSIM Sched 308 SLPVectorizer 编译热点记录](./NO0071_grhsim_sched308_slp_vectorizer_compile_hotspot_20260506.md) | 记录 `grhsim_SimTop_sched_308.cpp` 隔离 `clang++ -ftime-report/-ftime-trace` 结果，确认慢点是 `SLPVectorizerPass` 在 `eval_compute_batch_308()` 上耗时 `191.20s`，加 `-fno-slp-vectorize` 后降到 `5.04s` |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0071`。
+- 当前下一个可用记录编号为 `NO0072`。
