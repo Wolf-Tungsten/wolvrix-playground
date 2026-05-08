@@ -26,6 +26,10 @@ def percentile(sorted_values: list[int], num: int, den: int) -> int:
 
 def write_activity_schedule_stats(sess: wolvrix.Session, top: str, out_dir: Path) -> None:
     key_prefix = f"{top}.activity_schedule."
+    try:
+        summary_text = _native.session_export(sess._capsule, key=key_prefix + "summary_stats", view="text")
+    except Exception:
+        summary_text = None
     supernode_to_ops = [
         list(map(int, ops))
         for ops in _native.session_export(sess._capsule, key=key_prefix + "supernode_to_ops", view="python")
@@ -34,6 +38,43 @@ def write_activity_schedule_stats(sess: wolvrix.Session, top: str, out_dir: Path
         list(map(int, succs))
         for succs in _native.session_export(sess._capsule, key=key_prefix + "dag", view="python")
     ]
+    if summary_text:
+        payload = json.loads(summary_text)
+        op_sizes = sorted(len(ops) for ops in supernode_to_ops)
+        out_degrees = sorted(len(succs) for succs in dag)
+        payload["ops_per_supernode"] = {
+            "min": op_sizes[0] if op_sizes else 0,
+            "mean": statistics.fmean(op_sizes) if op_sizes else 0.0,
+            "median": statistics.median(op_sizes) if op_sizes else 0,
+            "p90": percentile(op_sizes, 90, 100),
+            "p99": percentile(op_sizes, 99, 100),
+            "max": op_sizes[-1] if op_sizes else 0,
+        }
+        payload["dag_out_degree"] = {
+            "min": out_degrees[0] if out_degrees else 0,
+            "mean": statistics.fmean(out_degrees) if out_degrees else 0.0,
+            "median": statistics.median(out_degrees) if out_degrees else 0,
+            "p90": percentile(out_degrees, 90, 100),
+            "p99": percentile(out_degrees, 99, 100),
+            "max": out_degrees[-1] if out_degrees else 0,
+        }
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / "activity_schedule_stats.json"
+        out_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="ascii")
+        log(
+            "activity-schedule stats "
+            f"supernodes={payload['supernodes']} "
+            f"compute_supernodes={payload['compute_supernodes']} "
+            f"commit_supernodes={payload['commit_supernodes']} "
+            f"dag_edges={payload['dag_edges']} "
+            f"boundary_values={payload['boundary_values']} "
+            f"boundary_activation_edges={payload['boundary_activation_edges']} "
+            f"compute_compute_value_pairs={payload['compute_compute_value_pairs']} "
+            f"compute_commit_value_pairs={payload['compute_commit_value_pairs']} "
+            f"ops_max={payload['ops_per_supernode']['max']}"
+        )
+        return
+
     try:
         value_fanout = [
             list(map(int, fanout))
@@ -42,16 +83,40 @@ def write_activity_schedule_stats(sess: wolvrix.Session, top: str, out_dir: Path
     except TypeError as exc:
         value_fanout = []
         log(f"activity-schedule value_fanout export unavailable: {exc}")
+    try:
+        supernode_kinds = [
+            int(kind)
+            for kind in _native.session_export(sess._capsule, key=key_prefix + "supernode_kind", view="python")
+        ]
+    except TypeError as exc:
+        supernode_kinds = []
+        log(f"activity-schedule supernode_kind export unavailable: {exc}")
 
     op_sizes = sorted(len(ops) for ops in supernode_to_ops)
     out_degrees = sorted(len(succs) for succs in dag)
     value_fanouts = sorted(len(targets) for targets in value_fanout)
     non_empty_value_fanouts = sorted(len(targets) for targets in value_fanout if targets)
+    compute_supernodes = sum(1 for kind in supernode_kinds if kind == 0)
+    commit_supernodes = sum(1 for kind in supernode_kinds if kind == 1)
+    compute_compute_value_pairs = 0
+    compute_commit_value_pairs = 0
+    if supernode_kinds:
+        for targets in value_fanout:
+            for target_supernode in targets:
+                if 0 <= target_supernode < len(supernode_kinds):
+                    if supernode_kinds[target_supernode] == 0:
+                        compute_compute_value_pairs += 1
+                    elif supernode_kinds[target_supernode] == 1:
+                        compute_commit_value_pairs += 1
     payload = {
         "supernodes": len(supernode_to_ops),
+        "compute_supernodes": compute_supernodes if supernode_kinds else None,
+        "commit_supernodes": commit_supernodes if supernode_kinds else None,
         "dag_edges": sum(out_degrees),
         "boundary_values": len(non_empty_value_fanouts) if value_fanout else None,
         "boundary_activation_edges": sum(value_fanouts) if value_fanout else None,
+        "compute_compute_value_pairs": compute_compute_value_pairs if supernode_kinds else None,
+        "compute_commit_value_pairs": compute_commit_value_pairs if supernode_kinds else None,
         "ops_per_supernode": {
             "min": op_sizes[0] if op_sizes else 0,
             "mean": statistics.fmean(op_sizes) if op_sizes else 0.0,
@@ -83,9 +148,13 @@ def write_activity_schedule_stats(sess: wolvrix.Session, top: str, out_dir: Path
     log(
         "activity-schedule stats "
         f"supernodes={payload['supernodes']} "
+        f"compute_supernodes={payload['compute_supernodes']} "
+        f"commit_supernodes={payload['commit_supernodes']} "
         f"dag_edges={payload['dag_edges']} "
         f"boundary_values={payload['boundary_values']} "
         f"boundary_activation_edges={payload['boundary_activation_edges']} "
+        f"compute_compute_value_pairs={payload['compute_compute_value_pairs']} "
+        f"compute_commit_value_pairs={payload['compute_commit_value_pairs']} "
         f"ops_max={payload['ops_per_supernode']['max']}"
     )
 

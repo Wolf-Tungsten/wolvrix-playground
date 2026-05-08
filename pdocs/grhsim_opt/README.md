@@ -82,9 +82,11 @@
 | `NO0072` | `2026-05-06` | [XS GrhSIM vs Reference GSim 结构与 CoreMark 50k Fresh 复测](./NO0072_xs_grhsim_vs_reference_gsim_struct_coremark_50k_20260506.md) | 重新执行 `grhsim` / `reference/gsim` 最新版本对比，记录 supernode/边数、host 二进制规模、静态指令数与 `coremark 50k` 速度，并确认 `50k` 时执行进度确实不同 |
 | `NO0073` | `2026-05-07` | [XS GrhSIM vs Verilator 20k Commit-Cycle 对齐](./NO0073_xs_grhsim_vs_verilator_20k_commit_cycle_alignment_20260507.md) | 以 `verilator` 为参考，对齐 `grhsim` 的 `20k` `commit trace + cycle`，确认前 `6638` 条 `(pc, inst)` 完全一致，并找出第一条周期滞后指令出现在 `pc=0x800027c0`、`cycle 9861 -> 9867` |
 | `NO0074` | `2026-05-08` | [XS GrhSIM vs Verilator MBTB 写入口分叉定位](./NO0074_xs_grhsim_vs_verilator_mbtb_write_entry_divergence_20260508.md) | 基于 ref/grhsim 20k 波形继续逐级回溯，确认当前最早决定性分叉点已收敛到 `cycle 8694` 的 `MainBtbAlignBank -> internalBanks_3.writeEntry.req.valid`，而非后端 redirect、IFU flush、write buffer 或 SRAM 写口 |
+| `NO0075` | `2026-05-08` | [Disable `merge-reg` CoreMark 50k Runtime Snapshot](./NO0075_disable_merge_reg_coremark_50k_runtime_snapshot_20260508.md) | 记录在 XS `grhsim` 主流程里临时移除 `merge-reg` 后的 fresh rebuild + `coremark 50k` 速度快照，并固化“当前阶段暂不再启用该 pass”的工作结论 |
+| `NO0076` | `2026-05-08` | [XS GSim / GrhSIM Supernode Activation Stats Snapshot](./NO0076_xs_gsim_grhsim_supernode_activation_stats_20260508.md) | 扩展 `reference/gsim` emit 统计并重测 XiangShan `gsim` / `grhsim`，固定当前 `supernodes`、`dag_edges` 与 `boundary_activation_edges` 对齐结果，并记录 `grhsim compute-compute / compute-commit` 传播量拆分 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0075`。
+- 当前下一个可用记录编号为 `NO0077`。

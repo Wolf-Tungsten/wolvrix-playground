@@ -212,7 +212,8 @@ HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS
 
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
-	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff clean
+	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
+	xs_no0076_stats clean
 
 all: build
 
@@ -869,6 +870,46 @@ run_xs_gsim_emu:
 			$(XS_RAM_TRACE_ARGS) \
 			$(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) \
 			2>&1 | tee "$$GSIM_LOG"
+
+xs_no0076_stats:
+	@$(eval RUN_ID := $(if $(RUN_ID),$(RUN_ID),$(shell date +%Y%m%d_%H%M%S)))
+	@echo "[RUN] NO0076 fixed-parameter stats chain"
+	@$(MAKE) --no-print-directory xs_gsim_rtl RUN_ID="$(RUN_ID)"
+	@$(MAKE) --no-print-directory xs_wolf_grhsim_emit \
+		RUN_ID="$(RUN_ID)" \
+		XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON=0 \
+		XS_WOLF_GRHSIM_MAX_COMPUTE_NODE_IN_COMPUTE_SUPERNODE=18
+	@if [ ! -x "$(XS_GSIM_BIN)" ] && [ -f "$(REF_GSIM_ROOT)/Makefile" ]; then \
+		echo "[RUN] Building reference gsim..."; \
+		$(MAKE) --no-print-directory -C "$(REF_GSIM_ROOT)" build-gsim; \
+	fi
+	@mkdir -p "$(XS_LOG_DIR_ABS)"
+	@$(eval XS_NO0076_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_no0076_stats_$(RUN_ID).log)
+	@echo "[LOG] Capturing NO0076 stats output to: $(XS_NO0076_LOG_FILE)"
+	@printf '' > "$(XS_NO0076_LOG_FILE)"
+	@echo "[RUN] Regenerating gsim stats json" | tee -a "$(XS_NO0076_LOG_FILE)"
+	@echo "[CMD] $(XS_GSIM_BIN) --supernode-max-size=15 --cpp-max-size-KB=8192 --sep-mod=__DOT__ --sep-aggr=__DOT__ --dump-stats-json --dump-stages=Final --dir $(XS_GSIM_BUILD_ABS)/gsim-compile/model $(XS_SIM_TOP_FIR)" | tee -a "$(XS_NO0076_LOG_FILE)"
+	@set -o pipefail; $(XS_GSIM_BIN) \
+		--supernode-max-size=15 \
+		--cpp-max-size-KB=8192 \
+		--sep-mod=__DOT__ \
+		--sep-aggr=__DOT__ \
+		--dump-stats-json \
+		--dump-stages=Final \
+		--dir "$(XS_GSIM_BUILD_ABS)/gsim-compile/model" \
+		"$(XS_SIM_TOP_FIR)" \
+		2>&1 | tee -a "$(XS_NO0076_LOG_FILE)"
+	@echo "[RUN] Summarizing NO0076 aligned stats" | tee -a "$(XS_NO0076_LOG_FILE)"
+	@echo "[CMD] $(PYTHON) $(CURDIR)/scripts/xs_no0076_stats.py --gsim-stats $(XS_GSIM_BUILD_ABS)/gsim-compile/model/$(XS_SIM_TOP)_supernode_stats.json --grhsim-supernode-stats $(XS_WOLF_GRHSIM_EMIT_DIR_ABS)/activity_schedule_supernode_stats.json --grhsim-post-summary $(XS_WOLF_GRHSIM_EMIT_DIR_ABS)/wolvrix_xs_post_stats_summary.json --grhsim-post-stats $(XS_WOLF_GRHSIM_POST_STATS_JSON_ABS) --grhsim-log $(XS_LOG_DIR_ABS)/xs_wolf_grhsim_build_$(RUN_ID).log --top $(XS_SIM_TOP) --out $(XS_GRHSIM_BUILD_ABS)/no0076_stats_summary.json" | tee -a "$(XS_NO0076_LOG_FILE)"
+	@$(PYTHON) $(CURDIR)/scripts/xs_no0076_stats.py \
+		--gsim-stats "$(XS_GSIM_BUILD_ABS)/gsim-compile/model/$(XS_SIM_TOP)_supernode_stats.json" \
+		--grhsim-supernode-stats "$(XS_WOLF_GRHSIM_EMIT_DIR_ABS)/activity_schedule_supernode_stats.json" \
+		--grhsim-post-summary "$(XS_WOLF_GRHSIM_EMIT_DIR_ABS)/wolvrix_xs_post_stats_summary.json" \
+		--grhsim-post-stats "$(XS_WOLF_GRHSIM_POST_STATS_JSON_ABS)" \
+		--grhsim-log "$(XS_LOG_DIR_ABS)/xs_wolf_grhsim_build_$(RUN_ID).log" \
+		--top "$(XS_SIM_TOP)" \
+		--out "$(XS_GRHSIM_BUILD_ABS)/no0076_stats_summary.json" \
+		| tee -a "$(XS_NO0076_LOG_FILE)"
 
 run_xs_wolf_emu:
 	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \

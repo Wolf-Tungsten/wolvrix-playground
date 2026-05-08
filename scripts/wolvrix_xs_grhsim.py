@@ -50,6 +50,38 @@ def write_stats_json(sess: wolvrix.Session, key: str, out_dir: Path) -> None:
     log(f"stats json written {out_path}")
 
 
+def summarize_compute_ops_from_post_stats(post_stats_json: Path, top_name: str) -> dict[str, int] | None:
+    if not post_stats_json.exists():
+        return None
+    data = json.loads(post_stats_json.read_text(encoding="utf-8"))
+    for graph in data.get("graphs", []):
+        if graph.get("symbol") != top_name:
+            continue
+        ops = graph.get("ops")
+        if ops is None:
+            ops = graph.get("operations", [])
+        source_kinds = {"kConstant", "kRegisterReadPort", "kLatchReadPort"}
+        sink_kinds = {"kRegisterWritePort", "kLatchWritePort", "kMemoryWritePort", "kMemoryFillPort"}
+        decl_kinds = {"kRegister", "kMemory", "kLatch", "kDpicImport"}
+        hier_kinds = {"kInstance", "kBlackbox", "kXMRRead", "kXMRWrite"}
+        total_ops = len(ops)
+        source_ops = sum(1 for op in ops if op.get("kind") in source_kinds)
+        sink_ops = sum(1 for op in ops if op.get("kind") in sink_kinds)
+        declaration_ops = sum(1 for op in ops if op.get("kind") in decl_kinds)
+        hierarchy_ops = sum(1 for op in ops if op.get("kind") in hier_kinds)
+        compute_ops = total_ops - source_ops - sink_ops - declaration_ops - hierarchy_ops
+        return {
+            "top_total_ops": total_ops,
+            "top_compute_ops": compute_ops,
+            "top_source_ops": source_ops,
+            "top_sink_ops": sink_ops,
+            "top_declaration_ops": declaration_ops,
+            "top_hierarchy_ops": hierarchy_ops,
+            "top_values": len(graph.get("vals", [])),
+        }
+    return None
+
+
 def write_design_json(sess: wolvrix.Session, design: str, top_name: str, out_path: Path, label: str) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     start = time.perf_counter()
@@ -74,17 +106,101 @@ def percentile(sorted_values: list[int], num: int, den: int) -> int:
 
 
 def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> None:
+    summary_key = key.rsplit("supernode_to_ops", 1)[0] + "summary_stats"
+    try:
+        summary_text = _native.session_export(sess._capsule, key=summary_key, view="text")
+    except Exception:
+        summary_text = None
+
     raw = _native.session_export(sess._capsule, key=key, view="python")
     supernode_to_ops = [list(map(int, ops)) for ops in raw]
     dag_key = key.rsplit("supernode_to_ops", 1)[0] + "dag"
     dag_raw = _native.session_export(sess._capsule, key=dag_key, view="python")
     dag = [list(map(int, succs)) for succs in dag_raw]
+    if summary_text:
+        summary = json.loads(summary_text)
+        sizes = sorted(len(ops) for ops in supernode_to_ops)
+        out_degrees = sorted(len(succs) for succs in dag)
+        summary["ops_per_supernode"] = {
+            "min": sizes[0] if sizes else 0,
+            "mean": statistics.fmean(sizes) if sizes else 0.0,
+            "median": statistics.median(sizes) if sizes else 0,
+            "p90": percentile(sizes, 90, 100),
+            "p99": percentile(sizes, 99, 100),
+            "max": sizes[-1] if sizes else 0,
+        }
+        summary["out_degree_per_supernode"] = {
+            "min": out_degrees[0] if out_degrees else 0,
+            "mean": statistics.fmean(out_degrees) if out_degrees else 0.0,
+            "median": statistics.median(out_degrees) if out_degrees else 0,
+            "p90": percentile(out_degrees, 90, 100),
+            "p99": percentile(out_degrees, 99, 100),
+            "max": out_degrees[-1] if out_degrees else 0,
+        }
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / "activity_schedule_supernode_stats.json"
+        out_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
+        log(
+            "activity-schedule supernode stats "
+            f"supernodes={summary['supernodes']} "
+            f"compute_supernodes={summary['compute_supernodes']} "
+            f"commit_supernodes={summary['commit_supernodes']} "
+            f"dag_edges={summary['dag_edges']} "
+            f"boundary_values={summary['boundary_values']} "
+            f"boundary_activation_edges={summary['boundary_activation_edges']} "
+            f"compute_compute_value_pairs={summary['compute_compute_value_pairs']} "
+            f"compute_commit_value_pairs={summary['compute_commit_value_pairs']} "
+            f"state_read_activation_edges={summary.get('state_read_activation_edges', 0)} "
+            f"memory_read_activation_edges={summary.get('memory_read_activation_edges', 0)} "
+            f"constant_activation_edges={summary.get('constant_activation_edges', 0)} "
+            f"other_compute_activation_edges={summary.get('other_compute_activation_edges', 0)} "
+            f"ops_mean={summary['ops_per_supernode']['mean']:.3f} "
+            f"ops_median={summary['ops_per_supernode']['median']} "
+            f"ops_p90={summary['ops_per_supernode']['p90']} "
+            f"ops_p99={summary['ops_per_supernode']['p99']} "
+            f"ops_max={summary['ops_per_supernode']['max']} "
+            f"outdeg_mean={summary['out_degree_per_supernode']['mean']:.3f} "
+            f"outdeg_p99={summary['out_degree_per_supernode']['p99']} "
+            f"outdeg_max={summary['out_degree_per_supernode']['max']}"
+        )
+        log(f"activity-schedule supernode stats written {out_path}")
+        return
+
+    supernode_kind_key = key.rsplit("supernode_to_ops", 1)[0] + "supernode_kind"
+    supernode_kind_raw = _native.session_export(sess._capsule, key=supernode_kind_key, view="python")
+    supernode_kinds = [int(kind) for kind in supernode_kind_raw]
+    value_fanout_key = key.rsplit("supernode_to_ops", 1)[0] + "value_fanout"
+    value_fanout_raw = _native.session_export(sess._capsule, key=value_fanout_key, view="python")
+    value_fanout = [list(map(int, fanout)) for fanout in value_fanout_raw]
     sizes = sorted(len(ops) for ops in supernode_to_ops)
     edge_count = sum(len(succs) for succs in dag)
     out_degrees = sorted(len(succs) for succs in dag)
+    compute_supernodes = sum(1 for kind in supernode_kinds if kind == 0)
+    commit_supernodes = sum(1 for kind in supernode_kinds if kind == 1)
+    boundary_values = 0
+    boundary_activation_edges = 0
+    compute_compute_value_pairs = 0
+    compute_commit_value_pairs = 0
+    state_read_activation_edges = 0
+    memory_read_activation_edges = 0
+    constant_activation_edges = 0
+    other_compute_activation_edges = 0
+    for fanout in value_fanout:
+        if not fanout:
+            continue
+        boundary_values += 1
+        boundary_activation_edges += len(fanout)
+        for target_supernode in fanout:
+            if 0 <= target_supernode < len(supernode_kinds):
+                if supernode_kinds[target_supernode] == 0:
+                    compute_compute_value_pairs += 1
+                elif supernode_kinds[target_supernode] == 1:
+                    compute_commit_value_pairs += 1
     if sizes:
         summary = {
             "supernodes": len(sizes),
+            "compute_supernodes": compute_supernodes,
+            "commit_supernodes": commit_supernodes,
             "ops_per_supernode": {
                 "min": sizes[0],
                 "mean": statistics.fmean(sizes),
@@ -94,6 +210,14 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
                 "max": sizes[-1],
             },
             "dag_edges": edge_count,
+            "boundary_values": boundary_values,
+            "boundary_activation_edges": boundary_activation_edges,
+            "compute_compute_value_pairs": compute_compute_value_pairs,
+            "compute_commit_value_pairs": compute_commit_value_pairs,
+            "state_read_activation_edges": state_read_activation_edges,
+            "memory_read_activation_edges": memory_read_activation_edges,
+            "constant_activation_edges": constant_activation_edges,
+            "other_compute_activation_edges": other_compute_activation_edges,
             "out_degree_per_supernode": {
                 "min": out_degrees[0],
                 "mean": statistics.fmean(out_degrees),
@@ -106,6 +230,8 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
     else:
         summary = {
             "supernodes": 0,
+            "compute_supernodes": 0,
+            "commit_supernodes": 0,
             "ops_per_supernode": {
                 "min": 0,
                 "mean": 0.0,
@@ -115,6 +241,14 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
                 "max": 0,
             },
             "dag_edges": 0,
+            "boundary_values": 0,
+            "boundary_activation_edges": 0,
+            "compute_compute_value_pairs": 0,
+            "compute_commit_value_pairs": 0,
+            "state_read_activation_edges": 0,
+            "memory_read_activation_edges": 0,
+            "constant_activation_edges": 0,
+            "other_compute_activation_edges": 0,
             "out_degree_per_supernode": {
                 "min": 0,
                 "mean": 0.0,
@@ -130,7 +264,17 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
     log(
         "activity-schedule supernode stats "
         f"supernodes={summary['supernodes']} "
+        f"compute_supernodes={summary['compute_supernodes']} "
+        f"commit_supernodes={summary['commit_supernodes']} "
         f"dag_edges={summary['dag_edges']} "
+        f"boundary_values={summary['boundary_values']} "
+        f"boundary_activation_edges={summary['boundary_activation_edges']} "
+        f"compute_compute_value_pairs={summary['compute_compute_value_pairs']} "
+        f"compute_commit_value_pairs={summary['compute_commit_value_pairs']} "
+        f"state_read_activation_edges={summary.get('state_read_activation_edges', 0)} "
+        f"memory_read_activation_edges={summary.get('memory_read_activation_edges', 0)} "
+        f"constant_activation_edges={summary.get('constant_activation_edges', 0)} "
+        f"other_compute_activation_edges={summary.get('other_compute_activation_edges', 0)} "
         f"ops_mean={summary['ops_per_supernode']['mean']:.3f} "
         f"ops_median={summary['ops_per_supernode']['median']} "
         f"ops_p90={summary['ops_per_supernode']['p90']} "
@@ -299,6 +443,22 @@ def main() -> int:
                 if pass_name == "stats":
                     write_stats_json(sess, "stats.main", cpp_out_dir)
                     write_design_json(sess, "design.main", top_name, post_stats_json, "write_post_stats_json")
+                    compute_summary = summarize_compute_ops_from_post_stats(post_stats_json, top_name)
+                    if compute_summary is not None:
+                        summary_path = cpp_out_dir / "wolvrix_xs_post_stats_summary.json"
+                        summary_path.write_text(
+                            json.dumps(compute_summary, indent=2, sort_keys=True),
+                            encoding="utf-8",
+                        )
+                        log(
+                            "post-stats summary "
+                            f"top_total_ops={compute_summary['top_total_ops']} "
+                            f"top_compute_ops={compute_summary['top_compute_ops']} "
+                            f"top_declaration_ops={compute_summary['top_declaration_ops']} "
+                            f"top_hierarchy_ops={compute_summary['top_hierarchy_ops']} "
+                            f"top_values={compute_summary['top_values']}"
+                        )
+                        log(f"post-stats summary written {summary_path}")
                 log(f"pass {pass_name} done {int((time.perf_counter() - start) * 1000)}ms")
 
         if stop_after_pre_sched:
