@@ -1,9 +1,9 @@
 ROOT := $(abspath ../../..)
 
-CASE_ID := 006
+CASE_ID := 007
 CASE_TAG := CASE_$(CASE_ID)
 
-DUT_TOP := Mem1R1WHelperCase006
+DUT_TOP := UncacheEntryCase007
 TB_TOP := xs_bugcase_tb
 
 CASE_DIR := $(CURDIR)

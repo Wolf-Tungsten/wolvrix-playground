@@ -79,9 +79,12 @@
 | `NO0069` | `2026-05-04` | [GrhSIM Value 按位宽分桶 Storage 优化记录](./NO0069_grhsim_value_width_bucket_storage_20260504.md) | 记录将 logic value 从统一 `value_logic_storage_` 改为 typed width buckets；XS CoreMark 50k 通过，`.text` 减少约 `1.50%`，host time 从 `368178 ms` 降到 `349281 ms` |
 | `NO0070` | `2026-05-05` | [GrhSIM Activity-Schedule ComputeNode 重构计划](./NO0070_grhsim_activity_schedule_computenode_rewrite_plan_20260505.md) | 重新定义 `source op` / `compute op` / `sink op`、`computeNode`、`commitSupernode` 与 `computeSupernode`，规划以 `computeNode` 对齐 GSIM `Node + ExprNode` 粒度的 activity-schedule 重构 |
 | `NO0071` | `2026-05-06` | [GrhSIM Sched 308 SLPVectorizer 编译热点记录](./NO0071_grhsim_sched308_slp_vectorizer_compile_hotspot_20260506.md) | 记录 `grhsim_SimTop_sched_308.cpp` 隔离 `clang++ -ftime-report/-ftime-trace` 结果，确认慢点是 `SLPVectorizerPass` 在 `eval_compute_batch_308()` 上耗时 `191.20s`，加 `-fno-slp-vectorize` 后降到 `5.04s` |
+| `NO0072` | `2026-05-06` | [XS GrhSIM vs Reference GSim 结构与 CoreMark 50k Fresh 复测](./NO0072_xs_grhsim_vs_reference_gsim_struct_coremark_50k_20260506.md) | 重新执行 `grhsim` / `reference/gsim` 最新版本对比，记录 supernode/边数、host 二进制规模、静态指令数与 `coremark 50k` 速度，并确认 `50k` 时执行进度确实不同 |
+| `NO0073` | `2026-05-07` | [XS GrhSIM vs Verilator 20k Commit-Cycle 对齐](./NO0073_xs_grhsim_vs_verilator_20k_commit_cycle_alignment_20260507.md) | 以 `verilator` 为参考，对齐 `grhsim` 的 `20k` `commit trace + cycle`，确认前 `6638` 条 `(pc, inst)` 完全一致，并找出第一条周期滞后指令出现在 `pc=0x800027c0`、`cycle 9861 -> 9867` |
+| `NO0074` | `2026-05-08` | [XS GrhSIM vs Verilator MBTB 写入口分叉定位](./NO0074_xs_grhsim_vs_verilator_mbtb_write_entry_divergence_20260508.md) | 基于 ref/grhsim 20k 波形继续逐级回溯，确认当前最早决定性分叉点已收敛到 `cycle 8694` 的 `MainBtbAlignBank -> internalBanks_3.writeEntry.req.valid`，而非后端 redirect、IFU flush、write buffer 或 SRAM 写口 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0072`。
+- 当前下一个可用记录编号为 `NO0075`。

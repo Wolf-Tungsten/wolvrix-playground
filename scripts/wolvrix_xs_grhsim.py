@@ -235,7 +235,6 @@ def main() -> int:
             ),
             ("comb-loop-elim", {}),
             ("simplify", {"semantics": "2state"}),
-            ("merge-reg", merge_reg_options),
             ("simplify", {"semantics": "2state"}),
             ("memory-init-check", {}),
             ("stats", {"out_stats": "stats.main"}),

@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 
 `ifdef SYNTHESIS
   `define DISABLE_DIFFTEST_RAM_DPIC
@@ -89,9 +90,6 @@ end
 `else // GSIM
   assign r_0_async = 1'b0;
 always @(posedge clock) begin
-  $display("[RTL-TRACE] r_0_index=%x, r_0_enable=%x, r_0_data=%x", r_0_index, r_0_enable, r_0_data);
-end
-always @(posedge clock) begin
 `ifndef DISABLE_DIFFTEST_RAM_DPIC
   if (r_0_enable) begin
     r_0_data <= difftest_ram_read(r_0_index);
@@ -120,4 +118,3 @@ end
 end
 
 endmodule
-     

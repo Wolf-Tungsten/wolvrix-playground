@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module Mem1R1WHelperCase006 (
     input  logic        clock,
     input  logic        reset,
