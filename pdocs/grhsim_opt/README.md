@@ -84,9 +84,17 @@
 | `NO0074` | `2026-05-08` | [XS GrhSIM vs Verilator MBTB 写入口分叉定位](./NO0074_xs_grhsim_vs_verilator_mbtb_write_entry_divergence_20260508.md) | 基于 ref/grhsim 20k 波形继续逐级回溯，确认当前最早决定性分叉点已收敛到 `cycle 8694` 的 `MainBtbAlignBank -> internalBanks_3.writeEntry.req.valid`，而非后端 redirect、IFU flush、write buffer 或 SRAM 写口 |
 | `NO0075` | `2026-05-08` | [Disable `merge-reg` CoreMark 50k Runtime Snapshot](./NO0075_disable_merge_reg_coremark_50k_runtime_snapshot_20260508.md) | 记录在 XS `grhsim` 主流程里临时移除 `merge-reg` 后的 fresh rebuild + `coremark 50k` 速度快照，并固化“当前阶段暂不再启用该 pass”的工作结论 |
 | `NO0076` | `2026-05-08` | [XS GSim / GrhSIM Supernode Activation Stats Snapshot](./NO0076_xs_gsim_grhsim_supernode_activation_stats_20260508.md) | 扩展 `reference/gsim` emit 统计并重测 XiangShan `gsim` / `grhsim`，固定当前 `supernodes`、`dag_edges` 与 `boundary_activation_edges` 对齐结果，并记录 `grhsim compute-compute / compute-commit` 传播量拆分 |
+| `NO0077` | `2026-05-09` | [XS GSim / GrhSIM Runtime Profile CoreMark 50k](./NO0077_xs_gsim_grhsim_runtime_profile_coremark_50k_20260509.md) | 重建 `gsim` / `grhsim` emu 后开启 `EMU_RUNTIME_PROFILE=1` 跑 XiangShan `coremark` 50k，记录 active supernode、node / compute-node solve、enode / op solve，并确认当前主要差距来自 grhsim 单位 op solve 成本 |
+| `NO0078` | `2026-05-09` | [GrhSIM / GSim Generated Code Static Sample](./NO0078_grhsim_gsim_generated_code_static_sample_20260509.md) | 抽取 `gsim subStep` 与 `grhsim compute/commit batch` 生成 C++ 片段，按原编译口径重编译并统计汇编形态，确认 grhsim 单位 op 成本主要来自 value slot 访问、old/new 比较、activation bitset 写入和更大的 compute text footprint |
+| `NO0079` | `2026-05-09` | [BigComb Chisel 纯组合 GSim / GrhSIM Benchmark](./NO0079_big_comb_chisel_gsim_grhsim_benchmark_20260509.md) | 新增大规模纯组合 Chisel testcase，分别生成 FIR/SV 后用 `gsim` / `grhsim` 编译，并在同一 1M deterministic 激励序列上确认 `grhsim` compute-only 速度约慢 `2.84x` |
+| `NO0080` | `2026-05-09` | [GrhSIM Compact Local Expr Emit](./NO0080_grhsim_compact_local_expr_emit_20260509.md) | 第一版紧凑 local expr emit：缩短非物化 local 名称、按 supernode 局部 use-count 内联单用户表达式，使 BigComb one-supernode `sched_0.cpp` 从 `55.8MB/489k` 降到 `36.2MB/279k` |
+| `NO0081` | `2026-05-09` | [XS GSim / GrhSIM Perf CoreMark 50k](./NO0081_xs_gsim_grhsim_perf_coremark_50k_20260509.md) | 在无 runtime profile 环境下用 `perf stat` / `perf record` 对比 `gsim` 与 `grhsim` 的 XiangShan `coremark 50k` host 指令、分支、cache/TLB 与 cycles 热点，确认主要差距来自低 IPC、branch pressure 和 frontend/data-side footprint |
+| `NO0082` | `2026-05-09` | [GrhSIM Helper Fastpath Perf Rerun](./NO0082_grhsim_helper_fastpath_perf_rerun_20260509.md) | 重建 helper fastpath 版本后复测 `coremark 50k` perf，确认 retired instructions / branches 下降，但 branch misses 与 wall time 基本未改善 |
+| `NO0083` | `2026-05-09` | [Branchless Changed Activation Experiment](./NO0083_branchless_changed_activation_experiment_20260509.md) | 尝试把 scalar changed activation 改为 branchless mask，branch / branch-miss 显著下降但 instruction count 上升，最终 wall time 回退，实验已撤回 |
+| `NO0084` | `2026-05-09` | [Active Word Accumulator Negative Result](./NO0084_active_word_accumulator_negative_20260509.md) | 尝试 batch/word-local active word accumulator，结果代码规模、branch、cache 压力和 wall time 均明显回退，确认该无界 accumulator 方向不保留 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0077`。
+- 当前下一个可用记录编号为 `NO0085`。

@@ -327,9 +327,13 @@ def main() -> int:
     )
     max_op_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_NODE", 8192)
     max_op_in_commit_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE", 768)
+    local_shared_compute_max_fanout = env_int("WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_FANOUT", 4)
+    local_shared_compute_max_width = env_int("WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_WIDTH", 256)
+    enable_local_shared_compute = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_LOCAL_SHARED_COMPUTE", default=False)
     sched_batch_max_ops = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_OPS", 2048)
     sched_batch_max_estimated_lines = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES", 8192)
     sched_batch_target_count = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_TARGET_COUNT", 800)
+    sched_batches_per_cpp = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCHES_PER_CPP", 1)
     emit_parallelism = env_int("WOLVRIX_XS_GRHSIM_EMIT_PARALLELISM", 8)
     stop_after_pre_sched = env_flag("WOLVRIX_XS_GRHSIM_STOP_AFTER_PRE_SCHED", default=False)
     simplify_keep_declared_symbols = env_flag("WOLVRIX_XS_GRHSIM_SIMPLIFY_KEEP_DECLARED_SYMBOLS", default=False)
@@ -396,6 +400,9 @@ def main() -> int:
                     "max_compute_node_in_compute_supernode": max_compute_node_in_compute_supernode,
                     "max_op_in_compute_node": max_op_in_compute_node,
                     "max_op_in_commit_supernode": max_op_in_commit_supernode,
+                    "local_shared_compute_max_fanout": local_shared_compute_max_fanout,
+                    "local_shared_compute_max_width": local_shared_compute_max_width,
+                    "enable_local_shared_compute": enable_local_shared_compute,
                 },
             ),
         ]
@@ -404,9 +411,13 @@ def main() -> int:
             f"{max_compute_node_in_compute_supernode} "
             f"max_op_in_compute_node={max_op_in_compute_node} "
             f"max_op_in_commit_supernode={max_op_in_commit_supernode} "
+            f"local_shared_compute_max_fanout={local_shared_compute_max_fanout} "
+            f"local_shared_compute_max_width={local_shared_compute_max_width} "
+            f"enable_local_shared_compute={enable_local_shared_compute} "
             f"sched_batch_max_ops={sched_batch_max_ops} "
             f"sched_batch_max_estimated_lines={sched_batch_max_estimated_lines} "
             f"sched_batch_target_count={sched_batch_target_count} "
+            f"sched_batches_per_cpp={sched_batches_per_cpp} "
             f"emit_parallelism={emit_parallelism} waveform={args.waveform} perf={args.perf} "
             f"simplify_keep_declared_symbols={simplify_keep_declared_symbols}"
         )
@@ -487,6 +498,7 @@ def main() -> int:
             sched_batch_max_ops=sched_batch_max_ops,
             sched_batch_max_estimated_lines=sched_batch_max_estimated_lines,
             sched_batch_target_count=sched_batch_target_count,
+            sched_batches_per_cpp=sched_batches_per_cpp,
             emit_parallelism=emit_parallelism,
             waveform=args.waveform,
             perf=args.perf,
