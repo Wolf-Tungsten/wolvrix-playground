@@ -325,8 +325,13 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_MAX_COMPUTE_NODE_IN_COMPUTE_SUPERNODE",
         16,
     )
+    max_value_in_compute_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_VALUE_IN_COMPUTE_SUPERNODE", 0)
+    target_compute_supernodes = env_int("WOLVRIX_XS_GRHSIM_TARGET_COMPUTE_SUPERNODES", 0)
     max_op_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_NODE", 8192)
+    max_value_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_VALUE_IN_COMPUTE_NODE", 0)
+    max_declared_value_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_DECLARED_VALUE_IN_COMPUTE_NODE", 0)
     max_op_in_commit_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE", 768)
+    topo_order_model = os.environ.get("WOLVRIX_XS_GRHSIM_TOPO_ORDER_MODEL", "layer")
     local_shared_compute_max_fanout = env_int("WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_FANOUT", 4)
     local_shared_compute_max_width = env_int("WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_WIDTH", 256)
     enable_local_shared_compute = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_LOCAL_SHARED_COMPUTE", default=False)
@@ -409,8 +414,13 @@ def main() -> int:
         log(
             "activity-schedule max_compute_node_in_compute_supernode="
             f"{max_compute_node_in_compute_supernode} "
+            f"max_value_in_compute_supernode={max_value_in_compute_supernode} "
+            f"target_compute_supernodes={target_compute_supernodes} "
             f"max_op_in_compute_node={max_op_in_compute_node} "
+            f"max_value_in_compute_node={max_value_in_compute_node} "
+            f"max_declared_value_in_compute_node={max_declared_value_in_compute_node} "
             f"max_op_in_commit_supernode={max_op_in_commit_supernode} "
+            f"topo_order_model={topo_order_model} "
             f"local_shared_compute_max_fanout={local_shared_compute_max_fanout} "
             f"local_shared_compute_max_width={local_shared_compute_max_width} "
             f"enable_local_shared_compute={enable_local_shared_compute} "

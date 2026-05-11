@@ -92,9 +92,14 @@
 | `NO0082` | `2026-05-09` | [GrhSIM Helper Fastpath Perf Rerun](./NO0082_grhsim_helper_fastpath_perf_rerun_20260509.md) | 重建 helper fastpath 版本后复测 `coremark 50k` perf，确认 retired instructions / branches 下降，但 branch misses 与 wall time 基本未改善 |
 | `NO0083` | `2026-05-09` | [Branchless Changed Activation Experiment](./NO0083_branchless_changed_activation_experiment_20260509.md) | 尝试把 scalar changed activation 改为 branchless mask，branch / branch-miss 显著下降但 instruction count 上升，最终 wall time 回退，实验已撤回 |
 | `NO0084` | `2026-05-09` | [Active Word Accumulator Negative Result](./NO0084_active_word_accumulator_negative_20260509.md) | 尝试 batch/word-local active word accumulator，结果代码规模、branch、cache 压力和 wall time 均明显回退，确认该无界 accumulator 方向不保留 |
+| `NO0085` | `2026-05-10` | [XS NO0076 Fresh Rerun](./NO0085_xs_no0076_fresh_rerun_20260510.md) | 重新 fresh 跑 `xs_no0076_stats`，确认旧 `NO0076` 的 `grhsim` 数据已过期；追加 JSON resume 实验证明 activation-affinity ordering 虽可让静态 activation 降 `12.82%`，但 CoreMark 50k wall time 实测回退 `18.49%` |
+| `NO0086` | `2026-05-11` | [GrhSIM Runtime-Aware Coarsen / Ordering Experiments](./NO0086_grhsim_runtime_aware_coarsen_ordering_experiments_20260511.md) | 从同一份 post-stats JSON 复用实验，量化 DP 合并作用，并确认 size20/24/32 简单增大 supernode 粒度均让 CoreMark 50k 变慢，后续只保留有实测 wall-time 收益的方案 |
+| `NO0087` | `2026-05-11` | [当前 GSim / GrhSIM 量化分析、Profile 与 Perf 复测](./NO0087_current_gsim_grhsim_quant_profile_perf_20260511.md) | 重新运行 fresh stats、重建双边 emu，并补齐 compute-op / enode 出度、静态二进制、runtime profile 与 perf stat；确认 GrhSIM activation edges 为 GSim `1.847x`、50k perf wall time 为 `11.58x` |
+| `NO0088` | `2026-05-11` | [Value-Guided Activity Schedule Experiments](./NO0088_value_guided_activity_schedule_failed_experiments_20260511.md) | 实现 value / declared-value 制导参数并从 post-stats JSON resume 实测，确认简单 value hard cap 与朴素 value-local ordering 均失败，默认保持旧行为 |
+| `NO0089` | `2026-05-11` | [当前 GSim / GrhSIM Perf 静态与动态指令画像](./NO0089_current_gsim_grhsim_perf_static_dynamic_coremark50k_20260511.md) | 不重新构建，复用当前 `gsim` / `grhsim` emu，对 CoreMark 50k 做静态反汇编计数与 perf stat；确认 GrhSIM 静态分支为 GSim `3.42x`、动态 branches `7.60x`、load/store dispatch `5.06x` |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0085`。
+- 当前下一个可用记录编号为 `NO0090`。
