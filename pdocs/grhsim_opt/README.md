@@ -97,9 +97,10 @@
 | `NO0087` | `2026-05-11` | [当前 GSim / GrhSIM 量化分析、Profile 与 Perf 复测](./NO0087_current_gsim_grhsim_quant_profile_perf_20260511.md) | 重新运行 fresh stats、重建双边 emu，并补齐 compute-op / enode 出度、静态二进制、runtime profile 与 perf stat；确认 GrhSIM activation edges 为 GSim `1.847x`、50k perf wall time 为 `11.58x` |
 | `NO0088` | `2026-05-11` | [Value-Guided Activity Schedule Experiments](./NO0088_value_guided_activity_schedule_failed_experiments_20260511.md) | 实现 value / declared-value 制导参数并从 post-stats JSON resume 实测，确认简单 value hard cap 与朴素 value-local ordering 均失败，默认保持旧行为 |
 | `NO0089` | `2026-05-11` | [当前 GSim / GrhSIM Perf 静态与动态指令画像](./NO0089_current_gsim_grhsim_perf_static_dynamic_coremark50k_20260511.md) | 不重新构建，复用当前 `gsim` / `grhsim` emu，对 CoreMark 50k 做静态反汇编计数与 perf stat；确认 GrhSIM 静态分支为 GSim `3.42x`、动态 branches `7.60x`、load/store dispatch `5.06x` |
+| `NO0090` | `2026-05-11` | [GrhSIM Branchless Mux Select CoreMark 50k](./NO0090_grhsim_branchless_mux_select_coremark50k_20260511.md) | 将 `kMux` emit 从 C++ `?:` 改为 mask-select helper；CoreMark 50k elapsed time 降 `3.05%`，动态 branches 降 `15.47%`，branch misses 降 `23.50%`，静态 branch/control-flow 降 `37.63%` |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0090`。
+- 当前下一个可用记录编号为 `NO0091`。
