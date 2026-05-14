@@ -86,7 +86,8 @@ def main() -> int:
     parser.add_argument("--top", default="BigComb")
     parser.add_argument("--out", required=True)
     parser.add_argument("--json", default="")
-    parser.add_argument("--max-compute-node-in-compute-supernode", default="8")
+    parser.add_argument("--max-op-in-compute-supernode", default="8")
+    parser.add_argument("--max-compute-node-in-compute-supernode", default=None)
     parser.add_argument("--max-op-in-commit-supernode", default="768")
     parser.add_argument("--sched-batch-max-ops", type=int, default=2048)
     parser.add_argument("--sched-batch-max-estimated-lines", type=int, default=8192)
@@ -119,7 +120,11 @@ def main() -> int:
                 "activity-schedule",
                 {
                     "path": args.top,
-                    "max_compute_node_in_compute_supernode": int(args.max_compute_node_in_compute_supernode),
+                    "max_op_in_compute_supernode": int(
+                        args.max_compute_node_in_compute_supernode
+                        if args.max_compute_node_in_compute_supernode is not None
+                        else args.max_op_in_compute_supernode
+                    ),
                     "max_op_in_commit_supernode": int(args.max_op_in_commit_supernode),
                 },
             ),

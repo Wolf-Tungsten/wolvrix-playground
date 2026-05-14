@@ -98,9 +98,11 @@
 | `NO0088` | `2026-05-11` | [Value-Guided Activity Schedule Experiments](./NO0088_value_guided_activity_schedule_failed_experiments_20260511.md) | 实现 value / declared-value 制导参数并从 post-stats JSON resume 实测，确认简单 value hard cap 与朴素 value-local ordering 均失败，默认保持旧行为 |
 | `NO0089` | `2026-05-11` | [当前 GSim / GrhSIM Perf 静态与动态指令画像](./NO0089_current_gsim_grhsim_perf_static_dynamic_coremark50k_20260511.md) | 不重新构建，复用当前 `gsim` / `grhsim` emu，对 CoreMark 50k 做静态反汇编计数与 perf stat；确认 GrhSIM 静态分支为 GSim `3.42x`、动态 branches `7.60x`、load/store dispatch `5.06x` |
 | `NO0090` | `2026-05-11` | [GrhSIM Branchless Mux Select CoreMark 50k](./NO0090_grhsim_branchless_mux_select_coremark50k_20260511.md) | 将 `kMux` emit 从 C++ `?:` 改为 mask-select helper；CoreMark 50k elapsed time 降 `3.05%`，动态 branches 降 `15.47%`，branch misses 降 `23.50%`，静态 branch/control-flow 降 `37.63%` |
+| `NO0091` | `2026-05-12` | [GrhSIM Same-Cond Mux Merge CoreMark 50k](./NO0091_grhsim_same_cond_mux_merge_coremark50k_20260512.md) | 在 `NO0090` branchless mux 基础上，仅保留 emit 层相邻同条件 scalar mux run 的 mask 复用；CoreMark 50k host time 从 `376,883 ms` 降到 `369,931 ms` |
+| `NO0092` | `2026-05-14` | [Activity-Schedule Op 粒度重构与 Commit 分桶 50k 快照](./NO0092_activity_schedule_op_granularity_commit_bucket_snapshot_20260514.md) | 记录当前 op 粒度 activity-schedule 与 commit 独立分桶后的结构和速度；已追加 `max-op=108` 对齐 GSim supernode 数复测：`84,718` supernodes，CoreMark 50k `106.29 cycles/s` |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0091`。
+- 当前下一个可用记录编号为 `NO0093`。

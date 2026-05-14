@@ -321,16 +321,15 @@ def main() -> int:
     resume_from_stats_json = env_flag("WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON")
     enable_mem_to_reg = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_MEM_TO_REG", default=False)
     mem_to_reg_row_limit = env_int("WOLVRIX_XS_GRHSIM_MEM_TO_REG_ROW_LIMIT", 64)
-    max_compute_node_in_compute_supernode = env_int(
-        "WOLVRIX_XS_GRHSIM_MAX_COMPUTE_NODE_IN_COMPUTE_SUPERNODE",
-        16,
+    max_op_in_compute_supernode = env_int(
+        "WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE",
+        env_int("WOLVRIX_XS_GRHSIM_MAX_COMPUTE_NODE_IN_COMPUTE_SUPERNODE", 128),
     )
     max_value_in_compute_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_VALUE_IN_COMPUTE_SUPERNODE", 0)
     target_compute_supernodes = env_int("WOLVRIX_XS_GRHSIM_TARGET_COMPUTE_SUPERNODES", 0)
-    max_op_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_NODE", 8192)
     max_value_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_VALUE_IN_COMPUTE_NODE", 0)
     max_declared_value_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_DECLARED_VALUE_IN_COMPUTE_NODE", 0)
-    max_op_in_commit_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE", 768)
+    max_op_in_commit_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE", 4096)
     topo_order_model = os.environ.get("WOLVRIX_XS_GRHSIM_TOPO_ORDER_MODEL", "layer")
     local_shared_compute_max_fanout = env_int("WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_FANOUT", 4)
     local_shared_compute_max_width = env_int("WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_WIDTH", 256)
@@ -402,8 +401,7 @@ def main() -> int:
                 "activity-schedule",
                 {
                     "path": top_name,
-                    "max_compute_node_in_compute_supernode": max_compute_node_in_compute_supernode,
-                    "max_op_in_compute_node": max_op_in_compute_node,
+                    "max_op_in_compute_supernode": max_op_in_compute_supernode,
                     "max_op_in_commit_supernode": max_op_in_commit_supernode,
                     "local_shared_compute_max_fanout": local_shared_compute_max_fanout,
                     "local_shared_compute_max_width": local_shared_compute_max_width,
@@ -412,11 +410,10 @@ def main() -> int:
             ),
         ]
         log(
-            "activity-schedule max_compute_node_in_compute_supernode="
-            f"{max_compute_node_in_compute_supernode} "
+            "activity-schedule max_op_in_compute_supernode="
+            f"{max_op_in_compute_supernode} "
             f"max_value_in_compute_supernode={max_value_in_compute_supernode} "
             f"target_compute_supernodes={target_compute_supernodes} "
-            f"max_op_in_compute_node={max_op_in_compute_node} "
             f"max_value_in_compute_node={max_value_in_compute_node} "
             f"max_declared_value_in_compute_node={max_declared_value_in_compute_node} "
             f"max_op_in_commit_supernode={max_op_in_commit_supernode} "

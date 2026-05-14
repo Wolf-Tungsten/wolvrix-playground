@@ -29,7 +29,7 @@ GSIM_BUILD_STAMP := $(GSIM_DIR)/obj/.stamp
 
 GSIM_FLAGS ?= --supernode-max-size=8 --cpp-max-size-KB=512
 GSIM_CXXFLAGS ?= -O3 -std=c++17 -fbracket-depth=2048 -Wno-parentheses-equality -I$(abspath $(GSIM_MODEL_DIR))
-GRHSIM_MAX_COMPUTE_NODE_IN_COMPUTE_SUPERNODE ?= 8
+GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE ?= 8
 GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE ?= 768
 GRHSIM_SCHED_BATCH_MAX_OPS ?= 2048
 GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES ?= 8192
@@ -82,7 +82,7 @@ gsim: $(GSIM_BUILD_STAMP)
 $(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_GRAPH_STATS) &: $(SV) scripts/emit_grhsim.py
 	@mkdir -p $(GRHSIM_MODEL_DIR)
 	$(PYTHON) scripts/emit_grhsim.py --sv $(SV) --top $(TOP) --out $(GRHSIM_MODEL_DIR) --json $(GRHSIM_DIR)/$(TOP).json \
-		--max-compute-node-in-compute-supernode $(GRHSIM_MAX_COMPUTE_NODE_IN_COMPUTE_SUPERNODE) \
+		--max-op-in-compute-supernode $(GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE) \
 		--max-op-in-commit-supernode $(GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE) \
 		--sched-batch-max-ops $(GRHSIM_SCHED_BATCH_MAX_OPS) \
 		--sched-batch-max-estimated-lines $(GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES) \
