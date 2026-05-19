@@ -100,9 +100,10 @@
 | `NO0090` | `2026-05-11` | [GrhSIM Branchless Mux Select CoreMark 50k](./NO0090_grhsim_branchless_mux_select_coremark50k_20260511.md) | 将 `kMux` emit 从 C++ `?:` 改为 mask-select helper；CoreMark 50k elapsed time 降 `3.05%`，动态 branches 降 `15.47%`，branch misses 降 `23.50%`，静态 branch/control-flow 降 `37.63%` |
 | `NO0091` | `2026-05-12` | [GrhSIM Same-Cond Mux Merge CoreMark 50k](./NO0091_grhsim_same_cond_mux_merge_coremark50k_20260512.md) | 在 `NO0090` branchless mux 基础上，仅保留 emit 层相邻同条件 scalar mux run 的 mask 复用；CoreMark 50k host time 从 `376,883 ms` 降到 `369,931 ms` |
 | `NO0092` | `2026-05-14` | [Activity-Schedule Op 粒度重构与 Commit 分桶 50k 快照](./NO0092_activity_schedule_op_granularity_commit_bucket_snapshot_20260514.md) | 记录当前 op 粒度 activity-schedule 与 commit 独立分桶后的结构和速度；已追加 `max-op=108` 对齐 GSim supernode 数复测：`84,718` supernodes，CoreMark 50k `106.29 cycles/s` |
+| `NO0093` | `2026-05-18` | [GrhSIM Activity-Schedule 迁移 ESSENT MFFC Coarsen 方案](./NO0093_essent_mffc_activity_schedule_plan_20260518.md) | 规划用 ESSENT MFFC 初始分解与 acyclic merge 替换当前 compute coarsen 主路径；已追加 MFFC builder、默认关闭 C1/C2/C3/C4 coarsen、phase 开关和 bounded external path guard，CSR DAG 和 XiangShan 50k 提速验收仍待完成 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0093`。
+- 当前下一个可用记录编号为 `NO0094`。
