@@ -100,10 +100,80 @@
 | `NO0090` | `2026-05-11` | [GrhSIM Branchless Mux Select CoreMark 50k](./NO0090_grhsim_branchless_mux_select_coremark50k_20260511.md) | 将 `kMux` emit 从 C++ `?:` 改为 mask-select helper；CoreMark 50k elapsed time 降 `3.05%`，动态 branches 降 `15.47%`，branch misses 降 `23.50%`，静态 branch/control-flow 降 `37.63%` |
 | `NO0091` | `2026-05-12` | [GrhSIM Same-Cond Mux Merge CoreMark 50k](./NO0091_grhsim_same_cond_mux_merge_coremark50k_20260512.md) | 在 `NO0090` branchless mux 基础上，仅保留 emit 层相邻同条件 scalar mux run 的 mask 复用；CoreMark 50k host time 从 `376,883 ms` 降到 `369,931 ms` |
 | `NO0092` | `2026-05-14` | [Activity-Schedule Op 粒度重构与 Commit 分桶 50k 快照](./NO0092_activity_schedule_op_granularity_commit_bucket_snapshot_20260514.md) | 记录当前 op 粒度 activity-schedule 与 commit 独立分桶后的结构和速度；已追加 `max-op=108` 对齐 GSim supernode 数复测：`84,718` supernodes，CoreMark 50k `106.29 cycles/s` |
-| `NO0093` | `2026-05-18` | [GrhSIM Activity-Schedule 迁移 ESSENT MFFC Coarsen 方案](./NO0093_essent_mffc_activity_schedule_plan_20260518.md) | 规划用 ESSENT MFFC 初始分解与 acyclic merge 替换当前 compute coarsen 主路径；已追加 MFFC builder、默认关闭 C1/C2/C3/C4 coarsen、phase 开关和 bounded external path guard，CSR DAG 和 XiangShan 50k 提速验收仍待完成 |
+| `NO0093` | `2026-05-18` | [GrhSIM Activity-Schedule 迁移 ESSENT MFFC Coarsen 方案](./NO0093_essent_mffc_activity_schedule_plan_20260518.md) | 规划用 ESSENT MFFC 初始分解与 acyclic merge 替换当前 compute coarsen 主路径；已冻结为历史索引，后续实验不再追加到本文 |
+| `NO0094` | `2026-05-21` | [GSim / GrhSIM 10x Gap Root Cause Snapshot](./NO0094_gsim_grhsim_10x_gap_root_cause_20260521.md) | 汇总当前 `gsim` / `grhsim` XiangShan CoreMark 约 10x 差距的证据链与 root-cause 判断 |
+| `NO0095` | `2026-05-21` | [GrhSIM Opt 文档拆分规范](./NO0095_grhsim_opt_doc_split_policy_20260521.md) | 固化后续实验、诊断、A/B、runtime 复测都逐篇新建 `NOxxxx_*.md` 的记录规则 |
+| `NO0096` | `2026-05-21` | [GSim / GrhSIM Frontend Pressure Evidence](./NO0096_gsim_grhsim_frontend_pressure_evidence_20260521.md) | 记录 10x gap 中 code text、schedule 函数数、perf overhead 等 frontend pressure 证据 |
+| `NO0097` | `2026-05-21` | [NO0162 Hot Batch Anatomy](./NO0097_no0162_hot_batch_anatomy_20260521.md) | 拆解 no0162 版本热 compute/commit batch 的源码规模、active block、storage/value 访问形态 |
+| `NO0098` | `2026-05-21` | [NO0162 Machine Code Size Check](./NO0098_no0162_machine_code_size_check_20260521.md) | 对比 grhsim 热 batch 与 gsim hot subStep 的机器码大小，排除“单个函数过大”作为主要解释 |
+| `NO0099` | `2026-05-21` | [Hot Function Disasm Shape](./NO0099_hot_function_disasm_shape_20260521.md) | 用反汇编统计确认 grhsim hot commit batch 更 branch-dense、memory-dense，定位到 generated-code 控制流与存储访问形态 |
+| `NO0100` | `2026-05-21` | [Per-Entry Commit Scalar Activation 候选实现](./NO0100_per_entry_commit_scalar_activation_candidate_20260521.md) | 基于 hot commit batch root-cause，实现默认关闭的 per-entry commit scalar activation table 候选，并用 emit 单测验证生成语义 |
+| `NO0101` | `2026-05-21` | [Commit Scalar Table 诊断字段验证](./NO0101_commit_scalar_table_diag_check_20260521.md) | 确认 `WOLVRIX_GRHSIM_DIAG_COMMIT_SCALAR_TABLE=1` 会输出 per-entry table 结构命中字段，为下一步 XS fresh emit 结构验收做准备 |
+| `NO0102` | `2026-05-21` | [XS Per-Entry Commit Scalar Activation 结构验收](./NO0102_xs_per_entry_commit_scalar_activation_structure_gate_20260521.md) | 对 XiangShan fresh emit 做 per-entry commit scalar activation 结构验收，确认 `per_entry_writes=283301` 且生成代码命中 table helper；尚未进入 build/runtime |
+| `NO0103` | `2026-05-21` | [Per-Entry Commit Scalar Build 与 20k 无效运行](./NO0103_per_entry_commit_scalar_build_and_invalid_20k_20260521.md) | 复用 `NO0102` 产物完成 `libgrhsim` 与 difftest emu build，但 20k 带 difftest 运行 `instr=0/pc=0`，不能作为性能数据，需先诊断功能启动问题 |
+| `NO0109` | `2026-05-21` | [C2 Full Cap128 + Activation Merge CoreMark 50k](./NO0109_c2_full_cap128_activation_merge_coremark50k_20260521.md) | 记录 `C2 full cap128 + emitted activation merge` 的 fresh emit/build/CoreMark 50k 复测 |
+| `NO0110` | `2026-05-21` | [Full-Word Static Slice Direct Load CoreMark 50k](./NO0110_full_word_static_slice_direct_load_coremark50k_20260521.md) | 验证 64-bit 对齐整字 slice direct load 代码形态，结构改善但 runtime 回退 |
+| `NO0116/NO0117` | `2026-05-21` | [Commit Scalar Table Segment Fix and Range Compression](./NO0116_NO0117_commit_scalar_table_segment_fix_and_range_compression_20260521.md) | 记录 commit scalar table fallback segment 修复与 range compression，NO0117 达到约 `139.4 cycles/s` |
+| `NO0118` | `2026-05-21` | [Wide Masked State Write In-Place Emit](./NO0118_wide_masked_state_write_inplace_emit_20260521.md) | wide state masked write 改为 in-place helper，50k 约 `139.7 cycles/s` |
+| `NO0119` | `2026-05-21` | [Wide Bitwise Out-Param Fast Path Negative](./NO0119_wide_bitwise_outparam_fastpath_negative_20260521.md) | wide bitwise out-param fast path 覆盖有限且 50k 回退，已判定负向 |
+| `NO0120` | `2026-05-21` | [Static 1-bit Slice Inline Negative](./NO0120_static_1bit_slice_inline_negative_20260521.md) | 消除 `grhsim_get_bit_words` 静态调用但 emit/build/runtime 均变慢 |
+| `NO0121` | `2026-05-21` | [Eval Batch-Level Active Guard Negative](./NO0121_eval_batch_level_active_guard_negative_20260521.md) | batch-level active guard 生成成功但 20k runtime 回退 |
+| `NO0122` | `2026-05-21` | [Active Batch Worklist Negative Runtime](./NO0122_active_batch_worklist_negative_runtime_20260521.md) | active batch worklist 实验记录，runtime 负向 |
+| `NO0123` | `2026-05-21` | [Fixed 2-Word Bitwise Helper Runtime](./NO0123_fixed_2word_bitwise_helper_runtime_20260521.md) | 记录固定 2-word bitwise helper 的 runtime 实验 |
+| `NO0124` | `2026-05-21` | [2-Word Shift Overload Clean A/B Positive](./NO0124_2word_shift_overload_clean_ab_positive_20260521.md) | 2-word shift overload clean A/B 取得正向结果 |
+| `NO0125` | `2026-05-21` | [2-Word Bitwise Overload Negative Smoke](./NO0125_2word_bitwise_overload_negative_smoke_20260521.md) | 2-word bitwise overload smoke 负向 |
+| `NO0126` | `2026-05-21` | [2-Word Get-Bit Overload Negative Smoke](./NO0126_2word_get_bit_overload_negative_smoke_20260521.md) | 2-word get-bit overload smoke 负向 |
+| `NO0127` | `2026-05-21` | [2-Word Reduce-Xor Overload Weak Positive](./NO0127_2word_reduce_xor_overload_weak_positive_20260521.md) | 2-word reduce-xor overload 弱正向 |
+| `NO0128` | `2026-05-21` | [Land 2-Word Reduce-Xor Overload](./NO0128_land_2word_reduce_xor_overload_20260521.md) | 记录 2-word reduce-xor overload 落地状态 |
+| `NO0129` | `2026-05-21` | [Scalar Mux Ternary Negative Smoke](./NO0129_scalar_mux_ternary_negative_smoke_20260521.md) | scalar mux ternary prototype smoke 负向 |
+| `NO0130` | `2026-05-21` | [Direct Unsigned Scalar Compare Neutral](./NO0130_direct_unsigned_scalar_compare_neutral_20260521.md) | direct unsigned scalar compare 实验基本中性 |
+| `NO0131` | `2026-05-21` | [Homogeneous Commit Scalar Table Helper Negative](./NO0131_homogeneous_commit_scalar_table_helper_negative_20260521.md) | homogeneous commit scalar table helper 负向 |
+| `NO0132` | `2026-05-21` | [Full-Word Wide Bitwise/Mux Helper Negative](./NO0132_full_word_wide_bitwise_mux_helper_negative_20260521.md) | full-word wide bitwise/mux helper 负向 |
+| `NO0133` | `2026-05-21` | [Direct U8 Packed State Storage Reference Negative](./NO0133_direct_u8_packed_state_storage_reference_negative_20260521.md) | direct u8 packed state storage reference smoke 负向 |
+| `NO0134` | `2026-05-21` | [Commit Supernode Cap1024 Build-Positive Runtime-Negative](./NO0134_commit_supernode_cap1024_build_positive_runtime_negative_20260521.md) | commit supernode cap1024 build 改善但 runtime 回退 |
+| `NO0137` | `2026-05-21` | [1-bit Gated Mux-And Simplification](./NO0137_1bit_gated_mux_and_simplification_20260521.md) | 记录 1-bit gated mux-and simplification 实验与后续基线作用 |
+| `NO0138` | `2026-05-21` | [Fused Wide Assign Helper Experiment](./NO0138_fused_wide_assign_helper_experiment_20260521.md) | fused wide assign helper 实验记录 |
+| `NO0141` | `2026-05-21` | [Scalar Logic Const Expr Absorb 50k Check](./NO0141_scalar_logic_const_expr_absorb_50k_check_20260521.md) | scalar LogicAnd/LogicOr constant absorb 50k 验收 |
+| `NO0142` | `2026-05-21` | [Scalar Logic Non-Zero Constant Absorb](./NO0142_scalar_logic_nonzero_constant_absorb_20260521.md) | scalar LogicAnd/LogicOr non-zero constant absorb 实验 |
+| `NO0143` | `2026-05-21` | [Inline Commit Scalar Table Runtime Gate](./NO0143_inline_commit_scalar_table_runtime_gate_20260521.md) | inline commit scalar table runtime gate 记录 |
+| `NO0144` | `2026-05-21` | [Activation OR Helper Bytewise Prototype](./NO0144_activation_or_helper_bytewise_prototype_20260521.md) | activation OR helper bytewise prototype 记录 |
+| `NO0145` | `2026-05-21` | [NO0137 Perf-Stat Frontend Diagnosis](./NO0145_no0137_perf_stat_frontend_diagnosis_20260521.md) | 对 NO0137 做 perf-stat frontend diagnosis |
+| `NO0146` | `2026-05-21` | [NO0137 O2 Model Build](./NO0146_no0137_o2_model_build_20260521.md) | NO0137 同源 `-O2` model build 实验 |
+| `NO0147` | `2026-05-21` | [NO0137 Os Model Build](./NO0147_no0137_os_model_build_20260521.md) | NO0137 同源 `-Os` model build 实验 |
+| `NO0148` | `2026-05-21` | [Scalar Logic Const Expr Absorb Fresh C1/C2/C4 Dynamic](./NO0148_scalar_logic_const_expr_absorb_fresh_c1_c2_c4_dynamic_20260521.md) | scalar logic const expr absorb fresh C1/C2/C4 dynamic 验收 |
+| `NO0149` | `2026-05-21` | [CTZ Active Dispatch Fresh C1/C2/C4 Dynamic](./NO0149_ctz_active_dispatch_fresh_c1_c2_c4_dynamic_20260521.md) | ctz active dispatch fresh C1/C2/C4 dynamic 实验 |
+| `NO0150` | `2026-05-21` | [Wide Source Scalar Slice U64 Helper Fresh C1/C2/C4 Dynamic](./NO0150_wide_source_scalar_slice_u64_helper_fresh_c1_c2_c4_dynamic_20260521.md) | wide source scalar slice u64 helper fresh C1/C2/C4 dynamic 实验 |
+| `NO0151` | `2026-05-21` | [Disable Per-Supernode Storage-Ref Aliases](./NO0151_disable_per_supernode_storage_ref_aliases_fresh_c1_c2_c4_dynamic_20260521.md) | 关闭 per-supernode storage-ref alias 后源码体积下降，50k 约 `143.75 cycles/s` |
+| `NO0152` | `2026-05-21` | [Storage Ref Alias Min Touches = 4](./NO0152_storage_ref_alias_min_touches_4_20260521.md) | alias min touches = 4 对 runtime 收益不稳定 |
+| `NO0153` | `2026-05-21` | [Commit Scalar Table Activation Global-Only Helper Negative](./NO0153_commit_scalar_table_activation_global_only_helper_negative_20260521.md) | commit scalar table activation global-only helper 负向 |
+| `NO0154` | `2026-05-21` | [Current Improved CoreMark 50k Full Test](./NO0154_current_improved_coremark50k_full_test_20260521.md) | 当前工作区 fresh 50k 约 `136.12 cycles/s`，未取得收益 |
+| `NO0160` | `2026-05-21` | [C1/C2/C4 Dynamic Materialize Fix CoreMark 50k](./NO0160_c1_c2_c4_dynamic_cross_supernode_materialize_fix_coremark50k_20260521.md) | 修复 C4 dynamic 跨 supernode materialize 语义，但 50k 回退到约 `92.66 cycles/s` |
+| `NO0161` | `2026-05-21` | [Scalar Mux Trivial Simplification](./NO0161_scalar_mux_trivial_simplification_20260521.md) | scalar mux trivial simplification 未转成 XiangShan runtime 收益，当前主线需先修 BAE/materialization 成本 |
+| `NO0162` | `2026-05-21` | [NO0162 ThinLTO Batch Visibility A/B](./NO0162_no0162_thinlto_batch_visibility_ab_20260521.md) | no-fresh ThinLTO A/B 通过 20k difftest 但 runtime 基本持平，说明主因不是单纯跨 TU batch 调用/优化器可见性 |
+| `NO0163` | `2026-05-21` | [State Storage-Ref Alias Switch](./NO0163_state_storage_ref_alias_switch_20260521.md) | 新增默认开启的 state storage-ref alias 独立开关并用 emit 单测验证；下一步需 fresh emit 验证 hot batch 代码形态和 20k runtime |
+| `NO0164` | `2026-05-21` | [XS State Alias Off Runtime Negative](./NO0164_xs_state_alias_off_runtime_negative_20260521.md) | XiangShan 结构 gate 通过且 20k difftest 正确，但 state alias off runtime 大幅回退，说明不能简单删除 state ref alias |
+| `NO0165` | `2026-05-21` | [NO0164 Structure Drift Diagnosis](./NO0165_no0164_structure_drift_diagnosis_20260521.md) | 复查发现 `NO0164` 不是干净 state-alias A/B，`constant/state-read activation edges` 暴涨混杂了 runtime 结论 |
+| `NO0166` | `2026-05-21` | [Small-Sibling Budget Structure Regression](./NO0166_small_sibling_budget_structure_regression_20260521.md) | 诊断 `max_preds=2,candidate_budget=250000` 使 small-sibling merge 从 `329802` 降到 `91002`，解释 `NO0154` 高 DAG/BAE 回退 |
+| `NO0167` | `2026-05-21` | [C2 Small-Sibling Monotonic Fix](./NO0167_c2_small_sibling_monotonic_fix_20260521.md) | 修复 `maxPreds>1` small-sibling path 先保留 single-pred baseline，再用 budget 追加多前驱候选；局部 transform 单测通过 |
+| `NO0168` | `2026-05-21` | [NO0167 Structure Gate Negative](./NO0168_no0167_structure_gate_negative_20260521.md) | `NO0167` XiangShan structure-only gate 未恢复低 BAE，source-edge 爆炸仍在 |
+| `NO0169` | `2026-05-21` | [Current Pred1 Structure Gate Negative](./NO0169_current_pred1_structure_gate_negative_20260521.md) | 当前代码下 `max_preds=1` 也无法复现 `NO0162` 快档，指向 final-DAG/materialize fanout 漂移 |
+| `NO0170` | `2026-05-21` | [ValueFanout Skip-DAG Structure Fix](./NO0170_valuefanout_skipdag_structure_fix_20260521.md) | 修复 skipped DAG edge 仍记录 valueFanout 的 source-edge 爆炸，结构回到 `NO0154` 附近但仍未恢复 `NO0162` 低 BAE |
+| `NO0171` | `2026-05-21` | [C2 Full Unbounded Structure Recovered](./NO0171_c2_full_unbounded_structure_recovered_20260521.md) | 使用 C2 full `max_preds=0,candidate_budget=0` 加 valueFanout 修复，structure-only gate 精确恢复 `NO0162` 快档结构 |
+| `NO0172` | `2026-05-21` | [C2 Full + ValueFanout Fix Runtime Gate](./NO0172_c2_full_valuefanout_fix_runtime_gate_20260521.md) | full emit/build/20k gate 显示结构恢复但 runtime 仅约 `154.9 cycles/s`，未恢复 `NO0162` 快档 |
+| `NO0173` | `2026-05-21` | [Same-Structure Runtime Gap Alias Codegen Diagnosis](./NO0173_same_structure_runtime_gap_alias_codegen_diagnosis_20260521.md) | 对比 clean `NO0151` 与 `NO0172`，确认同结构 runtime 回退来自 per-supernode storage-ref alias 代码形态回退 |
+| `NO0174` | `2026-05-21` | [XS GrhSIM Alias-Off Default](./NO0174_xs_grhsim_alias_off_default_20260521.md) | 将 XiangShan grhsim 脚本默认口径切回 alias-off，保留用户显式环境变量覆盖；已做 py_compile 验证 |
+| `NO0175` | `2026-05-21` | [XS GrhSIM C2 Full Default](./NO0175_xs_grhsim_c2_full_default_20260521.md) | 将 XiangShan grhsim 脚本默认 activity-schedule 口径对齐到 `NO0171/NO0172` 的 C2 full 结构快档；已做 py_compile 与 dry-run 默认/覆盖验证 |
+| `NO0176` | `2026-05-21` | [Root-Cause Alignment Audit](./NO0176_root_cause_alignment_audit_20260521.md) | 审计当前根因链条、已对齐项和未完成 fresh emit/build/runtime 验收，明确主目标尚未完成 |
+| `NO0177` | `2026-05-21` | [XS Default Structure Gate](./NO0177_xs_default_structure_gate_20260521.md) | 复用现有 `post_stats.json` 做 structure-only gate，确认最新脚本默认值恢复 C2 full 快档且保持 alias-off |
+| `NO0179` | `2026-05-21` | [Local Activity/Emit Test Gate](./NO0179_local_activity_emit_test_gate_20260521.md) | 重建并运行 activity/emit 相关 CTest，确认当前源码轻量门通过，同时记录 stale binary 风险 |
+| `NO0180` | `2026-05-21` | [Emit-Dir Code-Shape Metrics Tool](./NO0180_emit_dir_code_shape_metrics_tool_20260521.md) | 扩展 `grhsim_opt_metrics.py --emit-dir`，自动统计 sched 源码体积和 storage-ref alias 计数，并用 NO0151/NO0172 产物回归验证 |
+| `NO0181` | `2026-05-21` | [C2 Alias-Off Metrics Gate](./NO0181_c2_alias_off_metrics_gate_20260521.md) | 为 `grhsim_opt_metrics.py` 增加 `--gate c2-alias-off`，机器判定 C2 full + alias-off 前置验收；NO0151 通过、NO0172 失败 |
+| `NO0182` | `2026-05-21` | [CoreMark 20k Runtime Gate](./NO0182_coremark20k_runtime_gate_20260521.md) | 为 `grhsim_opt_metrics.py` 增加 `--gate coremark20k-fast`，机器判定 difftest 20k runtime 快档；NO0162 通过、NO0172 失败 |
+| `NO0183` | `2026-05-21` | [Latest Default 20k Composite Gate](./NO0183_latest_default_20k_composite_gate_20260521.md) | 为 `grhsim_opt_metrics.py` 增加 `--gate latest-default-20k`，合并静态 code-shape 与 20k runtime 两级验收 |
+| `NO0184` | `2026-05-21` | [CoreMark 50k Runtime Gate](./NO0184_coremark50k_runtime_gate_20260521.md) | 为 `grhsim_opt_metrics.py` 增加 `--gate coremark50k-fast` 与 `latest-default-50k`，机器判定 difftest 50k runtime 快档 |
 
 ## 编号说明
 
 - 现有 7 篇历史文档已在本次整理中统一重命名为 `NOxxxx_*.md`。
 - 稳定编号以文件名、本文索引和各文档标题中的 `NOxxxx` 为准。
-- 当前下一个可用记录编号为 `NO0094`。
+- 新记录编号从当前目录最大 `NOxxxx` 之后继续；已撤回的无效 closure/config-only/no-fresh 收尾记录不作为有效验收依据。
