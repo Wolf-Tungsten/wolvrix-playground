@@ -330,47 +330,20 @@ def main() -> int:
     mem_to_reg_row_limit = env_int("WOLVRIX_XS_GRHSIM_MEM_TO_REG_ROW_LIMIT", 64)
     max_op_in_compute_supernode = env_int(
         "WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE",
-        env_int("WOLVRIX_XS_GRHSIM_MAX_COMPUTE_NODE_IN_COMPUTE_SUPERNODE", 8),
+        env_int("WOLVRIX_XS_GRHSIM_MAX_COMPUTE_NODE_IN_COMPUTE_SUPERNODE", 108),
     )
     max_op_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_NODE", 8192)
     max_value_in_compute_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_VALUE_IN_COMPUTE_SUPERNODE", 0)
     target_compute_supernodes = env_int("WOLVRIX_XS_GRHSIM_TARGET_COMPUTE_SUPERNODES", 0)
     max_value_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_VALUE_IN_COMPUTE_NODE", 0)
     max_declared_value_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_DECLARED_VALUE_IN_COMPUTE_NODE", 0)
-    max_op_in_commit_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE", 768)
+    max_op_in_commit_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE", 4096)
     topo_order_model = os.environ.get("WOLVRIX_XS_GRHSIM_TOPO_ORDER_MODEL", "layer")
     local_shared_compute_max_fanout = env_int("WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_FANOUT", 4)
     local_shared_compute_max_width = env_int("WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_WIDTH", 256)
     enable_local_shared_compute = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_LOCAL_SHARED_COMPUTE", default=False)
-    essent_small_part_cutoff = env_int("WOLVRIX_XS_GRHSIM_ESSENT_SMALL_PART_CUTOFF", 20)
-    essent_small_sibling_max_preds = env_int("WOLVRIX_XS_GRHSIM_ESSENT_SMALL_SIBLING_MAX_PREDS", 1)
-    essent_small_sibling_candidate_budget = env_int(
-        "WOLVRIX_XS_GRHSIM_ESSENT_SMALL_SIBLING_CANDIDATE_BUDGET", 250000
-    )
-    essent_small_overlap_candidate_budget = env_int(
-        "WOLVRIX_XS_GRHSIM_ESSENT_SMALL_OVERLAP_CANDIDATE_BUDGET", 250000
-    )
     split_oversize_compute_node_max_ops = env_int("WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODE_MAX_OPS", 0)
-    essent_overlap_threshold1 = env_float("WOLVRIX_XS_GRHSIM_ESSENT_OVERLAP_THRESHOLD1", 0.5)
-    essent_overlap_threshold2 = env_float("WOLVRIX_XS_GRHSIM_ESSENT_OVERLAP_THRESHOLD2", 0.25)
-    essent_cycle_guard_max_visits = env_int("WOLVRIX_XS_GRHSIM_ESSENT_CYCLE_GUARD_MAX_VISITS", 4096)
-    enable_essent_mffc_build = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_ESSENT_MFFC_BUILD", default=False)
-    enable_essent_coarsen = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_ESSENT_COARSEN", default=False)
-    enable_essent_single_parent_merge = env_flag(
-        "WOLVRIX_XS_GRHSIM_ENABLE_ESSENT_SINGLE_PARENT_MERGE",
-        default=True,
-    )
-    enable_essent_small_sibling_merge = env_flag(
-        "WOLVRIX_XS_GRHSIM_ENABLE_ESSENT_SMALL_SIBLING_MERGE",
-        default=True,
-    )
-    enable_essent_small_overlap_merge = env_flag(
-        "WOLVRIX_XS_GRHSIM_ENABLE_ESSENT_SMALL_OVERLAP_MERGE",
-        default=True,
-    )
-    enable_essent_down_merge = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_ESSENT_DOWN_MERGE", default=True)
     split_oversize_compute_nodes = env_flag("WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODES", default=False)
-    dump_essent_dag_stats = env_flag("WOLVRIX_XS_GRHSIM_DUMP_ESSENT_DAG_STATS", default=True)
     sched_batch_max_ops = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_OPS", 2048)
     sched_batch_max_estimated_lines = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES", 8192)
     sched_batch_target_count = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_TARGET_COUNT", 64)
@@ -410,21 +383,8 @@ def main() -> int:
         f"local_shared_compute_max_fanout={local_shared_compute_max_fanout} "
         f"local_shared_compute_max_width={local_shared_compute_max_width} "
         f"enable_local_shared_compute={enable_local_shared_compute} "
-        f"enable_essent_mffc_build={enable_essent_mffc_build} "
-        f"enable_essent_coarsen={enable_essent_coarsen} "
-        f"enable_essent_single_parent_merge={enable_essent_single_parent_merge} "
-        f"enable_essent_small_sibling_merge={enable_essent_small_sibling_merge} "
-        f"enable_essent_small_overlap_merge={enable_essent_small_overlap_merge} "
-        f"enable_essent_down_merge={enable_essent_down_merge} "
         f"split_oversize_compute_nodes={split_oversize_compute_nodes} "
-        f"essent_small_part_cutoff={essent_small_part_cutoff} "
-        f"essent_small_sibling_max_preds={essent_small_sibling_max_preds} "
-        f"essent_small_sibling_candidate_budget={essent_small_sibling_candidate_budget} "
-        f"essent_small_overlap_candidate_budget={essent_small_overlap_candidate_budget} "
         f"split_oversize_compute_node_max_ops={split_oversize_compute_node_max_ops} "
-        f"essent_overlap_threshold1={essent_overlap_threshold1} "
-        f"essent_overlap_threshold2={essent_overlap_threshold2} "
-        f"essent_cycle_guard_max_visits={essent_cycle_guard_max_visits} "
         f"sched_batch_max_ops={sched_batch_max_ops} "
         f"sched_batch_max_estimated_lines={sched_batch_max_estimated_lines} "
         f"sched_batch_target_count={sched_batch_target_count} "
@@ -488,22 +448,8 @@ def main() -> int:
                     "local_shared_compute_max_fanout": local_shared_compute_max_fanout,
                     "local_shared_compute_max_width": local_shared_compute_max_width,
                     "enable_local_shared_compute": enable_local_shared_compute,
-                    "essent_small_part_cutoff": essent_small_part_cutoff,
-                    "essent_small_sibling_max_preds": essent_small_sibling_max_preds,
-                    "essent_small_sibling_candidate_budget": essent_small_sibling_candidate_budget,
-                    "essent_small_overlap_candidate_budget": essent_small_overlap_candidate_budget,
                     "split_oversize_compute_node_max_ops": split_oversize_compute_node_max_ops,
-                    "essent_overlap_threshold1": essent_overlap_threshold1,
-                    "essent_overlap_threshold2": essent_overlap_threshold2,
-                    "essent_cycle_guard_max_visits": essent_cycle_guard_max_visits,
-                    "enable_essent_mffc_build": enable_essent_mffc_build,
-                    "enable_essent_coarsen": enable_essent_coarsen,
-                    "enable_essent_single_parent_merge": enable_essent_single_parent_merge,
-                    "enable_essent_small_sibling_merge": enable_essent_small_sibling_merge,
-                    "enable_essent_small_overlap_merge": enable_essent_small_overlap_merge,
-                    "enable_essent_down_merge": enable_essent_down_merge,
                     "split_oversize_compute_nodes": split_oversize_compute_nodes,
-                    "dump_essent_dag_stats": dump_essent_dag_stats,
                 },
             ),
         ]

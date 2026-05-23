@@ -86,29 +86,20 @@ WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODES = false
 
 ## xs_wolf_grhsim 参数对齐
 
-顶层 `Makefile` 和 `scripts/wolvrix_xs_grhsim.py` 已经对齐到
-`testcase/xs-components` 的默认口径：
+顶层 `Makefile` 和 `scripts/wolvrix_xs_grhsim.py` 的 full XiangShan 默认口径：
 
 | 参数 | 当前默认值 | 说明 |
 | --- | ---: | --- |
-| `XS_WOLF_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE` | `8` | DP 阶段 compute cap |
-| `XS_WOLF_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE` | `768` | commit supernode cap |
+| `XS_WOLF_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE` | `108` | DP 阶段 compute cap；full XiangShan 普通 coarsen 默认口径 |
+| `XS_WOLF_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE` | `4096` | commit supernode cap；full XiangShan 普通 coarsen 默认口径 |
 | `XS_WOLF_GRHSIM_SCHED_BATCH_MAX_OPS` | `2048` | emit batch op 上限 |
 | `XS_WOLF_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES` | `8192` | emit batch 估算行数上限 |
 | `XS_WOLF_GRHSIM_SCHED_BATCH_TARGET_COUNT` | `64` | batch 目标数量 |
 | `XS_WOLF_GRHSIM_SCHED_BATCHES_PER_CPP` | `1` | 每个 cpp 的 batch 数 |
 | `XS_WOLF_GRHSIM_EMIT_PARALLELISM` | `4` | emit 并行度 |
-| `XS_WOLF_GRHSIM_ENABLE_ESSENT_MFFC_BUILD` | `0` | 默认不启用 ESSENT MFFC |
-| `XS_WOLF_GRHSIM_ENABLE_ESSENT_COARSEN` | `0` | 默认走普通 coarsen |
-| `XS_WOLF_GRHSIM_ENABLE_ESSENT_SINGLE_PARENT_MERGE` | `1` | ESSENT 路线参数，默认保留 |
-| `XS_WOLF_GRHSIM_ENABLE_ESSENT_SMALL_SIBLING_MERGE` | `1` | ESSENT 路线参数，默认保留 |
-| `XS_WOLF_GRHSIM_ENABLE_ESSENT_SMALL_OVERLAP_MERGE` | `1` | ESSENT 路线参数，默认保留 |
-| `XS_WOLF_GRHSIM_ENABLE_ESSENT_DOWN_MERGE` | `1` | ESSENT 路线参数，默认保留 |
-| `XS_WOLF_GRHSIM_ESSENT_SMALL_SIBLING_MAX_PREDS` | `1` | ESSENT small sibling 默认 |
-| `XS_WOLF_GRHSIM_ESSENT_SMALL_SIBLING_CANDIDATE_BUDGET` | `250000` | ESSENT small sibling budget |
 
-注意：当前默认 `ENABLE_ESSENT_COARSEN=0`，所以上表中的 ESSENT merge 参数只是
-保留为可切换口径，不是 xs-components 本轮矩阵验证的主路径。
+注意：`xs_wolf_grhsim` 当前固定为 plain coarsen，不再暴露或传递 ESSENT
+coarsen 参数。
 
 ## xs-components 矩阵验证
 
@@ -153,13 +144,60 @@ boundary_activation_edges = 3
 
 ## 结论
 
-在 `testcase/xs-components` 规模上，当前对齐策略成立：
+在 `testcase/xs-components` 规模上，原始 `8/768` 对齐策略成立：
 
 - coarsen 阶段不看 `cap=8`；
 - coarsen 之后不再按 `cap=8` 强拆；
 - DP 阶段仍保留 `cap=8` 作为进一步合并的约束；
-- `xs_wolf_grhsim` 的默认参数已经和 xs-components 主验证口径对齐；
 - xs-components 矩阵功能全 pass，且 supernode 数量基本对齐 GSIM。
+
+full XiangShan 默认口径已从 xs-components 的 `8/768` DP/commit cap 调整为
+`108/4096`。coarsen 阶段仍不使用 cap；该调整只影响 coarsen 后的 DP 分段和
+commit 聚合，避免 full XiangShan 在普通 coarsen 下被重新膨胀到 40 万级
+supernode。
+
+## Full XiangShan 默认验证
+
+命令：
+
+```sh
+timeout 900s make xs_wolf_grhsim_emit \
+  RUN_ID=codex_default_108_20260523 \
+  XS_GRHSIM_BUILD=build/xs/grhsim_default_108_20260523 \
+  XS_WOLF_GRHSIM_POST_STATS_JSON=build/xs/grhsim/wolvrix_xs_post_stats.json \
+  XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON=1 \
+  WOLVRIX_XS_GRHSIM_STOP_AFTER_ACTIVITY_SCHEDULE=1
+```
+
+结果文件：
+
+```text
+build/logs/xs/xs_wolf_grhsim_build_codex_default_108_20260523.log
+build/xs/grhsim_default_108_20260523/grhsim_emit/activity_schedule_supernode_stats.json
+build/xs/gsim/gsim-compile/model/SimTop_supernode_stats.json
+```
+
+关键结果：
+
+| 指标 | 数值 |
+| --- | ---: |
+| plain coarsen | `enable_essent_mffc_build=False`, `enable_essent_coarsen=False` |
+| coarsen cap | `coarsenMaxNodes = max()` |
+| compute cluster before/after coarsen | `6635278 -> 910492` |
+| GrhSIM final supernodes | `56531` |
+| GrhSIM compute/commit supernodes | `56016 / 515` |
+| GSIM final supernodes | `84714` |
+| GrhSIM / GSIM supernode ratio | `0.667` |
+| activity-schedule elapsed | `277118 ms` |
+| total stopped run elapsed | `299683 ms` |
+
+结论：full XiangShan 默认 plain coarsen 在 10 分钟 gate 内完成，并且 final
+supernode 数量回到 GSIM 80k 量级；此前 `422k` 级别的膨胀来自 coarsen 后 DP
+cap 过小，不是普通 coarsen 本身失败。
+
+补充：按当前决策，compute-node plain coarsen 不加 XiangShan 大图专用 bound；
+如果要继续追 GSIM `graphCoarsen` 的 DP 前 `294107` 规模，需要优化 coarsen
+策略本身，而不是用大图限量 fallback。
 
 ## XiangShan 放大后的风险
 
@@ -188,4 +226,3 @@ host time = 384822 ms
 - xs-components 上的结构和性能对齐策略已经验证；
 - full XiangShan 上需要先解决 `final_materialize` 构建时间问题；
 - 在新 emu 未生成前，不能声称拿到了“改动后”的 CoreMark 50k 仿真速度。
-
