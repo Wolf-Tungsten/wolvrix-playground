@@ -10,24 +10,18 @@ from collections import Counter
 from pathlib import Path
 
 
-INSTRUCTION_RE = re.compile(r"^\s*[0-9a-fA-F]+:\s+([A-Za-z_.][A-Za-z0-9_.]*)")
+INSN_RE = re.compile(r"^\s*[0-9a-fA-F]+:\s+(?:[0-9a-fA-F]{2}\s+)+\s*([A-Za-z_.][A-Za-z0-9_.]*)")
+SECTION_RE = re.compile(r"^\s*\d+\s+(\S+)\s+([0-9a-fA-F]+)\s+")
 
 
-def collect(paths: list[Path], objdump: str) -> Counter[str]:
-    counter: Counter[str] = Counter()
-    for path in paths:
-        proc = subprocess.run(
-            [objdump, "-d", "-Mintel", "--no-show-raw-insn", str(path)],
-            check=True,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        for line in proc.stdout.splitlines():
-            match = INSTRUCTION_RE.match(line)
-            if match:
-                counter[match.group(1)] += 1
-    return counter
+def text_size(path: Path, objdump: str) -> int:
+    proc = subprocess.run([objdump, "-h", str(path)], check=True, text=True, stdout=subprocess.PIPE)
+    total = 0
+    for line in proc.stdout.splitlines():
+        match = SECTION_RE.match(line)
+        if match and (match.group(1) == ".text" or match.group(1).startswith(".text.")):
+            total += int(match.group(2), 16)
+    return total
 
 
 def main() -> int:
@@ -38,31 +32,28 @@ def main() -> int:
     parser.add_argument("objects", nargs="+")
     args = parser.parse_args()
 
-    paths = [Path(item) for item in args.objects]
-    counter = collect(paths, args.objdump)
-    total = sum(counter.values())
-    top = [
-        {
-            "mnemonic": mnemonic,
-            "count": count,
-            "percent": (100.0 * count / total) if total else 0.0,
-        }
-        for mnemonic, count in counter.most_common(80)
-    ]
+    counts: Counter[str] = Counter()
+    text_bytes = 0
+    for item in args.objects:
+        path = Path(item)
+        text_bytes += text_size(path, args.objdump)
+        proc = subprocess.run([args.objdump, "-d", str(path)], check=True, text=True, stdout=subprocess.PIPE)
+        for line in proc.stdout.splitlines():
+            match = INSN_RE.match(line)
+            if match:
+                counts[match.group(1)] += 1
+
     payload = {
         "label": args.label,
-        "object_count": len(paths),
-        "instruction_total": total,
-        "top": top,
-        "objects": [str(path) for path in paths],
+        "objects": args.objects,
+        "instruction_total": sum(counts.values()),
+        "text_size_bytes": text_bytes,
+        "mnemonics": dict(sorted(counts.items())),
     }
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="ascii")
-
-    print(f"{args.label}: objects={len(paths)} instructions={total}")
-    for item in top[:20]:
-        print(f"{item['count']:10d} {item['percent']:8.4f}% {item['mnemonic']}")
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="ascii")
+    print(f"{args.label}: instructions={payload['instruction_total']} text_size_bytes={text_bytes}")
     return 0
 
 

@@ -5,26 +5,44 @@ CXX = clang++
 MILL ?= mill
 GSIM_BIN ?= ../../reference/gsim/build/gsim/gsim
 OBJDUMP ?= objdump
+CACHE_DIR ?= .sandbox-cache
+MILL_ENV := COURSIER_CACHE=$(abspath $(CACHE_DIR)/coursier) XDG_CACHE_HOME=$(abspath $(CACHE_DIR)/xdg) IVY_HOME=$(abspath $(CACHE_DIR)/ivy2) MILL_COURSIER_CACHE=$(abspath $(CACHE_DIR)/mill-coursier)
 
-TOP := XsComponents
+CASES := XsBranchAluSmall XsVectorMaskMedium XsAgeMatrixMedium XsPlruLarge XsStoreMergeLarge
+KIND_XsBranchAluSmall := branch-alu
+KIND_XsVectorMaskMedium := vector-mask
+KIND_XsAgeMatrixMedium := scheduler-age
+KIND_XsPlruLarge := replacement
+KIND_XsStoreMergeLarge := store-merge
+SCALE_XsBranchAluSmall := small
+SCALE_XsVectorMaskMedium := medium
+SCALE_XsAgeMatrixMedium := medium
+SCALE_XsPlruLarge := large
+SCALE_XsStoreMergeLarge := large
+
+CASE ?= XsBranchAluSmall
+KIND := $(KIND_$(CASE))
+SCALE := $(SCALE_$(CASE))
 BUILD_DIR ?= build
-CHISEL_FIR_DIR := $(BUILD_DIR)/chisel-fir
-CHISEL_SV_DIR := $(BUILD_DIR)/chisel-sv
-GSIM_DIR := $(BUILD_DIR)/gsim
-GRHSIM_DIR := $(BUILD_DIR)/grhsim
+CASE_BUILD := $(BUILD_DIR)/$(CASE)
+FIR_DIR := $(CASE_BUILD)/chisel-fir
+SV_DIR := $(CASE_BUILD)/chisel-sv
+GSIM_DIR := $(CASE_BUILD)/gsim
+GRHSIM_DIR := $(CASE_BUILD)/grhsim
 GSIM_MODEL_DIR := $(GSIM_DIR)/model
 GRHSIM_MODEL_DIR := $(GRHSIM_DIR)/model
-STATS_DIR := $(BUILD_DIR)/stats
-TB_DIR := $(BUILD_DIR)/tb
+TB_DIR := $(CASE_BUILD)/tb
+STATS_DIR := $(CASE_BUILD)/stats
+MATRIX_DIR := $(BUILD_DIR)/matrix
 
-CHISEL_SRC := src/main/scala/$(TOP).scala
-FIR := $(CHISEL_FIR_DIR)/$(TOP).fir
-SV := $(CHISEL_SV_DIR)/$(TOP).sv
-COSIM_TB_SRC := tb/xs_components_cosim_tb.cpp
-COSIM_TB := $(TB_DIR)/xs_components_cosim_tb
-COSIM_LOG := $(TB_DIR)/xs_components_cosim.log
-GSIM_GRAPH_STATS := $(GSIM_MODEL_DIR)/$(TOP)_0Final_Stats.json
+FIR := $(FIR_DIR)/$(CASE).fir
+SV := $(SV_DIR)/$(CASE).sv
+GSIM_GRAPH_STATS := $(GSIM_MODEL_DIR)/$(CASE)_0Final_Stats.json
 GRHSIM_GRAPH_STATS := $(GRHSIM_MODEL_DIR)/activity_schedule_stats.json
+GSIM_BUILD_STAMP := $(GSIM_DIR)/obj/.stamp
+GRHSIM_LIB := $(GRHSIM_MODEL_DIR)/libgrhsim_$(CASE).a
+BENCH_TB := $(TB_DIR)/$(CASE)_bench
+BENCH_LOG := $(TB_DIR)/$(CASE)_bench.log
 MODEL_STATS_JSON := $(STATS_DIR)/model_stats.json
 
 GSIM_FLAGS ?= --supernode-max-size=8 --cpp-max-size-KB=512
@@ -36,48 +54,53 @@ GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES ?= 8192
 GRHSIM_SCHED_BATCH_TARGET_COUNT ?= 64
 GRHSIM_EMIT_PARALLELISM ?= 4
 GRHSIM_CXXFLAGS ?= -O3 -std=c++20
-COSIM_CYCLES ?= 256
-COSIM_TRACE ?= 1
-COSIM_TB_CXXFLAGS ?= -O2 -std=c++20 -I$(abspath $(GSIM_MODEL_DIR)) -I$(abspath $(GRHSIM_MODEL_DIR))
+BENCH_CXXFLAGS ?= -O3 -std=c++20 -I$(abspath $(GSIM_MODEL_DIR)) -I$(abspath $(GRHSIM_MODEL_DIR))
+BENCH_VECTORS ?= 100000
+BENCH_VERIFY ?= 2048
 
-.PHONY: all generate gsim grhsim stats stat compare cosim run clean
-.PHONY: chisel-sv chisel-fir
+.PHONY: all generate chisel-fir chisel-sv gsim grhsim bench stats stat one matrix clean list
 
-all: compare cosim
+all: matrix
+
+list:
+	@printf '%s\n' $(CASES)
 
 generate: $(FIR) $(SV)
 
-$(FIR): $(CHISEL_SRC) build.mill
-	@mkdir -p $(CHISEL_FIR_DIR)
-	$(MILL) --no-daemon xscomponents.runMain xscomponents.XsComponentsMain --target chirrtl --target-dir $(CHISEL_FIR_DIR)
+$(FIR): src/main/scala/XsComponents.scala build.mill
+	@mkdir -p $(FIR_DIR) $(CACHE_DIR)/coursier $(CACHE_DIR)/xdg $(CACHE_DIR)/ivy2 $(CACHE_DIR)/mill-coursier
+	$(MILL_ENV) $(MILL) --no-daemon xscomponents.runMain xscomponents.XsComponentsMain --top-name $(CASE) --target chirrtl --target-dir $(FIR_DIR)
 	test -f $@
 
-$(SV): $(CHISEL_SRC) build.mill
-	@mkdir -p $(CHISEL_SV_DIR)
-	$(MILL) --no-daemon xscomponents.runMain xscomponents.XsComponentsMain --target systemverilog --target-dir $(BUILD_DIR)/chisel-sv --split-verilog
+$(SV): src/main/scala/XsComponents.scala build.mill
+	@mkdir -p $(SV_DIR) $(CACHE_DIR)/coursier $(CACHE_DIR)/xdg $(CACHE_DIR)/ivy2 $(CACHE_DIR)/mill-coursier
+	$(MILL_ENV) $(MILL) --no-daemon xscomponents.runMain xscomponents.XsComponentsMain --top-name $(CASE) --target systemverilog --target-dir $(SV_DIR) --split-verilog
 	test -f $@
-
-chisel-sv: $(SV)
 
 chisel-fir: $(FIR)
 
-$(GSIM_MODEL_DIR)/$(TOP)0.cpp $(GSIM_GRAPH_STATS) &: $(FIR) $(GSIM_BIN)
+chisel-sv: $(SV)
+
+$(GSIM_MODEL_DIR)/$(CASE)0.cpp $(GSIM_GRAPH_STATS) &: $(FIR) $(GSIM_BIN)
 	@mkdir -p $(GSIM_MODEL_DIR)
 	set -o pipefail; $(GSIM_BIN) $(GSIM_FLAGS) --dump-stats-json --dump-stages=Final --dir $(GSIM_MODEL_DIR) $(FIR) | tee $(GSIM_DIR)/gsim.log
-	test -f $(GSIM_MODEL_DIR)/$(TOP)0.cpp
+	test -f $(GSIM_MODEL_DIR)/$(CASE)0.cpp
 	test -f $(GSIM_GRAPH_STATS)
 
-gsim: $(GSIM_MODEL_DIR)/$(TOP)0.cpp
+$(GSIM_BUILD_STAMP): $(GSIM_MODEL_DIR)/$(CASE)0.cpp
 	@mkdir -p $(GSIM_DIR)/obj
 	@for src in $(GSIM_MODEL_DIR)/*.cpp; do \
 		obj="$(GSIM_DIR)/obj/$$(basename "$${src%.cpp}").o"; \
 		echo "+ CXX $$src"; \
 		$(CXX) $(GSIM_CXXFLAGS) -c "$$src" -o "$$obj" || exit $$?; \
 	done
+	@touch $@
+
+gsim: $(GSIM_BUILD_STAMP)
 
 $(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_GRAPH_STATS) &: $(SV) scripts/emit_grhsim.py
 	@mkdir -p $(GRHSIM_MODEL_DIR)
-	$(PYTHON) scripts/emit_grhsim.py --sv $(SV) --top $(TOP) --out $(GRHSIM_MODEL_DIR) --json $(GRHSIM_DIR)/$(TOP).json \
+	$(PYTHON) scripts/emit_grhsim.py --sv $(SV) --top $(CASE) --out $(GRHSIM_MODEL_DIR) --json $(GRHSIM_DIR)/$(CASE).json \
 		--max-op-in-compute-supernode $(GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE) \
 		--max-op-in-commit-supernode $(GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE) \
 		--sched-batch-max-ops $(GRHSIM_SCHED_BATCH_MAX_OPS) \
@@ -87,49 +110,59 @@ $(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_GRAPH_STATS) &: $(SV) scripts/emit_grhsim.
 	test -f $(GRHSIM_MODEL_DIR)/Makefile
 	test -f $(GRHSIM_GRAPH_STATS)
 
-grhsim: $(GRHSIM_MODEL_DIR)/Makefile
+$(GRHSIM_LIB): $(GRHSIM_MODEL_DIR)/Makefile
 	$(MAKE) -C $(GRHSIM_MODEL_DIR) CXX=$(CXX) CXXFLAGS="$(GRHSIM_CXXFLAGS)"
 
-$(STATS_DIR)/gsim.json: gsim scripts/objdump_stats.py
+grhsim: $(GRHSIM_LIB)
+
+$(BENCH_TB): tb/xs_component_bench.cpp $(GSIM_BUILD_STAMP) $(GRHSIM_LIB)
+	@mkdir -p $(TB_DIR)
+	$(CXX) $(BENCH_CXXFLAGS) \
+		-DTOP_NAME=\"$(CASE)\" \
+		-DGSIM_CLASS=S$(CASE) \
+		-DGRHSIM_CLASS=GrhSIM_$(CASE) \
+		-DTOP_HEADER=\"$(CASE).h\" \
+		-DGRHSIM_HEADER=\"grhsim_$(CASE).hpp\" \
+		tb/xs_component_bench.cpp \
+		$(GSIM_DIR)/obj/*.o \
+		$(GRHSIM_LIB) \
+		-o $@
+
+bench: $(BENCH_TB)
+	@mkdir -p $(TB_DIR)
+	set -o pipefail; $(BENCH_TB) --vectors $(BENCH_VECTORS) --verify $(BENCH_VERIFY) 2>&1 | tee $(BENCH_LOG)
+
+$(STATS_DIR)/gsim.json: $(GSIM_BUILD_STAMP) scripts/objdump_stats.py
 	@mkdir -p $(STATS_DIR)
 	$(PYTHON) scripts/objdump_stats.py --label gsim --out $@ --objdump $(OBJDUMP) $(GSIM_DIR)/obj/*.o
 
-$(STATS_DIR)/grhsim.json: grhsim scripts/objdump_stats.py
+$(STATS_DIR)/grhsim.json: $(GRHSIM_LIB) scripts/objdump_stats.py
 	@mkdir -p $(STATS_DIR)
 	$(PYTHON) scripts/objdump_stats.py --label grhsim --out $@ --objdump $(OBJDUMP) $(GRHSIM_MODEL_DIR)/*.o
 
 stats: $(STATS_DIR)/gsim.json $(STATS_DIR)/grhsim.json
 
-$(MODEL_STATS_JSON): $(GSIM_GRAPH_STATS) $(GRHSIM_GRAPH_STATS) $(STATS_DIR)/gsim.json $(STATS_DIR)/grhsim.json scripts/model_stats.py
-	@mkdir -p $(STATS_DIR)
+$(MODEL_STATS_JSON): bench stats scripts/model_stats.py
 	$(PYTHON) scripts/model_stats.py \
+		--case $(CASE) --kind $(KIND) --scale $(SCALE) \
 		--gsim-graph-stats $(GSIM_GRAPH_STATS) \
 		--grhsim-graph-stats $(GRHSIM_GRAPH_STATS) \
 		--gsim-instruction-stats $(STATS_DIR)/gsim.json \
 		--grhsim-instruction-stats $(STATS_DIR)/grhsim.json \
-		--gsim-objects $(GSIM_DIR)/obj/*.o \
-		--grhsim-objects $(GRHSIM_MODEL_DIR)/*.o \
-		--objdump $(OBJDUMP) \
+		--bench-log $(BENCH_LOG) \
 		--out $@
 
 stat: $(MODEL_STATS_JSON)
 
-compare: stats scripts/compare_stats.py
-	$(PYTHON) scripts/compare_stats.py --gsim $(STATS_DIR)/gsim.json --grhsim $(STATS_DIR)/grhsim.json --out $(STATS_DIR)/compare.json
+one: stat
 
-$(COSIM_TB): $(COSIM_TB_SRC) gsim grhsim
-	@mkdir -p $(TB_DIR)
-	$(CXX) $(COSIM_TB_CXXFLAGS) \
-		$(COSIM_TB_SRC) \
-		$(GSIM_DIR)/obj/*.o \
-		$(GRHSIM_MODEL_DIR)/libgrhsim_$(TOP).a \
-		-o $@
-
-cosim: $(COSIM_TB)
-	@mkdir -p $(TB_DIR)
-	set -o pipefail; $(COSIM_TB) --cycles $(COSIM_CYCLES) $(if $(filter 0,$(COSIM_TRACE)),--quiet,) 2>&1 | tee $(COSIM_LOG)
-
-run: cosim
+matrix:
+	@mkdir -p $(MATRIX_DIR)
+	@for case in $(CASES); do \
+		echo "== xs-component $$case =="; \
+		$(MAKE) CASE=$$case one || exit $$?; \
+	done
+	$(PYTHON) scripts/collect_matrix.py --out $(MATRIX_DIR)/results.csv $(foreach c,$(CASES),$(BUILD_DIR)/$(c)/stats/model_stats.json)
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR) out

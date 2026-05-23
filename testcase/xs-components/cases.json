@@ -1,0 +1,57 @@
+[
+  {
+    "case": "XsBranchAluSmall",
+    "kind": "branch-alu",
+    "scale": "small",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/wrapper/BranchUnit.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/Alu.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/XsComponents.scala:XsBranchAluSmall",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsVectorMaskMedium",
+    "kind": "vector-mask",
+    "scale": "medium",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/vector/ByteMaskTailGen.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/vector/VecCommon.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/XsComponents.scala:XsVectorMaskMedium",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsAgeMatrixMedium",
+    "kind": "scheduler-age",
+    "scale": "medium",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/issue/AgeDetector.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueueReplay.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/XsComponents.scala:XsAgeMatrixMedium",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsPlruLarge",
+    "kind": "replacement",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/utility/src/main/scala/utility/Replacement.scala",
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/utils/Replacer.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/XsComponents.scala:XsPlruLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsStoreMergeLarge",
+    "kind": "store-merge",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/sbuffer/Sbuffer.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/StoreQueue.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/XsComponents.scala:XsStoreMergeLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  }
+]

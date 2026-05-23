@@ -1,2 +1,4 @@
 build/
 out/
+.sandbox-cache/
+build-*/

@@ -20,16 +20,17 @@ def log(message: str) -> None:
 def percentile(sorted_values: list[int], num: int, den: int) -> int:
     if not sorted_values:
         return 0
-    idx = (len(sorted_values) - 1) * num // den
-    return sorted_values[idx]
+    return sorted_values[(len(sorted_values) - 1) * num // den]
 
 
 def write_activity_schedule_stats(sess: wolvrix.Session, top: str, out_dir: Path) -> None:
     key_prefix = f"{top}.activity_schedule."
+    summary_text = None
     try:
         summary_text = _native.session_export(sess._capsule, key=key_prefix + "summary_stats", view="text")
     except Exception:
-        summary_text = None
+        pass
+
     supernode_to_ops = [
         list(map(int, ops))
         for ops in _native.session_export(sess._capsule, key=key_prefix + "supernode_to_ops", view="python")
@@ -38,136 +39,46 @@ def write_activity_schedule_stats(sess: wolvrix.Session, top: str, out_dir: Path
         list(map(int, succs))
         for succs in _native.session_export(sess._capsule, key=key_prefix + "dag", view="python")
     ]
-    if summary_text:
-        payload = json.loads(summary_text)
-        op_sizes = sorted(len(ops) for ops in supernode_to_ops)
-        out_degrees = sorted(len(succs) for succs in dag)
-        payload["ops_per_supernode"] = {
-            "min": op_sizes[0] if op_sizes else 0,
-            "mean": statistics.fmean(op_sizes) if op_sizes else 0.0,
-            "median": statistics.median(op_sizes) if op_sizes else 0,
-            "p90": percentile(op_sizes, 90, 100),
-            "p99": percentile(op_sizes, 99, 100),
-            "max": op_sizes[-1] if op_sizes else 0,
-        }
-        payload["dag_out_degree"] = {
-            "min": out_degrees[0] if out_degrees else 0,
-            "mean": statistics.fmean(out_degrees) if out_degrees else 0.0,
-            "median": statistics.median(out_degrees) if out_degrees else 0,
-            "p90": percentile(out_degrees, 90, 100),
-            "p99": percentile(out_degrees, 99, 100),
-            "max": out_degrees[-1] if out_degrees else 0,
-        }
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_path = out_dir / "activity_schedule_stats.json"
-        out_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="ascii")
-        log(
-            "activity-schedule stats "
-            f"supernodes={payload['supernodes']} "
-            f"compute_supernodes={payload['compute_supernodes']} "
-            f"commit_supernodes={payload['commit_supernodes']} "
-            f"dag_edges={payload['dag_edges']} "
-            f"boundary_values={payload['boundary_values']} "
-            f"boundary_activation_edges={payload['boundary_activation_edges']} "
-            f"compute_compute_value_pairs={payload['compute_compute_value_pairs']} "
-            f"compute_commit_value_pairs={payload['compute_commit_value_pairs']} "
-            f"ops_max={payload['ops_per_supernode']['max']}"
-        )
-        return
-
-    try:
-        value_fanout = [
-            list(map(int, fanout))
-            for fanout in _native.session_export(sess._capsule, key=key_prefix + "value_fanout", view="python")
-        ]
-    except TypeError as exc:
-        value_fanout = []
-        log(f"activity-schedule value_fanout export unavailable: {exc}")
-    try:
-        supernode_kinds = [
-            int(kind)
-            for kind in _native.session_export(sess._capsule, key=key_prefix + "supernode_kind", view="python")
-        ]
-    except TypeError as exc:
-        supernode_kinds = []
-        log(f"activity-schedule supernode_kind export unavailable: {exc}")
-
     op_sizes = sorted(len(ops) for ops in supernode_to_ops)
     out_degrees = sorted(len(succs) for succs in dag)
-    value_fanouts = sorted(len(targets) for targets in value_fanout)
-    non_empty_value_fanouts = sorted(len(targets) for targets in value_fanout if targets)
-    compute_supernodes = sum(1 for kind in supernode_kinds if kind == 0)
-    commit_supernodes = sum(1 for kind in supernode_kinds if kind == 1)
-    compute_compute_value_pairs = 0
-    compute_commit_value_pairs = 0
-    if supernode_kinds:
-        for targets in value_fanout:
-            for target_supernode in targets:
-                if 0 <= target_supernode < len(supernode_kinds):
-                    if supernode_kinds[target_supernode] == 0:
-                        compute_compute_value_pairs += 1
-                    elif supernode_kinds[target_supernode] == 1:
-                        compute_commit_value_pairs += 1
-    payload = {
-        "supernodes": len(supernode_to_ops),
-        "compute_supernodes": compute_supernodes if supernode_kinds else None,
-        "commit_supernodes": commit_supernodes if supernode_kinds else None,
-        "dag_edges": sum(out_degrees),
-        "boundary_values": len(non_empty_value_fanouts) if value_fanout else None,
-        "boundary_activation_edges": sum(value_fanouts) if value_fanout else None,
-        "compute_compute_value_pairs": compute_compute_value_pairs if supernode_kinds else None,
-        "compute_commit_value_pairs": compute_commit_value_pairs if supernode_kinds else None,
-        "ops_per_supernode": {
-            "min": op_sizes[0] if op_sizes else 0,
-            "mean": statistics.fmean(op_sizes) if op_sizes else 0.0,
-            "median": statistics.median(op_sizes) if op_sizes else 0,
-            "p90": percentile(op_sizes, 90, 100),
-            "p99": percentile(op_sizes, 99, 100),
-            "max": op_sizes[-1] if op_sizes else 0,
-        },
-        "dag_out_degree": {
-            "min": out_degrees[0] if out_degrees else 0,
-            "mean": statistics.fmean(out_degrees) if out_degrees else 0.0,
-            "median": statistics.median(out_degrees) if out_degrees else 0,
-            "p90": percentile(out_degrees, 90, 100),
-            "p99": percentile(out_degrees, 99, 100),
-            "max": out_degrees[-1] if out_degrees else 0,
-        },
-        "boundary_value_fanout": {
-            "min": non_empty_value_fanouts[0] if non_empty_value_fanouts else 0,
-            "mean": statistics.fmean(non_empty_value_fanouts) if non_empty_value_fanouts else 0.0,
-            "median": statistics.median(non_empty_value_fanouts) if non_empty_value_fanouts else 0,
-            "p90": percentile(non_empty_value_fanouts, 90, 100),
-            "p99": percentile(non_empty_value_fanouts, 99, 100),
-            "max": non_empty_value_fanouts[-1] if non_empty_value_fanouts else 0,
-        },
-    }
+
+    payload = json.loads(summary_text) if summary_text else {}
+    payload.update(
+        {
+            "supernodes": len(supernode_to_ops),
+            "dag_edges": sum(out_degrees),
+            "ops_per_supernode": {
+                "min": op_sizes[0] if op_sizes else 0,
+                "mean": statistics.fmean(op_sizes) if op_sizes else 0.0,
+                "median": statistics.median(op_sizes) if op_sizes else 0,
+                "p90": percentile(op_sizes, 90, 100),
+                "p99": percentile(op_sizes, 99, 100),
+                "max": op_sizes[-1] if op_sizes else 0,
+            },
+            "dag_out_degree": {
+                "min": out_degrees[0] if out_degrees else 0,
+                "mean": statistics.fmean(out_degrees) if out_degrees else 0.0,
+                "median": statistics.median(out_degrees) if out_degrees else 0,
+                "p90": percentile(out_degrees, 90, 100),
+                "p99": percentile(out_degrees, 99, 100),
+                "max": out_degrees[-1] if out_degrees else 0,
+            },
+        }
+    )
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / "activity_schedule_stats.json"
-    out_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="ascii")
-    log(
-        "activity-schedule stats "
-        f"supernodes={payload['supernodes']} "
-        f"compute_supernodes={payload['compute_supernodes']} "
-        f"commit_supernodes={payload['commit_supernodes']} "
-        f"dag_edges={payload['dag_edges']} "
-        f"boundary_values={payload['boundary_values']} "
-        f"boundary_activation_edges={payload['boundary_activation_edges']} "
-        f"compute_compute_value_pairs={payload['compute_compute_value_pairs']} "
-        f"compute_commit_value_pairs={payload['compute_commit_value_pairs']} "
-        f"ops_max={payload['ops_per_supernode']['max']}"
+    (out_dir / "activity_schedule_stats.json").write_text(
+        json.dumps(payload, indent=2, sort_keys=True), encoding="ascii"
     )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--sv", required=True)
-    parser.add_argument("--top", default="XsComponents")
+    parser.add_argument("--top", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--json", default="")
-    parser.add_argument("--max-op-in-compute-supernode", default="72")
-    parser.add_argument("--max-compute-node-in-compute-supernode", default=None)
-    parser.add_argument("--max-op-in-commit-supernode", default="768")
+    parser.add_argument("--max-op-in-compute-supernode", type=int, default=8)
+    parser.add_argument("--max-op-in-commit-supernode", type=int, default=768)
     parser.add_argument("--sched-batch-max-ops", type=int, default=2048)
     parser.add_argument("--sched-batch-max-estimated-lines", type=int, default=8192)
     parser.add_argument("--sched-batch-target-count", type=int, default=64)
@@ -199,12 +110,8 @@ def main() -> int:
                 "activity-schedule",
                 {
                     "path": args.top,
-                    "max_op_in_compute_supernode": int(
-                        args.max_compute_node_in_compute_supernode
-                        if args.max_compute_node_in_compute_supernode is not None
-                        else args.max_op_in_compute_supernode
-                    ),
-                    "max_op_in_commit_supernode": int(args.max_op_in_commit_supernode),
+                    "max_op_in_compute_supernode": args.max_op_in_compute_supernode,
+                    "max_op_in_commit_supernode": args.max_op_in_commit_supernode,
                 },
             ),
         ]

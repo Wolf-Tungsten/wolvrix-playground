@@ -4,116 +4,79 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
-import subprocess
 from pathlib import Path
 
 
-SECTION_RE = re.compile(r"^\s*\d+\s+(\S+)\s+([0-9a-fA-F]+)\s+")
+def load(path: str) -> dict:
+    return json.loads(Path(path).read_text(encoding="ascii"))
 
 
-def load_json(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="ascii"))
-
-
-def text_size_bytes(paths: list[Path], objdump: str) -> int:
-    total = 0
-    for path in paths:
-        proc = subprocess.run(
-            [objdump, "-h", str(path)],
-            check=True,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        for line in proc.stdout.splitlines():
-            match = SECTION_RE.match(line)
-            if not match:
-                continue
-            name, size_hex = match.groups()
-            if name == ".text" or name.startswith(".text."):
-                total += int(size_hex, 16)
-    return total
-
-
-def maybe_get(data: dict, *keys: str) -> int | None:
+def get_int(data: dict, *keys: str) -> int | None:
     for key in keys:
-        if key in data:
-            value = data[key]
-            return int(value) if value is not None else None
+        if key in data and data[key] is not None:
+            return int(data[key])
     return None
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--case", required=True)
+    parser.add_argument("--kind", required=True)
+    parser.add_argument("--scale", required=True)
     parser.add_argument("--gsim-graph-stats", required=True)
     parser.add_argument("--grhsim-graph-stats", required=True)
     parser.add_argument("--gsim-instruction-stats", required=True)
     parser.add_argument("--grhsim-instruction-stats", required=True)
-    parser.add_argument("--gsim-objects", nargs="+", required=True)
-    parser.add_argument("--grhsim-objects", nargs="+", required=True)
-    parser.add_argument("--objdump", default="objdump")
+    parser.add_argument("--bench-log", required=True)
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
 
-    gsim_graph = load_json(Path(args.gsim_graph_stats))
-    grhsim_graph = load_json(Path(args.grhsim_graph_stats))
-    gsim_instruction = load_json(Path(args.gsim_instruction_stats))
-    grhsim_instruction = load_json(Path(args.grhsim_instruction_stats))
+    gsim_graph = load(args.gsim_graph_stats)
+    grhsim_graph = load(args.grhsim_graph_stats)
+    gsim_insn = load(args.gsim_instruction_stats)
+    grhsim_insn = load(args.grhsim_instruction_stats)
+
+    bench = {}
+    for line in Path(args.bench_log).read_text(encoding="ascii").splitlines():
+        if not line.startswith("[BENCH]"):
+            continue
+        fields = {}
+        for token in line.split()[1:]:
+            key, value = token.split("=", 1)
+            fields[key] = value
+        bench[fields["model"]] = fields
 
     payload = {
+        "case": args.case,
+        "kind": args.kind,
+        "scale": args.scale,
         "gsim": {
-            "supernodes": maybe_get(gsim_graph, "emitted_supernode_count", "supernode_count"),
-            "supernode_edges": maybe_get(gsim_graph, "emitted_supernode_edge_count", "supernode_edge_count", "dag_edges"),
-            "instruction_count": int(gsim_instruction["instruction_total"]),
-            "text_size_bytes": text_size_bytes([Path(item) for item in args.gsim_objects], args.objdump),
-            "graph_stats": str(Path(args.gsim_graph_stats)),
-            "objects": args.gsim_objects,
+            "supernodes": get_int(gsim_graph, "emitted_supernode_count", "supernode_count"),
+            "supernode_edges": get_int(gsim_graph, "emitted_supernode_edge_count", "supernode_edge_count", "dag_edges"),
+            "instruction_count": int(gsim_insn["instruction_total"]),
+            "text_size_bytes": int(gsim_insn["text_size_bytes"]),
+            "bench_ms": float(bench.get("gsim", {}).get("ms", "nan")),
+            "vectors_per_s": float(bench.get("gsim", {}).get("vectors_per_s", "nan")),
         },
         "grhsim": {
-            "supernodes": maybe_get(grhsim_graph, "supernodes", "supernode_count"),
-            "supernode_edges": maybe_get(grhsim_graph, "dag_edges", "supernode_edge_count"),
-            "instruction_count": int(grhsim_instruction["instruction_total"]),
-            "text_size_bytes": text_size_bytes([Path(item) for item in args.grhsim_objects], args.objdump),
-            "graph_stats": str(Path(args.grhsim_graph_stats)),
-            "objects": args.grhsim_objects,
+            "supernodes": get_int(grhsim_graph, "supernodes", "supernode_count"),
+            "supernode_edges": get_int(grhsim_graph, "dag_edges", "supernode_edge_count"),
+            "instruction_count": int(grhsim_insn["instruction_total"]),
+            "text_size_bytes": int(grhsim_insn["text_size_bytes"]),
+            "bench_ms": float(bench.get("grhsim", {}).get("ms", "nan")),
+            "vectors_per_s": float(bench.get("grhsim", {}).get("vectors_per_s", "nan")),
         },
     }
-    gsim = payload["gsim"]
-    grhsim = payload["grhsim"]
     payload["ratios"] = {
-        "supernodes_grhsim_to_gsim": (
-            grhsim["supernodes"] / gsim["supernodes"] if gsim["supernodes"] else None
-        ),
-        "supernode_edges_grhsim_to_gsim": (
-            grhsim["supernode_edges"] / gsim["supernode_edges"] if gsim["supernode_edges"] else None
-        ),
-        "instruction_count_grhsim_to_gsim": (
-            grhsim["instruction_count"] / gsim["instruction_count"] if gsim["instruction_count"] else None
-        ),
-        "text_size_bytes_grhsim_to_gsim": (
-            grhsim["text_size_bytes"] / gsim["text_size_bytes"] if gsim["text_size_bytes"] else None
-        ),
+        "bench_ms_grhsim_to_gsim": payload["grhsim"]["bench_ms"] / payload["gsim"]["bench_ms"],
+        "instruction_count_grhsim_to_gsim": payload["grhsim"]["instruction_count"] / payload["gsim"]["instruction_count"],
+        "text_size_bytes_grhsim_to_gsim": payload["grhsim"]["text_size_bytes"] / payload["gsim"]["text_size_bytes"],
     }
 
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="ascii")
-
-    print("model stats:")
-    for label in ("gsim", "grhsim"):
-        item = payload[label]
-        print(
-            f"{label:6s} "
-            f"supernodes={item['supernodes']} "
-            f"supernode_edges={item['supernode_edges']} "
-            f"instructions={item['instruction_count']} "
-            f"text_size_bytes={item['text_size_bytes']}"
-        )
-    print("ratios grhsim/gsim:")
-    for key, value in payload["ratios"].items():
-        print(f"  {key}={value:.6f}" if value is not None else f"  {key}=null")
-    print(f"wrote {out_path}")
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="ascii")
+    print(f"{args.case}: bench_ms gsim={payload['gsim']['bench_ms']:.3f} grhsim={payload['grhsim']['bench_ms']:.3f}")
     return 0
 
 
