@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -192,7 +193,7 @@ bool verify_models(const std::vector<Inputs> &vectors, unsigned count)
 }
 
 template <typename EvalFn>
-void run_benchmark(const char *label, const std::vector<Inputs> &vectors, EvalFn eval)
+std::pair<double, std::uint64_t> run_benchmark_once(const std::vector<Inputs> &vectors, EvalFn eval)
 {
     std::uint64_t accum = 0;
     const auto begin = std::chrono::steady_clock::now();
@@ -201,11 +202,42 @@ void run_benchmark(const char *label, const std::vector<Inputs> &vectors, EvalFn
     }
     const auto end = std::chrono::steady_clock::now();
     const double ms = std::chrono::duration<double, std::milli>(end - begin).count();
+    return {ms, accum};
+}
+
+template <typename EvalFn>
+void run_benchmark(const char *label, const std::vector<Inputs> &vectors, unsigned repeat, EvalFn eval)
+{
+    (void)run_benchmark_once(vectors, eval);
+    std::vector<double> samples;
+    samples.reserve(repeat);
+    std::uint64_t checksum = 0;
+    for (unsigned i = 0; i < repeat; ++i) {
+        const auto [ms, accum] = run_benchmark_once(vectors, eval);
+        checksum = accum;
+        samples.push_back(ms);
+        if (repeat > 1) {
+            const double run_vectors_per_s = vectors.empty() ? 0.0 : static_cast<double>(vectors.size()) * 1000.0 / ms;
+            std::cout << "[BENCH_RUN] model=" << label << " top=" << TOP_NAME << " run=" << i
+                      << " vectors=" << vectors.size()
+                      << " ms=" << std::fixed << std::setprecision(3) << ms
+                      << " vectors_per_s=" << std::setprecision(2) << run_vectors_per_s
+                      << " checksum=" << hex64(accum) << "\n";
+        }
+    }
+    auto sorted = samples;
+    std::sort(sorted.begin(), sorted.end());
+    const double min_ms = sorted.empty() ? std::numeric_limits<double>::quiet_NaN() : sorted.front();
+    const double median_ms = sorted.empty() ? std::numeric_limits<double>::quiet_NaN() : sorted[sorted.size() / 2u];
+    const double ms = min_ms;
     const double vectors_per_s = vectors.empty() ? 0.0 : static_cast<double>(vectors.size()) * 1000.0 / ms;
     std::cout << "[BENCH] model=" << label << " top=" << TOP_NAME << " vectors=" << vectors.size()
+              << " repeat=" << repeat
               << " ms=" << std::fixed << std::setprecision(3) << ms
+              << " min_ms=" << std::setprecision(3) << min_ms
+              << " median_ms=" << std::setprecision(3) << median_ms
               << " vectors_per_s=" << std::setprecision(2) << vectors_per_s
-              << " checksum=" << hex64(accum) << "\n";
+              << " checksum=" << hex64(checksum) << "\n";
 }
 
 } // namespace
@@ -214,14 +246,20 @@ int main(int argc, char **argv)
 {
     unsigned vectors = 100000;
     unsigned verify = 2048;
+    unsigned repeat = 1;
     for (int i = 1; i < argc; ++i) {
         const std::string arg(argv[i]);
         if (arg == "--vectors" && i + 1 < argc) {
             vectors = static_cast<unsigned>(std::strtoul(argv[++i], nullptr, 0));
         } else if (arg == "--verify" && i + 1 < argc) {
             verify = static_cast<unsigned>(std::strtoul(argv[++i], nullptr, 0));
+        } else if (arg == "--repeat" && i + 1 < argc) {
+            repeat = static_cast<unsigned>(std::strtoul(argv[++i], nullptr, 0));
+            if (repeat == 0) {
+                repeat = 1;
+            }
         } else {
-            std::cerr << "usage: " << argv[0] << " [--vectors N] [--verify N]\n";
+            std::cerr << "usage: " << argv[0] << " [--vectors N] [--verify N] [--repeat N]\n";
             return 2;
         }
     }
@@ -234,7 +272,7 @@ int main(int argc, char **argv)
     GSIM_CLASS gsim;
     GRHSIM_CLASS grhsim;
     grhsim.init();
-    run_benchmark("gsim", inputs, [&](const Inputs &input) { return eval_gsim(gsim, input); });
-    run_benchmark("grhsim", inputs, [&](const Inputs &input) { return eval_grhsim(grhsim, input); });
+    run_benchmark("gsim", inputs, repeat, [&](const Inputs &input) { return eval_gsim(gsim, input); });
+    run_benchmark("grhsim", inputs, repeat, [&](const Inputs &input) { return eval_grhsim(grhsim, input); });
     return 0;
 }

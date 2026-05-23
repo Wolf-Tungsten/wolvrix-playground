@@ -47,7 +47,7 @@ MODEL_STATS_JSON := $(STATS_DIR)/model_stats.json
 
 GSIM_FLAGS ?= --supernode-max-size=8 --cpp-max-size-KB=512
 GSIM_CXXFLAGS ?= -O3 -std=c++17 -fbracket-depth=2048 -Wno-parentheses-equality -I$(abspath $(GSIM_MODEL_DIR))
-GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE ?= 8
+GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE ?= 128
 GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE ?= 768
 GRHSIM_SCHED_BATCH_MAX_OPS ?= 2048
 GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES ?= 8192
@@ -57,6 +57,7 @@ GRHSIM_CXXFLAGS ?= -O3 -std=c++20
 BENCH_CXXFLAGS ?= -O3 -std=c++20 -I$(abspath $(GSIM_MODEL_DIR)) -I$(abspath $(GRHSIM_MODEL_DIR))
 BENCH_VECTORS ?= 100000
 BENCH_VERIFY ?= 2048
+BENCH_REPEAT ?= 1
 
 .PHONY: all generate chisel-fir chisel-sv gsim grhsim bench stats stat one matrix clean list
 
@@ -130,7 +131,7 @@ $(BENCH_TB): tb/xs_component_bench.cpp $(GSIM_BUILD_STAMP) $(GRHSIM_LIB)
 
 bench: $(BENCH_TB)
 	@mkdir -p $(TB_DIR)
-	set -o pipefail; $(BENCH_TB) --vectors $(BENCH_VECTORS) --verify $(BENCH_VERIFY) 2>&1 | tee $(BENCH_LOG)
+	set -o pipefail; $(BENCH_TB) --vectors $(BENCH_VECTORS) --verify $(BENCH_VERIFY) --repeat $(BENCH_REPEAT) 2>&1 | tee $(BENCH_LOG)
 
 $(STATS_DIR)/gsim.json: $(GSIM_BUILD_STAMP) scripts/objdump_stats.py
 	@mkdir -p $(STATS_DIR)
