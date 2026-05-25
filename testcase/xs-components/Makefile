@@ -8,17 +8,23 @@ OBJDUMP ?= objdump
 CACHE_DIR ?= .sandbox-cache
 MILL_ENV := COURSIER_CACHE=$(abspath $(CACHE_DIR)/coursier) XDG_CACHE_HOME=$(abspath $(CACHE_DIR)/xdg) IVY_HOME=$(abspath $(CACHE_DIR)/ivy2) MILL_COURSIER_CACHE=$(abspath $(CACHE_DIR)/mill-coursier)
 
-CASES := XsBranchAluSmall XsVectorMaskMedium XsAgeMatrixMedium XsPlruLarge XsStoreMergeLarge
+CASES := XsBranchAluSmall XsVectorMaskMedium XsAgeMatrixMedium XsPlruLarge XsStoreMergeLarge XsIcacheReplacerLarge XsStoreQueueBanksLarge XsLoadQueueReplayLarge
 KIND_XsBranchAluSmall := branch-alu
 KIND_XsVectorMaskMedium := vector-mask
 KIND_XsAgeMatrixMedium := scheduler-age
 KIND_XsPlruLarge := replacement
 KIND_XsStoreMergeLarge := store-merge
+KIND_XsIcacheReplacerLarge := icache-replacer
+KIND_XsStoreQueueBanksLarge := store-queue-banks
+KIND_XsLoadQueueReplayLarge := load-queue-replay
 SCALE_XsBranchAluSmall := small
 SCALE_XsVectorMaskMedium := medium
 SCALE_XsAgeMatrixMedium := medium
 SCALE_XsPlruLarge := large
 SCALE_XsStoreMergeLarge := large
+SCALE_XsIcacheReplacerLarge := large
+SCALE_XsStoreQueueBanksLarge := large
+SCALE_XsLoadQueueReplayLarge := large
 
 CASE ?= XsBranchAluSmall
 KIND := $(KIND_$(CASE))
@@ -68,12 +74,14 @@ list:
 
 generate: $(FIR) $(SV)
 
-$(FIR): src/main/scala/XsComponents.scala build.mill
+SCALA_SRCS := $(shell find src/main/scala -name '*.scala' | sort)
+
+$(FIR): $(SCALA_SRCS) build.mill
 	@mkdir -p $(FIR_DIR) $(CACHE_DIR)/coursier $(CACHE_DIR)/xdg $(CACHE_DIR)/ivy2 $(CACHE_DIR)/mill-coursier
 	$(MILL_ENV) $(MILL) --no-daemon xscomponents.runMain xscomponents.XsComponentsMain --top-name $(CASE) --target chirrtl --target-dir $(FIR_DIR)
 	test -f $@
 
-$(SV): src/main/scala/XsComponents.scala build.mill
+$(SV): $(SCALA_SRCS) build.mill
 	@mkdir -p $(SV_DIR) $(CACHE_DIR)/coursier $(CACHE_DIR)/xdg $(CACHE_DIR)/ivy2 $(CACHE_DIR)/mill-coursier
 	$(MILL_ENV) $(MILL) --no-daemon xscomponents.runMain xscomponents.XsComponentsMain --top-name $(CASE) --target systemverilog --target-dir $(SV_DIR) --split-verilog
 	test -f $@
@@ -116,9 +124,9 @@ $(GRHSIM_LIB): $(GRHSIM_MODEL_DIR)/Makefile
 
 grhsim: $(GRHSIM_LIB)
 
-$(BENCH_TB): tb/xs_component_bench.cpp $(GSIM_BUILD_STAMP) $(GRHSIM_LIB)
+$(BENCH_TB): tb/xs_component_bench.cpp tb/xs_component_bench.hpp $(GSIM_BUILD_STAMP) $(GRHSIM_LIB)
 	@mkdir -p $(TB_DIR)
-	$(CXX) $(BENCH_CXXFLAGS) \
+	$(CXX) $(BENCH_CXXFLAGS) -I$(abspath tb) \
 		-DTOP_NAME=\"$(CASE)\" \
 		-DGSIM_CLASS=S$(CASE) \
 		-DGRHSIM_CLASS=GrhSIM_$(CASE) \

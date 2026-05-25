@@ -7,7 +7,7 @@
       "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/wrapper/BranchUnit.scala",
       "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/Alu.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/XsComponents.scala:XsBranchAluSmall",
+    "dut": "testcase/xs-components/src/main/scala/cases/XsBranchAluSmall.scala:XsBranchAluSmall",
     "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
   },
   {
@@ -18,7 +18,7 @@
       "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/vector/ByteMaskTailGen.scala",
       "testcase/xiangshan/src/main/scala/xiangshan/mem/vector/VecCommon.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/XsComponents.scala:XsVectorMaskMedium",
+    "dut": "testcase/xs-components/src/main/scala/cases/XsVectorMaskMedium.scala:XsVectorMaskMedium",
     "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
   },
   {
@@ -29,7 +29,7 @@
       "testcase/xiangshan/src/main/scala/xiangshan/backend/issue/AgeDetector.scala",
       "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueueReplay.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/XsComponents.scala:XsAgeMatrixMedium",
+    "dut": "testcase/xs-components/src/main/scala/cases/XsAgeMatrixMedium.scala:XsAgeMatrixMedium",
     "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
   },
   {
@@ -40,7 +40,7 @@
       "testcase/xiangshan/utility/src/main/scala/utility/Replacement.scala",
       "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/utils/Replacer.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/XsComponents.scala:XsPlruLarge",
+    "dut": "testcase/xs-components/src/main/scala/cases/XsPlruLarge.scala:XsPlruLarge",
     "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
   },
   {
@@ -51,7 +51,41 @@
       "testcase/xiangshan/src/main/scala/xiangshan/mem/sbuffer/Sbuffer.scala",
       "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/StoreQueue.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/XsComponents.scala:XsStoreMergeLarge",
+    "dut": "testcase/xs-components/src/main/scala/cases/XsStoreMergeLarge.scala:XsStoreMergeLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsIcacheReplacerLarge",
+    "kind": "icache-replacer",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/icache/ICacheReplacer.scala",
+      "testcase/xiangshan/utility/src/main/scala/utility/Replacement.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsIcacheReplacerLarge.scala:XsIcacheReplacerLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsStoreQueueBanksLarge",
+    "kind": "store-queue-banks",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/StoreQueueData.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/StoreQueue.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsStoreQueueBanksLarge.scala:XsStoreQueueBanksLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsLoadQueueReplayLarge",
+    "kind": "load-queue-replay",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueueReplay.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueueRAW.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsLoadQueueReplayLarge.scala:XsLoadQueueReplayLarge",
     "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
   }
 ]
+

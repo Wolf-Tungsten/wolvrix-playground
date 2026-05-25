@@ -172,6 +172,7 @@
 | `NO0183` | `2026-05-21` | [Latest Default 20k Composite Gate](./NO0183_latest_default_20k_composite_gate_20260521.md) | 为 `grhsim_opt_metrics.py` 增加 `--gate latest-default-20k`，合并静态 code-shape 与 20k runtime 两级验收 |
 | `NO0184` | `2026-05-21` | [CoreMark 50k Runtime Gate](./NO0184_coremark50k_runtime_gate_20260521.md) | 为 `grhsim_opt_metrics.py` 增加 `--gate coremark50k-fast` 与 `latest-default-50k`，机器判定 difftest 50k runtime 快档 |
 | `NO0185` | `2026-05-23` | [XS Components 对齐后的 GrhSIM Coarsen 策略记录](./NO0185_xs_components_aligned_coarsen_strategy_20260523.md) | 固化 xs-components 已验证口径：coarsen 不受 cap 限制、coarsen 后不再按 cap 拆分、DP 阶段保留 cap，并记录矩阵结果与 full XiangShan 构建风险 |
+| `NO0186` | `2026-05-25` | [XsIcacheReplacerLarge Ingest / Coarsen 阶段总结](./NO0186_xs_icache_replacer_ingest_coarsen_stage_20260525.md) | 总结 xs-components 拆分和大型真实 case 扩展、ingest 对 procedural local / aggregate memory 形态的支持、activity-schedule siblings merge 与 source clone，并记录当前 `XsIcacheReplacerLarge` 结构和性能结论 |
 
 ## 编号说明
 
