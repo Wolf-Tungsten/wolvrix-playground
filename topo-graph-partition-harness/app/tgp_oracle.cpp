@@ -15,17 +15,25 @@ int main(int argc, char **argv)
         {
             graphPath = argv[++i];
         }
-        else if (arg == "--max-node-weight" && i + 1 < argc)
+        else if (arg == "--max-nodes-per-part" && i + 1 < argc)
         {
-            options.maxNodeWeight = static_cast<uint32_t>(std::stoul(argv[++i]));
+            options.maxNodesPerPart = static_cast<uint32_t>(std::stoul(argv[++i]));
         }
         else if (arg == "--threads" && i + 1 < argc)
         {
             options.threads = static_cast<uint32_t>(std::stoul(argv[++i]));
         }
+        else if (arg == "--prefix-depth" && i + 1 < argc)
+        {
+            options.prefixDepth = static_cast<uint32_t>(std::stoul(argv[++i]));
+        }
         else if (arg == "--time-limit-sec" && i + 1 < argc)
         {
             options.timeLimitSec = static_cast<uint64_t>(std::stoull(argv[++i]));
+        }
+        else if (arg == "--checkpoint-interval-sec" && i + 1 < argc)
+        {
+            options.checkpointIntervalSec = static_cast<uint64_t>(std::stoull(argv[++i]));
         }
         else if (arg == "--checkpoint" && i + 1 < argc)
         {
@@ -42,7 +50,10 @@ int main(int argc, char **argv)
     }
     if (graphPath.empty())
     {
-        std::cerr << "usage: tgp_oracle --graph <path> [--out <path>]\n";
+        std::cerr << "usage: tgp_oracle --graph <path> [--max-nodes-per-part <n>] [--threads <n>] "
+                     "[--prefix-depth <n>] "
+                     "[--time-limit-sec <n>] [--checkpoint-interval-sec <n>] "
+                     "[--checkpoint <path>] [--resume <path>] [--out <path>]\n";
         return 64;
     }
     try

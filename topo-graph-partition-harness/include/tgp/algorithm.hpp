@@ -13,8 +13,7 @@ namespace tgp
 {
     struct AlgorithmConfig
     {
-        uint32_t maxNodeWeight = 128;
-        bool allowOversizeSingleton = true;
+        uint32_t maxNodesPerPart = 128;
     };
 
     class PartitionAlgorithm

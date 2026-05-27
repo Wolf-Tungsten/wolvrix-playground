@@ -1,4 +1,3 @@
 {
-  "max_node_weight": 2,
-  "allow_oversize_singleton": true
+  "max_nodes_per_part": 2
 }

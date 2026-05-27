@@ -18,10 +18,10 @@ namespace tgp
         {
             score.parts = std::max(score.parts, static_cast<uint32_t>(part + 1));
         }
-        std::vector<uint64_t> partWeights(score.parts, 0);
+        std::vector<uint64_t> partSizes(score.parts, 0);
         for (uint32_t node = 0; node < graph.nodes.size(); ++node)
         {
-            partWeights[partByNode[node]] += graph.nodes[node].weight;
+            ++partSizes[partByNode[node]];
         }
         for (const Edge &edge : graph.edges)
         {
@@ -31,15 +31,15 @@ namespace tgp
                 ++score.cutEdges;
             }
         }
-        if (!partWeights.empty())
+        if (!partSizes.empty())
         {
-            score.maxPartWeight = *std::max_element(partWeights.begin(), partWeights.end());
-            const uint64_t total = std::accumulate(partWeights.begin(), partWeights.end(), uint64_t{0});
-            score.meanPartWeight = static_cast<double>(total) / static_cast<double>(partWeights.size());
-            std::sort(partWeights.begin(), partWeights.end());
-            const std::size_t p90 = std::min(partWeights.size() - 1,
-                                             static_cast<std::size_t>((partWeights.size() * 90) / 100));
-            score.p90PartWeight = partWeights[p90];
+            score.maxPartSize = *std::max_element(partSizes.begin(), partSizes.end());
+            const uint64_t total = std::accumulate(partSizes.begin(), partSizes.end(), uint64_t{0});
+            score.meanPartSize = static_cast<double>(total) / static_cast<double>(partSizes.size());
+            std::sort(partSizes.begin(), partSizes.end());
+            const std::size_t p90 = std::min(partSizes.size() - 1,
+                                             static_cast<std::size_t>((partSizes.size() * 90) / 100));
+            score.p90PartSize = partSizes[p90];
         }
         QuotientGraph quotient = buildQuotientGraph(graph, partition);
         score.quotientEdges = quotient.edges.size();
@@ -62,9 +62,9 @@ namespace tgp
         out << "  \"cut_weight\":" << score.cutWeight << ",\n";
         out << "  \"cut_edges\":" << score.cutEdges << ",\n";
         out << "  \"parts\":" << score.parts << ",\n";
-        out << "  \"max_part_weight\":" << score.maxPartWeight << ",\n";
-        out << "  \"mean_part_weight\":" << score.meanPartWeight << ",\n";
-        out << "  \"p90_part_weight\":" << score.p90PartWeight << ",\n";
+        out << "  \"max_part_size\":" << score.maxPartSize << ",\n";
+        out << "  \"mean_part_size\":" << score.meanPartSize << ",\n";
+        out << "  \"p90_part_size\":" << score.p90PartSize << ",\n";
         out << "  \"quotient_edges\":" << score.quotientEdges << ",\n";
         out << "  \"quotient_avg_out_degree\":" << score.quotientAvgOutDegree << ",\n";
         out << "  \"quotient_p99_out_degree\":" << score.quotientP99OutDegree << ",\n";

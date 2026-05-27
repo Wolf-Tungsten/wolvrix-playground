@@ -29,28 +29,21 @@ namespace tgp
                 result.graphId = graph.graphId;
                 result.algorithmName = "topo-window";
                 result.algorithmVersion = "0.1";
-                result.maxNodeWeight = config.maxNodeWeight;
-                result.allowOversizeSingleton = config.allowOversizeSingleton;
+                result.maxNodesPerPart = config.maxNodesPerPart;
                 result.partByNode.assign(graph.nodes.size(), 0);
 
                 uint32_t part = 0;
-                uint64_t currentWeight = 0;
+                uint32_t currentSize = 0;
                 for (const uint32_t node : order)
                 {
-                    const uint32_t weight = graph.nodes[node].weight;
-                    if (currentWeight != 0 && config.maxNodeWeight != 0 &&
-                        currentWeight + weight > config.maxNodeWeight)
+                    if (currentSize != 0 && config.maxNodesPerPart != 0 &&
+                        currentSize + 1 > config.maxNodesPerPart)
                     {
                         ++part;
-                        currentWeight = 0;
+                        currentSize = 0;
                     }
                     result.partByNode[node] = part;
-                    currentWeight += weight;
-                    if (config.maxNodeWeight != 0 && weight > config.maxNodeWeight)
-                    {
-                        ++part;
-                        currentWeight = 0;
-                    }
+                    ++currentSize;
                 }
                 uint32_t partCount = 0;
                 for (const PartId assignedPart : result.partByNode)

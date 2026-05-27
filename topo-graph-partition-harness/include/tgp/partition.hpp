@@ -16,8 +16,7 @@ namespace tgp
         std::string algorithmVersion = "0.1";
         std::vector<PartId> partByNode;
         std::vector<PartId> partOrderHint;
-        uint32_t maxNodeWeight = 0;
-        bool allowOversizeSingleton = true;
+        uint32_t maxNodesPerPart = 0;
         double runtimeMs = 0.0;
     };
 }

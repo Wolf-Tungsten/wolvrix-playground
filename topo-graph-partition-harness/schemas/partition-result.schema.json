@@ -9,10 +9,9 @@
     "algorithm": { "type": "object" },
     "constraints": {
       "type": "object",
-      "required": ["max_node_weight"],
+      "required": ["max_nodes_per_part"],
       "properties": {
-        "max_node_weight": { "type": "integer", "minimum": 0 },
-        "allow_oversize_singleton": { "type": "boolean" }
+        "max_nodes_per_part": { "type": "integer", "minimum": 0 }
       }
     },
     "assignment": {

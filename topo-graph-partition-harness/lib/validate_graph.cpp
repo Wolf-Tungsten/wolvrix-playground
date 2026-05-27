@@ -32,10 +32,6 @@ namespace tgp
             {
                 result.fail("duplicate node id: " + std::to_string(node.id));
             }
-            if (node.weight == 0)
-            {
-                result.fail("node weight must be positive: " + std::to_string(node.id));
-            }
             if (node.topoPos >= graph.nodes.size())
             {
                 result.fail("topo_pos out of range for node: " + std::to_string(node.id));

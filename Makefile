@@ -91,6 +91,7 @@ C910_WAVEFORM_PATH_ABS = $(if $(C910_WAVEFORM_PATH),$(if $(filter /%,$(C910_WAVE
 # XiangShan paths / options
 XS_ROOT := $(CURDIR)/testcase/xiangshan
 XS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_emit.py
+XS_WOLVRIX_HIER_JSON_SCRIPT := $(CURDIR)/grh-ir-visualize/tools/export_xiangshan_hier_json.py
 XS_WOLVRIX_GRHSIM_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_grhsim.py
 XS_WOLVRIX_REPCUT_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_repcut.py
 REF_GSIM_ROOT ?= $(CURDIR)/reference/gsim
@@ -140,6 +141,9 @@ XS_VSRC_DIR ?= $(XS_ROOT)/difftest/src/test/vsrc/common
 XS_WOLF_EMIT_DIR ?= $(XS_WOLF_BUILD)/wolf_emit
 XS_WOLF_EMIT ?= $(XS_WOLF_EMIT_DIR)/wolf_emit.sv
 XS_WOLF_FILELIST ?= $(XS_WOLF_EMIT_DIR)/xs_wolf.f
+XS_WOLF_HIER_JSON ?= $(XS_WOLF_EMIT_DIR)/xs_wolf_hier.json
+XS_WOLF_HIER_JSON_ROUNDTRIP ?= 1
+XS_WOLF_HIER_JSON_SKIP_SAFE_PASSES ?= 0
 XS_WOLF_GRHSIM_EMIT_DIR ?= $(XS_GRHSIM_BUILD)/grhsim_emit
 XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON ?= $(if $(wildcard $(XS_WOLF_GRHSIM_POST_STATS_JSON)),1,0)
 XS_WOLF_GRHSIM_POST_STATS_JSON ?= $(XS_GRHSIM_BUILD)/wolvrix_xs_post_stats.json
@@ -157,6 +161,7 @@ XS_VSRC_DIR_ABS := $(abspath $(XS_VSRC_DIR))
 XS_WOLF_EMIT_DIR_ABS := $(abspath $(XS_WOLF_EMIT_DIR))
 XS_WOLF_EMIT_ABS := $(abspath $(XS_WOLF_EMIT))
 XS_WOLF_FILELIST_ABS := $(abspath $(XS_WOLF_FILELIST))
+XS_WOLF_HIER_JSON_ABS := $(abspath $(XS_WOLF_HIER_JSON))
 XS_WOLF_GRHSIM_EMIT_DIR_ABS := $(abspath $(XS_WOLF_GRHSIM_EMIT_DIR))
 XS_WOLF_GRHSIM_POST_STATS_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_POST_STATS_JSON))
 XS_SIM_TOP_V := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).$(XS_RTL_SUFFIX)
@@ -217,7 +222,7 @@ HDLBITS_GRHTB_SOURCES := $(wildcard $(HDLBITS_ROOT)/grhtb/grhtb_*.cpp)
 HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS_GRHTB_SOURCES)))))
 
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
-	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
+	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
 	xs_no0076_stats clean
 
@@ -476,6 +481,31 @@ xs_wolf_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(XS_WOLF_JSON) \
 			$(XS_READ_ARGS_FILE) \
 			$(WOLF_LOG); \
+	} 2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
+
+xs_wolf_hier_json: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
+	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
+		$(MAKE) --no-print-directory -B xs_rtl; \
+	fi
+	@mkdir -p "$(XS_WOLF_EMIT_DIR_ABS)"
+	@mkdir -p "$(XS_LOG_DIR_ABS)"
+	@$(eval RUN_ID := $(RUN_ID))
+	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_hier_json_$(RUN_ID).log)
+	@$(eval XS_READ_ARGS_FILE := $(XS_WOLF_EMIT_DIR_ABS)/wolvrix_read_args.txt)
+	@echo "[LOG] Capturing hierarchical wolf json output to: $(XS_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_READ_ARGS_FILE)"
+	@printf "%s\n" $(XS_WOLF_INCLUDE_FLAGS) $(XS_WOLF_DEFINE_FLAGS) >> "$(XS_READ_ARGS_FILE)"
+	@{ \
+		echo "[CMD] $(PYTHON) $(XS_WOLVRIX_HIER_JSON_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) $(XS_WOLF_HIER_JSON_ABS) $(XS_READ_ARGS_FILE) $(if $(filter 1,$(XS_WOLF_HIER_JSON_ROUNDTRIP)),--roundtrip,) $(if $(filter 1,$(XS_WOLF_HIER_JSON_SKIP_SAFE_PASSES)),--skip-safe-passes,) --log-level $(WOLF_LOG)"; \
+		$(PYTHON) $(XS_WOLVRIX_HIER_JSON_SCRIPT) \
+			$(XS_WOLF_FILELIST_ABS) \
+			$(XS_SIM_TOP) \
+			$(XS_WOLF_HIER_JSON_ABS) \
+			$(XS_READ_ARGS_FILE) \
+			$(if $(filter 1,$(XS_WOLF_HIER_JSON_ROUNDTRIP)),--roundtrip,) \
+			$(if $(filter 1,$(XS_WOLF_HIER_JSON_SKIP_SAFE_PASSES)),--skip-safe-passes,) \
+			--log-level $(WOLF_LOG); \
 	} 2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
 
 xs_wolf_grhsim_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)

@@ -134,10 +134,22 @@ namespace tgp
             graph.sourcePass = optionalString(source->object(), "pass");
             graph.sourcePath = optionalString(source->object(), "path");
         }
-        if (const auto *options = json::find(object, "options"); options && options->isObject())
+        const auto *optionsValue = json::find(object, "options");
+        if (!optionsValue || !optionsValue->isObject())
         {
-            graph.edgeWeight = optionalString(options->object(), "edge_weight");
-            graph.nodeWeight = optionalString(options->object(), "node_weight");
+            throw std::runtime_error("compute DAG options must be an object");
+        }
+        const auto &optionsObject = optionsValue->object();
+        const std::string nodeGranularity = asString(json::require(optionsObject, "node_granularity"),
+                                                     "options.node_granularity");
+        if (nodeGranularity != "op")
+        {
+            throw std::runtime_error("compute DAG node_granularity must be op");
+        }
+        graph.edgeWeight = asString(json::require(optionsObject, "edge_weight"), "options.edge_weight");
+        if (graph.edgeWeight != "value_bitwidth_words")
+        {
+            throw std::runtime_error("compute DAG edge_weight must be value_bitwidth_words");
         }
 
         const auto &nodes = json::require(object, "nodes").array();
@@ -145,18 +157,32 @@ namespace tgp
         for (const json::Value &nodeValue : nodes)
         {
             const auto &nodeObj = nodeValue.object();
+            if (json::find(nodeObj, "weight"))
+            {
+                throw std::runtime_error("nodes[].weight is forbidden; op vertices carry no capacity weight");
+            }
             Node node;
             node.id = asU32(json::require(nodeObj, "id"), "nodes[].id");
             node.opId = asU64(json::require(nodeObj, "op_id"), "nodes[].op_id");
-            node.weight = asU32(json::require(nodeObj, "weight"), "nodes[].weight");
             node.topoPos = asU32(json::require(nodeObj, "topo_pos"), "nodes[].topo_pos");
             node.kind = optionalString(nodeObj, "kind");
             node.symbol = optionalString(nodeObj, "symbol");
+            if (const auto *attrs = json::find(nodeObj, "attrs"); attrs && attrs->isObject())
+            {
+                if (const auto *granularity = json::find(attrs->object(), "granularity"))
+                {
+                    if (!granularity->isString() || granularity->string() != "op")
+                    {
+                        throw std::runtime_error("nodes[].attrs.granularity must be op when present");
+                    }
+                }
+            }
             graph.nodes.push_back(std::move(node));
         }
 
         const auto &edges = json::require(object, "edges").array();
         graph.edges.reserve(edges.size());
+        uint64_t edgeWeightTotal = 0;
         for (const json::Value &edgeValue : edges)
         {
             const auto &edgeObj = edgeValue.object();
@@ -164,19 +190,67 @@ namespace tgp
             edge.src = asU32(json::require(edgeObj, "src"), "edges[].src");
             edge.dst = asU32(json::require(edgeObj, "dst"), "edges[].dst");
             edge.weight = asU32(json::require(edgeObj, "weight"), "edges[].weight");
-            if (const auto *values = json::find(edgeObj, "values"); values && values->isArray())
+            const auto *values = json::find(edgeObj, "values");
+            if (!values || !values->isArray())
             {
-                std::set<uint64_t> seenValues;
-                for (const json::Value &value : values->array())
+                throw std::runtime_error("edges[].values must be an array");
+            }
+            if (values->array().empty())
+            {
+                throw std::runtime_error("edges[].values must not be empty");
+            }
+            std::set<uint64_t> seenValues;
+            uint64_t valueWidthTotal = 0;
+            for (const json::Value &value : values->array())
+            {
+                if (!value.isObject())
                 {
-                    const uint64_t id = asU64(value, "edges[].values[]");
-                    if (!seenValues.insert(id).second)
-                    {
-                        throw std::runtime_error("duplicate value id in edge values list");
-                    }
+                    throw std::runtime_error("edges[].values[] must be an object");
                 }
+                const auto &valueObj = value.object();
+                const uint64_t id = asU64(json::require(valueObj, "id"), "edges[].values[].id");
+                if (!seenValues.insert(id).second)
+                {
+                    throw std::runtime_error("duplicate value id in edge values list");
+                }
+                if (json::find(valueObj, "weight") || json::find(valueObj, "activation_weight") ||
+                    json::find(valueObj, "propagation_weight"))
+                {
+                    throw std::runtime_error("edges[].values[] must not carry per-value weight fields");
+                }
+                const uint64_t width = asU64(json::require(valueObj, "width"), "edges[].values[].width");
+                if (width == 0)
+                {
+                    throw std::runtime_error("edges[].values[].width must be positive");
+                }
+                valueWidthTotal += width;
+            }
+            const uint64_t expectedWeight = std::max<uint64_t>(uint64_t{1}, (valueWidthTotal + 63) / 64);
+            if (expectedWeight != edge.weight)
+            {
+                throw std::runtime_error("edge weight does not match ceil(sum(value widths) / 64)");
             }
             graph.edges.push_back(edge);
+            edgeWeightTotal += edge.weight;
+        }
+        if (const auto *stats = json::find(object, "stats"); stats && stats->isObject())
+        {
+            const auto &statsObj = stats->object();
+            if (const auto *nodeCount = json::find(statsObj, "nodes");
+                nodeCount && asU64(*nodeCount, "stats.nodes") != graph.nodes.size())
+            {
+                throw std::runtime_error("stats.nodes does not match nodes array size");
+            }
+            if (const auto *edgeCount = json::find(statsObj, "edges");
+                edgeCount && asU64(*edgeCount, "stats.edges") != graph.edges.size())
+            {
+                throw std::runtime_error("stats.edges does not match edges array size");
+            }
+            if (const auto *weightTotal = json::find(statsObj, "edge_weight_total");
+                weightTotal && asU64(*weightTotal, "stats.edge_weight_total") != edgeWeightTotal)
+            {
+                throw std::runtime_error("stats.edge_weight_total does not match edge weights");
+            }
         }
 
         std::sort(graph.edges.begin(), graph.edges.end(), [](const Edge &a, const Edge &b) {
@@ -224,12 +298,8 @@ namespace tgp
         }
         if (const auto *constraints = json::find(object, "constraints"); constraints && constraints->isObject())
         {
-            result.maxNodeWeight = asU32(json::require(constraints->object(), "max_node_weight"),
-                                         "constraints.max_node_weight");
-            if (const auto *allow = json::find(constraints->object(), "allow_oversize_singleton"))
-            {
-                result.allowOversizeSingleton = asBool(*allow, "constraints.allow_oversize_singleton");
-            }
+            result.maxNodesPerPart = asU32(json::require(constraints->object(), "max_nodes_per_part"),
+                                           "constraints.max_nodes_per_part");
         }
         const auto &assignment = json::require(object, "assignment").array();
         uint32_t maxNode = 0;
@@ -306,13 +376,9 @@ namespace tgp
             throw std::runtime_error("config root must be an object");
         }
         const auto &object = root.object();
-        if (const auto *value = json::find(object, "max_node_weight"))
+        if (const auto *value = json::find(object, "max_nodes_per_part"))
         {
-            config.maxNodeWeight = asU32(*value, "max_node_weight");
-        }
-        if (const auto *value = json::find(object, "allow_oversize_singleton"))
-        {
-            config.allowOversizeSingleton = asBool(*value, "allow_oversize_singleton");
+            config.maxNodesPerPart = asU32(*value, "max_nodes_per_part");
         }
         return config;
     }
@@ -325,8 +391,7 @@ namespace tgp
         out << "  \"graph_id\":\"" << json::escape(partition.graphId) << "\",\n";
         out << "  \"algorithm\":{\"name\":\"" << json::escape(partition.algorithmName)
             << "\",\"version\":\"" << json::escape(partition.algorithmVersion) << "\"},\n";
-        out << "  \"constraints\":{\"max_node_weight\":" << partition.maxNodeWeight
-            << ",\"allow_oversize_singleton\":" << (partition.allowOversizeSingleton ? "true" : "false") << "},\n";
+        out << "  \"constraints\":{\"max_nodes_per_part\":" << partition.maxNodesPerPart << "},\n";
         out << "  \"assignment\":[";
         for (std::size_t i = 0; i < partition.partByNode.size(); ++i)
         {

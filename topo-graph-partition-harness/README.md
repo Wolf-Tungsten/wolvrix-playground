@@ -4,13 +4,13 @@
 
 `topo-graph-partition-harness` 是一个 C++20 harness，用于把 `activity-schedule`
 导出的 compute DAG 作为固定输入，统一完成图读取、合法性检查、划分结果检查、评分、
-实验运行和搜索树记录。oracle 是可选参考流程，只在用户显式要求时运行。
+实验运行和搜索树记录。
 
 边界必须清楚：harness 只消费已经放入 `cases/` 的 compute DAG 文件。它不能在本目录内
 调用 wolvrix、xs-components、Scala/Chisel、GRH emit 或 `activity-schedule` 导出流程。
-真实 case 由用户在 harness 外生成并手工加入 `cases/`。
-oracle 结果也不是普通 experiment 的默认产物；只有用户显式要求运行 oracle 时，才把
-oracle 输出放在对应 case 旁边作为参考资料。
+真实 case 由用户在 harness 外生成并手工加入 `cases/`。case 顶层只分为
+`cases/regular/` 和 `cases/final/`：regular 是中小型快速迭代集合，必须带 oracle
+参考；final 是完整 Xiangshan gate，不要求也不维护 oracle 参考。
 
 本 README 只描述 harness 搭建要求和验收标准，不展开后续分图算法方向。具体算法尝试必须
 放在 `INSTRUCTIONS.md` 约束的单次尝试节点中记录。
@@ -24,22 +24,21 @@ oracle 输出放在对应 case 旁边作为参考资料。
 - 提供可替换的 C++ algorithm 接口，但 checker、score、oracle 不允许随算法尝试改写。
 - 提供 `INSTRUCTIONS.md`，保证之后每次算法尝试都执行同一套流程，并创建一个新的
   search tree 节点。
-- 每个 search tree 节点的日常迭代必须覆盖当前非 final case manifest 的全部评分；
-  只有常规 case 汇总有收益且无关键回退，才允许触发最终门禁。
+- 每个 search tree 节点的快速迭代必须覆盖当前 `cases/regular/` manifest 的全部评分；
+  当至少 80% regular case 在划分质量和 oracle 距离上确认获得正向收益时，才允许触发
+  `cases/final/`。
 - 搜索节点可以声明重点观察的 case，但重点 case 只能用于解释结果和定位回退，不能作为评分集合。
-  节点生成时必须先冻结完整 routine manifest，后续 baseline、candidate、delta 和决策都以该 manifest
+  节点生成时必须先冻结完整 regular manifest，后续 baseline、candidate、delta 和触发判定都以该 manifest
   的全部 case 为准。
-- `cases/final/` 下的完整 Xiangshan 大图不参与每轮迭代；它只在某个节点已经通过小 case / 常规 case 门禁后，
-  作为最终验收门禁单独运行。
-- 常规 manifest 和 final manifest 都必须使用同一份 baseline 与候选算法逐 case 对比。
-  任一 case 缺失、未评分、validation 失败、超时或只在少量 case 上变好，都不能把节点判定为成功。
+- `cases/final/` 下只放完整 Xiangshan 大图，不参与 regular 快速迭代；它只在 regular
+  80% 阈值通过后作为最终 gate 单独运行。
+- regular 阶段只决定是否允许开启 final，不决定节点成功。单个 search node 是否成功，最终看
+  final gate 是否在 10 分钟硬界限内完成，并且 final 指标相对 baseline 获得划分质量综合收益。
 - 每个 search tree 节点必须产出 full-case score matrix，逐 case 记录 baseline、candidate、delta、
   validation 状态和运行状态；没有矩阵或矩阵缺行的节点无效。
-- 节点成功的默认主判据是全 manifest 聚合 `sum_cut_weight` 下降，同时 quotient 复杂度和 runtime
-  不出现预先未声明的关键回退；不能在看结果后临时剔除失败 case、只统计通过 case、只看重点 case，
-  或改用子集平均。
-- 只要任何 routine case 缺 baseline、缺 candidate、缺 score、未通过固定 validation、超时或运行崩溃，
-  该搜索节点就不能记为成功。混合结果只能进入 `branch` 或 `reject`，不能把少数 case 的收益包装成整体收益。
+- final gate 的默认综合收益以 `cut_weight` 为主，结合 `quotient_edges`、`quotient_p99_out_degree`
+  和 runtime 约束；final 超时、缺 score、validation 失败或综合收益不成立，节点必须 `reject` 或
+  `branch`，不能记为 `keep`。
 - 支持真实目标图，尤其是
   `testcase/xs-components/src/main/scala/cases/XsIcacheReplacerLarge.scala` 导出的
   compute DAG。
@@ -111,12 +110,11 @@ topo-graph-partition-harness/
     tgp_oracle.cpp
     tgp_run_experiment.cpp
   cases/
-    small/
-    sampled/
-    real/
-      <case>.compute-op-dag.json
-      <case>.oracle.json        # optional, user-requested reference
-      <case>.oracle.ckpt        # optional, user-requested checkpoint
+    regular/
+      <CaseName>/
+        <CaseName>.compute-op-dag.json
+        <CaseName>.oracle.json
+        <CaseName>.oracle.ckpt
     final/
       <case>.compute-op-dag.json
   runs/
@@ -134,9 +132,14 @@ topo-graph-partition-harness/
 ```
 
 `algorithms/` 只放可替换算法模块。固定模块只能放在 `lib/` 和 `include/tgp/` 中维护。
+`cases/` 顶层只允许 `regular/` 和 `final/` 两个子目录。`regular/` 下按 case 粒度建立一级目录：
+`cases/regular/<CaseName>/<CaseName>.compute-op-dag.json`。不要再使用 `real/`、`sampled/`、
+`small/` 这类分类目录。每个 regular case 目录应放同名 oracle 参考。`final/` 只放完整
+Xiangshan gate case，不放缩小图、占位图或 oracle 参考。
+
 `runs/` 只允许存放普通 experiment 的 config、partition result、score 和 log，不允许存放
-producer 侧生成物。oracle 产物不放在普通 `runs/`；用户显式要求运行 oracle 时，输出放在
-对应 `cases/` 目录下，作为该 case 的参考资料。
+producer 侧生成物。oracle 产物不放在普通 `runs/`；regular oracle 输出放在对应
+`cases/regular/` case 目录下，作为快速迭代参考资料。
 
 `memory/search_tree.md` 是树搜索状态机，不只是一个结果表。它至少要区分 active frontier、parked
 child hypotheses、closed nodes 和 family ledger，避免所有当前节点失败后搜索树失忆。
@@ -155,8 +158,8 @@ child hypotheses、closed nodes 和 family ledger，避免所有当前节点失�
     "created_at": "2026-05-26T00:00:00Z"
   },
   "options": {
-    "edge_weight": "boundary_activation_edges",
-    "node_weight": "op_count"
+    "node_granularity": "op",
+    "edge_weight": "value_bitwidth_words"
   },
   "nodes": [
     {
@@ -164,11 +167,9 @@ child hypotheses、closed nodes 和 family ledger，避免所有当前节点失�
       "op_id": 123,
       "kind": "kAnd",
       "symbol": "optional.stable.name",
-      "weight": 1,
       "topo_pos": 0,
       "attrs": {
-        "bit_width": 1,
-        "compute_node_id": 0
+        "granularity": "op"
       }
     }
   ],
@@ -176,8 +177,12 @@ child hypotheses、closed nodes 和 family ledger，避免所有当前节点失�
     {
       "src": 0,
       "dst": 1,
-      "weight": 3,
-      "values": [456, 457, 458]
+      "weight": 2,
+      "values": [
+        { "id": 456, "width": 1 },
+        { "id": 457, "width": 1 },
+        { "id": 458, "width": 126 }
+      ]
     }
   ]
 }
@@ -186,9 +191,12 @@ child hypotheses、closed nodes 和 family ledger，避免所有当前节点失�
 必备语义：
 
 - `nodes[].id` 是连续整数，范围 `[0, n)`。
-- `nodes[].weight` 是容量约束使用的节点权重。
+- 每个 node 表示一个 compute op，顶点不带容量权重。
+- `nodes[].weight` 禁止出现；超节点大小限制只按包含的 op 个数计算。
 - `nodes[].topo_pos` 是 `activity-schedule` 导出的稳定 topo 位置。
-- `edges[].weight` 是割边代价，初期对齐 boundary activation edge 数量。
+- `edges[].values[]` 表示从 `src` op 传到 `dst` op 的 value。
+- value 不带独立权重；`values[].width` 是该 value 的 bit width，至少为 1。
+- `edges[].weight = ceil(sum(edges[].values[].width) / 64)`，最小为 1。
 - 输入图必须是 DAG。
 - 重边应在导出阶段合并；如果输入存在重边，`graph_io` 必须 canonicalize 后合并。
 - 图只包含 compute 侧顶点，不混入 commit supernode。
@@ -205,12 +213,11 @@ child hypotheses、closed nodes 和 family ledger，避免所有当前节点失�
     "name": "example_algorithm",
     "version": "0.1",
     "parameters": {
-      "max_node_weight": 128
+      "max_nodes_per_part": 128
     }
   },
   "constraints": {
-    "max_node_weight": 128,
-    "allow_oversize_singleton": true
+    "max_nodes_per_part": 128
   },
   "assignment": [
     { "node": 0, "part": 0 },
@@ -240,7 +247,6 @@ namespace tgp
     struct Node {
         NodeId id = 0;
         uint64_t opId = 0;
-        uint32_t weight = 1;
         uint32_t topoPos = 0;
     };
 
@@ -263,8 +269,7 @@ namespace tgp
     struct PartitionResult {
         std::string graphId;
         std::vector<PartId> partByNode;
-        uint32_t maxNodeWeight = 0;
-        bool allowOversizeSingleton = true;
+        uint32_t maxNodesPerPart = 0;
     };
 }
 ```
@@ -295,7 +300,6 @@ namespace tgp
 - node id 连续且无重复。
 - edge 两端存在。
 - edge weight 为正整数。
-- node weight 为正整数。
 - 无自环。
 - 输入图是 DAG。
 - `topo_pos` 覆盖全部节点，并且每条边满足 `topo_pos[src] < topo_pos[dst]`。
@@ -304,7 +308,7 @@ namespace tgp
 CLI：
 
 ```bash
-tgp_validate_graph --graph cases/real/foo.compute-op-dag.json
+tgp_validate_graph --graph cases/regular/Foo/Foo.compute-op-dag.json
 ```
 
 ### `validate_partition`
@@ -315,8 +319,7 @@ tgp_validate_graph --graph cases/real/foo.compute-op-dag.json
 - 每个 node 恰好出现一次。
 - part id canonicalize 后连续。
 - 每个 part 非空。
-- part weight 不超过 `max_node_weight`。
-- 单节点 weight 超过上限时，只允许形成 singleton part。
+- part 内 node 数不超过 `max_nodes_per_part`。
 - 每个原图 edge 要么在 part 内部，要么形成商图 edge。
 - 商图去重后必须是 DAG。
 - `part_order_hint` 如存在，必须能被验证为合法 topo order；否则忽略并重新计算。
@@ -325,7 +328,7 @@ CLI：
 
 ```bash
 tgp_validate_partition \
-  --graph cases/real/foo.compute-op-dag.json \
+  --graph cases/regular/Foo/Foo.compute-op-dag.json \
   --partition runs/foo/result.json
 ```
 
@@ -338,9 +341,9 @@ tgp_validate_partition \
 | `cut_weight` | 所有跨 part 原图边的权重和 |
 | `cut_edges` | 跨 part 原图边条数 |
 | `parts` | part 数 |
-| `max_part_weight` | 最大 part weight |
-| `mean_part_weight` | 平均 part weight |
-| `p90_part_weight` | part weight p90 |
+| `max_part_size` | 最大 part node 数 |
+| `mean_part_size` | 平均 part node 数 |
+| `p90_part_size` | part node 数 p90 |
 | `quotient_edges` | 商图去重边数 |
 | `quotient_avg_out_degree` | 商图平均出度 |
 | `quotient_p99_out_degree` | 商图 p99 出度 |
@@ -350,7 +353,7 @@ CLI：
 
 ```bash
 tgp_score_partition \
-  --graph cases/real/foo.compute-op-dag.json \
+  --graph cases/regular/Foo/Foo.compute-op-dag.json \
   --partition runs/foo/result.json \
   --out runs/foo/score.json
 ```
@@ -364,22 +367,31 @@ checkpoint 和局部证明。oracle 不属于默认 experiment workflow；只有
 要求：
 
 - 使用同一份 `validate_partition` 和 `score_partition`。
-- 支持 `--threads`、`--time-limit-sec`、`--checkpoint`、`--resume`。
-- 搜索状态必须可序列化。
+- 支持 `--threads`、`--prefix-depth`、`--time-limit-sec`、`--checkpoint-interval-sec`、
+  `--checkpoint`、`--resume`。
+- 搜索状态必须可序列化。checkpoint 必须记录 `graph_id`、`max_nodes_per_part`、`prefix_depth`、
+  `task_order`、incumbent、score、counter 和 `completed_task_ranges`；resume 只能复用完全匹配的
+  graph、容量约束、prefix depth 和 task order。
+- 默认 task order 是 `prefix_cut_desc_v1`，先处理或剪掉当前 prefix cut 已经不可能优于 incumbent
+  的任务。
 - 输出必须区分 `optimal=true`、`optimal=false but bounded`、`timeout without bound`。
 - 超时也必须输出 incumbent、lower bound、gap、frontier 摘要。
+- 如果 `graph.nodes.size() <= max_nodes_per_part`，oracle 必须直接给出单个超节点、`cut_weight=0`
+  的最优证明，不进入指数搜索。
 - `XsIcacheReplacerLarge` 导出的 compute DAG 必须能进入 oracle 路径。
 
 CLI：
 
 ```bash
 tgp_oracle \
-  --graph cases/real/foo.compute-op-dag.json \
-  --max-node-weight 128 \
+  --graph cases/regular/Foo/Foo.compute-op-dag.json \
+  --max-nodes-per-part 128 \
   --threads 32 \
+  --prefix-depth 10 \
   --time-limit-sec 86400 \
-  --checkpoint cases/real/foo.oracle.ckpt \
-  --out cases/real/foo.oracle.json
+  --checkpoint-interval-sec 30 \
+  --checkpoint cases/regular/Foo/Foo.oracle.ckpt \
+  --out cases/regular/Foo/Foo.oracle.json
 ```
 
 ### `run_experiment`
@@ -399,7 +411,7 @@ CLI：
 ```bash
 tgp_run_experiment \
   --algorithm <name> \
-  --graph cases/real/foo.compute-op-dag.json \
+  --graph cases/regular/Foo/Foo.compute-op-dag.json \
   --config runs/foo/config.json \
   --out-dir runs/foo \
   --time-limit-sec <n>
@@ -450,18 +462,21 @@ harness 的输入 case 是 `compute-op-dag.v1` JSON 文件，固定放在 `cases
 
 - `activity-schedule` 导出能力在 wolvrix producer 侧实现和测试，不属于 harness 运行流程。
 - harness 不提供、也不调用导出命令。
-- 用户在 harness 外生成真实图后，手工把 `*.compute-op-dag.json` 放入 `cases/real/`。
-- 未来完整 Xiangshan 最终门禁图放入 `cases/final/`，不混入日常迭代 case 集。
+- `cases/` 顶层只允许 `regular/` 和 `final/`。
+- 用户在 harness 外生成中小型真实图后，手工把 `*.compute-op-dag.json` 放入
+  `cases/regular/<CaseName>/<CaseName>.compute-op-dag.json`。
+- 完整 Xiangshan 最终门禁图放入 `cases/final/`，不混入 regular 快速迭代 case 集。
 - case 文件必须可由 `tgp_validate_graph` 验证。
 - case 文件应记录节点数、边数、权重总和等 summary stats。
-- node id 必须稳定对应 producer 侧 compute node，方便 harness 报告定位。
+- node id 必须稳定对应 producer 侧 compute op，`op_id` 记录原始 GRH operation id，方便 harness 报告定位。
 
 oracle 参考资料的来源规则：
 
-- oracle 只在用户显式要求时运行。
-- oracle 输出放在对应 case 同目录下，例如 `foo.oracle.json` 和 `foo.oracle.ckpt`。
-- 普通算法尝试可以引用已有 oracle 参考资料，但不能要求每次尝试都重新运行 oracle。
-- 如果没有 oracle 参考资料，实验记录应写明 `oracle: not requested`。
+- regular case 必须具备同目录 oracle 参考，例如 `foo.oracle.json` 和 `foo.oracle.ckpt`。
+- oracle 只在用户显式要求刷新或补齐时运行；普通算法尝试引用已有 regular oracle。
+- final case 不要求 oracle 参考，也不得因为缺 final oracle 阻塞 final gate。
+- 如果 regular case 缺 oracle 参考，该 case 不能进入有效 regular manifest；需要先由用户显式要求补齐
+  oracle，或把该 case 移出 regular manifest 并记录原因。
 
 ## 指令文档
 
@@ -475,27 +490,30 @@ topo-graph-partition-harness/INSTRUCTIONS.md
 
 - 作为之后每次算法尝试的固定执行指令。
 - 一次执行只创建一个新的 search tree 节点。
-- 每次执行必须先枚举并覆盖当前非 final case manifest，再在常规 case 成功时触发 `cases/final/`
-  的最终门禁。
-- 每次执行必须把常规 manifest 和 final manifest 分别固化，并在实验文档中记录每个 case
+- 每次执行必须先枚举并覆盖当前 `cases/regular/` manifest；当 80% regular case 确认正收益后，
+  才允许触发 `cases/final/`。
+- 每次执行必须把 regular manifest 和 final manifest 分别固化，并在实验文档中记录每个 case
   的路径、graph summary、验证状态、运行时间和 score。
 - 每个阶段都必须有可比较的 baseline。baseline 可以来自 parent 节点，也可以来自专门的 baseline
   节点，但必须覆盖同一份 stage manifest；缺 baseline 时只能先补 baseline，不能宣称候选算法成功。
 - 候选算法必须对 stage manifest 内每个 case 生成 `result.json`、`score.json` 和 `log.md`。
   缺任何 case、跳过任何 case、只记录子集分数，节点都必须保持 invalid 或 rejected。
 - 节点可以声明本次尝试预计最可能影响哪些 case，但该声明不能改变执行范围。执行范围永远是冻结后的完整
-  routine manifest；重点 case 只允许作为 interpretation 线索。
-- 成功判定必须基于两级门禁：先看常规 manifest 的全量聚合收益，再看 final gate 的运行时与最终得分。
-  常规门禁必须对每个 case 都有 baseline/candidate/delta 行，并从完整矩阵计算聚合值；不能只挑少量 case
-  评分后宣称成功。
-- 默认成功条件：
-  - routine manifest 全部 case graph validation 成功；
-  - baseline 与 candidate 都覆盖全部 routine case；
+  regular manifest；重点 case 只允许作为 interpretation 线索。
+- regular 阶段是 final gate 的开启阈值，不是节点成功判定。regular 门禁必须对每个 case 都有
+  baseline/candidate/delta/oracle-distance 行，并从完整矩阵计算：
+  - `regular_positive_count`
+  - `regular_total_count`
+  - `regular_positive_ratio = regular_positive_count / regular_total_count`
+  - `regular_oracle_gap_improved_count`
+  当 `regular_positive_ratio >= 0.80`，并且正收益同时覆盖划分质量和 oracle 距离时，才允许运行 final。
+- 节点成功条件只由 final gate 决定：
+  - final manifest 全部 case graph validation 成功；
+  - baseline 与 candidate 都覆盖全部 final case；
   - candidate partition validation 和 score 全部成功；
-  - candidate 的 `sum_cut_weight` 严格小于 baseline；
-  - `sum_quotient_edges`、`quotient_p99_out_degree` 和 `max_runtime_ms` 没有超过节点开始前声明的回退预算；
-  - 对任何单 case 回退都有记录、解释和后续分支决策，且这些回退不能抵消整体收益或突破预算；
-  - 如果 `cases/final/` 存在 case，则 final gate 也必须全部通过。
+  - 每个 final run 都在 `--time-limit-sec 600` 内完成；
+  - final 综合收益相对 baseline 为正，主指标是 `cut_weight`，同时记录 `quotient_edges`、
+    `quotient_p99_out_degree` 和 runtime，不能用 regular 收益替代 final 收益。
 - 每个节点必须有 `Sxxxx` id、parent、hypothesis、case set、命令、结果和决策。
 - 如果只是修 bug，记录为同一节点下的 patch attempt。
 - 如果改变算法假设，必须创建 child node。
@@ -506,7 +524,7 @@ README 只要求这份指令存在并被执行；具体尝试流程写在 `INSTR
 ## 必须支持的真实目标
 
 `testcase/xs-components/src/main/scala/cases/XsIcacheReplacerLarge.scala` 是 harness
-早期真实目标，但只作为常规 real/smoke case，不承担最终门禁角色。
+早期真实目标，但只作为 `cases/regular/XsIcacheReplacerLarge/` case，不承担最终门禁角色。
 
 完整 Xiangshan compute DAG 作为最终门禁 case，用户后续加入 `cases/final/`。
 
@@ -517,16 +535,14 @@ README 只要求这份指令存在并被执行；具体尝试流程写在 `INSTR
 - `tgp_run_experiment` 能在该图上完成一次算法执行、validation、score。
 - 当该图被放入 `cases/final/` 时，`tgp_run_experiment` 必须支持 `--time-limit-sec 600` 的硬超时运行。
 - 最终门禁必须记录运行时与 score；10 分钟内未完成则该节点验收失败。
-- 当用户显式要求 oracle 时，`tgp_oracle` 能在该图上启动长跑，并输出 incumbent、
-  lower bound、gap、checkpoint 到 `cases/real/` 参考文件。
-- 即使无法证明全局最优，也不能把该 case 排除在用户显式要求的 oracle 路径外。
+- final case 不要求 oracle 参考；final gate 只比较 baseline 与 candidate 的固定 score。
 
 建议路径：
 
 ```text
-cases/real/XsIcacheReplacerLarge.compute-op-dag.json
-cases/real/XsIcacheReplacerLarge.oracle.json
-cases/real/XsIcacheReplacerLarge.oracle.ckpt
+cases/regular/XsIcacheReplacerLarge/XsIcacheReplacerLarge.compute-op-dag.json
+cases/regular/XsIcacheReplacerLarge/XsIcacheReplacerLarge.oracle.json
+cases/regular/XsIcacheReplacerLarge/XsIcacheReplacerLarge.oracle.ckpt
 runs/xs_icache_replacer_large/<experiment-run>/
 ```
 

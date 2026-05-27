@@ -29,7 +29,6 @@ namespace tgp
             }
             partCount = std::max(partCount, static_cast<uint32_t>(part + 1));
         }
-        std::vector<uint64_t> weights(partCount, 0);
         std::vector<uint32_t> counts(partCount, 0);
         for (uint32_t node = 0; node < graph.nodes.size(); ++node)
         {
@@ -38,7 +37,6 @@ namespace tgp
             {
                 continue;
             }
-            weights[part] += graph.nodes[node].weight;
             ++counts[part];
         }
         for (uint32_t part = 0; part < partCount; ++part)
@@ -47,24 +45,9 @@ namespace tgp
             {
                 result.fail("empty part after canonicalization: " + std::to_string(part));
             }
-            if (partition.maxNodeWeight != 0 && weights[part] > partition.maxNodeWeight)
+            if (partition.maxNodesPerPart != 0 && counts[part] > partition.maxNodesPerPart)
             {
-                bool singletonOversize = false;
-                if (counts[part] == 1 && partition.allowOversizeSingleton)
-                {
-                    for (uint32_t node = 0; node < graph.nodes.size(); ++node)
-                    {
-                        if (partByNode[node] == part &&
-                            graph.nodes[node].weight > partition.maxNodeWeight)
-                        {
-                            singletonOversize = true;
-                        }
-                    }
-                }
-                if (!singletonOversize)
-                {
-                    result.fail("part exceeds max_node_weight: " + std::to_string(part));
-                }
+                result.fail("part exceeds max_nodes_per_part: " + std::to_string(part));
             }
         }
 

@@ -18,23 +18,25 @@ The goal of one attempt is not "try many things". The goal is to test one explic
 - Do not use Python for validation, scoring, oracle, or official experiment execution.
 - Do not generate cases from inside `topo-graph-partition-harness`.
 - Treat `cases/` inputs as user-provided; a new real case is valid only after the user has manually added it.
-- Every algorithm attempt must evaluate every current non-final `*.compute-op-dag.json` under `cases/`.
-- `cases/final/` is reserved for final acceptance gates and must not be mixed into the routine iteration manifest.
-- The routine case list must be frozen as this node's routine manifest before scoring starts.
+- `cases/` top-level directories are only `regular/` and `final/`.
+- Every algorithm attempt must evaluate every current `*.compute-op-dag.json` under `cases/regular/`.
+- `cases/regular/` is the fast iteration set. These cases are medium or small and must have oracle references.
+- `cases/final/` is reserved for full-XiangShan gates. Final cases do not require oracle references and must not be
+  mixed into the regular iteration manifest.
+- The regular case list must be frozen as this node's regular manifest before scoring starts.
 - Candidate results and baseline results must use exactly the same manifest for the stage being evaluated.
-- The full-case score matrix is the source of truth for node decisions; every routine-manifest case must have a
-  baseline row, candidate row, delta row, validation status, and run status.
-- A node cannot be marked successful because it improves a hand-picked subset.
+- The regular score matrix is the source of truth for deciding whether final may run; every regular-manifest case must
+  have a baseline row, candidate row, delta row, oracle-distance row, validation status, and run status.
+- A node cannot run final because it improves a hand-picked subset.
 - A node cannot be marked successful when any required stage case is missing, skipped, unscored, times out, or fails fixed validation.
-- A node cannot be marked successful unless the routine aggregate comparison improves versus baseline, and every present final gate also passes.
-- A node cannot be marked successful when total improvement is caused by a few wins while material regressions on other
-  required cases are ignored or left unexplained.
-- A node may name focus cases for diagnosis, but focus cases never change the required scoring set. The routine
-  manifest is always the complete non-final case set frozen for the node.
-- Overall benefit means the candidate beats the baseline on aggregate metrics computed from every routine-manifest row.
-  A subset win, passing smoke case, or hand-picked average is not an overall benefit.
-- Do not run oracle unless the user explicitly asks for an oracle run or explicitly asks to refresh an oracle reference.
+- A node cannot run final unless at least 80% of regular cases show positive benefit in both partition quality and
+  distance to oracle.
+- A node cannot be marked successful unless every present final gate passes within 600 seconds and final aggregate
+  partition quality improves versus baseline.
+- A node may name focus cases for diagnosis, but focus cases never change the required regular scoring set.
+- Do not run oracle unless the user explicitly asks for an oracle run or explicitly asks to refresh a regular oracle reference.
 - Store oracle outputs next to the case under `cases/`, not inside ordinary experiment `runs/`.
+- Do not create oracle references for final cases as part of ordinary algorithm attempts.
 - Do not mix unrelated algorithm ideas in one search node.
 - If an implementation bug is fixed without changing the hypothesis, record it as a patch attempt under the same node.
 - If the algorithm hypothesis changes, create a child node.
@@ -164,9 +166,11 @@ parent_status_at_start: keep | reject | exhausted | root
 
 ## Planned Cases
 
-routine_manifest: complete non-final `cases/**/*.compute-op-dag.json`
+regular_manifest: complete `cases/regular/**/*.compute-op-dag.json`
 focus_cases: optional diagnostic list only; not a scoring filter
-coverage_gate: every routine-manifest case must have baseline, candidate, validation, score, and delta rows
+regular_threshold: at least 80% of regular cases improve partition quality and oracle distance before final can run
+final_gate: complete `cases/final/*.compute-op-dag.json`, 600 second hard timeout per case
+coverage_gate: every regular-manifest case must have baseline, candidate, validation, score, delta, and oracle-distance rows
 
 ## Case Manifest
 
@@ -190,10 +194,20 @@ coverage_gate: every routine-manifest case must have baseline, candidate, valida
 
 ## Aggregate Comparison
 
-computed_from: full routine manifest only
-overall_benefit: pass | fail
+computed_from: full regular manifest only
+regular_positive_ratio: ...
+regular_threshold: pass | fail
 subset_only_improvement: yes | no
 regression_budget_status: pass | fail
+
+## Final Gate Score Matrix
+
+...
+
+## Final Gate Decision
+
+final_gate_status: pass | fail | not-run
+final_aggregate_benefit: pass | fail | not-run
 
 ## Interpretation
 
@@ -249,22 +263,22 @@ Every new node must name exactly one of these search moves:
 
 If the search move cannot be named, the node is too vague and must not be created.
 
-## Step 5: Freeze Case Manifest
+## Step 5: Freeze Regular Case Manifest
 
-Enumerate the routine case set before running:
+Enumerate the regular case set before running:
 
 ```bash
-find topo-graph-partition-harness/cases -path 'topo-graph-partition-harness/cases/final' -prune -o -name '*.compute-op-dag.json' -print | sort
+find topo-graph-partition-harness/cases/regular -name '*.compute-op-dag.json' -print | sort
 ```
 
 The selected case set is the full command output. Do not filter it by level, size, expected difficulty, or whether the
-new algorithm is expected to perform well on it. Small legality cases, sampled cases, routine real cases, and
-`XsIcacheReplacerLarge` all participate when present. `cases/final/` does not participate in this routine manifest.
+new algorithm is expected to perform well on it. Every first-level case directory under `cases/regular/` participates
+when present. `cases/final/` does not participate in this regular manifest.
 
-Create and record this routine manifest:
+Create and record this regular manifest:
 
 ```text
-runs/EXPxxxx/routine_case_manifest.txt
+runs/EXPxxxx/regular_case_manifest.txt
 ```
 
 The manifest must include one row per case:
@@ -274,38 +288,41 @@ The manifest must include one row per case:
 - graph id
 - node count
 - edge count
-- total node weight
 - total edge weight
 - graph validation status
-- optional oracle reference path, or `oracle: not requested`
+- oracle reference path
+- oracle status: `present` | `missing`
 
 Do not change the case set after seeing failures. If a case is invalid, record why and fix the case or checker separately.
-If the routine case set changes after the manifest is frozen, this node's routine evaluation is stale; either rerun
+If the regular case set changes after the manifest is frozen, this node's regular evaluation is stale; either rerun
 baseline and candidate on the new manifest, or close the node as invalid and create a new node.
 Do not create or export new cases as part of an algorithm attempt; ask the user to add the case first.
+If any regular case lacks an oracle reference, the node cannot proceed to scoring. Ask the user to explicitly request an
+oracle refresh for that case, or record the missing oracle as an infrastructure blocker.
 
-Before continuing, write the routine manifest into the experiment file under `## Case Manifest`. This is the contract for
+Before continuing, write the regular manifest into the experiment file under `## Case Manifest`. This is the contract for
 all later score matrices in the node.
 
 ## Step 6: Establish Baseline
 
-Every node needs a comparison baseline over exactly the same routine manifest.
+Every node needs a comparison baseline over exactly the same regular manifest.
 
 Allowed baselines:
 
-- the parent node's recorded full-case score matrix, if it used the same manifest and score schema
+- the parent node's recorded regular score matrix, if it used the same manifest and score schema
 - a dedicated baseline node, if it used the same manifest and score schema
 - a fresh baseline run for this node, recorded before candidate interpretation
 
 Disallowed baselines:
 
-- a baseline that covers only a subset of the routine manifest
+- a baseline that covers only a subset of the regular manifest
 - a baseline from a stale case set
 - a baseline with missing score rows
-- an oracle result used as a direct replacement for algorithm baseline scoring
+- an oracle result used as a direct replacement for algorithm baseline scoring; oracle is a quality reference, not the
+  baseline algorithm result
 
-If no valid baseline exists, run or create a baseline first. Until every routine-manifest case has a baseline score row,
-the node cannot be marked `keep`, regardless of candidate results.
+If no valid baseline exists, run or create a baseline first. Until every regular-manifest case has a baseline score row,
+the node cannot run final, regardless of candidate results.
 
 The baseline record must include a machine-checkable score path for each case:
 
@@ -338,7 +355,7 @@ Restricted areas may be changed only if the current task is explicitly about har
 
 ## Step 8: Run Fixed Checks
 
-Run the fixed checks for every case from the frozen routine manifest. Use a distinct run directory per node and case:
+Run the fixed checks for every case from the frozen regular manifest. Use a distinct run directory per node and case:
 
 ```text
 runs/EXPxxxx/<case-slug>/
@@ -355,7 +372,7 @@ topo-graph-partition-harness/build/bin/tgp_score_partition --graph <case> --part
 
 Every case must produce `result.json`, `score.json`, and `log.md`. A missing score, failed validation, timeout without a
 recorded result, or skipped case makes the search node invalid until fixed. Do not replace failed cases with a filtered
-subset; the routine manifest remains the required coverage set.
+subset; the regular manifest remains the required coverage set.
 
 After running a case, immediately append its status to the experiment file:
 
@@ -367,19 +384,22 @@ After running a case, immediately append its status to the experiment file:
 Use explicit failure categories such as `graph-invalid`, `algorithm-timeout`, `partition-invalid`, `score-missing`, or
 `run-crash`. A failed row still counts as a manifest row; it must not disappear from the matrix.
 
-For oracle-backed cases, also run or reference:
+For every regular case, reference the existing oracle file next to the case:
 
-```bash
-oracle: not requested
+```text
+oracle: referenced <case-dir>/<case>.oracle.json
 ```
 
-If the user explicitly requests an oracle run, write the oracle reference next to the case:
+If the user explicitly requests an oracle refresh, write the oracle reference next to the regular case:
 
 ```bash
 topo-graph-partition-harness/build/bin/tgp_oracle \
   --graph <case-dir>/<case>.compute-op-dag.json \
-  --max-node-weight <n> \
+  --max-nodes-per-part <n> \
   --threads <n> \
+  --prefix-depth <n> \
+  --time-limit-sec <n> \
+  --checkpoint-interval-sec 30 \
   --checkpoint <case-dir>/<case>.oracle.ckpt \
   --out <case-dir>/<case>.oracle.json
 ```
@@ -388,18 +408,24 @@ For `XsIcacheReplacerLarge`, only when explicitly requested:
 
 ```bash
 topo-graph-partition-harness/build/bin/tgp_oracle \
-  --graph topo-graph-partition-harness/cases/real/XsIcacheReplacerLarge.compute-op-dag.json \
-  --max-node-weight 128 \
+  --graph topo-graph-partition-harness/cases/regular/XsIcacheReplacerLarge/XsIcacheReplacerLarge.compute-op-dag.json \
+  --max-nodes-per-part 128 \
   --threads <n> \
+  --prefix-depth <n> \
   --time-limit-sec <n> \
-  --checkpoint topo-graph-partition-harness/cases/real/XsIcacheReplacerLarge.oracle.ckpt \
-  --out topo-graph-partition-harness/cases/real/XsIcacheReplacerLarge.oracle.json
+  --checkpoint-interval-sec 30 \
+  --checkpoint topo-graph-partition-harness/cases/regular/XsIcacheReplacerLarge/XsIcacheReplacerLarge.oracle.ckpt \
+  --out topo-graph-partition-harness/cases/regular/XsIcacheReplacerLarge/XsIcacheReplacerLarge.oracle.json
 ```
 
-## Step 9: Record Results
+Oracle checkpoint reuse is valid only when the checkpoint metadata matches the graph id, `max_nodes_per_part`,
+`prefix_depth`, total task count, and task order. Treat `optimal=false` outputs as bounds, not exact oracle references,
+unless the experiment explicitly records that the regular reference is only a bounded incumbent.
 
-Record raw commands and key metrics for every routine-manifest case. The experiment file must include a full-case score
-matrix with exactly one row per routine `*.compute-op-dag.json` case. The row count must equal the frozen manifest row
+## Step 9: Record Regular Results
+
+Record raw commands and key metrics for every regular-manifest case. The experiment file must include a full-case score
+matrix with exactly one row per regular `*.compute-op-dag.json` case. The row count must equal the frozen manifest row
 count before any decision is made.
 
 Per candidate row:
@@ -411,8 +437,11 @@ Per candidate row:
 - `quotient_avg_out_degree`
 - `quotient_p99_out_degree`
 - `runtime_ms`
-- oracle status: `not requested`, `referenced <path>`, or `generated <path>`
-- oracle incumbent, lower bound, and gap only when an oracle reference exists
+- oracle status: `referenced <path>` or `generated <path>`
+- oracle incumbent, lower bound, and gap
+- candidate distance to oracle
+- baseline distance to oracle
+- oracle-distance delta
 - validation status
 
 Per baseline/delta row:
@@ -424,12 +453,13 @@ Per baseline/delta row:
 - baseline `runtime_ms`
 - delta for each primary metric
 - relative delta for `cut_weight` and `quotient_p99_out_degree`
+- relative delta for distance to oracle
 
 Required full-case matrix shape:
 
 ```text
-| case | baseline_cut | candidate_cut | cut_delta | baseline_q_edges | candidate_q_edges | q_edges_delta | baseline_p99_out | candidate_p99_out | baseline_runtime_ms | candidate_runtime_ms | validation | run_status |
-| ...  | ...          | ...           | ...       | ...              | ...               | ...           | ...              | ...               | ...                 | ...                  | pass       | pass       |
+| case | baseline_cut | candidate_cut | cut_delta | baseline_oracle_gap | candidate_oracle_gap | oracle_gap_delta | baseline_q_edges | candidate_q_edges | q_edges_delta | baseline_p99_out | candidate_p99_out | baseline_runtime_ms | candidate_runtime_ms | validation | run_status |
+| ...  | ...          | ...           | ...       | ...                 | ...                  | ...              | ...              | ...               | ...           | ...              | ...               | ...                 | ...                  | pass       | pass       |
 ```
 
 Also record aggregate metrics over the full case set. These aggregate rows must be computed from the same matrix, not
@@ -441,33 +471,43 @@ from a second ad hoc list:
 - `max_runtime_ms`
 - `geomean_runtime_ms`
 - count of cases improved, unchanged, and regressed versus the parent or baseline
+- count of cases with improved distance to oracle
+- `regular_positive_count`
+- `regular_positive_ratio`
 - worst relative regression for `cut_weight`
+- worst relative regression for distance to oracle
 - worst relative regression for `quotient_p99_out_degree`
 - validation failures, if any
 
-Aggregate metrics must be computed from all routine-manifest rows. A summary computed from only passing, easy, small, or improved
+Aggregate metrics must be computed from all regular-manifest rows. A summary computed from only passing, easy, small, or improved
 cases is invalid.
 
 If a run fails, record the failing command and error category. Do not silently skip it.
 
-Default aggregate success gate:
+Regular threshold for opening final:
 
-- `candidate_sum_cut_weight < baseline_sum_cut_weight`.
 - All candidate partitions pass fixed validation.
-- No required case has missing score, timeout, crash, or stale baseline.
-- Candidate and baseline matrices both cover exactly the frozen routine manifest; row count and case ids match.
+- No regular case has missing score, missing oracle reference, timeout, crash, or stale baseline.
+- Candidate and baseline matrices both cover exactly the frozen regular manifest; row count and case ids match.
 - Aggregate values are recomputed from the full matrix, including cases with unchanged or regressed scores.
-- `candidate_sum_quotient_edges`, worst `quotient_p99_out_degree` regression, and `max_runtime_ms` stay within the
-  regression budget declared in `## Expected Improvement`.
-- Any per-case cut regression must be listed in `## Interpretation` with a concrete reason and a follow-up decision.
+- A regular case counts as positive only when partition quality improves and distance to oracle improves. The default
+  partition quality predicate is `candidate_cut_weight < baseline_cut_weight` with no unbudgeted regression in
+  `quotient_edges`, `quotient_p99_out_degree`, or runtime.
+- `regular_positive_ratio >= 0.80`.
+- Any regular regression must be listed in `## Interpretation` with a concrete reason and follow-up decision.
 
-If `candidate_sum_cut_weight` improves only after excluding one or more manifest cases, the node is rejected. If a focus
-case improves but the full routine aggregate does not improve, the node is also rejected or branched; it cannot be kept
-as a successful node.
+If the 80% regular threshold is not met, do not run final. The node can still be `branch` if the evidence points to a
+specific child hypothesis; otherwise it is `reject`.
+
+Old aggregate-only success gates are invalid for this harness. Regular results decide only whether final may run.
 
 ## Step 10: Run Final Gate
 
-Only run this step if the routine-manifest evidence would otherwise justify `keep`.
+Only run this step if the regular threshold passes:
+
+```text
+regular_positive_ratio >= 0.80
+```
 
 Enumerate the final gate set:
 
@@ -492,11 +532,15 @@ topo-graph-partition-harness/build/bin/tgp_score_partition --graph <case> --part
 
 Final gate requirements:
 
-- `cases/final/` must stay empty until the user adds a real full-Xiangshan compute DAG.
+- `cases/final/` contains only user-added full-XiangShan compute DAGs.
+- Final cases do not require oracle references.
 - Final gate timeout budget is 600 seconds per case.
 - Timeout, missing score, failed validation, or missing baseline on a final case means the node fails acceptance.
 - Record runtime and score deltas versus the baseline for every final case.
 - Final gate scores must use the same full-case matrix format, but under a separate `## Final Gate Score Matrix`.
+- Final aggregate benefit must be positive versus baseline. The primary quality metric is `cut_weight`; also record
+  `quotient_edges`, `quotient_p99_out_degree`, and runtime. A candidate with better regular metrics but no final
+  aggregate benefit is not successful.
 - If no final case exists yet, record `final gate: pending user-provided case` and do not invent a surrogate.
 
 ## Step 11: Decide
@@ -511,17 +555,17 @@ The decision must include evidence, not just opinion.
 
 Decision rules:
 
-- `keep` requires routine-manifest validation success, net aggregate improvement versus the parent or baseline over the
-  frozen routine manifest, and a passing final gate for every present final case.
-- `keep` requires the full-case score matrix row count to match the frozen manifest row count.
-- `keep` requires the baseline matrix and candidate matrix to contain identical case ids for the evaluated stage.
-- `keep` is forbidden when only focus cases improve and the full routine aggregate is flat or worse.
-- `keep` is forbidden if any routine or final case has an unexplained material regression in `cut_weight`, quotient
-  complexity, or runtime budget.
-- `keep` is forbidden if aggregate improvement disappears when all routine-manifest cases are included.
-- `branch` is for mixed routine-manifest results where the aggregate improves but regressions identify a specific child
-  hypothesis.
-- `reject` is required for skipped cases, missing scores, failed fixed checks, final-gate timeout, or subset-only improvements.
+- `keep` requires regular threshold success, final-manifest validation success, and final aggregate benefit versus the
+  final baseline.
+- `keep` requires every final case to complete within `--time-limit-sec 600`.
+- `keep` requires the final baseline matrix and candidate matrix to contain identical final case ids.
+- `keep` is forbidden when only regular cases improve and final aggregate benefit is flat or worse.
+- `keep` is forbidden if any final case has missing score, failed validation, timeout, or stale baseline.
+- `keep` is forbidden if final aggregate benefit depends on dropping a final case from the matrix.
+- `branch` is for regular-threshold pass with final mixed results, or regular mixed results that identify a specific
+  child hypothesis before final is run.
+- `reject` is required for skipped cases, missing scores, failed fixed checks, regular threshold failure without a clear
+  child hypothesis, final-gate timeout, or subset-only improvements.
 - If no parent/baseline score exists for a required case in either stage, first create or reference a baseline node; do
   not claim success without a comparison point.
 

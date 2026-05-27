@@ -84,6 +84,7 @@ def main() -> int:
     parser.add_argument("--sched-batch-target-count", type=int, default=64)
     parser.add_argument("--emit-parallelism", type=int, default=4)
     parser.add_argument("--export-compute-dag", default="")
+    parser.add_argument("--stop-after-activity-schedule", action="store_true")
     args = parser.parse_args()
 
     sv_path = Path(args.sv).resolve()
@@ -128,6 +129,10 @@ def main() -> int:
             json_path.parent.mkdir(parents=True, exist_ok=True)
             log(f"store_json {json_path}")
             sess.store_json(design="design.main", output=str(json_path), top=[args.top])
+
+        if args.stop_after_activity_schedule:
+            log("stop after activity-schedule")
+            return 0
 
         log(f"emit_grhsim_cpp {out_dir}")
         sess.emit_grhsim_cpp(

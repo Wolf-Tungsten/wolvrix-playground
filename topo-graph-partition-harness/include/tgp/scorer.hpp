@@ -14,9 +14,9 @@ namespace tgp
         uint64_t cutWeight = 0;
         uint64_t cutEdges = 0;
         uint32_t parts = 0;
-        uint64_t maxPartWeight = 0;
-        double meanPartWeight = 0.0;
-        uint64_t p90PartWeight = 0;
+        uint64_t maxPartSize = 0;
+        double meanPartSize = 0.0;
+        uint64_t p90PartSize = 0;
         uint64_t quotientEdges = 0;
         double quotientAvgOutDegree = 0.0;
         uint64_t quotientP99OutDegree = 0;

@@ -18,7 +18,6 @@ namespace tgp
         uint64_t opId = 0;
         std::string kind;
         std::string symbol;
-        uint32_t weight = 1;
         uint32_t topoPos = 0;
     };
 
@@ -34,8 +33,7 @@ namespace tgp
         std::string graphId;
         std::string sourcePass;
         std::string sourcePath;
-        std::string edgeWeight = "boundary_activation_edges";
-        std::string nodeWeight = "op_count";
+        std::string edgeWeight = "value_bitwidth_words";
         std::vector<Node> nodes;
         std::vector<Edge> edges;
         std::vector<uint32_t> outBegin;
