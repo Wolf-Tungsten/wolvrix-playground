@@ -112,6 +112,29 @@ def percentile(sorted_values: list[int], num: int, den: int) -> int:
     return sorted_values[idx]
 
 
+def summarize_sizes(values: list[int]) -> dict[str, int | float]:
+    values = sorted(values)
+    return {
+        "min": values[0] if values else 0,
+        "mean": statistics.fmean(values) if values else 0.0,
+        "median": statistics.median(values) if values else 0,
+        "p90": percentile(values, 90, 100),
+        "p99": percentile(values, 99, 100),
+        "max": values[-1] if values else 0,
+    }
+
+
+def supernode_kind_code(value) -> int:
+    if isinstance(value, int):
+        return value
+    text = str(value).strip().lower()
+    if text == "compute":
+        return 0
+    if text == "commit":
+        return 1
+    return int(text)
+
+
 def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> None:
     summary_key = key.rsplit("supernode_to_ops", 1)[0] + "summary_stats"
     try:
@@ -124,26 +147,19 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
     dag_key = key.rsplit("supernode_to_ops", 1)[0] + "dag"
     dag_raw = _native.session_export(sess._capsule, key=dag_key, view="python")
     dag = [list(map(int, succs)) for succs in dag_raw]
+    supernode_kind_key = key.rsplit("supernode_to_ops", 1)[0] + "supernode_kind"
+    supernode_kind_raw = _native.session_export(sess._capsule, key=supernode_kind_key, view="python")
+    supernode_kinds = [supernode_kind_code(kind) for kind in supernode_kind_raw]
+    compute_sizes = [len(ops) for ops, kind in zip(supernode_to_ops, supernode_kinds) if kind == 0]
+    commit_sizes = [len(ops) for ops, kind in zip(supernode_to_ops, supernode_kinds) if kind == 1]
     if summary_text:
         summary = json.loads(summary_text)
         sizes = sorted(len(ops) for ops in supernode_to_ops)
         out_degrees = sorted(len(succs) for succs in dag)
-        summary["ops_per_supernode"] = {
-            "min": sizes[0] if sizes else 0,
-            "mean": statistics.fmean(sizes) if sizes else 0.0,
-            "median": statistics.median(sizes) if sizes else 0,
-            "p90": percentile(sizes, 90, 100),
-            "p99": percentile(sizes, 99, 100),
-            "max": sizes[-1] if sizes else 0,
-        }
-        summary["out_degree_per_supernode"] = {
-            "min": out_degrees[0] if out_degrees else 0,
-            "mean": statistics.fmean(out_degrees) if out_degrees else 0.0,
-            "median": statistics.median(out_degrees) if out_degrees else 0,
-            "p90": percentile(out_degrees, 90, 100),
-            "p99": percentile(out_degrees, 99, 100),
-            "max": out_degrees[-1] if out_degrees else 0,
-        }
+        summary["ops_per_supernode"] = summarize_sizes(sizes)
+        summary["compute_ops_per_supernode"] = summarize_sizes(compute_sizes)
+        summary["commit_ops_per_supernode"] = summarize_sizes(commit_sizes)
+        summary["out_degree_per_supernode"] = summarize_sizes(out_degrees)
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / "activity_schedule_supernode_stats.json"
         out_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
@@ -166,6 +182,9 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
             f"ops_p90={summary['ops_per_supernode']['p90']} "
             f"ops_p99={summary['ops_per_supernode']['p99']} "
             f"ops_max={summary['ops_per_supernode']['max']} "
+            f"compute_ops_p99={summary['compute_ops_per_supernode']['p99']} "
+            f"compute_ops_max={summary['compute_ops_per_supernode']['max']} "
+            f"commit_ops_max={summary['commit_ops_per_supernode']['max']} "
             f"outdeg_mean={summary['out_degree_per_supernode']['mean']:.3f} "
             f"outdeg_p99={summary['out_degree_per_supernode']['p99']} "
             f"outdeg_max={summary['out_degree_per_supernode']['max']}"
@@ -173,9 +192,6 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
         log(f"activity-schedule supernode stats written {out_path}")
         return
 
-    supernode_kind_key = key.rsplit("supernode_to_ops", 1)[0] + "supernode_kind"
-    supernode_kind_raw = _native.session_export(sess._capsule, key=supernode_kind_key, view="python")
-    supernode_kinds = [int(kind) for kind in supernode_kind_raw]
     value_fanout_key = key.rsplit("supernode_to_ops", 1)[0] + "value_fanout"
     value_fanout_raw = _native.session_export(sess._capsule, key=value_fanout_key, view="python")
     value_fanout = [list(map(int, fanout)) for fanout in value_fanout_raw]
@@ -216,6 +232,8 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
                 "p99": percentile(sizes, 99, 100),
                 "max": sizes[-1],
             },
+            "compute_ops_per_supernode": summarize_sizes(compute_sizes),
+            "commit_ops_per_supernode": summarize_sizes(commit_sizes),
             "dag_edges": edge_count,
             "boundary_values": boundary_values,
             "boundary_activation_edges": boundary_activation_edges,
@@ -247,6 +265,8 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
                 "p99": 0,
                 "max": 0,
             },
+            "compute_ops_per_supernode": summarize_sizes([]),
+            "commit_ops_per_supernode": summarize_sizes([]),
             "dag_edges": 0,
             "boundary_values": 0,
             "boundary_activation_edges": 0,
@@ -287,6 +307,9 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
         f"ops_p90={summary['ops_per_supernode']['p90']} "
         f"ops_p99={summary['ops_per_supernode']['p99']} "
         f"ops_max={summary['ops_per_supernode']['max']} "
+        f"compute_ops_p99={summary['compute_ops_per_supernode']['p99']} "
+        f"compute_ops_max={summary['compute_ops_per_supernode']['max']} "
+        f"commit_ops_max={summary['commit_ops_per_supernode']['max']} "
         f"outdeg_mean={summary['out_degree_per_supernode']['mean']:.3f} "
         f"outdeg_p99={summary['out_degree_per_supernode']['p99']} "
         f"outdeg_max={summary['out_degree_per_supernode']['max']}"
@@ -329,6 +352,12 @@ def main() -> int:
     enable_mem_to_reg = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_MEM_TO_REG", default=False)
     mem_to_reg_row_limit = env_int("WOLVRIX_XS_GRHSIM_MEM_TO_REG_ROW_LIMIT", 64)
     max_op_in_compute_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE", 108)
+    max_op_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_NODE", max_op_in_compute_supernode)
+    split_oversize_compute_nodes = env_flag("WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODES", default=True)
+    split_oversize_compute_node_max_ops = env_int(
+        "WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODE_MAX_OPS",
+        max_op_in_compute_supernode,
+    )
     max_op_in_commit_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE", 4096)
     sched_batch_max_ops = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_OPS", 2048)
     sched_batch_max_estimated_lines = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES", 8192)
@@ -359,6 +388,9 @@ def main() -> int:
     config_message = (
         "activity-schedule max_op_in_compute_supernode="
         f"{max_op_in_compute_supernode} "
+        f"max_op_in_compute_node={max_op_in_compute_node} "
+        f"split_oversize_compute_nodes={split_oversize_compute_nodes} "
+        f"split_oversize_compute_node_max_ops={split_oversize_compute_node_max_ops} "
         f"max_op_in_commit_supernode={max_op_in_commit_supernode} "
         f"sched_batch_max_ops={sched_batch_max_ops} "
         f"sched_batch_max_estimated_lines={sched_batch_max_estimated_lines} "
@@ -418,6 +450,9 @@ def main() -> int:
                 {
                     "path": top_name,
                     "max_op_in_compute_supernode": max_op_in_compute_supernode,
+                    "max_op_in_compute_node": max_op_in_compute_node,
+                    "split_oversize_compute_nodes": split_oversize_compute_nodes,
+                    "split_oversize_compute_node_max_ops": split_oversize_compute_node_max_ops,
                     "max_op_in_commit_supernode": max_op_in_commit_supernode,
                 },
             ),

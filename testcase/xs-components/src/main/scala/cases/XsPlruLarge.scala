@@ -8,7 +8,7 @@ import chisel3.util._
 class XsPlruLarge extends XsComponentModule {
   import XsCommon._
 
-  val state = RegNext(io.in0(62, 0), 0.U(63.W))
+  val state = io.in0(62, 0)
   val touchOH = UIntToOH(io.ctrl(5, 0), 64)
   val wayMask = io.in1
   val validMask = io.in2
@@ -31,4 +31,3 @@ class XsPlruLarge extends XsComponentModule {
   io.flags := io.out0 ^ io.out1 ^ io.out2 ^ io.out3 ^ io.ctrl
   io.checksum := fold(Seq(io.out0, io.out1, io.out2, io.out3, io.flags))
 }
-

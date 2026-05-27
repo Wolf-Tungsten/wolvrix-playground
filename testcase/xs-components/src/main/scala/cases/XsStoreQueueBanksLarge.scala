@@ -12,8 +12,16 @@ class XsStoreQueueBanksLarge extends XsComponentModule {
   private val banks = 8
   private val rows = 32
 
-  val data = RegInit(VecInit(Seq.fill(banks)(VecInit(Seq.fill(rows)(0.U(64.W))))))
-  val mask = RegInit(VecInit(Seq.fill(banks)(VecInit(Seq.fill(rows)(0.U(8.W))))))
+  val data = VecInit((0 until banks).map { bank =>
+    VecInit((0 until rows).map { row =>
+      io.in4 ^ rotl(io.in5, ((bank + row) % 17) + 1) ^ (BigInt(bank * 257 + row * 4099).U(64.W))
+    })
+  })
+  val mask = VecInit((0 until banks).map { bank =>
+    VecInit((0 until rows).map { row =>
+      ((io.ctrl >> ((row % 8) * 8))(7, 0) ^ (bank * 17 + row).U(8.W))
+    })
+  })
   val writeIdx0 = io.in0(7, 0)
   val writeIdx1 = io.in1(7, 0)
   val readIdx0 = io.in2(7, 0)
@@ -35,33 +43,22 @@ class XsStoreQueueBanksLarge extends XsComponentModule {
   val readMask0 = mask(bankOf(readIdx0))(rowOf(readIdx0))
   val readMask1 = mask(bankOf(readIdx1))(rowOf(readIdx1))
 
-  for (bank <- 0 until banks) {
-    for (row <- 0 until rows) {
-      val hit0 = wen0 && bankOf(writeIdx0) === bank.U && rowOf(writeIdx0) === row.U
-      val hit1 = wen1 && bankOf(writeIdx1) === bank.U && rowOf(writeIdx1) === row.U
-      when (hit0 && hit1) {
-        val merged = mergeBytes(data(bank)(row), writeData0, writeMask0)
-        data(bank)(row) := mergeBytes(merged, writeData1, writeMask1)
-        mask(bank)(row) := mask(bank)(row) | writeMask0 | writeMask1
-      }.elsewhen (hit0) {
-        data(bank)(row) := mergeBytes(data(bank)(row), writeData0, writeMask0)
-        mask(bank)(row) := mask(bank)(row) | writeMask0
-      }.elsewhen (hit1) {
-        data(bank)(row) := mergeBytes(data(bank)(row), writeData1, writeMask1)
-        mask(bank)(row) := mask(bank)(row) | writeMask1
-      }
-    }
-  }
-
-  val forward0 = Mux(writeIdx0 === readIdx0 && wen0, mergeBytes(read0, writeData0, writeMask0), read0)
-  val forward1 = Mux(writeIdx1 === readIdx1 && wen1, mergeBytes(read1, writeData1, writeMask1), read1)
+  val read0Hit0 = writeIdx0 === readIdx0 && wen0
+  val read0Hit1 = writeIdx1 === readIdx0 && wen1
+  val read1Hit0 = writeIdx0 === readIdx1 && wen0
+  val read1Hit1 = writeIdx1 === readIdx1 && wen1
+  val forward0After0 = Mux(read0Hit0, mergeBytes(read0, writeData0, writeMask0), read0)
+  val forward1After0 = Mux(read1Hit0, mergeBytes(read1, writeData0, writeMask0), read1)
+  val forward0 = Mux(read0Hit1, mergeBytes(forward0After0, writeData1, writeMask1), forward0After0)
+  val forward1 = Mux(read1Hit1, mergeBytes(forward1After0, writeData1, writeMask1), forward1After0)
+  val mergedMask0 = readMask0 | Mux(read0Hit0, writeMask0, 0.U) | Mux(read0Hit1, writeMask1, 0.U)
+  val mergedMask1 = readMask1 | Mux(read1Hit0, writeMask0, 0.U) | Mux(read1Hit1, writeMask1, 0.U)
   val bankHot = VecInit((0 until banks).map(i => bankOf(readIdx0) === i.U || bankOf(readIdx1) === i.U)).asUInt
 
   io.out0 := forward0
   io.out1 := forward1
-  io.out2 := Cat(0.U(56.W), readMask0 ^ readMask1)
+  io.out2 := Cat(0.U(56.W), mergedMask0 ^ mergedMask1)
   io.out3 := Cat(0.U(56.W), bankHot)
   io.flags := io.out0 ^ io.out1 ^ io.out2 ^ io.out3 ^ io.ctrl
   io.checksum := fold(Seq(io.out0, io.out1, io.out2, io.out3, io.flags))
 }
-

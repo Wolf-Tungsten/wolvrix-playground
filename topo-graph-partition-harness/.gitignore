@@ -1,0 +1,4 @@
+build/
+runs/*/
+!runs/sample-config.json
+cases/*

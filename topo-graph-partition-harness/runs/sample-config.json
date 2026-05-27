@@ -1,0 +1,4 @@
+{
+  "max_node_weight": 2,
+  "allow_oversize_singleton": true
+}

@@ -83,6 +83,7 @@ def main() -> int:
     parser.add_argument("--sched-batch-max-estimated-lines", type=int, default=8192)
     parser.add_argument("--sched-batch-target-count", type=int, default=64)
     parser.add_argument("--emit-parallelism", type=int, default=4)
+    parser.add_argument("--export-compute-dag", default="")
     args = parser.parse_args()
 
     sv_path = Path(args.sv).resolve()
@@ -112,6 +113,7 @@ def main() -> int:
                     "path": args.top,
                     "max_op_in_compute_supernode": args.max_op_in_compute_supernode,
                     "max_op_in_commit_supernode": args.max_op_in_commit_supernode,
+                    **({"export_compute_dag": args.export_compute_dag} if args.export_compute_dag else {}),
                 },
             ),
         ]

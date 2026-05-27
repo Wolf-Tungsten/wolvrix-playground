@@ -86,6 +86,137 @@
     ],
     "dut": "testcase/xs-components/src/main/scala/cases/XsLoadQueueReplayLarge.scala:XsLoadQueueReplayLarge",
     "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsPlruBankedXLarge",
+    "kind": "replacement-banked",
+    "scale": "xlarge",
+    "xiangshan_sources": [
+      "testcase/xiangshan/utility/src/main/scala/utility/Replacement.scala",
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/utils/Replacer.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsPlruBankedXLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsFreeListAllocLarge",
+    "kind": "freelist-alloc",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/rename/freelist/StdFreeList.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/rename/freelist/BaseFreeList.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsFreeListAllocLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsRobBankScanLarge",
+    "kind": "rob-bank-scan",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/rob/Rob.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/rob/RobBundles.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsRobBankScanLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsIssueBusyMaskLarge",
+    "kind": "issue-busy-mask",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/issue/FuBusyTableRead.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/issue/IssueQueue.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsIssueBusyMaskLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsWbArbiterLarge",
+    "kind": "writeback-arbiter",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/datapath/WbArbiter.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/datapath/DataPath.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsWbArbiterLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsFusionDecodeLarge",
+    "kind": "fusion-decode",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/decode/FusionDecoder.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/decode/DecodeUnit.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsFusionDecodeLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsTlbPermLarge",
+    "kind": "tlb-permission",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/mmu/TLBStorage.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/mmu/TLB.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsTlbPermLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsDcacheMetaSelectLarge",
+    "kind": "dcache-meta",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/dcache/meta/TagArray.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/dcache/meta/AsynchronousMetaArray.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsDcacheMetaSelectLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsVecMergeBufferLarge",
+    "kind": "vector-merge-buffer",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/vector/VMergeBuffer.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/vector/VSegmentUnit.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsVecMergeBufferLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsPrefetchStrideLarge",
+    "kind": "prefetch-stride",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/prefetch/L1StridePrefetcher.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/prefetch/L1PrefetchComponent.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsPrefetchStrideLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsLoadQueueRawLarge",
+    "kind": "load-queue-raw",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueueRAW.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueue.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsLoadQueueRawLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
+    "case": "XsCsrTrapPriorityLarge",
+    "kind": "csr-trap-priority",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/NewCSR/CSRModule.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/NewCSR/InterruptFilter.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsCsrTrapPriorityLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
   }
 ]
-

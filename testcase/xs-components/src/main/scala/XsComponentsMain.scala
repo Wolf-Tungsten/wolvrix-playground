@@ -15,6 +15,18 @@ object XsComponentsMain extends App {
     "XsIcacheReplacerLarge" -> (() => new XsIcacheReplacerLarge),
     "XsStoreQueueBanksLarge" -> (() => new XsStoreQueueBanksLarge),
     "XsLoadQueueReplayLarge" -> (() => new XsLoadQueueReplayLarge),
+    "XsPlruBankedXLarge" -> (() => new XsPlruBankedXLarge),
+    "XsFreeListAllocLarge" -> (() => new XsFreeListAllocLarge),
+    "XsRobBankScanLarge" -> (() => new XsRobBankScanLarge),
+    "XsIssueBusyMaskLarge" -> (() => new XsIssueBusyMaskLarge),
+    "XsWbArbiterLarge" -> (() => new XsWbArbiterLarge),
+    "XsFusionDecodeLarge" -> (() => new XsFusionDecodeLarge),
+    "XsTlbPermLarge" -> (() => new XsTlbPermLarge),
+    "XsDcacheMetaSelectLarge" -> (() => new XsDcacheMetaSelectLarge),
+    "XsVecMergeBufferLarge" -> (() => new XsVecMergeBufferLarge),
+    "XsPrefetchStrideLarge" -> (() => new XsPrefetchStrideLarge),
+    "XsLoadQueueRawLarge" -> (() => new XsLoadQueueRawLarge),
+    "XsCsrTrapPriorityLarge" -> (() => new XsCsrTrapPriorityLarge),
   )
 
   val top = args.sliding(2).collectFirst { case Array("--top-name", name) => name }.getOrElse("XsBranchAluSmall")

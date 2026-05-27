@@ -10,19 +10,19 @@ class XsLoadQueueReplayLarge extends XsComponentModule {
 
   private val entries = 64
 
-  val valid = RegNext(io.in0, 0.U(entries.W))
-  val addrReady = RegNext(io.in1, 0.U(entries.W))
-  val dataReady = RegNext(io.in2, 0.U(entries.W))
-  val sleep = RegNext(io.in3, 0.U(entries.W))
+  val valid = io.in0
+  val addrReady = io.in1
+  val dataReady = io.in2
+  val sleep = io.in3
   val violation = io.in4
   val wakeMask = io.in5
   val start = io.ctrl(5, 0)
   val replayCause = VecInit((0 until entries).map(i => io.ctrl((i % 8) + 8) ^ violation(i)))
   val live = valid & addrReady & ~sleep
   val needReplay = live & (wakeMask | violation | ~dataReady)
-  val rotated = VecInit((0 until entries).map(i => needReplay((i.U + start)(5, 0)))).asUInt
+  val rotated = VecInit((0 until entries).map(i => needReplay((i.U(6.W) + start)(5, 0)))).asUInt
   val firstRot = PriorityEncoderOH(rotated)
-  val grant = VecInit((0 until entries).map(i => firstRot((i.U - start)(5, 0)))).asUInt
+  val grant = VecInit((0 until entries).map(i => firstRot((i.U(6.W) - start)(5, 0)))).asUInt
   val olderMask = Wire(Vec(entries, Bool()))
 
   for (i <- 0 until entries) {
