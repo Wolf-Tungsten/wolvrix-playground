@@ -370,6 +370,8 @@ def main() -> int:
     storage_ref_aliases_setting = os.environ["WOLVRIX_GRHSIM_STORAGE_REF_ALIASES"]
     stop_after_pre_sched = env_flag("WOLVRIX_XS_GRHSIM_STOP_AFTER_PRE_SCHED", default=False)
     stop_after_activity_schedule = env_flag("WOLVRIX_XS_GRHSIM_STOP_AFTER_ACTIVITY_SCHEDULE", default=False)
+    export_compute_dag = os.environ.get("WOLVRIX_XS_GRHSIM_EXPORT_COMPUTE_DAG", "").strip()
+    export_compute_dag_path = Path(export_compute_dag).resolve() if export_compute_dag else None
     simplify_keep_declared_symbols = env_flag("WOLVRIX_XS_GRHSIM_SIMPLIFY_KEEP_DECLARED_SYMBOLS", default=False)
     merge_reg_options = {
         "enable_scalar_to_memory": env_flag("WOLVRIX_XS_GRHSIM_MERGE_REG_ENABLE_SCALAR_TO_MEMORY", default=True),
@@ -399,6 +401,7 @@ def main() -> int:
         f"emit_parallelism={emit_parallelism} "
         f"storage_ref_aliases={storage_ref_aliases_setting}"
         f"{'' if storage_ref_aliases_env_was_set else '(xs_default)'} "
+        f"export_compute_dag={export_compute_dag_path if export_compute_dag_path is not None else 'off'} "
         f"waveform={args.waveform} perf={args.perf} "
         f"simplify_keep_declared_symbols={simplify_keep_declared_symbols}"
     )
@@ -457,6 +460,8 @@ def main() -> int:
                 },
             ),
         ]
+        if export_compute_dag_path is not None:
+            post_sched_pipeline[0][1]["export_compute_dag"] = str(export_compute_dag_path)
         log(config_message)
 
         if resume_from_stats_json:

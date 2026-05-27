@@ -12,6 +12,7 @@
 #include <limits>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #ifndef TOP_NAME
@@ -24,6 +25,28 @@
 
 #ifndef GRHSIM_CLASS
 #error GRHSIM_CLASS must be defined
+#endif
+
+#ifndef GSIM_IO_IN0_WIDTH
+#define GSIM_IO_IN0_WIDTH 64
+#endif
+#ifndef GSIM_IO_IN1_WIDTH
+#define GSIM_IO_IN1_WIDTH 64
+#endif
+#ifndef GSIM_IO_IN2_WIDTH
+#define GSIM_IO_IN2_WIDTH 64
+#endif
+#ifndef GSIM_IO_IN3_WIDTH
+#define GSIM_IO_IN3_WIDTH 64
+#endif
+#ifndef GSIM_IO_IN4_WIDTH
+#define GSIM_IO_IN4_WIDTH 64
+#endif
+#ifndef GSIM_IO_IN5_WIDTH
+#define GSIM_IO_IN5_WIDTH 64
+#endif
+#ifndef GSIM_IO_CTRL_WIDTH
+#define GSIM_IO_CTRL_WIDTH 64
 #endif
 
 namespace xs_component_bench {
@@ -73,6 +96,27 @@ inline std::uint64_t fold_output(const Outputs &out)
     return acc;
 }
 
+template <unsigned Width>
+inline std::uint64_t mask_width(std::uint64_t value)
+{
+    if constexpr (Width == 0U) {
+        return 0;
+    }
+    else if constexpr (Width >= 64U) {
+        return value;
+    }
+    else {
+        return value & ((UINT64_C(1) << Width) - UINT64_C(1));
+    }
+}
+
+template <unsigned Width, typename T>
+inline T gsim_port_value(std::uint64_t value)
+{
+    static_assert(std::is_integral_v<T>, "GSIM port storage must be integral");
+    return static_cast<T>(mask_width<Width>(value));
+}
+
 inline std::vector<Inputs> make_vectors(unsigned count)
 {
     std::vector<Inputs> vectors;
@@ -104,13 +148,13 @@ inline std::vector<Inputs> make_vectors(unsigned count)
 inline void drive_gsim(GSIM_CLASS &dut, const Inputs &in)
 {
     dut.set_reset(0);
-    dut.set_io$$in0(in.in0);
-    dut.set_io$$in1(in.in1);
-    dut.set_io$$in2(in.in2);
-    dut.set_io$$in3(in.in3);
-    dut.set_io$$in4(in.in4);
-    dut.set_io$$in5(in.in5);
-    dut.set_io$$ctrl(in.ctrl);
+    dut.set_io$$in0(gsim_port_value<GSIM_IO_IN0_WIDTH, decltype(dut.io$$in0)>(in.in0));
+    dut.set_io$$in1(gsim_port_value<GSIM_IO_IN1_WIDTH, decltype(dut.io$$in1)>(in.in1));
+    dut.set_io$$in2(gsim_port_value<GSIM_IO_IN2_WIDTH, decltype(dut.io$$in2)>(in.in2));
+    dut.set_io$$in3(gsim_port_value<GSIM_IO_IN3_WIDTH, decltype(dut.io$$in3)>(in.in3));
+    dut.set_io$$in4(gsim_port_value<GSIM_IO_IN4_WIDTH, decltype(dut.io$$in4)>(in.in4));
+    dut.set_io$$in5(gsim_port_value<GSIM_IO_IN5_WIDTH, decltype(dut.io$$in5)>(in.in5));
+    dut.set_io$$ctrl(gsim_port_value<GSIM_IO_CTRL_WIDTH, decltype(dut.io$$ctrl)>(in.ctrl));
 }
 
 inline Outputs sample_gsim(GSIM_CLASS &dut)

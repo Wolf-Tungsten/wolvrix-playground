@@ -73,6 +73,7 @@ GSIM_BUILD_STAMP := $(GSIM_DIR)/obj/.stamp
 GRHSIM_LIB := $(GRHSIM_MODEL_DIR)/libgrhsim_$(CASE).a
 BENCH_TB := $(TB_DIR)/$(CASE)_bench
 BENCH_LOG := $(TB_DIR)/$(CASE)_bench.log
+GSIM_PORT_WIDTHS_HEADER := $(TB_DIR)/gsim_port_widths.hpp
 MODEL_STATS_JSON := $(STATS_DIR)/model_stats.json
 
 GSIM_FLAGS ?= --supernode-max-size=8 --cpp-max-size-KB=512
@@ -114,10 +115,11 @@ chisel-fir: $(FIR)
 
 chisel-sv: $(SV)
 
-$(GSIM_MODEL_DIR)/$(CASE)0.cpp $(GSIM_GRAPH_STATS) &: $(FIR) $(GSIM_BIN)
+$(GSIM_MODEL_DIR)/$(CASE)0.cpp $(GSIM_MODEL_DIR)/$(CASE).h $(GSIM_GRAPH_STATS) &: $(FIR) $(GSIM_BIN)
 	@mkdir -p $(GSIM_MODEL_DIR)
 	set -o pipefail; $(GSIM_BIN) $(GSIM_FLAGS) --dump-stats-json --dump-stages=Final --dir $(GSIM_MODEL_DIR) $(FIR) | tee $(GSIM_DIR)/gsim.log
 	test -f $(GSIM_MODEL_DIR)/$(CASE)0.cpp
+	test -f $(GSIM_MODEL_DIR)/$(CASE).h
 	test -f $(GSIM_GRAPH_STATS)
 
 $(GSIM_BUILD_STAMP): $(GSIM_MODEL_DIR)/$(CASE)0.cpp
@@ -148,9 +150,14 @@ $(GRHSIM_LIB): $(GRHSIM_MODEL_DIR)/Makefile
 
 grhsim: $(GRHSIM_LIB)
 
-$(BENCH_TB): tb/xs_component_bench.cpp tb/xs_component_bench.hpp $(GSIM_BUILD_STAMP) $(GRHSIM_LIB)
+$(GSIM_PORT_WIDTHS_HEADER): $(GSIM_MODEL_DIR)/$(CASE).h scripts/gsim_port_widths.py
+	@mkdir -p $(TB_DIR)
+	$(PYTHON) scripts/gsim_port_widths.py --header $(GSIM_MODEL_DIR)/$(CASE).h --out $@
+
+$(BENCH_TB): tb/xs_component_bench.cpp tb/xs_component_bench.hpp $(GSIM_PORT_WIDTHS_HEADER) $(GSIM_BUILD_STAMP) $(GRHSIM_LIB)
 	@mkdir -p $(TB_DIR)
 	$(CXX) $(BENCH_CXXFLAGS) -I$(abspath tb) \
+		-include $(abspath $(GSIM_PORT_WIDTHS_HEADER)) \
 		-DTOP_NAME=\"$(CASE)\" \
 		-DGSIM_CLASS=S$(CASE) \
 		-DGRHSIM_CLASS=GrhSIM_$(CASE) \
