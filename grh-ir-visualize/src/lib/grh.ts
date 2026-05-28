@@ -96,6 +96,8 @@ export type HierarchyNode = {
   graphSymbol: string
   moduleName: string
   instanceName: string | null
+  childCount: number
+  childrenLoaded: boolean
   children: HierarchyNode[]
 }
 
@@ -117,7 +119,9 @@ export type SchematicNode = {
   label: string
   secondaryLabel: string | null
   kind: string
-  role: 'op' | 'port-in' | 'port-out' | 'port-inout'
+  navigationPath: string | null
+  navigationSymbol: string | null
+  role: 'op' | 'value' | 'port-in' | 'port-out' | 'port-inout'
   layer: number
   x: number
   y: number
@@ -128,12 +132,22 @@ export type SchematicNode = {
   attrs: Array<[string, string]>
 }
 
+export type SchematicValue = {
+  id: string
+  label: string
+  secondaryLabel: string | null
+  sourceId: string | null
+  targetIds: string[]
+  attrs: Array<[string, string]>
+}
+
 export type SchematicEdge = {
   id: string
   source: number
   target: number
   weight: number
   kind: 'forward' | 'backedge' | 'port'
+  valueId: string | null
 }
 
 export type LayerBand = {
@@ -163,6 +177,7 @@ export type GraphDetail = {
   width: number
   height: number
   nodes: SchematicNode[]
+  values: SchematicValue[]
   edges: SchematicEdge[]
   bundles: EdgeBundle[]
   layerBands: LayerBand[]
@@ -173,7 +188,13 @@ export type WorkerRequest =
       type: 'load-design'
       requestId: number
       fileName: string
-      buffer: ArrayBuffer
+      file: File
+    }
+  | {
+      type: 'load-hierarchy-children'
+      requestId: number
+      symbol: string
+      path: string
     }
   | {
       type: 'load-graph'
@@ -184,10 +205,24 @@ export type WorkerRequest =
 
 export type WorkerResponse =
   | {
+      type: 'design-progress'
+      requestId: number
+      phase: string
+      loadedBytes: number
+      totalBytes: number
+      progress: number
+    }
+  | {
       type: 'design-loaded'
       requestId: number
       fileName: string
       design: DesignOverview
+    }
+  | {
+      type: 'hierarchy-children-loaded'
+      requestId: number
+      path: string
+      children: HierarchyNode[]
     }
   | {
       type: 'graph-loaded'
@@ -197,7 +232,7 @@ export type WorkerResponse =
   | {
       type: 'error'
       requestId: number
-      stage: 'load-design' | 'load-graph'
+      stage: 'load-design' | 'load-hierarchy-children' | 'load-graph'
       message: string
     }
 

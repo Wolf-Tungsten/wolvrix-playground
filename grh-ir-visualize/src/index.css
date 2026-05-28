@@ -17,6 +17,8 @@
 body {
   margin: 0;
   min-width: 320px;
+  height: 100svh;
+  overflow: hidden;
 }
 
 button,
@@ -25,7 +27,8 @@ input {
 }
 
 #root {
-  min-height: 100svh;
+  height: 100svh;
+  overflow: hidden;
 }
 
 h1,
