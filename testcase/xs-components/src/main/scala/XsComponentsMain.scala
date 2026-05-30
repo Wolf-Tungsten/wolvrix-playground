@@ -40,7 +40,6 @@ object XsComponentsMain extends App {
     Seq(
       ChiselGeneratorAnnotation(gen),
       FirtoolOption("--disable-all-randomization"),
-      FirtoolOption("--preserve-aggregate=1d-vec"),
     ),
   )
 }
