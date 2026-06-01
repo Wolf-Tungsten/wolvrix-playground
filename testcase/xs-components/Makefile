@@ -8,13 +8,14 @@ OBJDUMP ?= objdump
 CACHE_DIR ?= .sandbox-cache
 MILL_ENV := COURSIER_CACHE=$(abspath $(CACHE_DIR)/coursier) XDG_CACHE_HOME=$(abspath $(CACHE_DIR)/xdg) IVY_HOME=$(abspath $(CACHE_DIR)/ivy2) MILL_COURSIER_CACHE=$(abspath $(CACHE_DIR)/mill-coursier)
 
-CASES := XsBranchAluSmall XsVectorMaskMedium XsAgeMatrixMedium XsPlruLarge XsStoreMergeLarge XsIcacheReplacerLarge XsStoreQueueBanksLarge XsLoadQueueReplayLarge XsPlruBankedXLarge XsFreeListAllocLarge XsRobBankScanLarge XsIssueBusyMaskLarge XsWbArbiterLarge XsFusionDecodeLarge XsTlbPermLarge XsDcacheMetaSelectLarge XsVecMergeBufferLarge XsPrefetchStrideLarge XsLoadQueueRawLarge XsCsrTrapPriorityLarge
+CASES := XsBranchAluSmall XsVectorMaskMedium XsAgeMatrixMedium XsPlruLarge XsStoreMergeLarge XsIcacheReplacerLarge XsIcacheReplRegsLarge XsStoreQueueBanksLarge XsLoadQueueReplayLarge XsPlruBankedXLarge XsFreeListAllocLarge XsRobBankScanLarge XsIssueBusyMaskLarge XsWbArbiterLarge XsFusionDecodeLarge XsTlbPermLarge XsDcacheMetaSelectLarge XsVecMergeBufferLarge XsPrefetchStrideLarge XsLoadQueueRawLarge XsCsrTrapPriorityLarge
 KIND_XsBranchAluSmall := branch-alu
 KIND_XsVectorMaskMedium := vector-mask
 KIND_XsAgeMatrixMedium := scheduler-age
 KIND_XsPlruLarge := replacement
 KIND_XsStoreMergeLarge := store-merge
 KIND_XsIcacheReplacerLarge := icache-replacer
+KIND_XsIcacheReplRegsLarge := icache-repl-regs
 KIND_XsStoreQueueBanksLarge := store-queue-banks
 KIND_XsLoadQueueReplayLarge := load-queue-replay
 KIND_XsPlruBankedXLarge := replacement-banked
@@ -35,6 +36,7 @@ SCALE_XsAgeMatrixMedium := medium
 SCALE_XsPlruLarge := large
 SCALE_XsStoreMergeLarge := large
 SCALE_XsIcacheReplacerLarge := large
+SCALE_XsIcacheReplRegsLarge := large
 SCALE_XsStoreQueueBanksLarge := large
 SCALE_XsLoadQueueReplayLarge := large
 SCALE_XsPlruBankedXLarge := xlarge

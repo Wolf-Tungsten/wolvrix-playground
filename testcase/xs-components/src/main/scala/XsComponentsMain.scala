@@ -13,6 +13,7 @@ object XsComponentsMain extends App {
     "XsPlruLarge" -> (() => new XsPlruLarge),
     "XsStoreMergeLarge" -> (() => new XsStoreMergeLarge),
     "XsIcacheReplacerLarge" -> (() => new XsIcacheReplacerLarge),
+    "XsIcacheReplRegsLarge" -> (() => new XsIcacheReplRegsLarge),
     "XsStoreQueueBanksLarge" -> (() => new XsStoreQueueBanksLarge),
     "XsLoadQueueReplayLarge" -> (() => new XsLoadQueueReplayLarge),
     "XsPlruBankedXLarge" -> (() => new XsPlruBankedXLarge),
