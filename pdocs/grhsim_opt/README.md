@@ -173,6 +173,7 @@
 | `NO0184` | `2026-05-21` | [CoreMark 50k Runtime Gate](./NO0184_coremark50k_runtime_gate_20260521.md) | 为 `grhsim_opt_metrics.py` 增加 `--gate coremark50k-fast` 与 `latest-default-50k`，机器判定 difftest 50k runtime 快档 |
 | `NO0185` | `2026-05-23` | [XS Components 对齐后的 GrhSIM Coarsen 策略记录](./NO0185_xs_components_aligned_coarsen_strategy_20260523.md) | 固化 xs-components 已验证口径：coarsen 不受 cap 限制、coarsen 后不再按 cap 拆分、DP 阶段保留 cap，并记录矩阵结果与 full XiangShan 构建风险 |
 | `NO0186` | `2026-05-25` | [XsIcacheReplacerLarge Ingest / Coarsen 阶段总结](./NO0186_xs_icache_replacer_ingest_coarsen_stage_20260525.md) | 总结 xs-components 拆分和大型真实 case 扩展、ingest 对 procedural local / aggregate memory 形态的支持、activity-schedule siblings merge 与 source clone，并记录当前 `XsIcacheReplacerLarge` 结构和性能结论 |
+| `NO0187` | `2026-06-01` | [DefOp SV Packed Array Attrs 与 Emit 优化计划](./NO0187_defop_sv_packed_array_attrs_emit_plan_20260601.md) | 规划在 packed array value 的 defining op 上记录 producer `svPackedArray.*` attrs，并在 `kSliceDynamic` consumer 上记录 `svPackedArraySelect.*` attrs，让 GrhSIM emit 基于显式语义把宽值动态切片改成 lane array / lane lookup 代码形态 |
 
 ## 编号说明
 
