@@ -77,6 +77,17 @@
     "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
   },
   {
+    "case": "XsIcacheReplRegsCatLarge",
+    "kind": "icache-repl-regs",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/icache/ICacheReplacer.scala",
+      "testcase/xiangshan/utility/src/main/scala/utility/Replacement.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsIcacheReplRegsCatLarge.scala:XsIcacheReplRegsCatLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+  },
+  {
     "case": "XsStoreQueueBanksLarge",
     "kind": "store-queue-banks",
     "scale": "large",

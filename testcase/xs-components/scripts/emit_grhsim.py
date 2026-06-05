@@ -71,6 +71,22 @@ def write_activity_schedule_stats(sess: wolvrix.Session, top: str, out_dir: Path
     )
 
 
+def merge_emit_stats(out_dir: Path) -> None:
+    emit_stats_path = out_dir / "grhsim_emit_stats.json"
+    schedule_stats_path = out_dir / "activity_schedule_stats.json"
+    if not emit_stats_path.exists() or not schedule_stats_path.exists():
+        return
+
+    schedule_stats = json.loads(schedule_stats_path.read_text(encoding="ascii"))
+    emit_stats = json.loads(emit_stats_path.read_text(encoding="ascii"))
+    packed_array_stats = emit_stats.get("packed_array_lane_emit")
+    if isinstance(packed_array_stats, dict):
+        schedule_stats["packed_array_lane_emit"] = packed_array_stats
+    schedule_stats_path.write_text(
+        json.dumps(schedule_stats, indent=2, sort_keys=True), encoding="ascii"
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--sv", required=True)
@@ -146,6 +162,7 @@ def main() -> int:
             waveform="off",
             perf="off",
         )
+        merge_emit_stats(out_dir)
     return 0
 
 

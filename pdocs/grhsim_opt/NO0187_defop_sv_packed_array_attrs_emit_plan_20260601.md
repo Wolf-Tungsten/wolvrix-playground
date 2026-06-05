@@ -2,6 +2,12 @@
 
 日期：2026-06-01
 
+> 2026-06-05 更新：本文前半部分保留了最初围绕 `kSliceDynamic` /
+> `svPackedArraySelect.*` 的设计推演，但该方向已被下方“consumer 目标应改为
+> `kSliceArray`”勘误取代。当前有效结论是：ingest 直接产生
+> `kSliceArray(base, laneOrdinal)`，GrhSIM 只围绕合法 `kConcat -> kSliceArray`
+> 形态做 lane emit。
+
 ## 背景
 
 `XsIcacheReplRegsCatLarge` 的反向实验暴露了一个比“寄存器是否离散”更底层的问题：
@@ -856,3 +862,530 @@ lanes[index & 0x7f]
 
 后续可以把同一语义通道扩展到 packed struct、record slot repack、以及 register/memory
 aggregate 输出，逐步减少 GrhSIM 在宽值动态切片上的生成代码和 runtime 成本。
+
+## 勘误与增量更新 2026-06-05：consumer 目标应改为 `kSliceArray`
+
+上文把优化主线放在 `kSliceDynamic` consumer 和 `svPackedArraySelect.*` attrs 上，这是
+方向性错误。`XsIcacheReplRegsCatLarge` 当前真正需要修正的不是“给
+`kSliceDynamic` 补更多语义”，而是 ingest 应该把 SV packed array element select
+lower 成 GRH 里已有的正确 op：
+
+```text
+kSliceArray(base, laneOrdinal) { sliceWidth = elementWidth }
+```
+
+GRH 已经定义 `kSliceArray` 为数组元素访问：
+
+```text
+res = base[laneOrdinal * sliceWidth +: sliceWidth]
+```
+
+因此 packed array element select 不应继续表达为：
+
+```text
+kSliceDynamic(base, laneOrdinal * elementWidth) { sliceWidth = elementWidth }
+```
+
+`kSliceDynamic` 只能作为旧 JSON / fallback bit-slice 形态保留；新实现的正向目标必须是
+产生 `kSliceArray`。这也意味着 `svPackedArraySelect.*` consumer attrs 不再是 Phase 1
+的目标 schema，不能继续围绕它设计 fast path。
+
+### 修正后的核心目标
+
+对 `XsIcacheReplRegsCatLarge` 中的关键 SV：
+
+```systemverilog
+wire [127:0][2:0] _GEN_511 = {{...}, ..., {...}};
+wire [63:0] out0 = {61'h0, _GEN_511[io_in1[6:0]]};
+```
+
+期望 GRH 不再是：
+
+```text
+_GEN_511 : logic[383:0]
+select   = kSliceDynamic(_GEN_511, io_in1[6:0] * 3) { sliceWidth = 3 }
+```
+
+而应至少在 select 语义上变成：
+
+```text
+_GEN_511 : logic[383:0], def = kConcat(lane127, ..., lane0)
+select   = kSliceArray(_GEN_511, io_in1[6:0]) { sliceWidth = 3 }
+```
+
+进一步在 GrhSIM emit 中，带合法 packed array producer shape 的 `_GEN_511` 不应被作为
+一个 384-bit 临时宽值 materialize，而应以 lane storage 表达：
+
+```cpp
+std::array<std::uint8_t, 128> gen_511_lanes{};
+```
+
+select 代码形态应接近：
+
+```cpp
+const std::uint8_t read0 = gen_511_lanes[index & 0x7f] & UINT8_C(0x7);
+```
+
+而不是：
+
+```cpp
+std::array<std::uint64_t, 6> gen_511_words;
+grhsim_slice_words<1>(gen_511_words, index * 3, 384);
+```
+
+本更新的验收重点也随之调整为：
+
+- JSON / GRH 中 `_GEN_511[...]` 对应 consumer 是 `kSliceArray`，不是
+  `kSliceDynamic`。
+- `kSliceArray.sliceWidth == 3`，结果宽度为 `3`。
+- GrhSIM emit 对 `_GEN_511` 使用 `128` 个 `uint8_t` lane，且每个 lane 显式 mask 到
+  `3` bit。
+- 生成 C++ 中 `_GEN_511` select 路径不再出现 `384` 位宽值 slot 或
+  `grhsim_slice_words(..., index * 3, 384)`。
+
+### Producer attrs 的保留边界
+
+`svPackedArray.*` producer attrs 仍然有价值，但它们的职责应收窄为“帮助 emit 确认
+`kConcat` result 可以 lane materialize”，而不是弥补 consumer op kind 的错误。
+
+修正后职责分工如下：
+
+| 层次 | 目标 | 说明 |
+| --- | --- | --- |
+| `kSliceArray` op kind | 正确表达 element select | 必须由 ingest 直接产生；operand 1 是 lane ordinal，不是 bit offset |
+| `svPackedArray.*` producer attrs | 描述 concat/result 的 packed lane shape | 只挂在 `_GEN_511` defop 上，用于 lane emit 校验和 concat operand 到 lane 的映射 |
+| `svPackedArraySelect.*` consumer attrs | 废弃为 Phase 1 目标 | 不再新增；已有旧 JSON 如存在该 attrs，emit 可以忽略或仅作 legacy 诊断 |
+| `kSliceDynamic` | fallback bit-slice | 用于非 array element select 或旧 lowering，不作为优化主线 |
+
+`svPackedArray.*` v1 仍可沿用上文定义的字段，特别是：
+
+```text
+svPackedArray.elementWidth = 3
+svPackedArray.elementCount = 128
+svPackedArray.laneOrder = "lsb_index_low"
+svPackedArray.concat.operand0Index = 127
+svPackedArray.concat.operandStride = -1
+```
+
+但 emit 命中 fast path 时必须同时满足：
+
+1. producer 是合法的 packed array defop，当前优先支持 `kConcat`。
+2. producer result 宽度等于 `elementCount * elementWidth`。
+3. `kConcat` operand 数等于 `elementCount`，每个 operand 宽度等于 `elementWidth`。
+4. 所有支持的 element consumer 都是 `kSliceArray`，且 `sliceWidth == elementWidth`。
+5. producer 没有 unsupported full-width / mixed-width consumer；Phase 1 遇到 mixed consumer
+   直接 fallback 到旧宽值 emit。
+
+### Ingest 修正方案
+
+packed array element select lowering 应改为：
+
+```text
+logicalIndex = SV select index expression
+laneOrdinal  = lower_logical_index_to_physical_lane(logicalIndex, packed dimension)
+result       = kSliceArray(base, laneOrdinal) { sliceWidth = elementWidth }
+```
+
+其中 `laneOrdinal` 是从 bitstream LSB element 开始计数的物理 lane 编号，必须满足
+`0 <= laneOrdinal < elementCount` 的语义域。对 `[127:0][2:0]`：
+
+```text
+laneOrdinal = logicalIndex
+```
+
+所以 `_GEN_511[io_in1[6:0]]` 应直接降低为：
+
+```text
+kSliceArray(_GEN_511, io_in1[6:0]) { sliceWidth = 3 }
+```
+
+对 `[0:127][2:0]` 这类 `upto` packed dimension，bitstream LSB 对应逻辑 high index，
+ingest 必须先构造 physical lane ordinal：
+
+```text
+laneOrdinal = indexHigh - logicalIndex
+kSliceArray(base, laneOrdinal) { sliceWidth = elementWidth }
+```
+
+如果 lowering 无法可靠计算 physical lane ordinal，或者 select 不是单个 packed array
+element，而是普通 indexed part-select / range-select，则继续使用 `kSliceDynamic` 或
+`kSliceStatic` 的 bit-level 表示。
+
+### GrhSIM emit 修正方案
+
+emit 侧新增的 packed array lane fast path 应围绕 `kConcat -> kSliceArray`，不再围绕
+`kConcat -> kSliceDynamic`。
+
+Shape analysis：
+
+1. 扫描 producer defop，解析合法 `svPackedArray.*`。
+2. 对每个 packed producer result，扫描 users。
+3. `kSliceArray` 且 `sliceWidth == elementWidth` 归类为 element select user。
+4. `kSliceDynamic` 不再作为 Phase 1 fast path user；即使它的 offset 看起来是
+   `idx * elementWidth`，也先按旧路径处理，避免继续在错误 IR 上叠优化。
+5. 有任何 unsupported user 时，Phase 1 对该 producer 整体 fallback。
+
+Supernode 边界语义：
+
+- `kConcat` 与 `kSliceArray` 在同一个 supernode 内时，emit 使用 supernode-local
+  `std::array<lane_type, N>`；`kConcat` 先填 lane，后续 `kSliceArray` 直接读这个 local
+  lane array。
+- `kConcat` 与 `kSliceArray` 跨 supernode 时，`activity_schedule` 的 `valueFanout`
+  会把 producer result 标为 boundary value；GrhSIM 将该 packed array materialize 为
+  class field lane storage，producer supernode 写 lane field，consumer supernode 读同一个
+  lane field。
+- `kConcat -> kAssign -> kSliceArray` 的 assign-wrapper 只有在 source concat 与 assign
+  没有跨 source boundary 时启用 lane fast path；如果 source concat 到 assign 已经跨
+  supernode，目前保守 fallback 到旧宽值路径，避免同时绕过 source boundary 和 assign
+  activation。该 fallback 是语义正确路径，只是不命中 lane emit 优化。
+
+Materialization：
+
+```cpp
+std::array<std::uint8_t, 128> gen_511_lanes{};
+```
+
+`kConcat` emit：
+
+```cpp
+gen_511_lanes[127] = expr_operand_0 & UINT8_C(0x7);
+gen_511_lanes[126] = expr_operand_1 & UINT8_C(0x7);
+...
+gen_511_lanes[0] = expr_operand_127 & UINT8_C(0x7);
+```
+
+`kSliceArray` emit：
+
+```cpp
+const auto lane = grhsim_index_u64(index_expr, 128);
+const std::uint8_t selected = gen_511_lanes[lane] & UINT8_C(0x7);
+```
+
+`XsIcacheReplRegsCatLarge` 的 index 是 7-bit 且 element count 是 128，emit 可以进一步
+生成等价的：
+
+```cpp
+gen_511_lanes[static_cast<std::uint64_t>(index_expr) & UINT64_C(0x7f)]
+```
+
+但这只是代码形态优化，正确性仍以 `kSliceArray` 的 lane ordinal 语义为准。
+
+### 修正后的 Phase 1
+
+Phase 1 目标改为：**ingest 产生 `kSliceArray`，GrhSIM 基于 `kConcat -> kSliceArray`
+保留 `uint8_t[128]` lane 形态**。
+
+工作项：
+
+- 在 packed array element select lowering 中，把单 element select 从
+  `kSliceDynamic(base, idx * width)` 改成 `kSliceArray(base, laneOrdinal)`。
+- 保留 / 新增 producer `svPackedArray.*` attrs，用于 `_GEN_511` 的 `kConcat` defop。
+- 删除 Phase 1 对 `svPackedArraySelect.*` 的依赖；不要为新 `kSliceArray` consumer
+  设计额外 select attrs。
+- 在 store/load/clone 路径确认 `kSliceArray` 和 producer attrs 正常 roundtrip。
+- GrhSIM shape analysis 只对合法 `kConcat -> kSliceArray` 启用 lane emit。
+- 为 `_GEN_511` 生成 `std::array<std::uint8_t, 128>` 或等价 persistent lane storage。
+- `kSliceArray` consumer 直接 lane load，不调用 `grhsim_slice_words`。
+- mixed consumer、attr 不合法、operand width 不一致时 fallback 到旧宽值路径。
+
+诊断字段也随之调整：
+
+```text
+sv_packed_array_attr_defops
+sv_packed_array_attr_concat_defops
+packed_array_slice_array_users
+packed_array_slice_dynamic_legacy_users
+packed_array_lane_emit_values
+packed_array_lane_emit_selects
+packed_array_lane_emit_fallback_mixed_user
+packed_array_lane_emit_fallback_invalid_shape
+```
+
+不再新增：
+
+```text
+sv_packed_array_select_attr_ops
+packed_array_lane_emit_select_attr_invalid
+```
+
+### 修正后的测试计划
+
+ingest fixture：
+
+```systemverilog
+module packed_array_slice_array(
+  input  logic [6:0] idx,
+  input  logic [2:0] lane0,
+  input  logic [2:0] lane1,
+  output logic [2:0] out
+);
+  wire [1:0][2:0] lanes = {lane1, lane0};
+  assign out = lanes[idx[0]];
+endmodule
+```
+
+期望：
+
+- `lanes` defop 是 `kConcat`，并带合法 `svPackedArray.*` producer attrs。
+- `lanes[idx[0]]` lowering 为 `kSliceArray(lanes, idx[0]) { sliceWidth = 3 }`。
+- 测试中不得接受 `kSliceDynamic(lanes, idx[0] * 3)` 作为正向结果。
+
+方向覆盖 fixture：
+
+```systemverilog
+wire [127:0][2:0] down;
+wire [0:127][2:0] up;
+assign out_down = down[idx];        // laneOrdinal = idx
+assign out_up   = up[idx];          // laneOrdinal = 127 - idx
+```
+
+期望：
+
+- `down[idx]` 的 `kSliceArray` index operand 是原 index 或等价表达式。
+- `up[idx]` 的 `kSliceArray` index operand 是 `127 - idx` 或等价表达式。
+
+emit fixture：
+
+- 构造 `kConcat(lane127, ..., lane0) -> kSliceArray(concat, idx)`。
+- 检查生成 C++ 包含 `std::array<std::uint8_t, 128>` 或等价 lane storage。
+- 检查对应 select 不包含 `grhsim_slice_words`。
+- 故意把 consumer 改成 `kSliceDynamic` 后，Phase 1 不命中 lane fast path。
+
+xs-components gate：
+
+```sh
+make -C testcase/xs-components \
+  CASE=XsIcacheReplRegsCatLarge \
+  BENCH_REPEAT=3 \
+  -B one
+```
+
+必须记录：
+
+- verify pass/fail；
+- `_GEN_511` consumer op kind 是否为 `kSliceArray`；
+- GrhSIM generated C++ 中 `_GEN_511` 是否保留为 `uint8_t[128]` lane 形态；
+- 是否仍出现 `_GEN_511` 相关的 `384` 位 words slot / `grhsim_slice_words`；
+- `bench_ms`、text size、`activity_schedule_stats.json` 中 lane emit 统计。
+
+### 更新后的结论
+
+本议题的正确边界是：
+
+```text
+SV packed array element select
+  -> GRH kSliceArray(base, physical_lane_ordinal)
+  -> producer svPackedArray attrs only for lane materialization proof
+  -> GrhSIM emits uint8_t lanes[128] and lane lookup
+```
+
+不是：
+
+```text
+SV packed array element select
+  -> kSliceDynamic(base, index * width)
+  -> consumer attrs patch over the lost op kind
+```
+
+对 `XsIcacheReplRegsCatLarge`，最终目标可以一句话概括：`_GEN_511` 不应在 GrhSIM
+中继续表现为一个 384 位宽变量，而应作为 `128` 个 `uint8_t` lane 被构造和索引。
+
+### 2026-06-05 落地与验收记录
+
+本轮实现已经按上述勘误落地到 ingest 与 GrhSIM emit：
+
+- packed array element select lowering 改为生成 `kSliceArray(base, laneOrdinal)`，
+  并在 op attrs 中记录 `sliceWidth = elementWidth`。
+- 对 `[127:0]` / `[0:127]` 两种方向均构造 physical lane ordinal；`[0:127]`
+  方向会先生成 `indexHigh - logicalIndex`。
+- packed-array concat producer 继续记录 `svPackedArray.*` attrs，但 consumer 不新增
+  `svPackedArraySelect.*`。
+- GrhSIM lane fast path 只接受合法 `kConcat -> kSliceArray` shape；它会校验
+  `elementWidth`、`elementCount`、concat operand width、`laneOrder`、`operandStride`
+  和 operand-to-lane 映射，mixed / malformed consumer fallback 到旧宽值路径。
+- GRH store/load/clone 路径增加了 packed concat producer attrs 与 `kSliceArray(sliceWidth)`
+  的覆盖；同时 `GraphBuilder::setAttr` 按 key 保持 attrs 有序，避免 JSON roundtrip
+  因 object 迭代顺序变化破坏稳定性检查。
+- `XsIcacheReplRegsCatLarge` 已补入 `testcase/xs-components/Makefile` 与
+  `cases.json` 元数据，完整 `one` gate 可正常生成 stats。
+
+`XsIcacheReplRegsCatLarge` 最新结构验收：
+
+```text
+_GEN_511 defop: kConcat, svPackedArray.elementWidth=3, elementCount=128
+_GEN_511 users: 4 x kSliceArray, sliceWidth=3
+generated C++ field: std::array<std::uint8_t, 128> packed_array_lanes_656_0__GEN_511_
+select code: packed_array_lanes_656_0__GEN_511_[index] & UINT64_C(7)
+_GEN_511 select path: no grhsim_slice_words
+```
+
+关键产物路径：
+
+- JSON：`testcase/xs-components/build/XsIcacheReplRegsCatLarge/grhsim/XsIcacheReplRegsCatLarge.json`
+- header：`testcase/xs-components/build/XsIcacheReplRegsCatLarge/grhsim/model/grhsim_XsIcacheReplRegsCatLarge.hpp`
+- C++：`testcase/xs-components/build/XsIcacheReplRegsCatLarge/grhsim/model/grhsim_XsIcacheReplRegsCatLarge_sched_4.cpp`
+- bench log：`testcase/xs-components/build/XsIcacheReplRegsCatLarge/tb/XsIcacheReplRegsCatLarge_bench.log`
+- emit stats：`testcase/xs-components/build/XsIcacheReplRegsCatLarge/grhsim/model/grhsim_emit_stats.json`
+- activity stats：`testcase/xs-components/build/XsIcacheReplRegsCatLarge/grhsim/model/activity_schedule_stats.json`
+- stats：`testcase/xs-components/build/XsIcacheReplRegsCatLarge/stats/model_stats.json`
+
+已经执行的命令：
+
+```sh
+cmake --build wolvrix/build --target ingest-graph-assembly-slice
+ctest --test-dir wolvrix/build --output-on-failure -R '^ingest-graph-assembly-slice$'
+cmake --build wolvrix/build --target emit-grhsim-cpp
+ctest --test-dir wolvrix/build --output-on-failure -R '^emit-grhsim-cpp$'
+cmake --build wolvrix/build --target grh-tests grh-clone-tests ingest-graph-assembly-slice emit-grhsim-cpp
+ctest --test-dir wolvrix/build --output-on-failure -R '^(grh-tests|grh-clone-tests|ingest-graph-assembly-slice|emit-grhsim-cpp)$'
+python3 -m pip install --no-build-isolation -e wolvrix
+python3 scripts/emit_grhsim.py --sv build/XsIcacheReplRegsCatLarge/chisel-sv/XsIcacheReplRegsCatLarge.sv --top XsIcacheReplRegsCatLarge --out build/XsIcacheReplRegsCatLarge/grhsim/model --json build/XsIcacheReplRegsCatLarge/grhsim/XsIcacheReplRegsCatLarge.json --max-op-in-compute-supernode 128 --max-op-in-commit-supernode 768 --sched-batch-max-ops 2048 --sched-batch-max-estimated-lines 8192 --sched-batch-target-count 64 --emit-parallelism 4
+make -C testcase/xs-components/build/XsIcacheReplRegsCatLarge/grhsim/model CXX=clang++ CXXFLAGS='-O3 -std=c++20'
+make -C testcase/xs-components CASE=XsIcacheReplRegsCatLarge BENCH_REPEAT=3 -B one
+```
+
+完整 xs-components gate 结果：
+
+```text
+[VERIFY] top=XsIcacheReplRegsCatLarge vectors=2048 status=pass
+[BENCH] model=gsim   vectors=100002 repeat=3 ms=99.962  vectors_per_s=1000395.87
+[BENCH] model=grhsim vectors=100002 repeat=3 ms=181.455 vectors_per_s=551112.44
+```
+
+`grhsim_emit_stats.json` 与合并后的 `activity_schedule_stats.json` 均记录：
+
+```text
+sv_packed_array_attr_defops = 1
+sv_packed_array_attr_concat_defops = 1
+packed_array_slice_array_users = 4
+packed_array_slice_dynamic_legacy_users = 0
+packed_array_lane_emit_values = 1
+packed_array_lane_emit_selects = 4
+packed_array_lane_emit_fallback_mixed_user = 0
+packed_array_lane_emit_fallback_invalid_shape = 0
+```
+
+`stats/model_stats.json` 记录：
+
+```text
+grhsim.bench_ms = 181.455
+gsim.bench_ms = 99.962
+ratios.bench_ms_grhsim_to_gsim = 1.815239791120626
+grhsim.text_size_bytes = 71274
+gsim.text_size_bytes = 36950
+```
+
+结论：本轮已满足“不要把 `_GEN_511` 当作 384-bit 宽临时变量 emit”的要求；新的正向形态是
+`kConcat -> kSliceArray`，GrhSIM materialize 为 `128` 个 `uint8_t` lane 并直接索引。
+
+### 2026-06-06 本次修改汇总与 xs-components 回归
+
+本次最终落地范围如下：
+
+- `wolvrix/include/core/ingest.hpp`：为 `ExprNode` 增加 `sliceWidth`，让前端 lowering 可以把
+  packed array element select 的 element 宽度带到 GRH op attrs。
+- `wolvrix/lib/core/ingest.cpp`：packed array element select 不再 lower 成
+  `kSliceDynamic(base, index * width)`，而是生成 `kSliceArray(base, physicalLaneOrdinal)`；
+  对 `[127:0]` 与 `[0:127]` 方向分别处理 lane ordinal，并为 packed-array `kConcat`
+  producer 写入 `svPackedArray.*` attrs。
+- `wolvrix/lib/core/grh.cpp`：`GraphBuilder::setAttr` 改为按 key 有序插入 / 更新 attr，
+  保持 store/load roundtrip 与测试输出稳定。
+- `wolvrix/lib/emit/grhsim_cpp.cpp`：新增 packed array lane view discovery、shape 校验、
+  lane storage emit、`kSliceArray` 直接 lane lookup、`grhsim_emit_stats.json` 输出；
+  fast path 只接受合法 `kConcat -> kSliceArray`，`kSliceDynamic` 只统计为 legacy user，
+  不再作为优化目标。
+- `wolvrix/lib/transform/activity_schedule.cpp`：对带 `hasSideEffects` 的 unsupported
+  boundary defop 先确保 compute node，避免相关 side-effect source 在调度边界处理中被静默漏掉。
+- `testcase/xs-components/Makefile` / `cases.json`：把
+  `XsIcacheReplRegsCatLarge` 纳入 matrix，并补齐 case 元数据。
+- `testcase/xs-components/scripts/emit_grhsim.py`：把 emitter 产生的
+  `packed_array_lane_emit` 统计合并进 `activity_schedule_stats.json`，方便 matrix 产物统一读取。
+- 单测覆盖扩展到 GRH attr roundtrip / clone、ingest packed array slice lowering、GrhSIM
+  lane emit 与 emit stats。
+
+`kConcat` / `kSliceArray` 的 supernode 边界处理结论：
+
+- `kConcat` 与 `kSliceArray` 不跨 supernode 时，GrhSIM 使用 supernode-local
+  `packed_array_lanes_local_*`，unit emit test 已检查该形态。
+- `kConcat` 与 `kSliceArray` 直接跨 supernode 时，producer result 会作为 boundary value
+  materialize 成 class field lane storage；`XsIcacheReplRegsCatLarge` 当前生成
+  `std::array<std::uint8_t, 128> packed_array_lanes_656_0__GEN_511_`，覆盖了该路径。
+- `kConcat -> kAssign -> kSliceArray` 只有在 assign wrapper 没有跨 source boundary 时启用
+  lane fast path；source concat 到 assign 已跨边界时仍保守 fallback 到旧宽值路径。这是当前
+  语义正确的安全边界，不属于本轮必须优化的 fast path。
+
+本轮已执行的关键回归：
+
+```sh
+ctest --test-dir wolvrix/build --output-on-failure -R '^(grh-tests|grh-clone-tests|ingest-graph-assembly-slice|emit-grhsim-cpp)$'
+python3 -m pip install --no-build-isolation -e wolvrix
+make -C testcase/xs-components CASE=XsIcacheReplRegsCatLarge BENCH_REPEAT=3 -B one
+make -C testcase/xs-components BENCH_REPEAT=1 -B matrix
+git diff --check
+git -C wolvrix diff --check
+```
+
+2026-06-06 的 `xs-components` forced matrix 结果：
+
+```text
+command: make -C testcase/xs-components BENCH_REPEAT=1 -B matrix
+exit: 0
+results: testcase/xs-components/build/matrix/results.csv
+case rows: 22
+```
+
+matrix 覆盖 case：
+
+```text
+XsBranchAluSmall
+XsVectorMaskMedium
+XsAgeMatrixMedium
+XsPlruLarge
+XsStoreMergeLarge
+XsIcacheReplacerLarge
+XsIcacheReplRegsLarge
+XsIcacheReplRegsCatLarge
+XsStoreQueueBanksLarge
+XsLoadQueueReplayLarge
+XsPlruBankedXLarge
+XsFreeListAllocLarge
+XsRobBankScanLarge
+XsIssueBusyMaskLarge
+XsWbArbiterLarge
+XsFusionDecodeLarge
+XsTlbPermLarge
+XsDcacheMetaSelectLarge
+XsVecMergeBufferLarge
+XsPrefetchStrideLarge
+XsLoadQueueRawLarge
+XsCsrTrapPriorityLarge
+```
+
+`XsIcacheReplRegsCatLarge` 在 matrix 口径下的结果：
+
+```text
+[VERIFY] top=XsIcacheReplRegsCatLarge vectors=2048 status=pass
+gsim_ms = 41.908
+grhsim_ms = 182.938
+bench_ms_grhsim_to_gsim = 4.365228595972129
+gsim_instructions = 9298
+grhsim_instructions = 15924
+gsim_text_bytes = 36950
+grhsim_text_bytes = 71274
+```
+
+matrix 产物中的 packed-array lane emit 统计仍符合预期：
+
+```text
+sv_packed_array_attr_defops = 1
+sv_packed_array_attr_concat_defops = 1
+packed_array_slice_array_users = 4
+packed_array_slice_dynamic_legacy_users = 0
+packed_array_lane_emit_values = 1
+packed_array_lane_emit_selects = 4
+packed_array_lane_emit_fallback_mixed_user = 0
+packed_array_lane_emit_fallback_invalid_shape = 0
+```
+
+结论：`BENCH_REPEAT=1 -B matrix` 覆盖的 22 个 `xs-components` case 均完成 verify / bench
+并生成汇总 CSV，未发现本次 `kSliceArray` lowering 与 GrhSIM packed lane emit 修改引入功能回归。
