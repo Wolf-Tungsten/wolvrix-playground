@@ -174,6 +174,7 @@
 | `NO0185` | `2026-05-23` | [XS Components 对齐后的 GrhSIM Coarsen 策略记录](./NO0185_xs_components_aligned_coarsen_strategy_20260523.md) | 固化 xs-components 已验证口径：coarsen 不受 cap 限制、coarsen 后不再按 cap 拆分、DP 阶段保留 cap，并记录矩阵结果与 full XiangShan 构建风险 |
 | `NO0186` | `2026-05-25` | [XsIcacheReplacerLarge Ingest / Coarsen 阶段总结](./NO0186_xs_icache_replacer_ingest_coarsen_stage_20260525.md) | 总结 xs-components 拆分和大型真实 case 扩展、ingest 对 procedural local / aggregate memory 形态的支持、activity-schedule siblings merge 与 source clone，并记录当前 `XsIcacheReplacerLarge` 结构和性能结论 |
 | `NO0187` | `2026-06-01` | [DefOp SV Packed Array Attrs 与 Emit 优化计划](./NO0187_defop_sv_packed_array_attrs_emit_plan_20260601.md) | 规划在 packed array value 的 defining op 上记录 producer `svPackedArray.*` attrs；已于 2026-06-05 追加勘误，明确 consumer 目标应由 ingest 产生正确 `kSliceArray`，不再围绕 `kSliceDynamic` / `svPackedArraySelect.*` 做 Phase 1 |
+| `NO0188` | `2026-06-09` | [XiangShan Preserve-Aggregate Full GrhSIM Correctness Progress](./NO0188_xs_preserve_aggregate_full_grhsim_correctness_progress_20260609.md) | 记录完整 XiangShan preserve-aggregate SV 已可读入并通过 `comb-loop-elim`，CoreMark 50k 当前表现为提交数量偏少；同时固化 `OldestArbiter`、`RenameTableWrapper`、`ICacheReplacer`、`ICacheWayLookup` 等 xs-bugcase 的排除结论；已于 2026-06-10 追加 `CASE_021` packed aggregate lowering 修复完成记录 |
 
 ## 编号说明
 

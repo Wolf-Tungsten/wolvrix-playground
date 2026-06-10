@@ -373,6 +373,7 @@ def main() -> int:
     export_compute_dag = os.environ.get("WOLVRIX_XS_GRHSIM_EXPORT_COMPUTE_DAG", "").strip()
     export_compute_dag_path = Path(export_compute_dag).resolve() if export_compute_dag else None
     simplify_keep_declared_symbols = env_flag("WOLVRIX_XS_GRHSIM_SIMPLIFY_KEEP_DECLARED_SYMBOLS", default=False)
+    skip_comb_lane_pack = env_flag("WOLVRIX_XS_GRHSIM_SKIP_COMB_LANE_PACK", default=False)
     merge_reg_options = {
         "enable_scalar_to_memory": env_flag("WOLVRIX_XS_GRHSIM_MERGE_REG_ENABLE_SCALAR_TO_MEMORY", default=True),
         "enable_indexed_bundle_entry_to_wide_register": env_flag(
@@ -403,7 +404,8 @@ def main() -> int:
         f"{'' if storage_ref_aliases_env_was_set else '(xs_default)'} "
         f"export_compute_dag={export_compute_dag_path if export_compute_dag_path is not None else 'off'} "
         f"waveform={args.waveform} perf={args.perf} "
-        f"simplify_keep_declared_symbols={simplify_keep_declared_symbols}"
+        f"simplify_keep_declared_symbols={simplify_keep_declared_symbols} "
+        f"skip_comb_lane_pack={skip_comb_lane_pack}"
     )
 
     read_args: list[str] = ["-f", filelist, "--top", top_name]
@@ -429,19 +431,25 @@ def main() -> int:
             ("blackbox-guard", {}),
             ("latch-transparent-read", {}),
             ("hier-flatten", {}),
-            (
-                "comb-lane-pack",
-                {
-                    "enable_declared_roots": False,
-                    "out_comb_lane_pack_report": "comb-lane-pack.reports",
-                },
-            ),
             ("comb-loop-elim", {}),
             ("simplify", {"semantics": "2state"}),
             ("simplify", {"semantics": "2state"}),
             ("memory-init-check", {}),
             ("stats", {"out_stats": "stats.main"}),
         ]
+        if not skip_comb_lane_pack:
+            pre_sched_pipeline.insert(
+                6,
+                (
+                    "comb-lane-pack",
+                    {
+                        "enable_declared_roots": False,
+                        "out_comb_lane_pack_report": "comb-lane-pack.reports",
+                    },
+                ),
+            )
+        else:
+            log("comb-lane-pack disabled for this run")
         if enable_mem_to_reg:
             pre_sched_pipeline.insert(2, ("mem-to-reg", {"row_limit": mem_to_reg_row_limit}))
             log(f"mem-to-reg enabled row_limit={mem_to_reg_row_limit}")

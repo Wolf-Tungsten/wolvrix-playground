@@ -1,0 +1,43 @@
+module xs_bugcase_tb (
+    input  logic       clk,
+    input  logic       rst_n,
+    input  logic       in0_valid,
+    input  logic [5:0] in0_addr,
+    input  logic       in0_flag,
+    input  logic [8:0] in0_value,
+    input  logic       in0_issue,
+    input  logic       in1_valid,
+    input  logic [5:0] in1_addr,
+    input  logic       in1_flag,
+    input  logic [8:0] in1_value,
+    input  logic       in1_issue,
+    output logic       in0_ready,
+    output logic       in1_ready,
+    output logic       out_valid,
+    output logic [5:0] out_addr,
+    output logic       out_flag,
+    output logic [8:0] out_value,
+    output logic       out_issue
+);
+    OldestArbiter dut (
+        .clock(clk),
+        .reset(!rst_n),
+        .io_in_0_ready(in0_ready),
+        .io_in_0_valid(in0_valid),
+        .io_in_0_bits_addr(in0_addr),
+        .io_in_0_bits_robIdx_flag(in0_flag),
+        .io_in_0_bits_robIdx_value(in0_value),
+        .io_in_0_bits_issueValid(in0_issue),
+        .io_in_1_ready(in1_ready),
+        .io_in_1_valid(in1_valid),
+        .io_in_1_bits_addr(in1_addr),
+        .io_in_1_bits_robIdx_flag(in1_flag),
+        .io_in_1_bits_robIdx_value(in1_value),
+        .io_in_1_bits_issueValid(in1_issue),
+        .io_out_valid(out_valid),
+        .io_out_bits_addr(out_addr),
+        .io_out_bits_robIdx_flag(out_flag),
+        .io_out_bits_robIdx_value(out_value),
+        .io_out_bits_issueValid(out_issue)
+    );
+endmodule

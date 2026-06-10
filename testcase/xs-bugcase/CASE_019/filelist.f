@@ -1,0 +1,24 @@
+# XS bugcase CASE_019
++incdir+rtl
+rtl/assert_dpi.sv
+rtl/DeMultiplexer.sv
+rtl/DeMultiplexer_1.sv
+rtl/MuxBundle.sv
+rtl/Arbiter5_MshrAcquireBundle.sv
+rtl/FIFOReg.sv
+rtl/ICacheMshr.sv
+rtl/ICacheMshr_1.sv
+rtl/ICacheMshr_2.sv
+rtl/ICacheMshr_3.sv
+rtl/ICacheMshr_4.sv
+rtl/ICacheMshr_5.sv
+rtl/ICacheMshr_6.sv
+rtl/ICacheMshr_7.sv
+rtl/ICacheMshr_8.sv
+rtl/ICacheMshr_9.sv
+rtl/ICacheMshr_10.sv
+rtl/ICacheMshr_11.sv
+rtl/ICacheMshr_12.sv
+rtl/ICacheMshr_13.sv
+rtl/ICacheMissUnit.sv
+rtl/ICacheWayLookup.sv
