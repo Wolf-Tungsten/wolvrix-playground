@@ -182,6 +182,9 @@ inline void reset_gsim(GSIM_CLASS &dut)
     dut.set_reset(1);
     dut.set_clock(1);
     dut.step();
+    if constexpr (requires(GSIM_CLASS &model) { model.resetAll(); }) {
+        dut.resetAll();
+    }
     dut.set_reset(0);
     dut.set_clock(0);
 }
@@ -237,6 +240,12 @@ inline bool verify_models(const std::vector<Inputs> &vectors, unsigned count)
     GSIM_CLASS gsim;
     GRHSIM_CLASS grhsim;
     grhsim.init();
+    if constexpr (requires(GSIM_CLASS &dut) { dut.set_runtime_profile_enabled(false); }) {
+        gsim.set_runtime_profile_enabled(false);
+    }
+    if constexpr (requires(GRHSIM_CLASS &dut) { dut.set_runtime_profile_enabled(false); }) {
+        grhsim.set_runtime_profile_enabled(false);
+    }
     reset_gsim(gsim);
     reset_grhsim(grhsim);
     const unsigned limit = std::min<unsigned>(count, vectors.size());
@@ -259,6 +268,35 @@ inline bool verify_models(const std::vector<Inputs> &vectors, unsigned count)
     return true;
 }
 
+inline bool runtime_profile_env_enabled()
+{
+    const char *env = std::getenv("EMU_RUNTIME_PROFILE");
+    return env != nullptr && env[0] != '\0' && env[0] != '0';
+}
+
+template <typename Model>
+inline void configure_runtime_profile(Model &model, bool enabled)
+{
+    if constexpr (requires(Model &dut) { dut.set_runtime_profile_enabled(enabled); }) {
+        model.set_runtime_profile_enabled(enabled);
+    }
+    else {
+        (void)model;
+        (void)enabled;
+    }
+}
+
+template <typename Model>
+inline void dump_runtime_profile(const Model &model)
+{
+    if constexpr (requires(const Model &dut) { dut.dump_runtime_profile(); }) {
+        model.dump_runtime_profile();
+    }
+    else {
+        (void)model;
+    }
+}
+
 template <typename EvalFn>
 std::pair<double, std::uint64_t> run_benchmark_once(const std::vector<Inputs> &vectors, EvalFn eval)
 {
@@ -272,10 +310,16 @@ std::pair<double, std::uint64_t> run_benchmark_once(const std::vector<Inputs> &v
     return {ms, accum};
 }
 
-template <typename EvalFn>
-void run_benchmark(const char *label, const std::vector<Inputs> &vectors, unsigned repeat, EvalFn eval)
+template <typename EvalFn, typename AfterWarmupFn>
+void run_benchmark(
+    const char *label,
+    const std::vector<Inputs> &vectors,
+    unsigned repeat,
+    EvalFn eval,
+    AfterWarmupFn after_warmup)
 {
     (void)run_benchmark_once(vectors, eval);
+    after_warmup();
     std::vector<double> samples;
     samples.reserve(repeat);
     std::uint64_t checksum = 0;
@@ -305,6 +349,12 @@ void run_benchmark(const char *label, const std::vector<Inputs> &vectors, unsign
               << " median_ms=" << std::setprecision(3) << median_ms
               << " vectors_per_s=" << std::setprecision(2) << vectors_per_s
               << " checksum=" << hex64(checksum) << "\n";
+}
+
+template <typename EvalFn>
+void run_benchmark(const char *label, const std::vector<Inputs> &vectors, unsigned repeat, EvalFn eval)
+{
+    run_benchmark(label, vectors, repeat, eval, [] {});
 }
 
 inline int run(int argc, char **argv)
@@ -337,10 +387,27 @@ inline int run(int argc, char **argv)
     GSIM_CLASS gsim;
     GRHSIM_CLASS grhsim;
     grhsim.init();
+    configure_runtime_profile(gsim, false);
+    configure_runtime_profile(grhsim, false);
     reset_gsim(gsim);
     reset_grhsim(grhsim);
-    run_benchmark("gsim", inputs, repeat, [&](const Inputs &input) { return eval_gsim(gsim, input); });
-    run_benchmark("grhsim", inputs, repeat, [&](const Inputs &input) { return eval_grhsim(grhsim, input); });
+    const bool runtime_profile = runtime_profile_env_enabled();
+    run_benchmark(
+        "gsim",
+        inputs,
+        repeat,
+        [&](const Inputs &input) { return eval_gsim(gsim, input); },
+        [&] { configure_runtime_profile(gsim, runtime_profile); });
+    run_benchmark(
+        "grhsim",
+        inputs,
+        repeat,
+        [&](const Inputs &input) { return eval_grhsim(grhsim, input); },
+        [&] { configure_runtime_profile(grhsim, runtime_profile); });
+    if (runtime_profile) {
+        dump_runtime_profile(gsim);
+        dump_runtime_profile(grhsim);
+    }
     return 0;
 }
 

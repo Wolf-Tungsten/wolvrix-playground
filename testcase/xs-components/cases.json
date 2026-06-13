@@ -1,244 +1,1402 @@
 [
   {
-    "case": "XsBranchAluSmall",
-    "kind": "branch-alu",
-    "scale": "small",
-    "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/wrapper/BranchUnit.scala",
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/Alu.scala"
-    ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsBranchAluSmall.scala:XsBranchAluSmall",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
-  },
-  {
-    "case": "XsVectorMaskMedium",
-    "kind": "vector-mask",
-    "scale": "medium",
-    "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/vector/ByteMaskTailGen.scala",
-      "testcase/xiangshan/src/main/scala/xiangshan/mem/vector/VecCommon.scala"
-    ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsVectorMaskMedium.scala:XsVectorMaskMedium",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
-  },
-  {
-    "case": "XsAgeMatrixMedium",
-    "kind": "scheduler-age",
-    "scale": "medium",
-    "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/issue/AgeDetector.scala",
-      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueueReplay.scala"
-    ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsAgeMatrixMedium.scala:XsAgeMatrixMedium",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
-  },
-  {
-    "case": "XsPlruLarge",
-    "kind": "replacement",
+    "case": "XsReal000PipelineLoadunitLarge",
+    "kind": "mem-pipeline-loadunit",
     "scale": "large",
     "xiangshan_sources": [
-      "testcase/xiangshan/utility/src/main/scala/utility/Replacement.scala",
-      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/utils/Replacer.scala"
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/pipeline/LoadUnit.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsPlruLarge.scala:XsPlruLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal000PipelineLoadunitLarge.scala:XsReal000PipelineLoadunitLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 3,
+    "tap_count": 12
   },
   {
-    "case": "XsStoreMergeLarge",
-    "kind": "store-merge",
+    "case": "XsReal001RobRobLarge",
+    "kind": "backend-rob-rob",
     "scale": "large",
     "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/mem/sbuffer/Sbuffer.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/rob/Rob.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal001RobRobLarge.scala:XsReal001RobRobLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 4,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal002MemMemblockLarge",
+    "kind": "mem-memblock",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/MemBlock.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal002MemMemblockLarge.scala:XsReal002MemMemblockLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 4,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal003DecodeDecodeunitcompLarge",
+    "kind": "backend-decode-decodeunitcomp",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/decode/DecodeUnitComp.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal003DecodeDecodeunitcompLarge.scala:XsReal003DecodeDecodeunitcompLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal004LsqueueStorequeueLarge",
+    "kind": "mem-lsqueue-storequeue",
+    "scale": "large",
+    "xiangshan_sources": [
       "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/StoreQueue.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsStoreMergeLarge.scala:XsStoreMergeLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal004LsqueueStorequeueLarge.scala:XsReal004LsqueueStorequeueLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 4,
+    "tap_count": 16
   },
   {
-    "case": "XsIcacheReplacerLarge",
-    "kind": "icache-replacer",
+    "case": "XsReal005MmuPagetablecacheLarge",
+    "kind": "cache-mmu-pagetablecache",
     "scale": "large",
     "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/frontend/icache/ICacheReplacer.scala",
-      "testcase/xiangshan/utility/src/main/scala/utility/Replacement.scala"
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/mmu/PageTableCache.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsIcacheReplacerLarge.scala:XsIcacheReplacerLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal005MmuPagetablecacheLarge.scala:XsReal005MmuPagetablecacheLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 2,
+    "tap_count": 8
   },
   {
-    "case": "XsIcacheReplRegsLarge",
-    "kind": "icache-repl-regs",
+    "case": "XsReal006DcacheDcachewrapperLarge",
+    "kind": "cache-dcache-dcachewrapper",
     "scale": "large",
     "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/frontend/icache/ICacheReplacer.scala",
-      "testcase/xiangshan/utility/src/main/scala/utility/Replacement.scala"
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/dcache/DCacheWrapper.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsIcacheReplRegsLarge.scala:XsIcacheReplRegsLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal006DcacheDcachewrapperLarge.scala:XsReal006DcacheDcachewrapperLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 4,
+    "update_ways": 5,
+    "tap_count": 20
   },
   {
-    "case": "XsIcacheReplRegsCatLarge",
-    "kind": "icache-repl-regs",
+    "case": "XsReal007FuCsrLarge",
+    "kind": "backend-fu-csr",
     "scale": "large",
     "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/frontend/icache/ICacheReplacer.scala",
-      "testcase/xiangshan/utility/src/main/scala/utility/Replacement.scala"
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/CSR.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsIcacheReplRegsCatLarge.scala:XsIcacheReplRegsCatLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal007FuCsrLarge.scala:XsReal007FuCsrLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 4,
+    "tap_count": 16
   },
   {
-    "case": "XsStoreQueueBanksLarge",
-    "kind": "store-queue-banks",
+    "case": "XsReal008DecodeDecodeunitLarge",
+    "kind": "backend-decode-decodeunit",
     "scale": "large",
     "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/StoreQueueData.scala",
-      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/StoreQueue.scala"
-    ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsStoreQueueBanksLarge.scala:XsStoreQueueBanksLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
-  },
-  {
-    "case": "XsLoadQueueReplayLarge",
-    "kind": "load-queue-replay",
-    "scale": "large",
-    "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueueReplay.scala",
-      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueueRAW.scala"
-    ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsLoadQueueReplayLarge.scala:XsLoadQueueReplayLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
-  },
-  {
-    "case": "XsPlruBankedXLarge",
-    "kind": "replacement-banked",
-    "scale": "xlarge",
-    "xiangshan_sources": [
-      "testcase/xiangshan/utility/src/main/scala/utility/Replacement.scala",
-      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/utils/Replacer.scala"
-    ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsPlruBankedXLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
-  },
-  {
-    "case": "XsFreeListAllocLarge",
-    "kind": "freelist-alloc",
-    "scale": "large",
-    "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/rename/freelist/StdFreeList.scala",
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/rename/freelist/BaseFreeList.scala"
-    ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsFreeListAllocLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
-  },
-  {
-    "case": "XsRobBankScanLarge",
-    "kind": "rob-bank-scan",
-    "scale": "large",
-    "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/rob/Rob.scala",
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/rob/RobBundles.scala"
-    ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsRobBankScanLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
-  },
-  {
-    "case": "XsIssueBusyMaskLarge",
-    "kind": "issue-busy-mask",
-    "scale": "large",
-    "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/issue/FuBusyTableRead.scala",
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/issue/IssueQueue.scala"
-    ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsIssueBusyMaskLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
-  },
-  {
-    "case": "XsWbArbiterLarge",
-    "kind": "writeback-arbiter",
-    "scale": "large",
-    "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/datapath/WbArbiter.scala",
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/datapath/DataPath.scala"
-    ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsWbArbiterLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
-  },
-  {
-    "case": "XsFusionDecodeLarge",
-    "kind": "fusion-decode",
-    "scale": "large",
-    "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/decode/FusionDecoder.scala",
       "testcase/xiangshan/src/main/scala/xiangshan/backend/decode/DecodeUnit.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsFusionDecodeLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal008DecodeDecodeunitLarge.scala:XsReal008DecodeDecodeunitLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 2,
+    "tap_count": 8
   },
   {
-    "case": "XsTlbPermLarge",
-    "kind": "tlb-permission",
+    "case": "XsReal009NewcsrNewcsrLarge",
+    "kind": "backend-fu-newcsr-newcsr",
     "scale": "large",
     "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/cache/mmu/TLBStorage.scala",
-      "testcase/xiangshan/src/main/scala/xiangshan/cache/mmu/TLB.scala"
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/NewCSR/NewCSR.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsTlbPermLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal009NewcsrNewcsrLarge.scala:XsReal009NewcsrNewcsrLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 8,
+    "update_ways": 4,
+    "tap_count": 16
   },
   {
-    "case": "XsDcacheMetaSelectLarge",
-    "kind": "dcache-meta",
+    "case": "XsReal010IssueIssuequeueLarge",
+    "kind": "backend-issue-issuequeue",
     "scale": "large",
     "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/cache/dcache/meta/TagArray.scala",
-      "testcase/xiangshan/src/main/scala/xiangshan/cache/dcache/meta/AsynchronousMetaArray.scala"
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/issue/IssueQueue.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsDcacheMetaSelectLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal010IssueIssuequeueLarge.scala:XsReal010IssueIssuequeueLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 3,
+    "tap_count": 12
   },
   {
-    "case": "XsVecMergeBufferLarge",
-    "kind": "vector-merge-buffer",
+    "case": "XsReal011MainpipeMissqueueLarge",
+    "kind": "cache-dcache-mainpipe-missqueue",
     "scale": "large",
     "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/mem/vector/VMergeBuffer.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/dcache/mainpipe/MissQueue.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal011MainpipeMissqueueLarge.scala:XsReal011MainpipeMissqueueLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 5,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal012MmuPagetablewalkerLarge",
+    "kind": "cache-mmu-pagetablewalker",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/mmu/PageTableWalker.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal012MmuPagetablewalkerLarge.scala:XsReal012MmuPagetablewalkerLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal013PrefetchSmsprefetcherLarge",
+    "kind": "mem-prefetch-smsprefetcher",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/prefetch/SMSPrefetcher.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal013PrefetchSmsprefetcherLarge.scala:XsReal013PrefetchSmsprefetcherLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal014DispatchNewdispatchLarge",
+    "kind": "backend-dispatch-newdispatch",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/dispatch/NewDispatch.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal014DispatchNewdispatchLarge.scala:XsReal014DispatchNewdispatchLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal015Tl2ChiMshrLarge",
+    "kind": "coupledl2-src-main-scala-coupledl2-tl2chi-mshr",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/tl2chi/MSHR.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal015Tl2ChiMshrLarge.scala:XsReal015Tl2ChiMshrLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal016DecodeVecdecoderLarge",
+    "kind": "backend-decode-vecdecoder",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/decode/VecDecoder.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal016DecodeVecdecoderLarge.scala:XsReal016DecodeVecdecoderLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 4,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal017MmuL2TlbLarge",
+    "kind": "cache-mmu-l2tlb",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/mmu/L2TLB.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal017MmuL2TlbLarge.scala:XsReal017MmuL2TlbLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal018VectorVsegmentunitLarge",
+    "kind": "mem-vector-vsegmentunit",
+    "scale": "large",
+    "xiangshan_sources": [
       "testcase/xiangshan/src/main/scala/xiangshan/mem/vector/VSegmentUnit.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsVecMergeBufferLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal018VectorVsegmentunitLarge.scala:XsReal018VectorVsegmentunitLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 4,
+    "tap_count": 16
   },
   {
-    "case": "XsPrefetchStrideLarge",
-    "kind": "prefetch-stride",
+    "case": "XsReal019BackendCtrlblockLarge",
+    "kind": "backend-ctrlblock",
     "scale": "large",
     "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/mem/prefetch/L1StridePrefetcher.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/CtrlBlock.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal019BackendCtrlblockLarge.scala:XsReal019BackendCtrlblockLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 6,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal020DatapathDatapathLarge",
+    "kind": "backend-datapath-datapath",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/datapath/DataPath.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal020DatapathDatapathLarge.scala:XsReal020DatapathDatapathLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal021Tl2ChiMainpipeLarge",
+    "kind": "coupledl2-src-main-scala-coupledl2-tl2chi-mainpipe",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/tl2chi/MainPipe.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal021Tl2ChiMainpipeLarge.scala:XsReal021Tl2ChiMainpipeLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 4,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal022BackendRegionLarge",
+    "kind": "backend-region",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/Region.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal022BackendRegionLarge.scala:XsReal022BackendRegionLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 4,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal023RenameRenameLarge",
+    "kind": "backend-rename-rename",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/rename/Rename.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal023RenameRenameLarge.scala:XsReal023RenameRenameLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal024MainpipeMainpipeLarge",
+    "kind": "cache-dcache-mainpipe-mainpipe",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/dcache/mainpipe/MainPipe.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal024MainpipeMainpipeLarge.scala:XsReal024MainpipeMainpipeLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 8,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal025IfuIfuLarge",
+    "kind": "frontend-ifu-ifu",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/ifu/Ifu.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal025IfuIfuLarge.scala:XsReal025IfuIfuLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal026LsqueueLoadqueuereplayLarge",
+    "kind": "mem-lsqueue-loadqueuereplay",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueueReplay.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal026LsqueueLoadqueuereplayLarge.scala:XsReal026LsqueueLoadqueuereplayLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 4,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal027SbufferSbufferLarge",
+    "kind": "mem-sbuffer-sbuffer",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/sbuffer/Sbuffer.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal027SbufferSbufferLarge.scala:XsReal027SbufferSbufferLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal028PrefetchL1PrefetchcomponentLarge",
+    "kind": "mem-prefetch-l1prefetchcomponent",
+    "scale": "large",
+    "xiangshan_sources": [
       "testcase/xiangshan/src/main/scala/xiangshan/mem/prefetch/L1PrefetchComponent.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsPrefetchStrideLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal028PrefetchL1PrefetchcomponentLarge.scala:XsReal028PrefetchL1PrefetchcomponentLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 4,
+    "tap_count": 16
   },
   {
-    "case": "XsLoadQueueRawLarge",
-    "kind": "load-queue-raw",
+    "case": "XsReal029PipelineStoreunitLarge",
+    "kind": "mem-pipeline-storeunit",
     "scale": "large",
     "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueueRAW.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/pipeline/StoreUnit.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal029PipelineStoreunitLarge.scala:XsReal029PipelineStoreunitLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal030PrefetchBertiLarge",
+    "kind": "mem-prefetch-berti",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/prefetch/Berti.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal030PrefetchBertiLarge.scala:XsReal030PrefetchBertiLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal031DataBankeddataarrayLarge",
+    "kind": "cache-dcache-data-bankeddataarray",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/dcache/data/BankedDataArray.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal031DataBankeddataarrayLarge.scala:XsReal031DataBankeddataarrayLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 5,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal032IssueEntriesLarge",
+    "kind": "backend-issue-entries",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/issue/Entries.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal032IssueEntriesLarge.scala:XsReal032IssueEntriesLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal033XiangshanPackageLarge",
+    "kind": "xiangshan-package",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/package.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal033XiangshanPackageLarge.scala:XsReal033XiangshanPackageLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 4,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal034MmuTlbLarge",
+    "kind": "cache-mmu-tlb",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/mmu/TLB.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal034MmuTlbLarge.scala:XsReal034MmuTlbLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal035BackendBackendLarge",
+    "kind": "backend-backend",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/Backend.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal035BackendBackendLarge.scala:XsReal035BackendBackendLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 7,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal036VectorVeccommonLarge",
+    "kind": "mem-vector-veccommon",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/vector/VecCommon.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal036VectorVeccommonLarge.scala:XsReal036VectorVeccommonLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 4,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal037Tl2TlMainpipeLarge",
+    "kind": "coupledl2-src-main-scala-coupledl2-tl2tl-mainpipe",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/tl2tl/MainPipe.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal037Tl2TlMainpipeLarge.scala:XsReal037Tl2TlMainpipeLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal038PrefetchBestoffsetprefetchLarge",
+    "kind": "coupledl2-src-main-scala-coupledl2-prefetch-bestoffsetprefetch",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/prefetch/BestOffsetPrefetch.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal038PrefetchBestoffsetprefetchLarge.scala:XsReal038PrefetchBestoffsetprefetchLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal039LoadpipeLoadpipeLarge",
+    "kind": "cache-dcache-loadpipe-loadpipe",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/dcache/loadpipe/LoadPipe.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal039LoadpipeLoadpipeLarge.scala:XsReal039LoadpipeLoadpipeLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 8,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal040MmuRepeaterLarge",
+    "kind": "cache-mmu-repeater",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/mmu/Repeater.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal040MmuRepeaterLarge.scala:XsReal040MmuRepeaterLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal041ScScLarge",
+    "kind": "frontend-bpu-sc-sc",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/bpu/sc/Sc.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal041ScScLarge.scala:XsReal041ScScLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 5,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal042ExuExeunitLarge",
+    "kind": "backend-exu-exeunit",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/exu/ExeUnit.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal042ExuExeunitLarge.scala:XsReal042ExuExeunitLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal043TageTageLarge",
+    "kind": "frontend-bpu-tage-tage",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/bpu/tage/Tage.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal043TageTageLarge.scala:XsReal043TageTageLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 7,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal044SramSramtemplateLarge",
+    "kind": "utility-src-main-scala-utility-sram-sramtemplate",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/utility/src/main/scala/utility/sram/SRAMTemplate.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal044SramSramtemplateLarge.scala:XsReal044SramSramtemplateLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal045NewcsrMachinelevelLarge",
+    "kind": "backend-fu-newcsr-machinelevel",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/NewCSR/MachineLevel.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal045NewcsrMachinelevelLarge.scala:XsReal045NewcsrMachinelevelLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 4,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal046PipelineAtomicsunitLarge",
+    "kind": "mem-pipeline-atomicsunit",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/pipeline/AtomicsUnit.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal046PipelineAtomicsunitLarge.scala:XsReal046PipelineAtomicsunitLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 4,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal047LsqueueLoadmisalignbufferLarge",
+    "kind": "mem-lsqueue-loadmisalignbuffer",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadMisalignBuffer.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal047LsqueueLoadmisalignbufferLarge.scala:XsReal047LsqueueLoadmisalignbufferLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal048LsqueueStoremisalignbufferLarge",
+    "kind": "mem-lsqueue-storemisalignbuffer",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/StoreMisalignBuffer.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal048LsqueueStoremisalignbufferLarge.scala:XsReal048LsqueueStoremisalignbufferLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal049LsqueueLsqwrapperLarge",
+    "kind": "mem-lsqueue-lsqwrapper",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LSQWrapper.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal049LsqueueLsqwrapperLarge.scala:XsReal049LsqueueLsqwrapperLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal050Coupledl2Coupledl2Large",
+    "kind": "coupledl2-src-main-scala-coupledl2-coupledl2",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/CoupledL2.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal050Coupledl2Coupledl2Large.scala:XsReal050Coupledl2Coupledl2Large",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 7,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal051DcacheUncacheLarge",
+    "kind": "cache-dcache-uncache",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/dcache/Uncache.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal051DcacheUncacheLarge.scala:XsReal051DcacheUncacheLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 4,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal052WrapperCsrLarge",
+    "kind": "backend-fu-wrapper-csr",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/wrapper/CSR.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal052WrapperCsrLarge.scala:XsReal052WrapperCsrLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 6,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal053FtqFtqLarge",
+    "kind": "frontend-ftq-ftq",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/ftq/Ftq.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal053FtqFtqLarge.scala:XsReal053FtqFtqLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal054VectorVsplitLarge",
+    "kind": "mem-vector-vsplit",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/vector/VSplit.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal054VectorVsplitLarge.scala:XsReal054VectorVsplitLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal055DecodeFusiondecoderLarge",
+    "kind": "backend-decode-fusiondecoder",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/decode/FusionDecoder.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal055DecodeFusiondecoderLarge.scala:XsReal055DecodeFusiondecoderLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal056IcacheIcacheprefetchpipeLarge",
+    "kind": "frontend-icache-icacheprefetchpipe",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/icache/ICachePrefetchPipe.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal056IcacheIcacheprefetchpipeLarge.scala:XsReal056IcacheIcacheprefetchpipeLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 4,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal057BpuBpuLarge",
+    "kind": "frontend-bpu-bpu",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/bpu/Bpu.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal057BpuBpuLarge.scala:XsReal057BpuBpuLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal058LsqueueLoadqueueuncacheLarge",
+    "kind": "mem-lsqueue-loadqueueuncache",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueueUncache.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal058LsqueueLoadqueueuncacheLarge.scala:XsReal058LsqueueLoadqueueuncacheLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal059VectorVmergebufferLarge",
+    "kind": "mem-vector-vmergebuffer",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/vector/VMergeBuffer.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal059VectorVmergebufferLarge.scala:XsReal059VectorVmergebufferLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal060MdpStoresetLarge",
+    "kind": "mem-mdp-storeset",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/mdp/StoreSet.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal060MdpStoresetLarge.scala:XsReal060MdpStoresetLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal061UtilityChiseltaggedtraceLarge",
+    "kind": "utility-src-main-scala-utility-chiseltaggedtrace",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/utility/src/main/scala/utility/ChiselTaggedTrace.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal061UtilityChiseltaggedtraceLarge.scala:XsReal061UtilityChiseltaggedtraceLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 8,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal062MmuBitmapcheckLarge",
+    "kind": "cache-mmu-bitmapcheck",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/mmu/BitmapCheck.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal062MmuBitmapcheckLarge.scala:XsReal062MmuBitmapcheckLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal063LsqueueLoadqueuerawLarge",
+    "kind": "mem-lsqueue-loadqueueraw",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueueRAW.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal063LsqueueLoadqueuerawLarge.scala:XsReal063LsqueueLoadqueuerawLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal064IcacheIcachemissunitLarge",
+    "kind": "frontend-icache-icachemissunit",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/icache/ICacheMissUnit.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal064IcacheIcachemissunitLarge.scala:XsReal064IcacheIcachemissunitLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal065NewcsrCsrpermitmoduleLarge",
+    "kind": "backend-fu-newcsr-csrpermitmodule",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/NewCSR/CSRPermitModule.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal065NewcsrCsrpermitmoduleLarge.scala:XsReal065NewcsrCsrpermitmoduleLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 4,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal066LsqueueLoadqueueLarge",
+    "kind": "mem-lsqueue-loadqueue",
+    "scale": "large",
+    "xiangshan_sources": [
       "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/LoadQueue.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsLoadQueueRawLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal066LsqueueLoadqueueLarge.scala:XsReal066LsqueueLoadqueueLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 4,
+    "update_ways": 3,
+    "tap_count": 12
   },
   {
-    "case": "XsCsrTrapPriorityLarge",
-    "kind": "csr-trap-priority",
+    "case": "XsReal067DatapathWbarbiterLarge",
+    "kind": "backend-datapath-wbarbiter",
     "scale": "large",
     "xiangshan_sources": [
-      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/NewCSR/CSRModule.scala",
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/datapath/WbArbiter.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal067DatapathWbarbiterLarge.scala:XsReal067DatapathWbarbiterLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal068Tl2TlMshrLarge",
+    "kind": "coupledl2-src-main-scala-coupledl2-tl2tl-mshr",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/tl2tl/MSHR.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal068Tl2TlMshrLarge.scala:XsReal068Tl2TlMshrLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal069IbufferIbufferLarge",
+    "kind": "frontend-ibuffer-ibuffer",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/ibuffer/IBuffer.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal069IbufferIbufferLarge.scala:XsReal069IbufferIbufferLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal070PrefetchL1StreamprefetcherLarge",
+    "kind": "mem-prefetch-l1streamprefetcher",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/prefetch/L1StreamPrefetcher.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal070PrefetchL1StreamprefetcherLarge.scala:XsReal070PrefetchL1StreamprefetcherLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal071IcacheIcachemainpipeLarge",
+    "kind": "frontend-icache-icachemainpipe",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/icache/ICacheMainPipe.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal071IcacheIcachemainpipeLarge.scala:XsReal071IcacheIcachemainpipeLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 4,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal072BackendVecexcpdatamergemoduleLarge",
+    "kind": "backend-vecexcpdatamergemodule",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/VecExcpDataMergeModule.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal072BackendVecexcpdatamergemoduleLarge.scala:XsReal072BackendVecexcpdatamergemoduleLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 4,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal073PrefetchPrefetcherwrapperLarge",
+    "kind": "mem-prefetch-prefetcherwrapper",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/prefetch/PrefetcherWrapper.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal073PrefetchPrefetcherwrapperLarge.scala:XsReal073PrefetchPrefetcherwrapperLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal074DatapathBypassnetworkLarge",
+    "kind": "backend-datapath-bypassnetwork",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/datapath/BypassNetwork.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal074DatapathBypassnetworkLarge.scala:XsReal074DatapathBypassnetworkLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal075RobVtypebufferLarge",
+    "kind": "backend-rob-vtypebuffer",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/rob/VTypeBuffer.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal075RobVtypebufferLarge.scala:XsReal075RobVtypebufferLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal076Coupledl2GrantbufferLarge",
+    "kind": "coupledl2-src-main-scala-coupledl2-grantbuffer",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/GrantBuffer.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal076Coupledl2GrantbufferLarge.scala:XsReal076Coupledl2GrantbufferLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 8,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal077RegfileRegfileLarge",
+    "kind": "backend-regfile-regfile",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/regfile/Regfile.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal077RegfileRegfileLarge.scala:XsReal077RegfileRegfileLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal078WrapperVfaluLarge",
+    "kind": "backend-fu-wrapper-vfalu",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/wrapper/VFALU.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal078WrapperVfaluLarge.scala:XsReal078WrapperVfaluLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 7,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal079PrefetchPrefetcherLarge",
+    "kind": "coupledl2-src-main-scala-coupledl2-prefetch-prefetcher",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/prefetch/Prefetcher.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal079PrefetchPrefetcherLarge.scala:XsReal079PrefetchPrefetcherLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal080XiangshanL2TopLarge",
+    "kind": "xiangshan-l2top",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/L2Top.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal080XiangshanL2TopLarge.scala:XsReal080XiangshanL2TopLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 6,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal081RenameRenametableLarge",
+    "kind": "backend-rename-renametable",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/rename/RenameTable.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal081RenameRenametableLarge.scala:XsReal081RenameRenametableLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 4,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal082Tl2ChiMmiobridgeLarge",
+    "kind": "coupledl2-src-main-scala-coupledl2-tl2chi-mmiobridge",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/tl2chi/MMIOBridge.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal082Tl2ChiMmiobridgeLarge.scala:XsReal082Tl2ChiMmiobridgeLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal083ChiMessageLarge",
+    "kind": "coupledl2-src-main-scala-coupledl2-tl2chi-chi-message",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/tl2chi/chi/Message.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal083ChiMessageLarge.scala:XsReal083ChiMessageLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 7,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal084IttageIttageLarge",
+    "kind": "frontend-bpu-ittage-ittage",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/bpu/ittage/Ittage.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal084IttageIttageLarge.scala:XsReal084IttageIttageLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 8,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal085MainpipeWritebackqueueLarge",
+    "kind": "cache-dcache-mainpipe-writebackqueue",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/dcache/mainpipe/WritebackQueue.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal085MainpipeWritebackqueueLarge.scala:XsReal085MainpipeWritebackqueueLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 4,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal086DecodeDecodestageLarge",
+    "kind": "backend-decode-decodestage",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/decode/DecodeStage.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal086DecodeDecodestageLarge.scala:XsReal086DecodeDecodestageLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 4,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal087NewcsrInterruptfilterLarge",
+    "kind": "backend-fu-newcsr-interruptfilter",
+    "scale": "large",
+    "xiangshan_sources": [
       "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/NewCSR/InterruptFilter.scala"
     ],
-    "dut": "testcase/xs-components/src/main/scala/cases/XsAdditionalRealCases.scala:XsCsrTrapPriorityLarge",
-    "tb": "testcase/xs-components/tb/xs_component_bench.cpp"
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal087NewcsrInterruptfilterLarge.scala:XsReal087NewcsrInterruptfilterLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 6,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal088FuPmpLarge",
+    "kind": "backend-fu-pmp",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/PMP.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal088FuPmpLarge.scala:XsReal088FuPmpLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal089LsqueueStorequeuedataLarge",
+    "kind": "mem-lsqueue-storequeuedata",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/StoreQueueData.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal089LsqueueStorequeuedataLarge.scala:XsReal089LsqueueStorequeuedataLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal090PrefetchTemporalprefetchLarge",
+    "kind": "coupledl2-src-main-scala-coupledl2-prefetch-temporalprefetch",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/prefetch/TemporalPrefetch.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal090PrefetchTemporalprefetchLarge.scala:XsReal090PrefetchTemporalprefetchLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal091Coupledl2RequestbufferLarge",
+    "kind": "coupledl2-src-main-scala-coupledl2-requestbuffer",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/RequestBuffer.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal091Coupledl2RequestbufferLarge.scala:XsReal091Coupledl2RequestbufferLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 8,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal092MmuTlbstorageLarge",
+    "kind": "cache-mmu-tlbstorage",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/cache/mmu/TLBStorage.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal092MmuTlbstorageLarge.scala:XsReal092MmuTlbstorageLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal093FrontendFrontendLarge",
+    "kind": "frontend-frontend",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/Frontend.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal093FrontendFrontendLarge.scala:XsReal093FrontendFrontendLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 5,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal094Coupledl2RequestarbLarge",
+    "kind": "coupledl2-src-main-scala-coupledl2-requestarb",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/RequestArb.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal094Coupledl2RequestarbLarge.scala:XsReal094Coupledl2RequestarbLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 6,
+    "update_ways": 5,
+    "tap_count": 20
+  },
+  {
+    "case": "XsReal095RobRabLarge",
+    "kind": "backend-rob-rab",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/rob/Rab.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal095RobRabLarge.scala:XsReal095RobRabLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 48,
+    "lanes": 8,
+    "update_ways": 4,
+    "tap_count": 16
+  },
+  {
+    "case": "XsReal096Coupledl2CommonLarge",
+    "kind": "coupledl2-src-main-scala-coupledl2-common",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/coupledL2/src/main/scala/coupledL2/Common.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal096Coupledl2CommonLarge.scala:XsReal096Coupledl2CommonLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 8,
+    "update_ways": 3,
+    "tap_count": 12
+  },
+  {
+    "case": "XsReal097FuSrt16DividerLarge",
+    "kind": "backend-fu-srt16divider",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/fu/SRT16Divider.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal097FuSrt16DividerLarge.scala:XsReal097FuSrt16DividerLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 80,
+    "lanes": 5,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal098LsqueueVirtualloadqueueLarge",
+    "kind": "mem-lsqueue-virtualloadqueue",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/lsqueue/VirtualLoadQueue.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal098LsqueueVirtualloadqueueLarge.scala:XsReal098LsqueueVirtualloadqueueLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 96,
+    "lanes": 6,
+    "update_ways": 2,
+    "tap_count": 8
+  },
+  {
+    "case": "XsReal099PrefetchPrefetchermonitorLarge",
+    "kind": "mem-prefetch-prefetchermonitor",
+    "scale": "large",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/mem/prefetch/PrefetcherMonitor.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal099PrefetchPrefetchermonitorLarge.scala:XsReal099PrefetchPrefetchermonitorLarge",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 128,
+    "lanes": 7,
+    "update_ways": 4,
+    "tap_count": 16
   }
 ]

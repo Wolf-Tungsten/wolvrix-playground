@@ -1,17 +1,13 @@
 # XiangShan Component Matrix
 
-This testcase isolates a small matrix of XiangShan-shaped components for GSIM
-vs GrhSIM performance analysis. It does not modify either simulator.
-`cases.json` records the source paths, extracted DUT top, scale, and benchmark
-TB for each case.
+This testcase isolates 100 standalone medium/large, stateful
+XiangShan-derived components for GSIM vs GrhSIM performance analysis.  Every
+case is generated as its own Scala source file under `src/main/scala/cases/` and
+is self-contained: it imports Chisel, defines its own IO bundle and local helper
+logic, and does not extend or call a shared xs-components case template.
 
-Cases:
-
-- `XsBranchAluSmall`: branch compare plus ALU shift/rotate datapath, from `BranchUnit` and `Alu`.
-- `XsVectorMaskMedium`: vector byte mask and tail mask generation, from `ByteMaskTailGen` and vector memory helpers.
-- `XsAgeMatrixMedium`: issue/load replay age selection, from issue queue and load queue age detectors.
-- `XsPlruLarge`: replacement policy candidate selection, from utility and coupledL2 replacers.
-- `XsStoreMergeLarge`: store-buffer byte merge and cross-16-byte masks, from `Sbuffer` and `StoreQueue`.
+`cases.json` records the real XiangShan source file used as the origin for each
+case, the extracted DUT top, scale, and benchmark TB.
 
 Run the full matrix:
 
@@ -22,7 +18,7 @@ make -C testcase/xs-components matrix
 Run one case:
 
 ```bash
-make -C testcase/xs-components CASE=XsVectorMaskMedium one
+make -C testcase/xs-components CASE=XsReal000PipelineLoadunitLarge one
 ```
 
 Outputs are under `testcase/xs-components/build/<case>/`:
@@ -35,7 +31,6 @@ Outputs are under `testcase/xs-components/build/<case>/`:
 - `stats/model_stats.json`: per-case performance and static model stats.
 - `build/matrix/results.csv`: one-row-per-case matrix summary.
 
-All cases use the same standalone IO ABI and C++ benchmark. The Chisel source
-in `src/main/scala/XsComponents.scala` is a copied and reduced extract of the
-named XiangShan logic shapes, changed only enough to remove the full XiangShan
-parameter graph and make each module independently simulatable.
+The cases intentionally contain register-backed tables and per-cycle state
+updates, so runtime profiles have nonzero state source and sink work rather than
+collapsing to pure combinational compute.
