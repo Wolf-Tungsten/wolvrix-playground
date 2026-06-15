@@ -1398,5 +1398,19 @@
     "lanes": 7,
     "update_ways": 4,
     "tap_count": 16
+  },
+  {
+    "case": "XsReal100BackendNfmappedelemidxSmall",
+    "kind": "backend-nfmappedelemidx",
+    "scale": "small",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/backend/VecExcpDataMergeModule.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsReal100BackendNfmappedelemidxSmall.scala:XsReal100BackendNfmappedelemidxSmall",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 8,
+    "lanes": 4,
+    "update_ways": 0,
+    "tap_count": 8
   }
 ]

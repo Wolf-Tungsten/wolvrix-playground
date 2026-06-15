@@ -235,17 +235,16 @@ inline bool same(const Outputs &lhs, const Outputs &rhs)
            lhs.flags == rhs.flags && lhs.checksum == rhs.checksum;
 }
 
+template <typename Model>
+inline void configure_runtime_profile(Model &model, bool enabled);
+
 inline bool verify_models(const std::vector<Inputs> &vectors, unsigned count)
 {
     GSIM_CLASS gsim;
     GRHSIM_CLASS grhsim;
     grhsim.init();
-    if constexpr (requires(GSIM_CLASS &dut) { dut.set_runtime_profile_enabled(false); }) {
-        gsim.set_runtime_profile_enabled(false);
-    }
-    if constexpr (requires(GRHSIM_CLASS &dut) { dut.set_runtime_profile_enabled(false); }) {
-        grhsim.set_runtime_profile_enabled(false);
-    }
+    configure_runtime_profile(gsim, false);
+    configure_runtime_profile(grhsim, false);
     reset_gsim(gsim);
     reset_grhsim(grhsim);
     const unsigned limit = std::min<unsigned>(count, vectors.size());
