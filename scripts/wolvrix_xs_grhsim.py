@@ -359,6 +359,7 @@ def main() -> int:
         max_op_in_compute_supernode,
     )
     max_op_in_commit_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE", 4096)
+    commit_guard_event_buckets = env_flag("WOLVRIX_XS_GRHSIM_COMMIT_GUARD_EVENT_BUCKETS", default=True)
     sched_batch_max_ops = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_OPS", 2048)
     sched_batch_max_estimated_lines = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES", 8192)
     sched_batch_target_count = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_TARGET_COUNT", 64)
@@ -395,6 +396,7 @@ def main() -> int:
         f"split_oversize_compute_nodes={split_oversize_compute_nodes} "
         f"split_oversize_compute_node_max_ops={split_oversize_compute_node_max_ops} "
         f"max_op_in_commit_supernode={max_op_in_commit_supernode} "
+        f"commit_guard_event_buckets={commit_guard_event_buckets} "
         f"sched_batch_max_ops={sched_batch_max_ops} "
         f"sched_batch_max_estimated_lines={sched_batch_max_estimated_lines} "
         f"sched_batch_target_count={sched_batch_target_count} "
@@ -465,6 +467,7 @@ def main() -> int:
                     "split_oversize_compute_nodes": split_oversize_compute_nodes,
                     "split_oversize_compute_node_max_ops": split_oversize_compute_node_max_ops,
                     "max_op_in_commit_supernode": max_op_in_commit_supernode,
+                    "commit_guard_event_buckets": commit_guard_event_buckets,
                 },
             ),
         ]

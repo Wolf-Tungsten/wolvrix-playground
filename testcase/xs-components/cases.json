@@ -1412,5 +1412,19 @@
     "lanes": 4,
     "update_ways": 0,
     "tap_count": 8
+  },
+  {
+    "case": "XsRealFtqMetaQueueResolve",
+    "kind": "frontend-ftq-metaqueueresolve",
+    "scale": "small",
+    "xiangshan_sources": [
+      "testcase/xiangshan/src/main/scala/xiangshan/frontend/ftq/Ftq.scala"
+    ],
+    "dut": "testcase/xs-components/src/main/scala/cases/XsRealFtqMetaQueueResolve.scala:XsRealFtqMetaQueueResolve",
+    "tb": "testcase/xs-components/tb/xs_component_bench.cpp",
+    "entries": 64,
+    "lanes": 8,
+    "update_ways": 0,
+    "tap_count": 8
   }
 ]

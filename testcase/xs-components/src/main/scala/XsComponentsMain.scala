@@ -107,7 +107,8 @@ object XsComponentsMain extends App {
     "XsReal097FuSrt16DividerLarge" -> (() => new XsReal097FuSrt16DividerLarge),
     "XsReal098LsqueueVirtualloadqueueLarge" -> (() => new XsReal098LsqueueVirtualloadqueueLarge),
     "XsReal099PrefetchPrefetchermonitorLarge" -> (() => new XsReal099PrefetchPrefetchermonitorLarge),
-    "XsReal100BackendNfmappedelemidxSmall" -> (() => new XsReal100BackendNfmappedelemidxSmall)
+    "XsReal100BackendNfmappedelemidxSmall" -> (() => new XsReal100BackendNfmappedelemidxSmall),
+    "XsRealFtqMetaQueueResolve" -> (() => new XsRealFtqMetaQueueResolve)
   )
 
   val top = args.sliding(2).collectFirst { case Array("--top-name", name) => name }.getOrElse("XsReal000PipelineLoadunitLarge")
