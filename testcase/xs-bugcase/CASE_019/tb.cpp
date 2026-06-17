@@ -12,17 +12,19 @@ enum class EvalModel {
     GrhSIM,
 };
 
-enum class Phase {
-    Reset,
-    Issue,
-    WaitAcquire,
-    Grant0,
-    Grant1,
-    WaitResp,
-    DrainWayLookup,
-    Gap,
-    Done,
-};
+static constexpr int kTransactions = 12;
+static constexpr int kSources = 16;
+static constexpr int kFetchTransactions = 4;
+static constexpr int kPrefetchTransactions = kTransactions - kFetchTransactions;
+static constexpr int kFetchWindow = 14;
+static constexpr int kGrantStartDepth = 4;
+
+static constexpr int kStateUnissued = 0;
+static constexpr int kStateIssued = 1;
+static constexpr int kStateAcquired = 2;
+static constexpr int kStateGrant0 = 3;
+static constexpr int kStateGrant1 = 4;
+static constexpr int kStateResponded = 5;
 
 struct Entry {
     std::uint16_t vset = 0;
@@ -93,12 +95,19 @@ struct Outputs {
     bool data_write_valid = false;
     std::uint8_t data_write_vset = 0;
     std::uint8_t data_write_waymask = 0;
+    std::uint64_t data_write_data[8]{};
     bool victim_req_valid = false;
     std::uint8_t victim_req_vset = 0;
     bool mem_acquire_valid = false;
     std::uint8_t mem_acquire_source = 0;
     std::uint64_t mem_acquire_address = 0;
     std::uint8_t mem_acquire_alias = 0;
+    bool refill_valid = false;
+    std::uint64_t refill_addr = 0;
+    std::uint64_t refill_data[8]{};
+    std::uint8_t refill_mask = 0;
+    std::uint8_t refill_coreid = 0;
+    std::uint8_t refill_index = 0;
     bool way_read_valid = false;
     std::uint16_t way_read_vset = 0;
     std::uint8_t way_read_waymask = 0;
@@ -119,17 +128,23 @@ struct StepResult {
 };
 
 struct Driver {
-    Phase phase = Phase::Reset;
-    int tx_index = 0;
-    bool fetch_done = false;
-    bool write_done = false;
-    bool have_acquire = false;
-    std::uint8_t acquire_source = 0;
-    int gap_left = 0;
+    int next_fetch = 0;
+    int next_prefetch = kFetchTransactions;
+    int next_write = 0;
+    int current_grant_source = -1;
+    int responses_seen = 0;
+    int data_writes_seen = 0;
+    int way_reads_seen = 0;
+    int tx_state[kTransactions]{};
+    bool tx_write_done[kTransactions]{};
+    bool source_valid[kSources]{};
+    int source_tx[kSources]{};
+    int source_beat[kSources]{};
 };
 
 struct Coverage {
     int fetch_fires = 0;
+    int prefetch_fires = 0;
     int way_writes = 0;
     int acquire_fires = 0;
     int grant_beats = 0;
@@ -139,7 +154,6 @@ struct Coverage {
     int way_reads = 0;
 };
 
-static constexpr int kTransactions = 6;
 static vluint64_t main_time = 0;
 static EvalModel active_model = EvalModel::Ref;
 static int ref_assert_count = 0;
@@ -189,25 +203,91 @@ Entry make_entry(int seq, std::uint8_t vset, std::uint8_t waymask, std::uint64_t
 Transaction make_transaction(int seq)
 {
     Transaction tx;
-    const std::uint64_t ptag = 0x12000ULL + static_cast<std::uint64_t>(seq) * 0x123ULL;
-    const std::uint8_t block_offset = static_cast<std::uint8_t>((seq * 9 + 3) & 0x3Fu);
-    tx.blk_paddr = mask_bits((ptag << 6) | block_offset, 42);
-    tx.vset = static_cast<std::uint8_t>(0x20 + seq * 17);
+    const std::uint64_t byte_addr = 0x80000000ULL + static_cast<std::uint64_t>(seq) * 0x40ULL;
+    tx.blk_paddr = mask_bits(byte_addr >> 6, 42);
+    tx.vset = static_cast<std::uint8_t>(0x20 + seq * 13);
     tx.victim_way = static_cast<std::uint8_t>(seq & 3);
+    const std::uint64_t ptag = tx.blk_paddr >> 6;
     const std::uint8_t waymask = static_cast<std::uint8_t>(1u << tx.victim_way);
     tx.way_entry = make_entry(seq, tx.vset, waymask, ptag);
     for (int i = 0; i < 8; ++i) {
         tx.grant_data[i] =
-            (0xC0FFEE0000000000ULL ^ (static_cast<std::uint64_t>(seq) << 40))
-            + static_cast<std::uint64_t>(i) * 0x0101010101010101ULL
-            + static_cast<std::uint64_t>(seq * 0x1234);
+            (0xC0DE000000000000ULL ^ (static_cast<std::uint64_t>(seq) << 48))
+            | ((byte_addr + static_cast<std::uint64_t>(i) * 8ULL) & 0xFFFFFFFFFFFFULL);
     }
     return tx;
 }
 
-const Transaction& current_tx(const Driver& d, const Transaction txs[kTransactions])
+int find_tx_by_acquire_address(const Transaction txs[kTransactions], std::uint64_t address)
 {
-    return txs[d.tx_index < kTransactions ? d.tx_index : kTransactions - 1];
+    for (int i = 0; i < kTransactions; ++i) {
+        if (((txs[i].blk_paddr << 6) & 0xFFFFFFFFFFFFULL) == (address & 0xFFFFFFFFFFFFULL)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int count_inflight_fetches(const Driver& d)
+{
+    int count = 0;
+    for (int i = 0; i < kTransactions; ++i) {
+        if (d.tx_state[i] >= kStateIssued && d.tx_state[i] < kStateResponded) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+int count_acquired_not_done(const Driver& d)
+{
+    int count = 0;
+    for (int i = 0; i < kTransactions; ++i) {
+        if (d.tx_state[i] >= kStateAcquired && d.tx_state[i] < kStateResponded) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+int choose_grant_source(const Driver& d)
+{
+    for (int source = kSources - 1; source >= 0; --source) {
+        if (d.source_valid[source] && d.source_beat[source] < 2) {
+            return source;
+        }
+    }
+    return -1;
+}
+
+int find_source_for_tx(const Driver& d, int tx_index)
+{
+    for (int source = 0; source < kSources; ++source) {
+        if (d.source_valid[source] && d.source_tx[source] == tx_index) {
+            return source;
+        }
+    }
+    return -1;
+}
+
+const char* state_name(int state)
+{
+    switch (state) {
+    case kStateUnissued:
+        return "unissued";
+    case kStateIssued:
+        return "issued";
+    case kStateAcquired:
+        return "acquired";
+    case kStateGrant0:
+        return "grant0";
+    case kStateGrant1:
+        return "grant1";
+    case kStateResponded:
+        return "responded";
+    default:
+        return "unknown";
+    }
 }
 
 Stimulus build_stimulus(int cycle, const Driver& d, const Transaction txs[kTransactions])
@@ -216,45 +296,61 @@ Stimulus build_stimulus(int cycle, const Driver& d, const Transaction txs[kTrans
     s.rst_n = cycle >= 3;
     s.hartId = (cycle & 1) != 0;
     s.mem_acquire_ready = true;
-    if (!s.rst_n || d.phase == Phase::Reset || d.phase == Phase::Done) {
+    if (!s.rst_n) {
         return s;
     }
 
-    const Transaction& tx = current_tx(d, txs);
-    s.fetch_blk_paddr = tx.blk_paddr;
-    s.fetch_vset = tx.vset;
-    s.prefetch_blk_paddr = tx.blk_paddr ^ 0x11ULL;
-    s.prefetch_vset = static_cast<std::uint8_t>(tx.vset ^ 0x33u);
-    s.victim_way = tx.victim_way;
-    s.way_write = tx.way_entry;
+    if (d.next_fetch < kFetchTransactions && count_inflight_fetches(d) < kFetchWindow) {
+        const Transaction& tx = txs[d.next_fetch];
+        s.fetch_valid = true;
+        s.fetch_blk_paddr = tx.blk_paddr;
+        s.fetch_vset = tx.vset;
+        s.victim_way = tx.victim_way;
+    }
+    else {
+        s.fetch_blk_paddr = txs[kTransactions - 1].blk_paddr;
+        s.fetch_vset = txs[kTransactions - 1].vset;
+        s.victim_way = txs[kTransactions - 1].victim_way;
+    }
 
-    switch (d.phase) {
-    case Phase::Issue:
-    case Phase::WaitAcquire:
-        s.fetch_valid = !d.fetch_done;
-        s.way_write_valid = !d.write_done;
-        break;
-    case Phase::Grant0:
-        s.mem_grant_valid = true;
-        s.mem_grant_source = d.acquire_source;
-        s.mem_grant_data[0] = tx.grant_data[0];
-        s.mem_grant_data[1] = tx.grant_data[1];
-        s.mem_grant_data[2] = tx.grant_data[2];
-        s.mem_grant_data[3] = tx.grant_data[3];
-        break;
-    case Phase::Grant1:
-        s.mem_grant_valid = true;
-        s.mem_grant_source = d.acquire_source;
-        s.mem_grant_data[0] = tx.grant_data[4];
-        s.mem_grant_data[1] = tx.grant_data[5];
-        s.mem_grant_data[2] = tx.grant_data[6];
-        s.mem_grant_data[3] = tx.grant_data[7];
-        break;
-    case Phase::DrainWayLookup:
+    if (d.next_prefetch < kTransactions && count_inflight_fetches(d) < kFetchWindow) {
+        const Transaction& tx = txs[d.next_prefetch];
+        s.prefetch_valid = true;
+        s.prefetch_blk_paddr = tx.blk_paddr;
+        s.prefetch_vset = tx.vset;
+    }
+
+    if (d.next_write < kTransactions) {
+        const Transaction& tx = txs[d.next_write];
+        s.way_write_valid = !d.tx_write_done[d.next_write];
+        s.way_write = tx.way_entry;
+    }
+
+    const bool all_requests_issued = d.next_fetch >= kFetchTransactions && d.next_prefetch >= kTransactions;
+    const bool enough_pending = count_acquired_not_done(d) >= kGrantStartDepth;
+    if (d.current_grant_source >= 0 || enough_pending || all_requests_issued) {
+        const int source = d.current_grant_source >= 0 ? d.current_grant_source : choose_grant_source(d);
+        if (source >= 0 && source < kSources && d.source_valid[source]) {
+            const int tx_index = d.source_tx[source];
+            const int beat = d.source_beat[source];
+            const Transaction& tx = txs[tx_index];
+            const int lane_base = beat == 0 ? 0 : 4;
+            s.mem_grant_valid = true;
+            s.mem_grant_source = static_cast<std::uint8_t>(source);
+            s.mem_grant_data[0] = tx.grant_data[lane_base + 0];
+            s.mem_grant_data[1] = tx.grant_data[lane_base + 1];
+            s.mem_grant_data[2] = tx.grant_data[lane_base + 2];
+            s.mem_grant_data[3] = tx.grant_data[lane_base + 3];
+        }
+    }
+
+    if (d.responses_seen > d.way_reads_seen || all_requests_issued) {
         s.way_read_ready = true;
-        break;
-    default:
-        break;
+    }
+
+    if (!s.prefetch_valid) {
+        s.prefetch_blk_paddr = txs[(cycle + 3) % kTransactions].blk_paddr ^ 0x40ULL;
+        s.prefetch_vset = static_cast<std::uint8_t>(txs[(cycle + 3) % kTransactions].vset ^ 0x33u);
     }
     return s;
 }
@@ -336,12 +432,33 @@ Outputs sample_ref(const VRef& ref)
     o.data_write_valid = static_cast<bool>(ref.data_write_valid);
     o.data_write_vset = static_cast<std::uint8_t>(ref.data_write_vset);
     o.data_write_waymask = static_cast<std::uint8_t>(ref.data_write_waymask);
+    o.data_write_data[0] = static_cast<std::uint64_t>(ref.data_write_data0);
+    o.data_write_data[1] = static_cast<std::uint64_t>(ref.data_write_data1);
+    o.data_write_data[2] = static_cast<std::uint64_t>(ref.data_write_data2);
+    o.data_write_data[3] = static_cast<std::uint64_t>(ref.data_write_data3);
+    o.data_write_data[4] = static_cast<std::uint64_t>(ref.data_write_data4);
+    o.data_write_data[5] = static_cast<std::uint64_t>(ref.data_write_data5);
+    o.data_write_data[6] = static_cast<std::uint64_t>(ref.data_write_data6);
+    o.data_write_data[7] = static_cast<std::uint64_t>(ref.data_write_data7);
     o.victim_req_valid = static_cast<bool>(ref.victim_req_valid);
     o.victim_req_vset = static_cast<std::uint8_t>(ref.victim_req_vset);
     o.mem_acquire_valid = static_cast<bool>(ref.mem_acquire_valid);
     o.mem_acquire_source = static_cast<std::uint8_t>(ref.mem_acquire_source);
     o.mem_acquire_address = static_cast<std::uint64_t>(ref.mem_acquire_address);
     o.mem_acquire_alias = static_cast<std::uint8_t>(ref.mem_acquire_alias);
+    o.refill_valid = static_cast<bool>(ref.refill_valid);
+    o.refill_addr = static_cast<std::uint64_t>(ref.refill_addr);
+    o.refill_data[0] = static_cast<std::uint64_t>(ref.refill_data0);
+    o.refill_data[1] = static_cast<std::uint64_t>(ref.refill_data1);
+    o.refill_data[2] = static_cast<std::uint64_t>(ref.refill_data2);
+    o.refill_data[3] = static_cast<std::uint64_t>(ref.refill_data3);
+    o.refill_data[4] = static_cast<std::uint64_t>(ref.refill_data4);
+    o.refill_data[5] = static_cast<std::uint64_t>(ref.refill_data5);
+    o.refill_data[6] = static_cast<std::uint64_t>(ref.refill_data6);
+    o.refill_data[7] = static_cast<std::uint64_t>(ref.refill_data7);
+    o.refill_mask = static_cast<std::uint8_t>(ref.refill_mask);
+    o.refill_coreid = static_cast<std::uint8_t>(ref.refill_coreid);
+    o.refill_index = static_cast<std::uint8_t>(ref.refill_index);
     o.way_read_valid = static_cast<bool>(ref.way_read_valid);
     o.way_read_vset = static_cast<std::uint16_t>(ref.way_read_vset);
     o.way_read_waymask = static_cast<std::uint8_t>(ref.way_read_waymask);
@@ -387,12 +504,33 @@ Outputs sample_grhsim(const GrhSIM_xs_bugcase_tb& grhsim)
     o.data_write_valid = static_cast<bool>(grhsim.data_write_valid);
     o.data_write_vset = static_cast<std::uint8_t>(grhsim.data_write_vset);
     o.data_write_waymask = static_cast<std::uint8_t>(grhsim.data_write_waymask);
+    o.data_write_data[0] = static_cast<std::uint64_t>(grhsim.data_write_data0);
+    o.data_write_data[1] = static_cast<std::uint64_t>(grhsim.data_write_data1);
+    o.data_write_data[2] = static_cast<std::uint64_t>(grhsim.data_write_data2);
+    o.data_write_data[3] = static_cast<std::uint64_t>(grhsim.data_write_data3);
+    o.data_write_data[4] = static_cast<std::uint64_t>(grhsim.data_write_data4);
+    o.data_write_data[5] = static_cast<std::uint64_t>(grhsim.data_write_data5);
+    o.data_write_data[6] = static_cast<std::uint64_t>(grhsim.data_write_data6);
+    o.data_write_data[7] = static_cast<std::uint64_t>(grhsim.data_write_data7);
     o.victim_req_valid = static_cast<bool>(grhsim.victim_req_valid);
     o.victim_req_vset = static_cast<std::uint8_t>(grhsim.victim_req_vset);
     o.mem_acquire_valid = static_cast<bool>(grhsim.mem_acquire_valid);
     o.mem_acquire_source = static_cast<std::uint8_t>(grhsim.mem_acquire_source);
     o.mem_acquire_address = static_cast<std::uint64_t>(grhsim.mem_acquire_address);
     o.mem_acquire_alias = static_cast<std::uint8_t>(grhsim.mem_acquire_alias);
+    o.refill_valid = static_cast<bool>(grhsim.refill_valid);
+    o.refill_addr = static_cast<std::uint64_t>(grhsim.refill_addr);
+    o.refill_data[0] = static_cast<std::uint64_t>(grhsim.refill_data0);
+    o.refill_data[1] = static_cast<std::uint64_t>(grhsim.refill_data1);
+    o.refill_data[2] = static_cast<std::uint64_t>(grhsim.refill_data2);
+    o.refill_data[3] = static_cast<std::uint64_t>(grhsim.refill_data3);
+    o.refill_data[4] = static_cast<std::uint64_t>(grhsim.refill_data4);
+    o.refill_data[5] = static_cast<std::uint64_t>(grhsim.refill_data5);
+    o.refill_data[6] = static_cast<std::uint64_t>(grhsim.refill_data6);
+    o.refill_data[7] = static_cast<std::uint64_t>(grhsim.refill_data7);
+    o.refill_mask = static_cast<std::uint8_t>(grhsim.refill_mask);
+    o.refill_coreid = static_cast<std::uint8_t>(grhsim.refill_coreid);
+    o.refill_index = static_cast<std::uint8_t>(grhsim.refill_index);
     o.way_read_valid = static_cast<bool>(grhsim.way_read_valid);
     o.way_read_vset = static_cast<std::uint16_t>(grhsim.way_read_vset);
     o.way_read_waymask = static_cast<std::uint8_t>(grhsim.way_read_waymask);
@@ -441,6 +579,18 @@ bool compare(const Outputs& ref, const Outputs& grhsim, int cycle, const char* p
         ok &= compare_u64("mem_acquire_address", ref.mem_acquire_address, grhsim.mem_acquire_address, cycle, phase);
         ok &= compare_u64("mem_acquire_alias", ref.mem_acquire_alias, grhsim.mem_acquire_alias, cycle, phase);
     }
+    ok &= compare_u64("refill_valid", ref.refill_valid, grhsim.refill_valid, cycle, phase);
+    if (ref.refill_valid || grhsim.refill_valid) {
+        ok &= compare_u64("refill_addr", ref.refill_addr, grhsim.refill_addr, cycle, phase);
+        ok &= compare_u64("refill_mask", ref.refill_mask, grhsim.refill_mask, cycle, phase);
+        ok &= compare_u64("refill_coreid", ref.refill_coreid, grhsim.refill_coreid, cycle, phase);
+        ok &= compare_u64("refill_index", ref.refill_index, grhsim.refill_index, cycle, phase);
+        for (int i = 0; i < 8; ++i) {
+            char name[32];
+            std::snprintf(name, sizeof(name), "refill_data%d", i);
+            ok &= compare_u64(name, ref.refill_data[i], grhsim.refill_data[i], cycle, phase);
+        }
+    }
     ok &= compare_u64("miss_resp_valid", ref.miss_resp_valid, grhsim.miss_resp_valid, cycle, phase);
     if (ref.miss_resp_valid || grhsim.miss_resp_valid) {
         ok &= compare_u64("miss_resp_blk_paddr", ref.miss_resp_blk_paddr, grhsim.miss_resp_blk_paddr, cycle, phase);
@@ -449,6 +599,11 @@ bool compare(const Outputs& ref, const Outputs& grhsim, int cycle, const char* p
         ok &= compare_u64("miss_resp_maybe_rvc", ref.miss_resp_maybe_rvc, grhsim.miss_resp_maybe_rvc, cycle, phase);
         ok &= compare_u64("miss_resp_corrupt", ref.miss_resp_corrupt, grhsim.miss_resp_corrupt, cycle, phase);
         ok &= compare_u64("miss_resp_denied", ref.miss_resp_denied, grhsim.miss_resp_denied, cycle, phase);
+        for (int i = 0; i < 8; ++i) {
+            char name[32];
+            std::snprintf(name, sizeof(name), "miss_resp_data%d", i);
+            ok &= compare_u64(name, ref.miss_resp_data[i], grhsim.miss_resp_data[i], cycle, phase);
+        }
     }
     ok &= compare_u64("meta_write_valid", ref.meta_write_valid, grhsim.meta_write_valid, cycle, phase);
     if (ref.meta_write_valid || grhsim.meta_write_valid) {
@@ -465,7 +620,7 @@ bool compare(const Outputs& ref, const Outputs& grhsim, int cycle, const char* p
         for (int i = 0; i < 8; ++i) {
             char name[32];
             std::snprintf(name, sizeof(name), "data_write_data%d", i);
-            ok &= compare_u64(name, ref.miss_resp_data[i], grhsim.miss_resp_data[i], cycle, phase);
+            ok &= compare_u64(name, ref.data_write_data[i], grhsim.data_write_data[i], cycle, phase);
         }
     }
     ok &= compare_u64("way_read_valid", ref.way_read_valid, grhsim.way_read_valid, cycle, phase);
@@ -534,90 +689,157 @@ StepResult step(VRef& ref, GrhSIM_xs_bugcase_tb& grhsim, const Stimulus& s, int 
     return result;
 }
 
-void advance_driver(Driver& d, Coverage& c, const Stimulus& s, const Outputs& low)
+bool advance_driver(Driver& d,
+                    Coverage& c,
+                    const Stimulus& s,
+                    const Outputs& low,
+                    const Transaction txs[kTransactions],
+                    int cycle)
 {
     if (!s.rst_n) {
         d = Driver{};
-        d.phase = Phase::Reset;
-        return;
-    }
-    if (d.phase == Phase::Reset) {
-        d.phase = Phase::Issue;
-        return;
+        return true;
     }
 
     const bool fetch_fire = s.fetch_valid && low.fetch_ready;
+    const bool prefetch_fire = s.prefetch_valid && low.prefetch_ready;
     const bool write_fire = s.way_write_valid && low.way_write_ready;
     const bool acquire_fire = s.mem_acquire_ready && low.mem_acquire_valid;
     const bool read_fire = s.way_read_ready && low.way_read_valid;
 
     if (fetch_fire) {
-        d.fetch_done = true;
+        if (d.next_fetch >= kFetchTransactions) {
+            std::fprintf(stderr, "[DRIVER-FAIL] cycle=%d unexpected fetch fire\n", cycle);
+            return false;
+        }
+        d.tx_state[d.next_fetch] = kStateIssued;
+        ++d.next_fetch;
         ++c.fetch_fires;
     }
+    if (prefetch_fire) {
+        if (d.next_prefetch >= kTransactions) {
+            std::fprintf(stderr, "[DRIVER-FAIL] cycle=%d unexpected prefetch fire\n", cycle);
+            return false;
+        }
+        d.tx_state[d.next_prefetch] = kStateIssued;
+        ++d.next_prefetch;
+        ++c.prefetch_fires;
+    }
     if (write_fire) {
-        d.write_done = true;
+        if (d.next_write >= kTransactions) {
+            std::fprintf(stderr, "[DRIVER-FAIL] cycle=%d unexpected way write fire\n", cycle);
+            return false;
+        }
+        d.tx_write_done[d.next_write] = true;
+        ++d.next_write;
         ++c.way_writes;
     }
     if (acquire_fire) {
-        d.have_acquire = true;
-        d.acquire_source = low.mem_acquire_source;
+        const int source = low.mem_acquire_source;
+        const int tx_index = find_tx_by_acquire_address(txs, low.mem_acquire_address);
+        if (source < 0 || source >= kSources || tx_index < 0) {
+            std::fprintf(stderr,
+                         "[DRIVER-FAIL] cycle=%d unknown acquire source=%d address=0x%llx\n",
+                         cycle,
+                         source,
+                         static_cast<unsigned long long>(low.mem_acquire_address));
+            return false;
+        }
+        if (d.source_valid[source]) {
+            std::fprintf(stderr,
+                         "[DRIVER-FAIL] cycle=%d duplicate acquire source=%d old_tx=%d new_tx=%d\n",
+                         cycle,
+                         source,
+                         d.source_tx[source],
+                         tx_index);
+            return false;
+        }
+        if (d.tx_state[tx_index] < kStateIssued || d.tx_state[tx_index] >= kStateAcquired) {
+            std::fprintf(stderr,
+                         "[DRIVER-FAIL] cycle=%d acquire tx=%d state=%s\n",
+                         cycle,
+                         tx_index,
+                         state_name(d.tx_state[tx_index]));
+            return false;
+        }
+        d.source_valid[source] = true;
+        d.source_tx[source] = tx_index;
+        d.source_beat[source] = 0;
+        d.tx_state[tx_index] = kStateAcquired;
         ++c.acquire_fires;
     }
     if (s.mem_grant_valid) {
+        const int source = s.mem_grant_source;
+        if (source < 0 || source >= kSources || !d.source_valid[source]) {
+            std::fprintf(stderr, "[DRIVER-FAIL] cycle=%d grant for unknown source=%d\n", cycle, source);
+            return false;
+        }
+        const int tx_index = d.source_tx[source];
+        const int beat = d.source_beat[source];
+        if (beat < 0 || beat >= 2) {
+            std::fprintf(stderr,
+                         "[DRIVER-FAIL] cycle=%d extra grant source=%d tx=%d beat=%d\n",
+                         cycle,
+                         source,
+                         tx_index,
+                         beat);
+            return false;
+        }
+        d.source_beat[source] = beat + 1;
+        d.tx_state[tx_index] = beat == 0 ? kStateGrant0 : kStateGrant1;
+        d.current_grant_source = beat == 0 ? source : -1;
         ++c.grant_beats;
     }
     if (low.miss_resp_valid) {
+        const int tx_index = find_tx_by_acquire_address(txs, low.miss_resp_blk_paddr << 6);
+        if (tx_index < 0) {
+            std::fprintf(stderr,
+                         "[DRIVER-FAIL] cycle=%d unknown response blk=0x%llx\n",
+                         cycle,
+                         static_cast<unsigned long long>(low.miss_resp_blk_paddr));
+            return false;
+        }
+        if (d.tx_state[tx_index] < kStateGrant1) {
+            std::fprintf(stderr,
+                         "[DRIVER-FAIL] cycle=%d response tx=%d state=%s\n",
+                         cycle,
+                         tx_index,
+                         state_name(d.tx_state[tx_index]));
+            return false;
+        }
+        const int source = find_source_for_tx(d, tx_index);
+        if (source >= 0) {
+            d.source_valid[source] = false;
+        }
+        d.tx_state[tx_index] = kStateResponded;
+        ++d.responses_seen;
         ++c.miss_resps;
     }
     if (low.meta_write_valid) {
         ++c.meta_writes;
     }
     if (low.data_write_valid) {
+        ++d.data_writes_seen;
         ++c.data_writes;
     }
     if (read_fire) {
+        ++d.way_reads_seen;
         ++c.way_reads;
     }
+    return true;
+}
 
-    switch (d.phase) {
-    case Phase::Issue:
-    case Phase::WaitAcquire:
-        d.phase = d.have_acquire && d.fetch_done && d.write_done ? Phase::Grant0 : Phase::WaitAcquire;
-        break;
-    case Phase::Grant0:
-        d.phase = Phase::Grant1;
-        break;
-    case Phase::Grant1:
-        d.phase = Phase::WaitResp;
-        break;
-    case Phase::WaitResp:
-        if (low.miss_resp_valid) {
-            d.phase = Phase::DrainWayLookup;
-        }
-        break;
-    case Phase::DrainWayLookup:
-        if (read_fire) {
-            ++d.tx_index;
-            d.fetch_done = false;
-            d.write_done = false;
-            d.have_acquire = false;
-            d.acquire_source = 0;
-            d.gap_left = 1;
-            d.phase = d.tx_index >= kTransactions ? Phase::Done : Phase::Gap;
-        }
-        break;
-    case Phase::Gap:
-        if (d.gap_left > 0) {
-            --d.gap_left;
-        }
-        else {
-            d.phase = Phase::Issue;
-        }
-        break;
-    default:
-        break;
-    }
+bool coverage_complete(const Coverage& coverage)
+{
+    return coverage.fetch_fires == kFetchTransactions &&
+           coverage.prefetch_fires == kPrefetchTransactions &&
+           coverage.way_writes == kTransactions &&
+           coverage.acquire_fires == kTransactions &&
+           coverage.grant_beats == kTransactions * 2 &&
+           coverage.miss_resps == kTransactions &&
+           coverage.meta_writes == kTransactions &&
+           coverage.data_writes == kTransactions &&
+           coverage.way_reads == kTransactions;
 }
 
 bool run_cycles(VRef& ref, GrhSIM_xs_bugcase_tb& grhsim)
@@ -635,40 +857,41 @@ bool run_cycles(VRef& ref, GrhSIM_xs_bugcase_tb& grhsim)
         if (!r.ok) {
             return false;
         }
-        advance_driver(driver, coverage, s, r.low_ref);
-        if (driver.phase == Phase::Done) {
-            if (coverage.fetch_fires != kTransactions ||
-                coverage.way_writes != kTransactions ||
-                coverage.acquire_fires != kTransactions ||
-                coverage.grant_beats != kTransactions * 2 ||
-                coverage.miss_resps != kTransactions ||
-                coverage.meta_writes != kTransactions ||
-                coverage.data_writes != kTransactions ||
-                coverage.way_reads != kTransactions) {
-                std::fprintf(stderr,
-                             "[COVERAGE-FAIL] fetch=%d write=%d acquire=%d grant=%d resp=%d meta=%d data=%d read=%d\n",
-                             coverage.fetch_fires,
-                             coverage.way_writes,
-                             coverage.acquire_fires,
-                             coverage.grant_beats,
-                             coverage.miss_resps,
-                             coverage.meta_writes,
-                             coverage.data_writes,
-                             coverage.way_reads);
-                return false;
-            }
+        if (!advance_driver(driver, coverage, s, r.low_ref, txs, cycle)) {
+            return false;
+        }
+        if (coverage_complete(coverage)) {
             return true;
         }
     }
 
     std::fprintf(stderr,
-                 "[TIMEOUT] phase=%d tx=%d fetch_done=%d write_done=%d have_acquire=%d source=%u\n",
-                 static_cast<int>(driver.phase),
-                 driver.tx_index,
-                 driver.fetch_done,
-                 driver.write_done,
-                 driver.have_acquire,
-                 driver.acquire_source);
+                 "[TIMEOUT] fetch=%d/%d prefetch=%d/%d write=%d/%d acquire=%d/%d grant=%d/%d resp=%d/%d meta=%d/%d data=%d/%d read=%d/%d next_fetch=%d next_prefetch=%d next_write=%d current_grant_source=%d\n",
+                 coverage.fetch_fires,
+                 kFetchTransactions,
+                 coverage.prefetch_fires,
+                 kPrefetchTransactions,
+                 coverage.way_writes,
+                 kTransactions,
+                 coverage.acquire_fires,
+                 kTransactions,
+                 coverage.grant_beats,
+                 kTransactions * 2,
+                 coverage.miss_resps,
+                 kTransactions,
+                 coverage.meta_writes,
+                 kTransactions,
+                 coverage.data_writes,
+                 kTransactions,
+                 coverage.way_reads,
+                 kTransactions,
+                 driver.next_fetch,
+                 driver.next_prefetch,
+                 driver.next_write,
+                 driver.current_grant_source);
+    for (int i = 0; i < kTransactions; ++i) {
+        std::fprintf(stderr, "[TIMEOUT-TX] tx=%d state=%s write=%d\n", i, state_name(driver.tx_state[i]), driver.tx_write_done[i]);
+    }
     return false;
 }
 

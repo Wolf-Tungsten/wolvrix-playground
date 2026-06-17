@@ -75,6 +75,19 @@ module ICacheMissUnitWayLookupCase019(
     output logic [3:0]  io_memAcquire_bits_source,
     output logic [47:0] io_memAcquire_bits_address,
     output logic [1:0]  io_memAcquire_bits_user_alias,
+    output logic        io_refillEvent_valid,
+    output logic [63:0] io_refillEvent_addr,
+    output logic [63:0] io_refillEvent_data0,
+    output logic [63:0] io_refillEvent_data1,
+    output logic [63:0] io_refillEvent_data2,
+    output logic [63:0] io_refillEvent_data3,
+    output logic [63:0] io_refillEvent_data4,
+    output logic [63:0] io_refillEvent_data5,
+    output logic [63:0] io_refillEvent_data6,
+    output logic [63:0] io_refillEvent_data7,
+    output logic [7:0]  io_refillEvent_mask,
+    output logic [7:0]  io_refillEvent_coreid,
+    output logic [7:0]  io_refillEvent_index,
     output logic        io_wayLookupRead_valid,
     output logic [1:0][7:0]  io_wayLookupRead_bits_entry_vSetIdx,
     output logic [1:0][3:0]  io_wayLookupRead_bits_entry_waymask,
@@ -156,6 +169,20 @@ module ICacheMissUnitWayLookupCase019(
         .io_memGrant_bits_corrupt(io_memGrant_bits_corrupt),
         .gatewayIn_packed_2_bore(gateway)
     );
+
+    assign io_refillEvent_valid = gateway[600];
+    assign io_refillEvent_addr = gateway[599:536];
+    assign io_refillEvent_data0 = gateway[87:24];
+    assign io_refillEvent_data1 = gateway[151:88];
+    assign io_refillEvent_data2 = gateway[215:152];
+    assign io_refillEvent_data3 = gateway[279:216];
+    assign io_refillEvent_data4 = gateway[343:280];
+    assign io_refillEvent_data5 = gateway[407:344];
+    assign io_refillEvent_data6 = gateway[471:408];
+    assign io_refillEvent_data7 = gateway[535:472];
+    assign io_refillEvent_mask = gateway[23:16];
+    assign io_refillEvent_coreid = gateway[15:8];
+    assign io_refillEvent_index = gateway[7:0];
 
     ICacheWayLookup wayLookup (
         .clock(clock),
@@ -263,12 +290,33 @@ module xs_bugcase_tb (
     output logic        data_write_valid,
     output logic [7:0]  data_write_vset,
     output logic [3:0]  data_write_waymask,
+    output logic [63:0] data_write_data0,
+    output logic [63:0] data_write_data1,
+    output logic [63:0] data_write_data2,
+    output logic [63:0] data_write_data3,
+    output logic [63:0] data_write_data4,
+    output logic [63:0] data_write_data5,
+    output logic [63:0] data_write_data6,
+    output logic [63:0] data_write_data7,
     output logic        victim_req_valid,
     output logic [7:0]  victim_req_vset,
     output logic        mem_acquire_valid,
     output logic [3:0]  mem_acquire_source,
     output logic [47:0] mem_acquire_address,
     output logic [1:0]  mem_acquire_alias,
+    output logic        refill_valid,
+    output logic [63:0] refill_addr,
+    output logic [63:0] refill_data0,
+    output logic [63:0] refill_data1,
+    output logic [63:0] refill_data2,
+    output logic [63:0] refill_data3,
+    output logic [63:0] refill_data4,
+    output logic [63:0] refill_data5,
+    output logic [63:0] refill_data6,
+    output logic [63:0] refill_data7,
+    output logic [7:0]  refill_mask,
+    output logic [7:0]  refill_coreid,
+    output logic [7:0]  refill_index,
     output logic        way_read_valid,
     output logic [15:0] way_read_vset,
     output logic [7:0]  way_read_waymask,
@@ -300,6 +348,14 @@ module xs_bugcase_tb (
     assign way_read_waymask = {way_read_waymask_vec[1], way_read_waymask_vec[0]};
     assign way_read_maybe_rvc = {way_read_maybe_rvc_vec[1], way_read_maybe_rvc_vec[0]};
     assign way_read_meta_codes = way_read_meta_codes_vec;
+    assign miss_resp_data0 = miss_resp_data[63:0];
+    assign miss_resp_data1 = miss_resp_data[127:64];
+    assign miss_resp_data2 = miss_resp_data[191:128];
+    assign miss_resp_data3 = miss_resp_data[255:192];
+    assign miss_resp_data4 = miss_resp_data[319:256];
+    assign miss_resp_data5 = miss_resp_data[383:320];
+    assign miss_resp_data6 = miss_resp_data[447:384];
+    assign miss_resp_data7 = miss_resp_data[511:448];
 
     ICacheMissUnitWayLookupCase019 dut (
         .clock(clk),
@@ -354,21 +410,21 @@ module xs_bugcase_tb (
         .io_metaWrite_req_bits_vSetIdx(meta_write_vset),
         .io_metaWrite_req_bits_waymask(meta_write_waymask),
         .io_dataWrite_req_valid(data_write_valid),
-        .io_dataWrite_req_bits_entries_0_data(miss_resp_data0),
+        .io_dataWrite_req_bits_entries_0_data(data_write_data0),
         .io_dataWrite_req_bits_entries_0_code(),
-        .io_dataWrite_req_bits_entries_1_data(miss_resp_data1),
+        .io_dataWrite_req_bits_entries_1_data(data_write_data1),
         .io_dataWrite_req_bits_entries_1_code(),
-        .io_dataWrite_req_bits_entries_2_data(miss_resp_data2),
+        .io_dataWrite_req_bits_entries_2_data(data_write_data2),
         .io_dataWrite_req_bits_entries_2_code(),
-        .io_dataWrite_req_bits_entries_3_data(miss_resp_data3),
+        .io_dataWrite_req_bits_entries_3_data(data_write_data3),
         .io_dataWrite_req_bits_entries_3_code(),
-        .io_dataWrite_req_bits_entries_4_data(miss_resp_data4),
+        .io_dataWrite_req_bits_entries_4_data(data_write_data4),
         .io_dataWrite_req_bits_entries_4_code(),
-        .io_dataWrite_req_bits_entries_5_data(miss_resp_data5),
+        .io_dataWrite_req_bits_entries_5_data(data_write_data5),
         .io_dataWrite_req_bits_entries_5_code(),
-        .io_dataWrite_req_bits_entries_6_data(miss_resp_data6),
+        .io_dataWrite_req_bits_entries_6_data(data_write_data6),
         .io_dataWrite_req_bits_entries_6_code(),
-        .io_dataWrite_req_bits_entries_7_data(miss_resp_data7),
+        .io_dataWrite_req_bits_entries_7_data(data_write_data7),
         .io_dataWrite_req_bits_entries_7_code(),
         .io_dataWrite_req_bits_vSetIdx(data_write_vset),
         .io_dataWrite_req_bits_waymask(data_write_waymask),
@@ -378,6 +434,19 @@ module xs_bugcase_tb (
         .io_memAcquire_bits_source(mem_acquire_source),
         .io_memAcquire_bits_address(mem_acquire_address),
         .io_memAcquire_bits_user_alias(mem_acquire_alias),
+        .io_refillEvent_valid(refill_valid),
+        .io_refillEvent_addr(refill_addr),
+        .io_refillEvent_data0(refill_data0),
+        .io_refillEvent_data1(refill_data1),
+        .io_refillEvent_data2(refill_data2),
+        .io_refillEvent_data3(refill_data3),
+        .io_refillEvent_data4(refill_data4),
+        .io_refillEvent_data5(refill_data5),
+        .io_refillEvent_data6(refill_data6),
+        .io_refillEvent_data7(refill_data7),
+        .io_refillEvent_mask(refill_mask),
+        .io_refillEvent_coreid(refill_coreid),
+        .io_refillEvent_index(refill_index),
         .io_wayLookupRead_valid(way_read_valid),
         .io_wayLookupRead_bits_entry_vSetIdx(way_read_vset_vec),
         .io_wayLookupRead_bits_entry_waymask(way_read_waymask_vec),

@@ -348,7 +348,15 @@ def main() -> int:
             str(cpp_out_dir / "wolvrix_xs_post_stats.json"),
         )
     ).resolve()
+    pre_reg_to_mem_json = Path(
+        os.environ.get(
+            "WOLVRIX_XS_GRHSIM_PRE_REG_TO_MEM_JSON",
+            str(cpp_out_dir / "wolvrix_xs_pre_reg_to_mem.json"),
+        )
+    ).resolve()
     resume_from_stats_json = env_flag("WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON")
+    resume_from_pre_reg_to_mem_json = env_flag("WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON")
+    enable_stats = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_STATS", default=False)
     enable_mem_to_reg = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_MEM_TO_REG", default=False)
     mem_to_reg_row_limit = env_int("WOLVRIX_XS_GRHSIM_MEM_TO_REG_ROW_LIMIT", 64)
     max_op_in_compute_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE", 108)
@@ -375,19 +383,19 @@ def main() -> int:
     export_compute_dag_path = Path(export_compute_dag).resolve() if export_compute_dag else None
     simplify_keep_declared_symbols = env_flag("WOLVRIX_XS_GRHSIM_SIMPLIFY_KEEP_DECLARED_SYMBOLS", default=False)
     skip_comb_lane_pack = env_flag("WOLVRIX_XS_GRHSIM_SKIP_COMB_LANE_PACK", default=False)
-    merge_reg_options = {
-        "enable_scalar_to_memory": env_flag("WOLVRIX_XS_GRHSIM_MERGE_REG_ENABLE_SCALAR_TO_MEMORY", default=True),
-        "enable_indexed_bundle_entry_to_wide_register": env_flag(
-            "WOLVRIX_XS_GRHSIM_MERGE_REG_ENABLE_INDEXED_BUNDLE_ENTRY_TO_WIDE_REGISTER",
-            default=True,
-        ),
-    }
+    reg_to_mem_intent = env_flag("WOLVRIX_XS_GRHSIM_REG_TO_MEM_INTENT", default=True)
     comb_lane_pack_report = os.environ.get(
         "WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_REPORT",
         str(cpp_out_dir.parent / "comb_lane_pack_report_xs.json"),
     )
 
     total_start = time.perf_counter()
+    if resume_from_stats_json and resume_from_pre_reg_to_mem_json:
+        raise RuntimeError(
+            "choose only one resume point: "
+            "WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON or "
+            "WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON"
+        )
 
     config_message = (
         "activity-schedule max_op_in_compute_supernode="
@@ -407,7 +415,13 @@ def main() -> int:
         f"export_compute_dag={export_compute_dag_path if export_compute_dag_path is not None else 'off'} "
         f"waveform={args.waveform} perf={args.perf} "
         f"simplify_keep_declared_symbols={simplify_keep_declared_symbols} "
-        f"skip_comb_lane_pack={skip_comb_lane_pack}"
+        f"skip_comb_lane_pack={skip_comb_lane_pack} "
+        f"pre_reg_to_mem_json={pre_reg_to_mem_json} "
+        f"resume_from_pre_reg_to_mem_json={resume_from_pre_reg_to_mem_json} "
+        f"enable_stats={enable_stats} "
+        f"post_stats_json={post_stats_json} "
+        f"resume_from_stats_json={resume_from_stats_json} "
+        f"reg_to_mem_intent={reg_to_mem_intent}"
     )
 
     read_args: list[str] = ["-f", filelist, "--top", top_name]
@@ -437,8 +451,15 @@ def main() -> int:
             ("simplify", {"semantics": "2state"}),
             ("simplify", {"semantics": "2state"}),
             ("memory-init-check", {}),
-            ("stats", {"out_stats": "stats.main"}),
         ]
+        reg_to_mem_kwargs: dict = {}
+        if not reg_to_mem_intent:
+            reg_to_mem_kwargs["intent"] = False
+        reg_to_mem_pipeline: list[tuple[str, dict]] = [
+            ("reg-to-mem", reg_to_mem_kwargs),
+        ]
+        if enable_stats:
+            reg_to_mem_pipeline.append(("stats", {"out_stats": "stats.main"}))
         if not skip_comb_lane_pack:
             pre_sched_pipeline.insert(
                 6,
@@ -484,26 +505,49 @@ def main() -> int:
             require_ok(diags, "read_json_file")
             log(f"read_json_file done {int((time.perf_counter() - start) * 1000)}ms")
         else:
-            start = time.perf_counter()
-            log("read_sv start")
-            diags = sess.read_sv(
-                None,
-                out_design="design.main",
-                slang_args=read_args,
-            )
-            require_ok(diags, "read_sv")
-            log(f"read_sv done {int((time.perf_counter() - start) * 1000)}ms")
+            if resume_from_pre_reg_to_mem_json:
+                if not pre_reg_to_mem_json.exists():
+                    raise RuntimeError(f"pre-reg-to-mem json not found: {pre_reg_to_mem_json}")
+                start = time.perf_counter()
+                log(f"read_json_file pre-reg-to-mem start {pre_reg_to_mem_json}")
+                diags = sess.read_json_file(str(pre_reg_to_mem_json), out_design="design.main")
+                require_ok(diags, "read_json_file pre-reg-to-mem")
+                log(f"read_json_file pre-reg-to-mem done {int((time.perf_counter() - start) * 1000)}ms")
+            else:
+                start = time.perf_counter()
+                log("read_sv start")
+                diags = sess.read_sv(
+                    None,
+                    out_design="design.main",
+                    slang_args=read_args,
+                )
+                require_ok(diags, "read_sv")
+                log(f"read_sv done {int((time.perf_counter() - start) * 1000)}ms")
 
-            for pass_name, pass_kwargs in pre_sched_pipeline:
+                for pass_name, pass_kwargs in pre_sched_pipeline:
+                    start = time.perf_counter()
+                    log(f"pass {pass_name} start")
+                    run_pass_kwargs = dict(pass_kwargs)
+                    if pass_name == "simplify":
+                        run_pass_kwargs["keep_declared_symbols"] = simplify_keep_declared_symbols
+                    diags = sess.run_pass(pass_name, design="design.main", **run_pass_kwargs)
+                    require_ok(diags, f"pass {pass_name}")
+                    if pass_name == "comb-lane-pack":
+                        write_comb_lane_pack_report(sess, "comb-lane-pack.reports", Path(comb_lane_pack_report))
+                    log(f"pass {pass_name} done {int((time.perf_counter() - start) * 1000)}ms")
+                write_design_json(
+                    sess,
+                    "design.main",
+                    top_name,
+                    pre_reg_to_mem_json,
+                    "write_pre_reg_to_mem_json",
+                )
+
+            for pass_name, pass_kwargs in reg_to_mem_pipeline:
                 start = time.perf_counter()
                 log(f"pass {pass_name} start")
-                run_pass_kwargs = dict(pass_kwargs)
-                if pass_name == "simplify":
-                    run_pass_kwargs["keep_declared_symbols"] = simplify_keep_declared_symbols
-                diags = sess.run_pass(pass_name, design="design.main", **run_pass_kwargs)
+                diags = sess.run_pass(pass_name, design="design.main", **pass_kwargs)
                 require_ok(diags, f"pass {pass_name}")
-                if pass_name == "comb-lane-pack":
-                    write_comb_lane_pack_report(sess, "comb-lane-pack.reports", Path(comb_lane_pack_report))
                 if pass_name == "stats":
                     write_stats_json(sess, "stats.main", cpp_out_dir)
                     write_design_json(sess, "design.main", top_name, post_stats_json, "write_post_stats_json")

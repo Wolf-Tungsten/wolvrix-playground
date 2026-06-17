@@ -123,6 +123,7 @@ def main() -> int:
             ("slice-index-const", {}),
             ("simplify", {"semantics": "2state"}),
             ("memory-init-check", {}),
+            ("reg-to-mem", {}),
             ("stats", {}),
             (
                 "activity-schedule",
