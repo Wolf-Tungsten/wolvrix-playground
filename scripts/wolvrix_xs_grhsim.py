@@ -384,6 +384,7 @@ def main() -> int:
     simplify_keep_declared_symbols = env_flag("WOLVRIX_XS_GRHSIM_SIMPLIFY_KEEP_DECLARED_SYMBOLS", default=False)
     skip_comb_lane_pack = env_flag("WOLVRIX_XS_GRHSIM_SKIP_COMB_LANE_PACK", default=False)
     reg_to_mem_intent = env_flag("WOLVRIX_XS_GRHSIM_REG_TO_MEM_INTENT", default=True)
+    partition_policy = (os.environ.get("WOLVRIX_XS_GRHSIM_PARTITION_POLICY", "plain").strip() or "plain")
     comb_lane_pack_report = os.environ.get(
         "WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_REPORT",
         str(cpp_out_dir.parent / "comb_lane_pack_report_xs.json"),
@@ -494,6 +495,10 @@ def main() -> int:
         ]
         if export_compute_dag_path is not None:
             post_sched_pipeline[0][1]["export_compute_dag"] = str(export_compute_dag_path)
+        if partition_policy and partition_policy != "plain":
+            # NO0207/NO0208: pass -partition-policy via raw args (bypasses kwarg allowlist).
+            post_sched_pipeline[0][1]["args"] = ["-partition-policy", partition_policy]
+            log(f"activity-schedule partition_policy={partition_policy}")
         log(config_message)
 
         if resume_from_stats_json:
