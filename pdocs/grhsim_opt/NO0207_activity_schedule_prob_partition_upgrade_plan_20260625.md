@@ -1,7 +1,7 @@
 # NO0207 Activity-Schedule Compute Supernode 概率驱动划分升级计划
 
 记录日期：2026-06-25
-状态：**规划文档**（未落地；含 2026-06-25 用户决策更新，见 §9.1）。本文把 `ptmp/new-partition-algo/` 的两篇新算法草案落到当前 `activity-schedule` 实现上，给出分阶段、可门控、可 A/B 的升级路线。
+状态：**规划文档**（未落地；含 2026-06-25 / 2026-06-26 用户决策更新，见 §9.1）。本文把 `ptmp/new-partition-algo/` 的两篇新算法草案落到当前 `activity-schedule` 实现上，给出分阶段、可门控、可 A/B 的升级路线。
 关联：
 - 输入草案：`../../ptmp/new-partition-algo/partitioning-problem-v2.md`（问题定义 v2）、`../../ptmp/new-partition-algo/partitioning-algorithm.md`（算法描述）
 - [`NO0070`](./NO0070_grhsim_activity_schedule_computenode_rewrite_plan_20260505.md)：computeNode / commitSupernode 中间层重构（本文复用其框架，不推翻）
@@ -49,7 +49,7 @@ T = Σ_i f[i] · ( c_comp·n_comp[i] + c_src·n_src[i] + c_sink·n_sink[i] + c_c
 - **不推翻 [`NO0070`](./NO0070_grhsim_activity_schedule_computenode_rewrite_plan_20260505.md) 框架**：computeNode / commitSupernode 两类中间层、两阶段 emit 不动点、source clone 语义、reg-to-mem intent 不可分组（`collectRegToMemIntentComputeGroups` `:4342`）全部保留。本文只替换**划分决策层**（种子选择 + 粗化增益 + DP 代价），不碰 emitter，不碰 commit 侧。
 - **必须可门控、可 A/B**：新路径挂在独立开关后，默认仍是 [`NO0185`](./NO0185_xs_components_aligned_coarsen_strategy_20260523.md) plain coarsen，直到 50k runtime gate 证明收益。
 - **50M 规模约束优先于求精**：沿用 [`NO0070`](./NO0070_grhsim_activity_schedule_computenode_rewrite_plan_20260505.md) 的复杂度红线——线性 / 近线性，禁止 per-root 全图扫描，禁止 `roots*ops`。[`NO0185`](./NO0185_xs_components_aligned_coarsen_strategy_20260523.md) 记录的 `final_materialize` 卡死（`compute_nodes=6635278` 后长时间无输出）是前车之鉴。
-- **目标函数与 runtime 成本同结构**：划分用的节点成本 `w(v)` 沿用 [`NO0190`](./NO0190_grhsim_gsim_unified_cost_model_comp_src_sink_plan_20260612.md) 的**类别划分** comp/src/sink/const，但**不继承其回归出的 `c_*` 数值**（2026-06-25 决策：那批回归系数已判无效）；各类单位成本作为占位常量，留待实现后参数扫描标定（§9.1）。激活频率 `f[i]` 首版用静态激活概率 `P(S 激活)` 作代理估计，**不做 runtime profiling 回灌**（2026-06-25 决策，§9.1）。
+- **目标函数与 runtime 成本同结构**：划分用的节点成本 `w(v)` 沿用 [`NO0190`](./NO0190_grhsim_gsim_unified_cost_model_comp_src_sink_plan_20260612.md) 的**类别划分** comp/src/sink/const，但**不继承其回归出的 `c_*` 数值**（2026-06-25 决策：那批回归系数已判无效）；各类单位成本作为占位常量，留待实现后参数扫描标定（§9.1）。位宽因子按 GRHSIM C++ emit 的执行槽位取整（不是裸 `bitwidth` 线性计费，见 Phase B）；footprint 另按存储桶估算。激活频率 `f[i]` 首版用静态激活概率 `P(S 激活)` 作代理估计，**不做 runtime profiling 回灌**（2026-06-25 决策，§9.1）。
 
 ---
 
@@ -59,7 +59,7 @@ T = Σ_i f[i] · ( c_comp·n_comp[i] + c_src·n_src[i] + c_sink·n_sink[i] + c_c
 
 ### 2.1 问题定义 v2（`partitioning-problem-v2.md`）
 
-- **节点权重** `w(v) = nodeCost(v)·bitwidth(v)`；**节点变化概率** `π(v) ∈ [0,1]`；**边概率** `p(u,v) = π(u)`。
+- **节点权重**：草案原式为 `w(v) = nodeCost(v)·bitwidth(v)`；本文落地到 GRHSIM 时修正为 `w(v)=c_class(kind)·compute_units(width)`，其中 `compute_units(width)=1`（`width<=64`）或 `ceil(width/64)`（`width>64`），匹配 C++ emit 的标量 / `uint64_t` word 执行粒度；**节点变化概率** `π(v) ∈ [0,1]`；**边概率** `p(u,v) = π(u)`。
 - **目标函数（精确）**：`Cost(P) = Σ C_check(S_i) + Σ W(S_j)·P(S_j 激活)`，其中 `P(S_j 激活) = 1 - Π(1 - p(S_i,S_j))`。
 - **Union-Bound 近似**（`p≪1`）：`Cost ≈ Σ C_check + Σ p(S_i,S_j)·W(S_j)`。**草案自带警示**：时钟驱动组合逻辑 `p→1` 时近似严重高估，须退回精确式。
 - **分支预测感知 `C_check`**：激活概率 `≈0` 或 `≈1` 时检查几乎零分支预测失误；`≈0.5` 时每次都可能 miss（`+C_bp_miss`，建议 5~10×）。
@@ -88,7 +88,7 @@ T = Σ_i f[i] · ( c_comp·n_comp[i] + c_src·n_src[i] + c_sink·n_sink[i] + c_c
 | --- | --- | --- | --- |
 | `π(v)` 静态概率传播 | **不存在** | 新增传播 pass，挂在 `buildActivityOpData` 拓扑之后 | Phase A |
 | 源代表 / 相关性修正 | 不存在 | 概率传播时维护 source representative | Phase A |
-| `w(v)=nodeCost·bitwidth` | 仅 op 计数 / 跨边重数 | 新增节点成本表，**类别**对齐 [`NO0190`](./NO0190_grhsim_gsim_unified_cost_model_comp_src_sink_plan_20260612.md) comp/src/sink/const；系数为占位常量、实现后扫描微调（不沿用已失效的回归 `c_*`） | Phase B |
+| `w(v)=c_class·compute_units(width)` | 仅 op 计数 / 跨边重数 | 新增节点成本表，**类别**对齐 [`NO0190`](./NO0190_grhsim_gsim_unified_cost_model_comp_src_sink_plan_20260612.md) comp/src/sink/const；位宽按 GRHSIM C++ 执行槽位取整（`<=64` 计 1，wide 按 64-bit word 数），系数为占位常量、实现后扫描微调（不沿用已失效的回归 `c_*`） | Phase B |
 | 超图聚合 `EdgeInfo{count,total_prob}` | `valueEdges.weights` 只有 count | 扩展为带 `total_prob`、`W`、`change_weight`、`footprint`、`[min,max]topo`、`active_prob` 缓存 | Phase C |
 | MFFC 种子 | **已由 computeNode builder 实现**：反向建树（唯一 consumer 吸收 + reconvergent + common-expr 独立）= MFFC 线性近似，与种子同粒度 | 不新增 `rep[u]` pass；**目标 `η→1`，允许修改 builder 构建方法**补齐 absorb 规则 | Phase D |
 | 概率驱动增益粗化 | 三启发式 merge，无增益函数 | sibling-coalescing 候选 + 桶队列 + `Δ` 增益 | Phase E |
@@ -114,7 +114,7 @@ materializeComputeNodeSchedule (:6417)
    ├─ [现状] plain coarsen (out1/in1/siblings) + edge-cut DP   ← 默认保留
    └─ [新增] ProbabilityPartitionPolicy                        ← 本文，门控开启
             ├─ A 概率传播 π（在 buildActivityOpData 后、建树前，op 层）
-            ├─ B 节点成本 w(v)（类别对齐 NO0190；系数占位待扫描）
+            ├─ B 节点成本 w(v)（类别对齐 NO0190；GRHSIM 槽位取整；系数占位待扫描）
             ├─ C 超图聚合（以 computeNode=MFFC 为节点：EdgeInfo+/active_prob）
             ├─ D MFFC 校验（η 覆盖率；computeNode 即种子，不新增 rep[u] pass）
             ├─ E 概率驱动粗化（合并 MFFC 种子：增益+三层无环+φ/W/F）
@@ -154,12 +154,13 @@ std::size_t fmRefineMaxRounds = 4;        // Phase G FM 边界精修轮数（pro
 - 复杂度 `O(|V|+|E|)` 一遍；导出 `pi_histogram`、`high_activity_nodes`、`multi_source_nodes` 统计。
 - **单测**：`kMux` sel 高概率→输出≈1；同寄存器两切片拼接不翻倍；常量链恒 0。
 
-### Phase B：节点成本模型 `w(v)`（类别对齐 NO0190，系数占位待扫描）
+### Phase B：节点成本模型 `w(v)`（类别对齐 NO0190，GRHSIM 槽位取整，系数占位待扫描）
 
-- 新增 `nodeCost(OperationKind)` 表，**类别**与 [`NO0190`](./NO0190_grhsim_gsim_unified_cost_model_comp_src_sink_plan_20260612.md) §2/§3 完全一致：comp（ALU/mux/slice/concat）/ src（reg/mem/latch 读）/ sink（不进 compute 划分）/ const。`w(v) = c_class·bitwidth(v)`。
+- 新增 `nodeCost(OperationKind)` 表，**类别**与 [`NO0190`](./NO0190_grhsim_gsim_unified_cost_model_comp_src_sink_plan_20260612.md) §2/§3 完全一致：comp（ALU/mux/slice/concat）/ src（reg/mem/latch 读）/ sink（不进 compute 划分）/ const。`w(v) = c_class(kind)·compute_units(width)`。
+- **位宽因子不用裸 `bitwidth`**：GRHSIM C++ emit 对 `width<=64` 走 `bool/u8/u16/u32/u64` 标量，对 `width>64` 走 `std::array<uint64_t, N>` / words helper；运行成本主要按标量槽 / 64-bit word 粒度变化，不是逐 bit 线性变化。因此 `compute_units(width)=1`（`1<=width<=64`），`compute_units(width)=ceil(width/64)`（`width>64`）。这避免把 8/9/31/64 位错误拉开几十倍；真正 wide value 仍按 word 数增长。
 - **系数不继承 NO0190 回归值**：2026-06-25 决策判定之前那批 `c_*` 回归无效，不引用。`c_class` 先用一组占位常量（量级参考草案附录：comp=1、src 高于 comp、const 轻量物化），实现后由参数扫描（§9.1）确定。
 - **关键**：内存读在 [`NO0190`](./NO0190_grhsim_gsim_unified_cost_model_comp_src_sink_plan_20260612.md) §3 归 src，本文 `w(v)` 同步，避免划分把 `kMemoryReadPort` 当廉价 comp。
-- footprint：`Σ bitwidth·B_logic`（2-state=1 / 4-state=2），用于 `F_max` 约束；**`F_max` 取宿主 x86 L1D**（仿真器执行机器的 L1 数据缓存），非被仿真 XiangShan 的 cache。
+- **compute cost 与 footprint 分离**：`w(v)` 描述执行成本，使用 `compute_units(width)`；`footprint` 描述宿主 L1D 工作集，按 GRHSIM 存储桶估算：`width<=1/8/16/32/64` 分别约 `1/1/2/4/8` bytes，`width>64` 为 `8·ceil(width/64)` bytes（聚合时按 value/slot 去重口径实现，避免同一 value 被多 op 重复计入）。`F_max` 取宿主 x86 L1D，非被仿真 XiangShan 的 cache。
 
 ### Phase C：超图聚合结构
 
@@ -271,6 +272,7 @@ DP（Phase F）给出按 cap 切分的 computeSupernode 后，做 Fiduccia-Matth
 3. **所有数值参数留待实现后扫描微调**：概率先验、`φ_min`、`W_max`、`F_max`、`c_class`、`cBpMiss` 现在都无法确认，需在实现后扫描并据 gate 微调；本文给的全是占位量级。
 4. **`F_max`/footprint 按宿主 x86 标定**：仿真器跑在 x86 机器上，约束的是**宿主 CPU 的 L1 数据缓存**（让单个 supernode 的读写工作集落在 host L1D），与被仿真的 XiangShan 自身 cache 无关；具体容量按目标开发机标定。
 5. **首版不做 runtime profiling 概率回灌**（层次 3，Phase H 暂缓）：只用层次 2 静态概率；待 50k gate 证明收益后再评估回灌。
+6. **节点成本位宽因子按 GRHSIM 执行槽位取整**（2026-06-26 决策）：`w(v)` 不使用裸 `bitwidth` 线性计费，而使用 `compute_units(width)`；`width<=64` 均计 1 个执行槽，`width>64` 按 64-bit word 数取整。footprint 单独按 GRHSIM 存储桶 / word 数估算，用于 `F_max`，不与 compute cost 混用。
 
 ### 9.2 仍待定（实现期回答）
 

@@ -385,6 +385,11 @@ def main() -> int:
     skip_comb_lane_pack = env_flag("WOLVRIX_XS_GRHSIM_SKIP_COMB_LANE_PACK", default=False)
     reg_to_mem_intent = env_flag("WOLVRIX_XS_GRHSIM_REG_TO_MEM_INTENT", default=True)
     partition_policy = (os.environ.get("WOLVRIX_XS_GRHSIM_PARTITION_POLICY", "plain").strip() or "plain")
+    prob_dp_cost = env_flag("WOLVRIX_XS_GRHSIM_PROB_DP_COST", default=False)
+    prob_dp_cost_mode = os.environ.get("WOLVRIX_XS_GRHSIM_PROB_DP_COST_MODE", "mixed-pi").strip() or "mixed-pi"
+    prob_dp_alpha = float(os.environ.get("WOLVRIX_XS_GRHSIM_PROB_DP_ALPHA", "1.0"))
+    prob_dp_segment_penalty = float(os.environ.get("WOLVRIX_XS_GRHSIM_PROB_DP_SEGMENT_PENALTY", "1.25"))
+    fm_refine_max_rounds = env_int("WOLVRIX_XS_GRHSIM_FM_REFINE_MAX_ROUNDS", 4)
     comb_lane_pack_report = os.environ.get(
         "WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_REPORT",
         str(cpp_out_dir.parent / "comb_lane_pack_report_xs.json"),
@@ -422,7 +427,11 @@ def main() -> int:
         f"enable_stats={enable_stats} "
         f"post_stats_json={post_stats_json} "
         f"resume_from_stats_json={resume_from_stats_json} "
-        f"reg_to_mem_intent={reg_to_mem_intent}"
+        f"reg_to_mem_intent={reg_to_mem_intent} "
+        f"prob_dp_cost={prob_dp_cost} "
+        f"prob_dp_cost_mode={prob_dp_cost_mode} "
+        f"prob_dp_alpha={prob_dp_alpha} "
+        f"prob_dp_segment_penalty={prob_dp_segment_penalty}"
     )
 
     read_args: list[str] = ["-f", filelist, "--top", top_name]
@@ -497,8 +506,28 @@ def main() -> int:
             post_sched_pipeline[0][1]["export_compute_dag"] = str(export_compute_dag_path)
         if partition_policy and partition_policy != "plain":
             # NO0207/NO0208: pass -partition-policy via raw args (bypasses kwarg allowlist).
-            post_sched_pipeline[0][1]["args"] = ["-partition-policy", partition_policy]
-            log(f"activity-schedule partition_policy={partition_policy}")
+            post_sched_pipeline[0][1]["args"] = [
+                "-partition-policy",
+                partition_policy,
+                "-prob-dp-cost",
+                "true" if prob_dp_cost else "false",
+                "-prob-dp-cost-mode",
+                prob_dp_cost_mode,
+                "-prob-dp-alpha",
+                str(prob_dp_alpha),
+                "-prob-dp-segment-penalty",
+                str(prob_dp_segment_penalty),
+                "-fm-refine-max-rounds",
+                str(fm_refine_max_rounds),
+            ]
+            log(
+                "activity-schedule partition_policy="
+                f"{partition_policy} prob_dp_cost={prob_dp_cost} "
+                f"prob_dp_cost_mode={prob_dp_cost_mode} "
+                f"prob_dp_alpha={prob_dp_alpha} "
+                f"prob_dp_segment_penalty={prob_dp_segment_penalty} "
+                f"fm_refine_max_rounds={fm_refine_max_rounds}"
+            )
         log(config_message)
 
         if resume_from_stats_json:
