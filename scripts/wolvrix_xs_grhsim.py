@@ -390,6 +390,12 @@ def main() -> int:
     prob_dp_alpha = float(os.environ.get("WOLVRIX_XS_GRHSIM_PROB_DP_ALPHA", "1.0"))
     prob_dp_segment_penalty = float(os.environ.get("WOLVRIX_XS_GRHSIM_PROB_DP_SEGMENT_PENALTY", "1.25"))
     fm_refine_max_rounds = env_int("WOLVRIX_XS_GRHSIM_FM_REFINE_MAX_ROUNDS", 4)
+    cbaw_plain_boundary_baseline = env_int("WOLVRIX_XS_GRHSIM_CBAW_PLAIN_BOUNDARY_BASELINE", 0)
+    cbaw_plain_dag_baseline = env_int("WOLVRIX_XS_GRHSIM_CBAW_PLAIN_DAG_BASELINE", 0)
+    cbaw_plain_compute_compute_baseline = env_int(
+        "WOLVRIX_XS_GRHSIM_CBAW_PLAIN_COMPUTE_COMPUTE_BASELINE",
+        0,
+    )
     comb_lane_pack_report = os.environ.get(
         "WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_REPORT",
         str(cpp_out_dir.parent / "comb_lane_pack_report_xs.json"),
@@ -416,6 +422,9 @@ def main() -> int:
         f"sched_batch_target_count={sched_batch_target_count} "
         f"sched_batches_per_cpp={sched_batches_per_cpp} "
         f"emit_parallelism={emit_parallelism} "
+        f"cbaw_plain_boundary_baseline={cbaw_plain_boundary_baseline} "
+        f"cbaw_plain_dag_baseline={cbaw_plain_dag_baseline} "
+        f"cbaw_plain_compute_compute_baseline={cbaw_plain_compute_compute_baseline} "
         f"storage_ref_aliases={storage_ref_aliases_setting}"
         f"{'' if storage_ref_aliases_env_was_set else '(xs_default)'} "
         f"export_compute_dag={export_compute_dag_path if export_compute_dag_path is not None else 'off'} "
@@ -520,6 +529,21 @@ def main() -> int:
                 "-fm-refine-max-rounds",
                 str(fm_refine_max_rounds),
             ]
+            if (
+                cbaw_plain_boundary_baseline
+                and cbaw_plain_dag_baseline
+                and cbaw_plain_compute_compute_baseline
+            ):
+                post_sched_pipeline[0][1]["args"].extend(
+                    [
+                        "-cbaw-plain-boundary-baseline",
+                        str(cbaw_plain_boundary_baseline),
+                        "-cbaw-plain-dag-baseline",
+                        str(cbaw_plain_dag_baseline),
+                        "-cbaw-plain-compute-compute-baseline",
+                        str(cbaw_plain_compute_compute_baseline),
+                    ]
+                )
             log(
                 "activity-schedule partition_policy="
                 f"{partition_policy} prob_dp_cost={prob_dp_cost} "
