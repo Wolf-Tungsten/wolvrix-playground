@@ -2,7 +2,7 @@
 
 日期：2026-07-02
 
-状态：计划，2026-07-02 已追加本轮实现与 stop-after 验证结果。本文接在 [`NO0210`](./NO0210_cross_boundary_activation_work_partition_plan_20260629.md)、[`NO0211`](./NO0211_cbaw_p0_evaluator_rollout_progress_20260701.md) 和 [`NO0212`](./NO0212_gsim_dp_stage_structure_gain_20260702.md) 之后，只讨论 `activity-schedule` 中 `partition_policy=cbaw` 的 P5 coarsen 提升。本文不把未验证的语义收益写成结论；所有改动都必须先通过结构指标与日志 accounting 证明。
+状态：计划，2026-07-02 已追加本轮实现与 stop-after 验证结果。本文接在 [`NO0210`](./NO0210_cross_boundary_activation_work_partition_plan_20260629.md)、[`NO0211`](./NO0211_cbaw_p0_evaluator_rollout_progress_20260701.md) 和 [`NO0212`](./NO0212_gsim_dp_stage_structure_gain_20260702.md) 之后，只讨论 `activity-schedule` 中 `partition_policy=cbaw` 的 P5 coarsen 提升。本文不把未验证的语义收益写成结论；所有改动都必须先通过结构指标与日志 accounting 证明。2026-07-03 起，NO0210 的独立 P4 ATE safe-merge 阶段已退役；本文后续的 P0-P4 是 coarsen 改进子步骤编号，二者不再对应。
 
 ## 1. 目标
 
@@ -391,6 +391,7 @@ WOLVRIX_XS_GRHSIM_CBAW_PLAIN_COMPUTE_COMPUTE_BASELINE=2095811
 本轮已把 P0-P4 中对 P5 coarsen 可直接落地的部分接入 `activity-schedule`：
 
 - `ComputeNodeMaterializePerfStats` 增加 CBAW coarsen per-kind/per-tag accounting，覆盖 `generated / dedup_selected / dedup_lost_tag / evaluated / accepted / rejected_no_gain / rejected_resource / rejected_cycle / stale`，并记录 `selected_reason`。
+- NO0210 P4 ATE safe-merge 已从主流水线退役；本轮实现不依赖等触发集合并，只保留 P1 trigger 诊断与 P8 trigger gate 字段。
 - CBAW candidate 从单一 `kind` 改为 `primaryTag + tags`，同一 pair 的 plain、aggregate、MFFC、guard、sink、passthrough 等 attribution 不再互相覆盖。
 - P5 排序改为 incident exact delta 词典序优先：`delta_boundary_targets / delta_dag_edges / delta_compute_compute_pairs`，再用 semantic tie-break、direct weight、resource slack 和 topo order 打破平局。
 - exact delta 覆盖 direct internalized value targets、shared incoming fanout、common pred/succ DAG collapse，以及 common commit successor collapse。

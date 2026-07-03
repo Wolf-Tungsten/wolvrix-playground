@@ -278,7 +278,7 @@ trigger(a) = { 跨边界进入 a 的 volatile source value }
 
 只计 state-read / memory-read 等真正会变的 source；常量与纯 representation 透传不增加 trigger 基数。`trigger` 可在一次 reverse-topo 中用定宽签名（MinHash / Bloom）近线性传播，与 Phase A evaluator 同复杂度级。
 
-据此把目标函数扩展为：在 §2.3 词典序之上叠加一个 **over-eval guard**，用全局 trigger 膨胀 `Σ_S |trigger(S)|` 作为 `f·E` 抬升的 profile-free 上界代理。具体合并准则、Pareto 定理与阶段接线见 §9；trigger 模型是**集合结构事实，不是概率**，因此与 §5.1“不以概率主导合并”一致。
+据此把目标函数扩展为：在 §2.3 词典序之上保留一个 **over-eval 诊断 / gate 口径**，用 trigger 饱和度、等触发桶覆盖和 `Σ_S |trigger(S)|` 作为 `f·E` 抬升的 profile-free 上界代理。具体诊断口径与 ATE 退役结论见 §9；trigger 模型是**集合结构事实，不是概率**，因此与 §5.1“不以概率主导合并”一致。
 
 ---
 
@@ -923,7 +923,7 @@ incident(a) ∪ incident(b)
 6. **sink-cone candidate**：同一 downstream sink family 的局部 atoms。
 7. **dominance candidate**：MFFC / post-dominator cone 中被 resource budget 拆开的相邻 atom。
 
-注意：本阶段的初始 partition 来自 CBAW atom builder / ATE safe merge 的结果，不来自 plain partition。plain structural candidate 只是候选生成器之一，和 heavy value-use / aggregate / MFFC candidate 平级；接受与否只看 CBAW evaluator 和 gate。
+注意：本阶段的初始 partition 来自 CBAW atom builder，不来自 plain partition，也不再经过独立 ATE safe-merge 阶段。plain structural candidate 只是候选生成器之一，和 heavy value-use / aggregate / MFFC candidate 平级；接受与否只看 CBAW evaluator 和 gate。
 
 候选不做 clique 展开。每个 group 只保留 top-k：
 
@@ -1146,9 +1146,11 @@ candidate_queue: bucketed by Δcross_boundary_target_count / Δsupernode_depende
 
 ---
 
-## 9. 激活触发等价（ATE）合并：profile-free 的 over-eval 防护
+## 9. 激活触发诊断与 ATE 合并退役
 
-§2.6 指出 §2.3 目标对 `f·E` 失明。ATE（Activation-Trigger Equivalence）是对 §4 算法的**合并接受准则**扩展，不替换 cross-boundary net-cut 主目标，只在其上加一层 profile-free 的 over-eval 防护。它不引入概率，也不使用任何 runtime profile。
+§2.6 指出 §2.3 目标对 `f·E` 失明。ATE（Activation-Trigger Equivalence）原本是对 §4 算法的**合并接受准则**扩展，不替换 cross-boundary net-cut 主目标，只在其上加一层 profile-free 的 over-eval 防护。它不引入概率，也不使用任何 runtime profile。
+
+2026-07-03 结论：完整 XiangShan P1 前验已证明 256-bit trigger 签名大面积饱和，后续 P5/P7/P8 通过路径也不依赖 ATE。因此独立 **P4 ATE safe-merge 阶段退役**。保留 P1 trigger 只读诊断、`trigger_ate_*` 兼容字段和 P8 `trigger_pass/cbaw_trigger_p99` 监控口径；不再维护 `enabled=0` 的 P4 阶段日志或把 ATE 作为 CBAW 初始解的一部分。
 
 ### 9.1 trigger 集合与签名
 
@@ -1196,10 +1198,10 @@ trigger(A) ⊆ trigger(B) ⇒ f(M) = f(B)
 
 ### 9.5 与 §4 阶段接线
 
-- **Phase C 后**：插入 trigger 签名 pass（§9.1）。
-- **Phase D**：合并接受准则改为两段——先穷尽等触发集合并（§9.2，纯赚），再进入 cross-boundary net-cut 候选；net-cut 候选的 gain 在 §2.3 词典序之后追加 over-eval 惩罚项 `∝ E·Δ|trigger|`（§9.3），并对 disjoint-trigger 合并设硬否决。
-- **Phase F**：FM 边界 move 带 trigger 约束，禁止把 atom 移进会显著抬升其 `|trigger|` 的 supernode。
-- **§11.10 gate**：在 plain 结构地板之外，增加 **trigger 膨胀地板**——任何使全局 `Σ_S |trigger(S)|` 相对 plain 显著上升的方案不得进 runtime（over-eval 的 profile-free 上界代理）。
+- **P1 / export session**：保留 trigger 签名传播、饱和度、等触发桶覆盖和可内化边界上界统计（§9.1 / §9.7）。
+- **Phase D / P5**：不再先跑等触发集合并；CBAW coarsen 直接从 P3 atom partition 进入 cross-boundary net-cut 候选。
+- **Phase F / P7**：当前 refinement 不接入 trigger 约束；若未来有非饱和 trigger 表达，再单独重开设计。
+- **§11.10 gate**：保留 `trigger_pass` 与 `cbaw_trigger_p99` 作为 over-eval 监控字段。当前 gate 的 hard pass/fail 仍由 plain 结构地板、resource 和 DAG acyclic gate 决定。
 
 ### 9.6 与 NO0200 的关系
 
@@ -1213,7 +1215,7 @@ ATE 自身风险：
 2. MinHash 判等近似——须精确复核；
 3. **trigger 饱和**——最大威胁，可能使全部 atom trigger 近全集、等价桶碎成单点。
 
-因此 ATE **第一步不是写划分器**，而是 §11.3 P1 的纯静态前验（zero profile / zero build）：只跑 trigger 签名 pass，量 (a) atom trigger 基数分布是否“少数小触发集 + 长尾”而非整体饱和；(b) 等触发集等价桶能覆盖多少 atom、能内化掉 plain 多少 `boundary_activation_edges`。若饱和、覆盖率过低 ⇒ ATE 退化，回纯 net-cut 主线（§7 Kill 10/11）；若存在大量等触发集结构 ⇒ 优先落地 §9.2 的定理级安全合并。
+因此 ATE **第一步不是写划分器**，而是 §11.3 P1 的纯静态前验（zero profile / zero build）：只跑 trigger 签名 pass，量 (a) atom trigger 基数分布是否“少数小触发集 + 长尾”而非整体饱和；(b) 等触发集等价桶能覆盖多少 atom、能内化掉 plain 多少 `boundary_activation_edges`。现有完整 XiangShan 前验已经命中饱和 kill criterion，所以 ATE safe-merge 退役；后续仅保留 trigger 诊断和兼容字段，不再以放宽签名阈值凑覆盖。
 
 ---
 
@@ -1225,7 +1227,7 @@ ATE 自身风险：
 真实 value-use graph
   + merge hint groups / plain structural hint / guard / aggregate / sink-cone / MFFC
   + 精确 cross_boundary_target_count / supernode_dependency_edge_count / compute_materialized_value_target_count 词典序目标
-  + ATE 等触发集合并（profile-free over-eval 防护，§9）
+  + trigger 饱和 / 等触发桶诊断（profile-free over-eval 监控，§9）
   + acyclic contraction
   + cross-boundary-aware refinement
 ```
@@ -1234,13 +1236,13 @@ ATE 自身风险：
 
 工程入口上也应保持同样边界：CBAW 是 plain、prob/FM 之外的第三条平行路径。plain gate 决定“能不能进 build/runtime”，plain replay 证明“新 materialize 接口没有引入统计偏差”，plain hint 只提供“局部候选”；三者都不能把 CBAW 降级为 plain 的修补 pass。
 
-此外，net-cut 主目标对 firing-frequency × eval 的 over-eval 项失明（§2.6）；ATE 用 profile-free 的 trigger 等价（§9）补上这一项，并以等触发集合并的 Pareto 定理保证不抬升 runtime。整条路线全程不使用 runtime profile：firing 成本只通过静态 trigger 集合结构表达，绝对频率 `f` 在安全合并的代价计算中被约掉，从根上回避了 NO0207–NO0209 “静态 π 不可靠 / 需要 profile 才能定频率” 的死结。
+此外，net-cut 主目标对 firing-frequency × eval 的 over-eval 项失明（§2.6）。ATE 曾试图用 profile-free 的 trigger 等价（§9）补上这一项，但完整 XiangShan 的 trigger 签名饱和使它不适合作为当前 compute partition 阶段。整条路线仍全程不使用 runtime profile；firing 成本暂以 trigger 只读诊断和 P8 监控字段保留，不再参与当前 CBAW 合并裁决。
 
 ---
 
 ## 11. 最终按阶段实施计划（覆盖全部 feat）
 
-本节是落地时的唯一阶段顺序。§4 给算法流水线，§9 给 ATE 接线；本节把它们收敛成可执行的 feat 列表。每个阶段都必须保持 **compute-only、profile-free、plain-gated、近线性**。任何阶段未过结构 gate，不进入 build/runtime。
+本节是落地时的唯一阶段顺序。§4 给算法流水线，§9 给 trigger 诊断与 ATE 退役边界；本节把它们收敛成可执行的 feat 列表。每个阶段都必须保持 **compute-only、profile-free、plain-gated、近线性**。任何阶段未过结构 gate，不进入 build/runtime。
 
 实现形态必须保持 **plain / prob/FM / CBAW 三入口并列**：P0/P3 的 plain replay 只用于 evaluator/materialize 校验，P5 之后的 CBAW coarsen/refine/output 不允许依赖 plain partition 作为初始解或后处理对象。
 
@@ -1254,7 +1256,6 @@ ATE 自身风险：
 | `feat-semantic-annotation` | rtm intent、MFFC、plain hints、aggregate、guard、sink-cone、passthrough、hierarchy debug label 的只读统计 | §3、§4 Phase B | P2 |
 | `feat-atom-builder` | semantic seed、MFFC/passthrough atom、resource split、atom quotient DAG 校验 | §3.3/3.6/3.7/3.10、§4 Phase C | P3 |
 | `feat-plain-materialize-replay` | 用新 atom/partition/materialize 接口独立回放等价 plain，证明接口本身不改 stats；该 replay 不作为 CBAW 初始解 | §4 Phase G、§11.5 | P3 |
-| `feat-ate-safe-merge` | 等触发集合并、精确 trigger 复核、`Σ|trigger|` 膨胀统计、disjoint-trigger hard reject | §9.2/9.3/9.5、§11.6 | P4 |
 | `feat-cbaw-coarsen-mvp` | heavy value-use、plain out1/in1/siblings、aggregate、MFFC/dominance 四类候选；真实 gain；lazy candidate accounting | §4 Phase D、§6.2/6.3、§11.7 | P5 |
 | `feat-acyclic-contraction` | topo interval、incident path check、bounded BFS、batch Kahn backstop、rollback | §2.4、§4 Phase E | P5 |
 | `feat-guard-sink-candidates` | guard-domain 与 sink-cone 候选接入，只允许真实主指标不变差或改善 | §3.8/3.9、§11.8 | P6 |
@@ -1284,13 +1285,13 @@ ATE 自身风险：
 目标：判断 trigger 路线是否有判别力，不写划分器。
 
 - 实现 `feat-trigger-ate-readonly`：reverse-topo 传播 volatile source trigger 签名，统计 `|trigger|` 分布、等触发桶数量、桶覆盖 atom 比例、近全集饱和比例。
-- 对 plain partition 估计“等触发桶若全合并”可内化的 `boundary_activation_edges` 上界；这只是 ATE 判别力评估，不把 plain partition 作为 P4/P5 输入。
-- 输出 ATE go/no-go：只允许启用等触发集合并；子集/分层合并仍留到后续 gate。
+- 对 plain partition 估计“等触发桶若全合并”可内化的 `boundary_activation_edges` 上界；这只是 ATE 判别力评估，不把 plain partition 作为 P5 输入。
+- 输出 ATE go/no-go 兼容字段；当前仅用于记录退役原因，不再驱动独立 merge 阶段。
 
 出门槛：
 
-- 若 trigger 大面积饱和或等触发桶覆盖过低，P4 的 ATE merge 默认关闭，只保留 trigger 膨胀 gate；
-- 若存在足够等触发桶，P4 优先落地定理级安全合并。
+- 若 trigger 大面积饱和或等触发桶覆盖过低，记录 `trigger_ate_no_go_reason`，只保留 trigger 诊断 / gate 字段；
+- 若未来存在足够等触发桶，需要先重新设计并验证 trigger 表达，再单独恢复安全合并，不作为当前阶段的一部分。
 
 ### 11.4 阶段 P2：语义只读统计
 
@@ -1321,27 +1322,16 @@ ATE 自身风险：
 - atom 数、resource 分布、split 统计可解释；
 - 等价 plain materialization 不单独引入 stats 差异。
 
-### 11.6 阶段 P4：ATE 安全合并
+### 11.6 阶段 P4：已退役
 
-目标：只落地 profile-free 可证明安全的 trigger 合并，作为 net-cut 前的低风险粗化。
-
-- 实现 `feat-ate-safe-merge`：仅对 `trigger(A) == trigger(B)` 的候选做合并，签名命中后必须精确集合复核。
-- 合并仍过 resource budget 和 acyclic contraction。
-- 对 `trigger(A) ∩ trigger(B) = empty` 的 candidate 加 hard reject 标记；子集合并默认不开，只输出 hypothetical gain。
-- 统计 `Σ_S |trigger(S)|`，作为后续所有阶段的 over-eval gate。
-
-出门槛：
-
-- ATE merge 后三项主结构指标不高于 P3 CBAW atom baseline；
-- `Σ_S |trigger(S)|` 不显著高于 P3 CBAW atom baseline；
-- 若收益低或饱和，关闭 ATE merge，不阻塞 P5 纯 net-cut 主线。
+P4 ATE 安全合并阶段已退役。完整 XiangShan P1 前验长期命中 `trigger_signature_saturation`，且 NO0211 / NO0213 的通过路径均由 P5 coarsen 与 P7 refinement 完成。当前实现不再输出 `activity-schedule cbaw p4 ate` 阶段日志；P1 trigger 只读字段和 P8 `trigger_pass/cbaw_trigger_p99` 监控字段继续保留。
 
 ### 11.7 阶段 P5：CBAW coarsen MVP
 
 目标：实现主算法最小闭环。
 
 - 实现 `feat-cbaw-coarsen-mvp` 四类 candidate：heavy value-use、plain structural hint、aggregate hint、MFFC/dominance hint。
-- CBAW 初始解来自 P3 atom builder 与 P4 ATE safe merge；plain structural hint 只生成候选，不读取 plain partition 结果，不要求沿 plain 边界修补。
+- CBAW 初始解来自 P3 atom builder；plain structural hint 只生成候选，不读取 plain partition 结果，不要求沿 plain 边界修补。
 - gain 只用 incident use groups 精确计算，排序按 `cross_boundary_target_count`、`supernode_dependency_edge_count`、`compute_materialized_value_target_count` 词典序。
 - 实现 `feat-acyclic-contraction`：topo interval 快速剪枝、incident path check、bounded BFS、batch Kahn 校验。
 - 每类 candidate 输出 `generated/evaluated/accepted/rejected_no_gain/rejected_cycle/rejected_resource/rejected_semantic/stale/elapsed_ms`。

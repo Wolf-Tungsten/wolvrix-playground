@@ -4,7 +4,7 @@
 
 关联：[`NO0210`](./NO0210_cross_boundary_activation_work_partition_plan_20260629.md)
 
-状态：P0-P8 rollout 完成。本文从 P0 地基尺子开始滚动记录 `CrossBoundaryActivationWork` 路线落地进展；截至 2026-07-02，CBAW 路径已在完整 XiangShan 上通过 P8 structure gate，并按 [`NO0210`](./NO0210_cross_boundary_activation_work_partition_plan_20260629.md) §11.10 完成 full emit、emu build、correctness smoke 与 CoreMark 50k runtime。P4 ATE equal-trigger merge 仍因 `trigger_signature_saturation` 默认关闭。
+状态：P0-P8 rollout 完成。本文从 P0 地基尺子开始滚动记录 `CrossBoundaryActivationWork` 路线落地进展；截至 2026-07-02，CBAW 路径已在完整 XiangShan 上通过 P8 structure gate，并按 [`NO0210`](./NO0210_cross_boundary_activation_work_partition_plan_20260629.md) §11.10 完成 full emit、emu build、correctness smoke 与 CoreMark 50k runtime。2026-07-03 起，P4 ATE equal-trigger merge 已退役；P1 trigger 诊断和 P8 trigger gate 字段保留。
 
 ## 1. 本轮目标
 
@@ -138,7 +138,7 @@ ctest --test-dir wolvrix/build --output-on-failure -R transform-activity-schedul
 - trigger source 包含 state read、memory read、latch read，以及无 defining op 的 graph input value；constant 不计 trigger。
 - trigger 签名使用 256-bit Bloom-style signature、4 个 hash，在 current quotient DAG 上按 topo 顺序向后传播。
 - 输出 `trigger_signature_popcount_*` 与 Bloom cardinality 估算 `trigger_estimated_count_*`，用于观察是否整体饱和。
-- 等触发桶统计分为 all bucket 与 non-empty bucket；P4 的安全等触发集合并候选默认应看 non-empty bucket。
+- 等触发桶统计分为 all bucket 与 non-empty bucket；这些字段保留为 P1 trigger 判别力诊断，不再驱动独立 P4 安全合并阶段。
 - “等触发桶若全合并可内化边界上界”目前只计 compute->compute target，保持 NO0210 的 compute-only 边界；commit target 不纳入 ATE 可内化上界。
 
 新增 JSON 字段包括：
@@ -228,7 +228,7 @@ activity-schedule cbaw p2 semantic: seed_groups=1492018 merge_hint_groups=155293
 
 - P0 完整 XiangShan replay 出门槛已过：`boundary_delta / dag_delta / compute_compute_delta` 全为 `0`。
 - P1 ATE 判别力前验触发 kill criterion：`trigger_signature_saturated_ratio_ppm=788774`，`popcount_p50=256` 且 `popcount_p99=256`，说明 256-bit Bloom 签名在完整 XiangShan 上大面积近全集饱和。
-- 因此 P4 的 ATE equal-trigger merge 默认关闭；后续只保留 trigger 膨胀 gate 与 `no_go_reason=trigger_signature_saturation` 记录，主线继续 P3/P5 的纯 CBAW net-cut。
+- 因此 ATE equal-trigger merge 退役；后续只保留 trigger 诊断 / gate 字段与 `no_go_reason=trigger_signature_saturation` 记录，主线继续 P3/P5 的纯 CBAW net-cut。
 
 ## 8. 增量更新 2026-07-02：P2 语义只读统计接入
 
@@ -319,15 +319,15 @@ activity-schedule cbaw p3 atom: atom_count=1396096 quotient_edges=3679158 quotie
 - P3 出门槛已过：atom quotient DAG 无环，`quotient_cycle=0`。
 - atom resource 分布可解释：`op_count_p99=56`、`op_count_p995=108`、`op_count_cap=108`。
 - 等价 plain materialize replay 没有引入统计偏差：`plain_replay_boundary_delta / plain_replay_dag_delta / plain_replay_compute_compute_delta` 全为 `0`。
-- P3 之后仍不启用 P4 equal-trigger merge；P1 已给出 `no_go_reason=trigger_signature_saturation`，后续主线进入 P5 纯 CBAW net-cut，P4 只保留 gate/report 与默认关闭记录。
+- P3 之后不再保留独立 P4 equal-trigger merge 阶段；P1 已给出 `no_go_reason=trigger_signature_saturation`，后续主线进入 P5 纯 CBAW net-cut，只保留 trigger 诊断 / gate 字段。
 
-## 10. 增量更新 2026-07-02：P4-P8 gate rollout
+## 10. 增量更新 2026-07-02：P5-P8 gate rollout
 
 本轮把 CBAW 从只读 P3 推到可独立 materialize 的 `partitionPolicy=cbaw` 路径，并在完整 XiangShan 上跑到 `stop_after_activity_schedule`。
 
 已落地内容：
 
-- P4 ATE：保留日志和 gate，默认关闭。完整 XiangShan 仍触发 `trigger_signature_saturation`，因此不启用 equal-trigger merge。
+- P4 ATE：2026-07-03 已退役。完整 XiangShan 触发 `trigger_signature_saturation`，因此不再保留独立 equal-trigger merge 阶段日志。
 - P5 CBAW coarsen MVP：生成 heavy value-use、plain structural hint、aggregate、guard、sink-cone、MFFC/dominance 候选；每轮用 bounded one-shot DSU contraction 接受候选，最后用一次 Kahn topo backstop 保证 quotient DAG 无环。当前每轮上限为 `4096` merges。
 - P6 guard/sink candidates：guard 与 sink-cone 候选已进入 accounting；本轮未被接受。
 - P7 refinement：当前只做 `report_only` 日志。由于 P5/P8 结构 gate 已失败，未继续启用 FM/local exact。
@@ -372,7 +372,6 @@ build/logs/xs/xs_wolf_grhsim_no0210_p5_cbaw_r10_stop_after_activity_20260702.log
 
 ```text
 activity-schedule progress: cbaw_plain_gate_baseline external boundary=2446334 dag=703270 compute_compute=2095811
-activity-schedule cbaw p4 ate: enabled=0 reason=trigger_signature_saturation ate_equal_merge_recommended=0 saturated_ratio_ppm=344838 trigger_estimated_p99=355
 activity-schedule cbaw p5 coarsen: candidates=15073893 evaluated=92886 accepted=4096 reject_no_gain=808 reject_resource=7926 reject_cycle=79807 stale=1057 clusters_before=1396066 clusters_after=1391970 quotient_cycle=0
 activity-schedule cbaw p6 guard-sink: guard_candidates=3422571 guard_accepted=0 sink_candidates=1517040 sink_accepted=0 semantic_guard_domains=1123504 semantic_sink_labels=391493
 activity-schedule cbaw p7 refine: enabled=0 mode=report_only fm_moves=0 local_exact_rois=0 reason=coarsen_gate_first
@@ -505,4 +504,4 @@ guest_cycle_spent=50001
 
 - NO0210 §11.10 的 P8 build/runtime gate 已闭环：结构 gate pass 后执行 full emit、build、smoke 与 50k runtime，且 runtime 通过当前 `coremark50k-fast` gate。
 - CBAW r22 相对 plain gate baseline 降低 `boundary_activation_edges` 与 `compute_compute_value_pairs` 各 `1136`，`dag_edges` 降低 `21617`。
-- P4 ATE equal-trigger merge 仍不应启用；当前通过的是 P5 coarsen + P7 FM/swap + P8 gate 组合。
+- P4 ATE equal-trigger merge 已退役；当前通过的是 P5 coarsen + P7 FM/swap + P8 gate 组合。
