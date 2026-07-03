@@ -135,8 +135,47 @@ def supernode_kind_code(value) -> int:
     return int(text)
 
 
+def write_activity_schedule_cbaw_stats(sess: wolvrix.Session, key_prefix: str, out_dir: Path) -> dict | None:
+    cbaw_key = key_prefix + "cbaw_stats"
+    try:
+        cbaw_text = _native.session_export(sess._capsule, key=cbaw_key, view="text")
+    except Exception as ex:
+        log(f"activity-schedule cbaw stats unavailable key={cbaw_key}: {ex}")
+        return None
+    if not str(cbaw_text).strip():
+        log(f"activity-schedule cbaw stats empty key={cbaw_key}")
+        return None
+
+    cbaw_stats = json.loads(cbaw_text)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "activity_schedule_cbaw_stats.json"
+    out_path.write_text(json.dumps(cbaw_stats, indent=2, sort_keys=True), encoding="utf-8")
+
+    top_root_reports = cbaw_stats.get("cbaw_top_root_stage_reports", [])
+    top_root_deltas = cbaw_stats.get("cbaw_top_root_stage_deltas", [])
+    summary = {
+        "path": str(out_path),
+        "top_root_report_count": len(top_root_reports),
+        "top_root_stage_delta_count": len(top_root_deltas),
+        "top_root_after_dp_total_targets": cbaw_stats.get("cbaw_top_root_after_dp_total_targets", 0),
+        "top_root_after_dp_reported_targets": cbaw_stats.get("cbaw_top_root_after_dp_reported_targets", 0),
+        "top_root_after_dp_coverage_ppm": cbaw_stats.get("cbaw_top_root_after_dp_coverage_ppm", 0),
+    }
+    log(
+        "activity-schedule cbaw stats "
+        f"top_root_reports={summary['top_root_report_count']} "
+        f"top_root_stage_deltas={summary['top_root_stage_delta_count']} "
+        f"top_root_after_dp_total_targets={summary['top_root_after_dp_total_targets']} "
+        f"top_root_after_dp_reported_targets={summary['top_root_after_dp_reported_targets']} "
+        f"top_root_after_dp_coverage_ppm={summary['top_root_after_dp_coverage_ppm']}"
+    )
+    log(f"activity-schedule cbaw stats written {out_path}")
+    return summary
+
+
 def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> None:
-    summary_key = key.rsplit("supernode_to_ops", 1)[0] + "summary_stats"
+    key_prefix = key.rsplit("supernode_to_ops", 1)[0]
+    summary_key = key_prefix + "summary_stats"
     try:
         summary_text = _native.session_export(sess._capsule, key=summary_key, view="text")
     except Exception:
@@ -152,6 +191,7 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
     supernode_kinds = [supernode_kind_code(kind) for kind in supernode_kind_raw]
     compute_sizes = [len(ops) for ops, kind in zip(supernode_to_ops, supernode_kinds) if kind == 0]
     commit_sizes = [len(ops) for ops, kind in zip(supernode_to_ops, supernode_kinds) if kind == 1]
+    cbaw_summary = write_activity_schedule_cbaw_stats(sess, key_prefix, out_dir)
     if summary_text:
         summary = json.loads(summary_text)
         sizes = sorted(len(ops) for ops in supernode_to_ops)
@@ -160,6 +200,8 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
         summary["compute_ops_per_supernode"] = summarize_sizes(compute_sizes)
         summary["commit_ops_per_supernode"] = summarize_sizes(commit_sizes)
         summary["out_degree_per_supernode"] = summarize_sizes(out_degrees)
+        if cbaw_summary is not None:
+            summary["cbaw_stats"] = cbaw_summary
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / "activity_schedule_supernode_stats.json"
         out_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
@@ -285,6 +327,8 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
                 "max": 0,
             },
         }
+    if cbaw_summary is not None:
+        summary["cbaw_stats"] = cbaw_summary
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "activity_schedule_supernode_stats.json"
     out_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
