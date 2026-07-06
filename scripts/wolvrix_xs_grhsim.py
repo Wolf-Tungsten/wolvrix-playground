@@ -428,12 +428,17 @@ def main() -> int:
     simplify_keep_declared_symbols = env_flag("WOLVRIX_XS_GRHSIM_SIMPLIFY_KEEP_DECLARED_SYMBOLS", default=False)
     skip_comb_lane_pack = env_flag("WOLVRIX_XS_GRHSIM_SKIP_COMB_LANE_PACK", default=False)
     reg_to_mem_intent = env_flag("WOLVRIX_XS_GRHSIM_REG_TO_MEM_INTENT", default=True)
+    declared_value_compute_node_boundary = env_flag(
+        "WOLVRIX_XS_GRHSIM_DECLARED_VALUE_COMPUTE_NODE_BOUNDARY",
+        default=False,
+    )
     partition_policy = (os.environ.get("WOLVRIX_XS_GRHSIM_PARTITION_POLICY", "plain").strip() or "plain")
     prob_dp_cost = env_flag("WOLVRIX_XS_GRHSIM_PROB_DP_COST", default=False)
     prob_dp_cost_mode = os.environ.get("WOLVRIX_XS_GRHSIM_PROB_DP_COST_MODE", "mixed-pi").strip() or "mixed-pi"
     prob_dp_alpha = float(os.environ.get("WOLVRIX_XS_GRHSIM_PROB_DP_ALPHA", "1.0"))
     prob_dp_segment_penalty = float(os.environ.get("WOLVRIX_XS_GRHSIM_PROB_DP_SEGMENT_PENALTY", "1.25"))
     fm_refine_max_rounds = env_int("WOLVRIX_XS_GRHSIM_FM_REFINE_MAX_ROUNDS", 4)
+    cbaw_coarsen_max_iterations = env_int("WOLVRIX_XS_GRHSIM_CBAW_COARSEN_MAX_ITERATIONS", 8)
     cbaw_plain_boundary_baseline = env_int("WOLVRIX_XS_GRHSIM_CBAW_PLAIN_BOUNDARY_BASELINE", 0)
     cbaw_plain_dag_baseline = env_int("WOLVRIX_XS_GRHSIM_CBAW_PLAIN_DAG_BASELINE", 0)
     cbaw_plain_compute_compute_baseline = env_int(
@@ -481,10 +486,13 @@ def main() -> int:
         f"post_stats_json={post_stats_json} "
         f"resume_from_stats_json={resume_from_stats_json} "
         f"reg_to_mem_intent={reg_to_mem_intent} "
+        f"declared_value_compute_node_boundary={declared_value_compute_node_boundary} "
         f"prob_dp_cost={prob_dp_cost} "
         f"prob_dp_cost_mode={prob_dp_cost_mode} "
         f"prob_dp_alpha={prob_dp_alpha} "
-        f"prob_dp_segment_penalty={prob_dp_segment_penalty}"
+        f"prob_dp_segment_penalty={prob_dp_segment_penalty} "
+        f"cbaw_coarsen_max_iterations={cbaw_coarsen_max_iterations} "
+        f"fm_refine_max_rounds={fm_refine_max_rounds}"
     )
 
     read_args: list[str] = ["-f", filelist, "--top", top_name]
@@ -552,6 +560,7 @@ def main() -> int:
                     "split_oversize_compute_node_max_ops": split_oversize_compute_node_max_ops,
                     "max_op_in_commit_supernode": max_op_in_commit_supernode,
                     "commit_guard_event_buckets": commit_guard_event_buckets,
+                    "declared_value_compute_node_boundary": declared_value_compute_node_boundary,
                 },
             ),
         ]
@@ -572,6 +581,8 @@ def main() -> int:
                 str(prob_dp_segment_penalty),
                 "-fm-refine-max-rounds",
                 str(fm_refine_max_rounds),
+                "-cbaw-coarsen-max-iterations",
+                str(cbaw_coarsen_max_iterations),
             ]
             if (
                 cbaw_plain_boundary_baseline

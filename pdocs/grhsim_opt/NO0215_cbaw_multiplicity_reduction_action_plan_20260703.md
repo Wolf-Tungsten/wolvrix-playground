@@ -2,9 +2,9 @@
 
 记录日期：2026-07-03
 
-关联：[`NO0210`](./NO0210_cross_boundary_activation_work_partition_plan_20260629.md)、[`NO0211`](./NO0211_cbaw_p0_evaluator_rollout_progress_20260701.md)、[`NO0212`](./NO0212_gsim_dp_stage_structure_gain_20260702.md)、[`NO0213`](./NO0213_cbaw_coarsen_improvement_plan_20260702.md)、[`NO0214`](./NO0214_cbaw_compute_node_builder_decision_20260703.md)、[`NO0216`](./NO0216_cbaw_profile_work_scope_progress_20260703.md)
+关联：[`NO0210`](./NO0210_cross_boundary_activation_work_partition_plan_20260629.md)、[`NO0211`](./NO0211_cbaw_p0_evaluator_rollout_progress_20260701.md)、[`NO0212`](./NO0212_gsim_dp_stage_structure_gain_20260702.md)、[`NO0213`](./NO0213_cbaw_coarsen_improvement_plan_20260702.md)、[`NO0214`](./NO0214_cbaw_compute_node_builder_decision_20260703.md)、[`NO0216`](./NO0216_cbaw_profile_work_scope_progress_20260703.md)、[`NO0219`](./NO0219_declared_value_compute_node_boundary_plan_20260706.md)、[`NO0220`](./NO0220_declared_value_boundary_cbaw_ab_final_perf_20260706.md)
 
-状态：阶段 A/B 已执行，阶段 C/D/E 待执行。本文接 NO0214 的决策：不 fork 独立 compute-node builder，继续当前 CBAW atom/materialization/evaluator 路径，优先推进 exact-delta coarsen、DP 后 gap 收敛、P7 refinement 和 top multiplicity 诊断。
+状态：阶段 A/B/C 已执行，阶段 D/E 待执行；已追加 declared-boundary hard seed A/B，结论是不作为 CBAW 默认配置。本文接 NO0214 的决策：不 fork 独立 compute-node builder，继续当前 CBAW atom/materialization/evaluator 路径，优先推进 exact-delta coarsen、DP 后 gap 收敛、P7 refinement 和 top multiplicity 诊断。
 
 ## 1. 目标
 
@@ -261,6 +261,233 @@ compute  +714278
 | C2 | `< +80000` | pass | FM4 pass |
 | C3 | `< +50000` | pass | FM2/FM4 matrix |
 | C4 stretch | `<= 0` | pass | FM0 pass |
+
+### 5.1 执行记录（2026-07-03）
+
+本阶段已落地保守的 ROI candidate injection 和 regression guard 诊断，默认行为保持 exact-delta 主排序稳定：
+
+- 新增 `top_root_roi` / `high_density_roi` candidate tag。
+- 对 high-fanout root 的 target clusters 做 bounded pair injection。
+- 对高外部 target-density cluster 的 aggregate/MFFC/guard/sink bucket 做 bounded semantic ROI injection。
+- ROI-only candidates 单独排序并追加在普通 exact-delta candidates 后，避免扰动既有 exact-delta 排序。
+- 若 injected ROI pair 后续被普通 candidate 命中，丢弃 injected ROI tags，按普通 candidate 重建。
+- 新增 batch prefix gain / ROI budget / top-root guard 统计：`top_root_roi_values`、`top_root_roi_candidates`、`high_density_roi_buckets`、`high_density_roi_candidates`、`roi_budget_skipped`、`accepted_prefix_*_gain`、`accepted_prefix_top_root_boundary_gain`、`top_root_guard_demoted`、`top_root_guard_risk_accepted`。
+- 新增小图测试 `cbaw_top_root_roi_consumer_pair`，验证 top-root ROI stats 能导出。
+
+验证命令：
+
+```text
+cmake --build wolvrix/build --target transform-activity-schedule -j2
+ctest --test-dir wolvrix/build --output-on-failure -R transform-activity-schedule
+
+WOLVRIX_XS_GRHSIM_PARTITION_POLICY=cbaw
+WOLVRIX_XS_GRHSIM_CBAW_PLAIN_BOUNDARY_BASELINE=2446334
+WOLVRIX_XS_GRHSIM_CBAW_PLAIN_DAG_BASELINE=703270
+WOLVRIX_XS_GRHSIM_CBAW_PLAIN_COMPUTE_COMPUTE_BASELINE=2095811
+WOLVRIX_XS_GRHSIM_STOP_AFTER_ACTIVITY_SCHEDULE=1
+WOLVRIX_XS_GRHSIM_FM_REFINE_MAX_ROUNDS=8
+make xs_wolf_grhsim_emit RUN_ID=no0215_phase_c_observe_stop_after_20260703 ...
+```
+
+验证结果：
+
+| 项 | 结果 |
+| --- | --- |
+| focused build | PASS |
+| focused CTest | PASS |
+| XiangShan FM8 stop-after | PASS |
+| stop-after log | `build/logs/xs/xs_wolf_grhsim_build_no0215_phase_c_observe_stop_after_20260703.log` |
+| activity-schedule time | `258791ms` |
+| total script time | `289020ms` |
+
+stage metrics：
+
+| stage | boundary | vs plain | dag | vs plain | compute-compute | vs plain |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| after P5 coarsen | `3160612` | `+714278` | `2520174` | `+1816904` | `2810089` | `+714278` |
+| after DP before FM | `2621811` | `+175477` | `650955` | `-52315` | `2271288` | `+175477` |
+| after FM8 | `2356253` | `-90081` | `609345` | `-93925` | `2005730` | `-90081` |
+| final P8 replay | `2359493` | `-86841` | `609375` | `-93895` | `2008970` | `-86841` |
+
+新增 ROI / guard stats：
+
+| stat | value |
+| --- | ---: |
+| `top_root_roi_values` | `130127` |
+| `top_root_roi_candidates` | `65536` |
+| `high_density_roi_buckets` | `13126` |
+| `high_density_roi_candidates` | `32768` |
+| `roi_budget_skipped` | `5` |
+| `accepted_prefix_boundary_gain` | `1130224` |
+| `accepted_prefix_dag_gain` | `1510519` |
+| `accepted_prefix_compute_compute_gain` | `1130224` |
+| `accepted_prefix_top_root_boundary_gain` | `506438` |
+| `top_root_guard_demoted` | `14866` |
+| `top_root_guard_risk_accepted` | `0` |
+
+阶段 C 结论：
+
+- final P8 仍 pass：`runtime_allowed=1 reason=pass`，三项指标均优于 plain。
+- C1 未达成：after-DP boundary gap 仍为 `+175477`，没有降到 `< +120000`。
+- 本阶段保留为 conservative/diagnostic default；此前更激进的 ROI ordering 会扰动 exact-delta candidate order 并造成结构回退，因此默认实现不让 ROI-only candidate 抢占普通 candidate。
+- 因 stop-after 未达到阶段 C 门槛，本阶段当时不按门槛进入 full emit/build 和 runtime；后续为回答 coarsen 轮数对最终仿真性能的影响，补跑了 8/16/32 轮 full build + 50k runtime，对比见 5.3。该实验仍限定在 Phase C coarsen 分析内，不进入 Phase D。
+
+### 5.2 Phase C 无收益归因（2026-07-03）
+
+核心结论：最终 `observe` 版本没有收益不是因为 ROI 没有生成，而是因为 conservative ordering 让 ROI-only candidates 排在普通 exact-delta candidates 之后，而普通候选已经足够填满每轮 `65536` accepted merge cap；因此 accepted merge set 与 Phase B 完全一致。
+
+Phase B 与 Phase C observe 对照：
+
+| 指标 | Phase B | Phase C observe | 判断 |
+| --- | ---: | ---: | --- |
+| selected candidates | `26520154` | `26554263` | Phase C 多 `34109` 个 selected unique pairs |
+| evaluated | `4366853` | `4366853` | evaluated prefix 完全没变 |
+| accepted | `524288` | `524288` | 8 轮都打满 `65536` cap |
+| reject_resource | `819494` | `819494` | 完全一致 |
+| reject_cycle | `1993417` | `1993417` | 完全一致 |
+| stale | `1029654` | `1029654` | 完全一致 |
+| after-P5 boundary | `3160612` | `3160612` | 完全一致 |
+| after-DP boundary | `2621811` | `2621811` | 完全一致 |
+| final boundary | `2359493` | `2359493` | 完全一致 |
+
+直接证据：
+
+- `top_root_roi_candidates=65536`，但 `evaluated_by_kind` 没有 `top_root_roi`，`accepted_by_kind` / `accepted_by_tag` 也没有 `top_root_roi`。
+- `high_density_roi_candidates=32768`，但 observe 版本没有任何 `high_density_roi` accepted。
+- Phase C observe 的 `evaluated_by_kind` 与 Phase B 完全相同：`aggregate_hint=194158`、`guard_hint=734359`、`heavy_value_use=1984541`、`mffc_dominance=178280`、`passthrough=12948`、`plain_in1=195772`、`plain_out1=409091`、`plain_siblings=657704`。
+- `activity_schedule_cbaw_stats.json` 与 Phase B 文件字节级相同，top-root stage report 也完全相同；ROI 只改变了 coarsen log 中的候选统计，没有改变最终 schedule。
+
+ROI 候选的去向：
+
+| ROI 来源 | generated | no-gain | primary selected | lost tag | 说明 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `top_root_roi` | `65536` | `0` | `5340` | `18124` | 约 `42072` 个命中已有普通候选并被 conservative dedup 丢弃；剩余 ROI-only 排在普通候选后，未进入 evaluated prefix |
+| `high_density_roi` | `32768` | `12130` | `0` | `10705` | 大量无 exact gain；剩余主要作为 semantic ROI tag，observe 下没有 accepted |
+
+早期更激进 ordering 的结果说明：让 ROI 进入 accepted prefix 并不自动带来收益，反而会替换掉更强的普通 exact-delta merge。
+
+| variant | after-P5 boundary | after-DP gap | final boundary | ROI accepted 信号 | 结论 |
+| --- | ---: | ---: | ---: | --- | --- |
+| Phase B / observe | `3160612` | `+175477` | `2359493` | none | 保守版本无结构变化 |
+| `promote` | `3168706` | `+200451` | `2366854` | no top-root accepted tag | ordering 扰动，结构变差 |
+| `preserve` | `3169457` | `+201079` | `2367161` | `top_root_roi:6893`、`high_density_roi:99` accepted by tag | ROI 生效但 after-DP 更差 |
+| `guarded` | `3169457` | `+201079` | `2367161` | `top_root_roi:6938`、`high_density_roi:158` accepted by tag | guard 未阻止结构回退 |
+| early `stop_after` | `3937236` | `+474480` | `2618925` | `top_root_roi:27246`、`high_density_roi:3149` accepted by tag | 强推 ROI 造成 structure regression |
+
+关键解释：
+
+- `accepted_prefix_top_root_boundary_gain=506438` 是普通 accepted candidates 已经覆盖到的 top-root delta，并不是 Phase C 额外收益；Phase B 没有这个 counter，所以不能把它当作新增 gain。
+- `preserve/guarded` 把 `accepted_prefix_top_root_boundary_gain` 提高到约 `540122`，但全局 `accepted_prefix_boundary_gain` 从 `1130224` 降到 `1121379`，after-DP gap 从 `+175477` 变为 `+201079`。这说明 top-root-local delta 与全局 exact-delta 排序存在冲突。
+- top-root ROI 的采样方式主要在 high-fanout root 的 target clusters 之间造 pair；这些 pair 对单个 root 有局部收益，但常常不如普通候选在 global boundary / dag / compute-compute 三项上的综合收益。
+- 阶段 B 已证明 after-DP top-root coverage 很分散：reported 315 roots 只覆盖 `72793 / 2621811 = 2.7764%`。因此少量 top-root ROI 即使局部命中，也很难撬动 `+175477` 的 after-DP gap。
+
+Phase C 若继续，不应再简单提高 ROI priority。更合理的 Phase C 内继续方向是先做诊断增强：按 candidate 记录 “would-have-ranked / skipped-by-cap / displaced-gain” 采样，比较 ROI 候选与被替换普通候选的三项 exact delta，再决定是否存在不伤害 global gain 的局部插入窗口。
+
+### 5.3 CBAW coarsen max-iterations 对最终仿真性能的影响（2026-07-03/04）
+
+目的：只改变 `cbaw_coarsen_max_iterations`，比较 `8/16/32` 轮对 full emitted emu 的 CoreMark 50k no-profile runtime 影响。三组均使用：
+
+- `partition_policy=cbaw`
+- `WOLVRIX_XS_GRHSIM_FM_REFINE_MAX_ROUNDS=8`
+- plain baseline `boundary=2446334 dag=703270 compute_compute=2095811`
+- `XS_SIM_MAX_CYCLE=50000`
+- 独立 build dir：`build/xs/grhsim_iter8`、`build/xs/grhsim_iter16`、`build/xs/grhsim_iter32`
+
+结构与构建成本：
+
+| coarsen max iterations | final boundary | final DAG | final compute-compute | compute supernodes | activity-schedule total | coarsen time | emit total |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `8` | `2359493` | `609375` | `2008970` | `71872` | `260637ms` | `142805ms` | `337322ms` |
+| `16` | `2263054` | `663775` | `1912531` | `73848` | `367418ms` | `258681ms` | `444485ms` |
+| `32` | `2253277` | `643038` | `1902754` | `74577` | `581654ms` | `474912ms` | `659856ms` |
+
+固定 50k cycles runtime：
+
+| coarsen max iterations | runtime log | host time | vs 8 rounds | vs previous |
+| ---: | --- | ---: | ---: | ---: |
+| `8` | `build/logs/xs/xs_wolf_grhsim_no0215_cbaw_iter8_runtime50k_20260703.log` | `323287ms` | baseline | baseline |
+| `16` | `build/logs/xs/xs_wolf_grhsim_no0215_cbaw_iter16_runtime50k_20260703.log` | `315241ms` | `-8046ms` / `-2.49%` | `-2.49%` |
+| `32` | `build/logs/xs/xs_wolf_grhsim_no0215_cbaw_iter32_runtime50k_20260703.log` | `304837ms` | `-18450ms` / `-5.71%` | `-10404ms` / `-3.30%` |
+
+三组 runtime 均在同一 PC 触发 cycle limit：
+
+- `pc = 0x80001312`
+- `instrCnt = 73580`
+- `cycleCnt = 49996`
+- `IPC = 1.471718`
+
+判断：
+
+- 从最终仿真性能看，`32` 轮最好：CoreMark 50k host time 相比 `8` 轮下降 `5.71%`，相比 `16` 轮下降 `3.30%`。
+- 从结构收益看，`8 -> 16` 是主要收益段：final boundary 下降 `96439`；`16 -> 32` 只再下降 `9777`，边际结构收益明显变小。
+- 从构建成本看，`16 -> 32` 很贵：activity-schedule total 从 `367418ms` 增到 `581654ms`，coarsen time 从 `258681ms` 增到 `474912ms`。
+- 因此若目标是单次最终仿真性能，`32` 轮值得保留；若目标是日常迭代构建效率，`16` 轮是更均衡点。当前还不建议继续盲目提高到 64：32 轮后 tail merge delta 已降到最后一轮 `1122` clusters，下一步应先重跑确认 runtime 抖动，再决定是否探索更高轮数或更精确的 tail-stop 门槛。
+
+### 5.4 coarsen 策略有效性观察（2026-07-04）
+
+从 8/16/32 轮 full build 的 `accepted_by_kind` 看，当前 CBAW coarsen 的主收益来源不是 ROI，而是 `plain_siblings`。
+
+| coarsen max iterations | total accepted | `plain_siblings` accepted | 占比 | 第二梯队 |
+| ---: | ---: | ---: | ---: | --- |
+| `8` | `524288` | `381684` | `72.8%` | `plain_out1=98928`、`plain_in1=39097` |
+| `16` | `885830` | `601456` | `67.9%` | `plain_out1=150756`、`plain_in1=109823` |
+| `32` | `946108` | `640417` | `67.7%` | `plain_out1=161204`、`plain_in1=112375` |
+
+判断：
+
+- `plain_siblings` 是当前最有效的 primary accepted kind，贡献约 `68%~73%` 的 accepted merges。
+- `plain_out1` / `plain_in1` 是稳定第二梯队，尤其 `16/32` 轮后 `plain_in1` 贡献明显上升。
+- `heavy_value_use`、`guard_hint`、`mffc_dominance` 生成和 tag 命中很多，但作为 primary accepted kind 的占比不高，更像候选发现/语义辅助来源。
+- `top_root_roi` / `high_density_roi` 不是当前主收益来源；32 轮里 `top_root_roi` primary accepted 也只有 `792`，`high_density_roi` 主要作为 tag 或 no-gain 被消耗。此前强行提升 ROI priority 已导致结构回退，因此不能只按 root-local 目标抢占全局 exact-delta 排序。
+
+工程含义：默认 coarsen 策略应继续保护 `plain_siblings` 的排序优势。若 Phase C 继续优化，不应简单 promote ROI，而应先量化 ROI 候选会替换掉哪些 `plain_siblings/plain_out1/plain_in1` 候选，以及被替换候选的 global boundary / DAG / compute-compute exact delta。
+
+### 5.5 declared-value hard seed boundary A/B（2026-07-06）
+
+目的：验证 NO0219 的 declared value compute-node seed 截断边界是否能改善 CBAW 路线的最终性能。详细记录见 [`NO0220`](./NO0220_declared_value_boundary_cbaw_ab_final_perf_20260706.md)。
+
+本轮不是 stop-after 结构判断，而是两组都完成 fresh emit / fresh emu build，并各跑两次 CoreMark 50k no-profile：
+
+| 组 | build dir | runtime logs |
+| --- | --- | --- |
+| baseline | `tmp/no0219_cbaw_ab_base_20260706/grhsim` | `build/logs/xs/xs_wolf_grhsim_no0219_cbaw_ab_base50k_20260706.log`, `build/logs/xs/xs_wolf_grhsim_no0219_cbaw_ab_base50k_r2_20260706.log` |
+| declared-boundary | `tmp/no0219_cbaw_ab_decl_20260706/grhsim` | `build/logs/xs/xs_wolf_grhsim_no0219_cbaw_ab_decl50k_20260706.log`, `build/logs/xs/xs_wolf_grhsim_no0219_cbaw_ab_decl50k_r2_20260706.log` |
+
+最终 runtime：
+
+| run | baseline | declared-boundary | delta |
+| --- | ---: | ---: | ---: |
+| r1 | `300360ms` | `312784ms` | `+12424ms` / `+4.14%` |
+| r2 | `304073ms` | `319724ms` | `+15651ms` / `+5.15%` |
+| average | `302216.5ms` | `316254.0ms` | `+14037.5ms` / `+4.65%` |
+
+结构信号：
+
+| 指标 | baseline | declared-boundary | delta |
+| --- | ---: | ---: | ---: |
+| seed `compute_nodes` | `1396066` | `2204668` | `+57.92%` |
+| final supernodes | `75074` | `75498` | `+0.56%` |
+| final `boundary_activation_edges` | `2253277` | `2273631` | `+0.90%` |
+| final `dag_edges` | `643038` | `628567` | `-2.25%` |
+| final `compute_compute_value_pairs` | `1902754` | `1923108` | `+1.07%` |
+| final `state_read_activation_edges` | `130101` | `183886` | `+41.34%` |
+
+declared hard boundary 生效计数：
+
+- `boundary_declared=3022197`
+- `declared_boundary_values=1214544`
+- `declared_boundary_edges=2808640`
+- `declared_cut_fixed=351`
+- `declared_cut_fatal=0`
+
+判断：
+
+- hard boundary 确实保留了 declared 语义切点，seed 层明显变细。
+- CBAW 能把大量额外 seed 合回，final supernode 只小幅增加。
+- 但 final DAG 的改善没有转化为 runtime 收益；BAE / compute-compute 小幅上升，state-read activation 明显上升。
+- 两次 CoreMark 50k final runtime 均慢，平均回退 `4.65%`，复测最高 `5.15%`。
+
+因此，declared-value hard seed boundary 不进入 CBAW 默认配置。后续若继续利用 declared 语义，应把它改成 CBAW soft hint / attribution，而不是默认 hard boundary。
 
 ## 6. 阶段 D：DP 后 gap 收敛
 
