@@ -135,44 +135,6 @@ def supernode_kind_code(value) -> int:
     return int(text)
 
 
-def write_activity_schedule_cbaw_stats(sess: wolvrix.Session, key_prefix: str, out_dir: Path) -> dict | None:
-    cbaw_key = key_prefix + "cbaw_stats"
-    try:
-        cbaw_text = _native.session_export(sess._capsule, key=cbaw_key, view="text")
-    except Exception as ex:
-        log(f"activity-schedule cbaw stats unavailable key={cbaw_key}: {ex}")
-        return None
-    if not str(cbaw_text).strip():
-        log(f"activity-schedule cbaw stats empty key={cbaw_key}")
-        return None
-
-    cbaw_stats = json.loads(cbaw_text)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / "activity_schedule_cbaw_stats.json"
-    out_path.write_text(json.dumps(cbaw_stats, indent=2, sort_keys=True), encoding="utf-8")
-
-    top_root_reports = cbaw_stats.get("cbaw_top_root_stage_reports", [])
-    top_root_deltas = cbaw_stats.get("cbaw_top_root_stage_deltas", [])
-    summary = {
-        "path": str(out_path),
-        "top_root_report_count": len(top_root_reports),
-        "top_root_stage_delta_count": len(top_root_deltas),
-        "top_root_after_dp_total_targets": cbaw_stats.get("cbaw_top_root_after_dp_total_targets", 0),
-        "top_root_after_dp_reported_targets": cbaw_stats.get("cbaw_top_root_after_dp_reported_targets", 0),
-        "top_root_after_dp_coverage_ppm": cbaw_stats.get("cbaw_top_root_after_dp_coverage_ppm", 0),
-    }
-    log(
-        "activity-schedule cbaw stats "
-        f"top_root_reports={summary['top_root_report_count']} "
-        f"top_root_stage_deltas={summary['top_root_stage_delta_count']} "
-        f"top_root_after_dp_total_targets={summary['top_root_after_dp_total_targets']} "
-        f"top_root_after_dp_reported_targets={summary['top_root_after_dp_reported_targets']} "
-        f"top_root_after_dp_coverage_ppm={summary['top_root_after_dp_coverage_ppm']}"
-    )
-    log(f"activity-schedule cbaw stats written {out_path}")
-    return summary
-
-
 def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> None:
     key_prefix = key.rsplit("supernode_to_ops", 1)[0]
     summary_key = key_prefix + "summary_stats"
@@ -191,7 +153,6 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
     supernode_kinds = [supernode_kind_code(kind) for kind in supernode_kind_raw]
     compute_sizes = [len(ops) for ops, kind in zip(supernode_to_ops, supernode_kinds) if kind == 0]
     commit_sizes = [len(ops) for ops, kind in zip(supernode_to_ops, supernode_kinds) if kind == 1]
-    cbaw_summary = write_activity_schedule_cbaw_stats(sess, key_prefix, out_dir)
     if summary_text:
         summary = json.loads(summary_text)
         sizes = sorted(len(ops) for ops in supernode_to_ops)
@@ -200,8 +161,6 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
         summary["compute_ops_per_supernode"] = summarize_sizes(compute_sizes)
         summary["commit_ops_per_supernode"] = summarize_sizes(commit_sizes)
         summary["out_degree_per_supernode"] = summarize_sizes(out_degrees)
-        if cbaw_summary is not None:
-            summary["cbaw_stats"] = cbaw_summary
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / "activity_schedule_supernode_stats.json"
         out_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
@@ -327,8 +286,6 @@ def write_supernode_stats(sess: wolvrix.Session, key: str, out_dir: Path) -> Non
                 "max": 0,
             },
         }
-    if cbaw_summary is not None:
-        summary["cbaw_stats"] = cbaw_summary
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "activity_schedule_supernode_stats.json"
     out_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
@@ -432,19 +389,6 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_DECLARED_VALUE_COMPUTE_NODE_BOUNDARY",
         default=False,
     )
-    partition_policy = (os.environ.get("WOLVRIX_XS_GRHSIM_PARTITION_POLICY", "plain").strip() or "plain")
-    prob_dp_cost = env_flag("WOLVRIX_XS_GRHSIM_PROB_DP_COST", default=False)
-    prob_dp_cost_mode = os.environ.get("WOLVRIX_XS_GRHSIM_PROB_DP_COST_MODE", "mixed-pi").strip() or "mixed-pi"
-    prob_dp_alpha = float(os.environ.get("WOLVRIX_XS_GRHSIM_PROB_DP_ALPHA", "1.0"))
-    prob_dp_segment_penalty = float(os.environ.get("WOLVRIX_XS_GRHSIM_PROB_DP_SEGMENT_PENALTY", "1.25"))
-    fm_refine_max_rounds = env_int("WOLVRIX_XS_GRHSIM_FM_REFINE_MAX_ROUNDS", 4)
-    cbaw_coarsen_max_iterations = env_int("WOLVRIX_XS_GRHSIM_CBAW_COARSEN_MAX_ITERATIONS", 8)
-    cbaw_plain_boundary_baseline = env_int("WOLVRIX_XS_GRHSIM_CBAW_PLAIN_BOUNDARY_BASELINE", 0)
-    cbaw_plain_dag_baseline = env_int("WOLVRIX_XS_GRHSIM_CBAW_PLAIN_DAG_BASELINE", 0)
-    cbaw_plain_compute_compute_baseline = env_int(
-        "WOLVRIX_XS_GRHSIM_CBAW_PLAIN_COMPUTE_COMPUTE_BASELINE",
-        0,
-    )
     comb_lane_pack_report = os.environ.get(
         "WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_REPORT",
         str(cpp_out_dir.parent / "comb_lane_pack_report_xs.json"),
@@ -471,9 +415,6 @@ def main() -> int:
         f"sched_batch_target_count={sched_batch_target_count} "
         f"sched_batches_per_cpp={sched_batches_per_cpp} "
         f"emit_parallelism={emit_parallelism} "
-        f"cbaw_plain_boundary_baseline={cbaw_plain_boundary_baseline} "
-        f"cbaw_plain_dag_baseline={cbaw_plain_dag_baseline} "
-        f"cbaw_plain_compute_compute_baseline={cbaw_plain_compute_compute_baseline} "
         f"storage_ref_aliases={storage_ref_aliases_setting}"
         f"{'' if storage_ref_aliases_env_was_set else '(xs_default)'} "
         f"export_compute_dag={export_compute_dag_path if export_compute_dag_path is not None else 'off'} "
@@ -486,13 +427,7 @@ def main() -> int:
         f"post_stats_json={post_stats_json} "
         f"resume_from_stats_json={resume_from_stats_json} "
         f"reg_to_mem_intent={reg_to_mem_intent} "
-        f"declared_value_compute_node_boundary={declared_value_compute_node_boundary} "
-        f"prob_dp_cost={prob_dp_cost} "
-        f"prob_dp_cost_mode={prob_dp_cost_mode} "
-        f"prob_dp_alpha={prob_dp_alpha} "
-        f"prob_dp_segment_penalty={prob_dp_segment_penalty} "
-        f"cbaw_coarsen_max_iterations={cbaw_coarsen_max_iterations} "
-        f"fm_refine_max_rounds={fm_refine_max_rounds}"
+        f"declared_value_compute_node_boundary={declared_value_compute_node_boundary}"
     )
 
     read_args: list[str] = ["-f", filelist, "--top", top_name]
@@ -566,47 +501,6 @@ def main() -> int:
         ]
         if export_compute_dag_path is not None:
             post_sched_pipeline[0][1]["export_compute_dag"] = str(export_compute_dag_path)
-        if partition_policy and partition_policy != "plain":
-            # NO0207/NO0208: pass -partition-policy via raw args (bypasses kwarg allowlist).
-            post_sched_pipeline[0][1]["args"] = [
-                "-partition-policy",
-                partition_policy,
-                "-prob-dp-cost",
-                "true" if prob_dp_cost else "false",
-                "-prob-dp-cost-mode",
-                prob_dp_cost_mode,
-                "-prob-dp-alpha",
-                str(prob_dp_alpha),
-                "-prob-dp-segment-penalty",
-                str(prob_dp_segment_penalty),
-                "-fm-refine-max-rounds",
-                str(fm_refine_max_rounds),
-                "-cbaw-coarsen-max-iterations",
-                str(cbaw_coarsen_max_iterations),
-            ]
-            if (
-                cbaw_plain_boundary_baseline
-                and cbaw_plain_dag_baseline
-                and cbaw_plain_compute_compute_baseline
-            ):
-                post_sched_pipeline[0][1]["args"].extend(
-                    [
-                        "-cbaw-plain-boundary-baseline",
-                        str(cbaw_plain_boundary_baseline),
-                        "-cbaw-plain-dag-baseline",
-                        str(cbaw_plain_dag_baseline),
-                        "-cbaw-plain-compute-compute-baseline",
-                        str(cbaw_plain_compute_compute_baseline),
-                    ]
-                )
-            log(
-                "activity-schedule partition_policy="
-                f"{partition_policy} prob_dp_cost={prob_dp_cost} "
-                f"prob_dp_cost_mode={prob_dp_cost_mode} "
-                f"prob_dp_alpha={prob_dp_alpha} "
-                f"prob_dp_segment_penalty={prob_dp_segment_penalty} "
-                f"fm_refine_max_rounds={fm_refine_max_rounds}"
-            )
         log(config_message)
 
         if resume_from_stats_json:
