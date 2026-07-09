@@ -222,6 +222,7 @@
 | `NO0232` | `2026-07-09` | [VtypeBuffer edge semantics probe：low eval 不是下降沿工作](./NO0232_vtypebuffer_edge_semantics_probe_20260709.md) | 拆分 current low eval 为 fall-only 与 input-low：fall-only 仅 `33.8ns/vector`，input-low `1001.6ns/vector`，说明 `NO0229` 的 low/high 50/50 不是下降沿有实质顺序工作，而是输入组合 settle 与 posedge commit/post-commit settle 各占一半。 |
 | `NO0233` | `2026-07-09` | [VtypeBuffer phase counters 与 GSIM subStep 对齐](./NO0233_vtypebuffer_phase_counters_gsim_alignment_20260709.md) | 用 GrhSIM `PerfCounters` 聚合 fall/input-low/high 三段，确认 high 几乎稳定 2 rounds、平均 `84.16` writes/vector；再拆 GSIM `resetAll/subStep0/subStep1`，发现相对 GSIM 最大增量来自 input-low / next-compute 类阶段，而 commit/post-commit 是第二问题。 |
 | `NO0234` | `2026-07-09` | [VtypeBuffer phase-specific perf 与 GSIM 差异对照](./NO0234_vtypebuffer_phase_specific_gsim_delta_20260709.md) | 用 phase-specific runner 对照 GrhSIM input-low 与 GSIM `subStep1()`：GrhSIM input-low runtime `3.72x`、instructions `4.57x`、cycles `3.37x` 于 GSIM，对应热点分散在 4 个 compute batch；静态统计显示额外成本主要来自 fixed-point batch 框架、`value_*_slots_` / storage-ref 间接性和最热 batch 的宽字 helper/临时。 |
+| `NO0235` | `2026-07-09` | [Lane-aligned slice 专门化 no-op A/B](./NO0235_lane_aligned_slice_noop_ab_20260709.md) | 尝试把 `grhsim_slice_words<1>(..., 64*k, 64)[0]` 专门化为直接 lane 读取；`VtypeBuffer` `sched_3.cpp` 中 112 处源码被替换且源码变短，但 GrhSIM `.o` 与最终 bench binary SHA256 完全一致，说明 Clang 已自动优化该形态；实验源码已撤回，后续转向真正改变机器码的 wide producer/local scalarization。 |
 
 
 ## 编号说明
