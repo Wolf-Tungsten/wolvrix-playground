@@ -225,6 +225,7 @@
 | `NO0235` | `2026-07-09` | [Lane-aligned slice 专门化 no-op A/B](./NO0235_lane_aligned_slice_noop_ab_20260709.md) | 尝试把 `grhsim_slice_words<1>(..., 64*k, 64)[0]` 专门化为直接 lane 读取；`VtypeBuffer` `sched_3.cpp` 中 112 处源码被替换且源码变短，但 GrhSIM `.o` 与最终 bench binary SHA256 完全一致，说明 Clang 已自动优化该形态；实验源码已撤回，后续转向真正改变机器码的 wide producer/local scalarization。 |
 | `NO0236` | `2026-07-09` | [Manual wide-slice fusion negative A/B](./NO0236_manual_wide_slice_fusion_negative_ab_20260709.md) | 手工 patch 生成的 `sched_3.cpp`，把两个 `value_words_16_slots_` 的 lower 22 个 slice 改为直接从 `next_words[i]` 写 scalar slot；这次 object 确实改变，但 `eval_compute_batch_3()` 符号 `0x54db -> 0x55d1` 且 200k GrhSIM `399.354ms -> 413.754ms`（`+3.61%`），说明朴素 producer-consumer 挪动会增大 live range/代码尺寸，不应工程化。 |
 | `NO0237` | `2026-07-09` | [Assembly spill 归因与 compute supernode size A/B](./NO0237_asm_spill_and_supernode_size_ab_20260709.md) | 汇编统计显示 GrhSIM input-low compute0-3 静态指令 `11211`、约为 GSIM `subStep1()` 的 `4.02x`，且 stack operands `1585` vs GSIM `8`；但调 `GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE` 为 `64/32/256` 都变慢（`+3.31%/+7.46%/+3.67%`），说明简单分区调参只是在边界开销和寄存器压力之间移动。 |
+| `NO0238` | `2026-07-09` | [VtypeBuffer GrhSIM/GSIM dynamic fire 对比](./NO0238_dynamic_fire_compare_20260709.md) | 对临时生成物插桩统计 active fire：GrhSIM input-low 中 38 个 compute supernode 几乎每 vector 全部 fire，total fire 反而低于 GSIM subStep1（`7.60M` vs `9.07M`），但源码工作量 proxy 为 `1.99B` vs `0.72B`（`2.76x`），且 changed/active propagation proxy 为 GSIM active set 的 `21.55x`；说明主因不是 fire 次数，而是 always-active 下仍保留的 changed/active 框架与大 supernode slot/ref 代码形态。 |
 
 
 ## 编号说明
