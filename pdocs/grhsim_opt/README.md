@@ -220,6 +220,8 @@
 | `NO0230` | `2026-07-09` | [GrhSIM eval trace 启用与 VtypeBuffer round 结构](./NO0230_grhsim_eval_trace_round_structure_20260709.md) | 暴露 xs-components `GRHSIM_PERF=eval`，修复 trace 模式 batch timing 变量重定义；用 `GRHSIM_TRACE_EVAL=1` 确认 `VtypeBuffer` low phase 通常 1 round，而 high phase 常为 commit + commit-activated compute 两轮。 |
 | `NO0231` | `2026-07-09` | [Empty-compute round skip A/B 负向记录](./NO0231_empty_compute_round_skip_negative_ab_20260709.md) | 尝试跳过 round 入口 active 为空时的 compute batch dispatch；`VtypeBuffer` GrhSIM 仅 `410.359ms -> 410.009ms`（噪声级），FTQ/Tage 偏负，实验代码已撤回。 |
 | `NO0232` | `2026-07-09` | [VtypeBuffer edge semantics probe：low eval 不是下降沿工作](./NO0232_vtypebuffer_edge_semantics_probe_20260709.md) | 拆分 current low eval 为 fall-only 与 input-low：fall-only 仅 `33.8ns/vector`，input-low `1001.6ns/vector`，说明 `NO0229` 的 low/high 50/50 不是下降沿有实质顺序工作，而是输入组合 settle 与 posedge commit/post-commit settle 各占一半。 |
+| `NO0233` | `2026-07-09` | [VtypeBuffer phase counters 与 GSIM subStep 对齐](./NO0233_vtypebuffer_phase_counters_gsim_alignment_20260709.md) | 用 GrhSIM `PerfCounters` 聚合 fall/input-low/high 三段，确认 high 几乎稳定 2 rounds、平均 `84.16` writes/vector；再拆 GSIM `resetAll/subStep0/subStep1`，发现相对 GSIM 最大增量来自 input-low / next-compute 类阶段，而 commit/post-commit 是第二问题。 |
+| `NO0234` | `2026-07-09` | [VtypeBuffer phase-specific perf 与 GSIM 差异对照](./NO0234_vtypebuffer_phase_specific_gsim_delta_20260709.md) | 用 phase-specific runner 对照 GrhSIM input-low 与 GSIM `subStep1()`：GrhSIM input-low runtime `3.72x`、instructions `4.57x`、cycles `3.37x` 于 GSIM，对应热点分散在 4 个 compute batch；静态统计显示额外成本主要来自 fixed-point batch 框架、`value_*_slots_` / storage-ref 间接性和最热 batch 的宽字 helper/临时。 |
 
 
 ## 编号说明
