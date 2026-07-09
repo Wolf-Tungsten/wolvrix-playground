@@ -234,6 +234,7 @@
 | `NO0244` | `2026-07-09` | [Posedge full-pass probe FTQ/Tage matrix](./NO0244_posedge_fullpass_ftq_tage_probe_20260709.md) | 将 `NO0243` 的 generated C++ posedge-only probe 泛化到 FTQ/Tage；三个大 case 均 `--verify 200000` 通过，raw min 分别为 FTQ `475.645ms -> 435.132ms`（`-8.52%`）、Tage `394.128ms -> 357.462ms`（`-9.30%`）、Vtype `370.309ms -> 309.097ms`（`-16.53%`）；phase high 分别下降 `10.16%/11.41%/16.62%`。支持实现默认关闭的 posedge full-pass emitter 开关。 |
 | `NO0245` | `2026-07-09` | [Posedge full-pass specialization P0 codegen A/B](./NO0245_posedge_fullpass_codegen_p0_20260709.md) | 将 `NO0243/NO0244` 的 generated C++ probe 收敛为默认关闭的 emitter/CLI/env 开关；3 个 xs-component `--verify 200000` 均通过，相对 input-fullpass baseline raw runtime 再降 `8.26%~11.16%`，high phase 降 `10.11%~17.14%`。 |
 | `NO0246` | `2026-07-09` | [Best GrhSIM vs GSIM remaining gap on VtypeBuffer](./NO0246_best_grhsim_vs_gsim_remaining_gap_20260709.md) | 在 `input+posedge full-pass` 当前 best 上重新 paired 对照 GSIM：VtypeBuffer GrhSIM 仍为 `1.52x`，perf stat 显示 instructions `1.70x`；fast-path 计数确认每 vector 基本执行 low/high 两遍 fullpass compute，下一步转向 post-commit phase-specific compute subset。 |
+| `NO0247` | `2026-07-09` | [Post-commit compute subset feasibility probe](./NO0247_post_commit_subset_feasibility_probe_20260709.md) | 解析 VtypeBuffer generated C++ 的 commit reader set 与 active closure：commit 直接覆盖 `26/38` 个 compute supernode，closure 为 `30/38`、约 `76%` 源码块；动态 mask 计数显示大多数 bit 高频出现，说明 whole-supernode high subset 收益有限，后续需 value/phase 级裁剪。 |
 
 
 ## 编号说明
