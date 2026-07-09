@@ -99,6 +99,7 @@ def main() -> int:
     parser.add_argument("--sched-batch-max-estimated-lines", type=int, default=8192)
     parser.add_argument("--sched-batch-target-count", type=int, default=64)
     parser.add_argument("--emit-parallelism", type=int, default=4)
+    parser.add_argument("--perf", choices=["off", "eval"], default="off")
     parser.add_argument("--export-compute-dag", default="")
     parser.add_argument("--stop-after-activity-schedule", action="store_true")
     args = parser.parse_args()
@@ -161,7 +162,7 @@ def main() -> int:
             sched_batch_target_count=args.sched_batch_target_count,
             emit_parallelism=args.emit_parallelism,
             waveform="off",
-            perf="off",
+            perf=args.perf,
         )
         merge_emit_stats(out_dir)
     return 0
