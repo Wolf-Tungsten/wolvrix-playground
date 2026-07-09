@@ -101,6 +101,7 @@ def main() -> int:
     parser.add_argument("--emit-parallelism", type=int, default=4)
     parser.add_argument("--perf", choices=["off", "eval"], default="off")
     parser.add_argument("--input-fullpass-specialization", action="store_true")
+    parser.add_argument("--posedge-fullpass-specialization", action="store_true")
     parser.add_argument("--export-compute-dag", default="")
     parser.add_argument("--stop-after-activity-schedule", action="store_true")
     args = parser.parse_args()
@@ -165,6 +166,7 @@ def main() -> int:
             waveform="off",
             perf=args.perf,
             input_fullpass_specialization=args.input_fullpass_specialization,
+            posedge_fullpass_specialization=args.posedge_fullpass_specialization,
         )
         merge_emit_stats(out_dir)
     return 0

@@ -248,6 +248,7 @@ GRHSIM_SCHED_BATCH_TARGET_COUNT ?= 64
 GRHSIM_EMIT_PARALLELISM ?= 4
 GRHSIM_PERF ?= off
 GRHSIM_INPUT_FULLPASS_SPECIALIZATION ?= 0
+GRHSIM_POSEDGE_FULLPASS_SPECIALIZATION ?= 0
 GRHSIM_CXXFLAGS ?= -O3 -std=c++20
 BENCH_CXXFLAGS ?= -O3 -std=c++20 -I$(abspath $(GSIM_MODEL_DIR)) -I$(abspath $(GRHSIM_MODEL_DIR))
 BENCH_VECTORS ?= 100000
@@ -307,7 +308,8 @@ $(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_GRAPH_STATS) &: $(SV) scripts/emit_grhsim.
 		--sched-batch-target-count $(GRHSIM_SCHED_BATCH_TARGET_COUNT) \
 		--emit-parallelism $(GRHSIM_EMIT_PARALLELISM) \
 		--perf $(GRHSIM_PERF) \
-		$(if $(filter 1 true TRUE yes YES on ON,$(GRHSIM_INPUT_FULLPASS_SPECIALIZATION)),--input-fullpass-specialization,)
+		$(if $(filter 1 true TRUE yes YES on ON,$(GRHSIM_INPUT_FULLPASS_SPECIALIZATION)),--input-fullpass-specialization,) \
+		$(if $(filter 1 true TRUE yes YES on ON,$(GRHSIM_POSEDGE_FULLPASS_SPECIALIZATION)),--posedge-fullpass-specialization,)
 	test -f $(GRHSIM_MODEL_DIR)/Makefile
 	test -f $(GRHSIM_GRAPH_STATS)
 
