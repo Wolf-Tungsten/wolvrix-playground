@@ -1,11 +1,10 @@
 // Standalone profiler: time grhsim clock-low eval vs clock-high eval separately,
-// vs gsim single step(). Wraps model classes to add the no-op profile method that
-// the shared bench header expects, so we can reuse its drive/sample helpers.
+// vs gsim single step().
 #include TOP_HEADER
 #include GRHSIM_HEADER
 
-struct GsimWrap : GSIM_BASE { void set_runtime_profile_enabled(bool) {} };
-struct GrhWrap  : GRHSIM_BASE { void set_runtime_profile_enabled(bool) {} };
+struct GsimWrap : GSIM_BASE {};
+struct GrhWrap  : GRHSIM_BASE {};
 
 #define GSIM_CLASS GsimWrap
 #define GRHSIM_CLASS GrhWrap

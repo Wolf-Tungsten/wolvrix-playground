@@ -28,9 +28,6 @@ Outputs are under `testcase/xs-components/build/<case>/`:
 - `gsim/model/`: generated GSIM C++ model.
 - `grhsim/model/`: generated GrhSIM C++ model.
 - `tb/<case>_bench.log`: co-simulation verification and benchmark log.
-- `stats/model_stats.json`: per-case performance and static model stats.
-- `build/matrix/results.csv`: one-row-per-case matrix summary.
 
 The cases intentionally contain register-backed tables and per-cycle state
-updates, so runtime profiles have nonzero state source and sink work rather than
-collapsing to pure combinational compute.
+updates.

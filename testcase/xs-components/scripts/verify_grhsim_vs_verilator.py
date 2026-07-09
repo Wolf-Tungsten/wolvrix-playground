@@ -278,7 +278,7 @@ def run_case(case: str, build_dir: Path, out_root: Path, vectors: int) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--build-dir", default="build/no0190_runtime_profile_20260613")
+    parser.add_argument("--build-dir", default="build/grhsim_verilator_compare")
     parser.add_argument("--out-dir", default="build/no0190_verilator_compare_20260613")
     parser.add_argument("--vectors", type=int, default=100000)
     parser.add_argument("--case", action="append", dest="cases")

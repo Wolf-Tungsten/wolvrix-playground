@@ -224,21 +224,17 @@ GRHSIM_DIR := $(CASE_BUILD)/grhsim
 GSIM_MODEL_DIR := $(GSIM_DIR)/model
 GRHSIM_MODEL_DIR := $(GRHSIM_DIR)/model
 TB_DIR := $(CASE_BUILD)/tb
-STATS_DIR := $(CASE_BUILD)/stats
-MATRIX_DIR := $(BUILD_DIR)/matrix
 
 FIR := $(FIR_DIR)/$(CASE).fir
 SV := $(SV_DIR)/$(CASE).sv
-GSIM_GRAPH_STATS := $(GSIM_MODEL_DIR)/$(CASE)_0Final_Stats.json
-GRHSIM_GRAPH_STATS := $(GRHSIM_MODEL_DIR)/activity_schedule_stats.json
 GSIM_BUILD_STAMP := $(GSIM_DIR)/obj/.stamp
 GRHSIM_LIB := $(GRHSIM_MODEL_DIR)/libgrhsim_$(CASE).a
 BENCH_TB := $(TB_DIR)/$(CASE)_bench
 BENCH_LOG := $(TB_DIR)/$(CASE)_bench.log
 GSIM_PORT_WIDTHS_HEADER := $(TB_DIR)/gsim_port_widths.hpp
-MODEL_STATS_JSON := $(STATS_DIR)/model_stats.json
 
 GSIM_FLAGS ?= --supernode-max-size=8 --cpp-max-size-KB=512
+GSIM_EMIT_RUNTIME_STATS ?= 0
 GSIM_CXXFLAGS ?= -O3 -std=c++17 -fbracket-depth=2048 -Wno-parentheses-equality -I$(abspath $(GSIM_MODEL_DIR))
 GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE ?= 128
 GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE ?= 768
@@ -246,13 +242,14 @@ GRHSIM_SCHED_BATCH_MAX_OPS ?= 2048
 GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES ?= 8192
 GRHSIM_SCHED_BATCH_TARGET_COUNT ?= 64
 GRHSIM_EMIT_PARALLELISM ?= 4
+GRHSIM_EMIT_RUNTIME_STATS ?= 0
 GRHSIM_CXXFLAGS ?= -O3 -std=c++20
 BENCH_CXXFLAGS ?= -O3 -std=c++20 -I$(abspath $(GSIM_MODEL_DIR)) -I$(abspath $(GRHSIM_MODEL_DIR))
 BENCH_VECTORS ?= 100000
 BENCH_VERIFY ?= 2048
 BENCH_REPEAT ?= 1
 
-.PHONY: all generate chisel-fir chisel-sv gsim grhsim bench stats stat one matrix clean list
+.PHONY: all generate chisel-fir chisel-sv gsim grhsim bench one matrix clean list
 
 all: matrix
 
@@ -277,12 +274,11 @@ chisel-fir: $(FIR)
 
 chisel-sv: $(SV)
 
-$(GSIM_MODEL_DIR)/$(CASE)0.cpp $(GSIM_MODEL_DIR)/$(CASE).h $(GSIM_GRAPH_STATS) &: $(FIR) $(GSIM_BIN)
+$(GSIM_MODEL_DIR)/$(CASE)0.cpp $(GSIM_MODEL_DIR)/$(CASE).h &: $(FIR) $(GSIM_BIN)
 	@mkdir -p $(GSIM_MODEL_DIR)
-	set -o pipefail; $(GSIM_BIN) $(GSIM_FLAGS) --dump-stats-json --dump-stages=Final --dir $(GSIM_MODEL_DIR) $(FIR) | tee $(GSIM_DIR)/gsim.log
+	set -o pipefail; GSIM_EMIT_RUNTIME_STATS=$(GSIM_EMIT_RUNTIME_STATS) $(GSIM_BIN) $(GSIM_FLAGS) --dir $(GSIM_MODEL_DIR) $(FIR) | tee $(GSIM_DIR)/gsim.log
 	test -f $(GSIM_MODEL_DIR)/$(CASE)0.cpp
 	test -f $(GSIM_MODEL_DIR)/$(CASE).h
-	test -f $(GSIM_GRAPH_STATS)
 
 $(GSIM_BUILD_STAMP): $(GSIM_MODEL_DIR)/$(CASE)0.cpp
 	@mkdir -p $(GSIM_DIR)/obj
@@ -295,17 +291,17 @@ $(GSIM_BUILD_STAMP): $(GSIM_MODEL_DIR)/$(CASE)0.cpp
 
 gsim: $(GSIM_BUILD_STAMP)
 
-$(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_GRAPH_STATS) &: $(SV) scripts/emit_grhsim.py
+$(GRHSIM_MODEL_DIR)/Makefile &: $(SV) scripts/emit_grhsim.py
 	@mkdir -p $(GRHSIM_MODEL_DIR)
 	$(PYTHON) scripts/emit_grhsim.py --sv $(SV) --top $(CASE) --out $(GRHSIM_MODEL_DIR) --json $(GRHSIM_DIR)/$(CASE).json \
 		--max-op-in-compute-supernode $(GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE) \
 		--max-op-in-commit-supernode $(GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE) \
-		--sched-batch-max-ops $(GRHSIM_SCHED_BATCH_MAX_OPS) \
-		--sched-batch-max-estimated-lines $(GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES) \
-		--sched-batch-target-count $(GRHSIM_SCHED_BATCH_TARGET_COUNT) \
-		--emit-parallelism $(GRHSIM_EMIT_PARALLELISM)
+			--sched-batch-max-ops $(GRHSIM_SCHED_BATCH_MAX_OPS) \
+			--sched-batch-max-estimated-lines $(GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES) \
+			--sched-batch-target-count $(GRHSIM_SCHED_BATCH_TARGET_COUNT) \
+			--emit-parallelism $(GRHSIM_EMIT_PARALLELISM) \
+			$(if $(filter 1,$(GRHSIM_EMIT_RUNTIME_STATS)),--emit-runtime-stats,)
 	test -f $(GRHSIM_MODEL_DIR)/Makefile
-	test -f $(GRHSIM_GRAPH_STATS)
 
 $(GRHSIM_LIB): $(GRHSIM_MODEL_DIR)/Makefile
 	$(MAKE) -C $(GRHSIM_MODEL_DIR) CXX=$(CXX) CXXFLAGS="$(GRHSIM_CXXFLAGS)"
@@ -334,37 +330,13 @@ bench: $(BENCH_TB)
 	@mkdir -p $(TB_DIR)
 	set -o pipefail; $(BENCH_TB) --vectors $(BENCH_VECTORS) --verify $(BENCH_VERIFY) --repeat $(BENCH_REPEAT) 2>&1 | tee $(BENCH_LOG)
 
-$(STATS_DIR)/gsim.json: $(GSIM_BUILD_STAMP) scripts/objdump_stats.py
-	@mkdir -p $(STATS_DIR)
-	$(PYTHON) scripts/objdump_stats.py --label gsim --out $@ --objdump $(OBJDUMP) $(GSIM_DIR)/obj/*.o
-
-$(STATS_DIR)/grhsim.json: $(GRHSIM_LIB) scripts/objdump_stats.py
-	@mkdir -p $(STATS_DIR)
-	$(PYTHON) scripts/objdump_stats.py --label grhsim --out $@ --objdump $(OBJDUMP) $(GRHSIM_MODEL_DIR)/*.o
-
-stats: $(STATS_DIR)/gsim.json $(STATS_DIR)/grhsim.json
-
-$(MODEL_STATS_JSON): bench stats scripts/model_stats.py
-	$(PYTHON) scripts/model_stats.py \
-		--case $(CASE) --kind $(KIND) --scale $(SCALE) \
-		--gsim-graph-stats $(GSIM_GRAPH_STATS) \
-		--grhsim-graph-stats $(GRHSIM_GRAPH_STATS) \
-		--gsim-instruction-stats $(STATS_DIR)/gsim.json \
-		--grhsim-instruction-stats $(STATS_DIR)/grhsim.json \
-		--bench-log $(BENCH_LOG) \
-		--out $@
-
-stat: $(MODEL_STATS_JSON)
-
-one: stat
+one: bench
 
 matrix:
-	@mkdir -p $(MATRIX_DIR)
 	@for case in $(CASES); do \
 		echo "== xs-component $$case =="; \
 		$(MAKE) CASE=$$case one || exit $$?; \
 	done
-	$(PYTHON) scripts/collect_matrix.py --out $(MATRIX_DIR)/results.csv $(foreach c,$(CASES),$(BUILD_DIR)/$(c)/stats/model_stats.json)
 
 clean:
 	rm -rf $(BUILD_DIR) out
