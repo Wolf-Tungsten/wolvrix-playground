@@ -219,6 +219,7 @@
 | `NO0229` | `2026-07-09` | [VtypeBuffer GrhSIM low/high eval phase timing](./NO0229_vtypebuffer_grhsim_phase_timing_20260709.md) | 给 xs-component bench 增加默认关闭的 `--grhsim-phase-profile`，实测 `VtypeBuffer` GrhSIM low/high eval 各占 eval 时间约 `50.22%/49.78%`；剩余 `~2x` work 来自两个 phase 都在做实质工作，下一步需拆 eval 内部 fixed-point round / commit 激活。 |
 | `NO0230` | `2026-07-09` | [GrhSIM eval trace 启用与 VtypeBuffer round 结构](./NO0230_grhsim_eval_trace_round_structure_20260709.md) | 暴露 xs-components `GRHSIM_PERF=eval`，修复 trace 模式 batch timing 变量重定义；用 `GRHSIM_TRACE_EVAL=1` 确认 `VtypeBuffer` low phase 通常 1 round，而 high phase 常为 commit + commit-activated compute 两轮。 |
 | `NO0231` | `2026-07-09` | [Empty-compute round skip A/B 负向记录](./NO0231_empty_compute_round_skip_negative_ab_20260709.md) | 尝试跳过 round 入口 active 为空时的 compute batch dispatch；`VtypeBuffer` GrhSIM 仅 `410.359ms -> 410.009ms`（噪声级），FTQ/Tage 偏负，实验代码已撤回。 |
+| `NO0232` | `2026-07-09` | [VtypeBuffer edge semantics probe：low eval 不是下降沿工作](./NO0232_vtypebuffer_edge_semantics_probe_20260709.md) | 拆分 current low eval 为 fall-only 与 input-low：fall-only 仅 `33.8ns/vector`，input-low `1001.6ns/vector`，说明 `NO0229` 的 low/high 50/50 不是下降沿有实质顺序工作，而是输入组合 settle 与 posedge commit/post-commit settle 各占一半。 |
 
 
 ## 编号说明
