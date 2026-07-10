@@ -255,6 +255,8 @@
 | `NO0264` | `2026-07-11` | [PHR true-only shared-read true-merge P1](./NO0264_phr_true_only_shared_read_true_merge_p1_20260711.md) | 新增独立 true-only storage discovery 与共享 read 全量替换，补齐多 write/reset/fallback/domain matcher；SimTop PHR 532-row 主组恢复为 41 个 indexed memory writes，10k/50k difftest 通过。 |
 | `NO0265` | `2026-07-11` | [Memory row-reader activation A/B](./NO0265_memory_row_reader_activation_ab_20260711.md) | 对 constant-address memory readers 生成 row-aware packed activation table；PHR 每行 reader flags 从固定 67 降到平均 2.1，但 50k instructions 只降 `0.18%`，说明 reader supernode 与其他 activation 高度重叠。 |
 | `NO0266` | `2026-07-11` | [PHR true-merge P1 SimTop 50k gate](./NO0266_phr_true_merge_p1_simtop_50k_gate_20260711.md) | 同配置 P1 前后 CPU8 old/new/old：功能均为 50001 guest cycles，P1 instructions `-1.62%`、text `-38.09%`；当前共享负载窗口 Host time `-20.55%`，同时暴露 branches `+9.24%` 的下一热点。 |
+| `NO0267` | `2026-07-11` | [Post-P1 same-FIR branch diagnosis](./NO0267_post_p1_same_fir_branch_diagnosis_20260711.md) | 同 FIR 50k 对照确认 P1 GrhSIM 相对 GSIM 仍有 instructions `2.84x`、branches `4.79x`；branch profile 将最大单热点定位到 39 个 `1 bit -> 256 bits` 通用 replicate call sites，累计约 `2.43B` branches。 |
+| `NO0268` | `2026-07-11` | [Wide bit-replicate broadcast fast path](./NO0268_wide_bit_replicate_broadcast_fastpath_20260711.md) | 以编译期 word broadcast 替换 1-bit wide replication 循环；synthetic 与 SimTop 10k/50k 功能通过，CPU140 old/new/old 显示 instructions `-9.77%`、branches `-11.90%`、cycles `-1.03%`，下一热点转为 commit/eval control。 |
 
 
 ## 编号说明
