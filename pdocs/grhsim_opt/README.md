@@ -217,6 +217,7 @@
 | `NO0227` | `2026-07-09` | [Single-Round Chain8 CoreMark 50k Snapshot](./NO0227_single_round_chain8_coremark50k_20260709.md) | 记录单轮 coarsen 下把 `out1/in1` chain merge 上限继续收紧到 `8x cap` 后的完整 XiangShan CoreMark 50k fresh emit/build/runtime 数值：`53206` final supernodes、`322826ms` host time、`154.89 cycles/s`。 |
 | `NO0228` | `2026-07-09` | [Single-Round Chain4 CoreMark 50k Snapshot](./NO0228_single_round_chain4_coremark50k_20260709.md) | 记录单轮 coarsen 下把 `out1/in1` chain merge 上限继续收紧到 `4x cap` 后的完整 XiangShan CoreMark 50k fresh emit/build/runtime 数值：`54696` final supernodes、`324675ms` host time、`154.00 cycles/s`；结构指标显示继续收紧会增加调度单元和边界激活，单次 runtime 尚不足以断言稳定性能差异。 |
 | `NO0229` | `2026-07-09` | [Single-Round Chain16 Sibling16 CoreMark 50k Snapshot](./NO0229_single_round_chain16_sibling16_coremark50k_20260709.md) | 记录单轮 coarsen 下固定 `out1/in1=16x cap`、把 `siblings` 从 `4x cap` 放宽到 `16x cap` 后的完整 XiangShan CoreMark 50k fresh emit/build/runtime 数值：`50107` final supernodes、`325085ms` host time、`153.81 cycles/s`；结构指标下降，但单次 runtime 未显示收益。 |
+| `NO0230` | `2026-07-10` | [GSim Optimized Graph JSON -> GrhSIM Import Plan](./NO0230_gsim_graph_json_grhsim_import_plan_20260710.md) | 制定 GSim `PreGraphPartition` 优化图 JSON 导出与 GrhSIM activity-schedule 前导入方案；已追加 GSim 导出 P0 落地记录，schema 保留 Node/ENode/ExpTree/edge 与 symbol table，后续第一版 GrhSIM C++ loader 转 GRH IR；验证以 native GSim 单时钟行为为准。 |
 
 
 ## 编号说明
