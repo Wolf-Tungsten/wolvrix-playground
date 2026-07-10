@@ -241,6 +241,8 @@
 | `NO0251` | `2026-07-10` | [Event active-precompute + post-commit full-pass](./NO0251_event_active_precompute_fullpass_20260710.md) | 在 NO0250 正确顺序基础上，把 event fast path 的 pre-commit full-pass 改为保留 input/event seed 的 normal active compute；SimTop hotpatch 10k 功能通过且 host time `92408ms -> 61366ms`，VtypeBuffer source gate verify 200k 通过且 GrhSIM `323.409ms`，但 SimTop 仍需继续缩小 post-commit full-pass。 |
 | `NO0252` | `2026-07-10` | [SimTop event full-pass slowdown probe](./NO0252_simtop_event_fullpass_slowdown_probe_20260710.md) | 对 SimTop active-pre event fast path 做 10k 动态计数：event 命中 `10048` 次且每次 `state_changed`，导致 `10048 * 71871 = 722159808` 次全图 post-commit compute-supernode fullpass；关闭 event fast path 对照仅 `19542ms`，说明 SimTop 下降主因是 post-commit full graph fullpass 远大于省掉的 active work。 |
 
+| `NO0253` | `2026-07-10` | [Adaptive post-commit settle for event fast path](./NO0253_adaptive_post_commit_settle_20260710.md) | 修复 SimTop event fast path 的 post-commit 全图 fullpass：commit reader 密度不超过 `25%` 时走动态 active closure，稠密时保留 fullpass。相邻 SimTop 10k `88144ms -> 19222ms`（`-78.19%`），fresh source 10k `19421ms`、50k 功能通过；VtypeBuffer hybrid 200k `322.952ms`，避免一刀切 active settle 的 `13.8%` 回退。 |
+
 
 ## 编号说明
 
