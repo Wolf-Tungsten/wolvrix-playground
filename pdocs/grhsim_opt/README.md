@@ -251,6 +251,7 @@
 | `NO0260` | `2026-07-10` | [PHR multi-write scalarization gap](./NO0260_phr_multi_write_scalarization_gap_20260710.md) | compute54 全部 sample 中约 `62%`、可映射 sample 中 `76.88%` 来自 Phr.sv；GrhSIM 为 532 行展开约 13.5k LogicAnd，GSIM 则保留 array 并用 28 条 indexed writes，定位出 multi-write reg-to-mem 缺口。 |
 | `NO0261` | `2026-07-10` | [Sched54 optimize-size negative probe](./NO0261_sched54_optimize_size_negative_probe_20260710.md) | 仅将 sched54 改用 `-Os`，normal text 缩小 `4.27%` 且 10k/50k 功能通过，但 instructions/branches/branch misses 分别增加 `0.25%/0.67%/0.62%`；wall 表面收益来自频率差异，probe 不保留。 |
 | `NO0262` | `2026-07-10` | [Multi-write true-merge plan](./NO0262_multi_write_true_merge_plan_20260710.md) | 规划独立 strict true-rewrite：不放宽默认 shared-read intent，先在 synthetic case 恢复 priority multi-write family，再替换 extra reads、生成有序 memory writes/reset fill，经过结构、collision、SimTop 10k/50k 和 post-profile gate。 |
+| `NO0263` | `2026-07-10` | [Priority consolidated-write true-merge P0](./NO0263_priority_consolidated_write_true_merge_p0_20260710.md) | P0 strict matcher 从每行单 write 的 OR+nested mux 恢复动态 write families，把行相关 priority exclusion 转置为地址冲突 guard；首次依赖端口顺序的实现被执行 harness 证伪后撤回，最终 collision/reset synthetic gate 与完整 emitter 回归通过。 |
 
 
 ## 编号说明
