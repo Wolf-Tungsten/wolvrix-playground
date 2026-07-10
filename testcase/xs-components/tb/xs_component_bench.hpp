@@ -70,6 +70,69 @@ struct Outputs {
     std::uint64_t checksum = 0;
 };
 
+struct GrhsimPhaseStats {
+    std::uint64_t vectors = 0;
+    std::uint64_t drive_ns = 0;
+    std::uint64_t low_eval_ns = 0;
+    std::uint64_t sample_ns = 0;
+    std::uint64_t high_eval_ns = 0;
+
+    void reset()
+    {
+        vectors = 0;
+        drive_ns = 0;
+        low_eval_ns = 0;
+        sample_ns = 0;
+        high_eval_ns = 0;
+    }
+};
+
+enum class ModelSelection {
+    Both,
+    Gsim,
+    Grhsim,
+};
+
+inline const char *model_selection_name(ModelSelection selection)
+{
+    switch (selection) {
+    case ModelSelection::Both:
+        return "both";
+    case ModelSelection::Gsim:
+        return "gsim";
+    case ModelSelection::Grhsim:
+        return "grhsim";
+    }
+    return "both";
+}
+
+inline bool run_gsim_model(ModelSelection selection)
+{
+    return selection == ModelSelection::Both || selection == ModelSelection::Gsim;
+}
+
+inline bool run_grhsim_model(ModelSelection selection)
+{
+    return selection == ModelSelection::Both || selection == ModelSelection::Grhsim;
+}
+
+inline bool parse_model_selection(const std::string &text, ModelSelection &selection)
+{
+    if (text == "both") {
+        selection = ModelSelection::Both;
+        return true;
+    }
+    if (text == "gsim") {
+        selection = ModelSelection::Gsim;
+        return true;
+    }
+    if (text == "grhsim") {
+        selection = ModelSelection::Grhsim;
+        return true;
+    }
+    return false;
+}
+
 inline std::uint64_t splitmix64(std::uint64_t x)
 {
     x += 0x9e3779b97f4a7c15ULL;
@@ -217,6 +280,39 @@ inline Outputs eval_grhsim(GRHSIM_CLASS &dut, const Inputs &in)
     return out;
 }
 
+inline std::uint64_t elapsed_ns(std::chrono::steady_clock::time_point begin, std::chrono::steady_clock::time_point end)
+{
+    return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
+}
+
+inline Outputs eval_grhsim_profiled(GRHSIM_CLASS &dut, const Inputs &in, GrhsimPhaseStats &stats)
+{
+    const auto drive_begin = std::chrono::steady_clock::now();
+    drive_grhsim(dut, in);
+    const auto drive_end = std::chrono::steady_clock::now();
+
+    dut.clock = false;
+    const auto low_begin = std::chrono::steady_clock::now();
+    dut.eval();
+    const auto low_end = std::chrono::steady_clock::now();
+
+    const auto sample_begin = std::chrono::steady_clock::now();
+    Outputs out = sample_grhsim(dut);
+    const auto sample_end = std::chrono::steady_clock::now();
+
+    dut.clock = true;
+    const auto high_begin = std::chrono::steady_clock::now();
+    dut.eval();
+    const auto high_end = std::chrono::steady_clock::now();
+
+    ++stats.vectors;
+    stats.drive_ns += elapsed_ns(drive_begin, drive_end);
+    stats.low_eval_ns += elapsed_ns(low_begin, low_end);
+    stats.sample_ns += elapsed_ns(sample_begin, sample_end);
+    stats.high_eval_ns += elapsed_ns(high_begin, high_end);
+    return out;
+}
+
 inline void reset_grhsim(GRHSIM_CLASS &dut)
 {
     dut.reset = true;
@@ -235,11 +331,16 @@ inline bool same(const Outputs &lhs, const Outputs &rhs)
            lhs.flags == rhs.flags && lhs.checksum == rhs.checksum;
 }
 
+template <typename Model>
+inline void configure_runtime_profile(Model &model, bool enabled);
+
 inline bool verify_models(const std::vector<Inputs> &vectors, unsigned count)
 {
     GSIM_CLASS gsim;
     GRHSIM_CLASS grhsim;
     grhsim.init();
+    configure_runtime_profile(gsim, false);
+    configure_runtime_profile(grhsim, false);
     reset_gsim(gsim);
     reset_grhsim(grhsim);
     const unsigned limit = std::min<unsigned>(count, vectors.size());
@@ -262,6 +363,35 @@ inline bool verify_models(const std::vector<Inputs> &vectors, unsigned count)
     return true;
 }
 
+inline bool runtime_profile_env_enabled()
+{
+    const char *env = std::getenv("EMU_RUNTIME_PROFILE");
+    return env != nullptr && env[0] != '\0' && env[0] != '0';
+}
+
+template <typename Model>
+inline void configure_runtime_profile(Model &model, bool enabled)
+{
+    if constexpr (requires(Model &dut) { dut.set_runtime_profile_enabled(enabled); }) {
+        model.set_runtime_profile_enabled(enabled);
+    }
+    else {
+        (void)model;
+        (void)enabled;
+    }
+}
+
+template <typename Model>
+inline void dump_runtime_profile(const Model &model)
+{
+    if constexpr (requires(const Model &dut) { dut.dump_runtime_profile(); }) {
+        model.dump_runtime_profile();
+    }
+    else {
+        (void)model;
+    }
+}
+
 template <typename EvalFn>
 std::pair<double, std::uint64_t> run_benchmark_once(const std::vector<Inputs> &vectors, EvalFn eval)
 {
@@ -275,14 +405,16 @@ std::pair<double, std::uint64_t> run_benchmark_once(const std::vector<Inputs> &v
     return {ms, accum};
 }
 
-template <typename EvalFn>
+template <typename EvalFn, typename AfterWarmupFn>
 void run_benchmark(
     const char *label,
     const std::vector<Inputs> &vectors,
     unsigned repeat,
-    EvalFn eval)
+    EvalFn eval,
+    AfterWarmupFn after_warmup)
 {
     (void)run_benchmark_once(vectors, eval);
+    after_warmup();
     std::vector<double> samples;
     samples.reserve(repeat);
     std::uint64_t checksum = 0;
@@ -314,11 +446,46 @@ void run_benchmark(
               << " checksum=" << hex64(checksum) << "\n";
 }
 
+template <typename EvalFn>
+void run_benchmark(const char *label, const std::vector<Inputs> &vectors, unsigned repeat, EvalFn eval)
+{
+    run_benchmark(label, vectors, repeat, eval, [] {});
+}
+
+inline void dump_grhsim_phase_stats(const GrhsimPhaseStats &stats)
+{
+    const std::uint64_t eval_ns = stats.low_eval_ns + stats.high_eval_ns;
+    const std::uint64_t measured_ns = stats.drive_ns + stats.low_eval_ns + stats.sample_ns + stats.high_eval_ns;
+    const double vectors = static_cast<double>(stats.vectors);
+    const double eval_total = static_cast<double>(eval_ns);
+    const auto ms = [](std::uint64_t ns) { return static_cast<double>(ns) / 1000000.0; };
+    const auto ns_per_vector = [vectors](std::uint64_t ns) {
+        return vectors == 0.0 ? 0.0 : static_cast<double>(ns) / vectors;
+    };
+    const auto pct = [eval_total](std::uint64_t ns) {
+        return eval_total == 0.0 ? 0.0 : static_cast<double>(ns) * 100.0 / eval_total;
+    };
+    std::cout << "[GRHSIM_PHASE] top=" << TOP_NAME
+              << " vectors=" << stats.vectors
+              << " measured_ms=" << std::fixed << std::setprecision(3) << ms(measured_ns)
+              << " drive_ms=" << ms(stats.drive_ns)
+              << " low_eval_ms=" << ms(stats.low_eval_ns)
+              << " high_eval_ms=" << ms(stats.high_eval_ns)
+              << " sample_ms=" << ms(stats.sample_ns)
+              << " low_eval_pct_of_eval=" << std::setprecision(2) << pct(stats.low_eval_ns)
+              << " high_eval_pct_of_eval=" << pct(stats.high_eval_ns)
+              << " low_eval_ns_per_vector=" << std::setprecision(1) << ns_per_vector(stats.low_eval_ns)
+              << " high_eval_ns_per_vector=" << ns_per_vector(stats.high_eval_ns)
+              << "\n";
+}
+
 inline int run(int argc, char **argv)
 {
     unsigned vectors = 100000;
     unsigned verify = 2048;
     unsigned repeat = 1;
+    ModelSelection model_selection = ModelSelection::Both;
+    bool grhsim_phase_profile = false;
     for (int i = 1; i < argc; ++i) {
         const std::string arg(argv[i]);
         if (arg == "--vectors" && i + 1 < argc) {
@@ -330,32 +497,73 @@ inline int run(int argc, char **argv)
             if (repeat == 0) {
                 repeat = 1;
             }
+        } else if (arg == "--model" && i + 1 < argc) {
+            const std::string value(argv[++i]);
+            if (!parse_model_selection(value, model_selection)) {
+                std::cerr << "invalid --model value: " << value << " (expected both, gsim, or grhsim)\n";
+                return 2;
+            }
+        } else if (arg == "--grhsim-phase-profile") {
+            grhsim_phase_profile = true;
         } else {
-            std::cerr << "usage: " << argv[0] << " [--vectors N] [--verify N] [--repeat N]\n";
+            std::cerr << "usage: " << argv[0]
+                      << " [--vectors N] [--verify N] [--repeat N] [--model both|gsim|grhsim]"
+                      << " [--grhsim-phase-profile]\n";
             return 2;
         }
     }
 
     const auto inputs = make_vectors(vectors);
-    if (!verify_models(inputs, verify)) {
+    if (verify == 0) {
+        std::cout << "[VERIFY] top=" << TOP_NAME << " vectors=0 status=pass\n";
+    }
+    else if (!verify_models(inputs, verify)) {
         return 1;
     }
 
-    GSIM_CLASS gsim;
-    GRHSIM_CLASS grhsim;
-    grhsim.init();
-    reset_gsim(gsim);
-    reset_grhsim(grhsim);
-    run_benchmark(
-        "gsim",
-        inputs,
-        repeat,
-        [&](const Inputs &input) { return eval_gsim(gsim, input); });
-    run_benchmark(
-        "grhsim",
-        inputs,
-        repeat,
-        [&](const Inputs &input) { return eval_grhsim(grhsim, input); });
+    const bool runtime_profile = runtime_profile_env_enabled();
+    std::cout << "[MODEL] top=" << TOP_NAME << " selection=" << model_selection_name(model_selection) << "\n";
+    if (run_gsim_model(model_selection)) {
+        GSIM_CLASS gsim;
+        configure_runtime_profile(gsim, false);
+        reset_gsim(gsim);
+        run_benchmark(
+            "gsim",
+            inputs,
+            repeat,
+            [&](const Inputs &input) { return eval_gsim(gsim, input); },
+            [&] { configure_runtime_profile(gsim, runtime_profile); });
+        if (runtime_profile) {
+            dump_runtime_profile(gsim);
+        }
+    }
+    if (run_grhsim_model(model_selection)) {
+        GRHSIM_CLASS grhsim;
+        grhsim.init();
+        configure_runtime_profile(grhsim, false);
+        reset_grhsim(grhsim);
+        GrhsimPhaseStats phase_stats;
+        run_benchmark(
+            "grhsim",
+            inputs,
+            repeat,
+            [&](const Inputs &input) {
+                if (grhsim_phase_profile) {
+                    return eval_grhsim_profiled(grhsim, input, phase_stats);
+                }
+                return eval_grhsim(grhsim, input);
+            },
+            [&] {
+                phase_stats.reset();
+                configure_runtime_profile(grhsim, runtime_profile);
+            });
+        if (grhsim_phase_profile) {
+            dump_grhsim_phase_stats(phase_stats);
+        }
+        if (runtime_profile) {
+            dump_runtime_profile(grhsim);
+        }
+    }
     return 0;
 }
 

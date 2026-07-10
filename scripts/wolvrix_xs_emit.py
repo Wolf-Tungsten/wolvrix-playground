@@ -5,6 +5,7 @@ import sys
 import time
 from pathlib import Path
 import wolvrix
+from wolvrix.adapters.stats import StatsValue
 
 
 def parse_tokens(value: str) -> list[str]:
@@ -16,6 +17,16 @@ def parse_tokens(value: str) -> list[str]:
 def log(message: str) -> None:
     sys.stderr.write(f"[wolvrix-xs] {message}\n")
     sys.stderr.flush()
+
+
+def write_stats_json(sess: wolvrix.Session, key: str, out_dir: Path) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "wolvrix_xs_stats.json"
+    value = sess.get(key)
+    if not isinstance(value, StatsValue):
+        raise TypeError(f"session key is not stats: {key}")
+    value.write_json(str(out_path))
+    log(f"stats json written {out_path}")
 
 
 if len(sys.argv) < 6:
@@ -66,11 +77,14 @@ with wolvrix.Session() as sess:
         ("comb-loop-elim", {}),
         ("simplify", {"semantics": "2state"}),
         ("memory-init-check", {}),
+        ("stats", {"out_stats": "stats.main"}),
     ]
     for pass_name, pass_kwargs in pipeline:
         start = time.perf_counter()
         log(f"pass {pass_name} start")
         sess.run_pass(pass_name, design="design.main", **pass_kwargs)
+        if pass_name == "stats":
+            write_stats_json(sess, "stats.main", Path("tmp"))
         log(f"pass {pass_name} done {int((time.perf_counter() - start) * 1000)}ms")
 
     start = time.perf_counter()
