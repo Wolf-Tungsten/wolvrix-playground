@@ -257,6 +257,7 @@
 | `NO0266` | `2026-07-11` | [PHR true-merge P1 SimTop 50k gate](./NO0266_phr_true_merge_p1_simtop_50k_gate_20260711.md) | 同配置 P1 前后 CPU8 old/new/old：功能均为 50001 guest cycles，P1 instructions `-1.62%`、text `-38.09%`；当前共享负载窗口 Host time `-20.55%`，同时暴露 branches `+9.24%` 的下一热点。 |
 | `NO0267` | `2026-07-11` | [Post-P1 same-FIR branch diagnosis](./NO0267_post_p1_same_fir_branch_diagnosis_20260711.md) | 同 FIR 50k 对照确认 P1 GrhSIM 相对 GSIM 仍有 instructions `2.84x`、branches `4.79x`；branch profile 将最大单热点定位到 39 个 `1 bit -> 256 bits` 通用 replicate call sites，累计约 `2.43B` branches。 |
 | `NO0268` | `2026-07-11` | [Wide bit-replicate broadcast fast path](./NO0268_wide_bit_replicate_broadcast_fastpath_20260711.md) | 以编译期 word broadcast 替换 1-bit wide replication 循环；synthetic 与 SimTop 10k/50k 功能通过，CPU140 old/new/old 显示 instructions `-9.77%`、branches `-11.90%`、cycles `-1.03%`，下一热点转为 commit/eval control。 |
+| `NO0269` | `2026-07-11` | [Packed active-flag scan](./NO0269_packed_active_flag_scan_20260711.md) | 将 SimTop `eval()` 的 activity bitmap 空集判定由逐 byte 改为 32-byte packed scan；fresh 10k/50k 功能通过，CPU140 old/new/old 显示 Host time `-16.88%`、cycles `-16.79%`、branches `-9.14%`，`eval` branch share 从 `10.53%` 降至 `0.74%`。 |
 
 
 ## 编号说明
