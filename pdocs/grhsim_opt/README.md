@@ -242,6 +242,7 @@
 | `NO0252` | `2026-07-10` | [SimTop event full-pass slowdown probe](./NO0252_simtop_event_fullpass_slowdown_probe_20260710.md) | 对 SimTop active-pre event fast path 做 10k 动态计数：event 命中 `10048` 次且每次 `state_changed`，导致 `10048 * 71871 = 722159808` 次全图 post-commit compute-supernode fullpass；关闭 event fast path 对照仅 `19542ms`，说明 SimTop 下降主因是 post-commit full graph fullpass 远大于省掉的 active work。 |
 
 | `NO0253` | `2026-07-10` | [Adaptive post-commit settle for event fast path](./NO0253_adaptive_post_commit_settle_20260710.md) | 修复 SimTop event fast path 的 post-commit 全图 fullpass：commit reader 密度不超过 `25%` 时走动态 active closure，稠密时保留 fullpass。相邻 SimTop 10k `88144ms -> 19222ms`（`-78.19%`），fresh source 10k `19421ms`、50k 功能通过；VtypeBuffer hybrid 200k `322.952ms`，避免一刀切 active settle 的 `13.8%` 回退。 |
+| `NO0254` | `2026-07-10` | [Event settle density FTQ/Tage gate](./NO0254_event_settle_density_ftq_tage_gate_20260710.md) | FTQ/Tage 200k fresh hybrid verify 通过，post-commit reader density 分别为 `66.00%/61.39%`，几乎全走 dense；强制 active closure 分别慢 `7.57%/5.59%`，确认 `25%` 阈值无需调整。`perf=eval` 新增 fast/state/sparse/dense 与 active sum/min/max counters，默认模型无额外计数开销。 |
 
 
 ## 编号说明
