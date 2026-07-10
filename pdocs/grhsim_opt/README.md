@@ -245,6 +245,8 @@
 | `NO0254` | `2026-07-10` | [Event settle density FTQ/Tage gate](./NO0254_event_settle_density_ftq_tage_gate_20260710.md) | FTQ/Tage 200k fresh hybrid verify 通过，post-commit reader density 分别为 `66.00%/61.39%`，几乎全走 dense；强制 active closure 分别慢 `7.57%/5.59%`，确认 `25%` 阈值无需调整。`perf=eval` 新增 fast/state/sparse/dense 与 active sum/min/max counters，默认模型无额外计数开销。 |
 | `NO0255` | `2026-07-10` | [SimTop same-FIR GSIM / GrhSIM perf profile](./NO0255_simtop_same_fir_perf_profile_20260710.md) | 用同一份当前 FIR fresh 构建 GSIM，50k 相邻对照确认 hybrid GrhSIM 仍慢 `4.285x`；perf 将约一半时间定位到 commit，并发现 batch112/126 的 `61376` 个全掩码 register write 仍执行通用 masked merge。 |
 | `NO0256` | `2026-07-10` | [Full-mask register commit specialization](./NO0256_full_mask_register_commit_specialization_20260710.md) | 全掩码 scalar/wide register commit 改为 direct update，保留 changed/activation 与动态 mask 语义；VtypeBuffer 200k 和 SimTop 50k 功能通过，SimTop 相邻 50k 提速 `1.381x`，同 FIR GSIM 校准后剩余 `3.400x`。 |
+| `NO0257` | `2026-07-10` | [SimTop duplicate scalar state-read diagnosis](./NO0257_simtop_duplicate_scalar_state_read_diagnosis_20260710.md) | NO0256 后 compute batch7 成为最大单热点；perf/source mapping 显示 `82.81%` sample 落在 register read，66 个 normal compute batch 中有 `36571/121088`（`30.20%`）个同 supernode、同 state 的重复 scalar changed comparisons，其中 `31976` 个来自顶层 timer。 |
+| `NO0258` | `2026-07-10` | [Scalar state-read change-predicate reuse](./NO0258_scalar_state_read_change_predicate_reuse_20260710.md) | 同 compute supernode 内复用同 state scalar register/latch read 的 changed predicate，保留每个 slot 写回和 fanout effects；SimTop 10k/50k difftest 与 VtypeBuffer 200k verify 通过，batch7 normal text 缩小 `22.74%`，50k instructions 降 `2.09%`，稳定高频 wall time 降约 `0.5%~1.2%`。 |
 
 
 ## 编号说明
