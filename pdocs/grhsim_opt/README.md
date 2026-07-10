@@ -252,6 +252,9 @@
 | `NO0261` | `2026-07-10` | [Sched54 optimize-size negative probe](./NO0261_sched54_optimize_size_negative_probe_20260710.md) | 仅将 sched54 改用 `-Os`，normal text 缩小 `4.27%` 且 10k/50k 功能通过，但 instructions/branches/branch misses 分别增加 `0.25%/0.67%/0.62%`；wall 表面收益来自频率差异，probe 不保留。 |
 | `NO0262` | `2026-07-10` | [Multi-write true-merge plan](./NO0262_multi_write_true_merge_plan_20260710.md) | 规划独立 strict true-rewrite：不放宽默认 shared-read intent，先在 synthetic case 恢复 priority multi-write family，再替换 extra reads、生成有序 memory writes/reset fill，经过结构、collision、SimTop 10k/50k 和 post-profile gate。 |
 | `NO0263` | `2026-07-10` | [Priority consolidated-write true-merge P0](./NO0263_priority_consolidated_write_true_merge_p0_20260710.md) | P0 strict matcher 从每行单 write 的 OR+nested mux 恢复动态 write families，把行相关 priority exclusion 转置为地址冲突 guard；首次依赖端口顺序的实现被执行 harness 证伪后撤回，最终 collision/reset synthetic gate 与完整 emitter 回归通过。 |
+| `NO0264` | `2026-07-11` | [PHR true-only shared-read true-merge P1](./NO0264_phr_true_only_shared_read_true_merge_p1_20260711.md) | 新增独立 true-only storage discovery 与共享 read 全量替换，补齐多 write/reset/fallback/domain matcher；SimTop PHR 532-row 主组恢复为 41 个 indexed memory writes，10k/50k difftest 通过。 |
+| `NO0265` | `2026-07-11` | [Memory row-reader activation A/B](./NO0265_memory_row_reader_activation_ab_20260711.md) | 对 constant-address memory readers 生成 row-aware packed activation table；PHR 每行 reader flags 从固定 67 降到平均 2.1，但 50k instructions 只降 `0.18%`，说明 reader supernode 与其他 activation 高度重叠。 |
+| `NO0266` | `2026-07-11` | [PHR true-merge P1 SimTop 50k gate](./NO0266_phr_true_merge_p1_simtop_50k_gate_20260711.md) | 同配置 P1 前后 CPU8 old/new/old：功能均为 50001 guest cycles，P1 instructions `-1.62%`、text `-38.09%`；当前共享负载窗口 Host time `-20.55%`，同时暴露 branches `+9.24%` 的下一热点。 |
 
 
 ## 编号说明
