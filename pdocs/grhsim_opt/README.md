@@ -329,6 +329,7 @@
 | `NO0338` | `2026-07-12` | [PIE/ASLR performance runbook correction](./NO0338_pie_aslr_performance_runbook_correction_20260712.md) | 同一 NO0300 binary 在新 numeric1 中比历史 cycles 低 8%~9%，且 cmask6/cycle 低 5.50%；确认 emu 为 PIE、系统 ASLR=2，而历史 perf 未固定 load base。本机支持 `setarch -R`，numeric1 作废，后续先验证 maps 再 fixed-ASLR 全量重跑。 |
 | `NO0339` | `2026-07-12` | [Fixed-ASLR mapping probe](./NO0339_fixed_aslr_mapping_probe_20260712.md) | 连续两次 `setarch -R` NO0300 10k 的 5 段 emu mappings 逐行且 SHA256 完全一致，text base 固定为 `0x55555555c000`；两次功能终点一致，fixed-ASLR 实际链路验证通过。 |
 | `NO0340` | `2026-07-12` | [Fixed-ASLR bit-reversal order runtime gate](./NO0340_fixed_aslr_bitrev_order_runtime_gate_20260712.md) | numeric/bitrev/numeric cycles spread `0.35%`；无重编重排使 cycles `-0.74%`、cmask6/cycle `-0.39%`，是小幅正信号但不足以解释历史 4% 回退。更关键的是 fixed numeric 比同 binary 随机基址历史低 `8.16%~8.80%` cycles，下一步 fixed-ASLR 重跑 NO0286/NO0300 与 GSim。 |
+| `NO0341` | `2026-07-12` | [Fixed-ASLR NO0286 / NO0300 recalibration plan](./NO0341_fixed_aslr_no0286_no0300_recalibration_plan_20260712.md) | 保持原始无插桩 binary、CoreMark 50k、CPU138/NUMA1 与四项 PMU 不变，以 `setarch -R` 执行 NO0286/NO0300/NO0286；功能终点、100% 调度和 old cycles spread `<=1%` 后，重新判定 ordered-affine 的真实方向。 |
 
 
 ## 编号说明
