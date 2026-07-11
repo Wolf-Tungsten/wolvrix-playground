@@ -385,6 +385,10 @@ def main() -> int:
     simplify_keep_declared_symbols = env_flag("WOLVRIX_XS_GRHSIM_SIMPLIFY_KEEP_DECLARED_SYMBOLS", default=False)
     skip_comb_lane_pack = env_flag("WOLVRIX_XS_GRHSIM_SKIP_COMB_LANE_PACK", default=False)
     reg_to_mem_intent = env_flag("WOLVRIX_XS_GRHSIM_REG_TO_MEM_INTENT", default=True)
+    reg_to_mem_ordered_writes = env_flag(
+        "WOLVRIX_XS_GRHSIM_REG_TO_MEM_ORDERED_WRITES",
+        default=True,
+    )
     declared_value_compute_node_boundary = env_flag(
         "WOLVRIX_XS_GRHSIM_DECLARED_VALUE_COMPUTE_NODE_BOUNDARY",
         default=False,
@@ -427,6 +431,7 @@ def main() -> int:
         f"post_stats_json={post_stats_json} "
         f"resume_from_stats_json={resume_from_stats_json} "
         f"reg_to_mem_intent={reg_to_mem_intent} "
+        f"reg_to_mem_ordered_writes={reg_to_mem_ordered_writes} "
         f"declared_value_compute_node_boundary={declared_value_compute_node_boundary}"
     )
 
@@ -461,6 +466,7 @@ def main() -> int:
         reg_to_mem_kwargs: dict = {}
         if not reg_to_mem_intent:
             reg_to_mem_kwargs["intent"] = False
+        reg_to_mem_kwargs["ordered_writes"] = reg_to_mem_ordered_writes
         reg_to_mem_pipeline: list[tuple[str, dict]] = [
             ("reg-to-mem", reg_to_mem_kwargs),
         ]
