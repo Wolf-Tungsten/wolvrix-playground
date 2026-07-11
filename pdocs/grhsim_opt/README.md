@@ -341,6 +341,7 @@
 | `NO0350` | `2026-07-12` | [State-read boundary locality diagnostic plan](./NO0350_state_read_boundary_locality_diagnostic_plan_20260712.md) | 规划默认关闭的 emitter locality TSV，将每个 register/latch read 的 source supernode/batch、materialization/alias、fanout 及同 supernode/同 batch/跨 batch users 与 NO0311 动态 fire 连接；先量化聚合 state-read 二级转发扫描，再决定 direct activation 或 per-state guard。 |
 | `NO0351` | `2026-07-12` | [State-read locality diagnostic implementation gate](./NO0351_state_read_locality_diagnostic_implementation_gate_20260712.md) | 新增默认关闭的 24-field state-read locality TSV；synthetic 得到 17 rows、16 materialized、11 aliases，并同时覆盖 pure/mixed supernodes，generated-model harness 与 `emit-grhsim-cpp` 1/1 回归通过。 |
 | `NO0352` | `2026-07-12` | [State-read locality read-args correction](./NO0352_state_read_locality_read_args_correction_20260712.md) | 首次 fresh emit 在读图前因新目录缺少 `wolvrix_read_args.txt` 立即失败，无有效数据；修正为显式复用 NO0300 已验证的 `bd420039...` read-args，保留失败日志并以新日志重跑。 |
+| `NO0353` | `2026-07-12` | [SimTop state-read locality gate](./NO0353_simtop_state_read_locality_gate_20260712.md) | fresh emit 精确复现 NO0300 且 154 个 generated files 逐项一致；50k 动态连接表明 mixed supernode 占 canonical read visits `85.80%`。通用 single-writer direct-forward 候选覆盖 canonical visits `93.70%`，batch 8 覆盖 `99.97%`；GSim 对同一状态在写回处直接激活 consumers，没有 GrhSIM 的 read-slot 扫描中转层。 |
 
 
 ## 编号说明
