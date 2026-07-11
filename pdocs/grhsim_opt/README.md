@@ -295,6 +295,7 @@
 | `NO0304` | `2026-07-12` | [Final-topo stable tie-break probe plan](./NO0304_final_topo_stable_tiebreak_plan_20260712.md) | 确认 final topo 层内按临时 supernode ID 排序会继续决定 active IDs、dispatch words、batch 和 slot layout；对照 GSim 的 ready-stack 遍历后，先规划默认关闭的 `level-op` 低风险 probe，仅把同层 tie-break 改为最小稳定 op ID，并以结构不变、old/new batch overlap、10k/50k 功能和固定 CPU runtime 逐级门控。 |
 | `NO0305` | `2026-07-12` | [Final-topo level-op implementation and strict structure gate](./NO0305_final_topo_level_op_implementation_structure_gate_20260712.md) | 实现默认关闭的 `level-op` 层内稳定排序及 decoded-write baseline gate；synthetic/定向测试通过。严格同时关闭 decoded discovery 与 ordered lowering 后，SimTop graph ops、supernodes、DAG、boundary 和 compute/commit pairs 与 NO0286 全量一致，证明 probe 只改变最终布局。 |
 | `NO0306` | `2026-07-12` | [Final-topo level-op overlap negative gate](./NO0306_final_topo_level_op_overlap_negative_gate_20260712.md) | 可复用 op-to-batch 工具确认 `level-op` 的 strict/ordered 相关性仅 `0.6181 -> 0.6237`，平均位移基本不变，pair 共置率反而下降；同图 policy 对照相关性约 `0.994`，将失败定位到完整 Kahn layer barrier。候选保持关闭且不进入 emu gate，下一步转向 GSim-like ready-stack。 |
+| `NO0307` | `2026-07-12` | [GSim ready-stack topo implementation](./NO0307_gsim_ready_stack_topo_implementation_20260712.md) | 对照 GSim `topoSort/resort` 实现默认关闭的 `ready-op`：以最小 op ID 作稳定 key，roots/successors 升序压栈并 LIFO 遍历。synthetic `B -> C` 加独立 `A` 证明可跨完整 Kahn layer，同时全部 schedule 结构不变；定向测试 `2/2` 通过。 |
 
 
 ## 编号说明
