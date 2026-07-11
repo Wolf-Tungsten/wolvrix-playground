@@ -70,3 +70,9 @@ build/logs/xs_perf/no0345/fixed_grhsim_50k_instructions_emu.log
 build/logs/xs_perf/no0345/fixed_grhsim_50k_instructions.report
 build/logs/xs_perf/no0345/fixed_grhsim_50k_instructions.perf-script
 ```
+
+## 6. 增量勘误
+
+`samples * period` 的绝对差值门禁不正确，已由
+[NO0346](./NO0346_fixed_period_event_count_gate_correction_20260712.md) 修正为 0 lost、配置/功能正确及两边
+sample ratio 对 perf stat ratio 的相对误差门禁；本轮数据按修正口径验收。
