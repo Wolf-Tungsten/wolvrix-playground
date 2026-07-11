@@ -327,6 +327,7 @@
 | `NO0336` | `2026-07-12` | [Bit-reversal order build gate and text-padding correction](./NO0336_bitrev_order_build_gate_and_text_padding_correction_20260712.md) | 152 个原始 objects 无重编重链接，最终 batch 顺序严格为预声明 bit-reversal，执行后继地址相邻率从 100% 降为 0%；symbol/archive/emu size 均不变，`.text` 仅因 16-byte section 尾 padding 增 5 bytes，修正 byte-exact gate 后结构通过。 |
 | `NO0337` | `2026-07-12` | [Bit-reversal order functional gate](./NO0337_bitrev_order_functional_gate_20260712.md) | 只重排 NO0300 sched 地址的 bit-reversal emu 通过 10k/50k CoreMark/NEMU difftest，guest cycles、`cycleCnt`、`instrCnt` 与 terminal PC 均严格匹配 numeric baseline；未固定 raw time 不作性能结论。 |
 | `NO0338` | `2026-07-12` | [PIE/ASLR performance runbook correction](./NO0338_pie_aslr_performance_runbook_correction_20260712.md) | 同一 NO0300 binary 在新 numeric1 中比历史 cycles 低 8%~9%，且 cmask6/cycle 低 5.50%；确认 emu 为 PIE、系统 ASLR=2，而历史 perf 未固定 load base。本机支持 `setarch -R`，numeric1 作废，后续先验证 maps 再 fixed-ASLR 全量重跑。 |
+| `NO0339` | `2026-07-12` | [Fixed-ASLR mapping probe](./NO0339_fixed_aslr_mapping_probe_20260712.md) | 连续两次 `setarch -R` NO0300 10k 的 5 段 emu mappings 逐行且 SHA256 完全一致，text base 固定为 `0x55555555c000`；两次功能终点一致，fixed-ASLR 实际链路验证通过。 |
 
 
 ## 编号说明
