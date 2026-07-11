@@ -335,7 +335,8 @@
 | `NO0344` | `2026-07-12` | [Fixed-ASLR GSim / GrhSIM direct compare gate](./NO0344_fixed_aslr_gsim_grhsim_direct_compare_gate_20260712.md) | GSim/NO0300/GSim cycles spread `0.31%`；latest GrhSIM 仍为 `2.489x cycles / 2.159x instructions`，extra instructions 解释 `77.82%` excess cycles。frontend empty/cmask6 density 不差于 GSim，backend-stall density 为 `1.565x`，下一步更新 instruction profile。 |
 | `NO0345` | `2026-07-12` | [Fixed-ASLR latest instruction profile plan](./NO0345_fixed_aslr_latest_instruction_profile_plan_20260712.md) | 复用 NO0282 的 `instructions:u`/25M/DWARF8192 口径，在 fixed-ASLR 下重新采集 GSim 与 NO0300；以功能、0 lost 和 `2.159x` sample ratio 门禁更新 subStep/compute/commit 分布，再生成版本固定的 instruction flamegraph。绝对 event-count 门禁由 NO0346 修正。 |
 | `NO0346` | `2026-07-12` | [Fixed-period event-count gate correction](./NO0346_fixed_period_event_count_gate_correction_20260712.md) | `perf report` 的 `samples*period` 是 approximate count，GSim/GrhSIM 与 stat 相差 `1.83/1.16` periods 但仅占 `0.057%/0.017%`；修正为 0 lost、配置/功能及 sample-ratio 门禁，实际 ratio 误差仅 `0.0403%`，profile 有效无需重跑。 |
-| `NO0347` | `2026-07-12` | [Instruction flamegraph tool setup](./NO0347_instruction_flamegraph_tool_setup_20260712.md) | 官方 FlameGraph 固定到 build-only revision `41fee1f`；记录 perf 6.8 leaf 提取必须使用 `-G -F ip,sym`，flamegraph 使用完整 DWARF perf-script 且横轴标为 samples，第三方工具不进入源码提交。 |
+| `NO0347` | `2026-07-12` | [Instruction flamegraph tool setup](./NO0347_instruction_flamegraph_tool_setup_20260712.md) | 官方 FlameGraph 固定到 build-only revision `41fee1f`；记录 perf 6.8 leaf 提取必须使用 `-G -F ip,sym`，flamegraph 使用完整 DWARF perf-script，第三方工具不进入源码提交。横轴单位由 NO0348 勘误。 |
+| `NO0348` | `2026-07-12` | [Flamegraph period-weight correction](./NO0348_flamegraph_period_weight_correction_20260712.md) | `stackcollapse-perf.pl` 按每条 sample 的 25M period 加权，folded sum 为 `80.025B/172.850B` 而非 raw samples；初始错误标签 SVG 未用于结论，已覆盖重生为 `approx instructions` 并通过权重与关键符号门禁。 |
 
 
 ## 编号说明

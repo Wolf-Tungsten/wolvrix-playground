@@ -54,3 +54,9 @@ build/logs/xs_perf/no0345/fixed_gsim_50k_instructions.svg
 build/logs/xs_perf/no0345/fixed_grhsim_50k_instructions.folded
 build/logs/xs_perf/no0345/fixed_grhsim_50k_instructions.svg
 ```
+
+## 5. 增量勘误
+
+`stackcollapse-perf.pl` 实际按 sample period 加权，横轴不是 raw sample count。有效 SVG 已由
+[NO0348](./NO0348_flamegraph_period_weight_correction_20260712.md) 修正为 `approx instructions` 标签；本篇
+第 3 节的 `--countname samples` 命令不再使用。
