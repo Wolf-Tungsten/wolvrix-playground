@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import json
 import math
 import re
 from collections import Counter
@@ -71,7 +72,130 @@ def percent(numerator: int | float, denominator: int | float) -> float:
     return 100.0 * numerator / denominator if denominator else 0.0
 
 
-def write_report(old_dir: Path, new_dir: Path, out: TextIO) -> None:
+def load_profile_variant(path: Path, name: str, expected_batches: int) -> tuple[dict, dict[int, dict]]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    matches = [variant for variant in payload.get("variants", []) if variant.get("name") == name]
+    if len(matches) != 1:
+        raise ValueError(f"{path}: expected one profile variant named {name!r}, found {len(matches)}")
+    variant = matches[0]
+    rows: dict[int, dict] = {}
+    for row in variant.get("batches", []):
+        if row.get("phase") != "compute":
+            continue
+        batch_id = row.get("batch_id")
+        if not isinstance(batch_id, int) or batch_id < 0:
+            raise ValueError(f"{path}: invalid compute batch id: {batch_id!r}")
+        if batch_id in rows:
+            raise ValueError(f"{path}: duplicate compute batch profile: {batch_id}")
+        for field in ("samples", "work_total", "samples_per_billion_work"):
+            value = row.get(field)
+            if not isinstance(value, (int, float)) or value < 0:
+                raise ValueError(f"{path}: invalid {field} for compute batch {batch_id}: {value!r}")
+        rows[batch_id] = row
+    expected = set(range(expected_batches))
+    if set(rows) != expected:
+        raise ValueError(
+            f"{path}: compute batch profile mismatch for {name!r}: "
+            f"missing={sorted(expected - set(rows))[:10]} extra={sorted(set(rows) - expected)[:10]}"
+        )
+    phase = variant.get("phases", {}).get("compute", {})
+    global_density = phase.get("samples_per_billion_work")
+    if not isinstance(global_density, (int, float)) or global_density <= 0:
+        raise ValueError(f"{path}: invalid compute phase sample density for {name!r}")
+    return variant, rows
+
+
+def write_profile_origin_report(
+    profile_path: Path,
+    old_name: str,
+    new_name: str,
+    old_count: int,
+    new_count: int,
+    new_sizes: list[int],
+    overlap: list[list[int]],
+    new_common: list[int],
+    min_samples: int,
+    out: TextIO,
+) -> None:
+    old_variant, old_rows = load_profile_variant(profile_path, old_name, old_count)
+    new_variant, new_rows = load_profile_variant(profile_path, new_name, new_count)
+    old_global = old_variant["phases"]["compute"]["samples_per_billion_work"]
+    new_global = new_variant["phases"]["compute"]["samples_per_billion_work"]
+    global_ratio = new_global / old_global
+
+    rows = []
+    for new_batch, counts in enumerate(overlap):
+        common = new_common[new_batch]
+        if common == 0:
+            continue
+        origin_density = sum(
+            count * old_rows[old_batch]["samples_per_billion_work"]
+            for old_batch, count in enumerate(counts)
+        ) / common
+        new_row = new_rows[new_batch]
+        new_density = new_row["samples_per_billion_work"]
+        density_ratio = new_density / origin_density if origin_density else 0.0
+        expected_samples = origin_density * new_row["work_total"] / 1_000_000_000.0
+        rows.append(
+            {
+                "batch": new_batch,
+                "samples": new_row["samples"],
+                "work_total": new_row["work_total"],
+                "new_density": new_density,
+                "common_share": percent(common, new_sizes[new_batch]),
+                "origin_density": origin_density,
+                "density_ratio": density_ratio,
+                "relative_to_global": density_ratio / global_ratio,
+                "expected_samples": expected_samples,
+                "excess_samples": new_row["samples"] - expected_samples,
+            }
+        )
+
+    print(
+        f"profile_origin_density profile={profile_path} old={old_name} new={new_name} "
+        f"min_samples={min_samples} old_global={old_global:.6f} "
+        f"new_global={new_global:.6f} global_ratio={global_ratio:.6f}",
+        file=out,
+    )
+
+    def print_rows(title: str, ranked: list[dict]) -> None:
+        print(title, file=out)
+        print(
+            "rank new_batch samples work_total new_density common_share "
+            "op_weighted_origin_density density_ratio relative_to_global "
+            "expected_samples excess_samples",
+            file=out,
+        )
+        for rank, row in enumerate(ranked, start=1):
+            print(
+                f"{rank} {row['batch']:02d} {row['samples']} {row['work_total']} "
+                f"{row['new_density']:.6f} {row['common_share']:.3f}% "
+                f"{row['origin_density']:.6f} {row['density_ratio']:.6f} "
+                f"{row['relative_to_global']:.6f} {row['expected_samples']:.3f} "
+                f"{row['excess_samples']:+.3f}",
+                file=out,
+            )
+
+    eligible = [row for row in rows if row["samples"] >= min_samples]
+    print_rows(
+        "top_profile_density_ratio",
+        sorted(eligible, key=lambda row: (-row["density_ratio"], -row["samples"], row["batch"]))[:15],
+    )
+    print_rows(
+        "top_profile_excess_samples",
+        sorted(eligible, key=lambda row: (-row["excess_samples"], -row["samples"], row["batch"]))[:15],
+    )
+
+
+def write_report(
+    old_dir: Path,
+    new_dir: Path,
+    out: TextIO,
+    profile_path: Path | None = None,
+    old_profile_name: str | None = None,
+    new_profile_name: str | None = None,
+    min_profile_samples: int = 100,
+) -> None:
     old_assignment, old_sizes, old_ambiguous = op_assignments(old_dir)
     new_assignment, new_sizes, new_ambiguous = op_assignments(new_dir)
     old_count = len(old_sizes)
@@ -186,6 +310,21 @@ def write_report(old_dir: Path, new_dir: Path, out: TextIO) -> None:
             f"{new_batch:02d} {new_sizes[new_batch]:7d} {new_common[new_batch]:7d} {entries}",
             file=out,
         )
+    if profile_path is not None:
+        assert old_profile_name is not None
+        assert new_profile_name is not None
+        write_profile_origin_report(
+            profile_path,
+            old_profile_name,
+            new_profile_name,
+            old_count,
+            new_count,
+            new_sizes,
+            overlap,
+            new_common,
+            min_profile_samples,
+            out,
+        )
 
 
 def main() -> int:
@@ -195,16 +334,52 @@ def main() -> int:
     parser.add_argument("old_dir", type=Path, help="old GrhSIM generated C++ directory")
     parser.add_argument("new_dir", type=Path, help="new GrhSIM generated C++ directory")
     parser.add_argument("--output", type=Path, help="write the report to this path instead of stdout")
+    parser.add_argument(
+        "--batch-profile-json",
+        type=Path,
+        help="optionally add op-weighted old-origin sample-density analysis",
+    )
+    parser.add_argument("--old-profile-name", help="baseline variant name in --batch-profile-json")
+    parser.add_argument("--new-profile-name", help="candidate variant name in --batch-profile-json")
+    parser.add_argument(
+        "--min-profile-samples",
+        type=int,
+        default=100,
+        help="minimum candidate samples for profile-origin rankings",
+    )
     args = parser.parse_args()
+    profile_names = (args.old_profile_name, args.new_profile_name)
+    if args.batch_profile_json is None and any(name is not None for name in profile_names):
+        parser.error("profile names require --batch-profile-json")
+    if args.batch_profile_json is not None and any(name is None for name in profile_names):
+        parser.error("--batch-profile-json requires --old-profile-name and --new-profile-name")
+    if args.min_profile_samples < 0:
+        parser.error("--min-profile-samples must be non-negative")
 
     if args.output is None:
         import sys
 
-        write_report(args.old_dir, args.new_dir, sys.stdout)
+        write_report(
+            args.old_dir,
+            args.new_dir,
+            sys.stdout,
+            args.batch_profile_json,
+            args.old_profile_name,
+            args.new_profile_name,
+            args.min_profile_samples,
+        )
     else:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with args.output.open("w", encoding="utf-8") as out:
-            write_report(args.old_dir, args.new_dir, out)
+            write_report(
+                args.old_dir,
+                args.new_dir,
+                out,
+                args.batch_profile_json,
+                args.old_profile_name,
+                args.new_profile_name,
+                args.min_profile_samples,
+            )
     return 0
 
 
