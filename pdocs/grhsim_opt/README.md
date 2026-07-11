@@ -320,6 +320,7 @@
 | `NO0329` | `2026-07-12` | [Batch function page-alignment probe plan](./NO0329_batch_function_page_alignment_plan_20260712.md) | GSim 的 329 个 `subStep` 平均 147 KB，而 GrhSIM 117 个 batch 平均 739–815 KB；规划复用 NO0286/NO0300 generated C++，把两边 batch 都按 4 KiB 对齐后做功能与 fixed-CPU cmask6 A/B/A，隔离跨函数累计地址漂移。 |
 | `NO0330` | `2026-07-12` | [Direct model-build compiler correction](./NO0330_direct_model_build_compiler_correction_20260712.md) | direct 子目录 Make 被内建 `CXX=g++` 覆盖，首次两边均在 Clang PCH 接口处失败且未生成 batch object；标准入口和原对象确认使用 Clang 21.1.5，修正为显式 `CXX=clang++ AR=ar ARFLAGS=rv` 后 clean 重跑。 |
 | `NO0331` | `2026-07-12` | [Batch function page-alignment build gate](./NO0331_batch_function_page_alignment_build_gate_20260712.md) | 同源 old/new 均以 Clang 21 完整重编并链接；117 个 batch 入口全部 4 KiB 对齐且 symbol size 逐项不变，原版 93/100 种低 12-bit 偏移均收敛为 1 种；两边 `.text` 因 padding 增加 1.68%/1.88%，下一步做功能门禁。 |
+| `NO0332` | `2026-07-12` | [Batch function page-alignment functional gate](./NO0332_batch_function_page_alignment_functional_gate_20260712.md) | aligned old/new 的 10k 与 50k CoreMark/NEMU difftest 全部通过，guest cycles、`cycleCnt`、`instrCnt` 与 terminal PC 严格一致；未固定 raw time 明确不作性能结论，下一步等负载消退后执行 fixed-CPU PMU A/B/A。 |
 
 
 ## 编号说明
