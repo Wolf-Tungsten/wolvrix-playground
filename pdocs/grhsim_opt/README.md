@@ -337,6 +337,7 @@
 | `NO0346` | `2026-07-12` | [Fixed-period event-count gate correction](./NO0346_fixed_period_event_count_gate_correction_20260712.md) | `perf report` 的 `samples*period` 是 approximate count，GSim/GrhSIM 与 stat 相差 `1.83/1.16` periods 但仅占 `0.057%/0.017%`；修正为 0 lost、配置/功能及 sample-ratio 门禁，实际 ratio 误差仅 `0.0403%`，profile 有效无需重跑。 |
 | `NO0347` | `2026-07-12` | [Instruction flamegraph tool setup](./NO0347_instruction_flamegraph_tool_setup_20260712.md) | 官方 FlameGraph 固定到 build-only revision `41fee1f`；记录 perf 6.8 leaf 提取必须使用 `-G -F ip,sym`，flamegraph 使用完整 DWARF perf-script，第三方工具不进入源码提交。横轴单位由 NO0348 勘误。 |
 | `NO0348` | `2026-07-12` | [Flamegraph period-weight correction](./NO0348_flamegraph_period_weight_correction_20260712.md) | `stackcollapse-perf.pl` 按每条 sample 的 25M period 加权，folded sum 为 `80.025B/172.850B` 而非 raw samples；初始错误标签 SVG 未用于结论，已覆盖重生为 `approx instructions` 并通过权重与关键符号门禁。 |
+| `NO0349` | `2026-07-12` | [Fixed-ASLR latest instruction profile and codegen compare](./NO0349_fixed_aslr_latest_instruction_profile_codegen_compare_20260712.md) | latest profile 将 GrhSIM/GSim 的 `2.159x` instruction gap 近似拆为 compute `71.43%`、commit `23.54%`、其余 `5.04%`；compute8 无单点热点，NO0283 已基本消除 timer 物化，当前 `21,069` 个 scalar state-read 物化中 `92.86%` 来自 logEndpoint，下一步转向跨调度边界 locality 诊断。 |
 
 
 ## 编号说明
