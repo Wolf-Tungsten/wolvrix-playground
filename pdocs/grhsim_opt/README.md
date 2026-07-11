@@ -305,6 +305,7 @@
 | `NO0314` | `2026-07-12` | [Native stall PMU group correction](./NO0314_native_stall_pmu_group_correction_20260712.md) | 首次六事件 old1 仅 `83%` 调度，明确作废；将已由 NO0302 覆盖的 instructions 移出，原生组恢复为 `cycles + 4 native events` 五项并从 old1 重跑，要求全部 `100%`，后续 cache/TLB 也不得用 multiplex scale 代替原生计数。 |
 | `NO0315` | `2026-07-12` | [NO0286 / NO0300 native stall PMU gate](./NO0315_no0286_no0300_native_stall_pmu_gate_20260712.md) | 无插桩 old/new/old 五事件均 `100%` 调度；NO0300 frontend empty slots/cycle `+3.00%`，但 backend stalls/cycle、I-cache access/miss per cycle 分别下降 `8.35%/7.33%/7.56%`。单位 work 回退定位到非 I-cache-miss 的 frontend supply，下一步区分 ITLB、redirect 与 decode bandwidth。 |
 | `NO0316` | `2026-07-12` | [Frontend latency / bandwidth and ITLB PMU plan](./NO0316_frontend_latency_itlb_pmu_plan_20260712.md) | 规划无插桩 old/new/old 五事件门禁，将 frontend empty slots 拆为 cmask6 latency 与剩余 bandwidth slots，并同步采集 L1 ITLB miss 的 L2 hit/miss；100-cycle 接线探针五项均 `100%` 调度，不作为性能样本。 |
+| `NO0317` | `2026-07-12` | [NO0286 / NO0300 frontend latency and ITLB gate](./NO0317_no0286_no0300_frontend_latency_itlb_gate_20260712.md) | old/new/old 功能一致且五事件均 `100%`；NO0300 latency slots/cycle `+6.62%`，bandwidth slots/cycle `-9.58%`，ITLB L2 hit/miss 合计 density `-9.05%`。回退收敛到非 cache/TLB miss 的整周期前端断供，下一步查 redirect/taken branch 与 op-cache。 |
 
 
 ## 编号说明
