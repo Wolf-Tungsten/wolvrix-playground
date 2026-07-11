@@ -310,6 +310,7 @@
 | `NO0319` | `2026-07-12` | [NO0286 / NO0300 control-flow redirect gate](./NO0319_no0286_no0300_control_flow_redirect_gate_20260712.md) | old/new/old cycles 回退 `4.28%` 且 baseline spread `0.071%`；taken、taken-mispredict、decoder redirect 与 resync 的绝对值/per-cycle 均下降，两个 redirect 比率也改善。前三者 per work 仍增 `2.3%~4.0%`，但没有与 latency slots 同向增长，下一步转向 op cache。 |
 | `NO0320` | `2026-07-12` | [Op-cache and dispatch-source PMU plan](./NO0320_op_cache_dispatch_source_pmu_plan_20260712.md) | 规划无插桩 old/new/old 五事件门禁，采集 op-cache access/miss 与 decoder/op-cache dispatch source，并报告 miss rate、dispatch share 及 per-cycle/work/instruction；100-cycle 接线探针五项均 `100%`。 |
 | `NO0321` | `2026-07-12` | [NO0286 / NO0300 op-cache and dispatch-source gate](./NO0321_no0286_no0300_op_cache_dispatch_gate_20260712.md) | old/new/old cycles 回退 `4.49%`、baseline spread `0.46%`；op-cache miss rate 改善 `0.24%`，op-cache dispatch share 提高 `4.24%`，access/miss per work 约持平。排除 op-cache 失配或退回 decoder，下一步 sample cmask6 full-empty 事件做函数级归因。 |
+| `NO0322` | `2026-07-12` | [Frontend full-empty sampling plan](./NO0322_frontend_full_empty_sampling_plan_20260712.md) | 规划对 cmask6 frontend full-empty 事件做 fixed-period old/new profile；1000-cycle 探针得到 451 samples、0 lost，且 IP/栈可解析到 generated compute/commit batch。正式 50k 用 period 10M，先做 phase/top-symbol 再映射逻辑。 |
 
 
 ## 编号说明
