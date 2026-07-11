@@ -333,6 +333,7 @@
 | `NO0342` | `2026-07-12` | [Fixed-ASLR NO0286 / NO0300 runtime gate](./NO0342_fixed_aslr_no0286_no0300_runtime_gate_20260712.md) | fixed-ASLR old/new/old cycles spread `0.29%`；NO0300 dynamic work `-4.30%` 转化为 cycles `-4.75%`，cycles/work `-0.47%`，推翻随机基址下约 `+4%` runtime 与 `+8.52%` cycles/work 回退。历史 frontend 相对幅度受 ASLR 混淆，下一步同口径复测 GSim。 |
 | `NO0343` | `2026-07-12` | [Fixed-ASLR GSim / GrhSIM direct compare plan](./NO0343_fixed_aslr_gsim_grhsim_direct_compare_plan_20260712.md) | same-FIR GSim/NO0300/GSim 固定 CPU、NUMA 与 ASLR 夹测，采集 cycles、instructions、frontend empty、cmask6 和 backend stalls；以功能终点、100% 调度及 GSim spread `<=1%` 更新 simulator gap 和 excess-cycle 分解。 |
 | `NO0344` | `2026-07-12` | [Fixed-ASLR GSim / GrhSIM direct compare gate](./NO0344_fixed_aslr_gsim_grhsim_direct_compare_gate_20260712.md) | GSim/NO0300/GSim cycles spread `0.31%`；latest GrhSIM 仍为 `2.489x cycles / 2.159x instructions`，extra instructions 解释 `77.82%` excess cycles。frontend empty/cmask6 density 不差于 GSim，backend-stall density 为 `1.565x`，下一步更新 instruction profile。 |
+| `NO0345` | `2026-07-12` | [Fixed-ASLR latest instruction profile plan](./NO0345_fixed_aslr_latest_instruction_profile_plan_20260712.md) | 复用 NO0282 的 `instructions:u`/25M/DWARF8192 口径，在 fixed-ASLR 下重新采集 GSim 与 NO0300；以功能、0 lost、event count 和 `2.159x` sample ratio 门禁更新 subStep/compute/commit 分布，再生成版本固定的 instruction flamegraph。 |
 
 
 ## 编号说明
