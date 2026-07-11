@@ -302,6 +302,7 @@
 | `NO0311` | `2026-07-12` | [GrhSIM runtime-profile comparison tool](./NO0311_grhsim_runtime_profile_compare_tool_20260712.md) | 新增可复用 static/fire TSV 严格连接工具，校验 schema、非负计数、重复键与 key 集合完全一致，输出 phase 汇总、top-by-fire/work、baseline delta 及 JSON；已全量连接 NO0286/NO0300 的 `67,934/63,726` 行 profile。 |
 | `NO0312` | `2026-07-12` | [NO0286 / NO0300 dynamic-work gate](./NO0312_no0286_no0300_dynamic_work_gate_20260712.md) | 同 workload 50k 显示 NO0300 的 fire/work/activation work 分别下降 `4.91%/4.30%/7.32%`，但无插桩 cycles 上升 `3.85%`；归一化后 cycles/work 回退 `8.52%`，compute samples/work 回退 `9.33%`。排除动态工作增加，根因转向 compute 单位 work 的 stall/layout 成本。 |
 | `NO0313` | `2026-07-12` | [NO0286 / NO0300 native stall PMU plan](./NO0313_no0286_no0300_native_stall_pmu_plan_20260712.md) | 规划无插桩 old/new/old 固定 CPU 配对，使用 AMD 原生 I-cache 与 frontend/backend dispatch-slot 事件，先判定 NO0300 单位 work 回退偏前端还是后端，再按结果选择 ITLB/取指或 L1D/DTLB 深挖。 |
+| `NO0314` | `2026-07-12` | [Native stall PMU group correction](./NO0314_native_stall_pmu_group_correction_20260712.md) | 首次六事件 old1 仅 `83%` 调度，明确作废；将已由 NO0302 覆盖的 instructions 移出，原生组恢复为 `cycles + 4 native events` 五项并从 old1 重跑，要求全部 `100%`，后续 cache/TLB 也不得用 multiplex scale 代替原生计数。 |
 
 
 ## 编号说明
