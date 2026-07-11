@@ -318,6 +318,7 @@
 | `NO0327` | `2026-07-12` | [IBS fetch probe and L2 instruction plan](./NO0327_ibs_fetch_probe_and_l2_plan_20260712.md) | IBS 必须 system-wide 且不支持 privilege filter；默认 IBS 可解析 IP 但当前 perf 不提供 latency/data-source。Zen4 `l3missonly` 探针得到 1,268 samples、0 lost；正式先做 L1I miss + L2 instruction access/hit/miss 原生 A/B/A，再按结果用 IBS 精确映射。 |
 | `NO0328` | `2026-07-12` | [NO0286 / NO0300 L2 instruction PMU gate](./NO0328_no0286_no0300_l2_instruction_pmu_gate_20260712.md) | old/new/old 五事件均 `100%` 且 L2 access=hit+miss 精确闭合；NO0300 L2 fill miss 绝对/per-cycle/per-work 分别 `-5.90%/-10.78%/-1.67%`，miss rate 改善 `0.81%`。fetch miss-count 链条全排除，下一步复用 generated C++ 做纯函数布局 probe。 |
 | `NO0329` | `2026-07-12` | [Batch function page-alignment probe plan](./NO0329_batch_function_page_alignment_plan_20260712.md) | GSim 的 329 个 `subStep` 平均 147 KB，而 GrhSIM 117 个 batch 平均 739–815 KB；规划复用 NO0286/NO0300 generated C++，把两边 batch 都按 4 KiB 对齐后做功能与 fixed-CPU cmask6 A/B/A，隔离跨函数累计地址漂移。 |
+| `NO0330` | `2026-07-12` | [Direct model-build compiler correction](./NO0330_direct_model_build_compiler_correction_20260712.md) | direct 子目录 Make 被内建 `CXX=g++` 覆盖，首次两边均在 Clang PCH 接口处失败且未生成 batch object；标准入口和原对象确认使用 Clang 21.1.5，修正为显式 `CXX=clang++ AR=ar ARFLAGS=rv` 后 clean 重跑。 |
 
 
 ## 编号说明
