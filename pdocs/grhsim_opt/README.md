@@ -322,6 +322,7 @@
 | `NO0331` | `2026-07-12` | [Batch function page-alignment build gate](./NO0331_batch_function_page_alignment_build_gate_20260712.md) | 同源 old/new 均以 Clang 21 完整重编并链接；117 个 batch 入口全部 4 KiB 对齐且 symbol size 逐项不变，原版 93/100 种低 12-bit 偏移均收敛为 1 种；两边 `.text` 因 padding 增加 1.68%/1.88%，下一步做功能门禁。 |
 | `NO0332` | `2026-07-12` | [Batch function page-alignment functional gate](./NO0332_batch_function_page_alignment_functional_gate_20260712.md) | aligned old/new 的 10k 与 50k CoreMark/NEMU difftest 全部通过，guest cycles、`cycleCnt`、`instrCnt` 与 terminal PC 严格一致；未固定 raw time 明确不作性能结论，下一步等负载消退后执行 fixed-CPU PMU A/B/A。 |
 | `NO0333` | `2026-07-12` | [Batch function page-alignment runtime gate](./NO0333_batch_function_page_alignment_runtime_gate_20260712.md) | aligned old/new/old cycles spread `0.39%`；new 从未对齐的 `+4.22%` 回退反转为 `-5.94%`，cmask6/cycle 从 `+6.62%` 收敛到 `+0.03%`。但对齐主要使 old cycles/cmask6 增加 `10.61%/17.83%`，new 约不变；证明强烈 code-layout 因果效应，但 4 KiB 全同 offset 不可保留，下一步做无 padding 的 sched archive 重排。 |
+| `NO0334` | `2026-07-12` | [NO0300 sched object-order probe plan](./NO0334_no0300_sched_object_order_plan_20260712.md) | GSim/GrhSIM 都按编号调用函数，但地址相邻者为执行后继的比例分别仅 `1.52%/100%`；预声明唯一 7-bit bit-reversal 排列，复用 NO0300 原 `.o`，不重编、不加 padding，以 numeric/bitrev/numeric PMU 门禁隔离物理顺序。 |
 
 
 ## 编号说明
