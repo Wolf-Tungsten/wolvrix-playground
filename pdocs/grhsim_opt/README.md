@@ -325,6 +325,7 @@
 | `NO0334` | `2026-07-12` | [NO0300 sched object-order probe plan](./NO0334_no0300_sched_object_order_plan_20260712.md) | GSim/GrhSIM 都按编号调用函数，但地址相邻者为执行后继的比例分别仅 `1.52%/100%`；预声明唯一 7-bit bit-reversal 排列，复用 NO0300 原 `.o`，不重编、不加 padding，以 numeric/bitrev/numeric PMU 门禁隔离物理顺序。 |
 | `NO0335` | `2026-07-12` | [Bit-reversal archive path correction](./NO0335_bitrev_archive_path_correction_20260712.md) | 首次 archive 构造在切换目录后把两个相对路径多退一层，只产生未链接的 sched-only 无效副本；原 baseline 未受影响。修正为绝对路径，并新增 non-sched/sched/total=`35/117/152` 及顺序硬门禁。 |
 | `NO0336` | `2026-07-12` | [Bit-reversal order build gate and text-padding correction](./NO0336_bitrev_order_build_gate_and_text_padding_correction_20260712.md) | 152 个原始 objects 无重编重链接，最终 batch 顺序严格为预声明 bit-reversal，执行后继地址相邻率从 100% 降为 0%；symbol/archive/emu size 均不变，`.text` 仅因 16-byte section 尾 padding 增 5 bytes，修正 byte-exact gate 后结构通过。 |
+| `NO0337` | `2026-07-12` | [Bit-reversal order functional gate](./NO0337_bitrev_order_functional_gate_20260712.md) | 只重排 NO0300 sched 地址的 bit-reversal emu 通过 10k/50k CoreMark/NEMU difftest，guest cycles、`cycleCnt`、`instrCnt` 与 terminal PC 均严格匹配 numeric baseline；未固定 raw time 不作性能结论。 |
 
 
 ## 编号说明
