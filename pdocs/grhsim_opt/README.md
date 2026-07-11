@@ -321,6 +321,7 @@
 | `NO0330` | `2026-07-12` | [Direct model-build compiler correction](./NO0330_direct_model_build_compiler_correction_20260712.md) | direct 子目录 Make 被内建 `CXX=g++` 覆盖，首次两边均在 Clang PCH 接口处失败且未生成 batch object；标准入口和原对象确认使用 Clang 21.1.5，修正为显式 `CXX=clang++ AR=ar ARFLAGS=rv` 后 clean 重跑。 |
 | `NO0331` | `2026-07-12` | [Batch function page-alignment build gate](./NO0331_batch_function_page_alignment_build_gate_20260712.md) | 同源 old/new 均以 Clang 21 完整重编并链接；117 个 batch 入口全部 4 KiB 对齐且 symbol size 逐项不变，原版 93/100 种低 12-bit 偏移均收敛为 1 种；两边 `.text` 因 padding 增加 1.68%/1.88%，下一步做功能门禁。 |
 | `NO0332` | `2026-07-12` | [Batch function page-alignment functional gate](./NO0332_batch_function_page_alignment_functional_gate_20260712.md) | aligned old/new 的 10k 与 50k CoreMark/NEMU difftest 全部通过，guest cycles、`cycleCnt`、`instrCnt` 与 terminal PC 严格一致；未固定 raw time 明确不作性能结论，下一步等负载消退后执行 fixed-CPU PMU A/B/A。 |
+| `NO0333` | `2026-07-12` | [Batch function page-alignment runtime gate](./NO0333_batch_function_page_alignment_runtime_gate_20260712.md) | aligned old/new/old cycles spread `0.39%`；new 从未对齐的 `+4.22%` 回退反转为 `-5.94%`，cmask6/cycle 从 `+6.62%` 收敛到 `+0.03%`。但对齐主要使 old cycles/cmask6 增加 `10.61%/17.83%`，new 约不变；证明强烈 code-layout 因果效应，但 4 KiB 全同 offset 不可保留，下一步做无 padding 的 sched archive 重排。 |
 
 
 ## 编号说明
