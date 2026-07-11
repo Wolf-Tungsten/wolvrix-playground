@@ -309,6 +309,7 @@
 | `NO0318` | `2026-07-12` | [Control-flow redirect PMU plan](./NO0318_control_flow_redirect_pmu_plan_20260712.md) | 规划无插桩 old/new/old 五事件门禁，采集 retired taken branch/mispredict、decoder redirect 与非 branch resync；除绝对值和 per cycle 外，还按 NO0302 instructions 与 NO0312 work 归一化，避免动态工作下降掩盖控制流密度。 |
 | `NO0319` | `2026-07-12` | [NO0286 / NO0300 control-flow redirect gate](./NO0319_no0286_no0300_control_flow_redirect_gate_20260712.md) | old/new/old cycles 回退 `4.28%` 且 baseline spread `0.071%`；taken、taken-mispredict、decoder redirect 与 resync 的绝对值/per-cycle 均下降，两个 redirect 比率也改善。前三者 per work 仍增 `2.3%~4.0%`，但没有与 latency slots 同向增长，下一步转向 op cache。 |
 | `NO0320` | `2026-07-12` | [Op-cache and dispatch-source PMU plan](./NO0320_op_cache_dispatch_source_pmu_plan_20260712.md) | 规划无插桩 old/new/old 五事件门禁，采集 op-cache access/miss 与 decoder/op-cache dispatch source，并报告 miss rate、dispatch share 及 per-cycle/work/instruction；100-cycle 接线探针五项均 `100%`。 |
+| `NO0321` | `2026-07-12` | [NO0286 / NO0300 op-cache and dispatch-source gate](./NO0321_no0286_no0300_op_cache_dispatch_gate_20260712.md) | old/new/old cycles 回退 `4.49%`、baseline spread `0.46%`；op-cache miss rate 改善 `0.24%`，op-cache dispatch share 提高 `4.24%`，access/miss per work 约持平。排除 op-cache 失配或退回 decoder，下一步 sample cmask6 full-empty 事件做函数级归因。 |
 
 
 ## 编号说明
