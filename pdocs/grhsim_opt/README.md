@@ -315,6 +315,7 @@
 | `NO0324` | `2026-07-12` | [Batch dynamic-work profile tool plan](./NO0324_batch_dynamic_work_profile_tool_plan_20260712.md) | 新增 batch→supernode→static/fire→perf exact-symbol 的严格连接工具计划，输出 phase、top samples、top samples/work、全 batch 与 JSON；跨版本仍要求用稳定 op overlap，不把同编号 batch 自动视为相同逻辑。 |
 | `NO0325` | `2026-07-12` | [Stable-op origin-density tool plan](./NO0325_stable_op_origin_density_tool_plan_20260712.md) | 扩展 compute batch overlap 工具，可选读取 batch-profile JSON，以 stable-op overlap 估算 new batch 的 old-origin samples/work，输出 density ratio、相对全局回退、common coverage 与 excess samples；明确该静态 op 加权仅用于候选筛选。 |
 | `NO0326` | `2026-07-12` | [Stable-op origin-density gate](./NO0326_stable_op_origin_density_gate_20260712.md) | 全量连接复现 compute samples/work `+21.17%`；stable-op 筛出 compute39/29/13/4 等高 density 候选。old12→new13 近似对照中 work `+3.37%`、指令/text 均缩小约 `5%~6%`，但 full-empty density `+44.1%`，且 annotate 无单 IP 集中，下一步用 IBS fetch 判定真实取指延迟来源。 |
+| `NO0327` | `2026-07-12` | [IBS fetch probe and L2 instruction plan](./NO0327_ibs_fetch_probe_and_l2_plan_20260712.md) | IBS 必须 system-wide 且不支持 privilege filter；默认 IBS 可解析 IP 但当前 perf 不提供 latency/data-source。Zen4 `l3missonly` 探针得到 1,268 samples、0 lost；正式先做 L1I miss + L2 instruction access/hit/miss 原生 A/B/A，再按结果用 IBS 精确映射。 |
 
 
 ## 编号说明
