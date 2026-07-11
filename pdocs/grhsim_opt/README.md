@@ -340,6 +340,7 @@
 | `NO0349` | `2026-07-12` | [Fixed-ASLR latest instruction profile and codegen compare](./NO0349_fixed_aslr_latest_instruction_profile_codegen_compare_20260712.md) | latest profile 将 GrhSIM/GSim 的 `2.159x` instruction gap 近似拆为 compute `71.43%`、commit `23.54%`、其余 `5.04%`；compute8 无单点热点，NO0283 已基本消除 timer 物化，当前 `21,069` 个 scalar state-read 物化中 `92.86%` 来自 logEndpoint，下一步转向跨调度边界 locality 诊断。 |
 | `NO0350` | `2026-07-12` | [State-read boundary locality diagnostic plan](./NO0350_state_read_boundary_locality_diagnostic_plan_20260712.md) | 规划默认关闭的 emitter locality TSV，将每个 register/latch read 的 source supernode/batch、materialization/alias、fanout 及同 supernode/同 batch/跨 batch users 与 NO0311 动态 fire 连接；先量化聚合 state-read 二级转发扫描，再决定 direct activation 或 per-state guard。 |
 | `NO0351` | `2026-07-12` | [State-read locality diagnostic implementation gate](./NO0351_state_read_locality_diagnostic_implementation_gate_20260712.md) | 新增默认关闭的 24-field state-read locality TSV；synthetic 得到 17 rows、16 materialized、11 aliases，并同时覆盖 pure/mixed supernodes，generated-model harness 与 `emit-grhsim-cpp` 1/1 回归通过。 |
+| `NO0352` | `2026-07-12` | [State-read locality read-args correction](./NO0352_state_read_locality_read_args_correction_20260712.md) | 首次 fresh emit 在读图前因新目录缺少 `wolvrix_read_args.txt` 立即失败，无有效数据；修正为显式复用 NO0300 已验证的 `bd420039...` read-args，保留失败日志并以新日志重跑。 |
 
 
 ## 编号说明
