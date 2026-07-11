@@ -91,3 +91,10 @@ build/logs/xs_perf/no0329/align4k_new_perf.csv
 build/logs/xs_perf/no0329/align4k_old2_emu.log
 build/logs/xs_perf/no0329/align4k_old2_perf.csv
 ```
+
+## 6. 增量勘误 2026-07-12
+
+[NO0338](./NO0338_pie_aslr_performance_runbook_correction_20260712.md) 后续确认 emu 是 PIE、系统 ASLR level 2，
+而本轮命令没有固定 load base；同一个未修改 NO0300 binary 随后出现约 8%~9% 的 cycles 跨运行摆动。因此本篇
+关于“仅 4 KiB alignment 导致约 10 percentage-point 相对反转”的因果强度暂标记为 provisional。原始计数和
+aligned A/B/A 内部稳定性记录保留，但在增加 `setarch -R` 复测前，不将其用于默认 layout 决策。
