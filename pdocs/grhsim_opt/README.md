@@ -299,6 +299,7 @@
 | `NO0308` | `2026-07-12` | [GSim ready-stack topo overlap negative gate](./NO0308_gsim_ready_stack_topo_overlap_negative_gate_20260712.md) | strict/ordered 结构分别精确复现 NO0286/NO0300，但 GSim-like `ready-op` 的 batch correlation 降到 `0.5587`、平均位移升到 `0.1639`、pair 共置率降到 `15.54%`，全面差于 `level-id`。候选不进入 emu，停止盲试 ordering，下一步比较两版动态 fire/work。 |
 | `NO0309` | `2026-07-12` | [NO0286 / NO0300 dynamic-work comparison plan](./NO0309_no0286_no0300_dynamic_work_plan_20260712.md) | 固定同一 pre-reg checkpoint、`level-id`、CoreMark 50k 和 runtime-profile 口径，重建 strict NO0286 与 ordered NO0300 两版，比较 compute/commit fire、算子 work 与 activation work，以区分动态工作增加和单位 work 成本回退。 |
 | `NO0310` | `2026-07-12` | [NO0286 / NO0300 runtime-profile build gate](./NO0310_no0286_no0300_runtime_profile_build_gate_20260712.md) | strict/ordered profile build 分别精确复现 NO0286/NO0300 的全部结构计数，生成 `67,934/63,726` 行 static TSV，且两套 O3 emu 均成功链接并确认 profile 接线，可以进入同 workload 50k 动态 work gate。 |
+| `NO0311` | `2026-07-12` | [GrhSIM runtime-profile comparison tool](./NO0311_grhsim_runtime_profile_compare_tool_20260712.md) | 新增可复用 static/fire TSV 严格连接工具，校验 schema、非负计数、重复键与 key 集合完全一致，输出 phase 汇总、top-by-fire/work、baseline delta 及 JSON；已全量连接 NO0286/NO0300 的 `67,934/63,726` 行 profile。 |
 
 
 ## 编号说明
