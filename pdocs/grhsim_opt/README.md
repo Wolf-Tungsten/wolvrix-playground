@@ -331,6 +331,7 @@
 | `NO0340` | `2026-07-12` | [Fixed-ASLR bit-reversal order runtime gate](./NO0340_fixed_aslr_bitrev_order_runtime_gate_20260712.md) | numeric/bitrev/numeric cycles spread `0.35%`；无重编重排使 cycles `-0.74%`、cmask6/cycle `-0.39%`，是小幅正信号但不足以解释历史 4% 回退。更关键的是 fixed numeric 比同 binary 随机基址历史低 `8.16%~8.80%` cycles，下一步 fixed-ASLR 重跑 NO0286/NO0300 与 GSim。 |
 | `NO0341` | `2026-07-12` | [Fixed-ASLR NO0286 / NO0300 recalibration plan](./NO0341_fixed_aslr_no0286_no0300_recalibration_plan_20260712.md) | 保持原始无插桩 binary、CoreMark 50k、CPU138/NUMA1 与四项 PMU 不变，以 `setarch -R` 执行 NO0286/NO0300/NO0286；功能终点、100% 调度和 old cycles spread `<=1%` 后，重新判定 ordered-affine 的真实方向。 |
 | `NO0342` | `2026-07-12` | [Fixed-ASLR NO0286 / NO0300 runtime gate](./NO0342_fixed_aslr_no0286_no0300_runtime_gate_20260712.md) | fixed-ASLR old/new/old cycles spread `0.29%`；NO0300 dynamic work `-4.30%` 转化为 cycles `-4.75%`，cycles/work `-0.47%`，推翻随机基址下约 `+4%` runtime 与 `+8.52%` cycles/work 回退。历史 frontend 相对幅度受 ASLR 混淆，下一步同口径复测 GSim。 |
+| `NO0343` | `2026-07-12` | [Fixed-ASLR GSim / GrhSIM direct compare plan](./NO0343_fixed_aslr_gsim_grhsim_direct_compare_plan_20260712.md) | same-FIR GSim/NO0300/GSim 固定 CPU、NUMA 与 ASLR 夹测，采集 cycles、instructions、frontend empty、cmask6 和 backend stalls；以功能终点、100% 调度及 GSim spread `<=1%` 更新 simulator gap 和 excess-cycle 分解。 |
 
 
 ## 编号说明
