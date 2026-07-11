@@ -312,6 +312,7 @@
 | `NO0321` | `2026-07-12` | [NO0286 / NO0300 op-cache and dispatch-source gate](./NO0321_no0286_no0300_op_cache_dispatch_gate_20260712.md) | old/new/old cycles 回退 `4.49%`、baseline spread `0.46%`；op-cache miss rate 改善 `0.24%`，op-cache dispatch share 提高 `4.24%`，access/miss per work 约持平。排除 op-cache 失配或退回 decoder，下一步 sample cmask6 full-empty 事件做函数级归因。 |
 | `NO0322` | `2026-07-12` | [Frontend full-empty sampling plan](./NO0322_frontend_full_empty_sampling_plan_20260712.md) | 规划对 cmask6 frontend full-empty 事件做 fixed-period old/new profile；1000-cycle 探针得到 451 samples、0 lost，且 IP/栈可解析到 generated compute/commit batch。正式 50k 用 period 10M，先做 phase/top-symbol 再映射逻辑。 |
 | `NO0323` | `2026-07-12` | [NO0286 / NO0300 frontend full-empty profile](./NO0323_no0286_no0300_frontend_full_empty_profile_20260712.md) | 50k old/new 得到 `17,434/19,558` samples 且 0 lost；compute full-empty samples `+15.13%`，占总增量 `84.37%`，按 work 归一化回退约 `21.2%`。最大 new compute 仅占 compute `3.34%`，annotate 也无单指令集中，下一步连接 batch dynamic work。 |
+| `NO0324` | `2026-07-12` | [Batch dynamic-work profile tool plan](./NO0324_batch_dynamic_work_profile_tool_plan_20260712.md) | 新增 batch→supernode→static/fire→perf exact-symbol 的严格连接工具计划，输出 phase、top samples、top samples/work、全 batch 与 JSON；跨版本仍要求用稳定 op overlap，不把同编号 batch 自动视为相同逻辑。 |
 
 
 ## 编号说明
