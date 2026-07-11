@@ -317,6 +317,7 @@
 | `NO0326` | `2026-07-12` | [Stable-op origin-density gate](./NO0326_stable_op_origin_density_gate_20260712.md) | 全量连接复现 compute samples/work `+21.17%`；stable-op 筛出 compute39/29/13/4 等高 density 候选。old12→new13 近似对照中 work `+3.37%`、指令/text 均缩小约 `5%~6%`，但 full-empty density `+44.1%`，且 annotate 无单 IP 集中，下一步用 IBS fetch 判定真实取指延迟来源。 |
 | `NO0327` | `2026-07-12` | [IBS fetch probe and L2 instruction plan](./NO0327_ibs_fetch_probe_and_l2_plan_20260712.md) | IBS 必须 system-wide 且不支持 privilege filter；默认 IBS 可解析 IP 但当前 perf 不提供 latency/data-source。Zen4 `l3missonly` 探针得到 1,268 samples、0 lost；正式先做 L1I miss + L2 instruction access/hit/miss 原生 A/B/A，再按结果用 IBS 精确映射。 |
 | `NO0328` | `2026-07-12` | [NO0286 / NO0300 L2 instruction PMU gate](./NO0328_no0286_no0300_l2_instruction_pmu_gate_20260712.md) | old/new/old 五事件均 `100%` 且 L2 access=hit+miss 精确闭合；NO0300 L2 fill miss 绝对/per-cycle/per-work 分别 `-5.90%/-10.78%/-1.67%`，miss rate 改善 `0.81%`。fetch miss-count 链条全排除，下一步复用 generated C++ 做纯函数布局 probe。 |
+| `NO0329` | `2026-07-12` | [Batch function page-alignment probe plan](./NO0329_batch_function_page_alignment_plan_20260712.md) | GSim 的 329 个 `subStep` 平均 147 KB，而 GrhSIM 117 个 batch 平均 739–815 KB；规划复用 NO0286/NO0300 generated C++，把两边 batch 都按 4 KiB 对齐后做功能与 fixed-CPU cmask6 A/B/A，隔离跨函数累计地址漂移。 |
 
 
 ## 编号说明
