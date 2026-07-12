@@ -412,6 +412,7 @@
 | `NO0421` | `2026-07-12` | [SimTop full active-word 100-cycle smoke gate](./NO0421_simtop_full_active_word_100cycle_smoke_gate_20260712.md) | candidate exit 0，guest/model cycles `101/100`、`cycleCnt=96`、0 instructions、PC 0 与 NO0359 一致；负向扫描 0 命中且无 `input_fullpass_blocked`，进入 10k。 |
 | `NO0422` | `2026-07-12` | [SimTop full active-word 10k functional gate](./NO0422_simtop_full_active_word_10k_functional_gate_20260712.md) | candidate 完成 458 instructions 的 NEMU difftest，guest/model cycles `10,001/10,000`、`cycleCnt=9,996`、PC `0x800027c6`；10 个 1k checkpoints 与 NO0360 direct 去 host time 后 byte-exact，无 `input_fullpass_blocked`。 |
 | `NO0423` | `2026-07-12` | [SimTop full active-word 50k functional gate](./NO0423_simtop_full_active_word_50k_functional_gate_20260712.md) | candidate 完成 73,580 instructions 的 NEMU difftest，guest/model cycles `50,001/50,000`、`cycleCnt=49,996`、PC `0x80001312`；5 个 10k checkpoints 与 NO0361 direct byte-exact，无 `input_fullpass_blocked`，功能回归闭合。 |
+| `NO0424` | `2026-07-12` | [Full active-word fixed-ASLR runtime plan](./NO0424_full_active_word_fixed_aslr_runtime_plan_20260712.md) | 预声明 CPU191/NUMA1/fixed-ASLR 的 NO0357/full-word/NO0357 五事件 50k A/B/A；CPU191/383 survey idle 均 100%，每轮仍要求三秒 `>=99%`、PMU 100% 和 baseline spread `<=1%`。若 cycles/instructions 反向或 cmask6 density 变化超 1%，进入 exact-entry 控制。 |
 
 
 ## 编号说明
