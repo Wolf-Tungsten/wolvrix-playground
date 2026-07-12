@@ -397,6 +397,10 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_DECLARED_VALUE_COMPUTE_NODE_BOUNDARY",
         default=False,
     )
+    full_active_word_consume = env_flag(
+        "WOLVRIX_XS_GRHSIM_FULL_ACTIVE_WORD_CONSUME",
+        default=False,
+    )
     final_topo_policy = os.environ.get(
         "WOLVRIX_XS_GRHSIM_FINAL_TOPO_POLICY",
         "level-id",
@@ -442,6 +446,7 @@ def main() -> int:
         f"reg_to_mem_ordered_writes={reg_to_mem_ordered_writes} "
         f"reg_to_mem_decoded_write_storage={reg_to_mem_decoded_write_storage} "
         f"declared_value_compute_node_boundary={declared_value_compute_node_boundary} "
+        f"full_active_word_consume={full_active_word_consume} "
         f"final_topo_policy={final_topo_policy}"
     )
 
@@ -629,6 +634,7 @@ def main() -> int:
             emit_parallelism=emit_parallelism,
             waveform=args.waveform,
             perf=args.perf,
+            full_active_word_consume=full_active_word_consume,
         )
         require_ok(diags, "emit_grhsim_cpp")
         log(f"write_grhsim_cpp done {int((time.perf_counter() - start) * 1000)}ms")

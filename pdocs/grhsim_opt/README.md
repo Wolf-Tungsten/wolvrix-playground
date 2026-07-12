@@ -403,6 +403,7 @@
 | `NO0412` | `2026-07-12` | [Unknown runtime-frame attribution gate](./NO0412_unknown_runtime_frame_attribution_gate_20260712.md) | 同 basic-block line-0 helper 到 generated operation 的严格单侧规则恢复 83 个 samples，其中 mux 80、full OR 3；direct 再恢复 slice 4。GSim 同名逻辑也为 mask/mux OR 链，属共同 payload。剩余 55 个仅占 compute `0.984%`，copy-like 14 个仅 `0.250%`；不改 helper，下一步对比 dispatch `413/332` 净差。 |
 | `NO0413` | `2026-07-12` | [Local active-word consume probe plan](./NO0413_local_active_word_consume_probe_plan_20260712.md) | 将 dispatch `413/332` 拆为 word gate、bit gate、load/clear/restore；GrhSIM 独有 local clear+restore 为 35 samples。规划只对 payload 不写/取址 local active byte 的 word 做可证明 immutable-consume generated-copy O3 probe；机器影响不足 direct compute 1% 时停止，不重复 ctz 或直接跑 runtime。 |
 | `NO0414` | `2026-07-12` | [Local active-word consume machine gate](./NO0414_local_active_word_consume_machine_gate_20260712.md) | generated-copy 转换 7,921/7,932 compute words；66/66 batch instructions 均降，aggregate instructions/bytes/branches 为 `-0.958%/-0.946%/-1.650%`，memory/stack operands 同降。word-block 动态投影为 compute `1.90%~2.22%`，通过 1% 门槛；工程化收窄为完整 8-bit compute word，partial/commit 保留旧协议。 |
+| `NO0415` | `2026-07-12` | [Full active-word consume implementation gate](./NO0415_full_active_word_consume_implementation_gate_20260712.md) | nested `7ba0cd6` 实现默认关闭的完整 compute-word consume；full word 保留 gate/local later-bit propagation，仅省 clear/restore，partial/commit 不变。9 级链第二次 eval 覆盖 full 内传播和跨 partial word，`emit-grhsim-cpp` 与 memory-fill 2/2 通过。 |
 
 
 ## 编号说明
