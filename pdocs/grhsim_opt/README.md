@@ -427,6 +427,7 @@
 | `NO0436` | `2026-07-13` | [Current commit machine/source attribution gate](./NO0436_current_commit_machine_source_attribution_gate_20260713.md) | 42/42 `.text` 相同、868/868 samples 归因；commit 以 changed/guard 为主，但 GSim 也有约 23.45B state-update work。严格 crosswalk 定位 140 个 GrhSIM flattened states 对应 79 个 GSim arrays，143 samples 约占 commit/direct `16.47%/2.14%`，唯一通过门槛；下一步连接 current true-merge rejection。 |
 | `NO0437` | `2026-07-13` | [Scalar-array true-merge rejection plan](./NO0437_scalar_array_true_merge_rejection_plan_20260713.md) | 规划用默认关闭的 full-group profile 开关补齐 4,318 个 reg-to-mem group 日志，从同一 pre-reg checkpoint 只重跑 transform；把 NO0436 的 140 states/143 samples 互斥连接到 true-merge outcome/rejection/discovery missing，单类仍须覆盖 direct `>=1%` 才实现。 |
 | `NO0438` | `2026-07-13` | [Reg-to-mem full-group profile gate](./NO0438_reg_to_mem_full_group_profile_gate_20260713.md) | nested `9e2fc1a` 新增默认关闭的 `WOLVRIX_REG_TO_MEM_PROFILE_ALL_GROUPS`，只扩展 verbose 日志；target 构建无诊断，unset/0/1 三模式各跑 33 个 pass invocation，归一化日志 SHA 完全一致，进入 SimTop checkpoint-only rerun。 |
+| `NO0439` | `2026-07-13` | [Scalar-array true-merge rejection gate](./NO0439_scalar_array_true_merge_rejection_gate_20260713.md) | 4,318/4,318 groups 与 `835/174/254` true/edge/intent 精确复现；140 states/143 samples 中 124/127 已发现但全被拒绝。`branch_not_in_update` 单类覆盖 78 samples/direct `1.169%`，但头部是 group-wide outer reset mux，不能直接删检查；下一步审计可安全剥离并递归匹配的子类。 |
 
 
 ## 编号说明
