@@ -435,6 +435,7 @@
 | `NO0444` | `2026-07-13` | [Remaining register-read machine audit gate](./NO0444_remaining_register_read_machine_audit_gate_20260713.md) | 勘正 NO0443 的交叉口径并完成 920/920 read samples 连接：629 inline、276 fused/ambiguous，真正独立 scalar slot materialization 仅 15 samples/direct `0.225%`，wide 为 0；GSim 对 ROB timer 与 delayed writeback count 也直接读状态参与 payload，因此停止扩展 direct-state forwarding。 |
 | `NO0445` | `2026-07-13` | [Assign-boundary forwarding audit plan](./NO0445_assign_boundary_forwarding_audit_plan_20260713.md) | latest direct profile 的 `kAssign` 有 395 samples/direct `5.918%`，但只有 140 属 payload，其余分散在 compare/activation/writeback/scan。规划先用既有 NO0357 source 精确拆 operand/result storage 与 emitted effects；只有同一可安全 forwarding class 达到 67 samples/direct `1%` 才增加结构诊断或 O3 probe。 |
 | `NO0446` | `2026-07-13` | [Assign sample ownership correction](./NO0446_assign_sample_ownership_correction_20260713.md) | 首次 strict block gate 发现 53/395 rows 错误继承前一 supernode 最后一个 `kAssign`：22 个是下一 supernode dispatch，31 个是 prelude payload；旧映射还会把共享 deferred activation tail 归给最后一个 op。首次结果作废，修正为 exact body/shared tail/next dispatch/next prelude 四类后重跑。 |
+| `NO0447` | `2026-07-13` | [Assign-boundary machine/source gate](./NO0447_assign_boundary_machine_source_gate_20260713.md) | scope-aware 重算把旧 395 个 `kAssign` samples 修正为 291 exact body、51 shared tail、53 next-supernode preamble/dispatch。唯一过门槛的 direct scalar changed-boundary 为 69 samples，但其中 17 个 logEndpoint values 在 GSim 也完整保留 old/assign/cond/active；差异上界降到 52/direct `0.779%`，停止 forwarding。 |
 
 
 ## 编号说明
