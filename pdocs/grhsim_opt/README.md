@@ -420,6 +420,7 @@
 | `NO0429` | `2026-07-12` | [Full active-word exact-entry build gate](./NO0429_full_active_word_exact_entry_build_gate_20260712.md) | 348 项输入 SHA 不变，66 个 candidate pad 通过 alignment/content/symbol/relocation gate；两版 117/117 entries 逐项同址、`.text` 同为 87,114,910 bytes，文件同为 93,707,232 bytes，baseline byte-exact 原 NO0357，进入双边功能回归。 |
 | `NO0430` | `2026-07-12` | [Full active-word exact-entry 10k gate](./NO0430_full_active_word_exact_entry_10k_gate_20260712.md) | exact baseline/candidate 均完成 458 instructions，guest/model cycles `10,001/10,000`、PC `0x800027c6`；10 个 1k checkpoints 双边及与 production candidate 均 byte-exact，0 bad diagnostic，无 `input_fullpass_blocked`。 |
 | `NO0431` | `2026-07-12` | [Full active-word exact-entry 50k gate](./NO0431_full_active_word_exact_entry_50k_gate_20260712.md) | exact baseline/candidate 均完成 73,580 instructions，guest/model cycles `50,001/50,000`、PC `0x80001312`；5 个 10k checkpoints 双边及与 production candidate byte-exact，无 `input_fullpass_blocked`，允许进入 exact PMU。 |
+| `NO0432` | `2026-07-12` | [Full active-word exact-entry runtime plan](./NO0432_full_active_word_exact_entry_runtime_plan_20260712.md) | 规划继续锁 CPU131/NUMA1/fixed-ASLR，执行 exact baseline/candidate/baseline 五事件 A/B/A；两版 117 entries 与 `.text` 同址同长，要求每轮 sibling idle `>=99%`、PMU 100%、baseline spread `<=1%`，并量化相对 native candidate 回收的 frontend layout 成本。 |
 
 
 ## 编号说明
