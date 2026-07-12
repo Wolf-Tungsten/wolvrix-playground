@@ -415,6 +415,7 @@
 | `NO0424` | `2026-07-12` | [Full active-word fixed-ASLR runtime plan](./NO0424_full_active_word_fixed_aslr_runtime_plan_20260712.md) | 预声明 CPU191/NUMA1/fixed-ASLR 的 NO0357/full-word/NO0357 五事件 50k A/B/A；CPU191/383 survey idle 均 100%，每轮仍要求三秒 `>=99%`、PMU 100% 和 baseline spread `<=1%`。若 cycles/instructions 反向或 cmask6 density 变化超 1%，进入 exact-entry 控制。 |
 | `NO0425` | `2026-07-12` | [Full active-word runtime CPU reselection](./NO0425_full_active_word_runtime_cpu_reselection_20260712.md) | CPU191/383 四次 quiet gate 均仅 `96.68%~100%/97.01%~97.67%`，在任何 PMU run 前拒绝；即时 resurvey 中 CPU131/323 为最佳 `99.40%/100%`，锁定 CPU131/NUMA1 后从 preflight 重启，其他门禁不变。 |
 | `NO0426` | `2026-07-12` | [Full active-word PMU preflight gate](./NO0426_full_active_word_pmu_preflight_gate_20260712.md) | CPU131/323 quiet gate `99%/99%`；candidate fixed-ASLR 100-cycle 功能通过，state `0x55555adfed30`，五项 PMU 全部 100% scheduled，0 bad diagnostic，正式进入 NO0357/full-word/NO0357 50k。 |
+| `NO0427` | `2026-07-12` | [Full active-word native runtime gate](./NO0427_full_active_word_native_runtime_gate_20260712.md) | CPU131 A/B/A baseline cycles spread `0.283%`；candidate instructions `-0.717%`，但 cycles `+1.877%`、cmask6 density `+1.172%`，backend density 改善。删指令收益被约 7.904B CPI/layout 成本覆盖，按预声明进入 117 个 sched entry 同址控制。 |
 
 
 ## 编号说明
