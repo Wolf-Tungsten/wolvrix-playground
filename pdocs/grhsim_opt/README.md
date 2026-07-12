@@ -428,6 +428,7 @@
 | `NO0437` | `2026-07-13` | [Scalar-array true-merge rejection plan](./NO0437_scalar_array_true_merge_rejection_plan_20260713.md) | 规划用默认关闭的 full-group profile 开关补齐 4,318 个 reg-to-mem group 日志，从同一 pre-reg checkpoint 只重跑 transform；把 NO0436 的 140 states/143 samples 互斥连接到 true-merge outcome/rejection/discovery missing，单类仍须覆盖 direct `>=1%` 才实现。 |
 | `NO0438` | `2026-07-13` | [Reg-to-mem full-group profile gate](./NO0438_reg_to_mem_full_group_profile_gate_20260713.md) | nested `9e2fc1a` 新增默认关闭的 `WOLVRIX_REG_TO_MEM_PROFILE_ALL_GROUPS`，只扩展 verbose 日志；target 构建无诊断，unset/0/1 三模式各跑 33 个 pass invocation，归一化日志 SHA 完全一致，进入 SimTop checkpoint-only rerun。 |
 | `NO0439` | `2026-07-13` | [Scalar-array true-merge rejection gate](./NO0439_scalar_array_true_merge_rejection_gate_20260713.md) | 4,318/4,318 groups 与 `835/174/254` true/edge/intent 精确复现；140 states/143 samples 中 124/127 已发现但全被拒绝。`branch_not_in_update` 单类覆盖 78 samples/direct `1.169%`，但头部是 group-wide outer reset mux，不能直接删检查；下一步审计可安全剥离并递归匹配的子类。 |
+| `NO0440` | `2026-07-13` | [Outer reset-mux recovery audit plan](./NO0440_outer_reset_mux_recovery_audit_plan_20260713.md) | 针对 78 个 `branch_not_in_update` samples，规划默认关闭的全 row shape 诊断：验证 common outer guard 与 event polarity、domain/mask/edges、常量 reset arm、自身旧值依赖和 normal-root 类型。只有最终可证明的同一 normal class 仍覆盖 direct `>=1%` 才实现。 |
 
 
 ## 编号说明
