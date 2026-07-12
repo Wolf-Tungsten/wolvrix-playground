@@ -384,6 +384,7 @@
 | `NO0393` | `2026-07-12` | [Scalar read-locality baseline-fire proxy plan](./NO0393_scalar_read_locality_baseline_fire_proxy_plan_20260712.md) | 修正“schedule ID 相同即可复用动态 fire”的假设：direct frontier 已改变，NO0311 只能作 baseline proxy。先按同 ID 定位 batch/value；覆盖显著时必须新建 direct runtime-profile 50k fire，不能用 proxy 决定实现。 |
 | `NO0394` | `2026-07-12` | [Scalar read-locality baseline-fire proxy gate](./NO0394_scalar_read_locality_baseline_fire_proxy_gate_20260712.md) | 1,773,611 rows 全部命中 NO0311 fire，proxy saved/all scalar touches 为 `32.82%`；compute1 候选为 0，compute62 为 `41.88%`，候选分散于 57/66 batches。信号超过 10% 门槛，但必须用 direct runtime fire 和 O3 disassembly 复核。 |
 | `NO0395` | `2026-07-12` | [Direct scalar-locality runtime-profile plan](./NO0395_direct_scalar_locality_runtime_profile_plan_20260712.md) | 规划 fresh `direct-state + runtime-profile` SimTop emit/O3 build 与 100/50k 功能门禁，采集 direct 自身 63,726-row fire；插桩 host time 不作性能结论，direct weighted coverage 过 10% 后才检查 O3 重复 loads。 |
+| `NO0396` | `2026-07-12` | [Direct scalar-locality runtime-profile emit gate](./NO0396_direct_scalar_locality_runtime_profile_emit_gate_20260712.md) | fresh emit exit 0，schedule SHA 与 production direct 相同，75,830 direct markers/920,942 read comments 保持；runtime profile 编译常量和 63,726-row static TSV 通过，进入 O3 build。 |
 
 
 ## 编号说明
