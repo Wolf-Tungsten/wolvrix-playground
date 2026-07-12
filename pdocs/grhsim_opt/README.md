@@ -459,6 +459,7 @@
 | `NO0468` | `2026-07-13` | [Exact OR and static slice residual gate](./NO0468_exact_or_and_static_slice_residual_gate_20260713.md) | slice payload 仅 30/direct `0.449%`。OR 扣除 15 个 GSim exact assignment 后上界 87，但最大 residual source/machine 类仅 nested masked 46/direct `0.689%` 与 `or` 26/direct `0.390%`；常量零样本已融合，无独立 identity 指令。两类均停止。 |
 | `NO0469` | `2026-07-13` | [Wide concat dynamic-select recovery plan](./NO0469_wide_concat_dynamic_select_recovery_plan_20260713.md) | comment/fused+prelude 中定位 113 个 unique concat accumulation samples/direct `1.693%`，66 TUs 静态 201,597 行；代表组物化 1064/512-bit concat 后只做 dynamic shift/slice。规划连接 group/consumer/operand storage，并解释为何未命中现有 packed-array/reg-to-mem direct-access bypass。 |
 | `NO0470` | `2026-07-13` | [Wide concat dynamic-select recovery gate](./NO0470_wide_concat_dynamic_select_recovery_gate_20260713.md) | 61/61 concat groups 与 consumers 全解析；local single-consumer 总上界仅 57/direct `0.854%`，其中 dynamic shift/slice 28/11，语义不可合并。materialized/multi-user 不能绕过，所有 slice 也仅 29；source gate 失败，不做 GSim/结构诊断/probe。 |
+| `NO0471` | `2026-07-13` | [Whole concat block coverage correction](./NO0471_whole_concat_block_coverage_correction_20260713.md) | 勘正 NO0470 只计 accumulation 的上界：61 groups 全 block 连接为 129 samples，多 16 个 term rows；local single-consumer 上界修正为 62/direct `0.929%`，仍低于 67，且 dynamic shift/slice/other 语义不可合并，停止结论不变。 |
 
 
 ## 编号说明
