@@ -413,6 +413,7 @@
 | `NO0422` | `2026-07-12` | [SimTop full active-word 10k functional gate](./NO0422_simtop_full_active_word_10k_functional_gate_20260712.md) | candidate 完成 458 instructions 的 NEMU difftest，guest/model cycles `10,001/10,000`、`cycleCnt=9,996`、PC `0x800027c6`；10 个 1k checkpoints 与 NO0360 direct 去 host time 后 byte-exact，无 `input_fullpass_blocked`。 |
 | `NO0423` | `2026-07-12` | [SimTop full active-word 50k functional gate](./NO0423_simtop_full_active_word_50k_functional_gate_20260712.md) | candidate 完成 73,580 instructions 的 NEMU difftest，guest/model cycles `50,001/50,000`、`cycleCnt=49,996`、PC `0x80001312`；5 个 10k checkpoints 与 NO0361 direct byte-exact，无 `input_fullpass_blocked`，功能回归闭合。 |
 | `NO0424` | `2026-07-12` | [Full active-word fixed-ASLR runtime plan](./NO0424_full_active_word_fixed_aslr_runtime_plan_20260712.md) | 预声明 CPU191/NUMA1/fixed-ASLR 的 NO0357/full-word/NO0357 五事件 50k A/B/A；CPU191/383 survey idle 均 100%，每轮仍要求三秒 `>=99%`、PMU 100% 和 baseline spread `<=1%`。若 cycles/instructions 反向或 cmask6 density 变化超 1%，进入 exact-entry 控制。 |
+| `NO0425` | `2026-07-12` | [Full active-word runtime CPU reselection](./NO0425_full_active_word_runtime_cpu_reselection_20260712.md) | CPU191/383 四次 quiet gate 均仅 `96.68%~100%/97.01%~97.67%`，在任何 PMU run 前拒绝；即时 resurvey 中 CPU131/323 为最佳 `99.40%/100%`，锁定 CPU131/NUMA1 后从 preflight 重启，其他门禁不变。 |
 
 
 ## 编号说明
