@@ -379,6 +379,7 @@
 | `NO0388` | `2026-07-12` | [Direct state-read instruction profile gate](./NO0388_direct_state_read_instruction_profile_gate_20260712.md) | 6,675 samples、0 lost 且 sample/stat ratio 误差 `0.049%`；compute 占 239 个净减少样本的 `97.07%`，compute8 单独 `255 -> 44`、覆盖总收益 `88.28%`，闭合 state-read 根因。剩余约 `69.66%` GSim excess 仍在 compute，top compute1/62 指向通用 materialized slot/ref 搬运。 |
 | `NO0389` | `2026-07-12` | [Materialized scalar read-locality diagnostic plan](./NO0389_materialized_scalar_read_locality_diagnostic_plan_20260712.md) | 规划默认关闭的 compute-supernode 只读 scalar slot 重复读取诊断；按 canonical value 排除 direct-state、wide 和同 supernode 写回，连接 50k fire 量化 typed-local copy 的动态 load-saving 上界，覆盖不足则不实现。 |
 | `NO0390` | `2026-07-12` | [Materialized scalar read-locality diagnostic implementation gate](./NO0390_materialized_scalar_read_locality_diagnostic_implementation_gate_20260712.md) | nested `87d67ee` 新增默认关闭的 17-field TSV；保留全部 scalar-read 行并以 `candidate` 区分 repeated-read 与 single/write 排除项，direct-state/wide 不入表，开关前后 generated code 一致，`emit-grhsim-cpp` 1/1 通过。 |
+| `NO0391` | `2026-07-12` | [Scalar read-locality Python emitter rebuild gate](./NO0391_scalar_read_locality_python_emitter_rebuild_gate_20260712.md) | SimTop preflight 发现 Python 仍加载 08:11 旧 library；editable reinstall 后 site-package SHA 为 `825bf889...`，新 option/env/summary strings 与 `ldd` 加载路径均通过，未产生 tracked 修改。 |
 
 
 ## 编号说明
