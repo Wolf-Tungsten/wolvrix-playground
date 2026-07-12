@@ -398,6 +398,7 @@
 | `NO0407` | `2026-07-12` | [Full-width logic machine realization plan](./NO0407_full_width_logic_machine_realization_plan_20260712.md) | 规划把 current `or_words_full/and_words_full` 的 200 个 compute samples 经基本块双侧规则映射到 caller/word count，区分不可约 lane logic、consumer/changed 融合与可删 copy/spill。后者动态上界不足 direct compute 1% 即停止，不重复 NO0227/NO0236 负向融合。 |
 | `NO0408` | `2026-07-12` | [Full-width logic machine realization gate](./NO0408_full_width_logic_machine_realization_gate_20260712.md) | 200 个 O3 samples 中 102 个是 register/stack RMW lane logic、43 个必要 memory I/O、27 个 consumer fusion；真正 stack `mov*` + register copy 仅 22 个，保守上界为 direct compute `0.3936%`。未过 1%，不做代码 probe；下一步诊断 change tracking 多级 OR。 |
 | `NO0409` | `2026-07-12` | [Deferred activation cost audit plan](./NO0409_deferred_activation_cost_audit_plan_20260712.md) | 针对 GrhSIM 159 个 changed-accumulate samples，审计 current partial-overlap deferred grouping 是否因一 source 更新多 group 产生净开销；连接 direct 50k fire 与 byte-identical O3 samples，对照旧版 exact-fanout 和 no-deferred。候选须覆盖 direct compute 至少 1%、change-tracking 净超额至少 20%，且 activation 不等量回增才进入实现。 |
+| `NO0410` | `2026-07-12` | [Deferred activation cost audit gate](./NO0410_deferred_activation_cost_audit_gate_20260712.md) | 952,261 条 source-to-group updates 中 81/158 个 O3 source samples 属于 multi-group，但保留一次 update 后理想净省仅为 compute `0.849%`；subset/exact 分别仅 `0.197%/0.540%`。四 batch packed >=2/>=3 的 static instructions 反增 `3.14%/1.52%`，no-deferred 更增 `13.33%`。三路均失败，保留 current grouping，下一步归因 147 个 unknown runtime-helper samples。 |
 
 
 ## 编号说明
