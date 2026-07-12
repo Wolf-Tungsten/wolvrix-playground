@@ -424,6 +424,7 @@
 | `NO0433` | `2026-07-13` | [Full active-word exact-entry PMU preflight gate](./NO0433_full_active_word_exact_entry_pmu_preflight_gate_20260713.md) | 首次 CPU131/323 quiet gate `96.99%/95.00%` 在 perf 前拒绝，第二次 `99%/100%` 后 candidate 100-cycle 功能通过；fixed-ASLR state `0x55555aea2d30` 与 exact baseline 布局一致，五项 PMU 全部 100% scheduled，无 `input_fullpass_blocked`。 |
 | `NO0434` | `2026-07-13` | [Full active-word exact-entry runtime gate](./NO0434_full_active_word_exact_entry_runtime_gate_20260713.md) | A/B/A baseline cycles spread `0.075%`；117 entries 同址后 candidate instructions 仍 `-0.717%`，但 cycles/cmask6 density 为 `+2.043%/+1.400%`，相对 native 未恢复。按预声明停止 full-word consume，开关保持默认关闭，回到 GrhSIM/GSim hot compute 差异。 |
 | `NO0435` | `2026-07-13` | [Current commit machine/source attribution plan](./NO0435_current_commit_machine_source_attribution_plan_20260713.md) | 复用 NO0388 的 868 个 latest direct commit instruction samples；对 42 个 sampled TUs 做 production-identical line-table 映射，互斥拆 dispatch/guard/data/compare/write/activation/memory，并对照 same-FIR GSim。候选须覆盖 commit `>=10%` 且 direct total `>=1%` 才进入实现。 |
+| `NO0436` | `2026-07-13` | [Current commit machine/source attribution gate](./NO0436_current_commit_machine_source_attribution_gate_20260713.md) | 42/42 `.text` 相同、868/868 samples 归因；commit 以 changed/guard 为主，但 GSim 也有约 23.45B state-update work。严格 crosswalk 定位 140 个 GrhSIM flattened states 对应 79 个 GSim arrays，143 samples 约占 commit/direct `16.47%/2.14%`，唯一通过门槛；下一步连接 current true-merge rejection。 |
 
 
 ## 编号说明
