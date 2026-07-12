@@ -370,6 +370,7 @@
 | `NO0379` | `2026-07-12` | [Exact-entry explicit-link build gate](./NO0379_exact_entry_explicit_link_build_gate_20260712.md) | 348 项输入 SHA 构造前后不变，99 个 alignment=1 零 padding objects 与两次显式链接 0 warning/error；两版 117 个入口逐项同址、symbol size 各自不变，首尾为 `0x18c310/0x54c8c50`，`.text` 同为 89,041,406 bytes。结构门禁通过，尚未运行仿真。 |
 | `NO0380` | `2026-07-12` | [Exact-entry 10k functional gate](./NO0380_exact_entry_10k_functional_gate_20260712.md) | 双边 CoreMark/NEMU difftest 均达到 guest/model cycles 10,001/10,000、458 instructions、PC `0x800027c6`；10 个 1k checkpoints 去掉 host time 后彼此及与历史 NO0360 baseline 逐字节一致，无 `input_fullpass_blocked`。 |
 | `NO0381` | `2026-07-12` | [Exact-entry 50k functional gate](./NO0381_exact_entry_50k_functional_gate_20260712.md) | 串行双边 CoreMark/NEMU difftest 均完成 73,580 instructions，guest/model cycles 50,001/50,000、PC `0x80001312`；5 个 10k checkpoints 彼此及与历史 NO0361 baseline 逐字节一致，无 `input_fullpass_blocked`。 |
+| `NO0382` | `2026-07-12` | [Exact-entry fixed-ASLR runtime plan](./NO0382_exact_entry_fixed_aslr_runtime_plan_20260712.md) | 规划 CPU138/NUMA1/fixed-ASLR 的 exact-entry baseline/direct/baseline 五事件 50k A/B/A；每轮要求 CPU138/330 三秒平均空闲均 `>=99%`、五事件 100% 调度和 baseline cycles spread `<=1%`，用于在 117 个入口严格同址后隔离 direct 的真实 cycles 收益。 |
 
 
 ## 编号说明
