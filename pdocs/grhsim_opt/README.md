@@ -431,6 +431,7 @@
 | `NO0440` | `2026-07-13` | [Outer reset-mux recovery audit plan](./NO0440_outer_reset_mux_recovery_audit_plan_20260713.md) | 针对 78 个 `branch_not_in_update` samples，规划默认关闭的全 row shape 诊断：验证 common outer guard 与 event polarity、domain/mask/edges、常量 reset arm、自身旧值依赖和 normal-root 类型。只有最终可证明的同一 normal class 仍覆盖 direct `>=1%` 才实现。 |
 | `NO0441` | `2026-07-13` | [Branch-not-in-update shape diagnostic gate](./NO0441_branch_not_in_update_shape_diagnostic_gate_20260713.md) | nested `479932a` 新增默认关闭的 all-row outer-mux 诊断及 2,048-node dependency cap；最小拒绝图保持 4 registers/0 memory 并产出预期 shape。unset/0/1 共 34 次 pass 全通过，去 shape/config/timing 后日志 SHA 完全一致，editable native 校验通过。 |
 | `NO0442` | `2026-07-13` | [Outer reset-mux recovery audit gate](./NO0442_outer_reset_mux_recovery_audit_gate_20260713.md) | SimTop 4,318 groups 与 `835/174/254` 再现；47/47 sampled groups 连接后，17/78 samples 的 outer guard 不是 event。严格 outer reset 仅 61 samples/direct `0.914%`，其中 kAnd/kOr/kMux 为 37/15/9；即使合并实现也未过 1%，停止该方向且不放宽 matcher。 |
+| `NO0443` | `2026-07-13` | [Remaining register-read machine audit plan](./NO0443_remaining_register_read_machine_audit_plan_20260713.md) | latest direct compute 仍有 920 个 `kRegisterReadPort` samples，其中 544 个为 operand/state-read。规划复用 byte-identical O3 映射和 NO0352 locality，拆 slot materialize/inline/wide/fused，并连接 writer count 与 eligibility 排除；只有同一安全子类 direct `>=1%` 才扩展 forwarding。 |
 
 
 ## 编号说明
