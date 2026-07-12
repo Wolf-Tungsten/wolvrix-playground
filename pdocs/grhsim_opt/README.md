@@ -356,6 +356,7 @@
 | `NO0365` | `2026-07-12` | [SimTop direct state-read fixed-ASLR runtime gate](./NO0365_simtop_direct_state_read_fixed_aslr_runtime_gate_20260712.md) | A/B/A baseline cycles spread `0.515%`；direct instructions/backend density 改善 `3.466%/11.567%`，但 cmask6 density `+5.839%` 使 cycles 回退 `6.263%`。默认关闭不影响主路径；下一步 sample full-empty 热点，区分 native layout 与动态 activation locality。 |
 | `NO0366` | `2026-07-12` | [Direct state-read full-empty profile plan](./NO0366_direct_state_read_full_empty_profile_plan_20260712.md) | 预声明 fixed-ASLR baseline/direct/baseline cmask6 10M-period profile；schedule/batch ID 完全相同，可逐 batch 比较并连接 symbol 地址/尺寸。以功能、0 lost、baseline sample spread `<=3%` 和总样本方向为门禁，区分集中 layout 热点与动态函数 locality。 |
 | `NO0367` | `2026-07-12` | [Direct state-read full-empty profile gate](./NO0367_direct_state_read_full_empty_profile_gate_20260712.md) | 三轮 50k 功能与 0 lost 门禁通过，baseline sample spread `0.467%`；direct full-empty `+12.949%`，其中 compute 占增量 `86.749%`，top-10 仅覆盖 `33.745%`。无 marker batches 贡献 `89.536%`，四组 annotate 无单 IP 热点；110 个函数体和 116 个入口同时改变，下一步用 4 KiB 对齐区分 native layout 与动态 activation。 |
+| `NO0368` | `2026-07-12` | [Direct state-read 4 KiB alignment probe plan](./NO0368_direct_state_read_align4k_probe_plan_20260712.md) | 复用已验证的 NO0300 aligned binary，只将 NO0357 direct 同源 generated C++ 以 Clang/O3/`-falign-functions=4096` 重编；先门禁 117 个入口页对齐且 body size 不变、10k/50k 功能，再以 fixed-ASLR aligned baseline/direct/baseline 五事件夹测区分 entry layout 与动态 activation/rounds。 |
 
 
 ## 编号说明
