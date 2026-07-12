@@ -408,6 +408,7 @@
 | `NO0417` | `2026-07-12` | [Full active-word Python option correction](./NO0417_full_active_word_python_option_correction_20260712.md) | 首次 NO0416 在完成 reg-to-mem/schedule 后被 Python 参数白名单拒绝，未进入 C++ emit、无有效 generated source；nested `17291fe` 显式接通并校验 bool option，editable site-package/source SHA 一致，重跑 fresh gate。 |
 | `NO0418` | `2026-07-12` | [Full active-word native binding correction](./NO0418_full_active_word_native_binding_correction_20260712.md) | 第二次 NO0416 的 schedule SHA 已复现，但 native pybind signature 仍拒绝 option，未生成 C++；nested `e76aa0f` 接通 native 参数/attribute，HDLBits 小图完整穿过 Python、native 和 emitter 并生成 9 个 C++，再重跑 SimTop。 |
 | `NO0419` | `2026-07-12` | [SimTop full active-word fresh emit gate](./NO0419_simtop_full_active_word_fresh_emit_gate_20260712.md) | 第三次 fresh emit exit 0，schedule SHA/direct reads 精确复现；NO0357 仅删除 full-word clear/restore 后 66/66 compute 文件与 candidate byte-exact，7,853 full 命中、79 partial 与 51 commit/40 non-sched 文件保持旧协议，generated lines `-0.976%`。 |
+| `NO0420` | `2026-07-12` | [SimTop full active-word build gate](./NO0420_simtop_full_active_word_build_gate_20260712.md) | 标准 Clang/O3 完成 40 harness、153 model compile、152-member archive 和最终 PIE link，0 bad diagnostic；相对 NO0357 archive/emu/text 缩小 `0.676%/0.717%/0.721%`，data/bss 不变，进入功能回归。 |
 
 
 ## 编号说明
