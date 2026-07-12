@@ -374,6 +374,7 @@
 | `NO0383` | `2026-07-12` | [Exact-entry runtime CPU selection correction](./NO0383_exact_entry_runtime_cpu_selection_correction_20260712.md) | CPU138/330 连续五次 quiet gate 仅 `96.35%~100%`，目标核可见其他用户 VS Code/CI Runner 周期活动；NUMA1 五秒 survey 中 CPU147/339 最低 idle 为 `99.60%`。正式 A/B/A 改用同 socket/node 的 CPU147/339，保留现场双 baseline，但不跨核复用历史 GSim 绝对 cycles。 |
 | `NO0384` | `2026-07-12` | [Exact-entry runtime CPU reselection](./NO0384_exact_entry_runtime_cpu_reselection_20260712.md) | CPU147/339 的两次正式 preflight gate 为 `100/98.33%` 与 `93.69/97.67%`，均在 perf 前停止；即时 NUMA1 resurvey 选出 CPU188/380 的 `99.80/99.40%`。在任何 PMU 样本产生前最终改用 CPU188，并从 preflight 起锁定整组 A/B/A 不再换核。 |
 | `NO0385` | `2026-07-12` | [Exact-entry PMU preflight gate](./NO0385_exact_entry_pmu_preflight_gate_20260712.md) | CPU188/380 首次 quiet gate `100/98.33%` 被拒，第二次 `100/100%` 后 direct 100-cycle preflight 通过；guest/model 101/100、`cycleCnt=96`、0 instructions、PC `0x0`，五项 PMU 全部 100% 调度，无 `input_fullpass_blocked`。 |
+| `NO0386` | `2026-07-12` | [Exact-entry fixed-ASLR runtime gate](./NO0386_exact_entry_fixed_aslr_runtime_gate_20260712.md) | CPU188 同址 A/B/A baseline cycles spread `0.641%`；direct instructions/cycles 为 `-3.465%/-1.733%`，理论删指令收益实现 `50.017%`，剩余 cmask6 density `+0.465%`。相比 native 的 `+6.263%` 与 4 KiB 的 `-9.084%`，证明入口布局主导方向，而 direct 机制同址净收益约 1.7%。 |
 
 
 ## 编号说明
