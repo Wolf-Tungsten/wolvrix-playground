@@ -361,6 +361,7 @@
 | `NO0370` | `2026-07-12` | [Direct state-read 4 KiB alignment build gate](./NO0370_direct_state_read_align4k_build_gate_20260712.md) | direct 同源 model 完成 153 条 Clang compile、152 objects、40 个 harness compile 和最终链接，0 warning/error；117 个最终入口全部页对齐，aligned/unaligned symbol sizes 逐项相同，alignment 仅增加 `1.779%` aggregate text。NO0300 aligned baseline manifest/body sizes 也精确匹配原版，可进入 10k/50k 功能门禁。 |
 | `NO0371` | `2026-07-12` | [Direct state-read 4 KiB alignment 10k gate](./NO0371_direct_state_read_align4k_10k_gate_20260712.md) | direct aligned 达到 guest/model cycles `10001/10000`、`cycleCnt=9996`、`instrCnt=458`、PC `0x800027c6`；10 个 1k checkpoints 去掉 `host_ms` 后与 unaligned direct 逐字节一致，无 mismatch 或 `input_fullpass_blocked`，进入 50k 功能门禁。 |
 | `NO0372` | `2026-07-12` | [Direct state-read 4 KiB alignment 50k gate](./NO0372_direct_state_read_align4k_50k_gate_20260712.md) | direct aligned 完成 73,580 条指令的 NEMU difftest，guest/model cycles `50001/50000`、`cycleCnt=49996`、PC `0x80001312`；五个 10k checkpoints 与 unaligned direct 逐字节一致，无 `input_fullpass_blocked`。未受控 raw time 不作结论，进入 fixed-ASLR aligned A/B/A。 |
+| `NO0373` | `2026-07-12` | [Direct state-read 4 KiB alignment runtime gate](./NO0373_direct_state_read_align4k_runtime_gate_20260712.md) | fixed-ASLR aligned A/B/A baseline cycles spread `0.291%`；direct instructions `-3.465%` 不变，但 cycles/cmask6 density 从未对齐的 `+6.263%/+5.839%` 反转为 `-9.084%/-4.503%`。alignment 同时使 baseline cycles `+7.843%`、direct `-7.732%`，证明 NO0365 回退由 native layout 主导，但统一 4 KiB 不是中性优化；下一步用 paired `.text` padding 使对应完整入口地址严格相同。 |
 
 
 ## 编号说明
