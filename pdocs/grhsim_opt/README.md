@@ -406,6 +406,7 @@
 | `NO0415` | `2026-07-12` | [Full active-word consume implementation gate](./NO0415_full_active_word_consume_implementation_gate_20260712.md) | nested `7ba0cd6` 实现默认关闭的完整 compute-word consume；full word 保留 gate/local later-bit propagation，仅省 clear/restore，partial/commit 不变。9 级链第二次 eval 覆盖 full 内传播和跨 partial word，`emit-grhsim-cpp` 与 memory-fill 2/2 通过。 |
 | `NO0416` | `2026-07-12` | [Full active-word consume fresh emit plan](./NO0416_full_active_word_consume_fresh_emit_plan_20260712.md) | 规划从 NO0357 同一 pre-reg checkpoint fresh emit direct SimTop，只开启 full-word consume；要求 schedule SHA/graph/batch/direct-read 结构不变，7,853 个 full compute words 命中，79 个 partial 与全部 commit/non-sched 输出保持旧协议。 |
 | `NO0417` | `2026-07-12` | [Full active-word Python option correction](./NO0417_full_active_word_python_option_correction_20260712.md) | 首次 NO0416 在完成 reg-to-mem/schedule 后被 Python 参数白名单拒绝，未进入 C++ emit、无有效 generated source；nested `17291fe` 显式接通并校验 bool option，editable site-package/source SHA 一致，重跑 fresh gate。 |
+| `NO0418` | `2026-07-12` | [Full active-word native binding correction](./NO0418_full_active_word_native_binding_correction_20260712.md) | 第二次 NO0416 的 schedule SHA 已复现，但 native pybind signature 仍拒绝 option，未生成 C++；nested `e76aa0f` 接通 native 参数/attribute，HDLBits 小图完整穿过 Python、native 和 emitter 并生成 9 个 C++，再重跑 SimTop。 |
 
 
 ## 编号说明
