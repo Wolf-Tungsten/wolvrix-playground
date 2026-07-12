@@ -389,6 +389,7 @@
 | `NO0398` | `2026-07-12` | [Direct scalar-locality runtime-profile smoke gate](./NO0398_direct_scalar_locality_runtime_profile_smoke_gate_20260712.md) | profile-enabled 100-cycle CoreMark/NEMU smoke exit 0，guest/model 101/100、0 instructions、PC 0；63,726 static/fire keys 全量匹配，无 `input_fullpass_blocked`，进入 50k direct fire。 |
 | `NO0399` | `2026-07-12` | [Direct scalar-locality runtime-profile 50k gate](./NO0399_direct_scalar_locality_runtime_profile_50k_gate_20260712.md) | 50k 功能终点正确且 63,726 keys 全匹配；direct compute fire 相对 baseline `-16,489,991/-2.047%`，665 rows 全部下降、无增加，commit 不变。证明同 schedule ID 不代表同 fire，进入 direct-weighted locality 重算。 |
 | `NO0400` | `2026-07-12` | [Direct scalar read-locality dynamic gate](./NO0400_direct_scalar_read_locality_dynamic_gate_20260712.md) | direct 50k 精确加权 saved/all scalar touches 为 `32.823%`；proxy saved 误差仅 `-0.00022%`，compute62 保持 `41.883%`、compute1 仍为 0。超过 10% 门槛，下一步检查 production O3 是否已 CSE 重复 loads。 |
+| `NO0401` | `2026-07-12` | [Production scalar-load realization plan](./NO0401_production_scalar_load_realization_plan_20260712.md) | 规划对 66 个 production compute objects 仅加 line table 重编并逐 `.text` SHA 门禁，把 slot displacement memory operands 经 inline caller line 映射回 supernode，量化真实 `machine_accesses-1`；低于 source 上界 10% 或 direct compute instructions 1% 则停止实现。 |
 
 
 ## 编号说明
