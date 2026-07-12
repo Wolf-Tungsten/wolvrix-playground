@@ -392,6 +392,7 @@
 | `NO0401` | `2026-07-12` | [Production scalar-load realization plan](./NO0401_production_scalar_load_realization_plan_20260712.md) | 规划对 66 个 production compute objects 仅加 line table 重编并逐 `.text` SHA 门禁，把 slot displacement memory operands 经 inline caller line 映射回 supernode，量化真实 `machine_accesses-1`；低于 source 上界 10% 或 direct compute instructions 1% 则停止实现。 |
 | `NO0402` | `2026-07-12` | [Production scalar-load realization gate](./NO0402_production_scalar_load_realization_gate_20260712.md) | 66/66 O3 objects 的 `.text` SHA 完全相同；基本块双侧审计后 dynamic machine redundant 仅为 source 上界 `9.573%`、direct compute instructions `0.688%`，剩余 ambiguous + non-candidate 压力上界仍仅 `0.840%`。按预声明门槛停止 typed-local，下一步回到 compute1 通用 slot/ref 与 changed/activation 根因。 |
 | `NO0403` | `2026-07-12` | [Compute1 machine/source attribution plan](./NO0403_compute1_machine_source_attribution_plan_20260712.md) | 规划复用 NO0388 的 243 个 compute1 fixed-period leaf samples 和 NO0401 byte-identical line-table object，把真实 IP 归到 supernode，并互斥拆分 active scan、payload、changed、slot writeback、activation propagation 与 helper；只有可泛化框架类覆盖至少 20% samples 且全 compute 上界过 1% 才进入实现。 |
+| `NO0404` | `2026-07-12` | [Global compute machine/source attribution gate](./NO0404_global_compute_machine_source_attribution_gate_20260712.md) | GrhSIM 66/66、GSim 284/284 O3 objects 的 `.text` SHA 完全相同；全量 5,590/3,170 leaf samples 显示 payload+runtime 解释 `82.77%` compute excess，changed/activation/writeback 仅 `11.65%`，activation 与 writeback 本身近似持平。compute1 单类门槛未过，不改 emitter；下一步只诊断 current same-cond mux mask reuse。 |
 
 
 ## 编号说明
