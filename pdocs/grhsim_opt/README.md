@@ -387,6 +387,7 @@
 | `NO0396` | `2026-07-12` | [Direct scalar-locality runtime-profile emit gate](./NO0396_direct_scalar_locality_runtime_profile_emit_gate_20260712.md) | fresh emit exit 0，schedule SHA 与 production direct 相同，75,830 direct markers/920,942 read comments 保持；runtime profile 编译常量和 63,726-row static TSV 通过，进入 O3 build。 |
 | `NO0397` | `2026-07-12` | [Direct scalar-locality runtime-profile build gate](./NO0397_direct_scalar_locality_runtime_profile_build_gate_20260712.md) | 标准 Clang/O3 flow 在 2:16.83 内完成 152 model + 40 harness objects，0 warning/error；emu SHA `cea2a130...`、text 95,423,321 bytes，runtime-profile strings 完整，进入 smoke。 |
 | `NO0398` | `2026-07-12` | [Direct scalar-locality runtime-profile smoke gate](./NO0398_direct_scalar_locality_runtime_profile_smoke_gate_20260712.md) | profile-enabled 100-cycle CoreMark/NEMU smoke exit 0，guest/model 101/100、0 instructions、PC 0；63,726 static/fire keys 全量匹配，无 `input_fullpass_blocked`，进入 50k direct fire。 |
+| `NO0399` | `2026-07-12` | [Direct scalar-locality runtime-profile 50k gate](./NO0399_direct_scalar_locality_runtime_profile_50k_gate_20260712.md) | 50k 功能终点正确且 63,726 keys 全匹配；direct compute fire 相对 baseline `-16,489,991/-2.047%`，665 rows 全部下降、无增加，commit 不变。证明同 schedule ID 不代表同 fire，进入 direct-weighted locality 重算。 |
 
 
 ## 编号说明
