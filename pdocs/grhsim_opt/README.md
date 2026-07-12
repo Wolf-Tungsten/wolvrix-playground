@@ -360,6 +360,7 @@
 | `NO0369` | `2026-07-12` | [readelf section-alignment parser correction](./NO0369_readelf_section_alignment_parser_correction_20260712.md) | 首个 verifier 未考虑 `readelf -SW` 将 `[ 2]` 拆成两列，误用 `$2` 查 `.text` 并报告 `117` 个 false bad；修正为 `$3` 后同一批 objects 为 `117/117` alignment 4096、Clang 21.1.5，未重编也未运行仿真。 |
 | `NO0370` | `2026-07-12` | [Direct state-read 4 KiB alignment build gate](./NO0370_direct_state_read_align4k_build_gate_20260712.md) | direct 同源 model 完成 153 条 Clang compile、152 objects、40 个 harness compile 和最终链接，0 warning/error；117 个最终入口全部页对齐，aligned/unaligned symbol sizes 逐项相同，alignment 仅增加 `1.779%` aggregate text。NO0300 aligned baseline manifest/body sizes 也精确匹配原版，可进入 10k/50k 功能门禁。 |
 | `NO0371` | `2026-07-12` | [Direct state-read 4 KiB alignment 10k gate](./NO0371_direct_state_read_align4k_10k_gate_20260712.md) | direct aligned 达到 guest/model cycles `10001/10000`、`cycleCnt=9996`、`instrCnt=458`、PC `0x800027c6`；10 个 1k checkpoints 去掉 `host_ms` 后与 unaligned direct 逐字节一致，无 mismatch 或 `input_fullpass_blocked`，进入 50k 功能门禁。 |
+| `NO0372` | `2026-07-12` | [Direct state-read 4 KiB alignment 50k gate](./NO0372_direct_state_read_align4k_50k_gate_20260712.md) | direct aligned 完成 73,580 条指令的 NEMU difftest，guest/model cycles `50001/50000`、`cycleCnt=49996`、PC `0x80001312`；五个 10k checkpoints 与 unaligned direct 逐字节一致，无 `input_fullpass_blocked`。未受控 raw time 不作结论，进入 fixed-ASLR aligned A/B/A。 |
 
 
 ## 编号说明
