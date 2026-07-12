@@ -444,6 +444,7 @@
 | `NO0453` | `2026-07-13` | [Boolean byte normalization machine audit plan](./NO0453_boolean_byte_normalization_machine_audit_plan_20260713.md) | 204 个 scalar AND samples 中 159 有 bool cast、105 读 packed byte state；规划从 production-identical O3 基本块拆 operand/result normalization 与真实 AND/change fusion，并审计 value/state 0/1 写入不变量。可删 normalization 仍须达到 67/direct 1% 且 O3 probe 真删指令。 |
 | `NO0454` | `2026-07-13` | [Boolean byte normalization machine audit gate](./NO0454_boolean_byte_normalization_machine_audit_gate_20260713.md) | 204/204 O3 blocks 拆出 57 operand +12 result normalization/direct `1.034%`，仅比门槛多 2 samples。0/1 写入不变量闭合；probe 中只有 assumed-byte operands + byte result 对三种 shape 均删 `3/1/3` 条且不增 branch/memory，允许进入默认关闭的受限实现。 |
 | `NO0455` | `2026-07-13` | [One-bit bitwise byte emit implementation plan](./NO0455_one_bit_bitwise_byte_emit_implementation_plan_20260713.md) | 规划默认关闭的 `one_bit_bitwise_bytes`：仅 width-1 bitwise DAG 用 assumed byte operands/result，NOT/XNOR 用 `^1`，changed/storage 不变。先做 exhaustive fixture 与 O3 gate，再编代表 SimTop batches；default source 变化、truth mismatch 或 OR-chain SLP 回退即停止。 |
+| `NO0456` | `2026-07-13` | [One-bit AND/OR byte emit local gate](./NO0456_one_bit_and_or_byte_emit_local_gate_20260713.md) | 首版全 bitwise candidate 因 XNOR 抵消收益而为 `38 -> 38`，按汇编证据收窄到 width-1 AND/OR；exhaustive/state harness 与 emitter/memory-fill 回归通过，O3 fixture 为 `38 -> 36`，memory/branch 不增。nested `0d6c3c1`，进入代表 SimTop batch 静态 gate。 |
 
 
 ## 编号说明
