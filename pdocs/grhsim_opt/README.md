@@ -354,6 +354,7 @@
 | `NO0363` | `2026-07-12` | [perf CSV cmask schedule parser correction](./NO0363_perf_csv_cmask_schedule_parser_correction_20260712.md) | 首个 verifier 把含逗号的 `cmask=0x6` event 拆成额外 CSV 列并误读 `$5`，形成 `bad=1` false negative；修正为从行尾读取 `$(NF-2)`，NO0344/NO0362 均为五事件 `100.00%`，现有 preflight 无需重跑。 |
 | `NO0364` | `2026-07-12` | [SimTop direct state-read PMU preflight gate](./NO0364_simtop_direct_state_read_pmu_preflight_gate_20260712.md) | CPU138/330 平均空闲 `100%/99.67%`；fixed-ASLR direct 100-cycle 功能通过，五事件全部 `100.00%` 调度且无 `input_fullpass_blocked`。短程计数不作性能结论，正式进入 NO0300/direct/NO0300 50k。 |
 | `NO0365` | `2026-07-12` | [SimTop direct state-read fixed-ASLR runtime gate](./NO0365_simtop_direct_state_read_fixed_aslr_runtime_gate_20260712.md) | A/B/A baseline cycles spread `0.515%`；direct instructions/backend density 改善 `3.466%/11.567%`，但 cmask6 density `+5.839%` 使 cycles 回退 `6.263%`。默认关闭不影响主路径；下一步 sample full-empty 热点，区分 native layout 与动态 activation locality。 |
+| `NO0366` | `2026-07-12` | [Direct state-read full-empty profile plan](./NO0366_direct_state_read_full_empty_profile_plan_20260712.md) | 预声明 fixed-ASLR baseline/direct/baseline cmask6 10M-period profile；schedule/batch ID 完全相同，可逐 batch 比较并连接 symbol 地址/尺寸。以功能、0 lost、baseline sample spread `<=3%` 和总样本方向为门禁，区分集中 layout 热点与动态函数 locality。 |
 
 
 ## 编号说明
