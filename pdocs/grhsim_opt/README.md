@@ -367,6 +367,7 @@
 | `NO0376` | `2026-07-12` | [Relocation verifier file-offset correction](./NO0376_relocation_verifier_file_offset_correction_20260712.md) | 首次 exact-entry 构造在第一对 direct object 因 `readelf -r` 标题中的物理 section offset 改变而 false-negative 停止，尚未建 archive/emu；592 个 entries 与 `.rela.text` raw SHA 实际不变。修正为逐 `SHT_RELA` section raw-byte fingerprint 加 canonical metadata，并从干净副本全量重跑。 |
 | `NO0377` | `2026-07-12` | [Exact-entry object mutation abandonment](./NO0377_exact_entry_object_mutation_abandonment_20260712.md) | 第二次构造在 sched80 复现 LLVM objcopy 随机损坏 `.rela.text sh_info`；`ld.lld -r` 又会合并 `.rodata.cst16` 并重排 `.LCPI`。此前检查还漏掉每个 object 最多 39 个 `AXG` sections，故停止改写原 objects/padded archive，改用原始 objects 最终显式链接并插入独立 padding objects。 |
 | `NO0378` | `2026-07-12` | [Exact-entry explicit-link plan](./NO0378_exact_entry_explicit_link_plan_20260712.md) | 两侧 40 harness + 152 model objects 显式链接均 byte-exact 复现原 emu；alignment=1 的 16-byte pad 精确平移后续 116 个入口。按真实相邻 stride，baseline/direct 分别插入 45/53 个共 855,664/1,926,496 bytes，再给 baseline tail 补 21 bytes，目标为 117 个完整入口同址且 `.text` 同为 89,041,406 bytes。 |
+| `NO0379` | `2026-07-12` | [Exact-entry explicit-link build gate](./NO0379_exact_entry_explicit_link_build_gate_20260712.md) | 348 项输入 SHA 构造前后不变，99 个 alignment=1 零 padding objects 与两次显式链接 0 warning/error；两版 117 个入口逐项同址、symbol size 各自不变，首尾为 `0x18c310/0x54c8c50`，`.text` 同为 89,041,406 bytes。结构门禁通过，尚未运行仿真。 |
 
 
 ## 编号说明
