@@ -441,6 +441,7 @@
 | `NO0450` | `2026-07-13` | [Global compute scope-aware attribution gate](./NO0450_global_compute_scope_attribution_gate_20260713.md) | 4,833/4,833 source rows 0 mismatch；校正后 2,473 exact-value、1,210 comment/fused、489 prelude、413 dispatch、118 tail，机制总数独立闭合。最大 `kAnd=629` 中仅 206 payload/direct `3.086%`，其中 204 为 scalar Boolean AND；下一步先做 same-FIR GSim 对照。 |
 | `NO0451` | `2026-07-13` | [Scalar Boolean AND GSim crosscheck plan](./NO0451_scalar_boolean_and_gsim_crosscheck_plan_20260713.md) | 严格候选为 204 个 scalar Boolean AND samples：147/144 stable-name samples/values，57 anonymous；规划一次扫描 3.7 GiB same-FIR GSim source，只扣除 exact LHS AND assignments，残余仍须达到 67/direct 1% 才进入 O3 或 emitter probe。 |
 | `NO0452` | `2026-07-13` | [Scalar Boolean AND GSim crosscheck gate](./NO0452_scalar_boolean_and_gsim_crosscheck_gate_20260713.md) | 204 samples 中 34 exact GSim AND、1 exact non-AND、112 exact name missing、57 anonymous，0 conflict；严格残余 170/direct `2.547%` 过门槛。missing 中已见 `_T` alias，不能当成 GSim 删除；残余 compare/set/test 形态转入 Boolean byte normalization O3 审计。 |
+| `NO0453` | `2026-07-13` | [Boolean byte normalization machine audit plan](./NO0453_boolean_byte_normalization_machine_audit_plan_20260713.md) | 204 个 scalar AND samples 中 159 有 bool cast、105 读 packed byte state；规划从 production-identical O3 基本块拆 operand/result normalization 与真实 AND/change fusion，并审计 value/state 0/1 写入不变量。可删 normalization 仍须达到 67/direct 1% 且 O3 probe 真删指令。 |
 
 
 ## 编号说明
