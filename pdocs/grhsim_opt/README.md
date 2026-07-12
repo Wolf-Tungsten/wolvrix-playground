@@ -381,6 +381,7 @@
 | `NO0390` | `2026-07-12` | [Materialized scalar read-locality diagnostic implementation gate](./NO0390_materialized_scalar_read_locality_diagnostic_implementation_gate_20260712.md) | nested `87d67ee` 新增默认关闭的 17-field TSV；保留全部 scalar-read 行并以 `candidate` 区分 repeated-read 与 single/write 排除项，direct-state/wide 不入表，开关前后 generated code 一致，`emit-grhsim-cpp` 1/1 通过。 |
 | `NO0391` | `2026-07-12` | [Scalar read-locality Python emitter rebuild gate](./NO0391_scalar_read_locality_python_emitter_rebuild_gate_20260712.md) | SimTop preflight 发现 Python 仍加载 08:11 旧 library；editable reinstall 后 site-package SHA 为 `825bf889...`，新 option/env/summary strings 与 `ldd` 加载路径均通过，未产生 tracked 修改。 |
 | `NO0392` | `2026-07-12` | [SimTop scalar read-locality fresh emit gate](./NO0392_simtop_scalar_read_locality_fresh_emit_gate_20260712.md) | fresh schedule SHA 与 NO0300/NO0357 相同，direct 再命中 75,830 reads，154 个 generated files 与 NO0357 byte-identical；新增 1,773,611-row TSV，静态候选 377,895 rows、理论 saved/all touches 为 `35.38%`，进入 50k fire 动态连接。 |
+| `NO0393` | `2026-07-12` | [Scalar read-locality baseline-fire proxy plan](./NO0393_scalar_read_locality_baseline_fire_proxy_plan_20260712.md) | 修正“schedule ID 相同即可复用动态 fire”的假设：direct frontier 已改变，NO0311 只能作 baseline proxy。先按同 ID 定位 batch/value；覆盖显著时必须新建 direct runtime-profile 50k fire，不能用 proxy 决定实现。 |
 
 
 ## 编号说明
