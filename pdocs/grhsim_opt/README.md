@@ -429,6 +429,7 @@
 | `NO0438` | `2026-07-13` | [Reg-to-mem full-group profile gate](./NO0438_reg_to_mem_full_group_profile_gate_20260713.md) | nested `9e2fc1a` 新增默认关闭的 `WOLVRIX_REG_TO_MEM_PROFILE_ALL_GROUPS`，只扩展 verbose 日志；target 构建无诊断，unset/0/1 三模式各跑 33 个 pass invocation，归一化日志 SHA 完全一致，进入 SimTop checkpoint-only rerun。 |
 | `NO0439` | `2026-07-13` | [Scalar-array true-merge rejection gate](./NO0439_scalar_array_true_merge_rejection_gate_20260713.md) | 4,318/4,318 groups 与 `835/174/254` true/edge/intent 精确复现；140 states/143 samples 中 124/127 已发现但全被拒绝。`branch_not_in_update` 单类覆盖 78 samples/direct `1.169%`，但头部是 group-wide outer reset mux，不能直接删检查；下一步审计可安全剥离并递归匹配的子类。 |
 | `NO0440` | `2026-07-13` | [Outer reset-mux recovery audit plan](./NO0440_outer_reset_mux_recovery_audit_plan_20260713.md) | 针对 78 个 `branch_not_in_update` samples，规划默认关闭的全 row shape 诊断：验证 common outer guard 与 event polarity、domain/mask/edges、常量 reset arm、自身旧值依赖和 normal-root 类型。只有最终可证明的同一 normal class 仍覆盖 direct `>=1%` 才实现。 |
+| `NO0441` | `2026-07-13` | [Branch-not-in-update shape diagnostic gate](./NO0441_branch_not_in_update_shape_diagnostic_gate_20260713.md) | nested `479932a` 新增默认关闭的 all-row outer-mux 诊断及 2,048-node dependency cap；最小拒绝图保持 4 registers/0 memory 并产出预期 shape。unset/0/1 共 34 次 pass 全通过，去 shape/config/timing 后日志 SHA 完全一致，editable native 校验通过。 |
 
 
 ## 编号说明
