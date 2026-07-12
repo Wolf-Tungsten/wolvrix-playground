@@ -349,6 +349,7 @@
 | `NO0358` | `2026-07-12` | [SimTop direct state-read build gate](./NO0358_simtop_direct_state_read_build_gate_20260712.md) | 标准 O3 flow 完成 153 个 generated model compile、完整 archive 与最终 emu link，日志 0 warning/error；相对 NO0300，archive/emu/text 分别缩小 `1.079%/1.132%/1.132%`，data/bss 不变，进入分级功能门禁。 |
 | `NO0359` | `2026-07-12` | [SimTop direct state-read 100-cycle smoke gate](./NO0359_simtop_direct_state_read_100cycle_smoke_gate_20260712.md) | NO0300/direct 均以 exit 0 到达 guest/model cycles `101/100`，`cycleCnt=96`、`instrCnt=0`、PC `0x0` 严格一致，且无 mismatch/assert/`input_fullpass_blocked`；该门禁只覆盖复位初始化，继续进入 10k。 |
 | `NO0360` | `2026-07-12` | [SimTop direct state-read 10k functional gate](./NO0360_simtop_direct_state_read_10k_functional_gate_20260712.md) | baseline/direct 均通过 CoreMark/NEMU difftest，guest cycles `10,001`、`cycleCnt=9,996`、`instrCnt=458`、terminal PC `0x800027c6` 一致；去掉 host time 后 10 个 1k progress checkpoints 逐字节一致，且无 `input_fullpass_blocked`。 |
+| `NO0361` | `2026-07-12` | [SimTop direct state-read 50k functional gate](./NO0361_simtop_direct_state_read_50k_functional_gate_20260712.md) | 串行 baseline/direct 均完成 73,580 条指令的 NEMU difftest，五个 10k checkpoints 与最终 guest cycles `50,001`、PC `0x80001312` 全部一致，无 `input_fullpass_blocked`；非受控 raw time 方向为 `-7.89%`，待 fixed-ASLR A/B/A 验证。 |
 
 
 ## 编号说明
