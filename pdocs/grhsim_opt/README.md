@@ -450,6 +450,7 @@
 | `NO0459` | `2026-07-13` | [Storage-aware bit assumption probe plan](./NO0459_storage_aware_bit_assumption_probe_plan_20260713.md) | 勘正 raw-state-only 思路：`value_bool_slots_` 也是 uint8 storage，只有 C++ bool/comparison/reduce/local 可省 assumption。规划分类 2,080,384 个 calls 并做 storage-aware O3 probe；若不能同时保留 normalization 删除与消除 jump/memory 回退，则停止整个 one-bit byte emit 方向。 |
 | `NO0460` | `2026-07-13` | [Storage-aware bit assumption negative gate](./NO0460_storage_aware_bit_assumption_negative_gate_20260713.md) | 2,080,384/2,080,384 helper calls 完成 storage/type 分类；五 batch generated-copy 删除 36,646 个确定冗余 helper 后，text/instructions 仍降 `3.67%/4.89%`，但 memory/jumps 恶化到 `+0.49%/+6.29%`。停止整个 one-bit byte emit 方向，不做 full build/runtime。 |
 | `NO0461` | `2026-07-13` | [Fused and prelude machine audit plan](./NO0461_fused_and_prelude_machine_audit_plan_20260713.md) | 针对 scope-corrected comment/fused 1,210 与 shared prelude 489 samples，按 basic-block def/use 重建跨 operation 机制；先扣除 mux/full-width/activation/dispatch/read/assign 历史类，再做 same-FIR GSim crosscheck。剩余同一可替代类仍须达到 direct 1%。 |
+| `NO0462` | `2026-07-13` | [Fused and prelude machine audit gate](./NO0462_fused_and_prelude_machine_audit_gate_20260713.md) | 1,699/1,699 rows 闭合后，simple pure logical AND 为 114 samples/direct `1.708%`，84 个附近可见控制流；GSim 的 84,602 个 `&&` 全为日志窗口，payload 为 0。该差异只证明 generated-code shape，不证明 payload 删除；允许进入 exact-form `&& -> &` generated-copy O3 probe。 |
 
 
 ## 编号说明
