@@ -77,3 +77,9 @@ NO0357 的 generated C++ 缩减已经穿过 Clang O3 和静态归档，最终约
 本篇只验收 build/link，尚未运行模拟。下一步先运行短 cycle smoke gate，检查初始化、NEMU difftest、assertion 和
 `input_fullpass_blocked`；通过后再分别执行 10k 和 50k CoreMark 功能门禁。只有三个功能阶段均通过且 guest 终点与
 NO0300 一致，才进入 fixed-ASLR baseline/direct/baseline 性能夹测。
+
+## 5. 勘误
+
+本篇第 1 节将主机逻辑 CPU 数写为 256，这是构建前笔记转录错误。构建后重新执行 `nproc` 得到 384；因此正确的
+资源口径是 load average `6.85/9.86/9.42`、384 个逻辑 CPU、约 933 GiB 可用内存。该修正只让低负载判断更强，
+不改变 build/link 门禁结果。
