@@ -433,6 +433,7 @@
 | `NO0442` | `2026-07-13` | [Outer reset-mux recovery audit gate](./NO0442_outer_reset_mux_recovery_audit_gate_20260713.md) | SimTop 4,318 groups 与 `835/174/254` 再现；47/47 sampled groups 连接后，17/78 samples 的 outer guard 不是 event。严格 outer reset 仅 61 samples/direct `0.914%`，其中 kAnd/kOr/kMux 为 37/15/9；即使合并实现也未过 1%，停止该方向且不放宽 matcher。 |
 | `NO0443` | `2026-07-13` | [Remaining register-read machine audit plan](./NO0443_remaining_register_read_machine_audit_plan_20260713.md) | latest direct compute 仍有 920 个 `kRegisterReadPort` samples；同时全 operation-kind 的机器归因有 544 个 operand/state-read。规划复用 byte-identical O3 映射和 NO0352 locality，拆 slot materialize/inline/wide/fused，并连接 writer count 与 eligibility 排除；两者交集口径由 NO0444 勘正。 |
 | `NO0444` | `2026-07-13` | [Remaining register-read machine audit gate](./NO0444_remaining_register_read_machine_audit_gate_20260713.md) | 勘正 NO0443 的交叉口径并完成 920/920 read samples 连接：629 inline、276 fused/ambiguous，真正独立 scalar slot materialization 仅 15 samples/direct `0.225%`，wide 为 0；GSim 对 ROB timer 与 delayed writeback count 也直接读状态参与 payload，因此停止扩展 direct-state forwarding。 |
+| `NO0445` | `2026-07-13` | [Assign-boundary forwarding audit plan](./NO0445_assign_boundary_forwarding_audit_plan_20260713.md) | latest direct profile 的 `kAssign` 有 395 samples/direct `5.918%`，但只有 140 属 payload，其余分散在 compare/activation/writeback/scan。规划先用既有 NO0357 source 精确拆 operand/result storage 与 emitted effects；只有同一可安全 forwarding class 达到 67 samples/direct `1%` 才增加结构诊断或 O3 probe。 |
 
 
 ## 编号说明
