@@ -451,6 +451,7 @@
 | `NO0460` | `2026-07-13` | [Storage-aware bit assumption negative gate](./NO0460_storage_aware_bit_assumption_negative_gate_20260713.md) | 2,080,384/2,080,384 helper calls 完成 storage/type 分类；五 batch generated-copy 删除 36,646 个确定冗余 helper 后，text/instructions 仍降 `3.67%/4.89%`，但 memory/jumps 恶化到 `+0.49%/+6.29%`。停止整个 one-bit byte emit 方向，不做 full build/runtime。 |
 | `NO0461` | `2026-07-13` | [Fused and prelude machine audit plan](./NO0461_fused_and_prelude_machine_audit_plan_20260713.md) | 针对 scope-corrected comment/fused 1,210 与 shared prelude 489 samples，按 basic-block def/use 重建跨 operation 机制；先扣除 mux/full-width/activation/dispatch/read/assign 历史类，再做 same-FIR GSim crosscheck。剩余同一可替代类仍须达到 direct 1%。 |
 | `NO0462` | `2026-07-13` | [Fused and prelude machine audit gate](./NO0462_fused_and_prelude_machine_audit_gate_20260713.md) | 1,699/1,699 rows 闭合后，simple pure logical AND 为 114 samples/direct `1.708%`，84 个附近可见控制流；GSim 的 84,602 个 `&&` 全为日志窗口，payload 为 0。该差异只证明 generated-code shape，不证明 payload 删除；允许进入 exact-form `&& -> &` generated-copy O3 probe。 |
+| `NO0463` | `2026-07-13` | [Simple logical AND object probe plan](./NO0463_simple_logical_and_object_probe_plan_20260713.md) | 规划在 NO0357 generated 副本中仅把 pure local/bool-slot 两操作数 exact forms 从 `&&` 改为 `&`；编 batch 36/21/26/57/58/65，覆盖 80/114 samples。aggregate instructions/jumps 必须同降、memory-form 不增，且两类 operand shape 都有对象级收益。 |
 
 
 ## 编号说明
