@@ -86,3 +86,11 @@ coverage = weighted_saved_upper_bound / weighted_touches
 
 若任一项不满足，本方向以诊断否定结论收尾，不实现 codegen 优化，转向 NO0388 已量化的 commit 或其他 compute
 结构差异。本篇只声明计划，尚未修改 emitter 或运行 SimTop 诊断。
+
+## 7. 实施前口径修正
+
+实现时发现，如果 TSV 只输出候选行，则 `(touches - 1) / touches` 对任意 `touches >= 2` 的候选天然不低于
+`50%`，不能作为全模型覆盖率门禁。最终实现保留所有 materialized scalar operand-read 行，并增加
+`candidate` 列：single-read 和同 supernode 写回分别以 `candidate=0` 留在表中，wide/direct-state 仍不进入
+scalar-slot 行。这样动态连接可以使用全部 weighted scalar operand touches 作分母，原候选定义和
+`loads_saved_per_fire` 公式不变。
