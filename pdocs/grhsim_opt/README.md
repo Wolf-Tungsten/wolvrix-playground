@@ -352,6 +352,7 @@
 | `NO0361` | `2026-07-12` | [SimTop direct state-read 50k functional gate](./NO0361_simtop_direct_state_read_50k_functional_gate_20260712.md) | 串行 baseline/direct 均完成 73,580 条指令的 NEMU difftest，五个 10k checkpoints 与最终 guest cycles `50,001`、PC `0x80001312` 全部一致，无 `input_fullpass_blocked`；非受控 raw time 方向为 `-7.89%`，待 fixed-ASLR A/B/A 验证。 |
 | `NO0362` | `2026-07-12` | [SimTop direct state-read fixed-ASLR runtime plan](./NO0362_simtop_direct_state_read_fixed_aslr_runtime_plan_20260712.md) | 预声明 NO0300/direct/NO0300 的 CPU138、NUMA1、fixed-PIE CoreMark50k 五事件夹测；以 baseline cycles spread `<=1%`、PMU 100% 调度和功能终点为硬门禁，主判 host instructions/cycles 收益并更新 GrhSIM/GSim gap。 |
 | `NO0363` | `2026-07-12` | [perf CSV cmask schedule parser correction](./NO0363_perf_csv_cmask_schedule_parser_correction_20260712.md) | 首个 verifier 把含逗号的 `cmask=0x6` event 拆成额外 CSV 列并误读 `$5`，形成 `bad=1` false negative；修正为从行尾读取 `$(NF-2)`，NO0344/NO0362 均为五事件 `100.00%`，现有 preflight 无需重跑。 |
+| `NO0364` | `2026-07-12` | [SimTop direct state-read PMU preflight gate](./NO0364_simtop_direct_state_read_pmu_preflight_gate_20260712.md) | CPU138/330 平均空闲 `100%/99.67%`；fixed-ASLR direct 100-cycle 功能通过，五事件全部 `100.00%` 调度且无 `input_fullpass_blocked`。短程计数不作性能结论，正式进入 NO0300/direct/NO0300 50k。 |
 
 
 ## 编号说明
