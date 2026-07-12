@@ -447,6 +447,7 @@
 | `NO0456` | `2026-07-13` | [One-bit AND/OR byte emit local gate](./NO0456_one_bit_and_or_byte_emit_local_gate_20260713.md) | 首版全 bitwise candidate 因 XNOR 抵消收益而为 `38 -> 38`，按汇编证据收窄到 width-1 AND/OR；exhaustive/state harness 与 emitter/memory-fill 回归通过，O3 fixture 为 `38 -> 36`，memory/branch 不增。nested `0d6c3c1`，进入代表 SimTop batch 静态 gate。 |
 | `NO0457` | `2026-07-13` | [SimTop one-bit AND/OR static gate plan](./NO0457_simtop_one_bit_and_or_static_gate_plan_20260713.md) | 规划从 NO0357 同一 pre-reg checkpoint 只开启 one-bit AND/OR byte emit；先验 schedule/direct/source identity，再编 batch 0/1/29/32/43，覆盖 30 个 normalization samples。至少三种 shape 真删指令且五个 objects 的 text/instruction/branch/memory 均不增，才进入 full build。 |
 | `NO0458` | `2026-07-13` | [SimTop one-bit AND/OR representative static gate](./NO0458_simtop_one_bit_and_or_representative_static_gate_20260713.md) | fresh emit 精确复现 schedule/direct identity，但 broad candidate 生成 2,080,384 个 helper calls、source `+7.34%`。五个 O3 objects 的 text/instructions 为 `-4.09%/-5.30%`，memory/jumps 却 `+0.45%/+4.80%`；按预声明停止 full build，下一步仅 probe raw-state-only assumption refinement。 |
+| `NO0459` | `2026-07-13` | [Storage-aware bit assumption probe plan](./NO0459_storage_aware_bit_assumption_probe_plan_20260713.md) | 勘正 raw-state-only 思路：`value_bool_slots_` 也是 uint8 storage，只有 C++ bool/comparison/reduce/local 可省 assumption。规划分类 2,080,384 个 calls 并做 storage-aware O3 probe；若不能同时保留 normalization 删除与消除 jump/memory 回退，则停止整个 one-bit byte emit 方向。 |
 
 
 ## 编号说明
