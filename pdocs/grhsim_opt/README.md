@@ -442,6 +442,7 @@
 | `NO0451` | `2026-07-13` | [Scalar Boolean AND GSim crosscheck plan](./NO0451_scalar_boolean_and_gsim_crosscheck_plan_20260713.md) | 严格候选为 204 个 scalar Boolean AND samples：147/144 stable-name samples/values，57 anonymous；规划一次扫描 3.7 GiB same-FIR GSim source，只扣除 exact LHS AND assignments，残余仍须达到 67/direct 1% 才进入 O3 或 emitter probe。 |
 | `NO0452` | `2026-07-13` | [Scalar Boolean AND GSim crosscheck gate](./NO0452_scalar_boolean_and_gsim_crosscheck_gate_20260713.md) | 204 samples 中 34 exact GSim AND、1 exact non-AND、112 exact name missing、57 anonymous，0 conflict；严格残余 170/direct `2.547%` 过门槛。missing 中已见 `_T` alias，不能当成 GSim 删除；残余 compare/set/test 形态转入 Boolean byte normalization O3 审计。 |
 | `NO0453` | `2026-07-13` | [Boolean byte normalization machine audit plan](./NO0453_boolean_byte_normalization_machine_audit_plan_20260713.md) | 204 个 scalar AND samples 中 159 有 bool cast、105 读 packed byte state；规划从 production-identical O3 基本块拆 operand/result normalization 与真实 AND/change fusion，并审计 value/state 0/1 写入不变量。可删 normalization 仍须达到 67/direct 1% 且 O3 probe 真删指令。 |
+| `NO0454` | `2026-07-13` | [Boolean byte normalization machine audit gate](./NO0454_boolean_byte_normalization_machine_audit_gate_20260713.md) | 204/204 O3 blocks 拆出 57 operand +12 result normalization/direct `1.034%`，仅比门槛多 2 samples。0/1 写入不变量闭合；probe 中只有 assumed-byte operands + byte result 对三种 shape 均删 `3/1/3` 条且不增 branch/memory，允许进入默认关闭的受限实现。 |
 
 
 ## 编号说明
