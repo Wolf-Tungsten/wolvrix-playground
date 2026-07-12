@@ -380,6 +380,7 @@
 | `NO0389` | `2026-07-12` | [Materialized scalar read-locality diagnostic plan](./NO0389_materialized_scalar_read_locality_diagnostic_plan_20260712.md) | 规划默认关闭的 compute-supernode 只读 scalar slot 重复读取诊断；按 canonical value 排除 direct-state、wide 和同 supernode 写回，连接 50k fire 量化 typed-local copy 的动态 load-saving 上界，覆盖不足则不实现。 |
 | `NO0390` | `2026-07-12` | [Materialized scalar read-locality diagnostic implementation gate](./NO0390_materialized_scalar_read_locality_diagnostic_implementation_gate_20260712.md) | nested `87d67ee` 新增默认关闭的 17-field TSV；保留全部 scalar-read 行并以 `candidate` 区分 repeated-read 与 single/write 排除项，direct-state/wide 不入表，开关前后 generated code 一致，`emit-grhsim-cpp` 1/1 通过。 |
 | `NO0391` | `2026-07-12` | [Scalar read-locality Python emitter rebuild gate](./NO0391_scalar_read_locality_python_emitter_rebuild_gate_20260712.md) | SimTop preflight 发现 Python 仍加载 08:11 旧 library；editable reinstall 后 site-package SHA 为 `825bf889...`，新 option/env/summary strings 与 `ldd` 加载路径均通过，未产生 tracked 修改。 |
+| `NO0392` | `2026-07-12` | [SimTop scalar read-locality fresh emit gate](./NO0392_simtop_scalar_read_locality_fresh_emit_gate_20260712.md) | fresh schedule SHA 与 NO0300/NO0357 相同，direct 再命中 75,830 reads，154 个 generated files 与 NO0357 byte-identical；新增 1,773,611-row TSV，静态候选 377,895 rows、理论 saved/all touches 为 `35.38%`，进入 50k fire 动态连接。 |
 
 
 ## 编号说明
