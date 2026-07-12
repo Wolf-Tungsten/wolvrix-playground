@@ -396,6 +396,7 @@
 | `NO0405` | `2026-07-12` | [Current same-condition mux reuse plan](./NO0405_current_same_condition_mux_reuse_plan_20260712.md) | 当前 66 个 compute sources 有 642,023 个 scalar mux calls，但 NO0091 mask reuse 已不在代码中；规划按同 supernode 连续同 condition run 连接 direct 50k fire，并用局部 O3 probe 验证真实删指令。threshold>=8 动态上界不足 direct compute 1% 或代表机器码不减即停止，不重复 ternary/schedule merge。 |
 | `NO0406` | `2026-07-12` | [Current same-condition mux reuse gate](./NO0406_current_same_condition_mux_reuse_gate_20260712.md) | 143,162 个独立 scalar mux blocks 全解析、0 failure；threshold>=8 的 2,169 runs 按 direct fire 仅覆盖 compute instructions `0.1433%`，即使所有 length>=2 也仅 `0.2958%`。source gate 失败，不做 O3 probe、不恢复 NO0091；下一步检查 full-width OR/AND current 机器实现。 |
 | `NO0407` | `2026-07-12` | [Full-width logic machine realization plan](./NO0407_full_width_logic_machine_realization_plan_20260712.md) | 规划把 current `or_words_full/and_words_full` 的 200 个 compute samples 经基本块双侧规则映射到 caller/word count，区分不可约 lane logic、consumer/changed 融合与可删 copy/spill。后者动态上界不足 direct compute 1% 即停止，不重复 NO0227/NO0236 负向融合。 |
+| `NO0408` | `2026-07-12` | [Full-width logic machine realization gate](./NO0408_full_width_logic_machine_realization_gate_20260712.md) | 200 个 O3 samples 中 102 个是 register/stack RMW lane logic、43 个必要 memory I/O、27 个 consumer fusion；真正 stack `mov*` + register copy 仅 22 个，保守上界为 direct compute `0.3936%`。未过 1%，不做代码 probe；下一步诊断 change tracking 多级 OR。 |
 
 
 ## 编号说明
