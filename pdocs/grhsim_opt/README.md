@@ -372,6 +372,7 @@
 | `NO0381` | `2026-07-12` | [Exact-entry 50k functional gate](./NO0381_exact_entry_50k_functional_gate_20260712.md) | 串行双边 CoreMark/NEMU difftest 均完成 73,580 instructions，guest/model cycles 50,001/50,000、PC `0x80001312`；5 个 10k checkpoints 彼此及与历史 NO0361 baseline 逐字节一致，无 `input_fullpass_blocked`。 |
 | `NO0382` | `2026-07-12` | [Exact-entry fixed-ASLR runtime plan](./NO0382_exact_entry_fixed_aslr_runtime_plan_20260712.md) | 规划 CPU138/NUMA1/fixed-ASLR 的 exact-entry baseline/direct/baseline 五事件 50k A/B/A；每轮要求 CPU138/330 三秒平均空闲均 `>=99%`、五事件 100% 调度和 baseline cycles spread `<=1%`，用于在 117 个入口严格同址后隔离 direct 的真实 cycles 收益。 |
 | `NO0383` | `2026-07-12` | [Exact-entry runtime CPU selection correction](./NO0383_exact_entry_runtime_cpu_selection_correction_20260712.md) | CPU138/330 连续五次 quiet gate 仅 `96.35%~100%`，目标核可见其他用户 VS Code/CI Runner 周期活动；NUMA1 五秒 survey 中 CPU147/339 最低 idle 为 `99.60%`。正式 A/B/A 改用同 socket/node 的 CPU147/339，保留现场双 baseline，但不跨核复用历史 GSim 绝对 cycles。 |
+| `NO0384` | `2026-07-12` | [Exact-entry runtime CPU reselection](./NO0384_exact_entry_runtime_cpu_reselection_20260712.md) | CPU147/339 的两次正式 preflight gate 为 `100/98.33%` 与 `93.69/97.67%`，均在 perf 前停止；即时 NUMA1 resurvey 选出 CPU188/380 的 `99.80/99.40%`。在任何 PMU 样本产生前最终改用 CPU188，并从 preflight 起锁定整组 A/B/A 不再换核。 |
 
 
 ## 编号说明
