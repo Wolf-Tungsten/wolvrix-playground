@@ -440,6 +440,7 @@
 | `NO0449` | `2026-07-13` | [Global scope source-line correction](./NO0449_global_scope_source_line_correction_20260713.md) | 勘正 NO0448 的 5,590/5,590 source-line 要求：固定 profile 中 4,833 rows 有 generated line，562 只有 runtime frame，195 unresolved。后两类本来就没有 op label；只对 4,833 行做 source/scope gate，同时保留全部 5,590 样本与原分母。 |
 | `NO0450` | `2026-07-13` | [Global compute scope-aware attribution gate](./NO0450_global_compute_scope_attribution_gate_20260713.md) | 4,833/4,833 source rows 0 mismatch；校正后 2,473 exact-value、1,210 comment/fused、489 prelude、413 dispatch、118 tail，机制总数独立闭合。最大 `kAnd=629` 中仅 206 payload/direct `3.086%`，其中 204 为 scalar Boolean AND；下一步先做 same-FIR GSim 对照。 |
 | `NO0451` | `2026-07-13` | [Scalar Boolean AND GSim crosscheck plan](./NO0451_scalar_boolean_and_gsim_crosscheck_plan_20260713.md) | 严格候选为 204 个 scalar Boolean AND samples：147/144 stable-name samples/values，57 anonymous；规划一次扫描 3.7 GiB same-FIR GSim source，只扣除 exact LHS AND assignments，残余仍须达到 67/direct 1% 才进入 O3 或 emitter probe。 |
+| `NO0452` | `2026-07-13` | [Scalar Boolean AND GSim crosscheck gate](./NO0452_scalar_boolean_and_gsim_crosscheck_gate_20260713.md) | 204 samples 中 34 exact GSim AND、1 exact non-AND、112 exact name missing、57 anonymous，0 conflict；严格残余 170/direct `2.547%` 过门槛。missing 中已见 `_T` alias，不能当成 GSim 删除；残余 compare/set/test 形态转入 Boolean byte normalization O3 审计。 |
 
 
 ## 编号说明
