@@ -409,6 +409,7 @@
 | `NO0418` | `2026-07-12` | [Full active-word native binding correction](./NO0418_full_active_word_native_binding_correction_20260712.md) | 第二次 NO0416 的 schedule SHA 已复现，但 native pybind signature 仍拒绝 option，未生成 C++；nested `e76aa0f` 接通 native 参数/attribute，HDLBits 小图完整穿过 Python、native 和 emitter 并生成 9 个 C++，再重跑 SimTop。 |
 | `NO0419` | `2026-07-12` | [SimTop full active-word fresh emit gate](./NO0419_simtop_full_active_word_fresh_emit_gate_20260712.md) | 第三次 fresh emit exit 0，schedule SHA/direct reads 精确复现；NO0357 仅删除 full-word clear/restore 后 66/66 compute 文件与 candidate byte-exact，7,853 full 命中、79 partial 与 51 commit/40 non-sched 文件保持旧协议，generated lines `-0.976%`。 |
 | `NO0420` | `2026-07-12` | [SimTop full active-word build gate](./NO0420_simtop_full_active_word_build_gate_20260712.md) | 标准 Clang/O3 完成 40 harness、153 model compile、152-member archive 和最终 PIE link，0 bad diagnostic；相对 NO0357 archive/emu/text 缩小 `0.676%/0.717%/0.721%`，data/bss 不变，进入功能回归。 |
+| `NO0421` | `2026-07-12` | [SimTop full active-word 100-cycle smoke gate](./NO0421_simtop_full_active_word_100cycle_smoke_gate_20260712.md) | candidate exit 0，guest/model cycles `101/100`、`cycleCnt=96`、0 instructions、PC 0 与 NO0359 一致；负向扫描 0 命中且无 `input_fullpass_blocked`，进入 10k。 |
 
 
 ## 编号说明
