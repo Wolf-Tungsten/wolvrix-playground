@@ -417,6 +417,7 @@
 | `NO0426` | `2026-07-12` | [Full active-word PMU preflight gate](./NO0426_full_active_word_pmu_preflight_gate_20260712.md) | CPU131/323 quiet gate `99%/99%`；candidate fixed-ASLR 100-cycle 功能通过，state `0x55555adfed30`，五项 PMU 全部 100% scheduled，0 bad diagnostic，正式进入 NO0357/full-word/NO0357 50k。 |
 | `NO0427` | `2026-07-12` | [Full active-word native runtime gate](./NO0427_full_active_word_native_runtime_gate_20260712.md) | CPU131 A/B/A baseline cycles spread `0.283%`；candidate instructions `-0.717%`，但 cycles `+1.877%`、cmask6 density `+1.172%`，backend density 改善。删指令收益被约 7.904B CPI/layout 成本覆盖，按预声明进入 117 个 sched entry 同址控制。 |
 | `NO0428` | `2026-07-12` | [Full active-word exact-entry build plan](./NO0428_full_active_word_exact_entry_build_plan_20260712.md) | 规划保持原 O3 objects，只在 candidate 的 66 个 compute objects 后插入 66 个 alignment=1 pads、合计 674,352 bytes；目标为两侧 117/117 entries 同址 `0x18c310..0x52f26f0` 且 `.text` 同为 87,114,910 bytes，再做双边功能和 fixed-ASLR A/B/A。 |
+| `NO0429` | `2026-07-12` | [Full active-word exact-entry build gate](./NO0429_full_active_word_exact_entry_build_gate_20260712.md) | 348 项输入 SHA 不变，66 个 candidate pad 通过 alignment/content/symbol/relocation gate；两版 117/117 entries 逐项同址、`.text` 同为 87,114,910 bytes，文件同为 93,707,232 bytes，baseline byte-exact 原 NO0357，进入双边功能回归。 |
 
 
 ## 编号说明
