@@ -365,6 +365,7 @@
 | `NO0374` | `2026-07-12` | [objcopy text-padding relocation correction](./NO0374_objcopy_text_padding_relocation_correction_20260712.md) | GNU objcopy 2.42 扩展 `.text` 时把 2,468 个 `.rela.text` relocations 清空，probe 作废；LLVM objcopy 21.1.5 在相同 763,616-byte target 下保持 symbol table 与 relocation dump 零差异。正式 exact-entry probe 固定使用 LLVM 工具并逐 object 校验，原产物未修改。 |
 | `NO0375` | `2026-07-12` | [Direct state-read exact-entry probe plan](./NO0375_direct_state_read_exact_entry_probe_plan_20260712.md) | 规划将 117 对原 O3 sched object 的 `.text` 尾部 padding 到 paired 16-byte-rounded max，使共同 sched text 总长均为 87,360,912 bytes；archive 顺序、非 sched/harness text、单 AX section 和 symbol offset=0 前置条件已满足。逐 object 门禁 prefix/symbol/relocation 后，要求两版 117 个完整入口逐项同址，再做双边 10k/50k 功能与 fixed-ASLR A/B/A。 |
 | `NO0376` | `2026-07-12` | [Relocation verifier file-offset correction](./NO0376_relocation_verifier_file_offset_correction_20260712.md) | 首次 exact-entry 构造在第一对 direct object 因 `readelf -r` 标题中的物理 section offset 改变而 false-negative 停止，尚未建 archive/emu；592 个 entries 与 `.rela.text` raw SHA 实际不变。修正为逐 `SHT_RELA` section raw-byte fingerprint 加 canonical metadata，并从干净副本全量重跑。 |
+| `NO0377` | `2026-07-12` | [Exact-entry object mutation abandonment](./NO0377_exact_entry_object_mutation_abandonment_20260712.md) | 第二次构造在 sched80 复现 LLVM objcopy 随机损坏 `.rela.text sh_info`；`ld.lld -r` 又会合并 `.rodata.cst16` 并重排 `.LCPI`。此前检查还漏掉每个 object 最多 39 个 `AXG` sections，故停止改写原 objects/padded archive，改用原始 objects 最终显式链接并插入独立 padding objects。 |
 
 
 ## 编号说明
