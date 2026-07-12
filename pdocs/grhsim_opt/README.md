@@ -457,6 +457,7 @@
 | `NO0466` | `2026-07-13` | [Exact Eq and LogicAnd residual audit gate](./NO0466_exact_eq_and_logicand_residual_audit_gate_20260713.md) | `kLogicAnd` 扣除 NO0464 的 30 个 simple forms 后仅 39/direct `0.584%`；`kEq` 90 个 payload 中 26 个有 GSim exact equality，missing+anonymous 全保留后上界仍仅 64/direct `0.959%`。两类均不过门槛，不做 probe/emitter。 |
 | `NO0467` | `2026-07-13` | [Exact OR and static slice residual plan](./NO0467_exact_or_and_static_slice_residual_plan_20260713.md) | exact `kOr/kSliceStatic` 为 `222/136`，payload 仅 `102/30`。规划扣除 full-width 与 one-bit byte 历史 stopped 类，按 scalar/nested/SIMD 拆 OR，并对 52 stable OR samples 做 same-FIR GSim exact-LHS；anonymous/missing 保守保留，残余仍须 direct 1%。 |
 | `NO0468` | `2026-07-13` | [Exact OR and static slice residual gate](./NO0468_exact_or_and_static_slice_residual_gate_20260713.md) | slice payload 仅 30/direct `0.449%`。OR 扣除 15 个 GSim exact assignment 后上界 87，但最大 residual source/machine 类仅 nested masked 46/direct `0.689%` 与 `or` 26/direct `0.390%`；常量零样本已融合，无独立 identity 指令。两类均停止。 |
+| `NO0469` | `2026-07-13` | [Wide concat dynamic-select recovery plan](./NO0469_wide_concat_dynamic_select_recovery_plan_20260713.md) | comment/fused+prelude 中定位 113 个 unique concat accumulation samples/direct `1.693%`，66 TUs 静态 201,597 行；代表组物化 1064/512-bit concat 后只做 dynamic shift/slice。规划连接 group/consumer/operand storage，并解释为何未命中现有 packed-array/reg-to-mem direct-access bypass。 |
 
 
 ## 编号说明
