@@ -394,6 +394,7 @@
 | `NO0403` | `2026-07-12` | [Compute1 machine/source attribution plan](./NO0403_compute1_machine_source_attribution_plan_20260712.md) | 规划复用 NO0388 的 243 个 compute1 fixed-period leaf samples 和 NO0401 byte-identical line-table object，把真实 IP 归到 supernode，并互斥拆分 active scan、payload、changed、slot writeback、activation propagation 与 helper；只有可泛化框架类覆盖至少 20% samples 且全 compute 上界过 1% 才进入实现。 |
 | `NO0404` | `2026-07-12` | [Global compute machine/source attribution gate](./NO0404_global_compute_machine_source_attribution_gate_20260712.md) | GrhSIM 66/66、GSim 284/284 O3 objects 的 `.text` SHA 完全相同；全量 5,590/3,170 leaf samples 显示 payload+runtime 解释 `82.77%` compute excess，changed/activation/writeback 仅 `11.65%`，activation 与 writeback 本身近似持平。compute1 单类门槛未过，不改 emitter；下一步只诊断 current same-cond mux mask reuse。 |
 | `NO0405` | `2026-07-12` | [Current same-condition mux reuse plan](./NO0405_current_same_condition_mux_reuse_plan_20260712.md) | 当前 66 个 compute sources 有 642,023 个 scalar mux calls，但 NO0091 mask reuse 已不在代码中；规划按同 supernode 连续同 condition run 连接 direct 50k fire，并用局部 O3 probe 验证真实删指令。threshold>=8 动态上界不足 direct compute 1% 或代表机器码不减即停止，不重复 ternary/schedule merge。 |
+| `NO0406` | `2026-07-12` | [Current same-condition mux reuse gate](./NO0406_current_same_condition_mux_reuse_gate_20260712.md) | 143,162 个独立 scalar mux blocks 全解析、0 failure；threshold>=8 的 2,169 runs 按 direct fire 仅覆盖 compute instructions `0.1433%`，即使所有 length>=2 也仅 `0.2958%`。source gate 失败，不做 O3 probe、不恢复 NO0091；下一步检查 full-width OR/AND current 机器实现。 |
 
 
 ## 编号说明
