@@ -377,6 +377,7 @@
 | `NO0386` | `2026-07-12` | [Exact-entry fixed-ASLR runtime gate](./NO0386_exact_entry_fixed_aslr_runtime_gate_20260712.md) | CPU188 同址 A/B/A baseline cycles spread `0.641%`；direct instructions/cycles 为 `-3.465%/-1.733%`，理论删指令收益实现 `50.017%`，剩余 cmask6 density `+0.465%`。相比 native 的 `+6.263%` 与 4 KiB 的 `-9.084%`，证明入口布局主导方向，而 direct 机制同址净收益约 1.7%。 |
 | `NO0387` | `2026-07-12` | [Direct state-read instruction profile plan](./NO0387_direct_state_read_instruction_profile_plan_20260712.md) | direct 仍为约 `2.084x` GSim instructions，只关闭 `6.455%` instruction excess；规划 CPU188/NUMA1/fixed-ASLR、25M period、DWARF8192 的 direct-only profile，按 compute/commit/helper 与既有 NO0300/GSim leaf profile 逐 batch 归因 5.991B 删指令收益。 |
 | `NO0388` | `2026-07-12` | [Direct state-read instruction profile gate](./NO0388_direct_state_read_instruction_profile_gate_20260712.md) | 6,675 samples、0 lost 且 sample/stat ratio 误差 `0.049%`；compute 占 239 个净减少样本的 `97.07%`，compute8 单独 `255 -> 44`、覆盖总收益 `88.28%`，闭合 state-read 根因。剩余约 `69.66%` GSim excess 仍在 compute，top compute1/62 指向通用 materialized slot/ref 搬运。 |
+| `NO0389` | `2026-07-12` | [Materialized scalar read-locality diagnostic plan](./NO0389_materialized_scalar_read_locality_diagnostic_plan_20260712.md) | 规划默认关闭的 compute-supernode 只读 scalar slot 重复读取诊断；按 canonical value 排除 direct-state、wide 和同 supernode 写回，连接 50k fire 量化 typed-local copy 的动态 load-saving 上界，覆盖不足则不实现。 |
 
 
 ## 编号说明
