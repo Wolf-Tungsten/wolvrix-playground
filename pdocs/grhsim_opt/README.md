@@ -343,6 +343,7 @@
 | `NO0352` | `2026-07-12` | [State-read locality read-args correction](./NO0352_state_read_locality_read_args_correction_20260712.md) | 首次 fresh emit 在读图前因新目录缺少 `wolvrix_read_args.txt` 立即失败，无有效数据；修正为显式复用 NO0300 已验证的 `bd420039...` read-args，保留失败日志并以新日志重跑。 |
 | `NO0353` | `2026-07-12` | [SimTop state-read locality gate](./NO0353_simtop_state_read_locality_gate_20260712.md) | fresh emit 精确复现 NO0300 且 154 个 generated files 逐项一致；50k 动态连接表明 mixed supernode 占 canonical read visits `85.80%`。通用 single-writer direct-forward 候选覆盖 canonical visits `93.70%`，batch 8 覆盖 `99.97%`；GSim 对同一状态在写回处直接激活 consumers，没有 GrhSIM 的 read-slot 扫描中转层。 |
 | `NO0354` | `2026-07-12` | [Single-writer state-read direct-forward plan](./NO0354_single_writer_state_read_direct_forward_plan_20260712.md) | 规划默认关闭的通用 scalar register-read 直连：alias group 整组 eligibility，commit frontier 改写为 residual read heads + direct consumers，consumer 直接引用 state storage；先做 single/multi-writer、mixed/local/protected、changed/no-change synthetic，再进入 SimTop fresh 功能与 fixed-ASLR 性能门禁。 |
+| `NO0355` | `2026-07-12` | [Single-writer state-read direct-forward implementation gate](./NO0355_single_writer_state_read_direct_forward_implementation_gate_20260712.md) | 默认关闭的通用直连已实现；repeated gate 将 4 canonical + 11 aliases 整组直连并保留 protected/local reads，schedule bytes `14,769 -> 9,553`，changed/alias OR `19/11 -> 0/0`；single/protected/multi-writer changed/no-change harness 与 `emit-grhsim-cpp` 1/1 回归通过。 |
 
 
 ## 编号说明
