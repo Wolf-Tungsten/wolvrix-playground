@@ -467,6 +467,7 @@
 | `NO0476` | `2026-07-13` | [Corrected runtime-frame closure gate](./NO0476_corrected_runtime_frame_closure_gate_20260713.md) | 562 runtime rows、138 empty keys 与 NO0411 逐项闭合；empty 精确复现 mux 80/full OR 3/unresolved 55，old-only 9 均成为真实 source-backed rows。named helpers落入 NO0412/NO0408 或单类低于 67，关闭 corrected runtime-frame 域。 |
 | `NO0477` | `2026-07-13` | [Side-effect event-first object probe plan](./NO0477_side_effect_event_first_object_probe_plan_20260713.md) | 130/130 exact side-effect samples 都检查 posedge，但 current `if` 先算 data condition。规划在 batches 21/24/35/58/20/27/41 generated 副本中把 exact event 移到最前，覆盖 70 samples；静态计数不得增，并须证明 negedge edge-false branch 跳过 data work。 |
 | `NO0478` | `2026-07-13` | [Side-effect event-first object probe gate](./NO0478_side_effect_event_first_object_probe_gate_20260713.md) | 7 个 generated 副本重排 6,013 条 exact side-effect 条件；7/7 编译与 baseline identity 通过，但 aggregate `.text/instructions/memory-form` 增加 `0.778/1.300/0.314%`。debug 证明 data producer 在 `if` 前已执行，event-first 不能跳过 negedge data work；停止 `&&` reorder，后续只审计 exclusive producer chain 的 outer event guard。 |
+| `NO0479` | `2026-07-13` | [Event-pure compute supernode audit plan](./NO0479_event_pure_compute_supernode_audit_plan_20260713.md) | 将 NO0478 的 producer 问题提升到 compute-supernode 粒度。规划扫描 66 个 compute TUs，只接受同一 exact edge、仅含 transient producers + SystemTask/DPIC、无 slot/state/activation 写入的 event-pure payload，并连接 NO0448 profile；direct 至少 1% 才进入 outer event guard object probe。 |
 
 
 ## 编号说明
