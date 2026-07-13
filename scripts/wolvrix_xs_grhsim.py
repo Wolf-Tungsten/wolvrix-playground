@@ -385,10 +385,26 @@ def main() -> int:
     simplify_keep_declared_symbols = env_flag("WOLVRIX_XS_GRHSIM_SIMPLIFY_KEEP_DECLARED_SYMBOLS", default=False)
     skip_comb_lane_pack = env_flag("WOLVRIX_XS_GRHSIM_SKIP_COMB_LANE_PACK", default=False)
     reg_to_mem_intent = env_flag("WOLVRIX_XS_GRHSIM_REG_TO_MEM_INTENT", default=True)
+    reg_to_mem_ordered_writes = env_flag(
+        "WOLVRIX_XS_GRHSIM_REG_TO_MEM_ORDERED_WRITES",
+        default=True,
+    )
+    reg_to_mem_decoded_write_storage = env_flag(
+        "WOLVRIX_XS_GRHSIM_REG_TO_MEM_DECODED_WRITE_STORAGE",
+        default=True,
+    )
     declared_value_compute_node_boundary = env_flag(
         "WOLVRIX_XS_GRHSIM_DECLARED_VALUE_COMPUTE_NODE_BOUNDARY",
         default=False,
     )
+    full_active_word_consume = env_flag(
+        "WOLVRIX_XS_GRHSIM_FULL_ACTIVE_WORD_CONSUME",
+        default=False,
+    )
+    final_topo_policy = os.environ.get(
+        "WOLVRIX_XS_GRHSIM_FINAL_TOPO_POLICY",
+        "level-id",
+    ).strip()
     comb_lane_pack_report = os.environ.get(
         "WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_REPORT",
         str(cpp_out_dir.parent / "comb_lane_pack_report_xs.json"),
@@ -427,7 +443,11 @@ def main() -> int:
         f"post_stats_json={post_stats_json} "
         f"resume_from_stats_json={resume_from_stats_json} "
         f"reg_to_mem_intent={reg_to_mem_intent} "
-        f"declared_value_compute_node_boundary={declared_value_compute_node_boundary}"
+        f"reg_to_mem_ordered_writes={reg_to_mem_ordered_writes} "
+        f"reg_to_mem_decoded_write_storage={reg_to_mem_decoded_write_storage} "
+        f"declared_value_compute_node_boundary={declared_value_compute_node_boundary} "
+        f"full_active_word_consume={full_active_word_consume} "
+        f"final_topo_policy={final_topo_policy}"
     )
 
     read_args: list[str] = ["-f", filelist, "--top", top_name]
@@ -461,6 +481,8 @@ def main() -> int:
         reg_to_mem_kwargs: dict = {}
         if not reg_to_mem_intent:
             reg_to_mem_kwargs["intent"] = False
+        reg_to_mem_kwargs["ordered_writes"] = reg_to_mem_ordered_writes
+        reg_to_mem_kwargs["decoded_write_storage"] = reg_to_mem_decoded_write_storage
         reg_to_mem_pipeline: list[tuple[str, dict]] = [
             ("reg-to-mem", reg_to_mem_kwargs),
         ]
@@ -496,6 +518,7 @@ def main() -> int:
                     "max_op_in_commit_supernode": max_op_in_commit_supernode,
                     "commit_guard_event_buckets": commit_guard_event_buckets,
                     "declared_value_compute_node_boundary": declared_value_compute_node_boundary,
+                    "final_topo_policy": final_topo_policy,
                 },
             ),
         ]
@@ -611,6 +634,7 @@ def main() -> int:
             emit_parallelism=emit_parallelism,
             waveform=args.waveform,
             perf=args.perf,
+            full_active_word_consume=full_active_word_consume,
         )
         require_ok(diags, "emit_grhsim_cpp")
         log(f"write_grhsim_cpp done {int((time.perf_counter() - start) * 1000)}ms")
