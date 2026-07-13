@@ -512,6 +512,7 @@
 | `NO0521` | `2026-07-13` | [SimTop sparse pure-event 50k functional gate](./NO0521_simtop_sparse_pure_event_50k_functional_gate_20260713.md) | 五个 normalized checkpoints 与 baseline/plain 均逐字节一致；终点 guest/cycleCnt/instr/PC=`50,001/49,996/73,580/0x80001312`，负向扫描为 0。raw 179.9s 受高 load 污染；先做 quiet survey。 |
 | `NO0522` | `2026-07-13` | [SimTop sparse pure-event fixed-ASLR runtime plan](./NO0522_simtop_sparse_pure_event_fixed_aslr_runtime_plan_20260713.md) | 复用 NO0507 的 fixed-ASLR 五事件与 sibling idle `>=99%` 门禁，候选更新为 hybrid `eed8e615...`；先做 baseline/hybrid/baseline，有效后才追加 plain 对照，高 load 下保持零样本。 |
 | `NO0523` | `2026-07-13` | [Sparse pure-event runtime load-gate snapshot](./NO0523_sparse_pure_event_runtime_load_gate_snapshot_20260713.md) | fresh NUMA1/NUMA0 最佳 SMT pair-min idle 仅 `97.60%/93.15%`，高并发 BOLT 与多组 emu 下未启动任何 PMU 样本。runtime 继续等待，转去审计 event-pure active-id packing 上界。 |
+| `NO0524` | `2026-07-13` | [Event-pure active-id packing audit plan](./NO0524_event_pure_active_id_packing_audit_plan_20260713.md) | 现有 107 pure words/856 nodes 的无约束上界为 181/1,448，但 active ID 绑定 final topo index，不能任意置换。规划先算 run/fragmentation，再只模拟同 DAG level 的合法 stable packing；新增覆盖仍须达到 direct 1%。 |
 
 
 ## 编号说明
