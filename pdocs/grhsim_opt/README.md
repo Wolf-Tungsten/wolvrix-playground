@@ -497,6 +497,7 @@
 | `NO0506` | `2026-07-13` | [SimTop pure-event word bypass 50k functional gate](./NO0506_simtop_pure_event_word_bypass_50k_functional_gate_20260713.md) | 五个 10k checkpoints 与 NO0361 精确一致，终点 guest/cycleCnt/instr/PC 为 `50,001/49,996/73,580/0x80001312`，负向扫描为 0；raw 95.2s 遇 load 上升不作性能结论，进入 fixed-ASLR 相邻 A/B/A。 |
 | `NO0507` | `2026-07-13` | [SimTop pure-event word bypass fixed-ASLR runtime plan](./NO0507_simtop_pure_event_word_bypass_fixed_aslr_runtime_plan_20260713.md) | 规划 profile-off NO0357/bypass/NO0357 的 fixed-ASLR 五事件 A/B/A；NUMA1 即时选核后锁定，逐轮 sibling idle `>=99%`、baseline cycles spread `<=1%`，高负载下不引用历史 raw time。 |
 | `NO0508` | `2026-07-13` | [Pure-event bypass runtime CPU reselection](./NO0508_pure_event_bypass_runtime_cpu_reselection_20260713.md) | CPU104/296 三次 quiet gate 失败且未启动 perf；fresh NUMA1 survey 找到唯一 pair-min `>=99%` 的 CPU127/319 (`99.00/99.80%`)，锁定后重新执行 preflight gate。 |
+| `NO0509` | `2026-07-13` | [Pure-event bypass runtime load-gate snapshot](./NO0509_pure_event_bypass_runtime_load_gate_snapshot_20260713.md) | CPU127/319 又连续三次未过 `>=99%`，node0 最佳也仅约 98%；共享 CI/emu 负载下正式 PMU 仍为零样本，不放宽门限。等待期间转去诊断 NO0503 batch 27 codegen cliff。 |
 
 
 ## 编号说明
