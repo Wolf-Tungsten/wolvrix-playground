@@ -485,6 +485,7 @@
 | `NO0494` | `2026-07-13` | [Pure-event compute-word dynamic profile gate](./NO0494_pure_event_compute_word_dynamic_profile_gate_20260713.md) | 默认关闭 profile 已在子仓库 `f9475be` 实现；profile-only/combined 都精确闭合 `eligible=2, hit=4, miss=6, total=10`，两行 TSV 各为 `1/2/3/5`；default/0 identity、负向 eligibility、共享 hit temporary 及两项 emitter 回归均通过。 |
 | `NO0495` | `2026-07-13` | [SimTop pure-event word profile fresh plan](./NO0495_simtop_pure_event_word_profile_fresh_plan_20260713.md) | 规划从 NO0300/NO0357 同一 checkpoint/read-args fresh emit profile-only SimTop，保持 direct-state-read 与 schedule 配置；先做 Python reinstall、schedule/source/static eligible 门禁，再 O3 build 和 10k 功能/profile，不把插桩 host time 当性能数据。 |
 | `NO0496` | `2026-07-13` | [SimTop pure-event word profile fresh emit gate](./NO0496_simtop_pure_event_word_profile_fresh_emit_gate_20260713.md) | fresh schedule/direct-read 与 NO0357 精确一致；production classifier 命中 22 batches/107 words，与 NO0484 audit 完全闭合。profile-only 仅改变 25/154 files，22 sched 新增 749 行、删除 0 行，bypass marker 为 0；进入 O3 build。 |
+| `NO0497` | `2026-07-13` | [SimTop pure-event word profile build gate](./NO0497_simtop_pure_event_word_profile_build_gate_20260713.md) | profile-only model 以 Clang O3 完成 153 个 generated compile、152-member archive 和 emu link，0 errors；相对 NO0357 增加 text 12,496 bytes、data 56 bytes、bss 不变，证明计数路径进入 binary；进入短 smoke/10k 功能 profile。 |
 
 
 ## 编号说明
