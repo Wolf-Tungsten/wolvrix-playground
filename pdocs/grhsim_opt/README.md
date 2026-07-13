@@ -477,6 +477,7 @@
 | `NO0486` | `2026-07-13` | [Active-word event-mask object probe gate](./NO0486_active_word_event_mask_object_probe_gate_20260713.md) | 133 filters 的编译/identity 通过，但 6/6 objects 全面回退；aggregate `.text/instructions/memory/jumps` 增 `0.059/0.071/0.050/0.298%`。停止 mixed-word mask filter；pure-event words 仍有 125 samples/direct `1.873%`，代表 78 words/92 samples 可独立测试 whole-word bypass。 |
 | `NO0487` | `2026-07-13` | [Pure-event word bypass object probe plan](./NO0487_pure_event_word_bypass_object_probe_plan_20260713.md) | 从失败 mask filter 中只保留 78 个代表 pure-event words/624 nodes/3,127 producers/92 samples；在 underlying clear 后以一次 event-hit wrapper 包住完整 8-node dispatch，edge-false 清 local flags 并跳到 restore。对象指标不得增，debug 须证明 entry tests 也被越过。 |
 | `NO0488` | `2026-07-13` | [Pure-event word bypass object probe gate](./NO0488_pure_event_word_bypass_object_probe_gate_20260713.md) | else-zero 形态 aggregate `.text/instructions/memory` 降 `834/99/107`，但 jumps `+8` 且 batches 21/41/24 小回退。mnemonic 显示每 word 新增 `jns+jmp+xor`；停止该形态，下一步只测试把原 restore 放进 event-hit wrapper、彻底删除 else-zero。 |
+| `NO0489` | `2026-07-13` | [Pure-event word restore-inside probe plan](./NO0489_pure_event_word_restore_inside_probe_plan_20260713.md) | 保持相同 78 pure words，只在 clear 后打开 event-hit wrapper、在原 restore 后闭合；edge-false 不 restore 已清 underlying word，删除 NO0488 每 word 的 else/jmp/xor。对象全指标不得增，debug 须证明完整 word dispatch 被越过。 |
 
 
 ## 编号说明
