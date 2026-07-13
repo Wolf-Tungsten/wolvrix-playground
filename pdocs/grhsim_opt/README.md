@@ -482,6 +482,7 @@
 | `NO0491` | `2026-07-13` | [Pure-event compute-word bypass implementation plan](./NO0491_pure_event_compute_word_bypass_implementation_plan_20260713.md) | 规划默认关闭的 `pure_event_compute_word_bypass`：仅包装同一非 true exact event、全 transient producer 的 homogeneous compute words；clear 在 wrapper 前、restore 在 wrapper 内，并对 mixed/multi-event/materialized/once-only/commit/fullpass/full-word-consume 设置负向门禁。 |
 | `NO0492` | `2026-07-13` | [Pure-event compute-word bypass implementation gate](./NO0492_pure_event_compute_word_bypass_implementation_gate_20260713.md) | 默认关闭候选已在子仓库 `a3ec022` 实现；GRH purity 判定与 2 个 8-entry wrapper 结构闭合，default/0 全 source byte-identical，once/multi-event/commit/fullpass/full-word-consume 负门禁及 32-call hit/miss harness 通过；两项 emitter 回归均 PASS。 |
 | `NO0493` | `2026-07-13` | [Pure-event compute-word dynamic profile plan](./NO0493_pure_event_compute_word_dynamic_profile_plan_20260713.md) | 规划独立默认关闭的 `pure_event_compute_word_profile`，复用既有 runtime-profile enable/dump 接口，按 batch 输出 static eligible、active hit/miss/total；profile-only 不改行为，先 synthetic 精确闭合，再 fresh SimTop 量化真实 miss 机会。 |
+| `NO0494` | `2026-07-13` | [Pure-event compute-word dynamic profile gate](./NO0494_pure_event_compute_word_dynamic_profile_gate_20260713.md) | 默认关闭 profile 已在子仓库 `f9475be` 实现；profile-only/combined 都精确闭合 `eligible=2, hit=4, miss=6, total=10`，两行 TSV 各为 `1/2/3/5`；default/0 identity、负向 eligibility、共享 hit temporary 及两项 emitter 回归均通过。 |
 
 
 ## 编号说明
