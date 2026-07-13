@@ -463,6 +463,7 @@
 | `NO0472` | `2026-07-13` | [All concat seed coverage gate](./NO0472_all_concat_seed_coverage_gate_20260713.md) | 再补齐只有 term sample 的 groups：全部 concat source 为 226 rows/152 groups/221 offsets。single-other 87 拆分后，最大统一 concat-to-AND 为 full 58 + generic 8 = 66/direct `0.989%`，仍低于 67；其余 consumer 更小，concat source family 至此全量停止。 |
 | `NO0473` | `2026-07-13` | [Residual state and slot template audit plan](./NO0473_residual_state_slot_template_audit_plan_20260713.md) | 扣除 logical/mux/concat/helper 后，comment/fused+prelude 剩 state-ref 287（payload 197）与 slot 219（payload 218）。规划对 415 payload 保留 type/operator/storage/nesting 做结构归一化，扣除 byte-bitwise/read/assign 等 stopped 类；同一新模板仍须 direct 1%。 |
 | `NO0474` | `2026-07-13` | [Residual state and slot template audit gate](./NO0474_residual_state_slot_template_audit_gate_20260713.md) | 415 rows/404 offsets 归一化为 174 templates，最大 exact 仅 41。state nested coarse 120 拆后最大 24；multi-add 74 经 purity gate 只有 pure popcount 54/direct `0.809%`，mixed 20。其余 coarse 也不过门槛，关闭 comment/fused source-template 路线。 |
+| `NO0475` | `2026-07-13` | [Corrected runtime-frame closure plan](./NO0475_corrected_runtime_frame_closure_plan_20260713.md) | scope-corrected runtime-frame-only 为 562：named mux/full OR/full AND 为 186/110/75，empty line-0 为 138。规划按 `(batch,offset)` 将 empty 桶逐项连接 NO0411 的 147 rows，重算 recovered mux/full-OR/unresolved；残余仍须 direct 1%。 |
 
 
 ## 编号说明
