@@ -486,6 +486,7 @@
 | `NO0495` | `2026-07-13` | [SimTop pure-event word profile fresh plan](./NO0495_simtop_pure_event_word_profile_fresh_plan_20260713.md) | 规划从 NO0300/NO0357 同一 checkpoint/read-args fresh emit profile-only SimTop，保持 direct-state-read 与 schedule 配置；先做 Python reinstall、schedule/source/static eligible 门禁，再 O3 build 和 10k 功能/profile，不把插桩 host time 当性能数据。 |
 | `NO0496` | `2026-07-13` | [SimTop pure-event word profile fresh emit gate](./NO0496_simtop_pure_event_word_profile_fresh_emit_gate_20260713.md) | fresh schedule/direct-read 与 NO0357 精确一致；production classifier 命中 22 batches/107 words，与 NO0484 audit 完全闭合。profile-only 仅改变 25/154 files，22 sched 新增 749 行、删除 0 行，bypass marker 为 0；进入 O3 build。 |
 | `NO0497` | `2026-07-13` | [SimTop pure-event word profile build gate](./NO0497_simtop_pure_event_word_profile_build_gate_20260713.md) | profile-only model 以 Clang O3 完成 153 个 generated compile、152-member archive 和 emu link，0 errors；相对 NO0357 增加 text 12,496 bytes、data 56 bytes、bss 不变，证明计数路径进入 binary；进入短 smoke/10k 功能 profile。 |
+| `NO0498` | `2026-07-13` | [SimTop pure-event word profile 100-cycle smoke gate](./NO0498_simtop_pure_event_word_profile_100cycle_smoke_gate_20260713.md) | 100-cycle guest/cycleCnt/instr/PC 与历史 baseline 精确一致，负向扫描为 0；22-row TSV 闭合 `eligible=107, hit=16,050, miss=18,452, total=34,502`，active miss ratio `53.48%`，证明存在真实动态绕过机会；进入 10k。 |
 
 
 ## 编号说明
