@@ -493,6 +493,7 @@
 | `NO0502` | `2026-07-13` | [SimTop pure-event word bypass fresh emit gate](./NO0502_simtop_pure_event_word_bypass_fresh_emit_gate_20260713.md) | fresh schedule/direct 与 NO0357 精确一致；production source 仅改变 22 sched，107 markers 与 profile static rows 逐项一致，新增 321 行、删除 0 行，132/154 files byte-identical且无 profile 状态；进入 O3 build。 |
 | `NO0503` | `2026-07-13` | [SimTop pure-event word bypass build and codegen gate](./NO0503_simtop_pure_event_word_bypass_build_codegen_gate_20260713.md) | O3 build/link 完整通过；full emu `.text/instructions` 小幅增加 `10,128/1,538`，由 batch 27 任一 wrapper 触发同一巨型函数 codegen cliff，扣除它后其余 21 batches 整体下降。保留原样进入 100/10k/50k 功能门禁，再由相邻 A/B/A runtime 判断。 |
 | `NO0504` | `2026-07-13` | [SimTop pure-event word bypass 100-cycle smoke gate](./NO0504_simtop_pure_event_word_bypass_100cycle_smoke_gate_20260713.md) | profile-off candidate 的 guest/model/cycleCnt/instr/PC 为 `101/100/96/0/0`，与 NO0359 direct baseline 精确一致，负向扫描与 profile 泄漏均为 0；进入 10k 指令提交门禁。 |
+| `NO0505` | `2026-07-13` | [SimTop pure-event word bypass 10k functional gate](./NO0505_simtop_pure_event_word_bypass_10k_functional_gate_20260713.md) | 10 个 1k checkpoints 去除 `host_ms` 后与 NO0360 逐字节一致；终点 guest/cycleCnt/instr/PC 为 `10,001/9,996/458/0x800027c6`，负向扫描为 0；进入 50k 主功能门禁。 |
 
 
 ## 编号说明
