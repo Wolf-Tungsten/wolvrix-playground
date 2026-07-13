@@ -490,6 +490,7 @@
 | `NO0499` | `2026-07-13` | [SimTop pure-event word profile 10k gate](./NO0499_simtop_pure_event_word_profile_10k_gate_20260713.md) | 10 个 progress checkpoints 与 NO0360 逐项一致，终点为 guest 10,001/cycleCnt 9,996/instr 458/PC `0x800027c6`；TSV 闭合 `hit=1,075,350, miss=1,291,582`、miss ratio `54.57%`，约可越过 10.33M entry tests；因提交量仍低进入 50k。 |
 | `NO0500` | `2026-07-13` | [SimTop pure-event word profile 50k gate](./NO0500_simtop_pure_event_word_profile_50k_gate_20260713.md) | 50k 五个 checkpoints/终点与 NO0361 精确一致；TSV 闭合 `hit=5,355,350, miss=6,948,664`、miss ratio `56.47%`，约可越过 55.59M entry tests，前五 hot batches 覆盖 67.29% misses；进入 profile-off production bypass fresh gate。 |
 | `NO0501` | `2026-07-13` | [SimTop pure-event word bypass fresh plan](./NO0501_simtop_pure_event_word_bypass_fresh_plan_20260713.md) | 规划 profile-off production bypass fresh emit/build/function：同一 schedule/direct 配置，要求 107 markers/22 changed sched、无 profile 状态，依次通过 100/10k/50k；之后才做 fixed-ASLR 高负载相邻 baseline/bypass/baseline PMU 夹测。 |
+| `NO0502` | `2026-07-13` | [SimTop pure-event word bypass fresh emit gate](./NO0502_simtop_pure_event_word_bypass_fresh_emit_gate_20260713.md) | fresh schedule/direct 与 NO0357 精确一致；production source 仅改变 22 sched，107 markers 与 profile static rows 逐项一致，新增 321 行、删除 0 行，132/154 files byte-identical且无 profile 状态；进入 O3 build。 |
 
 
 ## 编号说明
