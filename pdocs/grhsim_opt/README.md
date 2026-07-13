@@ -475,6 +475,7 @@
 | `NO0484` | `2026-07-13` | [Active-word event-mask audit gate](./NO0484_active_word_event_mask_audit_gate_20260713.md) | 1,611 个 event-pure nodes 聚合成 355 groups/354 words，压缩 `4.538x`；107 pure-event words、246 event/non-event mixed、2 multi-event mixed，308 samples/direct `4.614%` 全保留。代表 6 批次压成 133 个 clock-posedge word filters，进入 generated-copy object probe。 |
 | `NO0485` | `2026-07-13` | [Active-word event-mask object probe plan](./NO0485_active_word_event_mask_object_probe_plan_20260713.md) | 规划在 6 个 generated 副本的 133 个 unique words 中，于 underlying clear 后插入 local event-pure mask filter。payload/entry/call order 不改；对象指标不得增，并用 pure/mixed debug blocks 证明 edge-false 只跳过目标 bits。 |
 | `NO0486` | `2026-07-13` | [Active-word event-mask object probe gate](./NO0486_active_word_event_mask_object_probe_gate_20260713.md) | 133 filters 的编译/identity 通过，但 6/6 objects 全面回退；aggregate `.text/instructions/memory/jumps` 增 `0.059/0.071/0.050/0.298%`。停止 mixed-word mask filter；pure-event words 仍有 125 samples/direct `1.873%`，代表 78 words/92 samples 可独立测试 whole-word bypass。 |
+| `NO0487` | `2026-07-13` | [Pure-event word bypass object probe plan](./NO0487_pure_event_word_bypass_object_probe_plan_20260713.md) | 从失败 mask filter 中只保留 78 个代表 pure-event words/624 nodes/3,127 producers/92 samples；在 underlying clear 后以一次 event-hit wrapper 包住完整 8-node dispatch，edge-false 清 local flags 并跳到 restore。对象指标不得增，debug 须证明 entry tests 也被越过。 |
 
 
 ## 编号说明
