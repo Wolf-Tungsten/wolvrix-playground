@@ -501,6 +501,7 @@
 | `NO0510` | `2026-07-13` | [Batch 27 event-predicate codegen probe plan](./NO0510_batch27_event_predicate_codegen_probe_plan_20260713.md) | 规划用 `const volatile` reference/local copy 与 noinline control 隐藏 outer predicate 对内部 event checks 的编译期传播；先要求 batch 27 消除 `+11.5 KiB/+1,789 instructions` cliff，再决定是否扩展 22 batches。 |
 | `NO0511` | `2026-07-13` | [Batch 27 event-predicate codegen probe gate](./NO0511_batch27_event_predicate_codegen_probe_gate_20260713.md) | local volatile copy 将 batch 27 从 `+11,477/+1,783` 恢复到 `-5/0`，确认值传播 cliff；但全 107 words 仍为 baseline `+398/+148`，并伤害 hot 35/58/21。停止 global 形态，转向 emitter 可见的 sparse-batch threshold。 |
 | `NO0512` | `2026-07-13` | [Sparse-batch volatile threshold audit plan](./NO0512_sparse_batch_volatile_threshold_audit_plan_20260713.md) | 规划按 batch eligible-word count `0..37` 组合真实 plain/volatile O3 objects，并联结 NO0500 hit/miss；要求四项静态指标不差于 plain、hot 35/58/21 保持 direct、volatile subset 不超过 20%。 |
+| `NO0513` | `2026-07-13` | [Sparse-batch volatile threshold audit gate](./NO0513_sparse_batch_volatile_threshold_audit_gate_20260713.md) | threshold 2 唯一过门：20/107 words 使用 volatile、前五 hot batches 保持 direct；hybrid 相对 NO0357 的 text/instructions/memory/jumps 为 `-2,049/-352/-225/-89`，相对 plain 再减 `12,194/1,888/1,356/242`。进入无 batch-id emitter gate。 |
 
 
 ## 编号说明
