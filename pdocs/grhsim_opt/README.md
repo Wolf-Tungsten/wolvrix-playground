@@ -488,6 +488,7 @@
 | `NO0497` | `2026-07-13` | [SimTop pure-event word profile build gate](./NO0497_simtop_pure_event_word_profile_build_gate_20260713.md) | profile-only model 以 Clang O3 完成 153 个 generated compile、152-member archive 和 emu link，0 errors；相对 NO0357 增加 text 12,496 bytes、data 56 bytes、bss 不变，证明计数路径进入 binary；进入短 smoke/10k 功能 profile。 |
 | `NO0498` | `2026-07-13` | [SimTop pure-event word profile 100-cycle smoke gate](./NO0498_simtop_pure_event_word_profile_100cycle_smoke_gate_20260713.md) | 100-cycle guest/cycleCnt/instr/PC 与历史 baseline 精确一致，负向扫描为 0；22-row TSV 闭合 `eligible=107, hit=16,050, miss=18,452, total=34,502`，active miss ratio `53.48%`，证明存在真实动态绕过机会；进入 10k。 |
 | `NO0499` | `2026-07-13` | [SimTop pure-event word profile 10k gate](./NO0499_simtop_pure_event_word_profile_10k_gate_20260713.md) | 10 个 progress checkpoints 与 NO0360 逐项一致，终点为 guest 10,001/cycleCnt 9,996/instr 458/PC `0x800027c6`；TSV 闭合 `hit=1,075,350, miss=1,291,582`、miss ratio `54.57%`，约可越过 10.33M entry tests；因提交量仍低进入 50k。 |
+| `NO0500` | `2026-07-13` | [SimTop pure-event word profile 50k gate](./NO0500_simtop_pure_event_word_profile_50k_gate_20260713.md) | 50k 五个 checkpoints/终点与 NO0361 精确一致；TSV 闭合 `hit=5,355,350, miss=6,948,664`、miss ratio `56.47%`，约可越过 55.59M entry tests，前五 hot batches 覆盖 67.29% misses；进入 profile-off production bypass fresh gate。 |
 
 
 ## 编号说明
