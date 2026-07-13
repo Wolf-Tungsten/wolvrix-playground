@@ -462,6 +462,7 @@
 | `NO0471` | `2026-07-13` | [Whole concat block coverage correction](./NO0471_whole_concat_block_coverage_correction_20260713.md) | 勘正 NO0470 只计 accumulation 的上界：61 groups 全 block 连接为 129 samples，多 16 个 term rows；local single-consumer 上界修正为 62/direct `0.929%`，仍低于 67，且 dynamic shift/slice/other 语义不可合并，停止结论不变。 |
 | `NO0472` | `2026-07-13` | [All concat seed coverage gate](./NO0472_all_concat_seed_coverage_gate_20260713.md) | 再补齐只有 term sample 的 groups：全部 concat source 为 226 rows/152 groups/221 offsets。single-other 87 拆分后，最大统一 concat-to-AND 为 full 58 + generic 8 = 66/direct `0.989%`，仍低于 67；其余 consumer 更小，concat source family 至此全量停止。 |
 | `NO0473` | `2026-07-13` | [Residual state and slot template audit plan](./NO0473_residual_state_slot_template_audit_plan_20260713.md) | 扣除 logical/mux/concat/helper 后，comment/fused+prelude 剩 state-ref 287（payload 197）与 slot 219（payload 218）。规划对 415 payload 保留 type/operator/storage/nesting 做结构归一化，扣除 byte-bitwise/read/assign 等 stopped 类；同一新模板仍须 direct 1%。 |
+| `NO0474` | `2026-07-13` | [Residual state and slot template audit gate](./NO0474_residual_state_slot_template_audit_gate_20260713.md) | 415 rows/404 offsets 归一化为 174 templates，最大 exact 仅 41。state nested coarse 120 拆后最大 24；multi-add 74 经 purity gate 只有 pure popcount 54/direct `0.809%`，mixed 20。其余 coarse 也不过门槛，关闭 comment/fused source-template 路线。 |
 
 
 ## 编号说明
