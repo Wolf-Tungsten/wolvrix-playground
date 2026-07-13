@@ -472,6 +472,7 @@
 | `NO0481` | `2026-07-13` | [Outer event guard object probe plan](./NO0481_outer_event_guard_object_probe_plan_20260713.md) | 规划在 batches 58/21/35/41/24/30 generated 副本的 855 个 event-pure payload 外增加 exact edge guard，覆盖 4,527 producers/5,583 side effects/151 samples。内部 guards 与 call order 保留；6 对对象须无静态回退，并用 debug 证明 edge-false 在 producer 前跳过完整 payload。 |
 | `NO0482` | `2026-07-13` | [Outer event guard object probe gate](./NO0482_outer_event_guard_object_probe_gate_20260713.md) | 855 个 outer guards 的 6/6 编译/identity 通过；debug 证明 edge-false 在 producer 前越过完整 payload。但 aggregate `.text/jumps` 增加 `0.064/0.002%`，batches 24/30 instructions 增 20/106，违反静态 gate。停止逐 supernode guard，下一步审计 active-word event-mask prefilter。 |
 | `NO0483` | `2026-07-13` | [Active-word event-mask audit plan](./NO0483_active_word_event_mask_audit_plan_20260713.md) | 规划将 1,611 个 event-pure supernodes 按 `(batch, active-word, event-key)` 聚合，在 underlying active bits 已消费后用一次 edge 条件清 local event-pure mask。要求 group 数至少压缩 2 倍且仍覆盖 direct 1%，才做 word-level generated-copy object probe。 |
+| `NO0484` | `2026-07-13` | [Active-word event-mask audit gate](./NO0484_active_word_event_mask_audit_gate_20260713.md) | 1,611 个 event-pure nodes 聚合成 355 groups/354 words，压缩 `4.538x`；107 pure-event words、246 event/non-event mixed、2 multi-event mixed，308 samples/direct `4.614%` 全保留。代表 6 批次压成 133 个 clock-posedge word filters，进入 generated-copy object probe。 |
 
 
 ## 编号说明
