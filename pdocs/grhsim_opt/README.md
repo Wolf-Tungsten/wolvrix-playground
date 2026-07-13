@@ -478,6 +478,7 @@
 | `NO0487` | `2026-07-13` | [Pure-event word bypass object probe plan](./NO0487_pure_event_word_bypass_object_probe_plan_20260713.md) | 从失败 mask filter 中只保留 78 个代表 pure-event words/624 nodes/3,127 producers/92 samples；在 underlying clear 后以一次 event-hit wrapper 包住完整 8-node dispatch，edge-false 清 local flags 并跳到 restore。对象指标不得增，debug 须证明 entry tests 也被越过。 |
 | `NO0488` | `2026-07-13` | [Pure-event word bypass object probe gate](./NO0488_pure_event_word_bypass_object_probe_gate_20260713.md) | else-zero 形态 aggregate `.text/instructions/memory` 降 `834/99/107`，但 jumps `+8` 且 batches 21/41/24 小回退。mnemonic 显示每 word 新增 `jns+jmp+xor`；停止该形态，下一步只测试把原 restore 放进 event-hit wrapper、彻底删除 else-zero。 |
 | `NO0489` | `2026-07-13` | [Pure-event word restore-inside probe plan](./NO0489_pure_event_word_restore_inside_probe_plan_20260713.md) | 保持相同 78 pure words，只在 clear 后打开 event-hit wrapper、在原 restore 后闭合；edge-false 不 restore 已清 underlying word，删除 NO0488 每 word 的 else/jmp/xor。对象全指标不得增，debug 须证明完整 word dispatch 被越过。 |
+| `NO0490` | `2026-07-13` | [Pure-event word restore-inside probe gate](./NO0490_pure_event_word_restore_inside_probe_gate_20260713.md) | 78-word restore-inside 形态通过：aggregate `.text/instructions/memory/jumps` 降 `1862/379/239/65`，calls 不变；debug 证明 edge-false 在 underlying clear 后直达下一 word，越过 8 个 entries/payload/restore。进入默认关闭 pure-event compute-word emitter implementation、结构测试和动态 hit/miss 统计。 |
 
 
 ## 编号说明
