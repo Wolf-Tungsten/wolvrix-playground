@@ -466,6 +466,7 @@
 | `NO0475` | `2026-07-13` | [Corrected runtime-frame closure plan](./NO0475_corrected_runtime_frame_closure_plan_20260713.md) | scope-corrected runtime-frame-only 为 562：named mux/full OR/full AND 为 186/110/75，empty line-0 为 138。规划按 `(batch,offset)` 将 empty 桶逐项连接 NO0411 的 147 rows，重算 recovered mux/full-OR/unresolved；残余仍须 direct 1%。 |
 | `NO0476` | `2026-07-13` | [Corrected runtime-frame closure gate](./NO0476_corrected_runtime_frame_closure_gate_20260713.md) | 562 runtime rows、138 empty keys 与 NO0411 逐项闭合；empty 精确复现 mux 80/full OR 3/unresolved 55，old-only 9 均成为真实 source-backed rows。named helpers落入 NO0412/NO0408 或单类低于 67，关闭 corrected runtime-frame 域。 |
 | `NO0477` | `2026-07-13` | [Side-effect event-first object probe plan](./NO0477_side_effect_event_first_object_probe_plan_20260713.md) | 130/130 exact side-effect samples 都检查 posedge，但 current `if` 先算 data condition。规划在 batches 21/24/35/58/20/27/41 generated 副本中把 exact event 移到最前，覆盖 70 samples；静态计数不得增，并须证明 negedge edge-false branch 跳过 data work。 |
+| `NO0478` | `2026-07-13` | [Side-effect event-first object probe gate](./NO0478_side_effect_event_first_object_probe_gate_20260713.md) | 7 个 generated 副本重排 6,013 条 exact side-effect 条件；7/7 编译与 baseline identity 通过，但 aggregate `.text/instructions/memory-form` 增加 `0.778/1.300/0.314%`。debug 证明 data producer 在 `if` 前已执行，event-first 不能跳过 negedge data work；停止 `&&` reorder，后续只审计 exclusive producer chain 的 outer event guard。 |
 
 
 ## 编号说明
