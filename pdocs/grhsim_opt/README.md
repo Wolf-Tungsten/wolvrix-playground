@@ -480,6 +480,7 @@
 | `NO0489` | `2026-07-13` | [Pure-event word restore-inside probe plan](./NO0489_pure_event_word_restore_inside_probe_plan_20260713.md) | 保持相同 78 pure words，只在 clear 后打开 event-hit wrapper、在原 restore 后闭合；edge-false 不 restore 已清 underlying word，删除 NO0488 每 word 的 else/jmp/xor。对象全指标不得增，debug 须证明完整 word dispatch 被越过。 |
 | `NO0490` | `2026-07-13` | [Pure-event word restore-inside probe gate](./NO0490_pure_event_word_restore_inside_probe_gate_20260713.md) | 78-word restore-inside 形态通过：aggregate `.text/instructions/memory/jumps` 降 `1862/379/239/65`，calls 不变；debug 证明 edge-false 在 underlying clear 后直达下一 word，越过 8 个 entries/payload/restore。进入默认关闭 pure-event compute-word emitter implementation、结构测试和动态 hit/miss 统计。 |
 | `NO0491` | `2026-07-13` | [Pure-event compute-word bypass implementation plan](./NO0491_pure_event_compute_word_bypass_implementation_plan_20260713.md) | 规划默认关闭的 `pure_event_compute_word_bypass`：仅包装同一非 true exact event、全 transient producer 的 homogeneous compute words；clear 在 wrapper 前、restore 在 wrapper 内，并对 mixed/multi-event/materialized/once-only/commit/fullpass/full-word-consume 设置负向门禁。 |
+| `NO0492` | `2026-07-13` | [Pure-event compute-word bypass implementation gate](./NO0492_pure_event_compute_word_bypass_implementation_gate_20260713.md) | 默认关闭候选已在子仓库 `a3ec022` 实现；GRH purity 判定与 2 个 8-entry wrapper 结构闭合，default/0 全 source byte-identical，once/multi-event/commit/fullpass/full-word-consume 负门禁及 32-call hit/miss harness 通过；两项 emitter 回归均 PASS。 |
 
 
 ## 编号说明
