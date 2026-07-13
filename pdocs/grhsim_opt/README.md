@@ -514,6 +514,7 @@
 | `NO0523` | `2026-07-13` | [Sparse pure-event runtime load-gate snapshot](./NO0523_sparse_pure_event_runtime_load_gate_snapshot_20260713.md) | fresh NUMA1/NUMA0 最佳 SMT pair-min idle 仅 `97.60%/93.15%`，高并发 BOLT 与多组 emu 下未启动任何 PMU 样本。runtime 继续等待，转去审计 event-pure active-id packing 上界。 |
 | `NO0524` | `2026-07-13` | [Event-pure active-id packing audit plan](./NO0524_event_pure_active_id_packing_audit_plan_20260713.md) | 现有 107 pure words/856 nodes 的无约束上界为 181/1,448，但 active ID 绑定 final topo index，不能任意置换。规划先算 run/fragmentation，再只模拟同 DAG level 的合法 stable packing；新增覆盖仍须达到 direct 1%。 |
 | `NO0525` | `2026-07-13` | [Sparse pure-event high-load A/B/A](./NO0525_sparse_pure_event_high_load_aba_20260713.md) | CPU28 fixed-ASLR baseline/hybrid/baseline 三次 50k 均功能正确、PMU 100%；baseline cycle 极差达均值 `27.62%`，cycle 结论作废，但 hybrid host instructions 稳定减少 `1.42%`。正式 quiet gate 仍无有效样本。 |
+| `NO0526` | `2026-07-13` | [Event-pure legal level packing audit](./NO0526_event_pure_legal_level_packing_audit_20260713.md) | final DAG/63,241 active-ID 映射闭环；targeted 同 level+batch whole-word packing 只移动 256 个 compute nodes，将 pure words/samples 从 `107/125` 墏到 `171/244`，新增 `119/6675=1.78%` direct samples，静态 gate 通过但尚未实现 production emitter。 |
 
 
 ## 编号说明
