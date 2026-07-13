@@ -513,6 +513,7 @@
 | `NO0522` | `2026-07-13` | [SimTop sparse pure-event fixed-ASLR runtime plan](./NO0522_simtop_sparse_pure_event_fixed_aslr_runtime_plan_20260713.md) | 复用 NO0507 的 fixed-ASLR 五事件与 sibling idle `>=99%` 门禁，候选更新为 hybrid `eed8e615...`；先做 baseline/hybrid/baseline，有效后才追加 plain 对照，高 load 下保持零样本。 |
 | `NO0523` | `2026-07-13` | [Sparse pure-event runtime load-gate snapshot](./NO0523_sparse_pure_event_runtime_load_gate_snapshot_20260713.md) | fresh NUMA1/NUMA0 最佳 SMT pair-min idle 仅 `97.60%/93.15%`，高并发 BOLT 与多组 emu 下未启动任何 PMU 样本。runtime 继续等待，转去审计 event-pure active-id packing 上界。 |
 | `NO0524` | `2026-07-13` | [Event-pure active-id packing audit plan](./NO0524_event_pure_active_id_packing_audit_plan_20260713.md) | 现有 107 pure words/856 nodes 的无约束上界为 181/1,448，但 active ID 绑定 final topo index，不能任意置换。规划先算 run/fragmentation，再只模拟同 DAG level 的合法 stable packing；新增覆盖仍须达到 direct 1%。 |
+| `NO0525` | `2026-07-13` | [Sparse pure-event high-load A/B/A](./NO0525_sparse_pure_event_high_load_aba_20260713.md) | CPU28 fixed-ASLR baseline/hybrid/baseline 三次 50k 均功能正确、PMU 100%；baseline cycle 极差达均值 `27.62%`，cycle 结论作废，但 hybrid host instructions 稳定减少 `1.42%`。正式 quiet gate 仍无有效样本。 |
 
 
 ## 编号说明
