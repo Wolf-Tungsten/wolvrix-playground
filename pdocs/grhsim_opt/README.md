@@ -504,6 +504,7 @@
 | `NO0513` | `2026-07-13` | [Sparse-batch volatile threshold audit gate](./NO0513_sparse_batch_volatile_threshold_audit_gate_20260713.md) | threshold 2 唯一过门：20/107 words 使用 volatile、前五 hot batches 保持 direct；hybrid 相对 NO0357 的 text/instructions/memory/jumps 为 `-2,049/-352/-225/-89`，相对 plain 再减 `12,194/1,888/1,356/242`。进入无 batch-id emitter gate。 |
 | `NO0514` | `2026-07-13` | [Sparse-batch pure-event predicate implementation plan](./NO0514_sparse_batch_pure_event_predicate_implementation_plan_20260713.md) | 规划在现有默认关闭 bypass 内按 eligible count `<=2` 生成 `const volatile bool hit`，dense batch 保持 direct；真实 bool objects 已闭合 `-1,950/-325/-227/-91`，synthetic 增加同 batch 1/2/3-word 边界。 |
 | `NO0515` | `2026-07-13` | [Sparse-batch pure-event predicate implementation gate](./NO0515_sparse_batch_pure_event_predicate_implementation_gate_20260713.md) | 子仓库 `0c37785` 落地无 batch-id threshold-2 emitter；同批次 1/2/3-word 生成物精确为 volatile `1/2/0`、direct `0/0/3`，完整 emitter 与 memory-fill 回归分别 PASS `278.30s/5.61s`。进入 fresh SimTop source gate。 |
+| `NO0516` | `2026-07-13` | [SimTop sparse pure-event fresh source plan](./NO0516_simtop_sparse_pure_event_fresh_source_plan_20260713.md) | 规划从 NO0501 同一 checkpoint/config fresh emit threshold-2 production candidate；外部门禁为 14 sparse batches/20 volatile wrappers/87 direct wrappers、schedule/direct-read identity，以及相对 plain 仅 14 个 sched files 改变。 |
 
 
 ## 编号说明
