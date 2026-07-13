@@ -507,6 +507,7 @@
 | `NO0516` | `2026-07-13` | [SimTop sparse pure-event fresh source plan](./NO0516_simtop_sparse_pure_event_fresh_source_plan_20260713.md) | 规划从 NO0501 同一 checkpoint/config fresh emit threshold-2 production candidate；外部门禁为 14 sparse batches/20 volatile wrappers/87 direct wrappers、schedule/direct-read identity，以及相对 plain 仅 14 个 sched files 改变。 |
 | `NO0517` | `2026-07-13` | [SimTop sparse pure-event fresh source gate](./NO0517_simtop_sparse_pure_event_fresh_source_gate_20260713.md) | fresh schedule/direct-read identity 通过；production 精确生成 14 sparse batches/20 volatile wrappers/87 direct wrappers。相对 NO0501 仅 14 sched 改变，diff `+60/-20` 全为预期 predicate 形态，payload 删除为 0；进入 O3 build。 |
 | `NO0518` | `2026-07-13` | [SimTop sparse pure-event build and codegen gate](./NO0518_simtop_sparse_pure_event_build_codegen_gate_20260713.md) | Clang O3 archive/link 完整通过；真实 hybrid objects 相对 NO0357 的 text/instructions/memory/jumps 为 `-1,950/-325/-227/-91`，相对 plain 为 `-12,095/-1,861/-1,358/-244`，batch 27 cliff 消失；进入功能门禁。 |
+| `NO0519` | `2026-07-13` | [SimTop sparse pure-event 100-cycle smoke gate](./NO0519_simtop_sparse_pure_event_100cycle_smoke_gate_20260713.md) | guest/model/cycleCnt/instr/PC=`101/100/96/0/0`，与 baseline/plain 一致；负向与 profile 泄漏扫描为 0。该区间无 guest commit，进入 10k。 |
 
 
 ## 编号说明
