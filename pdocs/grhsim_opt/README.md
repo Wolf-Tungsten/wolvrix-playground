@@ -511,6 +511,7 @@
 | `NO0520` | `2026-07-13` | [SimTop sparse pure-event 10k functional gate](./NO0520_simtop_sparse_pure_event_10k_functional_gate_20260713.md) | 10 个 normalized checkpoints 与 NO0360 baseline、NO0505 plain 均逐字节一致；终点 guest/cycleCnt/instr/PC=`10,001/9,996/458/0x800027c6`，负向扫描为 0；进入 50k。 |
 | `NO0521` | `2026-07-13` | [SimTop sparse pure-event 50k functional gate](./NO0521_simtop_sparse_pure_event_50k_functional_gate_20260713.md) | 五个 normalized checkpoints 与 baseline/plain 均逐字节一致；终点 guest/cycleCnt/instr/PC=`50,001/49,996/73,580/0x80001312`，负向扫描为 0。raw 179.9s 受高 load 污染；先做 quiet survey。 |
 | `NO0522` | `2026-07-13` | [SimTop sparse pure-event fixed-ASLR runtime plan](./NO0522_simtop_sparse_pure_event_fixed_aslr_runtime_plan_20260713.md) | 复用 NO0507 的 fixed-ASLR 五事件与 sibling idle `>=99%` 门禁，候选更新为 hybrid `eed8e615...`；先做 baseline/hybrid/baseline，有效后才追加 plain 对照，高 load 下保持零样本。 |
+| `NO0523` | `2026-07-13` | [Sparse pure-event runtime load-gate snapshot](./NO0523_sparse_pure_event_runtime_load_gate_snapshot_20260713.md) | fresh NUMA1/NUMA0 最佳 SMT pair-min idle 仅 `97.60%/93.15%`，高并发 BOLT 与多组 emu 下未启动任何 PMU 样本。runtime 继续等待，转去审计 event-pure active-id packing 上界。 |
 
 
 ## 编号说明
