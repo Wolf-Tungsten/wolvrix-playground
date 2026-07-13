@@ -495,6 +495,7 @@
 | `NO0504` | `2026-07-13` | [SimTop pure-event word bypass 100-cycle smoke gate](./NO0504_simtop_pure_event_word_bypass_100cycle_smoke_gate_20260713.md) | profile-off candidate 的 guest/model/cycleCnt/instr/PC 为 `101/100/96/0/0`，与 NO0359 direct baseline 精确一致，负向扫描与 profile 泄漏均为 0；进入 10k 指令提交门禁。 |
 | `NO0505` | `2026-07-13` | [SimTop pure-event word bypass 10k functional gate](./NO0505_simtop_pure_event_word_bypass_10k_functional_gate_20260713.md) | 10 个 1k checkpoints 去除 `host_ms` 后与 NO0360 逐字节一致；终点 guest/cycleCnt/instr/PC 为 `10,001/9,996/458/0x800027c6`，负向扫描为 0；进入 50k 主功能门禁。 |
 | `NO0506` | `2026-07-13` | [SimTop pure-event word bypass 50k functional gate](./NO0506_simtop_pure_event_word_bypass_50k_functional_gate_20260713.md) | 五个 10k checkpoints 与 NO0361 精确一致，终点 guest/cycleCnt/instr/PC 为 `50,001/49,996/73,580/0x80001312`，负向扫描为 0；raw 95.2s 遇 load 上升不作性能结论，进入 fixed-ASLR 相邻 A/B/A。 |
+| `NO0507` | `2026-07-13` | [SimTop pure-event word bypass fixed-ASLR runtime plan](./NO0507_simtop_pure_event_word_bypass_fixed_aslr_runtime_plan_20260713.md) | 规划 profile-off NO0357/bypass/NO0357 的 fixed-ASLR 五事件 A/B/A；NUMA1 即时选核后锁定，逐轮 sibling idle `>=99%`、baseline cycles spread `<=1%`，高负载下不引用历史 raw time。 |
 
 
 ## 编号说明
