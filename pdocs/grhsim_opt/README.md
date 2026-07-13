@@ -469,6 +469,7 @@
 | `NO0478` | `2026-07-13` | [Side-effect event-first object probe gate](./NO0478_side_effect_event_first_object_probe_gate_20260713.md) | 7 个 generated 副本重排 6,013 条 exact side-effect 条件；7/7 编译与 baseline identity 通过，但 aggregate `.text/instructions/memory-form` 增加 `0.778/1.300/0.314%`。debug 证明 data producer 在 `if` 前已执行，event-first 不能跳过 negedge data work；停止 `&&` reorder，后续只审计 exclusive producer chain 的 outer event guard。 |
 | `NO0479` | `2026-07-13` | [Event-pure compute supernode audit plan](./NO0479_event_pure_compute_supernode_audit_plan_20260713.md) | 将 NO0478 的 producer 问题提升到 compute-supernode 粒度。规划扫描 66 个 compute TUs，只接受同一 exact edge、仅含 transient producers + SystemTask/DPIC、无 slot/state/activation 写入的 event-pure payload，并连接 NO0448 profile；direct 至少 1% 才进入 outer event guard object probe。 |
 | `NO0480` | `2026-07-13` | [Event-pure compute supernode audit gate](./NO0480_event_pure_compute_supernode_audit_gate_20260713.md) | 63,241 个 compute supernodes 中保守闭合 1,611 个 event-pure blocks，含 8,246 producers/11,472 side effects；NO0448 payload 覆盖 308 samples/direct `4.614%`，其中 producer/prelude 204。1,609 blocks 为 clock posedge；通过 1% gate，选择 6 个 hot batches 做 outer event guard object probe。 |
+| `NO0481` | `2026-07-13` | [Outer event guard object probe plan](./NO0481_outer_event_guard_object_probe_plan_20260713.md) | 规划在 batches 58/21/35/41/24/30 generated 副本的 855 个 event-pure payload 外增加 exact edge guard，覆盖 4,527 producers/5,583 side effects/151 samples。内部 guards 与 call order 保留；6 对对象须无静态回退，并用 debug 证明 edge-false 在 producer 前跳过完整 payload。 |
 
 
 ## 编号说明
