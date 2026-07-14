@@ -37,12 +37,18 @@
 | `TNO0025` | `2026-07-14` | [Stage 1 candidate build and functional gates](./TNO0025_stage1_candidate_build_and_functional_gates_20260714.md) | 三种 policy 均完成 fresh O3 build 和 fixed-ASLR 100/10k/50k 功能门禁；generated C++ 与 `.text` 均下降，正式性能仍待 quiet A/B/A。 |
 | `TNO0026` | `2026-07-14` | [Stage 1 generated-code static analysis](./TNO0026_stage1_generated_code_static_analysis_20260714.md) | 区分 batch relocation 与真实 work：候选 `.text` 下降约 `0.2%`、propagation entries 下降约 `1.4%`，但 commit/clock 表略退，仍须 50k 裁决。 |
 | `TNO0027` | `2026-07-14` | [Stage 1 quiet-gate block and default decision](./TNO0027_stage1_quiet_gate_block_and_default_decision_20260714.md) | 外部负载使 formal quiet A/B/A 不成立；三候选功能/静态正向但不据此晋升，current-default 保持 `off`，保留后续安静重测入口。 |
+| `TNO0028` | `2026-07-14` | [Stage 2 same-Kahn-level packing plan](./TNO0028_stage2_same_kahn_level_packing_plan_20260714.md) | 规划 coarsen 后、DP 前的 bounded same-level slot swap；保持拓扑、segment 数不增加、cap 与 1% moved-op 预算，并用 exact BAE/DAG 整候选裁决。已追加首轮门禁修正。 |
+| `TNO0029` | `2026-07-14` | [Stage 2 Kahn packing implementation and structure gate](./TNO0029_stage2_kahn_packing_implementation_and_structure_gate_20260714.md) | 实现 bounded same-level swap；default-off identity 闭合，candidate SN `-75`、BAE `-0.014%`、DAG `+0.121%`，strict/balanced 回退，bae-budget 进入 50k。 |
+| `TNO0030` | `2026-07-14` | [Stage 2 bae-budget build and functional gate](./TNO0030_stage2_bae_budget_build_and_functional_gate_20260714.md) | mixed candidate 完成 fresh O3 build 与 fixed-ASLR 100/10k/50k；功能 PASS，`.text -0.021%`，高负载 wall 不作性能结论。 |
+| `TNO0031` | `2026-07-14` | [Stage 2 bae-budget quiet A/B/A](./TNO0031_stage2_bae_budget_quiet_aba_20260714.md) | CPU113/305、NUMA1 quiet A/B/A 有效；cycles `-0.324%` 低于 1% 门槛，standalone 接近中性且不晋升默认。 |
+| `TNO0032` | `2026-07-14` | [Stage 2 bae-budget plus Stage 1 strict structure gate](./TNO0032_stage2_bae_plus_stage1_strict_structure_gate_20260714.md) | 组合保留 Stage 1 的 BAE/DAG 收益并减少 75 个 SN；相对 baseline BAE `-1.156%`、DAG `-3.748%`，进入完整 50k。 |
+| `TNO0033` | `2026-07-14` | [Stage 2 combination runtime and default decision](./TNO0033_stage2_combination_runtime_and_default_decision_20260714.md) | 组合 fixed-ASLR quiet A/B/A 有效；instructions `-0.559%` 但 frontend empty `+11.461%`、cycles `+8.713%`，明确回退，Stage 1/2 均保持默认关闭。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`27`（`TNO0001..TNO0027`）。
+- 当前记录类文档总数：`33`（`TNO0001..TNO0033`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

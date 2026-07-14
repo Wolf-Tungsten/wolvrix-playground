@@ -421,6 +421,22 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_REGRESSION_PPM",
         10000,
     )
+    kahn_level_pack_policy = os.environ.get(
+        "WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_POLICY",
+        "off",
+    ).strip()
+    kahn_level_pack_max_moves = env_int(
+        "WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_MAX_MOVES",
+        4096,
+    )
+    kahn_level_pack_max_moved_op_ppm = env_int(
+        "WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_MAX_MOVED_OP_PPM",
+        10000,
+    )
+    kahn_level_pack_max_regression_ppm = env_int(
+        "WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_MAX_REGRESSION_PPM",
+        10000,
+    )
     final_topo_policy = os.environ.get(
         "WOLVRIX_XS_GRHSIM_FINAL_TOPO_POLICY",
         "level-id",
@@ -472,6 +488,10 @@ def main() -> int:
         f"post_dp_refine_max_moves={post_dp_refine_max_moves} "
         f"post_dp_refine_max_moved_op_ppm={post_dp_refine_max_moved_op_ppm} "
         f"post_dp_refine_max_regression_ppm={post_dp_refine_max_regression_ppm} "
+        f"kahn_level_pack_policy={kahn_level_pack_policy} "
+        f"kahn_level_pack_max_moves={kahn_level_pack_max_moves} "
+        f"kahn_level_pack_max_moved_op_ppm={kahn_level_pack_max_moved_op_ppm} "
+        f"kahn_level_pack_max_regression_ppm={kahn_level_pack_max_regression_ppm} "
         f"final_topo_policy={final_topo_policy}"
     )
 
@@ -548,6 +568,10 @@ def main() -> int:
                     "post_dp_refine_max_moves": post_dp_refine_max_moves,
                     "post_dp_refine_max_moved_op_ppm": post_dp_refine_max_moved_op_ppm,
                     "post_dp_refine_max_regression_ppm": post_dp_refine_max_regression_ppm,
+                    "kahn_level_pack_policy": kahn_level_pack_policy,
+                    "kahn_level_pack_max_moves": kahn_level_pack_max_moves,
+                    "kahn_level_pack_max_moved_op_ppm": kahn_level_pack_max_moved_op_ppm,
+                    "kahn_level_pack_max_regression_ppm": kahn_level_pack_max_regression_ppm,
                     "final_topo_policy": final_topo_policy,
                 },
             ),
