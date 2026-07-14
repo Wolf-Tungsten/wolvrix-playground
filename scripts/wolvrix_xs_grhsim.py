@@ -401,6 +401,26 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_FULL_ACTIVE_WORD_CONSUME",
         default=False,
     )
+    post_dp_refine_policy = os.environ.get(
+        "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_POLICY",
+        "off",
+    ).strip()
+    post_dp_refine_max_rounds = env_int(
+        "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_ROUNDS",
+        1,
+    )
+    post_dp_refine_max_moves = env_int(
+        "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_MOVES",
+        4096,
+    )
+    post_dp_refine_max_moved_op_ppm = env_int(
+        "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_MOVED_OP_PPM",
+        10000,
+    )
+    post_dp_refine_max_regression_ppm = env_int(
+        "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_REGRESSION_PPM",
+        10000,
+    )
     final_topo_policy = os.environ.get(
         "WOLVRIX_XS_GRHSIM_FINAL_TOPO_POLICY",
         "level-id",
@@ -447,6 +467,11 @@ def main() -> int:
         f"reg_to_mem_decoded_write_storage={reg_to_mem_decoded_write_storage} "
         f"declared_value_compute_node_boundary={declared_value_compute_node_boundary} "
         f"full_active_word_consume={full_active_word_consume} "
+        f"post_dp_refine_policy={post_dp_refine_policy} "
+        f"post_dp_refine_max_rounds={post_dp_refine_max_rounds} "
+        f"post_dp_refine_max_moves={post_dp_refine_max_moves} "
+        f"post_dp_refine_max_moved_op_ppm={post_dp_refine_max_moved_op_ppm} "
+        f"post_dp_refine_max_regression_ppm={post_dp_refine_max_regression_ppm} "
         f"final_topo_policy={final_topo_policy}"
     )
 
@@ -518,6 +543,11 @@ def main() -> int:
                     "max_op_in_commit_supernode": max_op_in_commit_supernode,
                     "commit_guard_event_buckets": commit_guard_event_buckets,
                     "declared_value_compute_node_boundary": declared_value_compute_node_boundary,
+                    "post_dp_refine_policy": post_dp_refine_policy,
+                    "post_dp_refine_max_rounds": post_dp_refine_max_rounds,
+                    "post_dp_refine_max_moves": post_dp_refine_max_moves,
+                    "post_dp_refine_max_moved_op_ppm": post_dp_refine_max_moved_op_ppm,
+                    "post_dp_refine_max_regression_ppm": post_dp_refine_max_regression_ppm,
                     "final_topo_policy": final_topo_policy,
                 },
             ),

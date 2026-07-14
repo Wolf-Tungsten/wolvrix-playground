@@ -30,11 +30,19 @@
 | `TNO0018` | `2026-07-13` | [Event-pure word bypass development](./TNO0018_event_pure_word_bypass_development_20260713.md) | 整理 `NO0477..NO0494`：从 side-effect/event guard 负向探针收敛到 pure-event whole-word bypass 与动态 profile 实现。 |
 | `TNO0019` | `2026-07-13` | [SimTop pure-event profile and plain bypass](./TNO0019_simtop_pure_event_profile_and_plain_bypass_20260713.md) | 整理 `NO0495..NO0509`：107 words 的动态 miss 机会闭合，plain bypass 功能正确但 batch27 codegen cliff 且正式 runtime 被负载阻断。 |
 | `TNO0020` | `2026-07-13` | [Sparse pure-event codegen and legal packing](./TNO0020_sparse_pure_event_codegen_and_legal_packing_20260713.md) | 整理 `NO0510..NO0526`：threshold-2 修复 batch27，hybrid 功能正确；高负载性能无效，legal packing 静态候选新增 `119/6675` samples。 |
+| `TNO0021` | `2026-07-14` | [Current default baseline and Stage 1 refinement plan](./TNO0021_current_default_baseline_and_stage1_refinement_plan_20260714.md) | 固定当前 HEAD 默认 NO0300/fixed-ASLR 为唯一基线；规划 plain-seeded exact post-DP refinement，并将 BAE/DAG/compute pairs 改为软结构门槛、以 SimTop 50k 为最终裁决。 |
+| `TNO0022` | `2026-07-14` | [Fresh current-default NO0300 baseline1](./TNO0022_fresh_current_default_no0300_baseline1_20260714.md) | Fresh 复现当前默认 NO0300 结构；CPU106/298 quiet fixed-ASLR 50k 功能与五事件 PMU 通过，固定为后续 activity-schedule A/B/A 的 `baseline1`。 |
+| `TNO0023` | `2026-07-14` | [Stage 1 exact post-DP refinement and strict-r1 structure scan](./TNO0023_stage1_exact_post_dp_refinement_strict_r1_scan_20260714.md) | 实现 bounded exact BAE/DAG move/swap refinement；strict/r1 在 `4096` moves 下将 total BAE 降低 `1.1212%`、DAG 降低 `3.7821%`，已过结构 recount，尚待 SimTop runtime gate。 |
+| `TNO0024` | `2026-07-14` | [Stage 1 mixed-policy structure scans](./TNO0024_stage1_mixed_policy_structure_scans_20260714.md) | 同一 current-default checkpoint 上完成 strict/balanced/bae-budget 扫描；三者 BAE 均下降约 `1.1%..1.2%`、DAG 均下降约 `3.5%..3.8%`，全部进入 runtime gate。 |
+| `TNO0025` | `2026-07-14` | [Stage 1 candidate build and functional gates](./TNO0025_stage1_candidate_build_and_functional_gates_20260714.md) | 三种 policy 均完成 fresh O3 build 和 fixed-ASLR 100/10k/50k 功能门禁；generated C++ 与 `.text` 均下降，正式性能仍待 quiet A/B/A。 |
+| `TNO0026` | `2026-07-14` | [Stage 1 generated-code static analysis](./TNO0026_stage1_generated_code_static_analysis_20260714.md) | 区分 batch relocation 与真实 work：候选 `.text` 下降约 `0.2%`、propagation entries 下降约 `1.4%`，但 commit/clock 表略退，仍须 50k 裁决。 |
+| `TNO0027` | `2026-07-14` | [Stage 1 quiet-gate block and default decision](./TNO0027_stage1_quiet_gate_block_and_default_decision_20260714.md) | 外部负载使 formal quiet A/B/A 不成立；三候选功能/静态正向但不据此晋升，current-default 保持 `off`，保留后续安静重测入口。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
-- TNO 主题文档数：`20`。
+- 初始来源整理形成的 TNO 主题文档数：`20`。
+- 当前记录类文档总数：`27`（`TNO0001..TNO0027`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
