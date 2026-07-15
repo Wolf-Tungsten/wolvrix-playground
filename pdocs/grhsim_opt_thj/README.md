@@ -49,12 +49,15 @@
 | `TNO0037` | `2026-07-14` | [Stage 3 standalone structure scan](./TNO0037_stage3_standalone_structure_scan_20260714.md) | conservative true clone 应用 108 个；BAE `-54`、DAG `-18`、boundary values `-64`，但 graph ops/values 各 `+108`、SN `+3`，继续 full 50k。 |
 | `TNO0038` | `2026-07-14` | [Stage 3 full build and functional gate](./TNO0038_stage3_full_build_and_functional_gate_20260714.md) | full stats 复现；source/`.text` 分别 `-0.118%/-0.063%`，fixed-ASLR 100/10k/50k 功能全过，高负载 wall 不作性能结论。 |
 | `TNO0039` | `2026-07-14` | [Stage 3 quiet A/B/A and default decision](./TNO0039_stage3_quiet_aba_and_default_decision_20260714.md) | atomic gate-to-run `6..7 ms` 的 quiet A/B/A 有效；cycles `+0.145%`、instructions `-0.078%`，低于 1% 线，判 neutral 并保持默认关闭。 |
+| `TNO0040` | `2026-07-14` | [Stage 4 common-owner probe plan](./TNO0040_stage4_common_owner_probe_plan_20260714.md) | 规划 no-mutation 分桶，确认 third singleton common owner 的双边 operand locality/cap 机会；maxClones=0，未有证据前不放开 strict clone。 |
+| `TNO0041` | `2026-07-14` | [Stage 4 common-owner probe implementation](./TNO0041_stage4_common_owner_probe_implementation_20260714.md) | 实现 off/probe 只读漏斗与全层参数绑定；focused identity/positive/reject 和独立 review 通过，exact eligible 明确为冲突选择前的上界。 |
+| `TNO0042` | `2026-07-14` | [Stage 4 SimTop common-owner probe](./TNO0042_stage4_simtop_common_owner_probe_20260714.md) | raw stats identity；167,780 third-common 经 singleton/双边 locality/cap 后剩 691 exact upper-bound，projected pairs 1,382（总 BAE `0.0697%`）。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`39`（`TNO0001..TNO0039`）。
+- 当前记录类文档总数：`42`（`TNO0001..TNO0042`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

@@ -417,6 +417,10 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_CLONED_OP_PPM",
         5000,
     )
+    local_shared_compute_common_owner_policy = os.environ.get(
+        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_COMMON_OWNER_POLICY",
+        "off",
+    ).strip()
     full_active_word_consume = env_flag(
         "WOLVRIX_XS_GRHSIM_FULL_ACTIVE_WORD_CONSUME",
         default=False,
@@ -507,6 +511,7 @@ def main() -> int:
         f"local_shared_compute_max_width={local_shared_compute_max_width} "
         f"local_shared_compute_max_clones={local_shared_compute_max_clones} "
         f"local_shared_compute_max_cloned_op_ppm={local_shared_compute_max_cloned_op_ppm} "
+        f"local_shared_compute_common_owner_policy={local_shared_compute_common_owner_policy} "
         f"full_active_word_consume={full_active_word_consume} "
         f"post_dp_refine_policy={post_dp_refine_policy} "
         f"post_dp_refine_max_rounds={post_dp_refine_max_rounds} "
@@ -593,6 +598,7 @@ def main() -> int:
                     "local_shared_compute_max_width": local_shared_compute_max_width,
                     "local_shared_compute_max_clones": local_shared_compute_max_clones,
                     "local_shared_compute_max_cloned_op_ppm": local_shared_compute_max_cloned_op_ppm,
+                    "local_shared_compute_common_owner_policy": local_shared_compute_common_owner_policy,
                     "post_dp_refine_policy": post_dp_refine_policy,
                     "post_dp_refine_max_rounds": post_dp_refine_max_rounds,
                     "post_dp_refine_max_moves": post_dp_refine_max_moves,
