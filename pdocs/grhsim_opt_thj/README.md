@@ -82,12 +82,14 @@
 | `TNO0070` | `2026-07-16` | [Stage 10 fanin pullback strict full regression gate](./TNO0070_stage10_fanin_pullback_strict_full_regression_gate_20260716.md) | 完整 build 通过，CTest `46/48` 且无新增失败；activity-schedule 与 292.89 秒 emitter 长测均通过，仅保留两个既有失败。 |
 | `TNO0071` | `2026-07-16` | [Stage 10 fanin pullback strict full build and functional gate](./TNO0071_stage10_fanin_pullback_strict_full_build_and_functional_gate_20260716.md) | full emit 精确复现 BAE `-254`；O3/link 与 fixed-ASLR 100/10k 功能通过，`.text +0.0055%`，进入跨 NUMA 50k。 |
 | `TNO0072` | `2026-07-16` | [Stage 10 fanin pullback strict cross-NUMA runtime](./TNO0072_stage10_fanin_pullback_strict_cross_numa_runtime_20260716.md) | quiet A/B/A：NUMA0 cycles `-0.0903%`，NUMA1 `+0.7464%` 且 frontend 约 `+0.94%`；判 neutral-to-mild-regression，默认保持 off。 |
+| `TNO0073` | `2026-07-16` | [Stage 10 same-poststats control correction plan](./TNO0073_stage10_same_poststats_control_correction_plan_20260716.md) | 发现 Stage7 config-equivalent control 与 strict 的 source-clone op ID/layout provenance 漂移；规划同 post-stats/current-code explicit-off 控制重测，TNO0072 因果结论暂降级。 |
+| `TNO0074` | `2026-07-16` | [Stage 10 same-poststats corrected runtime](./TNO0074_stage10_same_poststats_corrected_runtime_20260716.md) | corrected quiet A/B/A：NUMA0 cycles `-8.7636%`、NUMA1 `+9.4387%`，instructions 均 `-0.02675%`；确认 layout socket 反转，strict 默认保持 off。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`72`（`TNO0001..TNO0072`）。
+- 当前记录类文档总数：`74`（`TNO0001..TNO0074`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
