@@ -505,6 +505,30 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_MAX_REGRESSION_PPM",
         10000,
     )
+    final_fanin_pullback_policy = os.environ.get(
+        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_POLICY",
+        "off",
+    ).strip()
+    final_fanin_pullback_max_node_ops = env_int(
+        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_NODE_OPS",
+        8,
+    )
+    final_fanin_pullback_max_value_width = env_int(
+        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_VALUE_WIDTH",
+        64,
+    )
+    final_fanin_pullback_min_gain = env_int(
+        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MIN_GAIN",
+        3,
+    )
+    final_fanin_pullback_max_moves = env_int(
+        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_MOVES",
+        4096,
+    )
+    final_fanin_pullback_max_moved_op_ppm = env_int(
+        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_MOVED_OP_PPM",
+        5000,
+    )
     final_topo_policy = os.environ.get(
         "WOLVRIX_XS_GRHSIM_FINAL_TOPO_POLICY",
         "level-id",
@@ -575,6 +599,12 @@ def main() -> int:
         f"kahn_level_pack_max_moves={kahn_level_pack_max_moves} "
         f"kahn_level_pack_max_moved_op_ppm={kahn_level_pack_max_moved_op_ppm} "
         f"kahn_level_pack_max_regression_ppm={kahn_level_pack_max_regression_ppm} "
+        f"final_fanin_pullback_policy={final_fanin_pullback_policy} "
+        f"final_fanin_pullback_max_node_ops={final_fanin_pullback_max_node_ops} "
+        f"final_fanin_pullback_max_value_width={final_fanin_pullback_max_value_width} "
+        f"final_fanin_pullback_min_gain={final_fanin_pullback_min_gain} "
+        f"final_fanin_pullback_max_moves={final_fanin_pullback_max_moves} "
+        f"final_fanin_pullback_max_moved_op_ppm={final_fanin_pullback_max_moved_op_ppm} "
         f"final_topo_policy={final_topo_policy}"
     )
 
@@ -664,6 +694,12 @@ def main() -> int:
                     "kahn_level_pack_max_moves": kahn_level_pack_max_moves,
                     "kahn_level_pack_max_moved_op_ppm": kahn_level_pack_max_moved_op_ppm,
                     "kahn_level_pack_max_regression_ppm": kahn_level_pack_max_regression_ppm,
+                    "final_fanin_pullback_policy": final_fanin_pullback_policy,
+                    "final_fanin_pullback_max_node_ops": final_fanin_pullback_max_node_ops,
+                    "final_fanin_pullback_max_value_width": final_fanin_pullback_max_value_width,
+                    "final_fanin_pullback_min_gain": final_fanin_pullback_min_gain,
+                    "final_fanin_pullback_max_moves": final_fanin_pullback_max_moves,
+                    "final_fanin_pullback_max_moved_op_ppm": final_fanin_pullback_max_moved_op_ppm,
                     "final_topo_policy": final_topo_policy,
                 },
             ),

@@ -74,12 +74,15 @@
 | `TNO0062` | `2026-07-15` | [Stage 8 plain-DP segment-penalty structure scan](./TNO0062_stage8_plain_dp_penalty_structure_scan_20260715.md) | 四点结构扫描闭合 p100 raw identity；p050 以 compute SN `+177` 换 BAE `-177`，p200 以 BAE `+282` 换 compute SN `-143`，两端均继续 full emit/50k。 |
 | `TNO0063` | `2026-07-15` | [Stage 8 penalty full build and functional gate](./TNO0063_stage8_penalty_full_build_and_functional_gate_20260715.md) | p050/p200 full stats 复现、fresh O3 build 与 fixed-ASLR 100/10k 均通过；`.text` 分别 `-0.080%/-0.042%`，两者继续跨 NUMA 50k。 |
 | `TNO0064` | `2026-07-16` | [Stage 8 cross-NUMA runtime and default decision](./TNO0064_stage8_cross_numa_runtime_and_default_decision_20260716.md) | p050/p200 在 NUMA0 cycles 分别 `+7.21%/+11.69%`，NUMA1 分别 `-9.58%/-10.01%`；跨 socket 方向反转，不修改 `1000000 PPM` 默认并停止固定 penalty 细扫。 |
+| `TNO0065` | `2026-07-16` | [Stage 9 common-source fanin pullback probe plan](./TNO0065_stage9_common_source_fanin_pullback_probe_plan_20260716.md) | 规划 final schedule no-mutation probe：识别小型纯 cone 的同源多输入，以 exact `N -> 1` value-pair gain、容量/冲突预算决定是否进入 strict pullback。 |
+| `TNO0066` | `2026-07-16` | [Stage 9 fanin probe implementation and SimTop result](./TNO0066_stage9_fanin_probe_implementation_and_simtop_result_20260716.md) | off/probe raw identity 闭合；production probe 选中 84 个 1-bit pure cone，projected compute BAE `-254`、moved ops `262`，进入 strict move。 |
+| `TNO0067` | `2026-07-16` | [Stage 9 fanin probe full regression gate](./TNO0067_stage9_fanin_probe_full_regression_gate_20260716.md) | 完整 rebuild 后全量 CTest `46/48`；activity/emitter/ingest 均通过，仅保留两个既有失败，probe 阶段可提交。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`64`（`TNO0001..TNO0064`）。
+- 当前记录类文档总数：`67`（`TNO0001..TNO0067`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
