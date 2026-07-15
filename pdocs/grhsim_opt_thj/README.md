@@ -66,12 +66,13 @@
 | `TNO0054` | `2026-07-15` | [Stage 6 production probe and first targeted gate](./TNO0054_stage6_production_probe_and_first_targeted_gate_20260715.md) | 正确 source 环境下 production probe 精确复现 `107 -> 171` pure words、moved `256`；首次 targeted 被 batch 74 metadata gate 拦截，先增强 estimated-lines 差异诊断。 |
 | `TNO0055` | `2026-07-15` | [Stage 6 frozen-batch cost-proxy fix](./TNO0055_stage6_frozen_batch_cost_proxy_fix_20260715.md) | 精确定位 batch 74 仅 `estimatedLines +6`；保留全部结构门禁，将 rebuilt line proxy 改为可观测统计，并新增稳定漂移 regression fixture。 |
 | `TNO0056` | `2026-07-15` | [Stage 6 targeted build and functional gate](./TNO0056_stage6_targeted_build_and_functional_gate_20260715.md) | production targeted 通过并形成 171 pure words；schedule identity、O3 静态和 fixed-ASLR 100/10k/50k 功能门禁全部闭合。 |
+| `TNO0057` | `2026-07-15` | [Stage 6 quiet runtime and default decision](./TNO0057_stage6_quiet_runtime_and_default_decision_20260715.md) | 两组独立 packing-only quiet A/B/A 均回退（cycles `+1.23%/+5.16%`），保持 pack 默认关闭；current-default 对 probe 的有效组合结果为 cycles `-11.41%`，另立采用阶段。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`56`（`TNO0001..TNO0056`）。
+- 当前记录类文档总数：`57`（`TNO0001..TNO0057`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
