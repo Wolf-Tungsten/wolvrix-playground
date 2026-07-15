@@ -67,12 +67,15 @@
 | `TNO0055` | `2026-07-15` | [Stage 6 frozen-batch cost-proxy fix](./TNO0055_stage6_frozen_batch_cost_proxy_fix_20260715.md) | 精确定位 batch 74 仅 `estimatedLines +6`；保留全部结构门禁，将 rebuilt line proxy 改为可观测统计，并新增稳定漂移 regression fixture。 |
 | `TNO0056` | `2026-07-15` | [Stage 6 targeted build and functional gate](./TNO0056_stage6_targeted_build_and_functional_gate_20260715.md) | production targeted 通过并形成 171 pure words；schedule identity、O3 静态和 fixed-ASLR 100/10k/50k 功能门禁全部闭合。 |
 | `TNO0057` | `2026-07-15` | [Stage 6 quiet runtime and default decision](./TNO0057_stage6_quiet_runtime_and_default_decision_20260715.md) | 两组独立 packing-only quiet A/B/A 均回退（cycles `+1.23%/+5.16%`），保持 pack 默认关闭；current-default 对 probe 的有效组合结果为 cycles `-11.41%`，另立采用阶段。 |
+| `TNO0058` | `2026-07-15` | [Stage 7 hybrid XS-default adoption plan](./TNO0058_stage7_hybrid_xs_default_adoption_plan_20260715.md) | 规划仅在 XS 脚本默认开启 existing direct-state + threshold-2 bypass，保持全局 emitter 与 packing 默认关闭，并以 fresh identity/function/quiet 50k 决定是否采用。 |
+| `TNO0059` | `2026-07-15` | [Stage 7 hybrid default implementation and fresh gates](./TNO0059_stage7_hybrid_default_implementation_and_fresh_gates_20260715.md) | XS 默认与显式回滚均完成 canonical fresh emit/O3；hybrid 精确复现 probe、rollback 去注释后精确回到 NO0300，100/10k/50k 功能全过，进入 quiet A/B/A。 |
+| `TNO0060` | `2026-07-15` | [Stage 7 cross-socket runtime and default decision](./TNO0060_stage7_cross_socket_runtime_and_default_decision_20260715.md) | 四组 fresh A/B/A 显示 hybrid 在 NUMA0 cycles `+4.36%/+4.96%`、NUMA1 `-12.48%/-12.23%`；跨 socket 方向反转，不采用默认并恢复 NO0300，保留显式 XS direct 控制。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`57`（`TNO0001..TNO0057`）。
+- 当前记录类文档总数：`60`（`TNO0001..TNO0060`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

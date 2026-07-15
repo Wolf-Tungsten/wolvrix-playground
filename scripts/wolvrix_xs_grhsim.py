@@ -433,6 +433,14 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_FULL_ACTIVE_WORD_CONSUME",
         default=False,
     )
+    direct_single_writer_state_reads = (
+        env_flag("WOLVRIX_XS_GRHSIM_DIRECT_SINGLE_WRITER_STATE_READS")
+        if "WOLVRIX_XS_GRHSIM_DIRECT_SINGLE_WRITER_STATE_READS" in os.environ
+        else env_flag("WOLVRIX_GRHSIM_DIRECT_SINGLE_WRITER_STATE_READS", default=False)
+    )
+    os.environ["WOLVRIX_GRHSIM_DIRECT_SINGLE_WRITER_STATE_READS"] = (
+        "1" if direct_single_writer_state_reads else "0"
+    )
     pure_event_compute_word_bypass = (
         env_flag("WOLVRIX_XS_GRHSIM_PURE_EVENT_COMPUTE_WORD_BYPASS")
         if "WOLVRIX_XS_GRHSIM_PURE_EVENT_COMPUTE_WORD_BYPASS" in os.environ
@@ -547,6 +555,7 @@ def main() -> int:
         f"local_shared_compute_common_owner_max_clones={local_shared_compute_common_owner_max_clones} "
         f"local_shared_compute_common_owner_max_cloned_op_ppm={local_shared_compute_common_owner_max_cloned_op_ppm} "
         f"full_active_word_consume={full_active_word_consume} "
+        f"direct_single_writer_state_reads={direct_single_writer_state_reads} "
         f"pure_event_compute_word_bypass={pure_event_compute_word_bypass} "
         f"pure_event_compute_word_profile={pure_event_compute_word_profile} "
         f"pure_event_word_pack_policy={pure_event_word_pack_policy} "
