@@ -43,12 +43,18 @@
 | `TNO0031` | `2026-07-14` | [Stage 2 bae-budget quiet A/B/A](./TNO0031_stage2_bae_budget_quiet_aba_20260714.md) | CPU113/305、NUMA1 quiet A/B/A 有效；cycles `-0.324%` 低于 1% 门槛，standalone 接近中性且不晋升默认。 |
 | `TNO0032` | `2026-07-14` | [Stage 2 bae-budget plus Stage 1 strict structure gate](./TNO0032_stage2_bae_plus_stage1_strict_structure_gate_20260714.md) | 组合保留 Stage 1 的 BAE/DAG 收益并减少 75 个 SN；相对 baseline BAE `-1.156%`、DAG `-3.748%`，进入完整 50k。 |
 | `TNO0033` | `2026-07-14` | [Stage 2 combination runtime and default decision](./TNO0033_stage2_combination_runtime_and_default_decision_20260714.md) | 组合 fixed-ASLR quiet A/B/A 有效；instructions `-0.559%` 但 frontend empty `+11.461%`、cycles `+8.713%`，明确回退，Stage 1/2 均保持默认关闭。 |
+| `TNO0034` | `2026-07-14` | [Stage 3 true local shared compute clone plan](./TNO0034_stage3_true_local_shared_compute_clone_plan_20260714.md) | 规划 bounded true graph clone，取代历史上会造 DAG 环的 ownership 吸收；限定 cheap pure/two-consumer/64-bit 与 0.5% clone 预算，最终仍由 fixed-ASLR 50k 裁决。 |
+| `TNO0035` | `2026-07-14` | [Stage 3 true clone implementation and correctness](./TNO0035_stage3_true_clone_implementation_and_correctness_20260714.md) | 实现 mutation 前 snapshot、true op/value clone 与 full refreeze/rebuild；预算/owner/locality/commit/intent/cycle-split gates 和 focused/full tests 通过，默认关闭。 |
+| `TNO0036` | `2026-07-14` | [Stage 3 explicit-off SimTop identity](./TNO0036_stage3_explicit_off_simtop_identity_20260714.md) | explicit false 的 SimTop stats 与 current-default 原始 JSON `cmp=0`，182 个叶子全同，确认 inactive path 不改变默认 NO0300 结构。 |
+| `TNO0037` | `2026-07-14` | [Stage 3 standalone structure scan](./TNO0037_stage3_standalone_structure_scan_20260714.md) | conservative true clone 应用 108 个；BAE `-54`、DAG `-18`、boundary values `-64`，但 graph ops/values 各 `+108`、SN `+3`，继续 full 50k。 |
+| `TNO0038` | `2026-07-14` | [Stage 3 full build and functional gate](./TNO0038_stage3_full_build_and_functional_gate_20260714.md) | full stats 复现；source/`.text` 分别 `-0.118%/-0.063%`，fixed-ASLR 100/10k/50k 功能全过，高负载 wall 不作性能结论。 |
+| `TNO0039` | `2026-07-14` | [Stage 3 quiet A/B/A and default decision](./TNO0039_stage3_quiet_aba_and_default_decision_20260714.md) | atomic gate-to-run `6..7 ms` 的 quiet A/B/A 有效；cycles `+0.145%`、instructions `-0.078%`，低于 1% 线，判 neutral 并保持默认关闭。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`33`（`TNO0001..TNO0033`）。
+- 当前记录类文档总数：`39`（`TNO0001..TNO0039`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

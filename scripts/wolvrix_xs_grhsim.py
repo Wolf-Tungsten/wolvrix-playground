@@ -397,6 +397,26 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_DECLARED_VALUE_COMPUTE_NODE_BOUNDARY",
         default=False,
     )
+    enable_local_shared_compute = env_flag(
+        "WOLVRIX_XS_GRHSIM_ENABLE_LOCAL_SHARED_COMPUTE",
+        default=False,
+    )
+    local_shared_compute_max_fanout = env_int(
+        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_FANOUT",
+        2,
+    )
+    local_shared_compute_max_width = env_int(
+        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_WIDTH",
+        64,
+    )
+    local_shared_compute_max_clones = env_int(
+        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_CLONES",
+        4096,
+    )
+    local_shared_compute_max_cloned_op_ppm = env_int(
+        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_CLONED_OP_PPM",
+        5000,
+    )
     full_active_word_consume = env_flag(
         "WOLVRIX_XS_GRHSIM_FULL_ACTIVE_WORD_CONSUME",
         default=False,
@@ -482,6 +502,11 @@ def main() -> int:
         f"reg_to_mem_ordered_writes={reg_to_mem_ordered_writes} "
         f"reg_to_mem_decoded_write_storage={reg_to_mem_decoded_write_storage} "
         f"declared_value_compute_node_boundary={declared_value_compute_node_boundary} "
+        f"enable_local_shared_compute={enable_local_shared_compute} "
+        f"local_shared_compute_max_fanout={local_shared_compute_max_fanout} "
+        f"local_shared_compute_max_width={local_shared_compute_max_width} "
+        f"local_shared_compute_max_clones={local_shared_compute_max_clones} "
+        f"local_shared_compute_max_cloned_op_ppm={local_shared_compute_max_cloned_op_ppm} "
         f"full_active_word_consume={full_active_word_consume} "
         f"post_dp_refine_policy={post_dp_refine_policy} "
         f"post_dp_refine_max_rounds={post_dp_refine_max_rounds} "
@@ -563,6 +588,11 @@ def main() -> int:
                     "max_op_in_commit_supernode": max_op_in_commit_supernode,
                     "commit_guard_event_buckets": commit_guard_event_buckets,
                     "declared_value_compute_node_boundary": declared_value_compute_node_boundary,
+                    "enable_local_shared_compute": enable_local_shared_compute,
+                    "local_shared_compute_max_fanout": local_shared_compute_max_fanout,
+                    "local_shared_compute_max_width": local_shared_compute_max_width,
+                    "local_shared_compute_max_clones": local_shared_compute_max_clones,
+                    "local_shared_compute_max_cloned_op_ppm": local_shared_compute_max_cloned_op_ppm,
                     "post_dp_refine_policy": post_dp_refine_policy,
                     "post_dp_refine_max_rounds": post_dp_refine_max_rounds,
                     "post_dp_refine_max_moves": post_dp_refine_max_moves,
