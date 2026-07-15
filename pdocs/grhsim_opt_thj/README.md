@@ -70,12 +70,16 @@
 | `TNO0058` | `2026-07-15` | [Stage 7 hybrid XS-default adoption plan](./TNO0058_stage7_hybrid_xs_default_adoption_plan_20260715.md) | 规划仅在 XS 脚本默认开启 existing direct-state + threshold-2 bypass，保持全局 emitter 与 packing 默认关闭，并以 fresh identity/function/quiet 50k 决定是否采用。 |
 | `TNO0059` | `2026-07-15` | [Stage 7 hybrid default implementation and fresh gates](./TNO0059_stage7_hybrid_default_implementation_and_fresh_gates_20260715.md) | XS 默认与显式回滚均完成 canonical fresh emit/O3；hybrid 精确复现 probe、rollback 去注释后精确回到 NO0300，100/10k/50k 功能全过，进入 quiet A/B/A。 |
 | `TNO0060` | `2026-07-15` | [Stage 7 cross-socket runtime and default decision](./TNO0060_stage7_cross_socket_runtime_and_default_decision_20260715.md) | 四组 fresh A/B/A 显示 hybrid 在 NUMA0 cycles `+4.36%/+4.96%`、NUMA1 `-12.48%/-12.23%`；跨 socket 方向反转，不采用默认并恢复 NO0300，保留显式 XS direct 控制。 |
+| `TNO0061` | `2026-07-15` | [Stage 8 plain-DP segment-penalty sweep plan](./TNO0061_stage8_plain_dp_penalty_sweep_plan_20260715.md) | 规划 current NO0300 plain DP 固定 penalty 的 `0.5/1.0/1.5/2.0` 双向扫描；默认 PPM 入口保持 `1.0` identity，允许温和结构退化并以 fixed-ASLR 50k 最终裁决。 |
+| `TNO0062` | `2026-07-15` | [Stage 8 plain-DP segment-penalty structure scan](./TNO0062_stage8_plain_dp_penalty_structure_scan_20260715.md) | 四点结构扫描闭合 p100 raw identity；p050 以 compute SN `+177` 换 BAE `-177`，p200 以 BAE `+282` 换 compute SN `-143`，两端均继续 full emit/50k。 |
+| `TNO0063` | `2026-07-15` | [Stage 8 penalty full build and functional gate](./TNO0063_stage8_penalty_full_build_and_functional_gate_20260715.md) | p050/p200 full stats 复现、fresh O3 build 与 fixed-ASLR 100/10k 均通过；`.text` 分别 `-0.080%/-0.042%`，两者继续跨 NUMA 50k。 |
+| `TNO0064` | `2026-07-16` | [Stage 8 cross-NUMA runtime and default decision](./TNO0064_stage8_cross_numa_runtime_and_default_decision_20260716.md) | p050/p200 在 NUMA0 cycles 分别 `+7.21%/+11.69%`，NUMA1 分别 `-9.58%/-10.01%`；跨 socket 方向反转，不修改 `1000000 PPM` 默认并停止固定 penalty 细扫。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`60`（`TNO0001..TNO0060`）。
+- 当前记录类文档总数：`64`（`TNO0001..TNO0064`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

@@ -465,6 +465,10 @@ def main() -> int:
         if "WOLVRIX_XS_GRHSIM_PURE_EVENT_WORD_PACK_MAX_CHANGED_WORD_PPM" in os.environ
         else env_int("WOLVRIX_GRHSIM_PURE_EVENT_WORD_PACK_MAX_CHANGED_WORD_PPM", 20000)
     )
+    dp_segment_penalty_ppm = env_int(
+        "WOLVRIX_XS_GRHSIM_DP_SEGMENT_PENALTY_PPM",
+        1000000,
+    )
     post_dp_refine_policy = os.environ.get(
         "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_POLICY",
         "off",
@@ -561,6 +565,7 @@ def main() -> int:
         f"pure_event_word_pack_policy={pure_event_word_pack_policy} "
         f"pure_event_word_pack_max_moved_supernode_ppm={pure_event_word_pack_max_moved_supernode_ppm} "
         f"pure_event_word_pack_max_changed_word_ppm={pure_event_word_pack_max_changed_word_ppm} "
+        f"dp_segment_penalty_ppm={dp_segment_penalty_ppm} "
         f"post_dp_refine_policy={post_dp_refine_policy} "
         f"post_dp_refine_max_rounds={post_dp_refine_max_rounds} "
         f"post_dp_refine_max_moves={post_dp_refine_max_moves} "
@@ -649,6 +654,7 @@ def main() -> int:
                     "local_shared_compute_common_owner_policy": local_shared_compute_common_owner_policy,
                     "local_shared_compute_common_owner_max_clones": local_shared_compute_common_owner_max_clones,
                     "local_shared_compute_common_owner_max_cloned_op_ppm": local_shared_compute_common_owner_max_cloned_op_ppm,
+                    "dp_segment_penalty_ppm": dp_segment_penalty_ppm,
                     "post_dp_refine_policy": post_dp_refine_policy,
                     "post_dp_refine_max_rounds": post_dp_refine_max_rounds,
                     "post_dp_refine_max_moves": post_dp_refine_max_moves,
