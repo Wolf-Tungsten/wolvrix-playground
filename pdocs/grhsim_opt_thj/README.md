@@ -77,12 +77,15 @@
 | `TNO0065` | `2026-07-16` | [Stage 9 common-source fanin pullback probe plan](./TNO0065_stage9_common_source_fanin_pullback_probe_plan_20260716.md) | 规划 final schedule no-mutation probe：识别小型纯 cone 的同源多输入，以 exact `N -> 1` value-pair gain、容量/冲突预算决定是否进入 strict pullback。 |
 | `TNO0066` | `2026-07-16` | [Stage 9 fanin probe implementation and SimTop result](./TNO0066_stage9_fanin_probe_implementation_and_simtop_result_20260716.md) | off/probe raw identity 闭合；production probe 选中 84 个 1-bit pure cone，projected compute BAE `-254`、moved ops `262`，进入 strict move。 |
 | `TNO0067` | `2026-07-16` | [Stage 9 fanin probe full regression gate](./TNO0067_stage9_fanin_probe_full_regression_gate_20260716.md) | 完整 rebuild 后全量 CTest `46/48`；activity/emitter/ingest 均通过，仅保留两个既有失败，probe 阶段可提交。 |
+| `TNO0068` | `2026-07-16` | [Stage 10 fanin pullback strict plan](./TNO0068_stage10_fanin_pullback_strict_plan_20260716.md) | 基于 84 个 exact candidate 规划完整 compute-node move、final 派生数据重建与强不变量 gate；目标 compute/total BAE 精确 `-254` 且 SN/DAG/topo/commit 全同。 |
+| `TNO0069` | `2026-07-16` | [Stage 10 fanin pullback strict implementation and structure gate](./TNO0069_stage10_fanin_pullback_strict_implementation_and_structure_gate_20260716.md) | strict 应用 84 个完整 compute-node move；11 项 validator 全过，compute/total BAE 精确 `-254`，SN/DAG/topo/compute-commit 不变，进入 full 50k。 |
+| `TNO0070` | `2026-07-16` | [Stage 10 fanin pullback strict full regression gate](./TNO0070_stage10_fanin_pullback_strict_full_regression_gate_20260716.md) | 完整 build 通过，CTest `46/48` 且无新增失败；activity-schedule 与 292.89 秒 emitter 长测均通过，仅保留两个既有失败。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`67`（`TNO0001..TNO0067`）。
+- 当前记录类文档总数：`70`（`TNO0001..TNO0070`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
