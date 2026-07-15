@@ -61,12 +61,17 @@
 | `TNO0049` | `2026-07-14` | [Stage 5 full build and functional gate](./TNO0049_stage5_full_build_and_functional_gate_20260714.md) | full stats与scan完全一致；生成源码/`.text`无膨胀，fixed-ASLR 100/10k/50k功能全过，全量测试无新增失败。 |
 | `TNO0050` | `2026-07-14` | [Stage 5 quiet A/B/A and default decision](./TNO0050_stage5_quiet_aba_and_default_decision_20260714.md) | atomic quiet A/B/A有效；cycles `+0.688%`、frontend/backend偏负，判neutral-to-mild-regression并保持common-owner strict默认关闭。 |
 | `TNO0051` | `2026-07-14` | [Stage 1 standalone quiet runtime closure](./TNO0051_stage1_standalone_quiet_runtime_closure_20260714.md) | 补齐此前被负载阻断的三policy正式包夹；cycles均回退`8.22%..8.87%`且frontend显著恶化，Stage1 family明确停止。 |
+| `TNO0052` | `2026-07-15` | [Stage 6 targeted pure-event active-word pack plan](./TNO0052_stage6_targeted_pure_event_active_word_pack_plan_20260715.md) | 规划 emitter two-pass targeted packing：冻结 baseline batch/word slots，采用后完整重建 active-ID 派生结构；默认关闭，最终由 current-default NO0300 fixed-ASLR 50k 裁决。 |
+| `TNO0053` | `2026-07-15` | [Stage 6 targeted pure-event pack implementation](./TNO0053_stage6_targeted_pure_event_pack_implementation_20260715.md) | 实现 off/probe/targeted two-pass emitter packing、strict validators/stats 与三层配置透传；余数/确定性/功能/error focused gates 全过，默认仍关闭。 |
+| `TNO0054` | `2026-07-15` | [Stage 6 production probe and first targeted gate](./TNO0054_stage6_production_probe_and_first_targeted_gate_20260715.md) | 正确 source 环境下 production probe 精确复现 `107 -> 171` pure words、moved `256`；首次 targeted 被 batch 74 metadata gate 拦截，先增强 estimated-lines 差异诊断。 |
+| `TNO0055` | `2026-07-15` | [Stage 6 frozen-batch cost-proxy fix](./TNO0055_stage6_frozen_batch_cost_proxy_fix_20260715.md) | 精确定位 batch 74 仅 `estimatedLines +6`；保留全部结构门禁，将 rebuilt line proxy 改为可观测统计，并新增稳定漂移 regression fixture。 |
+| `TNO0056` | `2026-07-15` | [Stage 6 targeted build and functional gate](./TNO0056_stage6_targeted_build_and_functional_gate_20260715.md) | production targeted 通过并形成 171 pure words；schedule identity、O3 静态和 fixed-ASLR 100/10k/50k 功能门禁全部闭合。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`51`（`TNO0001..TNO0051`）。
+- 当前记录类文档总数：`56`（`TNO0001..TNO0056`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

@@ -433,6 +433,30 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_FULL_ACTIVE_WORD_CONSUME",
         default=False,
     )
+    pure_event_compute_word_bypass = (
+        env_flag("WOLVRIX_XS_GRHSIM_PURE_EVENT_COMPUTE_WORD_BYPASS")
+        if "WOLVRIX_XS_GRHSIM_PURE_EVENT_COMPUTE_WORD_BYPASS" in os.environ
+        else env_flag("WOLVRIX_GRHSIM_PURE_EVENT_COMPUTE_WORD_BYPASS", default=False)
+    )
+    pure_event_compute_word_profile = (
+        env_flag("WOLVRIX_XS_GRHSIM_PURE_EVENT_COMPUTE_WORD_PROFILE")
+        if "WOLVRIX_XS_GRHSIM_PURE_EVENT_COMPUTE_WORD_PROFILE" in os.environ
+        else env_flag("WOLVRIX_GRHSIM_PURE_EVENT_COMPUTE_WORD_PROFILE", default=False)
+    )
+    pure_event_word_pack_policy = os.environ.get(
+        "WOLVRIX_XS_GRHSIM_PURE_EVENT_WORD_PACK_POLICY",
+        os.environ.get("WOLVRIX_GRHSIM_PURE_EVENT_WORD_PACK_POLICY", "off"),
+    ).strip() or "off"
+    pure_event_word_pack_max_moved_supernode_ppm = (
+        env_int("WOLVRIX_XS_GRHSIM_PURE_EVENT_WORD_PACK_MAX_MOVED_SUPERNODE_PPM", 5000)
+        if "WOLVRIX_XS_GRHSIM_PURE_EVENT_WORD_PACK_MAX_MOVED_SUPERNODE_PPM" in os.environ
+        else env_int("WOLVRIX_GRHSIM_PURE_EVENT_WORD_PACK_MAX_MOVED_SUPERNODE_PPM", 5000)
+    )
+    pure_event_word_pack_max_changed_word_ppm = (
+        env_int("WOLVRIX_XS_GRHSIM_PURE_EVENT_WORD_PACK_MAX_CHANGED_WORD_PPM", 20000)
+        if "WOLVRIX_XS_GRHSIM_PURE_EVENT_WORD_PACK_MAX_CHANGED_WORD_PPM" in os.environ
+        else env_int("WOLVRIX_GRHSIM_PURE_EVENT_WORD_PACK_MAX_CHANGED_WORD_PPM", 20000)
+    )
     post_dp_refine_policy = os.environ.get(
         "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_POLICY",
         "off",
@@ -523,6 +547,11 @@ def main() -> int:
         f"local_shared_compute_common_owner_max_clones={local_shared_compute_common_owner_max_clones} "
         f"local_shared_compute_common_owner_max_cloned_op_ppm={local_shared_compute_common_owner_max_cloned_op_ppm} "
         f"full_active_word_consume={full_active_word_consume} "
+        f"pure_event_compute_word_bypass={pure_event_compute_word_bypass} "
+        f"pure_event_compute_word_profile={pure_event_compute_word_profile} "
+        f"pure_event_word_pack_policy={pure_event_word_pack_policy} "
+        f"pure_event_word_pack_max_moved_supernode_ppm={pure_event_word_pack_max_moved_supernode_ppm} "
+        f"pure_event_word_pack_max_changed_word_ppm={pure_event_word_pack_max_changed_word_ppm} "
         f"post_dp_refine_policy={post_dp_refine_policy} "
         f"post_dp_refine_max_rounds={post_dp_refine_max_rounds} "
         f"post_dp_refine_max_moves={post_dp_refine_max_moves} "
@@ -737,6 +766,11 @@ def main() -> int:
             waveform=args.waveform,
             perf=args.perf,
             full_active_word_consume=full_active_word_consume,
+            pure_event_compute_word_bypass=pure_event_compute_word_bypass,
+            pure_event_compute_word_profile=pure_event_compute_word_profile,
+            pure_event_word_pack_policy=pure_event_word_pack_policy,
+            pure_event_word_pack_max_moved_supernode_ppm=pure_event_word_pack_max_moved_supernode_ppm,
+            pure_event_word_pack_max_changed_word_ppm=pure_event_word_pack_max_changed_word_ppm,
         )
         require_ok(diags, "emit_grhsim_cpp")
         log(f"write_grhsim_cpp done {int((time.perf_counter() - start) * 1000)}ms")
