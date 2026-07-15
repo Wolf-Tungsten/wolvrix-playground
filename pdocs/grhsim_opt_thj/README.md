@@ -81,12 +81,13 @@
 | `TNO0069` | `2026-07-16` | [Stage 10 fanin pullback strict implementation and structure gate](./TNO0069_stage10_fanin_pullback_strict_implementation_and_structure_gate_20260716.md) | strict 应用 84 个完整 compute-node move；11 项 validator 全过，compute/total BAE 精确 `-254`，SN/DAG/topo/compute-commit 不变，进入 full 50k。 |
 | `TNO0070` | `2026-07-16` | [Stage 10 fanin pullback strict full regression gate](./TNO0070_stage10_fanin_pullback_strict_full_regression_gate_20260716.md) | 完整 build 通过，CTest `46/48` 且无新增失败；activity-schedule 与 292.89 秒 emitter 长测均通过，仅保留两个既有失败。 |
 | `TNO0071` | `2026-07-16` | [Stage 10 fanin pullback strict full build and functional gate](./TNO0071_stage10_fanin_pullback_strict_full_build_and_functional_gate_20260716.md) | full emit 精确复现 BAE `-254`；O3/link 与 fixed-ASLR 100/10k 功能通过，`.text +0.0055%`，进入跨 NUMA 50k。 |
+| `TNO0072` | `2026-07-16` | [Stage 10 fanin pullback strict cross-NUMA runtime](./TNO0072_stage10_fanin_pullback_strict_cross_numa_runtime_20260716.md) | quiet A/B/A：NUMA0 cycles `-0.0903%`，NUMA1 `+0.7464%` 且 frontend 约 `+0.94%`；判 neutral-to-mild-regression，默认保持 off。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`71`（`TNO0001..TNO0071`）。
+- 当前记录类文档总数：`72`（`TNO0001..TNO0072`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
