@@ -60,12 +60,13 @@
 | `TNO0048` | `2026-07-14` | [Stage 5 common-owner strict structure gate](./TNO0048_stage5_common_owner_strict_structure_gate_20260714.md) | fixed-seed SimTop scan应用555个clone；BAE `-0.0286%`、boundary `-279`、SN `-5`，DAG仅`+8`，结构温和并继续full 50k。 |
 | `TNO0049` | `2026-07-14` | [Stage 5 full build and functional gate](./TNO0049_stage5_full_build_and_functional_gate_20260714.md) | full stats与scan完全一致；生成源码/`.text`无膨胀，fixed-ASLR 100/10k/50k功能全过，全量测试无新增失败。 |
 | `TNO0050` | `2026-07-14` | [Stage 5 quiet A/B/A and default decision](./TNO0050_stage5_quiet_aba_and_default_decision_20260714.md) | atomic quiet A/B/A有效；cycles `+0.688%`、frontend/backend偏负，判neutral-to-mild-regression并保持common-owner strict默认关闭。 |
+| `TNO0051` | `2026-07-14` | [Stage 1 standalone quiet runtime closure](./TNO0051_stage1_standalone_quiet_runtime_closure_20260714.md) | 补齐此前被负载阻断的三policy正式包夹；cycles均回退`8.22%..8.87%`且frontend显著恶化，Stage1 family明确停止。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`50`（`TNO0001..TNO0050`）。
+- 当前记录类文档总数：`51`（`TNO0001..TNO0051`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
