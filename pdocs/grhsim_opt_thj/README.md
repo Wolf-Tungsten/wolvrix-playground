@@ -52,12 +52,20 @@
 | `TNO0040` | `2026-07-14` | [Stage 4 common-owner probe plan](./TNO0040_stage4_common_owner_probe_plan_20260714.md) | 规划 no-mutation 分桶，确认 third singleton common owner 的双边 operand locality/cap 机会；maxClones=0，未有证据前不放开 strict clone。 |
 | `TNO0041` | `2026-07-14` | [Stage 4 common-owner probe implementation](./TNO0041_stage4_common_owner_probe_implementation_20260714.md) | 实现 off/probe 只读漏斗与全层参数绑定；focused identity/positive/reject 和独立 review 通过，exact eligible 明确为冲突选择前的上界。 |
 | `TNO0042` | `2026-07-14` | [Stage 4 SimTop common-owner probe](./TNO0042_stage4_simtop_common_owner_probe_20260714.md) | raw stats identity；167,780 third-common 经 singleton/双边 locality/cap 后剩 691 exact upper-bound，projected pairs 1,382（总 BAE `0.0697%`）。 |
+| `TNO0043` | `2026-07-14` | [Stage 5 common-owner strict plan](./TNO0043_stage5_common_owner_strict_plan_20260714.md) | 规划独立 common-owner clone/PPM budget、conflict-aware stable selection、transaction snapshot 与 full rebuild；local-owner maxClones=0 隔离变量。 |
+| `TNO0044` | `2026-07-14` | [Stage 5 common-owner strict implementation](./TNO0044_stage5_common_owner_strict_implementation_20260714.md) | 实现独立budget、stable conflict/cap selection、snapshot/apply/full rebuild与graph/metadata/users/topo验证；focused和独立review通过。 |
+| `TNO0045` | `2026-07-14` | [Stage 5 first strict commit-partition failure](./TNO0045_stage5_first_strict_commit_partition_failure_20260714.md) | 首次strict大图在candidate rewrite后触发commit partition equality硬失败；无final stats/50k，先增强set/order/partition差异诊断再取证。 |
+| `TNO0046` | `2026-07-14` | [Stage 5 commit-order diagnostic and fix plan](./TNO0046_stage5_commit_order_diagnostic_and_fix_plan_20260714.md) | diagnostic2证实sink/input集合与normalized partition全等、仅node内顺序漂移；计划验证并复用baseline commit order，exact guard不放宽。 |
+| `TNO0047` | `2026-07-14` | [Stage 5 fixed commit seed implementation](./TNO0047_stage5_fixed_commit_seed_implementation_20260714.md) | strict candidate rebuild 仅在 sink/input/grouping 验证全过后复用 baseline commit exact order；focused测试和binding重装通过，门禁未放宽。 |
+| `TNO0048` | `2026-07-14` | [Stage 5 common-owner strict structure gate](./TNO0048_stage5_common_owner_strict_structure_gate_20260714.md) | fixed-seed SimTop scan应用555个clone；BAE `-0.0286%`、boundary `-279`、SN `-5`，DAG仅`+8`，结构温和并继续full 50k。 |
+| `TNO0049` | `2026-07-14` | [Stage 5 full build and functional gate](./TNO0049_stage5_full_build_and_functional_gate_20260714.md) | full stats与scan完全一致；生成源码/`.text`无膨胀，fixed-ASLR 100/10k/50k功能全过，全量测试无新增失败。 |
+| `TNO0050` | `2026-07-14` | [Stage 5 quiet A/B/A and default decision](./TNO0050_stage5_quiet_aba_and_default_decision_20260714.md) | atomic quiet A/B/A有效；cycles `+0.688%`、frontend/backend偏负，判neutral-to-mild-regression并保持common-owner strict默认关闭。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`42`（`TNO0001..TNO0042`）。
+- 当前记录类文档总数：`50`（`TNO0001..TNO0050`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
