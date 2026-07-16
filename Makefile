@@ -136,6 +136,34 @@ XS_GSIM_BUILD ?= $(XS_WORK_BASE)/gsim
 XS_WOLF_BUILD ?= $(XS_WORK_BASE)/wolf
 XS_GRHSIM_BUILD ?= $(XS_WORK_BASE)/grhsim
 XS_REPCUT_BUILD ?= $(XS_WORK_BASE)/repcut
+# Keep the analysis-only v1 and executable v2 GSim exchanges isolated.
+XS_GSIM_PRECOARSEN_ROOT ?= $(REPO_ROOT)/ptmp/gsim_precoarsen_exchange
+XS_GSIM_PRECOARSEN_DIR ?= $(XS_GSIM_PRECOARSEN_ROOT)/gsim
+XS_GSIM_PRECOARSEN_JSON ?= $(XS_GSIM_PRECOARSEN_DIR)/$(XS_SIM_TOP)_precoarsen_grh.json
+XS_GSIM_GRHSIM_ALIGNMENT_DIR ?= $(XS_GSIM_PRECOARSEN_ROOT)/grhsim
+XS_GSIM_GRHSIM_TMP_DIR ?= $(XS_GSIM_PRECOARSEN_ROOT)/tmp
+XS_GSIM_EXECUTABLE_GRH_ROOT ?= $(REPO_ROOT)/ptmp/gsim_executable_grh_exchange
+XS_GSIM_EXECUTABLE_GRH_GSIM_DIR ?= $(XS_GSIM_EXECUTABLE_GRH_ROOT)/gsim
+XS_GSIM_EXECUTABLE_GRH_JSON ?= $(XS_GSIM_EXECUTABLE_GRH_GSIM_DIR)/$(XS_SIM_TOP).exec.json
+XS_GSIM_EXECUTABLE_GRH_EMIT_DIR ?= $(XS_GSIM_EXECUTABLE_GRH_ROOT)/grhsim_emit
+XS_GSIM_EXECUTABLE_GRH_BUILD_DIR ?= $(XS_GSIM_EXECUTABLE_GRH_ROOT)/difftest
+XS_GSIM_EXECUTABLE_GRH_LOG_DIR ?= $(XS_GSIM_EXECUTABLE_GRH_ROOT)/logs
+XS_GSIM_EXECUTABLE_GRH_TMP_DIR ?= $(XS_GSIM_EXECUTABLE_GRH_ROOT)/tmp
+XS_GSIM_EXECUTABLE_GRH_WAVEFORM_DIR ?= $(XS_GSIM_EXECUTABLE_GRH_ROOT)/waveforms
+XS_GSIM_EXECUTABLE_GRH_PROFILE ?= xiangshan-gsim-coremark-stub
+XS_GSIM_EXECUTABLE_GRH_PYTHONPATH ?= $(WOLVRIX_BUILD_DIR)/skbuild/python
+# Keep the executable exchange on the full-XiangShan configuration validated by NO00028.
+XS_GSIM_EXECUTABLE_GRH_MAX_OP_IN_COMPUTE_SUPERNODE ?= 108
+XS_GSIM_EXECUTABLE_GRH_MAX_OP_IN_COMPUTE_NODE ?= 108
+XS_GSIM_EXECUTABLE_GRH_SPLIT_OVERSIZE_COMPUTE_NODES ?= 1
+XS_GSIM_EXECUTABLE_GRH_SPLIT_OVERSIZE_COMPUTE_NODE_MAX_OPS ?= 108
+XS_GSIM_EXECUTABLE_GRH_MAX_OP_IN_COMMIT_SUPERNODE ?= 4096
+XS_GSIM_EXECUTABLE_GRH_COMMIT_GUARD_EVENT_BUCKETS ?= 1
+XS_GSIM_EXECUTABLE_GRH_SCHED_BATCH_MAX_OPS ?= 2048
+XS_GSIM_EXECUTABLE_GRH_SCHED_BATCH_MAX_ESTIMATED_LINES ?= 8192
+XS_GSIM_EXECUTABLE_GRH_SCHED_BATCH_TARGET_COUNT ?= 512
+XS_GSIM_EXECUTABLE_GRH_SCHED_BATCHES_PER_CPP ?= 1
+XS_GSIM_EXECUTABLE_GRH_EMIT_PARALLELISM ?= 4
 XS_RTL_DIR := $(XS_RTL_BUILD)/rtl
 XS_VSRC_DIR ?= $(XS_ROOT)/difftest/src/test/vsrc/common
 XS_WOLF_EMIT_DIR ?= $(XS_WOLF_BUILD)/wolf_emit
@@ -159,6 +187,18 @@ XS_REF_BUILD_ABS := $(abspath $(XS_REF_BUILD))
 XS_GSIM_BUILD_ABS := $(abspath $(XS_GSIM_BUILD))
 XS_WOLF_BUILD_ABS := $(abspath $(XS_WOLF_BUILD))
 XS_GRHSIM_BUILD_ABS := $(abspath $(XS_GRHSIM_BUILD))
+XS_GSIM_PRECOARSEN_DIR_ABS := $(abspath $(XS_GSIM_PRECOARSEN_DIR))
+XS_GSIM_PRECOARSEN_JSON_ABS := $(abspath $(XS_GSIM_PRECOARSEN_JSON))
+XS_GSIM_GRHSIM_ALIGNMENT_DIR_ABS := $(abspath $(XS_GSIM_GRHSIM_ALIGNMENT_DIR))
+XS_GSIM_GRHSIM_TMP_DIR_ABS := $(abspath $(XS_GSIM_GRHSIM_TMP_DIR))
+XS_GSIM_EXECUTABLE_GRH_GSIM_DIR_ABS := $(abspath $(XS_GSIM_EXECUTABLE_GRH_GSIM_DIR))
+XS_GSIM_EXECUTABLE_GRH_JSON_ABS := $(abspath $(XS_GSIM_EXECUTABLE_GRH_JSON))
+XS_GSIM_EXECUTABLE_GRH_EMIT_DIR_ABS := $(abspath $(XS_GSIM_EXECUTABLE_GRH_EMIT_DIR))
+XS_GSIM_EXECUTABLE_GRH_BUILD_DIR_ABS := $(abspath $(XS_GSIM_EXECUTABLE_GRH_BUILD_DIR))
+XS_GSIM_EXECUTABLE_GRH_LOG_DIR_ABS := $(abspath $(XS_GSIM_EXECUTABLE_GRH_LOG_DIR))
+XS_GSIM_EXECUTABLE_GRH_TMP_DIR_ABS := $(abspath $(XS_GSIM_EXECUTABLE_GRH_TMP_DIR))
+XS_GSIM_EXECUTABLE_GRH_WAVEFORM_DIR_ABS := $(abspath $(XS_GSIM_EXECUTABLE_GRH_WAVEFORM_DIR))
+XS_GSIM_EXECUTABLE_GRH_PYTHONPATH_ABS := $(abspath $(XS_GSIM_EXECUTABLE_GRH_PYTHONPATH))
 XS_RTL_DIR_ABS := $(abspath $(XS_RTL_DIR))
 XS_VSRC_DIR_ABS := $(abspath $(XS_VSRC_DIR))
 XS_WOLF_EMIT_DIR_ABS := $(abspath $(XS_WOLF_EMIT_DIR))
@@ -178,7 +218,7 @@ XS_WOLF_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE ?= 108
 XS_WOLF_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE ?= 4096
 XS_WOLF_GRHSIM_SCHED_BATCH_MAX_OPS ?= 2048
 XS_WOLF_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES ?= 8192
-XS_WOLF_GRHSIM_SCHED_BATCH_TARGET_COUNT ?= 64
+XS_WOLF_GRHSIM_SCHED_BATCH_TARGET_COUNT ?= 256
 XS_WOLF_GRHSIM_SCHED_BATCHES_PER_CPP ?= 1
 XS_WOLF_GRHSIM_EMIT_PARALLELISM ?= 4
 XS_WOLF_REPCUT_JSON ?= $(XS_REPCUT_BUILD)/xs_wolf_repcut.json
@@ -226,7 +266,10 @@ HDLBITS_GRHTB_SOURCES := $(wildcard $(HDLBITS_ROOT)/grhtb/grhtb_*.cpp)
 HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS_GRHTB_SOURCES)))))
 
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
-	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
+	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_gsim_precoarsen_export xs_gsim_grhsim_alignment \
+	xs_gsim_executable_grh_gsim \
+	xs_gsim_executable_grh_export xs_gsim_executable_grh_import xs_gsim_executable_grh_emu run_xs_gsim_executable_grh_emu \
+	xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
 	xs_no0076_stats clean
 
@@ -451,6 +494,258 @@ xs_gsim_rtl:
 		echo "[FAIL] xs gsim sim-verilog: missing generated extmodule $(XS_DIFFTEST_GSIM_EXTMODULE)"; \
 		exit 1; \
 	fi
+
+xs_gsim_precoarsen_export:
+	@if [ ! -f "$(XS_SIM_TOP_FIR)" ]; then \
+		echo "[FAIL] XiangShan FIR not found: $(XS_SIM_TOP_FIR)"; \
+		echo "[FAIL] Generate it with the normal xs_gsim_rtl flow before running this analysis target."; \
+		exit 1; \
+	fi
+	@if [ ! -x "$(XS_GSIM_BIN)" ]; then \
+		echo "[FAIL] GSim binary not found: $(XS_GSIM_BIN)"; \
+		echo "[FAIL] Build GSim before running this analysis target."; \
+		exit 1; \
+	fi
+	@mkdir -p "$(XS_GSIM_PRECOARSEN_DIR_ABS)" "$(XS_GSIM_GRHSIM_TMP_DIR_ABS)"
+	@$(eval RUN_ID := $(if $(RUN_ID),$(RUN_ID),$(shell date +%Y%m%d_%H%M%S)))
+	@$(eval XS_GSIM_PRECOARSEN_LOG_FILE := $(XS_GSIM_PRECOARSEN_DIR_ABS)/xs_gsim_precoarsen_$(RUN_ID).log)
+	@printf '' > "$(XS_GSIM_PRECOARSEN_LOG_FILE)"
+	@echo "[RUN] Exporting GSim pre-coarsen graph to $(XS_GSIM_PRECOARSEN_JSON_ABS)"
+	@echo "[CMD] $(XS_GSIM_BIN) --supernode-max-size=$(XS_GSIM_SUPERNODE_MAX_SIZE) --cpp-max-size-KB=8192 --sep-mod=__DOT__ --sep-aggr=__DOT__ --dir $(XS_GSIM_PRECOARSEN_DIR_ABS) --export-precoarsen-grh $(XS_GSIM_PRECOARSEN_JSON_ABS) --stop-after-stage=PreCoarsen $(XS_SIM_TOP_FIR)" | tee -a "$(XS_GSIM_PRECOARSEN_LOG_FILE)"
+	@set -o pipefail; TMPDIR="$(XS_GSIM_GRHSIM_TMP_DIR_ABS)" $(XS_GSIM_BIN) \
+		--supernode-max-size=$(XS_GSIM_SUPERNODE_MAX_SIZE) \
+		--cpp-max-size-KB=8192 \
+		--sep-mod=__DOT__ \
+		--sep-aggr=__DOT__ \
+		--dir "$(XS_GSIM_PRECOARSEN_DIR_ABS)" \
+		--export-precoarsen-grh "$(XS_GSIM_PRECOARSEN_JSON_ABS)" \
+		--stop-after-stage=PreCoarsen \
+		"$(XS_SIM_TOP_FIR)" \
+		2>&1 | tee -a "$(XS_GSIM_PRECOARSEN_LOG_FILE)"
+	@if [ ! -s "$(XS_GSIM_PRECOARSEN_JSON_ABS)" ]; then \
+		echo "[FAIL] GSim pre-coarsen export is missing or empty: $(XS_GSIM_PRECOARSEN_JSON_ABS)"; \
+		exit 1; \
+	fi
+
+xs_gsim_grhsim_alignment: xs_gsim_precoarsen_export
+	@mkdir -p "$(XS_GSIM_GRHSIM_ALIGNMENT_DIR_ABS)" "$(XS_GSIM_GRHSIM_TMP_DIR_ABS)"
+	@PYTHONDONTWRITEBYTECODE=1 TMPDIR="$(XS_GSIM_GRHSIM_TMP_DIR_ABS)" \
+		$(PYTHON) -c 'import wolvrix; print("[PY] Wolvrix binding ready:", wolvrix.__file__)'
+	@$(eval RUN_ID := $(if $(RUN_ID),$(RUN_ID),$(shell date +%Y%m%d_%H%M%S)))
+	@$(eval XS_GSIM_GRHSIM_ALIGNMENT_LOG_FILE := $(XS_GSIM_GRHSIM_ALIGNMENT_DIR_ABS)/xs_gsim_grhsim_alignment_$(RUN_ID).log)
+	@printf '' > "$(XS_GSIM_GRHSIM_ALIGNMENT_LOG_FILE)"
+	@echo "[RUN] Importing GSim pre-coarsen graph before GrhSIM activity-schedule"
+	@echo "[CMD] WOLVRIX_XS_GRHSIM_IMPORT_GSIM_PRECOARSEN=$(XS_GSIM_PRECOARSEN_JSON_ABS) WOLVRIX_XS_GRHSIM_STOP_AFTER_ACTIVITY_SCHEDULE=1 WOLVRIX_XS_GRHSIM_EXPORT_COMPUTE_DAG=$(XS_GSIM_GRHSIM_ALIGNMENT_DIR_ABS)/grhsim_compute_dag.json $(PYTHON) $(XS_WOLVRIX_GRHSIM_SCRIPT) /dev/null $(XS_SIM_TOP) $(XS_GSIM_GRHSIM_ALIGNMENT_DIR_ABS) '' /dev/null $(WOLF_LOG)" | tee -a "$(XS_GSIM_GRHSIM_ALIGNMENT_LOG_FILE)"
+	@set -o pipefail; \
+		PYTHONDONTWRITEBYTECODE=1 \
+		TMPDIR="$(XS_GSIM_GRHSIM_TMP_DIR_ABS)" \
+		WOLVRIX_XS_GRHSIM_IMPORT_GSIM_PRECOARSEN="$(XS_GSIM_PRECOARSEN_JSON_ABS)" \
+		WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON=0 \
+		WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON=0 \
+		WOLVRIX_XS_GRHSIM_STOP_AFTER_PRE_SCHED=0 \
+		WOLVRIX_XS_GRHSIM_STOP_AFTER_ACTIVITY_SCHEDULE=1 \
+		WOLVRIX_XS_GRHSIM_EXPORT_COMPUTE_DAG="$(XS_GSIM_GRHSIM_ALIGNMENT_DIR_ABS)/grhsim_compute_dag.json" \
+		$(PYTHON) $(XS_WOLVRIX_GRHSIM_SCRIPT) \
+			/dev/null \
+			$(XS_SIM_TOP) \
+			$(XS_GSIM_GRHSIM_ALIGNMENT_DIR_ABS) \
+			'' \
+			/dev/null \
+			$(WOLF_LOG) \
+			2>&1 | tee -a "$(XS_GSIM_GRHSIM_ALIGNMENT_LOG_FILE)"
+	@if [ ! -s "$(XS_GSIM_GRHSIM_ALIGNMENT_DIR_ABS)/activity_schedule_supernode_stats.json" ]; then \
+		echo "[FAIL] missing GrhSIM activity-schedule stats for GSim pre-coarsen import"; \
+		exit 1; \
+	fi
+	@if [ ! -s "$(XS_GSIM_GRHSIM_ALIGNMENT_DIR_ABS)/grhsim_compute_dag.json" ]; then \
+		echo "[FAIL] missing GrhSIM compute DAG for GSim pre-coarsen import"; \
+		exit 1; \
+	fi
+
+xs_gsim_executable_grh_gsim:
+	@if [ "$(abspath $(XS_GSIM_BIN))" = "$(abspath $(REF_GSIM_BIN))" ]; then \
+		echo "[BUILD] Refreshing the default GSim binary before executable GRH export"; \
+		$(MAKE) -C "$(REF_GSIM_ROOT)" build-gsim; \
+	fi
+
+xs_gsim_executable_grh_export: xs_gsim_executable_grh_gsim
+	@if [ ! -f "$(XS_SIM_TOP_FIR)" ]; then \
+		echo "[FAIL] XiangShan FIR not found: $(XS_SIM_TOP_FIR)"; \
+		echo "[FAIL] Generate it with xs_gsim_rtl before exporting executable GRH."; \
+		exit 1; \
+	fi
+	@if [ ! -x "$(XS_GSIM_BIN)" ]; then \
+		echo "[FAIL] GSim binary not found: $(XS_GSIM_BIN)"; \
+		echo "[FAIL] Build the executable-GRH-capable GSim binary or set XS_GSIM_BIN."; \
+		exit 1; \
+	fi
+	@case "$(XS_GSIM_EXECUTABLE_GRH_PROFILE)" in \
+		full-fidelity|xiangshan-gsim-coremark-stub) ;; \
+		*) echo "[FAIL] unsupported XS_GSIM_EXECUTABLE_GRH_PROFILE=$(XS_GSIM_EXECUTABLE_GRH_PROFILE)"; \
+		   echo "[FAIL] expected full-fidelity or xiangshan-gsim-coremark-stub"; \
+		   exit 1 ;; \
+	esac
+	@mkdir -p "$(XS_GSIM_EXECUTABLE_GRH_GSIM_DIR_ABS)" \
+		"$(XS_GSIM_EXECUTABLE_GRH_LOG_DIR_ABS)" \
+		"$(XS_GSIM_EXECUTABLE_GRH_TMP_DIR_ABS)"
+	@rm -f "$(XS_GSIM_EXECUTABLE_GRH_JSON_ABS)"
+	@set -o pipefail; \
+		LOG_FILE="$(XS_GSIM_EXECUTABLE_GRH_LOG_DIR_ABS)/xs_gsim_executable_grh_export_$(RUN_ID).log"; \
+		printf '' > "$$LOG_FILE"; \
+		echo "[RUN] Exporting strict GSim executable GRH v2" | tee -a "$$LOG_FILE"; \
+		echo "[CMD] /usr/bin/time -v $(XS_GSIM_BIN) --export-executable-grh=$(XS_GSIM_EXECUTABLE_GRH_JSON_ABS) --executable-grh-profile=$(XS_GSIM_EXECUTABLE_GRH_PROFILE) --stop-after-stage=PreCoarsen --dir=$(XS_GSIM_EXECUTABLE_GRH_GSIM_DIR_ABS) $(XS_SIM_TOP_FIR)" | tee -a "$$LOG_FILE"; \
+		TMPDIR="$(XS_GSIM_EXECUTABLE_GRH_TMP_DIR_ABS)" \
+			/usr/bin/time -v "$(XS_GSIM_BIN)" \
+				--export-executable-grh="$(XS_GSIM_EXECUTABLE_GRH_JSON_ABS)" \
+				--executable-grh-profile="$(XS_GSIM_EXECUTABLE_GRH_PROFILE)" \
+				--stop-after-stage=PreCoarsen \
+				--dir="$(XS_GSIM_EXECUTABLE_GRH_GSIM_DIR_ABS)" \
+				"$(XS_SIM_TOP_FIR)" \
+				2>&1 | tee -a "$$LOG_FILE"
+	@if [ ! -s "$(XS_GSIM_EXECUTABLE_GRH_JSON_ABS)" ]; then \
+		echo "[FAIL] GSim executable GRH is missing or empty: $(XS_GSIM_EXECUTABLE_GRH_JSON_ABS)"; \
+		exit 1; \
+	fi
+
+xs_gsim_executable_grh_import: py_install
+	@if [ ! -s "$(XS_GSIM_EXECUTABLE_GRH_JSON_ABS)" ]; then \
+		echo "[FAIL] GSim executable GRH is missing or empty: $(XS_GSIM_EXECUTABLE_GRH_JSON_ABS)"; \
+		echo "[FAIL] Export it first or set XS_GSIM_EXECUTABLE_GRH_JSON to an existing artifact."; \
+		exit 1; \
+	fi
+	@if [ ! -d "$(XS_GSIM_EXECUTABLE_GRH_PYTHONPATH_ABS)/wolvrix" ]; then \
+		echo "[FAIL] Wolvrix Python build not found: $(XS_GSIM_EXECUTABLE_GRH_PYTHONPATH_ABS)"; \
+		echo "[FAIL] Build the binding or set XS_GSIM_EXECUTABLE_GRH_PYTHONPATH."; \
+		exit 1; \
+	fi
+	@mkdir -p "$(XS_GSIM_EXECUTABLE_GRH_EMIT_DIR_ABS)" \
+		"$(XS_GSIM_EXECUTABLE_GRH_LOG_DIR_ABS)" \
+		"$(XS_GSIM_EXECUTABLE_GRH_TMP_DIR_ABS)"
+	@PYTHONDONTWRITEBYTECODE=1 \
+		PYTHONPATH="$(XS_GSIM_EXECUTABLE_GRH_PYTHONPATH_ABS)$(if $(strip $(PYTHONPATH)),:$(PYTHONPATH),)" \
+		TMPDIR="$(XS_GSIM_EXECUTABLE_GRH_TMP_DIR_ABS)" \
+		$(PYTHON) -c 'import wolvrix; from wolvrix import _wolvrix; print("[PY] Wolvrix binding ready:", _wolvrix.__file__)'
+	@set -o pipefail; \
+		LOG_FILE="$(XS_GSIM_EXECUTABLE_GRH_LOG_DIR_ABS)/xs_gsim_executable_grh_import_$(RUN_ID).log"; \
+		printf '' > "$$LOG_FILE"; \
+		echo "[RUN] Importing executable GRH before activity-schedule and emitting GrhSIM C++" | tee -a "$$LOG_FILE"; \
+		echo "[CMD] $(PYTHON) $(XS_WOLVRIX_GRHSIM_SCRIPT) /dev/null $(XS_SIM_TOP) $(XS_GSIM_EXECUTABLE_GRH_EMIT_DIR_ABS) '' /dev/null $(WOLF_LOG) --import-gsim-executable-grh $(XS_GSIM_EXECUTABLE_GRH_JSON_ABS)" | tee -a "$$LOG_FILE"; \
+		PYTHONDONTWRITEBYTECODE=1 \
+		PYTHONPATH="$(XS_GSIM_EXECUTABLE_GRH_PYTHONPATH_ABS)$(if $(strip $(PYTHONPATH)),:$(PYTHONPATH),)" \
+		TMPDIR="$(XS_GSIM_EXECUTABLE_GRH_TMP_DIR_ABS)" \
+		WOLVRIX_XS_GRHSIM_IMPORT_GSIM_PRECOARSEN= \
+		WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON=0 \
+		WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON=0 \
+		WOLVRIX_XS_GRHSIM_STOP_AFTER_PRE_SCHED=0 \
+		WOLVRIX_XS_GRHSIM_STOP_AFTER_ACTIVITY_SCHEDULE=0 \
+		WOLVRIX_XS_GRHSIM_EXPORT_COMPUTE_DAG= \
+		WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE="$(XS_GSIM_EXECUTABLE_GRH_MAX_OP_IN_COMPUTE_SUPERNODE)" \
+		WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_NODE="$(XS_GSIM_EXECUTABLE_GRH_MAX_OP_IN_COMPUTE_NODE)" \
+		WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODES="$(XS_GSIM_EXECUTABLE_GRH_SPLIT_OVERSIZE_COMPUTE_NODES)" \
+		WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODE_MAX_OPS="$(XS_GSIM_EXECUTABLE_GRH_SPLIT_OVERSIZE_COMPUTE_NODE_MAX_OPS)" \
+		WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE="$(XS_GSIM_EXECUTABLE_GRH_MAX_OP_IN_COMMIT_SUPERNODE)" \
+		WOLVRIX_XS_GRHSIM_COMMIT_GUARD_EVENT_BUCKETS="$(XS_GSIM_EXECUTABLE_GRH_COMMIT_GUARD_EVENT_BUCKETS)" \
+		WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_OPS="$(XS_GSIM_EXECUTABLE_GRH_SCHED_BATCH_MAX_OPS)" \
+		WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES="$(XS_GSIM_EXECUTABLE_GRH_SCHED_BATCH_MAX_ESTIMATED_LINES)" \
+		WOLVRIX_XS_GRHSIM_SCHED_BATCH_TARGET_COUNT="$(XS_GSIM_EXECUTABLE_GRH_SCHED_BATCH_TARGET_COUNT)" \
+		WOLVRIX_XS_GRHSIM_SCHED_BATCHES_PER_CPP="$(XS_GSIM_EXECUTABLE_GRH_SCHED_BATCHES_PER_CPP)" \
+		WOLVRIX_XS_GRHSIM_EMIT_PARALLELISM="$(XS_GSIM_EXECUTABLE_GRH_EMIT_PARALLELISM)" \
+			/usr/bin/time -v $(PYTHON) "$(XS_WOLVRIX_GRHSIM_SCRIPT)" \
+				/dev/null \
+				"$(XS_SIM_TOP)" \
+				"$(XS_GSIM_EXECUTABLE_GRH_EMIT_DIR_ABS)" \
+				'' \
+				/dev/null \
+				"$(WOLF_LOG)" \
+				--waveform $(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),declared-symbols,off) \
+				--perf $(if $(filter 1,$(WOLVRIX_GRHSIM_PERF)),eval,off) \
+				--import-gsim-executable-grh "$(XS_GSIM_EXECUTABLE_GRH_JSON_ABS)" \
+				2>&1 | tee -a "$$LOG_FILE"
+	@if [ ! -s "$(XS_GSIM_EXECUTABLE_GRH_EMIT_DIR_ABS)/Makefile" ] || \
+		[ ! -s "$(XS_GSIM_EXECUTABLE_GRH_EMIT_DIR_ABS)/grhsim_$(XS_SIM_TOP).hpp" ]; then \
+		echo "[FAIL] GrhSIM C++ emit is incomplete: $(XS_GSIM_EXECUTABLE_GRH_EMIT_DIR_ABS)"; \
+		exit 1; \
+	fi
+	@if [ ! -s "$(XS_GSIM_EXECUTABLE_GRH_EMIT_DIR_ABS)/activity_schedule_supernode_stats.json" ]; then \
+		echo "[FAIL] missing activity-schedule stats for executable GRH import"; \
+		exit 1; \
+	fi
+
+xs_gsim_executable_grh_emu:
+	@if [ ! -s "$(XS_GSIM_EXECUTABLE_GRH_EMIT_DIR_ABS)/Makefile" ] || \
+		[ ! -s "$(XS_GSIM_EXECUTABLE_GRH_EMIT_DIR_ABS)/grhsim_$(XS_SIM_TOP).hpp" ]; then \
+		echo "[FAIL] GrhSIM C++ emit is incomplete: $(XS_GSIM_EXECUTABLE_GRH_EMIT_DIR_ABS)"; \
+		echo "[FAIL] Run xs_gsim_executable_grh_import first."; \
+		exit 1; \
+	fi
+	@if [ ! -d "$(XS_DIFFTEST_GEN_DIR_ABS)" ]; then \
+		echo "[FAIL] XiangShan generated C++ sources not found: $(XS_DIFFTEST_GEN_DIR_ABS)"; \
+		echo "[FAIL] Generate them with xs_gsim_rtl before building the GrhSIM emulator."; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(XS_DIFFTEST_GSIM_EXTMODULE)" ]; then \
+		echo "[FAIL] XiangShan GSim extmodule source not found: $(XS_DIFFTEST_GSIM_EXTMODULE)"; \
+		echo "[FAIL] Generate it with xs_gsim_rtl before building the GrhSIM emulator."; \
+		exit 1; \
+	fi
+	@mkdir -p "$(XS_GSIM_EXECUTABLE_GRH_BUILD_DIR_ABS)" \
+		"$(XS_GSIM_EXECUTABLE_GRH_LOG_DIR_ABS)"
+	@set -o pipefail; \
+		LOG_FILE="$(XS_GSIM_EXECUTABLE_GRH_LOG_DIR_ABS)/xs_gsim_executable_grh_emu_build_$(RUN_ID).log"; \
+		printf '' > "$$LOG_FILE"; \
+		echo "[RUN] Building XiangShan executable-GRH GrhSIM emu" | tee -a "$$LOG_FILE"; \
+		echo "[CMD] $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_GSIM_EXECUTABLE_GRH_BUILD_DIR_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) SIM_TOP=$(XS_SIM_TOP) NUM_CORES=$(XS_NUM_CORES) GRHSIM=1 GRHSIM_MODEL_DIR=$(XS_GSIM_EXECUTABLE_GRH_EMIT_DIR_ABS) WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM)" | tee -a "$$LOG_FILE"; \
+		NOOP_HOME="$(XS_NOOP_HOME)" /usr/bin/time -v $(MAKE) -C "$(XS_ROOT)/difftest" emu \
+			BUILD_DIR="$(XS_GSIM_EXECUTABLE_GRH_BUILD_DIR_ABS)" \
+			GEN_CSRC_DIR="$(XS_DIFFTEST_GEN_DIR_ABS)" \
+			SIM_TOP="$(XS_SIM_TOP)" \
+			NUM_CORES="$(XS_NUM_CORES)" \
+			VM_BUILD_JOBS="$(XS_VM_BUILD_JOBS)" \
+			WITH_CHISELDB="$(XS_WITH_CHISELDB)" \
+			WITH_CONSTANTIN="$(XS_WITH_CONSTANTIN)" \
+			GRHSIM=1 \
+			GRHSIM_MODEL_DIR="$(XS_GSIM_EXECUTABLE_GRH_EMIT_DIR_ABS)" \
+			WOLVRIX_GRHSIM_WAVEFORM="$(WOLVRIX_GRHSIM_WAVEFORM)" \
+			2>&1 | tee -a "$$LOG_FILE"
+	@if [ ! -x "$(XS_GSIM_EXECUTABLE_GRH_BUILD_DIR_ABS)/emu" ]; then \
+		echo "[FAIL] executable-GRH GrhSIM emu not found: $(XS_GSIM_EXECUTABLE_GRH_BUILD_DIR_ABS)/emu"; \
+		exit 1; \
+	fi
+
+run_xs_gsim_executable_grh_emu:
+	@if [ ! -x "$(XS_GSIM_EXECUTABLE_GRH_BUILD_DIR_ABS)/emu" ]; then \
+		echo "[FAIL] executable-GRH GrhSIM emu not found: $(XS_GSIM_EXECUTABLE_GRH_BUILD_DIR_ABS)/emu"; \
+		echo "[FAIL] Build it with xs_gsim_executable_grh_emu first."; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin" ] || \
+		[ ! -f "$(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so" ]; then \
+		echo "[FAIL] XiangShan CoreMark or NEMU difftest input is missing under $(XS_ROOT_ABS)/ready-to-run"; \
+		exit 1; \
+	fi
+	@if { [ "$(XS_WAVEFORM)" != "0" ] || [ -n "$(XS_WAVEFORM_PATH)" ]; } && [ "$(WOLVRIX_GRHSIM_WAVEFORM)" != "1" ]; then \
+		echo "[FAIL] executable-GRH GrhSIM runtime waveform requested, but the model was emitted without waveform support"; \
+		exit 1; \
+	fi
+	@set -o pipefail; \
+		LOG_FILE="$(XS_GSIM_EXECUTABLE_GRH_LOG_DIR_ABS)/xs_gsim_executable_grh_run_$(RUN_ID).log"; \
+		WAVEFORM="$(if $(XS_WAVEFORM_PATH_ABS),$(XS_WAVEFORM_PATH_ABS),$(XS_GSIM_EXECUTABLE_GRH_WAVEFORM_DIR_ABS)/xs_gsim_executable_grh_$(RUN_ID).fst)"; \
+		mkdir -p "$(XS_GSIM_EXECUTABLE_GRH_LOG_DIR_ABS)" "$$(dirname "$$WAVEFORM")"; \
+		printf '' > "$$LOG_FILE"; \
+		echo "[RUN] XiangShan executable-GRH GrhSIM CoreMark difftest" | tee -a "$$LOG_FILE"; \
+		echo "[CMD] cd $(XS_GSIM_EXECUTABLE_GRH_BUILD_DIR_ABS) && ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),)" | tee -a "$$LOG_FILE"; \
+		cd "$(XS_GSIM_EXECUTABLE_GRH_BUILD_DIR_ABS)" && \
+			EMU_PROGRESS_EVERY_CYCLES="$(XS_PROGRESS_EVERY_CYCLES)" \
+			$(XS_EMU_PREFIX) ./emu \
+				-i "$(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin" \
+				--diff "$(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so" \
+				-b "$(XS_LOG_BEGIN)" -e "$(XS_LOG_END)" \
+				$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) \
+				$(XS_RAM_TRACE_ARGS) \
+				$(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) \
+				$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) \
+				$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path "$$WAVEFORM",) \
+				2>&1 | tee -a "$$LOG_FILE"
 
 $(XS_WOLF_FILELIST_ABS): $(XS_SIM_TOP_V)
 	@mkdir -p "$(dir $@)"

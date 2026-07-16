@@ -325,6 +325,161 @@ def write_comb_lane_pack_report(sess: wolvrix.Session, key: str, out_path: Path)
     log(f"comb-lane-pack report written {out_path} groups={len(raw)}")
 
 
+# GSim's canonical writer keeps metadata before graphs and tops at the end.
+GSIM_PRECOARSEN_HEADER_LIMIT = 4 * 1024 * 1024
+GSIM_PRECOARSEN_TAIL_LIMIT = 1024 * 1024
+GSIM_PRECOARSEN_GRAPHS_MARKER = '\n  "graphs": ['
+GSIM_PRECOARSEN_GRAPH_SYMBOL_MARKER = '\n    {\n      "symbol": '
+GSIM_PRECOARSEN_TOPS_MARKER = b'\n  "tops": '
+GSIM_EXECUTABLE_GRH_FORMAT = "gsim.executable-grh.v2"
+GSIM_EXECUTABLE_GRH_STAGE = "pre-coarsen"
+GSIM_EXECUTABLE_GRH_BOUNDARY = "PreCoarsen"
+GSIM_EXECUTABLE_GRH_PROFILES = {
+    "full-fidelity",
+    "xiangshan-gsim-coremark-stub",
+}
+GSIM_EXECUTABLE_GRH_STUB_PROFILE = "xiangshan-gsim-coremark-stub"
+
+
+def read_gsim_design_envelope(
+    path: Path,
+    artifact_name: str,
+) -> tuple[dict, str, list[str]]:
+    try:
+        with path.open("r", encoding="utf-8") as stream:
+            header = stream.read(GSIM_PRECOARSEN_HEADER_LIMIT)
+        file_size = path.stat().st_size
+        with path.open("rb") as stream:
+            stream.seek(max(0, file_size - GSIM_PRECOARSEN_TAIL_LIMIT))
+            tail = stream.read()
+    except (OSError, UnicodeError) as ex:
+        raise RuntimeError(f"failed to read {artifact_name} {path}: {ex}") from ex
+
+    graphs_pos = header.find(GSIM_PRECOARSEN_GRAPHS_MARKER)
+    if graphs_pos < 0:
+        raise RuntimeError(
+            f"{artifact_name} header is missing its graphs array or exceeds "
+            f"{GSIM_PRECOARSEN_HEADER_LIMIT} bytes"
+        )
+    root_header = header[:graphs_pos].rstrip()
+    if not root_header.endswith(","):
+        raise RuntimeError(f"{artifact_name} header is malformed before graphs")
+
+    try:
+        data = json.loads(root_header[:-1] + "\n}")
+        symbol_pos = header.find(GSIM_PRECOARSEN_GRAPH_SYMBOL_MARKER, graphs_pos)
+        if symbol_pos < 0:
+            raise RuntimeError(f"{artifact_name} is missing its first graph symbol")
+        symbol_pos += len(GSIM_PRECOARSEN_GRAPH_SYMBOL_MARKER)
+        graph_symbol, _ = json.JSONDecoder().raw_decode(header, symbol_pos)
+        tops_pos = tail.rfind(GSIM_PRECOARSEN_TOPS_MARKER)
+        if tops_pos < 0:
+            raise RuntimeError(f"{artifact_name} is missing its tops array")
+        tops_pos += len(GSIM_PRECOARSEN_TOPS_MARKER)
+        tops, _ = json.JSONDecoder().raw_decode(tail[tops_pos:].decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeError) as ex:
+        raise RuntimeError(f"invalid {artifact_name} envelope {path}: {ex}") from ex
+
+    if not isinstance(data, dict):
+        raise RuntimeError(f"{artifact_name} root must be an object")
+    if not isinstance(graph_symbol, str) or not graph_symbol:
+        raise RuntimeError(f"{artifact_name} graph symbol must be a non-empty string")
+    if not isinstance(tops, list) or not all(isinstance(top, str) for top in tops):
+        raise RuntimeError(f"{artifact_name} tops must be an array of strings")
+    return data, graph_symbol, tops
+
+
+def read_gsim_precoarsen_projection_envelope(path: Path) -> tuple[dict, str, list[str]]:
+    return read_gsim_design_envelope(path, "GSim pre-coarsen projection")
+
+
+def validate_gsim_precoarsen_projection(path: Path, top_name: str) -> None:
+    data, graph_symbol, tops = read_gsim_precoarsen_projection_envelope(path)
+
+    if data.get("format") != "gsim.precoarsen-graph.v1":
+        raise RuntimeError(
+            "GSim pre-coarsen projection has unsupported format; "
+            "expected gsim.precoarsen-graph.v1"
+        )
+    if data.get("stage") != "pre-coarsen":
+        raise RuntimeError("GSim pre-coarsen projection must be exported at stage pre-coarsen")
+    if data.get("analysisOnly") is not True:
+        raise RuntimeError("GSim pre-coarsen projection must declare analysisOnly=true")
+
+    gsim = data.get("gsim")
+    if not isinstance(gsim, dict):
+        raise RuntimeError("GSim pre-coarsen projection is missing its gsim metadata")
+    if (
+        gsim.get("format") != "gsim.precoarsen-graph.v1"
+        or gsim.get("stage") != "pre-coarsen"
+        or gsim.get("boundary") != "PreCoarsen"
+        or gsim.get("analysisOnly") is not True
+    ):
+        raise RuntimeError("GSim pre-coarsen projection has inconsistent gsim metadata")
+
+    if graph_symbol != top_name:
+        raise RuntimeError(
+            f"GSim pre-coarsen projection does not contain requested top graph: {top_name}"
+        )
+    if top_name not in tops:
+        raise RuntimeError(
+            f"GSim pre-coarsen projection does not mark requested graph as top: {top_name}"
+        )
+
+
+def validate_gsim_executable_grh(path: Path, top_name: str) -> str:
+    data, graph_symbol, tops = read_gsim_design_envelope(path, "GSim executable GRH")
+
+    if data.get("format") != GSIM_EXECUTABLE_GRH_FORMAT:
+        raise RuntimeError(
+            f"GSim executable GRH has unsupported format; expected {GSIM_EXECUTABLE_GRH_FORMAT}"
+        )
+    if data.get("stage") != GSIM_EXECUTABLE_GRH_STAGE:
+        raise RuntimeError(
+            f"GSim executable GRH must be exported at stage {GSIM_EXECUTABLE_GRH_STAGE}"
+        )
+    if data.get("boundary") != GSIM_EXECUTABLE_GRH_BOUNDARY:
+        raise RuntimeError(
+            f"GSim executable GRH must declare boundary {GSIM_EXECUTABLE_GRH_BOUNDARY}"
+        )
+    if data.get("analysisOnly") is not False:
+        raise RuntimeError("GSim executable GRH must declare analysisOnly=false")
+
+    execution_profile = data.get("executionProfile")
+    if (
+        not isinstance(execution_profile, str)
+        or execution_profile not in GSIM_EXECUTABLE_GRH_PROFILES
+    ):
+        allowed_profiles = ", ".join(sorted(GSIM_EXECUTABLE_GRH_PROFILES))
+        raise RuntimeError(
+            "GSim executable GRH must declare an allowed executionProfile; "
+            f"expected one of: {allowed_profiles}"
+        )
+
+    gsim = data.get("gsim")
+    if not isinstance(gsim, dict):
+        raise RuntimeError("GSim executable GRH is missing its gsim metadata")
+    if (
+        gsim.get("format") != data["format"]
+        or gsim.get("stage") != data["stage"]
+        or gsim.get("boundary") != GSIM_EXECUTABLE_GRH_BOUNDARY
+        or gsim.get("analysisOnly") is not data["analysisOnly"]
+        or gsim.get("executionProfile") != execution_profile
+    ):
+        raise RuntimeError(
+            "GSim executable GRH has inconsistent gsim "
+            "format/stage/boundary/analysisOnly/executionProfile metadata"
+        )
+
+    if graph_symbol != top_name:
+        raise RuntimeError(
+            f"GSim executable GRH first graph is {graph_symbol!r}, expected requested top {top_name!r}"
+        )
+    if top_name not in tops:
+        raise RuntimeError(f"GSim executable GRH does not mark requested graph as top: {top_name}")
+    return execution_profile
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("filelist")
@@ -335,6 +490,8 @@ def main() -> int:
     parser.add_argument("log_level", nargs="?", default="info")
     parser.add_argument("--waveform", choices=["off", "declared-symbols"], default="off")
     parser.add_argument("--perf", choices=["off", "eval"], default="off")
+    parser.add_argument("--import-gsim-precoarsen", default=None)
+    parser.add_argument("--import-gsim-executable-grh", default=None)
     args = parser.parse_args()
 
     filelist = args.filelist
@@ -343,6 +500,20 @@ def main() -> int:
     json_out = args.json_out
     read_args_file = args.read_args_file
     log_level = args.log_level
+    gsim_precoarsen_import = (
+        args.import_gsim_precoarsen
+        or os.environ.get("WOLVRIX_XS_GRHSIM_IMPORT_GSIM_PRECOARSEN", "")
+    ).strip()
+    gsim_precoarsen_path = Path(gsim_precoarsen_import).resolve() if gsim_precoarsen_import else None
+    gsim_executable_grh_import = (
+        args.import_gsim_executable_grh
+        or os.environ.get("WOLVRIX_XS_GRHSIM_IMPORT_GSIM_EXECUTABLE_GRH", "")
+    ).strip()
+    gsim_executable_grh_path = (
+        Path(gsim_executable_grh_import).resolve() if gsim_executable_grh_import else None
+    )
+    gsim_executable_grh_profile: str | None = None
+    gsim_import_path = gsim_precoarsen_path or gsim_executable_grh_path
     post_stats_json = Path(
         os.environ.get(
             "WOLVRIX_XS_GRHSIM_POST_STATS_JSON",
@@ -362,7 +533,7 @@ def main() -> int:
     mem_to_reg_row_limit = env_int("WOLVRIX_XS_GRHSIM_MEM_TO_REG_ROW_LIMIT", 64)
     max_op_in_compute_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE", 108)
     max_op_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_NODE", max_op_in_compute_supernode)
-    split_oversize_compute_nodes = env_flag("WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODES", default=True)
+    split_oversize_compute_nodes = env_flag("WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODES", default=False)
     split_oversize_compute_node_max_ops = env_int(
         "WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODE_MAX_OPS",
         max_op_in_compute_supernode,
@@ -371,7 +542,7 @@ def main() -> int:
     commit_guard_event_buckets = env_flag("WOLVRIX_XS_GRHSIM_COMMIT_GUARD_EVENT_BUCKETS", default=True)
     sched_batch_max_ops = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_OPS", 2048)
     sched_batch_max_estimated_lines = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES", 8192)
-    sched_batch_target_count = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_TARGET_COUNT", 64)
+    sched_batch_target_count = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_TARGET_COUNT", 256)
     sched_batches_per_cpp = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCHES_PER_CPP", 1)
     emit_parallelism = env_int("WOLVRIX_XS_GRHSIM_EMIT_PARALLELISM", 4)
     storage_ref_aliases_env_was_set = "WOLVRIX_GRHSIM_STORAGE_REF_ALIASES" in os.environ
@@ -413,6 +584,45 @@ def main() -> int:
             "WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON or "
             "WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON"
         )
+    if gsim_precoarsen_path is not None and gsim_executable_grh_path is not None:
+        raise RuntimeError(
+            "choose only one GSim import: --import-gsim-precoarsen or "
+            "--import-gsim-executable-grh"
+        )
+    if gsim_precoarsen_path is not None:
+        if resume_from_stats_json or resume_from_pre_reg_to_mem_json:
+            raise RuntimeError(
+                "GSim pre-coarsen import cannot be combined with an existing GrhSIM resume point"
+            )
+        if stop_after_pre_sched:
+            raise RuntimeError("GSim pre-coarsen import requires activity-schedule to run")
+        if not stop_after_activity_schedule:
+            raise RuntimeError(
+                "GSim pre-coarsen import is analysis-only; "
+                "set WOLVRIX_XS_GRHSIM_STOP_AFTER_ACTIVITY_SCHEDULE=1"
+            )
+        if not gsim_precoarsen_path.is_file():
+            raise RuntimeError(f"GSim pre-coarsen projection not found: {gsim_precoarsen_path}")
+        validate_gsim_precoarsen_projection(gsim_precoarsen_path, top_name)
+    if gsim_executable_grh_path is not None:
+        if resume_from_stats_json or resume_from_pre_reg_to_mem_json:
+            raise RuntimeError(
+                "GSim executable GRH import cannot be combined with an existing GrhSIM resume point"
+            )
+        if stop_after_pre_sched:
+            raise RuntimeError("GSim executable GRH import requires activity-schedule to run")
+        if not gsim_executable_grh_path.is_file():
+            raise RuntimeError(f"GSim executable GRH not found: {gsim_executable_grh_path}")
+        gsim_executable_grh_profile = validate_gsim_executable_grh(
+            gsim_executable_grh_path,
+            top_name,
+        )
+        log(f"GSim executable GRH execution profile={gsim_executable_grh_profile}")
+        if gsim_executable_grh_profile == GSIM_EXECUTABLE_GRH_STUB_PROFILE:
+            log(
+                "WARNING: explicit xiangshan-gsim-coremark-stub profile selected; "
+                "SimJTAG and PrintCommitIDModule use compatibility stubs"
+            )
 
     config_message = (
         "activity-schedule max_op_in_compute_supernode="
@@ -438,6 +648,11 @@ def main() -> int:
         f"enable_stats={enable_stats} "
         f"post_stats_json={post_stats_json} "
         f"resume_from_stats_json={resume_from_stats_json} "
+        f"gsim_precoarsen_import={gsim_precoarsen_path if gsim_precoarsen_path is not None else 'off'} "
+        "gsim_executable_grh_import="
+        f"{gsim_executable_grh_path if gsim_executable_grh_path is not None else 'off'} "
+        "gsim_executable_grh_profile="
+        f"{gsim_executable_grh_profile if gsim_executable_grh_profile is not None else 'off'} "
         f"reg_to_mem_intent={reg_to_mem_intent} "
         f"reg_to_mem_ordered_writes={reg_to_mem_ordered_writes} "
         f"reg_to_mem_decoded_write_storage={reg_to_mem_decoded_write_storage} "
@@ -447,7 +662,7 @@ def main() -> int:
 
     read_args: list[str] = ["-f", filelist, "--top", top_name]
 
-    if read_args_file:
+    if gsim_import_path is None and read_args_file:
         path = Path(read_args_file)
         if not path.exists():
             raise RuntimeError(f"read args file not found: {read_args_file}")
@@ -521,7 +736,24 @@ def main() -> int:
             post_sched_pipeline[0][1]["export_compute_dag"] = str(export_compute_dag_path)
         log(config_message)
 
-        if resume_from_stats_json:
+        if gsim_precoarsen_path is not None:
+            start = time.perf_counter()
+            log(f"read_gsim_precoarsen_json start {gsim_precoarsen_path}")
+            diags = sess.read_json_file(str(gsim_precoarsen_path), out_design="design.main")
+            require_ok(diags, "read_gsim_precoarsen_json")
+            log(f"read_gsim_precoarsen_json done {int((time.perf_counter() - start) * 1000)}ms")
+            log("GSim pre-coarsen import skips reg-to-mem and stats before activity-schedule")
+        elif gsim_executable_grh_path is not None:
+            start = time.perf_counter()
+            log(f"read_gsim_executable_grh start {gsim_executable_grh_path}")
+            diags = sess.read_json_file(str(gsim_executable_grh_path), out_design="design.main")
+            require_ok(diags, "read_gsim_executable_grh")
+            log(f"read_gsim_executable_grh done {int((time.perf_counter() - start) * 1000)}ms")
+            log(
+                "GSim executable GRH import skips pre-schedule normalization, "
+                "reg-to-mem, and stats"
+            )
+        elif resume_from_stats_json:
             if not post_stats_json.exists():
                 raise RuntimeError(f"post-stats json not found: {post_stats_json}")
             start = time.perf_counter()
