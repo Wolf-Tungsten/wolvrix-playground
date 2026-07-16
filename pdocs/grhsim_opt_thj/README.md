@@ -87,12 +87,17 @@
 | `TNO0075` | `2026-07-16` | [Stage 11 equal-load swap-only probe plan](./TNO0075_stage11_equal_load_swap_probe_plan_20260716.md) | 规划 plain-DP 后 `swap-probe`：只量化 equal-op、DAG-support/topo/active-ID exact 的 capacity-blocked swap，补测 Stage1 被 4096 普通 move 预算饿死的路径。 |
 | `TNO0076` | `2026-07-16` | [Stage 11 equal-load swap probe implementation and production result](./TNO0076_stage11_equal_load_swap_probe_implementation_and_production_result_20260716.md) | 实现 no-mutation、资源有界的 swap probe；production 完整枚举 `3,417,492` 个 RHS 后 exact eligible 为 `0`，不进入 strict/CPP/50k。 |
 | `TNO0077` | `2026-07-16` | [Stage 11 equal-load swap probe full regression gate](./TNO0077_stage11_equal_load_swap_probe_full_regression_gate_20260716.md) | 完整 rebuild 与 CTest `46/48`；activity/emitter/ingest 通过，仅保留两个既有失败，Stage 11 可提交。 |
+| `TNO0078` | `2026-07-16` | [Stage 12 commit guard merge-cap sweep plan](./TNO0078_stage12_commit_guard_merge_cap_sweep_plan_20260716.md) | 规划以 default 4096 commit partition 为有序基础，只合并同 event 相邻完整节点，补扫历史未覆盖的 `8192/16384/32768` cap 与 current 50k。 |
+| `TNO0079` | `2026-07-16` | [Stage 12 commit guard merge-cap implementation and structure scan](./TNO0079_stage12_commit_guard_merge_cap_implementation_and_structure_scan_20260716.md) | default SHA identity；高 cap runs `485→468/459/455`、compute-commit pairs 最多 `-2243`，三点均进入 full CPP/O3/50k。 |
+| `TNO0080` | `2026-07-16` | [Stage 12 commit guard merge-cap full build and functional gate](./TNO0080_stage12_commit_guard_merge_cap_full_build_and_functional_gate_20260716.md) | 三档 full emit/O3 与 100/10k 功能全过；最大 CPP 不膨胀、`.text` 均下降，全部进入 fixed-ASLR 跨 NUMA 50k。 |
+| `TNO0081` | `2026-07-16` | [Stage 12 commit guard merge-cap cross-NUMA runtime](./TNO0081_stage12_commit_guard_merge_cap_cross_numa_runtime_20260716.md) | 8192/32768 出现 socket 方向反转，16384 双 socket 回退；instructions 也不随 BAE 单调改善，默认保持 4096 并停止全局 cap 粗扫。 |
+| `TNO0082` | `2026-07-16` | [Stage 12 commit guard merge-cap full regression gate](./TNO0082_stage12_commit_guard_merge_cap_full_regression_gate_20260716.md) | 完整 rebuild/CTest `46/48`；activity 与 emitter 长测通过，失败集合与 Stage 11 完全相同，无新增回归。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`77`（`TNO0001..TNO0077`）。
+- 当前记录类文档总数：`82`（`TNO0001..TNO0082`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
