@@ -61,6 +61,30 @@ def env_float(name: str, default: float) -> float:
     return float(value.strip())
 
 
+def read_final_sibling_fusion_options() -> dict[str, str | int]:
+    options: dict[str, str | int] = {}
+    policy_env = "WOLVRIX_XS_GRHSIM_FINAL_SIBLING_FUSION_POLICY"
+    if policy_env in os.environ:
+        options["final_sibling_fusion_policy"] = os.environ[policy_env].strip()
+
+    integer_options = (
+        ("WOLVRIX_XS_GRHSIM_FINAL_SIBLING_FUSION_MIN_GAIN", "final_sibling_fusion_min_gain"),
+        ("WOLVRIX_XS_GRHSIM_FINAL_SIBLING_FUSION_MAX_PAIRS", "final_sibling_fusion_max_pairs"),
+        (
+            "WOLVRIX_XS_GRHSIM_FINAL_SIBLING_FUSION_MAX_FUSED_OP_PPM",
+            "final_sibling_fusion_max_fused_op_ppm",
+        ),
+    )
+    for env_name, option_name in integer_options:
+        if env_name in os.environ:
+            options[option_name] = int(os.environ[env_name].strip())
+    return options
+
+
+def format_native_default_option(options: dict[str, str | int], name: str) -> str:
+    return str(options[name]) if name in options else "cpp-default"
+
+
 def write_stats_json(sess: wolvrix.Session, key: str, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "wolvrix_xs_stats.json"
@@ -538,6 +562,7 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_MOVED_OP_PPM",
         5000,
     )
+    final_sibling_fusion_options = read_final_sibling_fusion_options()
     final_topo_policy = os.environ.get(
         "WOLVRIX_XS_GRHSIM_FINAL_TOPO_POLICY",
         "level-id",
@@ -614,6 +639,14 @@ def main() -> int:
         f"final_fanin_pullback_min_gain={final_fanin_pullback_min_gain} "
         f"final_fanin_pullback_max_moves={final_fanin_pullback_max_moves} "
         f"final_fanin_pullback_max_moved_op_ppm={final_fanin_pullback_max_moved_op_ppm} "
+        f"final_sibling_fusion_policy="
+        f"{format_native_default_option(final_sibling_fusion_options, 'final_sibling_fusion_policy')} "
+        f"final_sibling_fusion_min_gain="
+        f"{format_native_default_option(final_sibling_fusion_options, 'final_sibling_fusion_min_gain')} "
+        f"final_sibling_fusion_max_pairs="
+        f"{format_native_default_option(final_sibling_fusion_options, 'final_sibling_fusion_max_pairs')} "
+        f"final_sibling_fusion_max_fused_op_ppm="
+        f"{format_native_default_option(final_sibling_fusion_options, 'final_sibling_fusion_max_fused_op_ppm')} "
         f"final_topo_policy={final_topo_policy}"
     )
 
@@ -709,6 +742,7 @@ def main() -> int:
                     "final_fanin_pullback_min_gain": final_fanin_pullback_min_gain,
                     "final_fanin_pullback_max_moves": final_fanin_pullback_max_moves,
                     "final_fanin_pullback_max_moved_op_ppm": final_fanin_pullback_max_moved_op_ppm,
+                    **final_sibling_fusion_options,
                     "final_topo_policy": final_topo_policy,
                 },
             ),

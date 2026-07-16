@@ -102,12 +102,16 @@
 | `TNO0090` | `2026-07-17` | [Stage 14 native hybrid default adoption plan](./TNO0090_stage14_native_hybrid_default_adoption_plan_20260717.md) | 基于 corrected page-local 双 node 约 `4.3%` cycles 收益，规划将 direct-state 与 pure-event bypass 成对迁为 C++ native defaults；XS 改为 tri-state 显式覆盖，identity、回滚、build/tests 与 fresh NO0300 50k 待补。 |
 | `TNO0091` | `2026-07-17` | [Stage 14 native hybrid default implementation and fresh gates](./TNO0091_stage14_native_hybrid_default_implementation_and_fresh_gates_20260717.md) | C++ native `true/true`、Python/XS tri-state 与显式回滚闭合；fresh default/off source、O3、100/10k/50k 和完整回归通过，严格整 node gate 因负载拒绝，性能待补。 |
 | `TNO0092` | `2026-07-17` | [Stage 14 native hybrid default adoption decision](./TNO0092_stage14_native_hybrid_default_adoption_decision_20260717.md) | 基于 corrected page-local 双 node `-4.237%/-4.353%` 与 fresh `.text/.data/.eh_frame` 历史 identity，采用 C++ native hybrid default；strict ABBA/BAAB 待负载恢复后确认，显式 `0/0` 保留回滚。 |
+| `TNO0093` | `2026-07-17` | [Stage 15 activation-equivalent sibling fusion probe plan](./TNO0093_stage15_activation_equivalent_sibling_fusion_probe_plan_20260717.md) | 规划 state/event/unclassified-free、`(level,schedule Vin,graph Vio)` exact-signature no-mutation probe，按距离稳定配对并导出 SN/active-ID；`adjacent_cap_eligible` 在 min-gain 前预期为 `0`，strict 须先闭合 canonical active-ID/batch/layout。 |
+| `TNO0094` | `2026-07-17` | [Stage 14 native-hybrid commit-cap fresh gate](./TNO0094_stage14_native_hybrid_commit_cap_fresh_gate_20260717.md) | current native hybrid 下四档 cap 的 typed slots、O3/功能闭合；已补充完整 active lowering 勘误：one-byte OR 仅为子项，static/runtime-write proxy 与 raw BAE 非单调，严格 whole-node 窗口因外部负载未形成，默认保持 `4096`。 |
+| `TNO0095` | `2026-07-17` | [Stage 15 sibling fusion probe implementation and production result](./TNO0095_stage15_sibling_fusion_probe_implementation_and_production_result_20260717.md) | default/probe/Stage14 raw stats byte-exact；`7,234` raw pairs 经 cap/min-gain 后 `exact=selected=0`，放宽门槛的 BAE 上界仍 `<0.0011%`，故不进入 strict/CPP/SimTop；完整回归见 [TNO0096](./TNO0096_stage15_full_regression_gate_20260717.md)。 |
+| `TNO0096` | `2026-07-17` | [Stage 15 full regression gate](./TNO0096_stage15_full_regression_gate_20260717.md) | 完整 build PASS、串行 CTest `46/48`（`389.20s`）；activity/emitter/memory-fill 通过，仅保留 Stage11..14 相同的 comb-lane-pack/repcut 既有失败，无新增回归。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`92`（`TNO0001..TNO0092`）。
+- 当前记录类文档总数：`96`（`TNO0001..TNO0096`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
