@@ -92,12 +92,19 @@
 | `TNO0080` | `2026-07-16` | [Stage 12 commit guard merge-cap full build and functional gate](./TNO0080_stage12_commit_guard_merge_cap_full_build_and_functional_gate_20260716.md) | 三档 full emit/O3 与 100/10k 功能全过；最大 CPP 不膨胀、`.text` 均下降，全部进入 fixed-ASLR 跨 NUMA 50k。 |
 | `TNO0081` | `2026-07-16` | [Stage 12 commit guard merge-cap cross-NUMA runtime](./TNO0081_stage12_commit_guard_merge_cap_cross_numa_runtime_20260716.md) | 8192/32768 出现 socket 方向反转，16384 双 socket 回退；instructions 也不随 BAE 单调改善，默认保持 4096 并停止全局 cap 粗扫。 |
 | `TNO0082` | `2026-07-16` | [Stage 12 commit guard merge-cap full regression gate](./TNO0082_stage12_commit_guard_merge_cap_full_regression_gate_20260716.md) | 完整 rebuild/CTest `46/48`；activity 与 emitter 长测通过，失败集合与 Stage 11 完全相同，无新增回归。 |
+| `TNO0083` | `2026-07-16` | [Stage 13 partition-stable commit locality plan](./TNO0083_stage13_partition_stable_commit_locality_plan_20260716.md) | 定位 high-cap 引起 63.56% value-slot 改号的 supernode-anchor 根因；规划导出 4096 canonical locality group，保持 default layout 并隔离 commit coarsening。 |
+| `TNO0084` | `2026-07-16` | [Stage 13 anchor-only production gate and order correction](./TNO0084_stage13_anchor_only_production_gate_and_order_correction_20260716.md) | default 全源码 identity；high-cap slot 漂移降至 1.26%..1.54% 但未清零，定位 actual commit first-read 顺序并转入 canonical group topo 修正。 |
+| `TNO0085` | `2026-07-16` | [NUMA file-page locality diagnosis and controlled runtime protocol](./TNO0085_numa_file_page_locality_diagnosis_and_protocol_20260716.md) | 正式绑定语法正确，但 NFS file-backed text 不随 `membind` 迁移；双 inode 矩阵测得远端 file set 慢 `2.79%/3.48%`，后续 50k 增加 placement 与全 CCD gate。 |
+| `TNO0086` | `2026-07-16` | [Stage 13 canonical commit order full gate](./TNO0086_stage13_canonical_commit_order_full_gate_20260716.md) | canonical group topo 与 groupCount 防御闭合；default 154 源文件 identity，三档 high-cap typed-slot changed/missing/extra/type-changed 全 `0`，O3/功能通过并进入 page-local 50k。 |
+| `TNO0087` | `2026-07-16` | [Correct page-local Stage 7/8 runtime](./TNO0087_page_local_stage7_stage8_corrected_runtime_20260716.md) | 双 node 独立 inode、镜像核和全 CCD monitor 下重测：hybrid 两边提升约 `4.3%`，p050 中性、p200 轻退，旧 socket 反转结论失效；same-post 尚在运行。 |
+| `TNO0088` | `2026-07-16` | [Stage 13 full regression gate](./TNO0088_stage13_full_regression_gate_20260716.md) | 完整 build PASS、串行 CTest `46/48`；activity/emitter 长测通过，仅保留与 Stage 11/12 相同的 comb-lane-pack/repcut 既有失败，无新增回归。 |
+| `TNO0089` | `2026-07-17` | [Page-local Stage 12/13 interim runtime and strict NUMA protocol](./TNO0089_page_local_stage12_stage13_interim_runtime_and_strict_numa_protocol_20260717.md) | 归档 cap32768/cap8192 的有效 raw A/B/A 与 control 漂移；确认只监控 CCD 不足，协议升级为整 node 30 秒 gate、运行期 monitor 和平衡 AB/BA 重复，Stage 13 最终结论待补。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`82`（`TNO0001..TNO0082`）。
+- 当前记录类文档总数：`89`（`TNO0001..TNO0089`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
