@@ -99,12 +99,15 @@
 | `TNO0087` | `2026-07-16` | [Correct page-local Stage 7/8 runtime](./TNO0087_page_local_stage7_stage8_corrected_runtime_20260716.md) | 双 node 独立 inode、镜像核和全 CCD monitor 下重测：hybrid 两边提升约 `4.3%`，p050 中性、p200 轻退，旧 socket 反转结论失效；same-post 尚在运行。 |
 | `TNO0088` | `2026-07-16` | [Stage 13 full regression gate](./TNO0088_stage13_full_regression_gate_20260716.md) | 完整 build PASS、串行 CTest `46/48`；activity/emitter 长测通过，仅保留与 Stage 11/12 相同的 comb-lane-pack/repcut 既有失败，无新增回归。 |
 | `TNO0089` | `2026-07-17` | [Page-local Stage 12/13 interim runtime and strict NUMA protocol](./TNO0089_page_local_stage12_stage13_interim_runtime_and_strict_numa_protocol_20260717.md) | 归档 cap32768/cap8192 的有效 raw A/B/A 与 control 漂移；确认只监控 CCD 不足，协议升级为整 node 30 秒 gate、运行期 monitor 和平衡 AB/BA 重复，Stage 13 最终结论待补。 |
+| `TNO0090` | `2026-07-17` | [Stage 14 native hybrid default adoption plan](./TNO0090_stage14_native_hybrid_default_adoption_plan_20260717.md) | 基于 corrected page-local 双 node 约 `4.3%` cycles 收益，规划将 direct-state 与 pure-event bypass 成对迁为 C++ native defaults；XS 改为 tri-state 显式覆盖，identity、回滚、build/tests 与 fresh NO0300 50k 待补。 |
+| `TNO0091` | `2026-07-17` | [Stage 14 native hybrid default implementation and fresh gates](./TNO0091_stage14_native_hybrid_default_implementation_and_fresh_gates_20260717.md) | C++ native `true/true`、Python/XS tri-state 与显式回滚闭合；fresh default/off source、O3、100/10k/50k 和完整回归通过，严格整 node gate 因负载拒绝，性能待补。 |
+| `TNO0092` | `2026-07-17` | [Stage 14 native hybrid default adoption decision](./TNO0092_stage14_native_hybrid_default_adoption_decision_20260717.md) | 基于 corrected page-local 双 node `-4.237%/-4.353%` 与 fresh `.text/.data/.eh_frame` 历史 identity，采用 C++ native hybrid default；strict ABBA/BAAB 待负载恢复后确认，显式 `0/0` 保留回滚。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`89`（`TNO0001..TNO0089`）。
+- 当前记录类文档总数：`92`（`TNO0001..TNO0092`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
