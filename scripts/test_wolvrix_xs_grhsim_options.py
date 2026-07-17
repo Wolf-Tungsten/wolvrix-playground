@@ -312,7 +312,13 @@ class XsGrhsimOptionTest(unittest.TestCase):
 
     def test_active_mask_gap_pack_explicit_value_is_forwarded_verbatim(self) -> None:
         env_name = "WOLVRIX_XS_GRHSIM_ACTIVE_MASK_GAP_PACK_POLICY"
-        for value in ("off", "probe", "targeted-direct"):
+        for value in (
+            "off",
+            "probe",
+            "targeted-direct",
+            "targeted-table-contiguous",
+            "targeted-table-gap",
+        ):
             with self.subTest(value=value):
                 with patch.dict(os.environ, {env_name: value}, clear=True):
                     options = READ_ACTIVE_MASK_GAP_PACK_OPTIONS()
