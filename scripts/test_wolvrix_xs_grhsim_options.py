@@ -6,12 +6,16 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from wolvrix import _compile_emit_grhsim_cpp_kwargs
+
 
 SCRIPT = Path(__file__).with_name("wolvrix_xs_grhsim.py")
 MODULE = runpy.run_path(str(SCRIPT), run_name="wolvrix_xs_grhsim_option_test")
 ENV_OPTIONAL_FLAG = MODULE["env_optional_flag"]
 FORMAT_OPTIONAL_FLAG = MODULE["format_optional_flag"]
 READ_FINAL_SIBLING_FUSION_OPTIONS = MODULE["read_final_sibling_fusion_options"]
+READ_ACTIVE_MASK_GAP_PACK_OPTIONS = MODULE["read_active_mask_gap_pack_options"]
+DESCRIBE_ACTIVE_MASK_GAP_PACK_POLICY = MODULE["describe_active_mask_gap_pack_policy"]
 FORMAT_NATIVE_DEFAULT_OPTION = MODULE["format_native_default_option"]
 
 
@@ -128,6 +132,47 @@ class XsGrhsimOptionTest(unittest.TestCase):
                         FORMAT_NATIVE_DEFAULT_OPTION(options, option_name),
                         str(option_value),
                     )
+
+    def test_active_mask_gap_pack_default_is_sparse(self) -> None:
+        high = "WOLVRIX_XS_GRHSIM_ACTIVE_MASK_GAP_PACK_POLICY"
+        low = "WOLVRIX_GRHSIM_ACTIVE_MASK_GAP_PACK_POLICY"
+        base = {key: value for key, value in os.environ.items() if key not in {high, low}}
+
+        with patch.dict(os.environ, base, clear=True):
+            options = READ_ACTIVE_MASK_GAP_PACK_OPTIONS()
+            self.assertEqual(options, {})
+            self.assertEqual(DESCRIBE_ACTIVE_MASK_GAP_PACK_POLICY(options), ("cpp-default", "cpp-default"))
+
+        with patch.dict(os.environ, {**base, low: "probe"}, clear=True):
+            before = dict(os.environ)
+            options = READ_ACTIVE_MASK_GAP_PACK_OPTIONS()
+            self.assertEqual(options, {})
+            self.assertEqual(DESCRIBE_ACTIVE_MASK_GAP_PACK_POLICY(options), ("probe", "cpp-low-env"))
+            self.assertEqual(os.environ, before)
+
+        with patch.dict(os.environ, {**base, high: "off", low: "probe"}, clear=True):
+            before = dict(os.environ)
+            options = READ_ACTIVE_MASK_GAP_PACK_OPTIONS()
+            self.assertEqual(options, {"active_mask_gap_pack_policy": "off"})
+            self.assertEqual(DESCRIBE_ACTIVE_MASK_GAP_PACK_POLICY(options), ("off", "xs-override"))
+            self.assertEqual(os.environ, before)
+
+    def test_active_mask_gap_pack_explicit_value_is_forwarded_verbatim(self) -> None:
+        env_name = "WOLVRIX_XS_GRHSIM_ACTIVE_MASK_GAP_PACK_POLICY"
+        for value in ("off", "probe"):
+            with self.subTest(value=value):
+                with patch.dict(os.environ, {env_name: value}, clear=True):
+                    options = READ_ACTIVE_MASK_GAP_PACK_OPTIONS()
+                    self.assertEqual(options, {"active_mask_gap_pack_policy": value})
+                    _compile_emit_grhsim_cpp_kwargs(options)
+
+    def test_active_mask_gap_pack_invalid_value_is_not_normalized(self) -> None:
+        env_name = "WOLVRIX_XS_GRHSIM_ACTIVE_MASK_GAP_PACK_POLICY"
+        with patch.dict(os.environ, {env_name: " probe "}, clear=True):
+            options = READ_ACTIVE_MASK_GAP_PACK_OPTIONS()
+            self.assertEqual(options, {"active_mask_gap_pack_policy": " probe "})
+            with self.assertRaisesRegex(ValueError, "active_mask_gap_pack_policy"):
+                _compile_emit_grhsim_cpp_kwargs(options)
 
 
 if __name__ == "__main__":

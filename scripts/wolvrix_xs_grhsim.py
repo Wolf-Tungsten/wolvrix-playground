@@ -85,6 +85,23 @@ def format_native_default_option(options: dict[str, str | int], name: str) -> st
     return str(options[name]) if name in options else "cpp-default"
 
 
+def read_active_mask_gap_pack_options() -> dict[str, str]:
+    env_name = "WOLVRIX_XS_GRHSIM_ACTIVE_MASK_GAP_PACK_POLICY"
+    if env_name not in os.environ:
+        return {}
+    return {"active_mask_gap_pack_policy": os.environ[env_name]}
+
+
+def describe_active_mask_gap_pack_policy(options: dict[str, str]) -> tuple[str, str]:
+    option_name = "active_mask_gap_pack_policy"
+    if option_name in options:
+        return options[option_name], "xs-override"
+    low_env_name = "WOLVRIX_GRHSIM_ACTIVE_MASK_GAP_PACK_POLICY"
+    if low_env_name in os.environ:
+        return os.environ[low_env_name], "cpp-low-env"
+    return "cpp-default", "cpp-default"
+
+
 def write_stats_json(sess: wolvrix.Session, key: str, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "wolvrix_xs_stats.json"
@@ -498,6 +515,10 @@ def main() -> int:
         if "WOLVRIX_XS_GRHSIM_PURE_EVENT_WORD_PACK_MAX_CHANGED_WORD_PPM" in os.environ
         else env_int("WOLVRIX_GRHSIM_PURE_EVENT_WORD_PACK_MAX_CHANGED_WORD_PPM", 20000)
     )
+    active_mask_gap_pack_options = read_active_mask_gap_pack_options()
+    active_mask_gap_pack_effective, active_mask_gap_pack_source = (
+        describe_active_mask_gap_pack_policy(active_mask_gap_pack_options)
+    )
     dp_segment_penalty_ppm = env_int(
         "WOLVRIX_XS_GRHSIM_DP_SEGMENT_PENALTY_PPM",
         1000000,
@@ -623,6 +644,8 @@ def main() -> int:
         f"pure_event_word_pack_policy={pure_event_word_pack_policy} "
         f"pure_event_word_pack_max_moved_supernode_ppm={pure_event_word_pack_max_moved_supernode_ppm} "
         f"pure_event_word_pack_max_changed_word_ppm={pure_event_word_pack_max_changed_word_ppm} "
+        f"active_mask_gap_pack_policy_effective={active_mask_gap_pack_effective} "
+        f"active_mask_gap_pack_policy_source={active_mask_gap_pack_source} "
         f"dp_segment_penalty_ppm={dp_segment_penalty_ppm} "
         f"post_dp_refine_policy={post_dp_refine_policy} "
         f"post_dp_refine_max_rounds={post_dp_refine_max_rounds} "
@@ -866,6 +889,7 @@ def main() -> int:
             pure_event_word_pack_policy=pure_event_word_pack_policy,
             pure_event_word_pack_max_moved_supernode_ppm=pure_event_word_pack_max_moved_supernode_ppm,
             pure_event_word_pack_max_changed_word_ppm=pure_event_word_pack_max_changed_word_ppm,
+            **active_mask_gap_pack_options,
         )
         require_ok(diags, "emit_grhsim_cpp")
         log(f"write_grhsim_cpp done {int((time.perf_counter() - start) * 1000)}ms")

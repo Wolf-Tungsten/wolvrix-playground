@@ -106,12 +106,17 @@
 | `TNO0094` | `2026-07-17` | [Stage 14 native-hybrid commit-cap fresh gate](./TNO0094_stage14_native_hybrid_commit_cap_fresh_gate_20260717.md) | current native hybrid 下四档 cap 的 typed slots、O3/功能闭合；已补充完整 active lowering 勘误：one-byte OR 仅为子项，static/runtime-write proxy 与 raw BAE 非单调，严格 whole-node 窗口因外部负载未形成，默认保持 `4096`。 |
 | `TNO0095` | `2026-07-17` | [Stage 15 sibling fusion probe implementation and production result](./TNO0095_stage15_sibling_fusion_probe_implementation_and_production_result_20260717.md) | default/probe/Stage14 raw stats byte-exact；`7,234` raw pairs 经 cap/min-gain 后 `exact=selected=0`，放宽门槛的 BAE 上界仍 `<0.0011%`，故不进入 strict/CPP/SimTop；完整回归见 [TNO0096](./TNO0096_stage15_full_regression_gate_20260717.md)。 |
 | `TNO0096` | `2026-07-17` | [Stage 15 full regression gate](./TNO0096_stage15_full_regression_gate_20260717.md) | 完整 build PASS、串行 CTest `46/48`（`389.20s`）；activity/emitter/memory-fill 通过，仅保留 Stage11..14 相同的 comb-lane-pack/repcut 既有失败，无新增回归。 |
+| `TNO0097` | `2026-07-17` | [Stage 16 emitter-local zero-hole active-mask pack probe plan](./TNO0097_stage16_emitter_local_zero_hole_active_mask_pack_probe_plan_20260717.md) | Stage15 exact=0 后转向真实 emitter lowering；规划 default-off/no-mutation zero-hole mask probe，冻结 schedule/topo/active-ID/batch/slot/layout，direct 静态 write proxy `-4.057%`、table gap 相对 contiguous `-11.374%`，strict 与双 NUMA 50k 另立阶段。已追加 gap-DP start 与 conditional logical-lane 勘误。 |
+| `TNO0098` | `2026-07-17` | [Stage 7+ strict NUMA window recheck and retest queue](./TNO0098_stage7_plus_strict_numa_window_recheck_and_retest_queue_20260717.md) | 两轮 30 秒 whole-node gate 中 N0 均 PASS，N1 因可迁移外部 PID 导致 min idle `65.82%/78.79%` 均 FAIL；未启动 perf、不降 gate，17 组双 node 独立 inode staging 已闭合，按 Stage14、current caps、Stage10、Stage13/12、Stage8 排队重测。已追加 N1 retry：mean `99.652%` PASS，但 CPU104 min `81.49%` 仍 FAIL。 |
+| `TNO0099` | `2026-07-17` | [Stage 14 native-hybrid N0 strict balanced runtime](./TNO0099_stage14_native_hybrid_n0_strict_balanced_runtime_20260717.md) | N0 P0 ABBA+BAAB 8/8 全硬门禁通过；native default cycles `-3.976741%`、instructions `-4.835558%`，两种顺序均约 `-4%`，进一步确认默认采用；N1 strict balanced 待安静窗口补齐。 |
+| `TNO0100` | `2026-07-17` | [Stage 16 active-mask gap-pack probe implementation and production result](./TNO0100_stage16_active_mask_gap_probe_implementation_and_production_result_20260717.md) | default/off/probe 的 157-file 与 155-source manifest byte-exact；non-table zero-hole proxy `653,299→623,294`（`-4.593%`），table gap-only `19,942→17,530`（`-12.095%`），validator/自测全过；probe 不改产物，Stage17 先做 direct-only，table 先补 runtime counter。 |
+| `TNO0101` | `2026-07-17` | [Stage 16 full regression gate](./TNO0101_stage16_full_regression_gate_20260717.md) | full build PASS、串行 CTest `46/48`（`387.10s`）；emitter 长测 `293.06s`、memory-fill、activity-schedule 与全部 ingest 通过，仅保留 Stage11..15 相同的 comb-lane-pack/repcut 既有失败，无新增回归；已追加 test-only low-env probe focused gate 与实际 `build -j4`/`ctest -j1` 命令勘误。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`96`（`TNO0001..TNO0096`）。
+- 当前记录类文档总数：`101`（`TNO0001..TNO0101`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
