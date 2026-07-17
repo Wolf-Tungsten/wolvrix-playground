@@ -122,12 +122,14 @@
 | `TNO0110` | `2026-07-17` | [Walltime headline criterion and historical re-evaluation](./TNO0110_walltime_headline_criterion_and_re_evaluation_20260717.md) | 将 `walltime_ms/walltime_ok` 设为 SimTop 50k 最终 headline；逐篇复核历史 runtime，唯一实质变化是 cap8192/N0 cycles 近中性但 wall 回退，默认决定保持不变。 |
 | `TNO0111` | `2026-07-17` | [Stage 7+ P1 cap8192 attempt2 survey rejection](./TNO0111_stage7_plus_p1_cap8192_attempt2_survey_rejection_20260717.md) | attempt2 N0/N1 whole-node survey 均因 mean/min idle 失败；四项正式 run 均未启动，无 walltime/PMU 样本和 group 目录，不降低新 walltime protocol 的硬门槛。 |
 | `TNO0112` | `2026-07-17` | [Stage 7+ P1 cap8192 attempt3 survey rejection](./TNO0112_stage7_plus_p1_cap8192_attempt3_survey_rejection_20260717.md) | attempt3 N0 survey PASS，N1 因 CPU112 minimum idle `60.02%` FAIL；外部可迁移 `htop`/Java 负载仍在，未启动正式 run，无 walltime/PMU 或 group 目录。 |
+| `TNO0113` | `2026-07-17` | [Stage 19 table activation runtime probe plan](./TNO0113_stage19_table_activation_runtime_probe_plan_20260717.md) | 先用仅在显式 runtime-profile emit 中编译的动态 counter 量化 generic table activation 热度；profile walltime 不做 A/B，后续未插桩 candidate 仍由 strict 50k `Host time spent` 裁决。 |
+| `TNO0114` | `2026-07-17` | [Stage 19 table activation runtime probe result](./TNO0114_stage19_table_activation_runtime_probe_result_20260717.md) | profile source 插点 `586` 个、静态和 `89,903/19,942/17,530` 闭合；100/10k/50k 动态 summary 均唯一且持续增长，50k `evaluations=2,998,684`，决定进入未插桩 Stage20 table candidate。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`112`（`TNO0001..TNO0112`，含 TNO0108/0109/0110/0111/0112）。
+- 当前记录类文档总数：`114`（`TNO0001..TNO0114`，含 TNO0108/0109/0110/0111/0112/0113/0114）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

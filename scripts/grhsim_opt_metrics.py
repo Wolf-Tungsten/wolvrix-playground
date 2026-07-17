@@ -205,6 +205,26 @@ def read_perf_log(path: Path | None) -> dict[str, Any]:
     out["emu_host_time_count"] = len(walltime_matches)
     if len(walltime_matches) == 1:
         out["emu_host_time_ms"] = parse_int(walltime_matches[0])
+    table_profile_matches = re.findall(
+        r"\[GRHSIM_ACTIVE_MASK_TABLE_PROFILE\]\s+"
+        r"evaluations=([0-9,]+)\s+"
+        r"current_entry_writes=([0-9,]+)\s+"
+        r"contiguous_chunk_writes=([0-9,]+)\s+"
+        r"zero_hole_chunk_writes=([0-9,]+)",
+        text,
+    )
+    out["active_mask_table_profile_count"] = len(table_profile_matches)
+    if len(table_profile_matches) == 1:
+        evaluations, current, contiguous, zero_hole = (
+            parse_int(value) for value in table_profile_matches[0]
+        )
+        out["active_mask_table_evaluations"] = evaluations
+        out["active_mask_table_current_entry_writes"] = current
+        out["active_mask_table_contiguous_chunk_writes"] = contiguous
+        out["active_mask_table_zero_hole_chunk_writes"] = zero_hole
+        out["active_mask_table_profile_ok"] = (
+            current >= contiguous >= zero_hole >= 0 and evaluations >= 0
+        )
     m = re.search(r"max cycles:\s*([0-9,]+)", text)
     if m:
         out["max_cycles"] = parse_int(m.group(1))
