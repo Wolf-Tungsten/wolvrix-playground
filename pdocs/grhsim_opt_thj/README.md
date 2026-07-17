@@ -111,12 +111,16 @@
 | `TNO0099` | `2026-07-17` | [Stage 14 native-hybrid N0 strict balanced runtime](./TNO0099_stage14_native_hybrid_n0_strict_balanced_runtime_20260717.md) | N0 P0 ABBA+BAAB 8/8 全硬门禁通过；native default cycles `-3.976741%`、instructions `-4.835558%`，两种顺序均约 `-4%`，进一步确认默认采用；N1 strict balanced 待安静窗口补齐。 |
 | `TNO0100` | `2026-07-17` | [Stage 16 active-mask gap-pack probe implementation and production result](./TNO0100_stage16_active_mask_gap_probe_implementation_and_production_result_20260717.md) | default/off/probe 的 157-file 与 155-source manifest byte-exact；non-table zero-hole proxy `653,299→623,294`（`-4.593%`），table gap-only `19,942→17,530`（`-12.095%`），validator/自测全过；probe 不改产物，Stage17 先做 direct-only，table 先补 runtime counter。 |
 | `TNO0101` | `2026-07-17` | [Stage 16 full regression gate](./TNO0101_stage16_full_regression_gate_20260717.md) | full build PASS、串行 CTest `46/48`（`387.10s`）；emitter 长测 `293.06s`、memory-fill、activity-schedule 与全部 ingest 通过，仅保留 Stage11..15 相同的 comb-lane-pack/repcut 既有失败，无新增回归；已追加 test-only low-env probe focused gate 与实际 `build -j4`/`ctest -j1` 命令勘误。 |
+| `TNO0102` | `2026-07-17` | [Stage 17 targeted-direct active-mask gap-pack plan](./TNO0102_stage17_targeted_direct_active_mask_gap_pack_plan_20260717.md) | 规划只发 non-table direct zero-hole chunks；冻结 schedule/active-ID/batch/slot/table 与 excluded paths，native default 保持 `off`、XS sparse override；source diff、O3/功能及 strict 双 NUMA 50k 闭环后再决定 C++ default，N1 gate 阻塞期间不降门槛。 |
+| `TNO0103` | `2026-07-17` | [Stage 17 targeted-direct implementation, static, and functional gate](./TNO0103_stage17_targeted_direct_implementation_static_and_functional_gate_20260717.md) | production 选中 `15,913` groups、writes `86,350→56,345`；仅 107 个 sched source 的 active writes 改变，总 source `-1,494,059` bytes，O3 `.text -101,551` bytes，fixed-ASLR 100/10k/50k 功能全过；full regression 待独立归档。 |
+| `TNO0104` | `2026-07-17` | [Stage 17 targeted-direct N0 strict runtime and default decision](./TNO0104_stage17_targeted_direct_n0_strict_runtime_and_default_decision_20260717.md) | N0 ABBA/BAAB cycles `+0.253568%/-0.316547%`、合并 `-0.031601%`，低于 spread，判中性并保持 C++ default `off`；N1 因 CPU104 外部 `htop` 阻塞，未跑且未干预，XS 继续 sparse override。 |
+| `TNO0105` | `2026-07-17` | [Stage 17 full regression gate](./TNO0105_stage17_full_regression_gate_20260717.md) | full build PASS、串行 CTest `46/48`（`387.77s`）；focused emitter/memory-fill、activity、pybind 与 XS 全过，仅保留 Stage11..16 相同的 comb-lane-pack/repcut 既有失败，无新增回归。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`101`（`TNO0001..TNO0101`）。
+- 当前记录类文档总数：`105`（`TNO0001..TNO0105`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

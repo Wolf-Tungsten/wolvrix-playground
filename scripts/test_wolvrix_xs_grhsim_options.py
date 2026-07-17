@@ -143,14 +143,17 @@ class XsGrhsimOptionTest(unittest.TestCase):
             self.assertEqual(options, {})
             self.assertEqual(DESCRIBE_ACTIVE_MASK_GAP_PACK_POLICY(options), ("cpp-default", "cpp-default"))
 
-        with patch.dict(os.environ, {**base, low: "probe"}, clear=True):
+        with patch.dict(os.environ, {**base, low: "targeted-direct"}, clear=True):
             before = dict(os.environ)
             options = READ_ACTIVE_MASK_GAP_PACK_OPTIONS()
             self.assertEqual(options, {})
-            self.assertEqual(DESCRIBE_ACTIVE_MASK_GAP_PACK_POLICY(options), ("probe", "cpp-low-env"))
+            self.assertEqual(
+                DESCRIBE_ACTIVE_MASK_GAP_PACK_POLICY(options),
+                ("targeted-direct", "cpp-low-env"),
+            )
             self.assertEqual(os.environ, before)
 
-        with patch.dict(os.environ, {**base, high: "off", low: "probe"}, clear=True):
+        with patch.dict(os.environ, {**base, high: "off", low: "targeted-direct"}, clear=True):
             before = dict(os.environ)
             options = READ_ACTIVE_MASK_GAP_PACK_OPTIONS()
             self.assertEqual(options, {"active_mask_gap_pack_policy": "off"})
@@ -159,7 +162,7 @@ class XsGrhsimOptionTest(unittest.TestCase):
 
     def test_active_mask_gap_pack_explicit_value_is_forwarded_verbatim(self) -> None:
         env_name = "WOLVRIX_XS_GRHSIM_ACTIVE_MASK_GAP_PACK_POLICY"
-        for value in ("off", "probe"):
+        for value in ("off", "probe", "targeted-direct"):
             with self.subTest(value=value):
                 with patch.dict(os.environ, {env_name: value}, clear=True):
                     options = READ_ACTIVE_MASK_GAP_PACK_OPTIONS()
@@ -168,11 +171,22 @@ class XsGrhsimOptionTest(unittest.TestCase):
 
     def test_active_mask_gap_pack_invalid_value_is_not_normalized(self) -> None:
         env_name = "WOLVRIX_XS_GRHSIM_ACTIVE_MASK_GAP_PACK_POLICY"
-        with patch.dict(os.environ, {env_name: " probe "}, clear=True):
+        for value in ("targeted", "table", "targeted-table", " probe "):
+            with self.subTest(value=value):
+                with patch.dict(os.environ, {env_name: value}, clear=True):
+                    options = READ_ACTIVE_MASK_GAP_PACK_OPTIONS()
+                    self.assertEqual(options, {"active_mask_gap_pack_policy": value})
+                    with self.assertRaisesRegex(ValueError, "active_mask_gap_pack_policy"):
+                        _compile_emit_grhsim_cpp_kwargs(options)
+
+    def test_active_mask_gap_pack_low_env_is_observed_without_xs_validation(self) -> None:
+        high = "WOLVRIX_XS_GRHSIM_ACTIVE_MASK_GAP_PACK_POLICY"
+        low = "WOLVRIX_GRHSIM_ACTIVE_MASK_GAP_PACK_POLICY"
+        base = {key: value for key, value in os.environ.items() if key not in {high, low}}
+        with patch.dict(os.environ, {**base, low: "table"}, clear=True):
             options = READ_ACTIVE_MASK_GAP_PACK_OPTIONS()
-            self.assertEqual(options, {"active_mask_gap_pack_policy": " probe "})
-            with self.assertRaisesRegex(ValueError, "active_mask_gap_pack_policy"):
-                _compile_emit_grhsim_cpp_kwargs(options)
+            self.assertEqual(options, {})
+            self.assertEqual(DESCRIBE_ACTIVE_MASK_GAP_PACK_POLICY(options), ("table", "cpp-low-env"))
 
 
 if __name__ == "__main__":
