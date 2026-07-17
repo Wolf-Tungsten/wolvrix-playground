@@ -120,12 +120,13 @@
 | `TNO0108` | `2026-07-17` | [Absolute raw-value audit and missing ledger](./TNO0108_absolute_raw_value_audit_and_missing_ledger_20260717.md) | 全审计 TNO0001..TNO0107；补录可恢复的 PMU/结构/wall 原值，登记 rejected/incomplete/unrecoverable 边界，并交接 walltime 重评估。 |
 | `TNO0109` | `2026-07-17` | [Stage 18 C++ native default single-source implementation and identity gate](./TNO0109_stage18_cpp_native_default_single_source_implementation_and_identity_gate_20260717.md) | 完成 28 项 sparse default/Makefile 单一默认来源迁移；clean/cap8192 fresh production identity、绝对结构值和 byte-exact gate 通过，schedule/端到端程序不变。 |
 | `TNO0110` | `2026-07-17` | [Walltime headline criterion and historical re-evaluation](./TNO0110_walltime_headline_criterion_and_re_evaluation_20260717.md) | 将 `walltime_ms/walltime_ok` 设为 SimTop 50k 最终 headline；逐篇复核历史 runtime，唯一实质变化是 cap8192/N0 cycles 近中性但 wall 回退，默认决定保持不变。 |
+| `TNO0111` | `2026-07-17` | [Stage 7+ P1 cap8192 attempt2 survey rejection](./TNO0111_stage7_plus_p1_cap8192_attempt2_survey_rejection_20260717.md) | attempt2 N0/N1 whole-node survey 均因 mean/min idle 失败；四项正式 run 均未启动，无 walltime/PMU 样本和 group 目录，不降低新 walltime protocol 的硬门槛。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`110`（`TNO0001..TNO0110`，含 TNO0108/0109/0110）。
+- 当前记录类文档总数：`111`（`TNO0001..TNO0111`，含 TNO0108/0109/0110/0111）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
