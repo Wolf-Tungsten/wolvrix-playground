@@ -129,12 +129,14 @@
 | `TNO0117` | `2026-07-17` | [Stage 20 table encoding strict walltime and default decision](./TNO0117_stage20_table_encoding_strict_walltime_and_default_decision_20260717.md) | 正确 page-local 双 NUMA walltime 显示 contiguous 合并仅 `-0.010753%` 且 node 方向反转，gap N1 为 `-0.074125%`、小于 spread；C++ default 保持 `off`。 |
 | `TNO0118` | `2026-07-17` | [Stage 7+ P1 cap8192 corrected runtime attempt4 to6](./TNO0118_stage7_plus_p1_cap8192_corrected_runtime_attempt4_to6_20260717.md) | fresh page-local 下 N0 ABBA、N1 ABBA/BAAB wall 均小幅正向，N1 平衡 `-0.408054%` 但小于 spread；N0 BAAB 三次被 runtime minimum 拒绝，default 暂留 `4096`。 |
 | `TNO0119` | `2026-07-17` | [Stage 7+ P0 N1 native hybrid closure and P1 try7](./TNO0119_stage7_plus_p0_n1_native_hybrid_closure_and_p1_try7_20260717.md) | N1 strict ABBA+BAAB wall `77,707.00→74,571.75 ms`（`-4.034707%`），完整确认 native hybrid C++ default；P1 N0 try7 runtime min `94.820%` 作废，cap 仍留 `4096`。 |
+| `TNO0120` | `2026-07-17` | [Stage 7+ P1 cap8192 try8 survey rejection](./TNO0120_stage7_plus_p1_cap8192_try8_survey_rejection_20260717.md) | N0 raw survey count/mean 通过，但 minimum `94.690%` on CPU22 低于硬门槛；未启动 emu、无 wall/PMU，P1 N0 BAAB 继续待安静窗口。 |
+| `TNO0121` | `2026-07-18` | [Stage 21 terminal common-target pushforward probe plan](./TNO0121_stage21_terminal_common_target_pushforward_probe_plan_20260718.md) | GSIM/GrhSIM 直比定位到 per-pair boundary-value multiplicity；规划最多128个小型纯 compute node 的 common-target pushforward no-mutation probe，同时要求 BAE 与 materialization 净下降并补动态额外执行 gate。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`119`（`TNO0001..TNO0119`）。
+- 当前记录类文档总数：`121`（`TNO0001..TNO0121`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
