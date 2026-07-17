@@ -192,7 +192,7 @@ class XsGrhsimOptionTest(unittest.TestCase):
 
     def test_final_terminal_pushforward_policy_is_sparse(self) -> None:
         env_name = "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_POLICY"
-        for value in ("off", "probe"):
+        for value in ("off", "probe", "strict"):
             with self.subTest(value=value):
                 with patch.dict(os.environ, {env_name: value}, clear=True):
                     options = READ_ACTIVITY_SCHEDULE_SPARSE_OPTIONS()
