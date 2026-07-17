@@ -133,12 +133,13 @@
 | `TNO0121` | `2026-07-18` | [Stage 21 terminal common-target pushforward probe plan](./TNO0121_stage21_terminal_common_target_pushforward_probe_plan_20260718.md) | GSIM/GrhSIM 直比定位到 per-pair boundary-value multiplicity；规划最多128个小型纯 compute node 的 common-target pushforward no-mutation probe，同时要求 BAE 与 materialization 净下降并补动态额外执行 gate。 |
 | `TNO0122` | `2026-07-18` | [Stage 21 terminal pushforward probe implementation and production result](./TNO0122_stage21_terminal_pushforward_probe_implementation_and_production_result_20260718.md) | production exact eligible `1,054`、默认选择 `128`，投影净减 `128` BAE/边界值；probe 与 current-default emitter 产物 byte-exact，继续实现 strict 并由 50k walltime 裁决。 |
 | `TNO0123` | `2026-07-18` | [Stage 22 terminal pushforward strict implementation and static gate](./TNO0123_stage22_terminal_pushforward_strict_implementation_and_static_gate_20260718.md) | strict stable-splice 实际移动 `128` 个 1-op node，BAE/边界值精确 `-128`、logical-byte proxy `-183`，DAG/commit/batch 不变；O3/50k 功能通过，walltime 待 current-default cap 重裁后复测。 |
+| `TNO0124` | `2026-07-18` | [Stage 7+ P1 cap8192 balanced closure and default adoption](./TNO0124_stage7_plus_p1_cap8192_balanced_closure_and_default_adoption_20260718.md) | fresh page-local N0 BAAB 补齐后，四个独立组 wall 全部正向；双 NUMA 等权 `74,604.75→74,280.00 ms`（`-0.435294%`），采用 C++ native cap8192，显式4096保留回滚。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`123`（`TNO0001..TNO0123`）。
+- 当前记录类文档总数：`124`（`TNO0001..TNO0124`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
