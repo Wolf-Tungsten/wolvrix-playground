@@ -127,12 +127,13 @@
 | `TNO0115` | `2026-07-17` | [Stage 20 table encoding candidate plan](./TNO0115_stage20_table_encoding_candidate_plan_20260717.md) | 将 table loop rewrite 与 zero-hole gap candidate 拆成两个显式 policy；冻结 schedule/active-ID/batch/slot，native default 继续 `off`，最终只由未插桩 50k `Host time spent` 裁决。 |
 | `TNO0116` | `2026-07-17` | [Stage 20 table encoding implementation and full gate](./TNO0116_stage20_table_encoding_implementation_and_full_gate_20260717.md) | 两个未插桩 table candidate 完成实现、production emit、绝对 source/ELF 对账、功能与完整回归；586 个 generic loops 整体替换且 schedule/slot identity 闭合。 |
 | `TNO0117` | `2026-07-17` | [Stage 20 table encoding strict walltime and default decision](./TNO0117_stage20_table_encoding_strict_walltime_and_default_decision_20260717.md) | 正确 page-local 双 NUMA walltime 显示 contiguous 合并仅 `-0.010753%` 且 node 方向反转，gap N1 为 `-0.074125%`、小于 spread；C++ default 保持 `off`。 |
+| `TNO0118` | `2026-07-17` | [Stage 7+ P1 cap8192 corrected runtime attempt4 to6](./TNO0118_stage7_plus_p1_cap8192_corrected_runtime_attempt4_to6_20260717.md) | fresh page-local 下 N0 ABBA、N1 ABBA/BAAB wall 均小幅正向，N1 平衡 `-0.408054%` 但小于 spread；N0 BAAB 三次被 runtime minimum 拒绝，default 暂留 `4096`。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`117`（`TNO0001..TNO0117`）。
+- 当前记录类文档总数：`118`（`TNO0001..TNO0118`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
