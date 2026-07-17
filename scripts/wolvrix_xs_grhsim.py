@@ -121,6 +121,38 @@ ACTIVITY_SCHEDULE_SPARSE_INTEGER_OPTIONS = (
         "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_MOVED_OP_PPM",
         "final_fanin_pullback_max_moved_op_ppm",
     ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_MAX_NODE_OPS",
+        "final_terminal_pushforward_max_node_ops",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_MAX_INPUTS",
+        "final_terminal_pushforward_max_inputs",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_MAX_OUTPUTS",
+        "final_terminal_pushforward_max_outputs",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_MAX_VALUE_WIDTH",
+        "final_terminal_pushforward_max_value_width",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_MIN_BAE_GAIN",
+        "final_terminal_pushforward_min_bae_gain",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_MIN_BOUNDARY_VALUE_GAIN",
+        "final_terminal_pushforward_min_boundary_value_gain",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_MAX_MOVES",
+        "final_terminal_pushforward_max_moves",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_MAX_MOVED_OP_PPM",
+        "final_terminal_pushforward_max_moved_op_ppm",
+    ),
 )
 
 ACTIVITY_SCHEDULE_SPARSE_STRING_OPTIONS = (
@@ -131,6 +163,10 @@ ACTIVITY_SCHEDULE_SPARSE_STRING_OPTIONS = (
     ("WOLVRIX_XS_GRHSIM_POST_DP_REFINE_POLICY", "post_dp_refine_policy"),
     ("WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_POLICY", "kahn_level_pack_policy"),
     ("WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_POLICY", "final_fanin_pullback_policy"),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_POLICY",
+        "final_terminal_pushforward_policy",
+    ),
     ("WOLVRIX_XS_GRHSIM_FINAL_TOPO_POLICY", "final_topo_policy"),
 )
 
@@ -673,6 +709,24 @@ def main() -> int:
         f"{format_native_default_option(sparse_options, 'final_fanin_pullback_max_moves')} "
         f"final_fanin_pullback_max_moved_op_ppm="
         f"{format_native_default_option(sparse_options, 'final_fanin_pullback_max_moved_op_ppm')} "
+        f"final_terminal_pushforward_policy="
+        f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_policy')} "
+        f"final_terminal_pushforward_max_node_ops="
+        f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_max_node_ops')} "
+        f"final_terminal_pushforward_max_inputs="
+        f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_max_inputs')} "
+        f"final_terminal_pushforward_max_outputs="
+        f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_max_outputs')} "
+        f"final_terminal_pushforward_max_value_width="
+        f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_max_value_width')} "
+        f"final_terminal_pushforward_min_bae_gain="
+        f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_min_bae_gain')} "
+        f"final_terminal_pushforward_min_boundary_value_gain="
+        f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_min_boundary_value_gain')} "
+        f"final_terminal_pushforward_max_moves="
+        f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_max_moves')} "
+        f"final_terminal_pushforward_max_moved_op_ppm="
+        f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_max_moved_op_ppm')} "
         f"final_sibling_fusion_policy="
         f"{format_native_default_option(final_sibling_fusion_options, 'final_sibling_fusion_policy')} "
         f"final_sibling_fusion_min_gain="
