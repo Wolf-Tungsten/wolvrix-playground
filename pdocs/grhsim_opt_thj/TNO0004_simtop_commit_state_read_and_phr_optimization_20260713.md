@@ -66,3 +66,17 @@ eval branch sample share 10.53% -> 0.74%
 | packed active scan | 124,080 | 103,140 | 440,134,503,459 | 366,243,299,520 | cycles `-16.79%` |
 
 same-FIR GSim 双 baseline wall spread 为 `1.79%`。后四项均为 baseline/candidate/baseline 夹测；其中 PHR、broadcast、active-scan 的 host instructions 分别变化 `-1.62%/-9.77%/-2.45%`，说明 wall/cycles 收益不能只按删指令比例解释。原始表见 [NO0255](../grhsim_opt/NO0255_simtop_same_fir_perf_profile_20260710.md)、[NO0256](../grhsim_opt/NO0256_full_mask_register_commit_specialization_20260710.md)、[NO0266](../grhsim_opt/NO0266_phr_true_merge_p1_simtop_50k_gate_20260711.md)、[NO0268](../grhsim_opt/NO0268_wide_bit_replicate_broadcast_fastpath_20260711.md) 和 [NO0269](../grhsim_opt/NO0269_packed_active_flag_scan_20260711.md)。
+
+## 增量更新 2026-07-17：绝对数值补录/勘误
+
+state-read slot-alias 的原文摘要只写了相对收益。现补录同一 CPU138、50k A/B/A 的 host wall 原值（ms），顺序为 baseline A1 / alias candidate / baseline A2：
+
+| sample | source log | host ms |
+| --- | --- | ---: |
+| baseline A1 | `build/logs/xs_perf/no0283/paired_old_no0278_cpu138_50k_run1.log` | `83,233` |
+| alias candidate | `build/logs/xs_perf/no0283/paired_new_slot_alias_cpu138_50k.log` | `82,597` |
+| baseline A2 | `build/logs/xs_perf/no0283/paired_old_no0278_cpu138_50k_run2.log` | `83,159` |
+
+另一次独立复测的 candidate wall 为 `82,339 ms`，同样直接来自该目录日志；上述样本与 cycles `-0.73%` 同向，未改变 slot-alias 的历史结论。
+
+路径勘误：该独立复测文件名为 `build/logs/xs_perf/no0283/bracket_slot_alias_cpu138_50k.log`；不是 paired A/B/A 中的 `paired_new_slot_alias_cpu138_50k.log`。

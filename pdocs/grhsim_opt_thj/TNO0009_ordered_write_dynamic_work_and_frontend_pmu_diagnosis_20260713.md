@@ -65,3 +65,15 @@ strict/ordered 两版都完成 guest/cycleCnt/instr/PC=`50001/49996/73580/0x8000
 - 上述 runs 的 PIE base 未固定，所以只保留“排除动态 work/miss-count 根因”的定性价值，不保留 `+8.52%` 为最终单位成本结论。
 
 来源见 [NO0312](../grhsim_opt/NO0312_no0286_no0300_dynamic_work_gate_20260712.md)、[NO0314](../grhsim_opt/NO0314_native_stall_pmu_group_correction_20260712.md)、[NO0323](../grhsim_opt/NO0323_no0286_no0300_frontend_full_empty_profile_20260712.md) 与 [NO0328](../grhsim_opt/NO0328_no0286_no0300_l2_instruction_pmu_gate_20260712.md)。
+
+## 增量更新 2026-07-17：绝对数值补录/勘误
+
+无插桩随机 PIE 的 §5 摘要只列 host cycles。现从同组 `*_emu.log` 补录 wall 原值，单位为 milliseconds，顺序为 old1 / ordered new / old2：
+
+| sample | host wall ms | host cycles |
+| --- | ---: | ---: |
+| old1 | `81,230` | `297,422,782,679` |
+| ordered new | `84,405` | `309,005,122,520` |
+| old2 | `81,313` | `297,678,058,907` |
+
+原始路径为 `build/logs/xs_perf/no0302/{old1_emu.log,new_emu.log,old2_emu.log}` 及同名 `perf.csv`。该组是随机 PIE、非最终 fixed-ASLR 口径；其 wall 与 cycles 同向回退，profile-instrumented `82,159 -> 78,229 ms` 不与它们混用。

@@ -91,6 +91,17 @@ cycles 在 ABBA/BAAB 两种相反顺序下方向、幅度一致；按组内 `max
 
 本轮 N0 strict balanced 结果进一步确认 native hybrid 是当前默认的正确选择：约 `3.98%` cycles 收益明显高于 control/candidate spread，并与 instructions、frontend、backend 同向。[TNO0092](./TNO0092_stage14_native_hybrid_default_adoption_decision_20260717.md) 的采用决定无需回滚，也无需等待 N1 才继续作为默认；本记录提供的是更严格协议下的进一步确认。
 
+## 增量更新 2026-07-17：walltime headline 绝对值补录
+
+最终性能 headline 采用 host walltime；cycles/instructions/frontend/backend 仅作解释。注意按 binary header 映射样本，而不是按 `a/b` 文件名猜测：ABBA 是 `off / default / default / off`，BAAB 是 `default / off / off / default`。以下为 `Host time spent` 原值（milliseconds）：
+
+| order | sample sequence | wall ms |
+| --- | --- | --- |
+| ABBA | off A1 / default B1 / default B2 / off A2 | `77,820 / 74,606 / 74,646 / 77,780` |
+| BAAB | default B1 / off A1 / off A2 / default B2 | `74,652 / 77,797 / 77,806 / 74,795` |
+
+原始来源为 `build/logs/xs_perf/page_local_retest_stage7plus_20260716/groups/n0/stage14_default_strict_p0_{abba,baab}_try1/{a1,b1,b2,a2}_emu.log`。按每组两份 control/candidate 均值计算，walltime default 相对 explicit-off 为 ABBA `-4.079692%`、BAAB `-3.956222%`、合并 `-4.017956%`；control/default candidate spreads 为 `0.051427%/0.253331%`。采用结论在 walltime headline 下不变。
+
 但它仍不是 current strict 双 node closure。N1 在 [TNO0098](./TNO0098_stage7_plus_strict_numa_window_recheck_and_retest_queue_20260717.md) 记录的外部迁移负载消失并通过同一 30 秒 whole-node gate 后，必须使用镜像 CPU139/sibling331、N1 独立 inode、ABBA+BAAB 和相同全部硬门禁重测。N1 完成前，不把本轮单边数据写成“双 node strict 已通过”，也不据此批量晋升 Stage 8/10/12/13 的其它默认关闭选项。
 
 原始产物：

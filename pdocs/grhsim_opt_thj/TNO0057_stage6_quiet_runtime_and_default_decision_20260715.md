@@ -124,3 +124,25 @@ Stage 6 targeted packing 判定为负收益并停止：
 ```text
 build/logs/xs_perf/activity_stage6_pure_event_pack_20260715
 ```
+
+## 增量更新 2026-07-17：绝对数值补录/勘误
+
+原文两组 packing-only 正式 A/B/A 已列出五项 PMU raw counters，但 host ms 只列相对值。以下从对应 `*_emu.log` 的 `Host time spent` 行补录绝对 wall time；没有从百分比反推。样本顺序与单位为 host milliseconds：
+
+| CPU / sibling | 顺序 | sample | host ms |
+| --- | ---: | --- | ---: |
+| CPU11/203 | 1 | probe A1 | `73,509` |
+| CPU11/203 | 2 | targeted B | `74,454` |
+| CPU11/203 | 3 | probe A2 | `73,725` |
+| CPU84/276 | 1 | probe A1 | `75,148` |
+| CPU84/276 | 2 | targeted B | `78,963` |
+| CPU84/276 | 3 | probe A2 | `74,962` |
+
+原始路径前缀为 `build/logs/xs_perf/activity_stage6_pure_event_pack_20260715/`，文件依次为：
+
+```text
+probe2_a1_emu.log / targeted2_b_emu.log / probe2_a2_emu.log
+probe6_a1_emu.log / targeted6_b_emu.log / probe6_a2_emu.log
+```
+
+这六个 wall-time 原始值对应原文的 `+1.136966%/+5.206848%`，并不改变 packing-only 负收益结论或 current-default/probe 的独立组合结论。

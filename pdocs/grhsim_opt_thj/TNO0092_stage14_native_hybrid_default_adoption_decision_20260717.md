@@ -78,3 +78,7 @@ NUMA/file-page 勘误只重新打开了有明确 corrected 收益的 hybrid，�
 Stage 14 完成以下默认迁移：C++ native fallback 为 `true/true`，Python/XS tri-state 只负责 override，显式 `0/0` 保留 NO0300 回滚。采用依据是双 node page-local 约 `4.3%` 的已验证收益和 fresh 历史机器码完全等价；当前外部负载只延后更严格协议的确认样本，不延后代码采用。
 
 本阶段提交应以实现、测试、XS 配置分层、TNO0090..TNO0092 和 submodule pointer 为一个整体；先提交 `wolvrix` 子模块，再提交父仓，生成目录与 perf 日志不纳入版本控制。
+
+## 增量更新 2026-07-17：walltime headline 重评估
+
+按新 protocol，Stage 14 adoption 的最终 headline 使用 TNO0087 原始 emu walltime，而非 cycles：hybrid 相对相邻 control 均值在 N0 为 `-4.124340%`、N1 为 `-4.399014%`；两边 control spread 均低于候选收益，且方向一致。cycles `-4.237%/-4.353%` 仅作为解释指标。walltime 与 cycles 结论一致，C++ native `true/true` 默认采用、显式 `0/0` 回滚的决定不变。

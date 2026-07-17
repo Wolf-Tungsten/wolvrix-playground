@@ -89,6 +89,10 @@ default 与 targeted 先完成 fixed-ASLR 100、10k、50k 功能对照，校验�
 - 同时使用 `taskset -c <cpu>` 与 `numactl --physcpubind=<cpu> --membind=<node>` 绑定 CPU 和内存；
 - 采用镜像物理核，避开 SMT sibling，并在运行前执行 30 秒 whole-node idle gate，运行期间持续监控整个 node；
 - default/targeted 在 N0、N1 分别跑平衡 ABBA 与 BAAB，保留每 run 的 perf、wall、gate、affinity、mem policy、inode/hash 和 monitor 证据；
+
+## 增量更新 2026-07-17：walltime headline protocol 勘误
+
+原计划中“以 cycles 为主口径”的文字只代表旧阶段实验习惯，现由本增量规则替代：最终性能判据是 runner 记录的 `walltime_ms`，且 `walltime_ok` 必须通过；cycles/instructions/frontend/backend/branch/cache/TLB 只用于解释与异常诊断。所有后续 ABBA/BAAB 样本必须保存 `Host time spent`、walltime 字段、control/candidate 顺序和原始 emu/runner 路径。旧 cycles 表不得单独支持默认晋升或回退决定。
 - 以 cycles 为主口径，同时检查 instructions、IPC、frontend/backend、branch/cache/TLB 等已有事件，防止把负载或 page placement 漂移误判为收益。
 
 [TNO0098](./TNO0098_stage7_plus_strict_numa_window_recheck_and_retest_queue_20260717.md) 记录的 N1 whole-node gate 当前仍受外部可迁移负载阻塞。Stage 17 不因此降低 idle/min-CPU/运行期门槛，也不把被污染的 N1 数据纳入结论；N0 可以先取得 interim 数据，但 native default adoption 必须等待有效 N1 对称复测。已完成的 N0 strict balanced 方法与证据格式可参照 [TNO0099](./TNO0099_stage14_native_hybrid_n0_strict_balanced_runtime_20260717.md)。

@@ -61,6 +61,94 @@ def env_float(name: str, default: float) -> float:
     return float(value.strip())
 
 
+ACTIVITY_SCHEDULE_SPARSE_BOOL_OPTIONS = (
+    ("WOLVRIX_XS_GRHSIM_COMMIT_GUARD_EVENT_BUCKETS", "commit_guard_event_buckets"),
+    (
+        "WOLVRIX_XS_GRHSIM_DECLARED_VALUE_COMPUTE_NODE_BOUNDARY",
+        "declared_value_compute_node_boundary",
+    ),
+    ("WOLVRIX_XS_GRHSIM_ENABLE_LOCAL_SHARED_COMPUTE", "enable_local_shared_compute"),
+)
+
+ACTIVITY_SCHEDULE_SPARSE_INTEGER_OPTIONS = (
+    ("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE", "max_op_in_commit_supernode"),
+    ("WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_FANOUT", "local_shared_compute_max_fanout"),
+    ("WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_WIDTH", "local_shared_compute_max_width"),
+    ("WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_CLONES", "local_shared_compute_max_clones"),
+    (
+        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_CLONED_OP_PPM",
+        "local_shared_compute_max_cloned_op_ppm",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_COMMON_OWNER_MAX_CLONES",
+        "local_shared_compute_common_owner_max_clones",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_COMMON_OWNER_MAX_CLONED_OP_PPM",
+        "local_shared_compute_common_owner_max_cloned_op_ppm",
+    ),
+    ("WOLVRIX_XS_GRHSIM_DP_SEGMENT_PENALTY_PPM", "dp_segment_penalty_ppm"),
+    ("WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_ROUNDS", "post_dp_refine_max_rounds"),
+    ("WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_MOVES", "post_dp_refine_max_moves"),
+    (
+        "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_MOVED_OP_PPM",
+        "post_dp_refine_max_moved_op_ppm",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_REGRESSION_PPM",
+        "post_dp_refine_max_regression_ppm",
+    ),
+    ("WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_MAX_MOVES", "kahn_level_pack_max_moves"),
+    (
+        "WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_MAX_MOVED_OP_PPM",
+        "kahn_level_pack_max_moved_op_ppm",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_MAX_REGRESSION_PPM",
+        "kahn_level_pack_max_regression_ppm",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_NODE_OPS",
+        "final_fanin_pullback_max_node_ops",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_VALUE_WIDTH",
+        "final_fanin_pullback_max_value_width",
+    ),
+    ("WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MIN_GAIN", "final_fanin_pullback_min_gain"),
+    ("WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_MOVES", "final_fanin_pullback_max_moves"),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_MOVED_OP_PPM",
+        "final_fanin_pullback_max_moved_op_ppm",
+    ),
+)
+
+ACTIVITY_SCHEDULE_SPARSE_STRING_OPTIONS = (
+    (
+        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_COMMON_OWNER_POLICY",
+        "local_shared_compute_common_owner_policy",
+    ),
+    ("WOLVRIX_XS_GRHSIM_POST_DP_REFINE_POLICY", "post_dp_refine_policy"),
+    ("WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_POLICY", "kahn_level_pack_policy"),
+    ("WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_POLICY", "final_fanin_pullback_policy"),
+    ("WOLVRIX_XS_GRHSIM_FINAL_TOPO_POLICY", "final_topo_policy"),
+)
+
+
+def read_activity_schedule_sparse_options() -> dict[str, str | int | bool]:
+    options: dict[str, str | int | bool] = {}
+    for env_name, option_name in ACTIVITY_SCHEDULE_SPARSE_BOOL_OPTIONS:
+        if env_name in os.environ:
+            options[option_name] = env_flag(env_name)
+    for env_name, option_name in ACTIVITY_SCHEDULE_SPARSE_INTEGER_OPTIONS:
+        if env_name in os.environ:
+            options[option_name] = int(os.environ[env_name].strip())
+    for env_name, option_name in ACTIVITY_SCHEDULE_SPARSE_STRING_OPTIONS:
+        if env_name in os.environ:
+            options[option_name] = os.environ[env_name].strip()
+    return options
+
+
 def read_final_sibling_fusion_options() -> dict[str, str | int]:
     options: dict[str, str | int] = {}
     policy_env = "WOLVRIX_XS_GRHSIM_FINAL_SIBLING_FUSION_POLICY"
@@ -81,7 +169,7 @@ def read_final_sibling_fusion_options() -> dict[str, str | int]:
     return options
 
 
-def format_native_default_option(options: dict[str, str | int], name: str) -> str:
+def format_native_default_option(options: dict[str, str | int | bool], name: str) -> str:
     return str(options[name]) if name in options else "cpp-default"
 
 
@@ -422,8 +510,6 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODE_MAX_OPS",
         max_op_in_compute_supernode,
     )
-    max_op_in_commit_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE", 4096)
-    commit_guard_event_buckets = env_flag("WOLVRIX_XS_GRHSIM_COMMIT_GUARD_EVENT_BUCKETS", default=True)
     sched_batch_max_ops = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_OPS", 2048)
     sched_batch_max_estimated_lines = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES", 8192)
     sched_batch_target_count = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_TARGET_COUNT", 64)
@@ -447,42 +533,6 @@ def main() -> int:
     reg_to_mem_decoded_write_storage = env_flag(
         "WOLVRIX_XS_GRHSIM_REG_TO_MEM_DECODED_WRITE_STORAGE",
         default=True,
-    )
-    declared_value_compute_node_boundary = env_flag(
-        "WOLVRIX_XS_GRHSIM_DECLARED_VALUE_COMPUTE_NODE_BOUNDARY",
-        default=False,
-    )
-    enable_local_shared_compute = env_flag(
-        "WOLVRIX_XS_GRHSIM_ENABLE_LOCAL_SHARED_COMPUTE",
-        default=False,
-    )
-    local_shared_compute_max_fanout = env_int(
-        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_FANOUT",
-        2,
-    )
-    local_shared_compute_max_width = env_int(
-        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_WIDTH",
-        64,
-    )
-    local_shared_compute_max_clones = env_int(
-        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_CLONES",
-        4096,
-    )
-    local_shared_compute_max_cloned_op_ppm = env_int(
-        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_MAX_CLONED_OP_PPM",
-        5000,
-    )
-    local_shared_compute_common_owner_policy = os.environ.get(
-        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_COMMON_OWNER_POLICY",
-        "off",
-    ).strip()
-    local_shared_compute_common_owner_max_clones = env_int(
-        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_COMMON_OWNER_MAX_CLONES",
-        4096,
-    )
-    local_shared_compute_common_owner_max_cloned_op_ppm = env_int(
-        "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_COMMON_OWNER_MAX_CLONED_OP_PPM",
-        5000,
     )
     full_active_word_consume = env_flag(
         "WOLVRIX_XS_GRHSIM_FULL_ACTIVE_WORD_CONSUME",
@@ -519,75 +569,9 @@ def main() -> int:
     active_mask_gap_pack_effective, active_mask_gap_pack_source = (
         describe_active_mask_gap_pack_policy(active_mask_gap_pack_options)
     )
-    dp_segment_penalty_ppm = env_int(
-        "WOLVRIX_XS_GRHSIM_DP_SEGMENT_PENALTY_PPM",
-        1000000,
-    )
-    post_dp_refine_policy = os.environ.get(
-        "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_POLICY",
-        "off",
-    ).strip()
-    post_dp_refine_max_rounds = env_int(
-        "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_ROUNDS",
-        1,
-    )
-    post_dp_refine_max_moves = env_int(
-        "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_MOVES",
-        4096,
-    )
-    post_dp_refine_max_moved_op_ppm = env_int(
-        "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_MOVED_OP_PPM",
-        10000,
-    )
-    post_dp_refine_max_regression_ppm = env_int(
-        "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_REGRESSION_PPM",
-        10000,
-    )
-    kahn_level_pack_policy = os.environ.get(
-        "WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_POLICY",
-        "off",
-    ).strip()
-    kahn_level_pack_max_moves = env_int(
-        "WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_MAX_MOVES",
-        4096,
-    )
-    kahn_level_pack_max_moved_op_ppm = env_int(
-        "WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_MAX_MOVED_OP_PPM",
-        10000,
-    )
-    kahn_level_pack_max_regression_ppm = env_int(
-        "WOLVRIX_XS_GRHSIM_KAHN_LEVEL_PACK_MAX_REGRESSION_PPM",
-        10000,
-    )
-    final_fanin_pullback_policy = os.environ.get(
-        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_POLICY",
-        "off",
-    ).strip()
-    final_fanin_pullback_max_node_ops = env_int(
-        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_NODE_OPS",
-        8,
-    )
-    final_fanin_pullback_max_value_width = env_int(
-        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_VALUE_WIDTH",
-        64,
-    )
-    final_fanin_pullback_min_gain = env_int(
-        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MIN_GAIN",
-        3,
-    )
-    final_fanin_pullback_max_moves = env_int(
-        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_MOVES",
-        4096,
-    )
-    final_fanin_pullback_max_moved_op_ppm = env_int(
-        "WOLVRIX_XS_GRHSIM_FINAL_FANIN_PULLBACK_MAX_MOVED_OP_PPM",
-        5000,
-    )
+    sparse_options = read_activity_schedule_sparse_options()
     final_sibling_fusion_options = read_final_sibling_fusion_options()
-    final_topo_policy = os.environ.get(
-        "WOLVRIX_XS_GRHSIM_FINAL_TOPO_POLICY",
-        "level-id",
-    ).strip()
+    sparse_options.update(final_sibling_fusion_options)
     comb_lane_pack_report = os.environ.get(
         "WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_REPORT",
         str(cpp_out_dir.parent / "comb_lane_pack_report_xs.json"),
@@ -607,8 +591,10 @@ def main() -> int:
         f"max_op_in_compute_node={max_op_in_compute_node} "
         f"split_oversize_compute_nodes={split_oversize_compute_nodes} "
         f"split_oversize_compute_node_max_ops={split_oversize_compute_node_max_ops} "
-        f"max_op_in_commit_supernode={max_op_in_commit_supernode} "
-        f"commit_guard_event_buckets={commit_guard_event_buckets} "
+        f"max_op_in_commit_supernode="
+        f"{format_native_default_option(sparse_options, 'max_op_in_commit_supernode')} "
+        f"commit_guard_event_buckets="
+        f"{format_native_default_option(sparse_options, 'commit_guard_event_buckets')} "
         f"sched_batch_max_ops={sched_batch_max_ops} "
         f"sched_batch_max_estimated_lines={sched_batch_max_estimated_lines} "
         f"sched_batch_target_count={sched_batch_target_count} "
@@ -628,15 +614,24 @@ def main() -> int:
         f"reg_to_mem_intent={reg_to_mem_intent} "
         f"reg_to_mem_ordered_writes={reg_to_mem_ordered_writes} "
         f"reg_to_mem_decoded_write_storage={reg_to_mem_decoded_write_storage} "
-        f"declared_value_compute_node_boundary={declared_value_compute_node_boundary} "
-        f"enable_local_shared_compute={enable_local_shared_compute} "
-        f"local_shared_compute_max_fanout={local_shared_compute_max_fanout} "
-        f"local_shared_compute_max_width={local_shared_compute_max_width} "
-        f"local_shared_compute_max_clones={local_shared_compute_max_clones} "
-        f"local_shared_compute_max_cloned_op_ppm={local_shared_compute_max_cloned_op_ppm} "
-        f"local_shared_compute_common_owner_policy={local_shared_compute_common_owner_policy} "
-        f"local_shared_compute_common_owner_max_clones={local_shared_compute_common_owner_max_clones} "
-        f"local_shared_compute_common_owner_max_cloned_op_ppm={local_shared_compute_common_owner_max_cloned_op_ppm} "
+        f"declared_value_compute_node_boundary="
+        f"{format_native_default_option(sparse_options, 'declared_value_compute_node_boundary')} "
+        f"enable_local_shared_compute="
+        f"{format_native_default_option(sparse_options, 'enable_local_shared_compute')} "
+        f"local_shared_compute_max_fanout="
+        f"{format_native_default_option(sparse_options, 'local_shared_compute_max_fanout')} "
+        f"local_shared_compute_max_width="
+        f"{format_native_default_option(sparse_options, 'local_shared_compute_max_width')} "
+        f"local_shared_compute_max_clones="
+        f"{format_native_default_option(sparse_options, 'local_shared_compute_max_clones')} "
+        f"local_shared_compute_max_cloned_op_ppm="
+        f"{format_native_default_option(sparse_options, 'local_shared_compute_max_cloned_op_ppm')} "
+        f"local_shared_compute_common_owner_policy="
+        f"{format_native_default_option(sparse_options, 'local_shared_compute_common_owner_policy')} "
+        f"local_shared_compute_common_owner_max_clones="
+        f"{format_native_default_option(sparse_options, 'local_shared_compute_common_owner_max_clones')} "
+        f"local_shared_compute_common_owner_max_cloned_op_ppm="
+        f"{format_native_default_option(sparse_options, 'local_shared_compute_common_owner_max_cloned_op_ppm')} "
         f"full_active_word_consume={full_active_word_consume} "
         f"direct_single_writer_state_reads={format_optional_flag(direct_single_writer_state_reads)} "
         f"pure_event_compute_word_bypass={format_optional_flag(pure_event_compute_word_bypass)} "
@@ -646,22 +641,38 @@ def main() -> int:
         f"pure_event_word_pack_max_changed_word_ppm={pure_event_word_pack_max_changed_word_ppm} "
         f"active_mask_gap_pack_policy_effective={active_mask_gap_pack_effective} "
         f"active_mask_gap_pack_policy_source={active_mask_gap_pack_source} "
-        f"dp_segment_penalty_ppm={dp_segment_penalty_ppm} "
-        f"post_dp_refine_policy={post_dp_refine_policy} "
-        f"post_dp_refine_max_rounds={post_dp_refine_max_rounds} "
-        f"post_dp_refine_max_moves={post_dp_refine_max_moves} "
-        f"post_dp_refine_max_moved_op_ppm={post_dp_refine_max_moved_op_ppm} "
-        f"post_dp_refine_max_regression_ppm={post_dp_refine_max_regression_ppm} "
-        f"kahn_level_pack_policy={kahn_level_pack_policy} "
-        f"kahn_level_pack_max_moves={kahn_level_pack_max_moves} "
-        f"kahn_level_pack_max_moved_op_ppm={kahn_level_pack_max_moved_op_ppm} "
-        f"kahn_level_pack_max_regression_ppm={kahn_level_pack_max_regression_ppm} "
-        f"final_fanin_pullback_policy={final_fanin_pullback_policy} "
-        f"final_fanin_pullback_max_node_ops={final_fanin_pullback_max_node_ops} "
-        f"final_fanin_pullback_max_value_width={final_fanin_pullback_max_value_width} "
-        f"final_fanin_pullback_min_gain={final_fanin_pullback_min_gain} "
-        f"final_fanin_pullback_max_moves={final_fanin_pullback_max_moves} "
-        f"final_fanin_pullback_max_moved_op_ppm={final_fanin_pullback_max_moved_op_ppm} "
+        f"dp_segment_penalty_ppm="
+        f"{format_native_default_option(sparse_options, 'dp_segment_penalty_ppm')} "
+        f"post_dp_refine_policy="
+        f"{format_native_default_option(sparse_options, 'post_dp_refine_policy')} "
+        f"post_dp_refine_max_rounds="
+        f"{format_native_default_option(sparse_options, 'post_dp_refine_max_rounds')} "
+        f"post_dp_refine_max_moves="
+        f"{format_native_default_option(sparse_options, 'post_dp_refine_max_moves')} "
+        f"post_dp_refine_max_moved_op_ppm="
+        f"{format_native_default_option(sparse_options, 'post_dp_refine_max_moved_op_ppm')} "
+        f"post_dp_refine_max_regression_ppm="
+        f"{format_native_default_option(sparse_options, 'post_dp_refine_max_regression_ppm')} "
+        f"kahn_level_pack_policy="
+        f"{format_native_default_option(sparse_options, 'kahn_level_pack_policy')} "
+        f"kahn_level_pack_max_moves="
+        f"{format_native_default_option(sparse_options, 'kahn_level_pack_max_moves')} "
+        f"kahn_level_pack_max_moved_op_ppm="
+        f"{format_native_default_option(sparse_options, 'kahn_level_pack_max_moved_op_ppm')} "
+        f"kahn_level_pack_max_regression_ppm="
+        f"{format_native_default_option(sparse_options, 'kahn_level_pack_max_regression_ppm')} "
+        f"final_fanin_pullback_policy="
+        f"{format_native_default_option(sparse_options, 'final_fanin_pullback_policy')} "
+        f"final_fanin_pullback_max_node_ops="
+        f"{format_native_default_option(sparse_options, 'final_fanin_pullback_max_node_ops')} "
+        f"final_fanin_pullback_max_value_width="
+        f"{format_native_default_option(sparse_options, 'final_fanin_pullback_max_value_width')} "
+        f"final_fanin_pullback_min_gain="
+        f"{format_native_default_option(sparse_options, 'final_fanin_pullback_min_gain')} "
+        f"final_fanin_pullback_max_moves="
+        f"{format_native_default_option(sparse_options, 'final_fanin_pullback_max_moves')} "
+        f"final_fanin_pullback_max_moved_op_ppm="
+        f"{format_native_default_option(sparse_options, 'final_fanin_pullback_max_moved_op_ppm')} "
         f"final_sibling_fusion_policy="
         f"{format_native_default_option(final_sibling_fusion_options, 'final_sibling_fusion_policy')} "
         f"final_sibling_fusion_min_gain="
@@ -670,7 +681,8 @@ def main() -> int:
         f"{format_native_default_option(final_sibling_fusion_options, 'final_sibling_fusion_max_pairs')} "
         f"final_sibling_fusion_max_fused_op_ppm="
         f"{format_native_default_option(final_sibling_fusion_options, 'final_sibling_fusion_max_fused_op_ppm')} "
-        f"final_topo_policy={final_topo_policy}"
+        f"final_topo_policy="
+        f"{format_native_default_option(sparse_options, 'final_topo_policy')}"
     )
 
     read_args: list[str] = ["-f", filelist, "--top", top_name]
@@ -729,6 +741,8 @@ def main() -> int:
             log(f"mem-to-reg enabled row_limit={mem_to_reg_row_limit}")
         else:
             log("mem-to-reg disabled for GrhSIM flow")
+        if export_compute_dag_path is not None:
+            sparse_options["export_compute_dag"] = str(export_compute_dag_path)
         post_sched_pipeline: list[tuple[str, dict]] = [
             (
                 "activity-schedule",
@@ -738,40 +752,10 @@ def main() -> int:
                     "max_op_in_compute_node": max_op_in_compute_node,
                     "split_oversize_compute_nodes": split_oversize_compute_nodes,
                     "split_oversize_compute_node_max_ops": split_oversize_compute_node_max_ops,
-                    "max_op_in_commit_supernode": max_op_in_commit_supernode,
-                    "commit_guard_event_buckets": commit_guard_event_buckets,
-                    "declared_value_compute_node_boundary": declared_value_compute_node_boundary,
-                    "enable_local_shared_compute": enable_local_shared_compute,
-                    "local_shared_compute_max_fanout": local_shared_compute_max_fanout,
-                    "local_shared_compute_max_width": local_shared_compute_max_width,
-                    "local_shared_compute_max_clones": local_shared_compute_max_clones,
-                    "local_shared_compute_max_cloned_op_ppm": local_shared_compute_max_cloned_op_ppm,
-                    "local_shared_compute_common_owner_policy": local_shared_compute_common_owner_policy,
-                    "local_shared_compute_common_owner_max_clones": local_shared_compute_common_owner_max_clones,
-                    "local_shared_compute_common_owner_max_cloned_op_ppm": local_shared_compute_common_owner_max_cloned_op_ppm,
-                    "dp_segment_penalty_ppm": dp_segment_penalty_ppm,
-                    "post_dp_refine_policy": post_dp_refine_policy,
-                    "post_dp_refine_max_rounds": post_dp_refine_max_rounds,
-                    "post_dp_refine_max_moves": post_dp_refine_max_moves,
-                    "post_dp_refine_max_moved_op_ppm": post_dp_refine_max_moved_op_ppm,
-                    "post_dp_refine_max_regression_ppm": post_dp_refine_max_regression_ppm,
-                    "kahn_level_pack_policy": kahn_level_pack_policy,
-                    "kahn_level_pack_max_moves": kahn_level_pack_max_moves,
-                    "kahn_level_pack_max_moved_op_ppm": kahn_level_pack_max_moved_op_ppm,
-                    "kahn_level_pack_max_regression_ppm": kahn_level_pack_max_regression_ppm,
-                    "final_fanin_pullback_policy": final_fanin_pullback_policy,
-                    "final_fanin_pullback_max_node_ops": final_fanin_pullback_max_node_ops,
-                    "final_fanin_pullback_max_value_width": final_fanin_pullback_max_value_width,
-                    "final_fanin_pullback_min_gain": final_fanin_pullback_min_gain,
-                    "final_fanin_pullback_max_moves": final_fanin_pullback_max_moves,
-                    "final_fanin_pullback_max_moved_op_ppm": final_fanin_pullback_max_moved_op_ppm,
-                    **final_sibling_fusion_options,
-                    "final_topo_policy": final_topo_policy,
+                    **sparse_options,
                 },
             ),
         ]
-        if export_compute_dag_path is not None:
-            post_sched_pipeline[0][1]["export_compute_dag"] = str(export_compute_dag_path)
         log(config_message)
 
         if resume_from_stats_json:

@@ -139,3 +139,84 @@ build/logs/xs_perf/page_local_retest_stage7plus_20260716/pilot/
 build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n0_rollback/
 build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n1_rollback/
 ```
+
+## 增量更新 2026-07-17：绝对数值补录/勘误
+
+原文第 6 节只列出了候选相对相邻 control 均值的百分比，缺少 14 个 accepted sample 的绝对 PMU 计数。以下数值直接抄录对应 `*_perf.csv`，不是根据百分比反推。每个 node 各 `7` 个样本，顺序均为：
+
+```text
+control A1 / hybrid / control A2 / p050 / control A3 / p200 / control A4
+```
+
+包夹关系和样本数为：hybrid 对 `A1/A2` 两个 control 的算术均值，p050 对 `A2/A3` 两个 control 的算术均值，p200 对 `A3/A4` 两个 control 的算术均值；每个 candidate 在每个 node 只有 `1` 个 accepted sample。两个 node 独立计算，不跨 node 合并。
+
+表中五列单位均为 `perf stat` 原始事件计数（count），不是 rate：
+
+```text
+cycles:u
+instructions:u
+de_no_dispatch_per_slot.no_ops_from_frontend:u
+cpu/de_no_dispatch_per_slot.no_ops_from_frontend,cmask=0x6/u
+de_no_dispatch_per_slot.backend_stalls:u
+```
+
+### N0 CPU15：7 个 accepted samples
+
+| 顺序 | sample | cycles | instructions | frontend empty | frontend `cmask>=6` | backend stalls |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | control A1 | `285,702,689,746` | `172,881,422,971` | `1,308,046,177,799` | `170,015,377,218` | `95,021,704,046` |
+| 2 | hybrid | `273,546,382,934` | `164,521,671,177` | `1,253,628,027,447` | `162,844,596,479` | `88,963,012,258` |
+| 3 | control A2 | `285,596,968,222` | `172,881,422,226` | `1,308,580,047,992` | `170,146,584,180` | `93,316,694,657` |
+| 4 | p050 | `285,657,821,032` | `172,375,213,266` | `1,309,425,031,942` | `170,294,005,366` | `92,745,334,934` |
+| 5 | control A3 | `286,230,696,715` | `172,881,406,530` | `1,310,265,411,154` | `170,414,244,086` | `95,520,105,369` |
+| 6 | p200 | `287,309,129,731` | `173,006,527,742` | `1,317,926,565,626` | `171,144,328,482` | `94,410,708,195` |
+| 7 | control A4 | `285,970,957,946` | `172,881,406,597` | `1,311,487,025,236` | `170,593,379,184` | `93,251,479,383` |
+
+原始路径：
+
+```text
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n0_rollback/control_a1_perf.csv
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n0_rollback/hybrid_perf.csv
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n0_rollback/control_a2_perf.csv
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n0_rollback/p050_perf.csv
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n0_rollback/control_a3_perf.csv
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n0_rollback/p200_perf.csv
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n0_rollback/control_a4_perf.csv
+```
+
+### N1 CPU111：7 个 accepted samples
+
+| 顺序 | sample | cycles | instructions | frontend empty | frontend `cmask>=6` | backend stalls |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | control A1 | `287,733,376,866` | `172,881,422,339` | `1,319,624,114,439` | `171,984,584,052` | `95,109,875,460` |
+| 2 | hybrid | `274,685,122,310` | `164,521,670,666` | `1,259,479,460,955` | `163,781,922,944` | `89,878,395,327` |
+| 3 | control A2 | `286,639,055,274` | `172,881,421,848` | `1,315,610,962,051` | `171,277,233,365` | `93,265,322,514` |
+| 4 | p050 | `286,868,791,154` | `172,375,212,641` | `1,316,626,506,505` | `171,448,079,393` | `93,423,031,747` |
+| 5 | control A3 | `286,641,094,754` | `172,881,421,489` | `1,314,853,528,212` | `171,149,575,048` | `93,968,270,543` |
+| 6 | p200 | `288,092,683,912` | `173,006,689,211` | `1,322,445,629,512` | `171,928,334,791` | `94,199,215,946` |
+| 7 | control A4 | `287,573,170,881` | `172,881,421,681` | `1,320,034,988,424` | `172,061,432,195` | `93,795,515,703` |
+
+原始路径：
+
+```text
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n1_rollback/control_a1_perf.csv
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n1_rollback/hybrid_perf.csv
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n1_rollback/control_a2_perf.csv
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n1_rollback/p050_perf.csv
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n1_rollback/control_a3_perf.csv
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n1_rollback/p200_perf.csv
+build/logs/xs_perf/page_local_retest_stage7plus_20260716/results/n1_rollback/control_a4_perf.csv
+```
+
+14 份 CSV 的五个 headline event scheduling 均为 `100.00%`。本补录只补齐原始绝对计数和样本映射，不改变原文 corrected delta、acceptance 或默认决策。
+
+## 增量更新 2026-07-17：walltime headline 绝对值补录
+
+最终性能 headline 采用 host walltime。以下按每个 node 的 `control A1 / hybrid / control A2 / p050 / control A3 / p200 / control A4` 顺序，直接读取对应 `Host time spent`（milliseconds）：
+
+| node | control A1 | hybrid | control A2 | p050 | control A3 | p200 | control A4 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| N0 | `78,802` | `75,504` | `78,702` | `78,749` | `78,426` | `78,473` | `78,195` |
+| N1 | `78,497` | `74,868` | `78,129` | `78,185` | `78,126` | `78,587` | `78,382` |
+
+原始来源为同目录 `results/{n0_rollback,n1_rollback}/{control_a1,hybrid,control_a2,p050,control_a3,p200,control_a4}_emu.log`。按相邻 control 均值计算，walltime delta 为：hybrid N0/N1 `-4.124340%/-4.399014%`，p050 `+0.235477%/+0.073598%`，p200 `+0.207507%/+0.425537%`。因此 hybrid 的双 node wall headline 仍支持采用，p050/p200 仍为中性至轻微回退；原文 cycles 只能作为解释指标。

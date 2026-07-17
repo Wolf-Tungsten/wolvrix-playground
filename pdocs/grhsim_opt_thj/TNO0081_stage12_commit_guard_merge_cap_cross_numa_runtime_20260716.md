@@ -90,3 +90,42 @@ build/logs/xs_perf/activity_stage12_commit_guard_merge_cap_20260716/
 - 保留高 cap 的有序 two-level coarsening 作为显式实验入口，但不在当前 XS 默认启用；
 - 停止继续放大全局 cap，`16384 -> 32768` 的结构收益已接近饱和且 runtime 恶化；
 - 下一阶段优先隔离 commit partition 对 value-slot/compute CPP 的全局重排，或只合并有明确动态收益的 event/cluster，再用同样的 current-default NO0300 fixed-ASLR 双 socket 50k 裁决。
+
+## 增量更新 2026-07-17：绝对数值补录/勘误
+
+原文只完整列出 raw cycles/instructions，另外三个 PMU 事件只列了插值后的相对变化。现从 10 份原始 `perf stat -x,` CSV 补录五项绝对计数；没有从百分比反推。每个 node 的样本顺序和数量均为 `control A1 / cap8192 / cap16384 / cap32768 / control A2`，共 5 个，双 node 共 10 个。
+
+事件与单位为 `cycles:u`（cycles count）、`instructions:u`（retired-instruction count）、`de_no_dispatch_per_slot.no_ops_from_frontend:u`（frontend-empty slots count）、`cpu/de_no_dispatch_per_slot.no_ops_from_frontend,cmask=0x6/u`（frontend-empty `cmask>=6` cycles count）和 `de_no_dispatch_per_slot.backend_stalls:u`（backend-stall slots count）。
+
+| node | 顺序 | sample | cycles | instructions | frontend empty | frontend `cmask>=6` | backend stalls |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| N0 | 1 | control A1 | `298,166,612,103` | `172,881,447,243` | `1,381,025,449,224` | `182,219,457,353` | `96,560,327,520` |
+| N0 | 2 | cap8192 | `299,473,894,371` | `172,755,368,014` | `1,375,463,258,016` | `181,951,518,844` | `100,693,259,561` |
+| N0 | 3 | cap16384 | `312,292,275,804` | `172,867,523,848` | `1,461,188,976,163` | `196,562,629,863` | `82,320,797,671` |
+| N0 | 4 | cap32768 | `331,371,684,802` | `173,094,914,996` | `1,577,803,037,706` | `215,624,797,036` | `88,856,389,586` |
+| N0 | 5 | control A2 | `309,635,771,101` | `172,881,449,091` | `1,452,084,661,672` | `194,037,400,676` | `94,541,001,513` |
+| N1 | 1 | control A1 | `284,216,688,930` | `172,881,439,444` | `1,296,899,813,752` | `168,363,019,234` | `96,837,923,714` |
+| N1 | 2 | cap8192 | `306,080,610,709` | `172,755,359,289` | `1,426,761,306,521` | `189,929,175,010` | `98,562,257,762` |
+| N1 | 3 | cap16384 | `305,854,344,429` | `172,867,515,087` | `1,428,581,758,006` | `190,237,970,483` | `96,395,125,624` |
+| N1 | 4 | cap32768 | `282,765,825,980` | `173,094,894,742` | `1,291,863,302,902` | `167,433,063,618` | `94,707,806,458` |
+| N1 | 5 | control A2 | `284,051,706,620` | `172,881,439,813` | `1,298,668,160,010` | `168,523,697,032` | `95,629,962,733` |
+
+原始路径前缀为 `build/logs/xs_perf/activity_stage12_commit_guard_merge_cap_20260716/`，文件依次为：
+
+```text
+n0_a1_perf.csv / n0_c8192_perf.csv / n0_c16384_perf.csv / n0_c32768_perf.csv / n0_a2_perf.csv
+n1_a1_perf.csv / n1_c8192_perf.csv / n1_c16384_perf.csv / n1_c32768_perf.csv / n1_a2_perf.csv
+```
+
+10 份 CSV 的五个事件均为 `100.00%` scheduled。本补录只恢复 raw counters，不修改原文时间插值、旧协议局限或默认 cap 结论。
+
+## 增量更新 2026-07-17：walltime headline 绝对值补录
+
+最终性能 headline 采用 host walltime。以下是每个 node 按 `control A1 / cap8192 / cap16384 / cap32768 / control A2` 顺序从 `*_emu.log` 直接读取的 milliseconds：
+
+| node | control A1 | cap8192 | cap16384 | cap32768 | control A2 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| N0 | `82,339` | `85,418` | `89,356` | `93,096` | `84,671` |
+| N1 | `77,675` | `83,600` | `83,557` | `77,256` | `77,609` |
+
+原始路径前缀为 `build/logs/xs_perf/activity_stage12_commit_guard_merge_cap_20260716/`，文件名与前一节 PMU CSV 的 `n{0,1}_{a1,c8192,c16384,c32768,a2}_emu.log` 一一对应。按通过 gate 的 `run_start_ns + wall/2` 做同一实际时间中心插值，walltime candidate deltas 为：N0 `+3.207308%/+7.411815%/+11.091921%`，N1 `+7.651030%/+7.620319%/-0.474710%`（cap8192/cap16384/cap32768）。因此 N0 cap8192 在 cycles 的 `-0.2601%` 近中性观测并非 wall 正收益，默认 `4096` 的决定更稳固。

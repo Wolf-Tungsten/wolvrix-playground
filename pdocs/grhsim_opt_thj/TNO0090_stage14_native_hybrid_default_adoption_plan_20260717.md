@@ -64,6 +64,10 @@ explicit-off NO0300  direct=false, bypass=false
 
 上述 production identity 当前均待执行。
 
+## 增量更新 2026-07-17：walltime headline protocol 勘误
+
+Stage 14 的最终采用判断改以 host walltime 为 headline；cycles/instructions/frontend/backend 只作解释。后续 runner 必须输出并校验 `walltime_ms` 与 `walltime_ok`，并将 `Host time spent` 原行和样本顺序归档。TNO0087 corrected page-local 的 wall headline 为 N0/N1 `-4.124340%/-4.399014%`，相应 cycles 仅作辅助，不再作为采用依据。
+
 ## 5. Build、回归与 fresh 50k
 
 identity 闭合后，native default、explicit-on 和 explicit-off NO0300 至少完成所需的 fresh O3/link；default 与 explicit-off 分别通过 fixed-ASLR 100/10k/50k 功能门禁。50k 终点必须为：

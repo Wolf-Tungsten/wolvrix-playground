@@ -116,3 +116,33 @@ coarsen/topological order
   -> whole-candidate exact policy gate
   -> optional post-DP refinement
 ```
+
+## 增量更新 2026-07-17：绝对数值补录/勘误
+
+§1 引用历史 [NO0085](../grhsim_opt/NO0085_xs_no0076_fresh_rerun_20260510.md) 时只写了 BAE `-12.82%` 与 runtime `+18.49%`。该引用不是本阶段 current-default 实验；为避免相对值失去原始基数，现按旧 NO 的两样本顺序 `original topo / activation-affinity ordering` 补录绝对值，不从百分比反推。
+
+结构单位均为 count：
+
+| metric | original topo | activation-affinity ordering |
+| --- | ---: | ---: |
+| total supernodes | `85,885` | `87,886` |
+| compute supernodes | `79,801` | `81,802` |
+| DAG edges | `743,311` | `848,149` |
+| boundary values | `1,241,969` | `1,039,455` |
+| boundary activation edges | `2,545,743` | `2,219,302` |
+| compute-compute value pairs | `2,163,497` | `1,837,056` |
+
+CoreMark 50k 两样本的 runtime/perf 绝对值为：
+
+| metric / unit | original topo | activation-affinity ordering |
+| --- | ---: | ---: |
+| host wall / ms | `386,385` | `457,820` |
+| perf elapsed / s | `386.396` | `457.831` |
+| `cycles` / count | `2,217,071,889,443` | `2,626,925,729,501` |
+| `instructions` / count | `276,487,037,094` | `349,336,077,671` |
+| `branches` / count | `29,924,233,870` | `37,945,556,527` |
+| `branch-misses` / count | `16,068,534,840` | `17,659,916,544` |
+| `cache-references` / count | `100,968,750,231` | `114,479,135,053` |
+| `cache-misses` / count | `48,458,293,920` | `60,277,890,922` |
+
+原始来源是 [NO0085 § Runtime 复测](../grhsim_opt/NO0085_xs_no0076_fresh_rerun_20260510.md)，其中同时记录了 invocation、相同 guest 终点和 raw table。该历史实验未形成 A/B/A 包夹且早于当前 NO0300/fixed-ASLR 基线，只用于解释为何不恢复全局 reorder；不作为当前 Stage 2 的性能基线。

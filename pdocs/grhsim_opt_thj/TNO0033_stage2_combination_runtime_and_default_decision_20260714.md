@@ -74,6 +74,24 @@ build/logs/xs_perf/activity_stage2_kahn_bae_budget_20260714/combo2_control_after
 
 正式序列以紧邻 candidate 的 `combo_control_after5` 和 `combo2_control_after1` 为两侧 control；两者 spread `0.117%`，闭合了同一性能状态下的 A/B/A。
 
+## 增量更新 2026-07-17：绝对数值补录/勘误
+
+§3 的排除说明只写了“约 300B/约 283B”。现从对应 CSV 补录该排除序列中实际使用的 cycles 原始计数（unit: `cycles:u` hardware count）；这些样本明确不进入正式 A/B/A，也没有用百分比反推。
+
+| chronological artifact | role in rejected cross-state sequence | cycles |
+| --- | --- | ---: |
+| `combo_candidate_perf.csv` | candidate observed before the late controls | `307,823,181,138` |
+| `combo_control_after1_perf.csv` | late control 1 | `284,958,539,545` |
+| `combo_control_after2_perf.csv` | late control 2 | `283,583,430,869` |
+| `combo_control_after3_perf.csv` | late control 3 | `283,881,791,559` |
+| `combo_control_after4_perf.csv` | late control 4 | `283,248,211,070` |
+
+同一目录中更早的 diagnostic control files 也保留为独立状态观测：`auto_control1_perf.csv = 300,161,083,005`、`auto_candidate_perf.csv = 299,225,752,200`、`auto_control2_perf.csv = 300,235,117,650`、`auto_control3_perf.csv = 299,225,752,200`。它们与上述 combo candidate/late controls 不构成一个可解释的单一 A/B/A，故不拼接、不重新计算性能百分比。
+
+原始路径前缀为 `build/logs/xs_perf/activity_stage2_kahn_bae_budget_20260714/`；所有列出的文件均为直接读取的 `perf stat -x,` CSV。该补录只使排除证据可复查，不改变正式 `combo_control_after5 / combo2_candidate / combo2_control_after1` 结论。
+
+勘误：上表所述更早 diagnostic control 的精确映射为 `auto_control1=300,161,083,005`、`auto_candidate=299,225,752,200`、`auto_control2=324,619,492,503`（高负载、已排除）、`auto_control3=300,235,117,650`；`auto_control2` 的 `324,619,492,503` 不应与约 300B 的 control 混写。
+
 ## 4. Stage 2 结论与默认配置
 
 Stage 2 standalone `bae-budget` 在 [TNO0031](./TNO0031_stage2_bae_budget_quiet_aba_20260714.md) 中仅改善 `0.324%` cycles，低于可信门槛；与 Stage 1 `strict` 组合则明确回退 `8.713%`。因此 current-default 保持：

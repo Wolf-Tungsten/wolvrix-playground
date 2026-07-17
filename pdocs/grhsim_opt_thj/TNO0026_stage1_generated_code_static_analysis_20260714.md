@@ -59,3 +59,29 @@ model storage 只减少约 `2.6..2.8 KB`，容量收益本身可忽略；潜在 
 三种候选都有真实 emitted-work 减少，并非纯 schedule ID relocation。balanced 的 `.text` 最小，bae-budget 次之，strict 的 DAG/代码表也明显改善；但静态收益只有约 `0.2%` ELF `.text` 和 `1.4%` propagation entries，同时 commit batch、active-word block 和 clock activation table 略退。
 
 这个量级不足以预测超过 `1%` 的 SimTop 50k cycles 改善，且代码布局变化可能放大或抵消结构收益。最终仍按 fixed-ASLR、同 CPU/NUMA、五事件 PMU 的 quiet `control / candidate / control` 裁决。
+
+## 增量更新 2026-07-17：绝对数值补录/勘误
+
+§2 的 batch17/18 与 object `.text` 只写了近似 delta，§3 的 value/`next_value` definitions 也只写了减少量。现从保留的 generated C++/object 直接复算绝对值；单位分别为 comment-stripped source bytes、ELF object `.text` bytes 和 definition lines，没有从百分比反推。
+
+| 对象 | baseline resume-control | strict | balanced |
+| --- | ---: | ---: | ---: |
+| sched17 comment-stripped bytes | `9,845,945` | `17,896,762` | `17,863,912` |
+| sched18 comment-stripped bytes | `17,560,597` | `9,095,480` | `9,108,054` |
+| sched17 source delta | - | `+8,050,817` | `+8,017,967` |
+| sched18 source delta | - | `-8,465,117` | `-8,452,543` |
+| sched17 object `.text` bytes | `832,635` | `4,496,250` | `4,490,045` |
+| sched18 object `.text` bytes | `4,494,412` | `875,613` | `869,593` |
+| two-object `.text` delta | - | `+44,816` | `+32,591` |
+| value-comment definition lines | `1,014,369` | `1,012,299` | `1,012,498` |
+| `next_value` definition lines | `1,106,755` | `1,104,698` | `1,104,897` |
+
+原始目录和具体文件口径为：
+
+```text
+build/worktrees/activity_baseline_20260714/build/xs_activity_baseline_resume_control/grhsim/grhsim_emit/grhsim_SimTop_sched_{17,18}.{cpp,o}
+build/xs_activity_stage1_strict_r1_20260714/grhsim/grhsim_emit/grhsim_SimTop_sched_{17,18}.{cpp,o}
+build/xs_activity_stage1_balanced_r1_full_20260714/grhsim/grhsim_emit/grhsim_SimTop_sched_{17,18}.{cpp,o}
+```
+
+definition-line totals由上述三个目录各自全部 `grhsim_SimTop_sched_*.cpp` 重新计数。原文 `model storage` 约 `-2.6..-2.8 KB` 的旧 analyzer 输出与字段定义未保留，不能把近似值反推成绝对 raw；该小项列入 [TNO0108](./TNO0108_absolute_raw_value_audit_and_missing_ledger_20260717.md) 的 unrecoverable ledger。其量级和原文“容量收益可忽略”的解释均不改变。

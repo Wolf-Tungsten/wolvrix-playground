@@ -91,3 +91,14 @@ VtypeBuffer `2,000,002`-cycle phase run 的主要原始计数为：
 | Ratio | `3.72x` | `3.37x` | `4.57x` |
 
 在 `200002`-cycle low-only repeat-5 probe 中，正常传播 median 为 `203.267ms`，禁用传播为 `131.734ms`，上界收益 `-35.22%` 且 checksum 一致。该 probe 故意破坏通用传播语义，只用于证明框架成本，不是可保留优化。详见 [NO0234](../grhsim_opt/NO0234_vtypebuffer_phase_specific_gsim_delta_20260709.md) 与 [NO0239](../grhsim_opt/NO0239_no_propagate_fullpass_probe_20260709.md)。
+
+## 增量更新 2026-07-17：绝对数值补录/勘误
+
+§5.1 的长窗口表主要写了 ratio。现补录 [NO0226](../grhsim_opt/NO0226_full_width_words_always_inline_ab_20260709.md) 中 VtypeBuffer `2,000,002`-cycle 三种实现的 host wall 原值；单位为 milliseconds，顺序为 baseline / full-width / always-inline：
+
+| simulator | baseline | full-width | always-inline |
+| --- | ---: | ---: | ---: |
+| GSim | `2,125.737` | `2,061.935` | `2,090.017` |
+| GrhSIM | `4,695.578` | `4,135.227` | `4,008.740` |
+
+这些值直接来自旧 NO 的 raw gate/artifact，不能由 ratio 反推；其它 workload 的绝对值仍以 [NO0225](../grhsim_opt/NO0225_full_width_words_helper_ab_20260709.md) 与 NO0226 原始表为准。

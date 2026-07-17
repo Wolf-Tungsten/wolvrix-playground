@@ -104,3 +104,54 @@ build/logs/xs/xs_wolf_grhsim_build_activity_stage8_dp_p100_20260715.log
 ## 7. 后续方向
 
 下一阶段不再调整全局固定 segment penalty。优先验证更定向的 common-source fanin root pullback：只把小型纯 compute cone 拉回共同 source 的 slack，以 exact `N` 个输入 BAE 换一个 live-out BAE，并保持 supernode 数、DAG、topo、active ID 和 commit partition 不变；仍须以跨 NUMA 50k 裁决。
+
+## 增量更新 2026-07-17：绝对数值补录/勘误
+
+原文四组正式结果只列相对变化。现从原始 `perf stat -x,` CSV 补录四个 A/B/A 的绝对计数；没有用百分比反推。事件与单位为 `cycles:u`（cycles count）、`instructions:u`（retired-instruction count）、`de_no_dispatch_per_slot.no_ops_from_frontend:u`（frontend-empty slots count）、`cpu/de_no_dispatch_per_slot.no_ops_from_frontend,cmask=0x6/u`（frontend-empty `cmask>=6` cycles count）和 `de_no_dispatch_per_slot.backend_stalls:u`（backend-stall slots count）。
+
+四组共有 12 个 group positions、11 份不同 CSV：N1 的 `n1_a2_perf.csv` 同时是 p050 的 A2 和随后 p200 的 A1，属于原始 `A/p050/A/p200/A` 顺序中的共享 control。
+
+| candidate / node | 顺序 | sample | cycles | instructions | frontend empty | frontend `cmask>=6` | backend stalls |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| p050 / N0 | 1 | control A1 | `282,581,972,127` | `172,881,261,641` | `1,289,488,149,681` | `167,065,100,144` | `94,732,049,992` |
+| p050 / N0 | 2 | p050 B | `302,889,768,231` | `172,375,224,974` | `1,409,893,219,702` | `187,133,424,677` | `95,676,102,096` |
+| p050 / N0 | 3 | control A2 | `282,479,968,358` | `172,881,262,133` | `1,290,544,823,389` | `167,236,939,632` | `93,058,537,509` |
+| p200 / N0 | 1 | control A1 | `282,957,917,549` | `172,881,263,029` | `1,287,645,444,572` | `166,758,261,748` | `98,192,865,427` |
+| p200 / N0 | 2 | p200 B | `315,271,316,901` | `173,006,688,028` | `1,479,722,923,552` | `198,017,497,904` | `101,006,771,224` |
+| p200 / N0 | 3 | control A2 | `281,586,881,710` | `172,881,262,439` | `1,282,962,330,315` | `166,072,641,354` | `95,054,384,769` |
+| p050 / N1 | 1 | control A1 | `309,939,961,442` | `172,881,268,571` | `1,456,416,536,879` | `194,761,404,672` | `92,979,666,812` |
+| p050 / N1 | 2 | p050 B | `280,285,843,165` | `172,375,218,562` | `1,280,019,636,909` | `165,458,796,817` | `91,199,267,267` |
+| p050 / N1 | 3 | control A2 | `310,058,161,549` | `172,881,268,891` | `1,458,364,710,643` | `195,087,952,988` | `91,962,012,182` |
+| p200 / N1 | 1 | control A1（共享） | `310,058,161,549` | `172,881,268,891` | `1,458,364,710,643` | `195,087,952,988` | `91,962,012,182` |
+| p200 / N1 | 2 | p200 B | `278,611,638,656` | `173,006,676,897` | `1,268,253,187,393` | `162,997,705,425` | `92,634,015,038` |
+| p200 / N1 | 3 | control A2 | `309,126,393,355` | `172,881,269,003` | `1,452,830,145,295` | `194,118,627,209` | `91,948,127,368` |
+
+原始路径前缀为 `build/logs/xs_perf/activity_stage8_dp_penalty_20260715/`；组内顺序与文件名为：
+
+```text
+n0d_a1_perf.csv / n0d_p050_b_perf.csv / n0d_a2_perf.csv
+n0_a2_perf.csv / n0_p200_b_perf.csv / n0_a3_perf.csv
+n1_a1_perf.csv / n1_p050_b_perf.csv / n1_a2_perf.csv
+n1_a2_perf.csv / n1_p200_b_perf.csv / n1_a3_perf.csv
+```
+
+上述 11 份不同 CSV 的五个 headline events 均为 `100.00%` scheduled。两组被原文拒绝的 N0 p050 包夹不混入本表；本补录不改变原文默认决策。
+
+原文 `host` 列也只给相对值；从对应 `*_emu.log` 的 `Host time spent` 行补录 wall milliseconds。N1 的 `n1_a2_emu.log` 与 PMU control 一样由相邻两组共享：
+
+| candidate / node | 顺序 | sample | host ms |
+| --- | ---: | --- | ---: |
+| p050 / N0 | 1 | control A1 | `77,158` |
+| p050 / N0 | 2 | p050 B | `82,669` |
+| p050 / N0 | 3 | control A2 | `77,021` |
+| p200 / N0 | 1 | control A1 | `78,467` |
+| p200 / N0 | 2 | p200 B | `87,223` |
+| p200 / N0 | 3 | control A2 | `77,705` |
+| p050 / N1 | 1 | control A1 | `84,550` |
+| p050 / N1 | 2 | p050 B | `76,406` |
+| p050 / N1 | 3 | control A2 | `84,523` |
+| p200 / N1 | 1 | control A1（共享） | `84,523` |
+| p200 / N1 | 2 | p200 B | `75,951` |
+| p200 / N1 | 3 | control A2 | `84,274` |
+
+原始路径仍为 `build/logs/xs_perf/activity_stage8_dp_penalty_20260715/{stem}_emu.log`，stem 与上表 PMU CSV 一一对应。这些 wall 原值来自日志，不是百分比反推。

@@ -134,4 +134,17 @@ build/logs/xs_perf/page_local_retest_stage7plus_20260716/groups/n1/stage13_cap81
 build/logs/xs_perf/page_local_retest_stage7plus_20260716/groups/n1/stage13_cap16384_try1/
 build/logs/xs_perf/page_local_retest_stage7plus_20260716/whole_machine_30s_after_cap16384_fail_20260717.log
 build/logs/xs_perf/page_local_retest_stage7plus_20260716/run_formal.sh
+
+## 增量更新 2026-07-17：walltime headline 勘误
+
+从本记录起，正式性能 headline 统一改为 host walltime；cycles、instructions、frontend/backend 仅作为诊断指标。Stage 12/13 这批 interim A/B/A 的原始 wall 已在 driver/emu logs 中保留：
+
+| group | node | A1 / B / A2 host ms | walltime B vs A mean |
+| --- | --- | --- | ---: |
+| cap32768 | N0 | `77,623 / 77,672 / 77,846` | `-0.080402%` |
+| cap32768 | N1 | `76,811 / 77,058 / 75,431` | `+1.230935%` |
+| cap8192 | N0 | `77,657 / 77,644 / 77,837` | `-0.132481%` |
+| cap8192 | N1 | `76,799 / 74,839 / 76,220` | `-2.183389%` |
+
+原始路径为 `build/logs/xs_perf/page_local_retest_stage7plus_20260716/{stage12_cap32768_n{0,1}_try1.driver.log,stage13_cap8192_n{0,1}_try1.driver.log}` 及其 `groups/*/*_emu.log`。这些 walltime 值与原文 cycles/control-drift 审计共同说明样本不能晋升默认；N1 的 apparent `-2.18%` 仍被 control 漂移和旧协议限制降级，不形成正向结论。后续 strict protocol 的 headline 必须使用 runner `walltime_ms/walltime_ok`。
 ```

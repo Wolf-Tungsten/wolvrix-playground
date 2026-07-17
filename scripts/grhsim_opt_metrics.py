@@ -201,9 +201,10 @@ def read_perf_log(path: Path | None) -> dict[str, Any]:
     text = path.read_text(errors="replace")
     out: dict[str, Any] = {}
 
-    m = re.search(r"Host time spent:\s*([0-9,]+)ms", text)
-    if m:
-        out["emu_host_time_ms"] = parse_int(m.group(1))
+    walltime_matches = re.findall(r"Host time spent:\s*([0-9,]+)ms", text)
+    out["emu_host_time_count"] = len(walltime_matches)
+    if len(walltime_matches) == 1:
+        out["emu_host_time_ms"] = parse_int(walltime_matches[0])
     m = re.search(r"max cycles:\s*([0-9,]+)", text)
     if m:
         out["max_cycles"] = parse_int(m.group(1))

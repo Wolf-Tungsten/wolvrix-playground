@@ -72,4 +72,15 @@ strict 的最坏 socket cycles 为 `+0.7464%`，未达到明显退化的 1% 线�
 
 ```text
 build/logs/xs_perf/activity_stage10_fanin_strict_20260716/
+
+## 增量更新 2026-07-17：walltime headline 绝对值补录
+
+当前最终性能 headline 改为 host walltime。原文 PMU 表已有 cycles/instructions 等绝对值，但未列 host wall 原值；以下直接抄录 `Host time spent`，单位为 milliseconds，顺序为各 node 的 `A1 / B strict / A2`：
+
+| node | A1 | B strict | A2 | 原始 emu 文件前缀 |
+| --- | ---: | ---: | ---: | --- |
+| NUMA0 | `77,098` | `76,862` | `76,761` | `build/logs/xs_perf/activity_stage10_fanin_strict_20260716/{n0_a1,n0_b,n0_a2}_emu.log` |
+| NUMA1 | `83,545` | `84,170` | `83,579` | `build/logs/xs_perf/activity_stage10_fanin_strict_20260716/{n1_a1,n1_b,n1_a2}_emu.log` |
+
+walltime 相对两侧 control 均值分别为 NUMA0 `-0.087743%`、NUMA1 `+0.727603%`，与原 cycles 方向一致；本补录不改变 strict 默认关闭的结论。
 ```

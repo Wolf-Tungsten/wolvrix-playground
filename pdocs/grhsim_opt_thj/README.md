@@ -115,12 +115,17 @@
 | `TNO0103` | `2026-07-17` | [Stage 17 targeted-direct implementation, static, and functional gate](./TNO0103_stage17_targeted_direct_implementation_static_and_functional_gate_20260717.md) | production 选中 `15,913` groups、writes `86,350→56,345`；仅 107 个 sched source 的 active writes 改变，总 source `-1,494,059` bytes，O3 `.text -101,551` bytes，fixed-ASLR 100/10k/50k 功能全过；full regression 待独立归档。 |
 | `TNO0104` | `2026-07-17` | [Stage 17 targeted-direct N0 strict runtime and default decision](./TNO0104_stage17_targeted_direct_n0_strict_runtime_and_default_decision_20260717.md) | N0 ABBA/BAAB cycles `+0.253568%/-0.316547%`、合并 `-0.031601%`，低于 spread，判中性并保持 C++ default `off`；N1 因 CPU104 外部 `htop` 阻塞，未跑且未干预，XS 继续 sparse override。 |
 | `TNO0105` | `2026-07-17` | [Stage 17 full regression gate](./TNO0105_stage17_full_regression_gate_20260717.md) | full build PASS、串行 CTest `46/48`（`387.77s`）；focused emitter/memory-fill、activity、pybind 与 XS 全过，仅保留 Stage11..16 相同的 comb-lane-pack/repcut 既有失败，无新增回归。 |
+| `TNO0106` | `2026-07-17` | [Stage 7+ P1 cap8192 strict window rejection](./TNO0106_stage7_plus_p1_cap8192_strict_window_rejection_20260717.md) | P1 初始 N0 survey PASS、N1 CPU104 min idle `62.15%` FAIL；N0 首个 control pre-gate 通过但 runtime min `94.71%`，整组作废，retry survey 再失败；无 PMU 结论，下次从 attempt2 完整 ABBA+BAAB。 |
+| `TNO0107` | `2026-07-17` | [Stage 18 C++ native default single-source cleanup plan](./TNO0107_stage18_cpp_native_default_single_source_cleanup_plan_20260717.md) | 规划仅将与 C++ 完全同值的 activity-schedule XS 默认迁为 sparse，并让 Makefile commit cap 只在显式设置时导出；保留 XS compute/split、batch、parallelism 与 storage-alias 配置，以 JSON/source byte identity 和 override spot tests 裁决。 |
+| `TNO0108` | `2026-07-17` | [Absolute raw-value audit and missing ledger](./TNO0108_absolute_raw_value_audit_and_missing_ledger_20260717.md) | 全审计 TNO0001..TNO0107；补录可恢复的 PMU/结构/wall 原值，登记 rejected/incomplete/unrecoverable 边界，并交接 walltime 重评估。 |
+| `TNO0109` | `2026-07-17` | [Stage 18 C++ native default single-source implementation and identity gate](./TNO0109_stage18_cpp_native_default_single_source_implementation_and_identity_gate_20260717.md) | 完成 28 项 sparse default/Makefile 单一默认来源迁移；clean/cap8192 fresh production identity、绝对结构值和 byte-exact gate 通过，schedule/端到端程序不变。 |
+| `TNO0110` | `2026-07-17` | [Walltime headline criterion and historical re-evaluation](./TNO0110_walltime_headline_criterion_and_re_evaluation_20260717.md) | 将 `walltime_ms/walltime_ok` 设为 SimTop 50k 最终 headline；逐篇复核历史 runtime，唯一实质变化是 cap8192/N0 cycles 近中性但 wall 回退，默认决定保持不变。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`105`（`TNO0001..TNO0105`）。
+- 当前记录类文档总数：`110`（`TNO0001..TNO0110`，含 TNO0108/0109/0110）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

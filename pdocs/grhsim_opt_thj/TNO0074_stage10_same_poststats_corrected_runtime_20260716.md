@@ -98,4 +98,15 @@ same-post corrected 结果取代 TNO0072 作为 Stage 10 的 schedule 因果裁�
 build/xs_activity_stage10_fanin_off_samepost_20260716/
 build/logs/xs_perf/activity_stage10_fanin_strict_20260716/sp_n0_*
 build/logs/xs_perf/activity_stage10_fanin_strict_20260716/sp2_n1_*
+
+## 增量更新 2026-07-17：walltime headline 绝对值补录
+
+最终性能 headline 采用 host walltime。以下为 corrected same-post A/B/A 的 `Host time spent` 原值（milliseconds），直接来自 emu logs；N1 使用 corrected `sp2_n1_*`，不混入早先被 gate 阻断的 orphan control：
+
+| node | A1 | strict B | A2 | 原始 emu 文件 |
+| --- | ---: | ---: | ---: | --- |
+| NUMA0 | `84,577` | `77,358` | `85,014` | `build/logs/xs_perf/activity_stage10_fanin_strict_20260716/{sp_n0_a1,sp_n0_b,sp_n0_a2}_emu.log` |
+| NUMA1 | `76,874` | `84,081` | `76,886` | `build/logs/xs_perf/activity_stage10_fanin_strict_20260716/{sp2_n1_a1,sp2_n1_b,sp2_n1_a2}_emu.log` |
+
+walltime 相对两侧 control 均值分别为 NUMA0 `-8.771102%`、NUMA1 `+9.366545%`，与 cycles 的强 socket 反转一致；默认继续关闭。
 ```
