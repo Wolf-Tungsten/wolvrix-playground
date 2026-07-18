@@ -142,12 +142,14 @@
 | `TNO0130` | `2026-07-18` | [NUMA first-touch and tmpfs page-cache root cause](./TNO0130_numa_first_touch_and_tmpfs_page_cache_root_cause_20260718.md) | 证明 fresh inode 不等于目标 NUMA page placement；unbound `cp` 可把 NEMU tmpfs page cache 留在 N0，后续 `membind=1` 不迁移，固化复制时 first-touch 和 `numa_maps` 门禁。 |
 | `TNO0131` | `2026-07-18` | [Stage 27 shared-input peer peel probe plan](./TNO0131_stage27_shared_input_peer_peel_probe_plan_20260718.md) | 规划在不放宽 108-op cap、不改变 graph 的前提下，将 source 超节点内小型 compute node 只读剥离到共同输入 fanout peer；先做 exact/active-byte/profile probe，再决定是否 strict。 |
 | `TNO0132` | `2026-07-18` | [Stage 27 shared-input peer probe production result](./TNO0132_stage27_shared_input_peer_probe_production_result_20260718.md) | fresh extension 双次 production probe 均 `exact=80/selected=14`，selected TSV byte-identical；严格 fire 子集仅 `9` 行、`11` BAE/active-byte/chunk 上界（`0.000638904%`），无 slot/batch 证据，按停止条件不进入 strict/CPP/50k，默认保持 off。 |
+| `TNO0133` | `2026-07-18` | [Stage 28 deferred-activation forward probe plan](./TNO0133_stage28_deferred_activation_forward_probe_plan_20260718.md) | 基于 emitter 实际 deferred activation lowering，规划对纯 compute source→target 的无条件 forward activation 只读 probe；冻结 consumer fanout、direct-state、batch 与 active ID，先按真实 entry/chunk/table 和 50k fire 加权净收益筛选。 |
+| `TNO0134` | `2026-07-18` | [Stage 28 deferred-activation forward probe production result](./TNO0134_stage28_deferred_activation_forward_probe_production_result_20260718.md) | r2 production `raw_pairs=490406`、exact/accounted/static-positive `3864`、selected `128`、逐项输出 `192`；emitter work `2,417,244→2,409,068`、estimated lines `549,155→549,385`，work-proxy lower/upper `-71,582,689/+60,496,519` 跨零；13 个 proxy-positive pair 仅进入动态 cofire counter，未直接 strict。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`132`（`TNO0001..TNO0132`）。
+- 当前记录类文档总数：`134`（`TNO0001..TNO0134`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

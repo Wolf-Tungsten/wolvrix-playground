@@ -20,6 +20,7 @@ ACTIVITY_SCHEDULE_SPARSE_STRING_OPTIONS = MODULE["ACTIVITY_SCHEDULE_SPARSE_STRIN
 READ_FINAL_SIBLING_FUSION_OPTIONS = MODULE["read_final_sibling_fusion_options"]
 READ_ACTIVE_MASK_GAP_PACK_OPTIONS = MODULE["read_active_mask_gap_pack_options"]
 DESCRIBE_ACTIVE_MASK_GAP_PACK_POLICY = MODULE["describe_active_mask_gap_pack_policy"]
+READ_DEFERRED_ACTIVATION_FORWARD_OPTIONS = MODULE["read_deferred_activation_forward_options"]
 FORMAT_NATIVE_DEFAULT_OPTION = MODULE["format_native_default_option"]
 
 ACTIVITY_SCHEDULE_SPARSE_ENV_NAMES = {
@@ -423,6 +424,86 @@ class XsGrhsimOptionTest(unittest.TestCase):
             options = READ_ACTIVE_MASK_GAP_PACK_OPTIONS()
             self.assertEqual(options, {})
             self.assertEqual(DESCRIBE_ACTIVE_MASK_GAP_PACK_POLICY(options), ("table", "cpp-low-env"))
+
+    def test_deferred_activation_forward_defaults_are_sparse(self) -> None:
+        names = {
+            "WOLVRIX_XS_GRHSIM_DEFERRED_ACTIVATION_FORWARD_POLICY",
+            "WOLVRIX_XS_GRHSIM_DEFERRED_ACTIVATION_FORWARD_PROFILE_PATH",
+        }
+        base = {key: value for key, value in os.environ.items() if key not in names}
+        with patch.dict(os.environ, base, clear=True):
+            options = READ_DEFERRED_ACTIVATION_FORWARD_OPTIONS()
+        self.assertEqual(options, {})
+        self.assertEqual(
+            FORMAT_NATIVE_DEFAULT_OPTION(options, "deferred_activation_forward_policy"),
+            "cpp-default",
+        )
+        self.assertEqual(
+            FORMAT_NATIVE_DEFAULT_OPTION(
+                options, "deferred_activation_forward_profile_path"
+            ),
+            "cpp-default",
+        )
+
+    def test_deferred_activation_forward_explicit_options_are_forwarded(self) -> None:
+        values = {
+            "WOLVRIX_XS_GRHSIM_DEFERRED_ACTIVATION_FORWARD_POLICY": "probe",
+            "WOLVRIX_XS_GRHSIM_DEFERRED_ACTIVATION_FORWARD_PROFILE_PATH": "/tmp/fire.tsv",
+        }
+        with patch.dict(os.environ, values, clear=True):
+            options = READ_DEFERRED_ACTIVATION_FORWARD_OPTIONS()
+        self.assertEqual(
+            options,
+            {
+                "deferred_activation_forward_policy": "probe",
+                "deferred_activation_forward_profile_path": "/tmp/fire.tsv",
+            },
+        )
+        _compile_emit_grhsim_cpp_kwargs(options)
+        self.assertEqual(
+            FORMAT_NATIVE_DEFAULT_OPTION(options, "deferred_activation_forward_policy"),
+            "probe",
+        )
+        self.assertEqual(
+            FORMAT_NATIVE_DEFAULT_OPTION(
+                options, "deferred_activation_forward_profile_path"
+            ),
+            "/tmp/fire.tsv",
+        )
+
+    def test_deferred_activation_forward_options_are_independent(self) -> None:
+        cases = (
+            (
+                "WOLVRIX_XS_GRHSIM_DEFERRED_ACTIVATION_FORWARD_POLICY",
+                "off",
+                "deferred_activation_forward_policy",
+                "off",
+            ),
+            (
+                "WOLVRIX_XS_GRHSIM_DEFERRED_ACTIVATION_FORWARD_PROFILE_PATH",
+                "/tmp/only-profile.tsv",
+                "deferred_activation_forward_profile_path",
+                "/tmp/only-profile.tsv",
+            ),
+        )
+        for env_name, env_value, option_name, option_value in cases:
+            with self.subTest(env_name=env_name):
+                with patch.dict(os.environ, {env_name: env_value}, clear=True):
+                    options = READ_DEFERRED_ACTIVATION_FORWARD_OPTIONS()
+                self.assertEqual(options, {option_name: option_value})
+                _compile_emit_grhsim_cpp_kwargs(options)
+
+    def test_deferred_activation_forward_invalid_policy_is_not_defaulted(self) -> None:
+        env_name = "WOLVRIX_XS_GRHSIM_DEFERRED_ACTIVATION_FORWARD_POLICY"
+        for value in ("", "strict", "targeted"):
+            with self.subTest(value=value):
+                with patch.dict(os.environ, {env_name: value}, clear=True):
+                    options = READ_DEFERRED_ACTIVATION_FORWARD_OPTIONS()
+                self.assertEqual(options, {"deferred_activation_forward_policy": value})
+                with self.assertRaisesRegex(
+                    ValueError, "deferred_activation_forward_policy"
+                ):
+                    _compile_emit_grhsim_cpp_kwargs(options)
 
 
 if __name__ == "__main__":
