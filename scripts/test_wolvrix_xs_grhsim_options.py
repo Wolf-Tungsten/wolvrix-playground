@@ -478,6 +478,13 @@ class XsGrhsimOptionTest(unittest.TestCase):
         self.assertEqual(options, {"deferred_activation_forward_policy": "cofire-probe"})
         _compile_emit_grhsim_cpp_kwargs(options)
 
+    def test_deferred_activation_forward_cofire_strict_is_forwarded(self) -> None:
+        env_name = "WOLVRIX_XS_GRHSIM_DEFERRED_ACTIVATION_FORWARD_POLICY"
+        with patch.dict(os.environ, {env_name: "cofire-strict"}, clear=True):
+            options = READ_DEFERRED_ACTIVATION_FORWARD_OPTIONS()
+        self.assertEqual(options, {"deferred_activation_forward_policy": "cofire-strict"})
+        _compile_emit_grhsim_cpp_kwargs(options)
+
     def test_deferred_activation_forward_options_are_independent(self) -> None:
         cases = (
             (
