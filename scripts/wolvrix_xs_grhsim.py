@@ -153,6 +153,10 @@ ACTIVITY_SCHEDULE_SPARSE_INTEGER_OPTIONS = (
         "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_MAX_MOVED_OP_PPM",
         "final_terminal_pushforward_max_moved_op_ppm",
     ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_PROFILE_MIN_SOURCE_FIRE",
+        "final_terminal_pushforward_profile_min_source_fire",
+    ),
 )
 
 ACTIVITY_SCHEDULE_SPARSE_STRING_OPTIONS = (
@@ -166,6 +170,10 @@ ACTIVITY_SCHEDULE_SPARSE_STRING_OPTIONS = (
     (
         "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_POLICY",
         "final_terminal_pushforward_policy",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_PROFILE_PATH",
+        "final_terminal_pushforward_profile_path",
     ),
     ("WOLVRIX_XS_GRHSIM_FINAL_TOPO_POLICY", "final_topo_policy"),
 )
@@ -727,6 +735,10 @@ def main() -> int:
         f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_max_moves')} "
         f"final_terminal_pushforward_max_moved_op_ppm="
         f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_max_moved_op_ppm')} "
+        f"final_terminal_pushforward_profile_path="
+        f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_profile_path')} "
+        f"final_terminal_pushforward_profile_min_source_fire="
+        f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_profile_min_source_fire')} "
         f"final_sibling_fusion_policy="
         f"{format_native_default_option(final_sibling_fusion_options, 'final_sibling_fusion_policy')} "
         f"final_sibling_fusion_min_gain="

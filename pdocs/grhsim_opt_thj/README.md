@@ -137,12 +137,15 @@
 | `TNO0125` | `2026-07-18` | [Stage 22 terminal pushforward cap8192 re-evaluation and default decision](./TNO0125_stage22_terminal_pushforward_cap8192_re_evaluation_and_default_decision_20260718.md) | cap8192 默认上 strict 结构收益 `-128` BAE/边界值、`-183` logical-byte proxy，但四组 fresh page-local wall 全部无正向合并收益；双 NUMA `74,384.00→74,461.50 ms`（`+0.104189073%`），strict 保持 off。 |
 | `TNO0126` | `2026-07-18` | [Stage 25 commit-cap re-evaluation plan on the cap8192 baseline](./TNO0126_stage25_commit_cap_re_evaluation_plan_20260718.md) | 规划在 current cap8192/C++ native-hybrid 基线上重扫 `12288/16384/32768` commit guard cap；先结构筛选，再按 fresh page-local 双 NUMA walltime 裁决。 |
 | `TNO0127` | `2026-07-18` | [Stage 25 commit-cap re-evaluation walltime and default decision](./TNO0127_stage25_commit_cap_re_evaluation_walltime_and_default_decision_20260718.md) | cap16384 结构 `-1,464` BAE/`-659` DAG，首次四组 dual wall `74,437.875→74,302.125ms`，但 N1 BAAB fresh try2 回退 `+0.570131%`；不改 cap8192 默认，32768 停止 full 测试。 |
+| `TNO0128` | `2026-07-18` | [Stage 26 fire-aware terminal pushforward plan](./TNO0128_stage26_fire_aware_terminal_pushforward_plan_20260718.md) | 规划用 Stage19 50k fire profile 在 terminal pushforward strict 候选入列前加入 `source_fire`/`target_fire` gate，默认 off，按双 NUMA walltime 裁决。 |
+| `TNO0129` | `2026-07-18` | [Stage 26 fire-aware terminal pushforward runtime and decision](./TNO0129_stage26_fire_aware_terminal_pushforward_runtime_and_decision_20260718.md) | min1000/min10000 strict 分别选 `80/54` 个 move；双 NUMA 四组 wall 分别 `74,248.375→74,258.500ms`、`74,259.375→74,344.500ms`，均未改善，profile strict 保持显式关闭。 |
+| `TNO0130` | `2026-07-18` | [NUMA first-touch and tmpfs page-cache root cause](./TNO0130_numa_first_touch_and_tmpfs_page_cache_root_cause_20260718.md) | 证明 fresh inode 不等于目标 NUMA page placement；unbound `cp` 可把 NEMU tmpfs page cache 留在 N0，后续 `membind=1` 不迁移，固化复制时 first-touch 和 `numa_maps` 门禁。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`127`（`TNO0001..TNO0127`）。
+- 当前记录类文档总数：`130`（`TNO0001..TNO0130`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
