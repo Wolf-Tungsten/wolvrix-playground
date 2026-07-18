@@ -135,12 +135,14 @@
 | `TNO0123` | `2026-07-18` | [Stage 22 terminal pushforward strict implementation and static gate](./TNO0123_stage22_terminal_pushforward_strict_implementation_and_static_gate_20260718.md) | strict stable-splice 实际移动 `128` 个 1-op node，BAE/边界值精确 `-128`、logical-byte proxy `-183`，DAG/commit/batch 不变；O3/50k 功能通过，walltime 待 current-default cap 重裁后复测。 |
 | `TNO0124` | `2026-07-18` | [Stage 7+ P1 cap8192 balanced closure and default adoption](./TNO0124_stage7_plus_p1_cap8192_balanced_closure_and_default_adoption_20260718.md) | fresh page-local N0 BAAB 补齐后，四个独立组 wall 全部正向；双 NUMA 等权 `74,604.75→74,280.00 ms`（`-0.435294%`），采用 C++ native cap8192，显式4096保留回滚。 |
 | `TNO0125` | `2026-07-18` | [Stage 22 terminal pushforward cap8192 re-evaluation and default decision](./TNO0125_stage22_terminal_pushforward_cap8192_re_evaluation_and_default_decision_20260718.md) | cap8192 默认上 strict 结构收益 `-128` BAE/边界值、`-183` logical-byte proxy，但四组 fresh page-local wall 全部无正向合并收益；双 NUMA `74,384.00→74,461.50 ms`（`+0.104189073%`），strict 保持 off。 |
+| `TNO0126` | `2026-07-18` | [Stage 25 commit-cap re-evaluation plan on the cap8192 baseline](./TNO0126_stage25_commit_cap_re_evaluation_plan_20260718.md) | 规划在 current cap8192/C++ native-hybrid 基线上重扫 `12288/16384/32768` commit guard cap；先结构筛选，再按 fresh page-local 双 NUMA walltime 裁决。 |
+| `TNO0127` | `2026-07-18` | [Stage 25 commit-cap re-evaluation walltime and default decision](./TNO0127_stage25_commit_cap_re_evaluation_walltime_and_default_decision_20260718.md) | cap16384 结构 `-1,464` BAE/`-659` DAG，首次四组 dual wall `74,437.875→74,302.125ms`，但 N1 BAAB fresh try2 回退 `+0.570131%`；不改 cap8192 默认，32768 停止 full 测试。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`125`（`TNO0001..TNO0125`）。
+- 当前记录类文档总数：`127`（`TNO0001..TNO0127`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
