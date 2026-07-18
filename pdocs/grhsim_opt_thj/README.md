@@ -149,12 +149,16 @@
 | `TNO0137` | `2026-07-18` | [Stage 30 deferred-activation 12-pair strict plan](./TNO0137_stage30_deferred_activation_12pair_strict_plan_20260718.md) | 仅对 Stage29 前 12 对设计显式 default-off strict overlay；固定 `648` exclusive values，目标 static work `3,262→1,953`，先做 product-map/schedule/slot identity 与 100/10k/50k 功能，再以双 NUMA SimTop `Host time spent` walltime 裁决。 |
 | `TNO0138` | `2026-07-18` | [Stage 30 deferred-activation 12-pair strict implementation, static, and function gate](./TNO0138_stage30_deferred_activation_12pair_strict_implementation_static_function_gate_20260718.md) | production strict 通过 `12` pairs/`648` values；勘误后的实际 12-pair work 为 `2,417,244→2,415,935`，8 个 schedule CPP 改变、`.text -15,632`，O3/link 与 100/10k/50k 功能通过；formal 双 NUMA 被外部负载阻断，尚无 walltime 采用结论。 |
 | `TNO0139` | `2026-07-19` | [Stage 30 formal walltime gate block and default decision](./TNO0139_stage30_formal_walltime_gate_block_and_default_decision_20260719.md) | 唯一有效 N0 ABBA wall 为 `74,429.5→74,266.0 ms`（`-0.219671%`）；N0 BAAB/N1 在最多 60 次 whole-node admission 中被持续外部 CI 负载阻断，无法形成双 NUMA balanced 结论，strict 保持显式 off。 |
+| `TNO0140` | `2026-07-19` | [Stage 31 miss-tolerant 13-pair deferred-activation strict plan](./TNO0140_stage31_miss_tolerant_13pair_strict_plan_20260719.md) | 保留 Stage30 12-pair policy，新增独立 extended strict 只加入 `35026→38043`；141 次额外纯 bool target fire 修正后 proxy 仍为 `268,014`，规划按 `3,525→2,129` local work 和双 NUMA walltime裁决。 |
+| `TNO0141` | `2026-07-19` | [Stage 31 13-pair strict implementation, static, and function gate](./TNO0141_stage31_13pair_strict_implementation_static_function_gate_20260719.md) | 新增独立 extended policy，production 验证 `13` pairs/`691` values，实际 global work `2,417,244→2,415,848`、9 个 schedule CPP 合计 `-143,088` bytes、`.text -16,576`；三版本 100/10k/50k 功能全过。 |
+| `TNO0142` | `2026-07-19` | [Stage 31 13-pair strict formal walltime block and default decision](./TNO0142_stage31_13pair_strict_formal_walltime_block_and_default_decision_20260719.md) | N0 ABBA 前三样本各自有效但 a2 三次 whole-node admission 失败，N1 三窗 mean 仅 `96.26%..96.98%`；没有完整 order/双 NUMA walltime，12/13-pair strict 都保持 C++ default-off。 |
+| `TNO0143` | `2026-07-19` | [Walltime absolute-value and Stage 7+ NUMA retest audit](./TNO0143_walltime_absolute_value_and_stage7plus_numa_retest_audit_20260719.md) | 审计确认 accepted runtime 均可恢复绝对 `Host time spent` 且默认结论不变；补录 TNO0087/旧 samepost 绝对值和缺失路径，同时明确 Stage10、Stage8 仍缺 whole-node balanced 复核。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`139`（`TNO0001..TNO0139`）。
+- 当前记录类文档总数：`143`（`TNO0001..TNO0143`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
