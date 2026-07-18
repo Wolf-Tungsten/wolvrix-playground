@@ -147,13 +147,14 @@
 | `TNO0135` | `2026-07-18` | [Stage 29 deferred-activation cofire counter plan](./TNO0135_stage29_deferred_activation_cofire_counter_plan_20260718.md) | 只对 13 个 proxy-positive source→target pair 做 default-off、no-mutation 动态计数；记录入口前/flush 后 pending、baseline flush added、leader miss 等绝对值，先过 100/10k/50k 功能与计数，再决定是否生成 strict overlay，最终以 SimTop `Host time spent` walltime 裁决。 |
 | `TNO0136` | `2026-07-18` | [Stage 29 deferred-activation cofire probe production result](./TNO0136_stage29_deferred_activation_cofire_probe_production_result_20260718.md) | 显式 cofire probe 的 O3/link 与 100/10k/50k 功能通过；50k 中 pair 0..11 均 `leader_without_follower=0`，进入 Stage30 12-pair strict 计划；`35026→38043` 有 `141` 次 miss，停止该 pair，插桩 walltime 仅作诊断且默认保持 off。 |
 | `TNO0137` | `2026-07-18` | [Stage 30 deferred-activation 12-pair strict plan](./TNO0137_stage30_deferred_activation_12pair_strict_plan_20260718.md) | 仅对 Stage29 前 12 对设计显式 default-off strict overlay；固定 `648` exclusive values，目标 static work `3,262→1,953`，先做 product-map/schedule/slot identity 与 100/10k/50k 功能，再以双 NUMA SimTop `Host time spent` walltime 裁决。 |
-| `TNO0138` | `2026-07-18` | [Stage 30 deferred-activation 12-pair strict implementation, static, and function gate](./TNO0138_stage30_deferred_activation_12pair_strict_implementation_static_function_gate_20260718.md) | production strict 通过 `12` pairs/`648` values、work `2,417,244→2,409,068`，8 个 schedule CPP 改变、`.text -15,632`，O3/link 与 100/10k/50k 功能通过；formal 双 NUMA 被外部负载阻断，尚无 walltime 采用结论。 |
+| `TNO0138` | `2026-07-18` | [Stage 30 deferred-activation 12-pair strict implementation, static, and function gate](./TNO0138_stage30_deferred_activation_12pair_strict_implementation_static_function_gate_20260718.md) | production strict 通过 `12` pairs/`648` values；勘误后的实际 12-pair work 为 `2,417,244→2,415,935`，8 个 schedule CPP 改变、`.text -15,632`，O3/link 与 100/10k/50k 功能通过；formal 双 NUMA 被外部负载阻断，尚无 walltime 采用结论。 |
+| `TNO0139` | `2026-07-19` | [Stage 30 formal walltime gate block and default decision](./TNO0139_stage30_formal_walltime_gate_block_and_default_decision_20260719.md) | 唯一有效 N0 ABBA wall 为 `74,429.5→74,266.0 ms`（`-0.219671%`）；N0 BAAB/N1 在最多 60 次 whole-node admission 中被持续外部 CI 负载阻断，无法形成双 NUMA balanced 结论，strict 保持显式 off。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`138`（`TNO0001..TNO0138`）。
+- 当前记录类文档总数：`139`（`TNO0001..TNO0139`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

@@ -172,3 +172,33 @@ perf CSV 和 emu log 全部保留在既有 group 目录。
 `Host time spent`。在 TNO0139 完成 fresh page-local ABBA/BAAB 后，仍只以 walltime
 决定是否保留显式 strict；C++ default 先保持 `off`。
 
+## 6. 勘误（2026-07-19）：Stage28 broad accounting 与 Stage30 overlay accounting
+
+第 1 节引用的全局 `accounting=candidate` 行是
+`runDeferredActivationForwardProbe()` 对 Stage28 broad 128-pair private candidate 的诊断，
+不是最终实际写入 CPP 的 Stage30 12-pair strict overlay。原文把
+`2,417,244 -> 2,409,068` 当作 Stage30 全局结果不正确；局部 strict raw gate
+`3,262 -> 1,953`、12 pairs、648 values 和生成源码差分均不受影响。
+
+把 Stage30 局部 control/overlay delta 应用到全局 control 后，实际 12-pair strict
+全局 accounting 为：
+
+```text
+work_units                  2417244 -> 2415935
+tracked_change_values        752375 -> 751727
+direct_value_groups          140145 -> 140142
+deferred_groups              136969 -> 136958
+deferred_source_updates      925811 -> 925166
+forward_groups                    0 -> 12
+active_mask_entries          420843 -> 420841
+planned_chunks               396572 -> 396570
+branchless_groups            265317 -> 265303
+conditional_mask_updates     327748 -> 327734
+global_rmw                   399483 -> 399481
+updated_bytes                418250 -> 418248
+estimated_activation_lines   549155 -> 549177
+```
+
+因此 Stage30 的真实 static work 差是 `-1,309`，不是 Stage28 broad probe 的
+`-8,176`；estimated activation lines 为 `+22`。后续 TNO0139/runtime 决策只使用
+本勘误后的 12-pair accounting，并继续以 SimTop `Host time spent` 为最终口径。
