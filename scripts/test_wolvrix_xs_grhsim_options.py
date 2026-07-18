@@ -21,6 +21,9 @@ READ_FINAL_SIBLING_FUSION_OPTIONS = MODULE["read_final_sibling_fusion_options"]
 READ_ACTIVE_MASK_GAP_PACK_OPTIONS = MODULE["read_active_mask_gap_pack_options"]
 DESCRIBE_ACTIVE_MASK_GAP_PACK_POLICY = MODULE["describe_active_mask_gap_pack_policy"]
 READ_DEFERRED_ACTIVATION_FORWARD_OPTIONS = MODULE["read_deferred_activation_forward_options"]
+READ_SAME_BATCH_ACTIVATION_COHORT_OPTIONS = MODULE[
+    "read_same_batch_activation_cohort_options"
+]
 FORMAT_NATIVE_DEFAULT_OPTION = MODULE["format_native_default_option"]
 
 ACTIVITY_SCHEDULE_SPARSE_ENV_NAMES = {
@@ -528,6 +531,66 @@ class XsGrhsimOptionTest(unittest.TestCase):
                     ValueError, "deferred_activation_forward_policy"
                 ):
                     _compile_emit_grhsim_cpp_kwargs(options)
+
+    def test_same_batch_activation_cohort_defaults_are_sparse(self) -> None:
+        names = {
+            "WOLVRIX_XS_GRHSIM_SAME_BATCH_ACTIVATION_COHORT_POLICY",
+            "WOLVRIX_XS_GRHSIM_SAME_BATCH_ACTIVATION_COHORT_PROFILE_PATH",
+        }
+        base = {key: value for key, value in os.environ.items() if key not in names}
+        with patch.dict(os.environ, base, clear=True):
+            options = READ_SAME_BATCH_ACTIVATION_COHORT_OPTIONS()
+        self.assertEqual(options, {})
+        self.assertEqual(
+            FORMAT_NATIVE_DEFAULT_OPTION(
+                options, "same_batch_activation_cohort_policy"
+            ),
+            "cpp-default",
+        )
+        self.assertEqual(
+            FORMAT_NATIVE_DEFAULT_OPTION(
+                options, "same_batch_activation_cohort_profile_path"
+            ),
+            "cpp-default",
+        )
+
+    def test_same_batch_activation_cohort_explicit_options_are_forwarded(self) -> None:
+        values = {
+            "WOLVRIX_XS_GRHSIM_SAME_BATCH_ACTIVATION_COHORT_POLICY": "probe",
+            "WOLVRIX_XS_GRHSIM_SAME_BATCH_ACTIVATION_COHORT_PROFILE_PATH": "/tmp/fire.tsv",
+        }
+        with patch.dict(os.environ, values, clear=True):
+            options = READ_SAME_BATCH_ACTIVATION_COHORT_OPTIONS()
+        self.assertEqual(
+            options,
+            {
+                "same_batch_activation_cohort_policy": "probe",
+                "same_batch_activation_cohort_profile_path": "/tmp/fire.tsv",
+            },
+        )
+        _compile_emit_grhsim_cpp_kwargs(options)
+
+    def test_same_batch_activation_cohort_options_are_independent(self) -> None:
+        cases = (
+            (
+                "WOLVRIX_XS_GRHSIM_SAME_BATCH_ACTIVATION_COHORT_POLICY",
+                "off",
+                "same_batch_activation_cohort_policy",
+                "off",
+            ),
+            (
+                "WOLVRIX_XS_GRHSIM_SAME_BATCH_ACTIVATION_COHORT_PROFILE_PATH",
+                "/tmp/only-profile.tsv",
+                "same_batch_activation_cohort_profile_path",
+                "/tmp/only-profile.tsv",
+            ),
+        )
+        for env_name, env_value, option_name, option_value in cases:
+            with self.subTest(env_name=env_name):
+                with patch.dict(os.environ, {env_name: env_value}, clear=True):
+                    options = READ_SAME_BATCH_ACTIVATION_COHORT_OPTIONS()
+                self.assertEqual(options, {option_name: option_value})
+                _compile_emit_grhsim_cpp_kwargs(options)
 
 
 if __name__ == "__main__":

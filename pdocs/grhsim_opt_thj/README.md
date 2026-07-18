@@ -153,12 +153,16 @@
 | `TNO0141` | `2026-07-19` | [Stage 31 13-pair strict implementation, static, and function gate](./TNO0141_stage31_13pair_strict_implementation_static_function_gate_20260719.md) | 新增独立 extended policy，production 验证 `13` pairs/`691` values，实际 global work `2,417,244→2,415,848`、9 个 schedule CPP 合计 `-143,088` bytes、`.text -16,576`；三版本 100/10k/50k 功能全过。 |
 | `TNO0142` | `2026-07-19` | [Stage 31 13-pair strict formal walltime block and default decision](./TNO0142_stage31_13pair_strict_formal_walltime_block_and_default_decision_20260719.md) | N0 ABBA 前三样本各自有效但 a2 三次 whole-node admission 失败，N1 三窗 mean 仅 `96.26%..96.98%`；没有完整 order/双 NUMA walltime，12/13-pair strict 都保持 C++ default-off。 |
 | `TNO0143` | `2026-07-19` | [Walltime absolute-value and Stage 7+ NUMA retest audit](./TNO0143_walltime_absolute_value_and_stage7plus_numa_retest_audit_20260719.md) | 审计确认 accepted runtime 均可恢复绝对 `Host time spent` 且默认结论不变；补录 TNO0087/旧 samepost 绝对值和缺失路径，同时明确 Stage10、Stage8 仍缺 whole-node balanced 复核。 |
+| `TNO0144` | `2026-07-19` | [Stage 32 same-batch activation cohort probe plan](./TNO0144_stage32_same_batch_activation_cohort_probe_plan_20260719.md) | 规划 final-emitter exact-source cohort probe；pinned batch12 的 51 个连续 pure-compute body 只有一个普通 activation source，投影 BAE `51→1`、50k guard tests `-958,750`，先用入口/出口 pending counter 证明全等再做 strict。 |
+| `TNO0145` | `2026-07-19` | [Stage 32 cohort probe implementation and static gate](./TNO0145_stage32_cohort_probe_implementation_and_static_gate_20260719.md) | 实现 C++ default-off exact-source probe并收紧 SimTop production contract；current-default 找到 `252` cohorts/`902` members，投影 BAE `3,619→1,450`，activity/emitter stats 与基线 byte-identical。 |
+| `TNO0146` | `2026-07-19` | [Stage 32 cohort probe 50k equivalence gate](./TNO0146_stage32_cohort_probe_50k_equivalence_gate_20260719.md) | page-local fixed-ASLR 100/10k/50k 功能全过；50k `252/252` cohorts partial/mismatch/exit-pending 全零，绝对 body fire `9,270,152`、guard tests saved `6,854,019`，进入 default-off strict。 |
+| `TNO0147` | `2026-07-19` | [Stage 32 current-profile replay and log audit](./TNO0147_stage32_current_profile_replay_and_log_audit_20260719.md) | 审计发现 legacy/current 全量 fire 有 `1,553` 行差异但与 selected member 交集为 0；current-profile fresh replay 完整复现 `252/902/2,169`，并记录 raw stdout/stderr 插断、TSV 为权威计数源。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`143`（`TNO0001..TNO0143`）。
+- 当前记录类文档总数：`147`（`TNO0001..TNO0147`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

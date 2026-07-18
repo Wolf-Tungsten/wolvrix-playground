@@ -295,6 +295,23 @@ def read_deferred_activation_forward_options() -> dict[str, str]:
     return options
 
 
+def read_same_batch_activation_cohort_options() -> dict[str, str]:
+    options: dict[str, str] = {}
+    for env_name, option_name in (
+        (
+            "WOLVRIX_XS_GRHSIM_SAME_BATCH_ACTIVATION_COHORT_POLICY",
+            "same_batch_activation_cohort_policy",
+        ),
+        (
+            "WOLVRIX_XS_GRHSIM_SAME_BATCH_ACTIVATION_COHORT_PROFILE_PATH",
+            "same_batch_activation_cohort_profile_path",
+        ),
+    ):
+        if env_name in os.environ:
+            options[option_name] = os.environ[env_name].strip()
+    return options
+
+
 def write_stats_json(sess: wolvrix.Session, key: str, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "wolvrix_xs_stats.json"
@@ -675,6 +692,7 @@ def main() -> int:
         describe_active_mask_gap_pack_policy(active_mask_gap_pack_options)
     )
     deferred_activation_forward_options = read_deferred_activation_forward_options()
+    same_batch_activation_cohort_options = read_same_batch_activation_cohort_options()
     sparse_options = read_activity_schedule_sparse_options()
     final_sibling_fusion_options = read_final_sibling_fusion_options()
     sparse_options.update(final_sibling_fusion_options)
@@ -751,6 +769,10 @@ def main() -> int:
         f"{format_native_default_option(deferred_activation_forward_options, 'deferred_activation_forward_policy')} "
         f"deferred_activation_forward_profile_path="
         f"{format_native_default_option(deferred_activation_forward_options, 'deferred_activation_forward_profile_path')} "
+        f"same_batch_activation_cohort_policy="
+        f"{format_native_default_option(same_batch_activation_cohort_options, 'same_batch_activation_cohort_policy')} "
+        f"same_batch_activation_cohort_profile_path="
+        f"{format_native_default_option(same_batch_activation_cohort_options, 'same_batch_activation_cohort_profile_path')} "
         f"dp_segment_penalty_ppm="
         f"{format_native_default_option(sparse_options, 'dp_segment_penalty_ppm')} "
         f"post_dp_refine_policy="
@@ -1029,6 +1051,7 @@ def main() -> int:
             pure_event_word_pack_max_changed_word_ppm=pure_event_word_pack_max_changed_word_ppm,
             **active_mask_gap_pack_options,
             **deferred_activation_forward_options,
+            **same_batch_activation_cohort_options,
         )
         require_ok(diags, "emit_grhsim_cpp")
         log(f"write_grhsim_cpp done {int((time.perf_counter() - start) * 1000)}ms")
