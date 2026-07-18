@@ -157,6 +157,42 @@ ACTIVITY_SCHEDULE_SPARSE_INTEGER_OPTIONS = (
         "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_PROFILE_MIN_SOURCE_FIRE",
         "final_terminal_pushforward_profile_min_source_fire",
     ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_NODE_OPS",
+        "final_shared_input_peer_max_node_ops",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_INPUTS",
+        "final_shared_input_peer_max_inputs",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_OUTPUTS",
+        "final_shared_input_peer_max_outputs",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_VALUE_WIDTH",
+        "final_shared_input_peer_max_value_width",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_PEERS",
+        "final_shared_input_peer_max_peers",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_CANDIDATES",
+        "final_shared_input_peer_max_candidates",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_MOVES",
+        "final_shared_input_peer_max_moves",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_MOVED_OP_PPM",
+        "final_shared_input_peer_max_moved_op_ppm",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_PROFILE_MIN_SOURCE_FIRE",
+        "final_shared_input_peer_profile_min_source_fire",
+    ),
 )
 
 ACTIVITY_SCHEDULE_SPARSE_STRING_OPTIONS = (
@@ -174,6 +210,14 @@ ACTIVITY_SCHEDULE_SPARSE_STRING_OPTIONS = (
     (
         "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_PROFILE_PATH",
         "final_terminal_pushforward_profile_path",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_POLICY",
+        "final_shared_input_peer_policy",
+    ),
+    (
+        "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_PROFILE_PATH",
+        "final_shared_input_peer_profile_path",
     ),
     ("WOLVRIX_XS_GRHSIM_FINAL_TOPO_POLICY", "final_topo_policy"),
 )
@@ -739,6 +783,28 @@ def main() -> int:
         f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_profile_path')} "
         f"final_terminal_pushforward_profile_min_source_fire="
         f"{format_native_default_option(sparse_options, 'final_terminal_pushforward_profile_min_source_fire')} "
+        f"final_shared_input_peer_policy="
+        f"{format_native_default_option(sparse_options, 'final_shared_input_peer_policy')} "
+        f"final_shared_input_peer_max_node_ops="
+        f"{format_native_default_option(sparse_options, 'final_shared_input_peer_max_node_ops')} "
+        f"final_shared_input_peer_max_inputs="
+        f"{format_native_default_option(sparse_options, 'final_shared_input_peer_max_inputs')} "
+        f"final_shared_input_peer_max_outputs="
+        f"{format_native_default_option(sparse_options, 'final_shared_input_peer_max_outputs')} "
+        f"final_shared_input_peer_max_value_width="
+        f"{format_native_default_option(sparse_options, 'final_shared_input_peer_max_value_width')} "
+        f"final_shared_input_peer_max_peers="
+        f"{format_native_default_option(sparse_options, 'final_shared_input_peer_max_peers')} "
+        f"final_shared_input_peer_max_candidates="
+        f"{format_native_default_option(sparse_options, 'final_shared_input_peer_max_candidates')} "
+        f"final_shared_input_peer_max_moves="
+        f"{format_native_default_option(sparse_options, 'final_shared_input_peer_max_moves')} "
+        f"final_shared_input_peer_max_moved_op_ppm="
+        f"{format_native_default_option(sparse_options, 'final_shared_input_peer_max_moved_op_ppm')} "
+        f"final_shared_input_peer_profile_path="
+        f"{format_native_default_option(sparse_options, 'final_shared_input_peer_profile_path')} "
+        f"final_shared_input_peer_profile_min_source_fire="
+        f"{format_native_default_option(sparse_options, 'final_shared_input_peer_profile_min_source_fire')} "
         f"final_sibling_fusion_policy="
         f"{format_native_default_option(final_sibling_fusion_options, 'final_sibling_fusion_policy')} "
         f"final_sibling_fusion_min_gain="

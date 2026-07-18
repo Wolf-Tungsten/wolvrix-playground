@@ -140,12 +140,14 @@
 | `TNO0128` | `2026-07-18` | [Stage 26 fire-aware terminal pushforward plan](./TNO0128_stage26_fire_aware_terminal_pushforward_plan_20260718.md) | 规划用 Stage19 50k fire profile 在 terminal pushforward strict 候选入列前加入 `source_fire`/`target_fire` gate，默认 off，按双 NUMA walltime 裁决。 |
 | `TNO0129` | `2026-07-18` | [Stage 26 fire-aware terminal pushforward runtime and decision](./TNO0129_stage26_fire_aware_terminal_pushforward_runtime_and_decision_20260718.md) | min1000/min10000 strict 分别选 `80/54` 个 move；双 NUMA 四组 wall 分别 `74,248.375→74,258.500ms`、`74,259.375→74,344.500ms`，均未改善，profile strict 保持显式关闭。 |
 | `TNO0130` | `2026-07-18` | [NUMA first-touch and tmpfs page-cache root cause](./TNO0130_numa_first_touch_and_tmpfs_page_cache_root_cause_20260718.md) | 证明 fresh inode 不等于目标 NUMA page placement；unbound `cp` 可把 NEMU tmpfs page cache 留在 N0，后续 `membind=1` 不迁移，固化复制时 first-touch 和 `numa_maps` 门禁。 |
+| `TNO0131` | `2026-07-18` | [Stage 27 shared-input peer peel probe plan](./TNO0131_stage27_shared_input_peer_peel_probe_plan_20260718.md) | 规划在不放宽 108-op cap、不改变 graph 的前提下，将 source 超节点内小型 compute node 只读剥离到共同输入 fanout peer；先做 exact/active-byte/profile probe，再决定是否 strict。 |
+| `TNO0132` | `2026-07-18` | [Stage 27 shared-input peer probe production result](./TNO0132_stage27_shared_input_peer_probe_production_result_20260718.md) | fresh extension 双次 production probe 均 `exact=80/selected=14`，selected TSV byte-identical；严格 fire 子集仅 `9` 行、`11` BAE/active-byte/chunk 上界（`0.000638904%`），无 slot/batch 证据，按停止条件不进入 strict/CPP/50k，默认保持 off。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`130`（`TNO0001..TNO0130`）。
+- 当前记录类文档总数：`132`（`TNO0001..TNO0132`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

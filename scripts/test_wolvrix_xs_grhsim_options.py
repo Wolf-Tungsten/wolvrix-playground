@@ -70,6 +70,17 @@ ACTIVITY_SCHEDULE_EXPLICIT_ENV = {
     "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_MAX_MOVES": "129",
     "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_MAX_MOVED_OP_PPM": "201",
     "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_PROFILE_MIN_SOURCE_FIRE": "1234",
+    "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_POLICY": "probe",
+    "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_PROFILE_PATH": "/tmp/shared-fire.tsv",
+    "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_NODE_OPS": "10",
+    "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_INPUTS": "19",
+    "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_OUTPUTS": "20",
+    "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_VALUE_WIDTH": "66",
+    "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_PEERS": "9",
+    "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_CANDIDATES": "4102",
+    "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_MOVES": "130",
+    "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_MAX_MOVED_OP_PPM": "202",
+    "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_PROFILE_MIN_SOURCE_FIRE": "2345",
     "WOLVRIX_XS_GRHSIM_FINAL_TOPO_POLICY": "level-op",
 }
 
@@ -112,6 +123,17 @@ ACTIVITY_SCHEDULE_EXPLICIT_OPTIONS = {
     "final_terminal_pushforward_max_moves": 129,
     "final_terminal_pushforward_max_moved_op_ppm": 201,
     "final_terminal_pushforward_profile_min_source_fire": 1234,
+    "final_shared_input_peer_policy": "probe",
+    "final_shared_input_peer_profile_path": "/tmp/shared-fire.tsv",
+    "final_shared_input_peer_max_node_ops": 10,
+    "final_shared_input_peer_max_inputs": 19,
+    "final_shared_input_peer_max_outputs": 20,
+    "final_shared_input_peer_max_value_width": 66,
+    "final_shared_input_peer_max_peers": 9,
+    "final_shared_input_peer_max_candidates": 4102,
+    "final_shared_input_peer_max_moves": 130,
+    "final_shared_input_peer_max_moved_op_ppm": 202,
+    "final_shared_input_peer_profile_min_source_fire": 2345,
     "final_topo_policy": "level-op",
 }
 
@@ -170,7 +192,7 @@ class XsGrhsimOptionTest(unittest.TestCase):
                 READ_ACTIVITY_SCHEDULE_SPARSE_OPTIONS(),
                 ACTIVITY_SCHEDULE_EXPLICIT_OPTIONS,
             )
-        self.assertEqual(len(ACTIVITY_SCHEDULE_SPARSE_ENV_NAMES), 39)
+        self.assertEqual(len(ACTIVITY_SCHEDULE_SPARSE_ENV_NAMES), 50)
 
     def test_activity_schedule_sparse_bool_false_is_forwarded(self) -> None:
         for env_name, option_name in ACTIVITY_SCHEDULE_SPARSE_BOOL_OPTIONS:
@@ -192,7 +214,7 @@ class XsGrhsimOptionTest(unittest.TestCase):
         self.assertEqual(canonical, "activity-schedule")
         self.assertIn("-path", args)
         self.assertIn("-max-op-in-commit-supernode", args)
-        self.assertEqual(len(args), 2 * 39 + 2)
+        self.assertEqual(len(args), 2 * 50 + 2)
 
     def test_final_terminal_pushforward_policy_is_sparse(self) -> None:
         env_name = "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_POLICY"
@@ -210,6 +232,24 @@ class XsGrhsimOptionTest(unittest.TestCase):
                 self.assertEqual(
                     args,
                     ["-path", "SimTop", "-final-terminal-pushforward-policy", value],
+                )
+
+    def test_final_shared_input_peer_policy_is_sparse(self) -> None:
+        env_name = "WOLVRIX_XS_GRHSIM_FINAL_SHARED_INPUT_PEER_POLICY"
+        for value in ("off", "probe"):
+            with self.subTest(value=value):
+                with patch.dict(os.environ, {env_name: value}, clear=True):
+                    options = READ_ACTIVITY_SCHEDULE_SPARSE_OPTIONS()
+                self.assertEqual(options, {"final_shared_input_peer_policy": value})
+                canonical, args = _compile_run_pass(
+                    "activity-schedule",
+                    [],
+                    {"path": "SimTop", **options},
+                )
+                self.assertEqual(canonical, "activity-schedule")
+                self.assertEqual(
+                    args,
+                    ["-path", "SimTop", "-final-shared-input-peer-policy", value],
                 )
 
     def test_activity_schedule_sparse_invalid_integer_is_rejected(self) -> None:
