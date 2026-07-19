@@ -166,12 +166,13 @@
 | `TNO0154` | `2026-07-19` | [Stage 33 fresh same-commit current-default control](./TNO0154_stage33_fresh_same_commit_default_control_20260719.md) | 在父 `4857a5b`/子模块 `f17e90e` 上 fresh 重建 current C++ default A；stats 与 strict `cmp=0`，control archive/emu 绝对 SHA、ELF sections 和后续 walltime protocol 固定。 |
 | `TNO0155` | `2026-07-19` | [Stage 7+ current-baseline rebuild and formal gate interruption](./TNO0155_stage7_plus_current_baseline_rebuild_and_formal_gate_interruption_20260719.md) | fresh 重建四个既有候选；四者均完成 N0 ABBA（strict `-0.357478203%`、fanin `-0.322120752%`、p050 `-0.089137909%`、p200 `+0.170114912%`），BAAB 被外部 workload 的 hard runtime gate 阻断，按 single-NUMA 代表记录，默认保持不变。 |
 | `TNO0156` | `2026-07-20` | [SimpleTES auto-research bench and launch gate](./TNO0156_simpletes_auto_research_bench_and_launch_gate_20260720.md) | 固定 parent `b90d204`/wolvrix `f17e90e`，实现安全 Codex structured candidate、fresh build/default-off/attribution gate 与动态 CCD fixed-ASLR 50k ABBA→BAAB runtime；SimpleTES `98 passed`，真实 MJY `gpt-5.6-sol/ultra` preflight PASS；当前 survey 无 quiet CCD，尚无 accepted walltime。 |
+| `TNO0157` | `2026-07-20` | [SimpleTES isolated-clone startup fix](./TNO0157_simpletes_isolated_clone_startup_fix_20260720.md) | 正式 instance `91f6580e` 定位并修复 env stderr 污染 Git SHA、空 gitlink 继承 parent worktree 两个 deterministic clone bug；SimpleTES `100 passed`，control ready marker 已写并进入 isolated env/build，仍无 50k walltime。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`156`（`TNO0001..TNO0156`）。
+- 当前记录类文档总数：`157`（`TNO0001..TNO0157`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
