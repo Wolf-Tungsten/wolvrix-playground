@@ -157,12 +157,18 @@
 | `TNO0145` | `2026-07-19` | [Stage 32 cohort probe implementation and static gate](./TNO0145_stage32_cohort_probe_implementation_and_static_gate_20260719.md) | 实现 C++ default-off exact-source probe并收紧 SimTop production contract；current-default 找到 `252` cohorts/`902` members，投影 BAE `3,619→1,450`，activity/emitter stats 与基线 byte-identical。 |
 | `TNO0146` | `2026-07-19` | [Stage 32 cohort probe 50k equivalence gate](./TNO0146_stage32_cohort_probe_50k_equivalence_gate_20260719.md) | page-local fixed-ASLR 100/10k/50k 功能全过；50k `252/252` cohorts partial/mismatch/exit-pending 全零，绝对 body fire `9,270,152`、guard tests saved `6,854,019`，进入 default-off strict。 |
 | `TNO0147` | `2026-07-19` | [Stage 32 current-profile replay and log audit](./TNO0147_stage32_current_profile_replay_and_log_audit_20260719.md) | 审计发现 legacy/current 全量 fire 有 `1,553` 行差异但与 selected member 交集为 0；current-profile fresh replay 完整复现 `252/902/2,169`，并记录 raw stdout/stderr 插断、TSV 为权威计数源。 |
+| `TNO0148` | `2026-07-19` | [Stage 33 same-batch activation cohort strict plan](./TNO0148_stage33_same_batch_activation_cohort_strict_plan_20260719.md) | 规划 default-off strict lowering；以完整 252-cohort manifest fingerprint、跨 word accumulator、deferred fanout overlay 和 ordinary/fullpass 边界为硬 gate，最终只由 fresh 双 NUMA 50k `Host time spent` 决定默认。 |
+| `TNO0149` | `2026-07-19` | [Stage 33 NUMA symmetry and quiet-window recheck](./TNO0149_stage33_numa_symmetry_and_quiet_window_recheck_20260719.md) | 两轮 30 秒 whole-node survey 从 N0 PASS/N1 FAIL 反转为 N0 FAIL/N1 PASS；第一轮仅保留绝对汇总，第二轮 raw/SHA 完整，结合镜像 target/sibling 与 binding probe，支持差异来自迁移外部负载窗口，而非拓扑或 `taskset+numactl` 绑反。 |
+| `TNO0150` | `2026-07-19` | [Stage 33 strict implementation, manifest, and focused gate](./TNO0150_stage33_strict_implementation_manifest_and_focused_gate_20260719.md) | 实现 default-off strict overlay；v2 完整 source tuple manifest 固定 FNV `2221bbc3ffd74a71`，两 cohort 跨 word/downstream harness、2/2 focused、Python17/17、XS28/28 通过，production/50k 另行归档。 |
+| `TNO0151` | `2026-07-19` | [Stage 33 strict production static gate](./TNO0151_stage33_strict_production_static_gate_20260719.md) | fresh SimTop strict emit 通过完整 FNV与 `252/902/88,334` contract，实际 ordinary BAE `3,619→1,450`；activity/emitter stats identity，134 个源码/header 共 `-34,609 B`，O3/功能另行归档。 |
+| `TNO0152` | `2026-07-19` | [Stage 33 strict O3, link, and function gate](./TNO0152_stage33_strict_o3_link_and_function_gate_20260719.md) | O3/archive、独立 link 与 page-local fixed-ASLR 100/10k/50k 全过；strict `.text -11,360 B`，50k 功能 wall `74,459 ms`、placement `21,257/0`，正式 A/B 仍待 fresh same-commit control。 |
+| `TNO0153` | `2026-07-19` | [Stage 33 strict full regression gate](./TNO0153_stage33_strict_full_regression_gate_20260719.md) | 完整 build/install 与 CTest `48/50`（`403.44 s`）；full emitter、cohort/deferred、memory-fill、activity/ingest 全过，仅保留既有 comb-lane-pack/repcut 两项失败。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`147`（`TNO0001..TNO0147`）。
+- 当前记录类文档总数：`153`（`TNO0001..TNO0153`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

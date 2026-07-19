@@ -556,7 +556,7 @@ class XsGrhsimOptionTest(unittest.TestCase):
 
     def test_same_batch_activation_cohort_explicit_options_are_forwarded(self) -> None:
         values = {
-            "WOLVRIX_XS_GRHSIM_SAME_BATCH_ACTIVATION_COHORT_POLICY": "probe",
+            "WOLVRIX_XS_GRHSIM_SAME_BATCH_ACTIVATION_COHORT_POLICY": "strict",
             "WOLVRIX_XS_GRHSIM_SAME_BATCH_ACTIVATION_COHORT_PROFILE_PATH": "/tmp/fire.tsv",
         }
         with patch.dict(os.environ, values, clear=True):
@@ -564,7 +564,7 @@ class XsGrhsimOptionTest(unittest.TestCase):
         self.assertEqual(
             options,
             {
-                "same_batch_activation_cohort_policy": "probe",
+                "same_batch_activation_cohort_policy": "strict",
                 "same_batch_activation_cohort_profile_path": "/tmp/fire.tsv",
             },
         )
