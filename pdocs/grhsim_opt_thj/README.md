@@ -163,6 +163,7 @@
 | `TNO0151` | `2026-07-19` | [Stage 33 strict production static gate](./TNO0151_stage33_strict_production_static_gate_20260719.md) | fresh SimTop strict emit 通过完整 FNV与 `252/902/88,334` contract，实际 ordinary BAE `3,619→1,450`；activity/emitter stats identity，134 个源码/header 共 `-34,609 B`，O3/功能另行归档。 |
 | `TNO0152` | `2026-07-19` | [Stage 33 strict O3, link, and function gate](./TNO0152_stage33_strict_o3_link_and_function_gate_20260719.md) | O3/archive、独立 link 与 page-local fixed-ASLR 100/10k/50k 全过；strict `.text -11,360 B`，50k 功能 wall `74,459 ms`、placement `21,257/0`，正式 A/B 仍待 fresh same-commit control。 |
 | `TNO0153` | `2026-07-19` | [Stage 33 strict full regression gate](./TNO0153_stage33_strict_full_regression_gate_20260719.md) | 完整 build/install 与 CTest `48/50`（`403.44 s`）；full emitter、cohort/deferred、memory-fill、activity/ingest 全过，仅保留既有 comb-lane-pack/repcut 两项失败。 |
+| `TNO0154` | `2026-07-19` | [Stage 33 fresh same-commit current-default control](./TNO0154_stage33_fresh_same_commit_default_control_20260719.md) | 在父 `4857a5b`/子模块 `f17e90e` 上 fresh 重建 current C++ default A；stats 与 strict `cmp=0`，control archive/emu 绝对 SHA、ELF sections 和后续 walltime protocol 固定。 |
 
 ## 来源覆盖
 
