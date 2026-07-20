@@ -171,12 +171,13 @@
 | `TNO0159` | `2026-07-20` | [SimpleTES current-default baseline and worker launch](./TNO0159_simpletes_current_default_baseline_and_worker_launch_20260720.md) | dynamic CCD66 上 current-default ABBA 四个有效 wall 为 `74,900/74,933/74,956/74,441 ms`，全组均值 `74,807.5 ms`；ASLR/NUMA/monitor/PMU/功能全过，初始节点 accepted 后真实 `gpt-5.6-sol/ultra` worker 已启动。 |
 | `TNO0160` | `2026-07-20` | [SimpleTES first formal search results and default decision](./TNO0160_simpletes_first_formal_search_results_and_default_decision_20260720.md) | 正式 run 用满 `16` 次 generation，`2` 个候选完成 ABBA+BAAB；最佳 wall 为 `74,237.50→73,998.25 ms`（改善 `239.25 ms/0.322276478%`），低于 `1%` 可信线且独立复测被 fresh-fingerprint 假拒绝阻断，不保留代码、不改默认。 |
 | `TNO0161` | `2026-07-20` | [SimpleTES fingerprint input stabilization and best-seed continuation](./TNO0161_simpletes_fingerprint_input_stabilization_and_best_seed_continuation_20260720.md) | SimpleTES `c7f0cef` 固定并私有复制 `2,103` 个 generation inputs，在三个阶段复核 manifest；`110 passed`，best digest `842fb6de...` 的 fresh `16 proposals/8 valid` continuation 契约已闭合，本记录截止点尚未启动。 |
+| `TNO0162` | `2026-07-20` | [SimpleTES best-seed continuation launch and attribution gate](./TNO0162_simpletes_best_seed_continuation_launch_20260720.md) | fresh instance `4269c986` 已从 best digest `842fb6de...` 启动；control/candidate 均为 `2,103` 个 generation inputs、fingerprint `e9ca0efd...`，disabled `24` 项 focused 与 `100/10k` gate 通过，enabled build 和新 50k 复评进行中，尚无新性能结论。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`161`（`TNO0001..TNO0161`）。
+- 当前记录类文档总数：`162`（`TNO0001..TNO0162`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
