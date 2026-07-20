@@ -172,12 +172,13 @@
 | `TNO0160` | `2026-07-20` | [SimpleTES first formal search results and default decision](./TNO0160_simpletes_first_formal_search_results_and_default_decision_20260720.md) | 正式 run 用满 `16` 次 generation，`2` 个候选完成 ABBA+BAAB；最佳 wall 为 `74,237.50→73,998.25 ms`（改善 `239.25 ms/0.322276478%`），低于 `1%` 可信线且独立复测被 fresh-fingerprint 假拒绝阻断，不保留代码、不改默认。 |
 | `TNO0161` | `2026-07-20` | [SimpleTES fingerprint input stabilization and best-seed continuation](./TNO0161_simpletes_fingerprint_input_stabilization_and_best_seed_continuation_20260720.md) | SimpleTES `c7f0cef` 固定并私有复制 `2,103` 个 generation inputs，在三个阶段复核 manifest；`110 passed`，best digest `842fb6de...` 的 fresh `16 proposals/8 valid` continuation 契约已闭合，本记录截止点尚未启动。 |
 | `TNO0162` | `2026-07-20` | [SimpleTES best-seed continuation launch and attribution gate](./TNO0162_simpletes_best_seed_continuation_launch_20260720.md) | fresh instance `4269c986` 已从 best digest `842fb6de...` 启动；control/candidate 均为 `2,103` 个 generation inputs、fingerprint `e9ca0efd...`，disabled `24` 项 focused 与 `100/10k` gate 通过，enabled build 和新 50k 复评进行中，尚无新性能结论。 |
+| `TNO0163` | `2026-07-20` | [SimpleTES quiet-CCD retry and rebuild audit](./TNO0163_simpletes_quiet_ccd_retry_and_rebuild_audit_20260720.md) | 首次 50k admission 因 24 个 CCD 均未满足 `3s whole-CCD` 严格空闲 gate 而 retryable，`eval_time=4,986.4233756661415 s`、无 walltime 样本；engine 已重新 clone/build 同一 seed，尚无性能或默认结论。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`162`（`TNO0001..TNO0162`）。
+- 当前记录类文档总数：`163`（`TNO0001..TNO0163`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
