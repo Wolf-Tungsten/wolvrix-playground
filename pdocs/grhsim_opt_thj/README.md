@@ -169,12 +169,13 @@
 | `TNO0157` | `2026-07-20` | [SimpleTES isolated-clone startup fix](./TNO0157_simpletes_isolated_clone_startup_fix_20260720.md) | 正式 instance `91f6580e` 定位并修复 env stderr 污染 Git SHA、空 gitlink 继承 parent worktree 两个 deterministic clone bug；SimpleTES `100 passed`，control ready marker 已写并进入 isolated env/build，仍无 50k walltime。 |
 | `TNO0158` | `2026-07-20` | [SimpleTES formal runtime contract hardening](./TNO0158_simpletes_formal_runtime_contract_hardening_20260720.md) | paired runtime 仅接受 `ABBA/BAAB` 并记录绝对 order，清理继承 trace/profile/TSV 环境；SimpleTES `104 passed`，正式 control 已进入 fresh SimTop emit，尚无 accepted 50k walltime。 |
 | `TNO0159` | `2026-07-20` | [SimpleTES current-default baseline and worker launch](./TNO0159_simpletes_current_default_baseline_and_worker_launch_20260720.md) | dynamic CCD66 上 current-default ABBA 四个有效 wall 为 `74,900/74,933/74,956/74,441 ms`，全组均值 `74,807.5 ms`；ASLR/NUMA/monitor/PMU/功能全过，初始节点 accepted 后真实 `gpt-5.6-sol/ultra` worker 已启动。 |
+| `TNO0160` | `2026-07-20` | [SimpleTES first formal search results and default decision](./TNO0160_simpletes_first_formal_search_results_and_default_decision_20260720.md) | 正式 run 用满 `16` 次 generation，`2` 个候选完成 ABBA+BAAB；最佳 wall 为 `74,237.50→73,998.25 ms`（改善 `239.25 ms/0.322276478%`），低于 `1%` 可信线且独立复测被 fresh-fingerprint 假拒绝阻断，不保留代码、不改默认。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`159`（`TNO0001..TNO0159`）。
+- 当前记录类文档总数：`160`（`TNO0001..TNO0160`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
