@@ -176,12 +176,14 @@
 | `TNO0164` | `2026-07-20` | [SimpleTES best-seed initial runtime result](./TNO0164_simpletes_best_seed_initial_runtime_result_20260720.md) | 初始 seed 完成 ABBA/BAAB；control `72,793.25 ms`、candidate `73,378.75 ms`，回退 `585.50 ms/0.804333%`，`Initial score=0.992021`，保持默认关闭；scheduler 已进入新 generation。 |
 | `TNO0165` | `2026-07-21` | [SimpleTES best-seed continuation final results and default decision](./TNO0165_simpletes_best_seed_continuation_final_results_and_default_decision_20260721.md) | instance `4269c986` 在 `14/16` generation attempts 后达到 `8/8` valid；8 个新候选 wall 均正向，最佳 targeted-direct 为 `73,828.00→73,458.50 ms`（改善 `369.50 ms/0.500488%`），低于 `1%` 可信线，不改默认；best program 只作为后续 seed。 |
 | `TNO0166` | `2026-07-21` | [SimpleTES long best-seed continuation launch](./TNO0166_simpletes_long_best_seed_continuation_launch_20260721.md) | fresh instance `25411edd` 从 digest `4ce54fe6...` 启动；预算扩为 `32 proposals/16 valid`、LLM timeout `5,400s`、runtime infra retries `4`，所有 quiet-CCD/fixed-ASLR/双 NUMA 50k gate 不变；初始归因构建进行中，尚无本轮新 walltime。 |
+| `TNO0167` | `2026-07-23` | [SimpleTES long continuation final results, semantic audit, and default hold](./TNO0167_simpletes_long_continuation_final_results_semantic_audit_and_default_hold_20260723.md) | instance `25411edd` 正常达到 `16/16` valid；最佳 gen27 pooled wall 为 `74,327.00→60,685.75 ms`（改善 `13,641.25 ms/18.353021%`），正式 gate 全过；因复合机制仍需 fresh 复现、消融和更广语义回归，暂不合入或改默认。 |
+| `TNO0168` | `2026-07-23` | [SimpleTES best-candidate fresh replication launch](./TNO0168_simpletes_best_candidate_fresh_replication_launch_20260723.md) | 用 gen27 best program fresh 启动 instance `50c610a6`，预算仍为 `32 proposals/16 valid`；initial seed attribution build 正在进行，尚无新 50k walltime 或 score。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`166`（`TNO0001..TNO0166`）。
+- 当前记录类文档总数：`168`（`TNO0001..TNO0168`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
