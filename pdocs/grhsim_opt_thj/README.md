@@ -182,12 +182,13 @@
 | `TNO0170` | `2026-07-24` | [SimpleTES continuation abnormal termination and orphan result](./TNO0170_simpletes_continuation_abnormal_termination_and_orphan_result_20260724.md) | instance `50c610a6` 的 scheduler 在 `6/16` 时无正常 footer 消失；最后 evaluator 脱离 scheduler 完成 digest `1051b1e8...`，正式 wall 为 `74,400.00→60,617.50 ms`（改善 `13,782.50 ms/18.524866%`）但未被 checkpoint ingest，当前没有运行进程，也未自动恢复。 |
 | `TNO0171` | `2026-07-24` | [SimpleTES 18% ablation design and static attribution](./TNO0171_simpletes_18pct_ablation_design_and_static_attribution_20260724.md) | 机械 diff 将 gen20→gen24 的 `17.386666` 个百分点跃升缩小到唯一变量：`44,976` 个 cold singleton guard 的 `unlikely`；历史 instructions 仅 `-0.003936%`、cycles `-17.644466%`，fresh gen20/gen24 单变量 50k 已开始串行复测。 |
 | `TNO0172` | `2026-07-24` | [gen20 quiet-gate retries and proof-backed runtime reuse](./TNO0172_gen20_quiet_gate_retries_and_proof_backed_runtime_reuse_20260724.md) | gen20 两次 full gate 分别在临运行复核和 24-CCD survey 被外部负载阻断，accepted samples 均为 `0`；SimpleTES `fc17b90` 加入完整 artifact proof 与 immutable runtime attempts，第三轮 full 已启动，之后可安全跳过重复构建。 |
+| `TNO0173` | `2026-07-24` | [gen20/gen24 fresh cold-guard hint ablation result](./TNO0173_gen20_gen24_fresh_cold_guard_hint_ablation_result_20260724.md) | Fresh gen20 为 `73,928.00→73,237.50 ms`（`0.934017%`，低于 spread），gen24 为 `74,055.00→60,648.25 ms`（`18.103774%`，可信）；唯一变量 `>=1024` cold guard `unlikely` 贡献 `17.169757 pp`，确认其为约 18% 主来源。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`172`（`TNO0001..TNO0172`）。
+- 当前记录类文档总数：`173`（`TNO0001..TNO0173`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
