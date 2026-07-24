@@ -179,12 +179,13 @@
 | `TNO0167` | `2026-07-23` | [SimpleTES long continuation final results, semantic audit, and default hold](./TNO0167_simpletes_long_continuation_final_results_semantic_audit_and_default_hold_20260723.md) | instance `25411edd` 正常达到 `16/16` valid；最佳 gen27 pooled wall 为 `74,327.00→60,685.75 ms`（改善 `13,641.25 ms/18.353021%`），正式 gate 全过；因复合机制仍需 fresh 复现、消融和更广语义回归，暂不合入或改默认。 |
 | `TNO0168` | `2026-07-23` | [SimpleTES best-candidate fresh replication launch](./TNO0168_simpletes_best_candidate_fresh_replication_launch_20260723.md) | 用 gen27 best program fresh 启动 instance `50c610a6`，预算仍为 `32 proposals/16 valid`；initial seed attribution build 正在进行，尚无新 50k walltime 或 score。 |
 | `TNO0169` | `2026-07-24` | [SimpleTES fresh replication interim checkpoint and new best](./TNO0169_simpletes_fresh_replication_interim_checkpoint_and_new_best_20260724.md) | instance `50c610a6` 仍在运行，checkpoint 已有 `6/16` generated valid；initial fresh 复现 `18.420313%`，当前 gen9 新最佳为 `73,883.00→59,940.00 ms`（改善 `13,943.00 ms/18.871730%`），正式双 order gate 全过，尚不改默认。 |
+| `TNO0170` | `2026-07-24` | [SimpleTES continuation abnormal termination and orphan result](./TNO0170_simpletes_continuation_abnormal_termination_and_orphan_result_20260724.md) | instance `50c610a6` 的 scheduler 在 `6/16` 时无正常 footer 消失；最后 evaluator 脱离 scheduler 完成 digest `1051b1e8...`，正式 wall 为 `74,400.00→60,617.50 ms`（改善 `13,782.50 ms/18.524866%`）但未被 checkpoint ingest，当前没有运行进程，也未自动恢复。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`169`（`TNO0001..TNO0169`）。
+- 当前记录类文档总数：`170`（`TNO0001..TNO0170`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
