@@ -188,12 +188,13 @@
 | `TNO0176` | `2026-07-25` | [gen24 four-arm function, formal walltime, and default decision](./TNO0176_gen24_four_arm_function_formal_walltime_and_default_decision_20260725.md) | A/B/C/D 独立产物与 100/10k 功能全过；正式 A/C pooled wall `74,773.25→61,284.00 ms`（减少 `13,489.25 ms/18.040208%`）确认 exact-event 独立默认开启，C/D 仅 `60,759.50→60,665.25 ms`（`94.25 ms/0.155120%`）故 targeted-direct 保持 off；native no-policy identity 仍 pending。 |
 | `TNO0177` | `2026-07-25` | [SimpleTES GrhSIM bench contract v2 migration and continuation readiness](./TNO0177_simpletes_grhsim_bench_contract_v2_migration_and_continuation_readiness_20260725.md) | bench 新增 `control/default-path/explicit-options` 三模式，绑定完整 control artifact/proof 与 exact resume state；全量 `138/138`、focused `66/66`、validate-only/dry-run 均 PASS，最终 pins 与 direct native-control canary 待提交后完成。 |
 | `TNO0178` | `2026-07-25` | [native no-override default path and same-session identity](./TNO0178_native_no_override_default_path_and_same_session_identity_20260725.md) | independent fresh 审计发现三份 RTL 输入漂移，未误报 identity；最终同 Session/同已调度 design 双 emit 的 `134` files、`1,340,129,434 B`、fingerprint `3bffd9df...` 逐字节相同，证明通用 C++ 默认等价于显式 C 臂且 gap-pack 仍 off。 |
+| `TNO0179` | `2026-07-25` | [SimpleTES v2 pinned native-control canary and continuation readiness](./TNO0179_simpletes_v2_pinned_native_control_canary_and_continuation_ready_20260725.md) | 最终 pins 与 schema-v2 control canary 闭合；accepted ABBA 为 `61,310/61,318/61,010/61,073 ms`，control/candidate 均值 `61,191.50/61,164.00 ms`、仅差 `0.044941%`，生成/产物身份相同且所有 CCD/ASLR/NUMA/perf/功能门禁通过；未启动 research 或调用模型。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`178`（`TNO0001..TNO0178`）。
+- 当前记录类文档总数：`179`（`TNO0001..TNO0179`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
