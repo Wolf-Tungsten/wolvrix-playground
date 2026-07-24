@@ -183,12 +183,17 @@
 | `TNO0171` | `2026-07-24` | [SimpleTES 18% ablation design and static attribution](./TNO0171_simpletes_18pct_ablation_design_and_static_attribution_20260724.md) | 机械 diff 将 gen20→gen24 的 `17.386666` 个百分点跃升缩小到唯一变量：`44,976` 个 cold singleton guard 的 `unlikely`；历史 instructions 仅 `-0.003936%`、cycles `-17.644466%`，fresh gen20/gen24 单变量 50k 已开始串行复测。 |
 | `TNO0172` | `2026-07-24` | [gen20 quiet-gate retries and proof-backed runtime reuse](./TNO0172_gen20_quiet_gate_retries_and_proof_backed_runtime_reuse_20260724.md) | gen20 两次 full gate 分别在临运行复核和 24-CCD survey 被外部负载阻断，accepted samples 均为 `0`；SimpleTES `fc17b90` 加入完整 artifact proof 与 immutable runtime attempts，第三轮 full 已启动，之后可安全跳过重复构建。 |
 | `TNO0173` | `2026-07-24` | [gen20/gen24 fresh cold-guard hint ablation result](./TNO0173_gen20_gen24_fresh_cold_guard_hint_ablation_result_20260724.md) | Fresh gen20 为 `73,928.00→73,237.50 ms`（`0.934017%`，低于 spread），gen24 为 `74,055.00→60,648.25 ms`（`18.103774%`，可信）；唯一变量 `>=1024` cold guard `unlikely` 贡献 `17.169757 pp`，确认其为约 18% 主来源。 |
+| `TNO0174` | `2026-07-25` | [gen24 targeted-direct dependency audit and landing plan](./TNO0174_gen24_targeted_direct_dependency_audit_and_landing_plan_20260725.md) | 确认 gen24 只借用 `targeted-direct` gate、无 gap-pack correctness/data dependency；原 gap packing 独立 pooled wall `74,691.75→74,649.50 ms`（`0.056566%`，双 order 反向）保持 off，规划独立 exact-event policy 与 A/B/C/D 四臂落地门禁。 |
+| `TNO0175` | `2026-07-25` | [gen24 independent policy implementation and static gate](./TNO0175_gen24_independent_policy_implementation_and_static_gate_20260725.md) | 新增独立 `commit_exact_event_policy`，C++ 为唯一默认源，Python/XS 稀疏继承；focused、pybind `22/22`、XS `32/32` 与主 emitter 全过，fresh full build PASS、CTest `49/51`，仅保留两个历史 transform 失败。 |
+| `TNO0176` | `2026-07-25` | [gen24 four-arm function, formal walltime, and default decision](./TNO0176_gen24_four_arm_function_formal_walltime_and_default_decision_20260725.md) | A/B/C/D 独立产物与 100/10k 功能全过；正式 A/C pooled wall `74,773.25→61,284.00 ms`（减少 `13,489.25 ms/18.040208%`）确认 exact-event 独立默认开启，C/D 仅 `60,759.50→60,665.25 ms`（`94.25 ms/0.155120%`）故 targeted-direct 保持 off；native no-policy identity 仍 pending。 |
+| `TNO0177` | `2026-07-25` | [SimpleTES GrhSIM bench contract v2 migration and continuation readiness](./TNO0177_simpletes_grhsim_bench_contract_v2_migration_and_continuation_readiness_20260725.md) | bench 新增 `control/default-path/explicit-options` 三模式，绑定完整 control artifact/proof 与 exact resume state；全量 `138/138`、focused `66/66`、validate-only/dry-run 均 PASS，最终 pins 与 direct native-control canary 待提交后完成。 |
+| `TNO0178` | `2026-07-25` | [native no-override default path and same-session identity](./TNO0178_native_no_override_default_path_and_same_session_identity_20260725.md) | independent fresh 审计发现三份 RTL 输入漂移，未误报 identity；最终同 Session/同已调度 design 双 emit 的 `134` files、`1,340,129,434 B`、fingerprint `3bffd9df...` 逐字节相同，证明通用 C++ 默认等价于显式 C 臂且 gap-pack 仍 off。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`173`（`TNO0001..TNO0173`）。
+- 当前记录类文档总数：`178`（`TNO0001..TNO0178`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

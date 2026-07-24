@@ -20,6 +20,8 @@ ACTIVITY_SCHEDULE_SPARSE_STRING_OPTIONS = MODULE["ACTIVITY_SCHEDULE_SPARSE_STRIN
 READ_FINAL_SIBLING_FUSION_OPTIONS = MODULE["read_final_sibling_fusion_options"]
 READ_ACTIVE_MASK_GAP_PACK_OPTIONS = MODULE["read_active_mask_gap_pack_options"]
 DESCRIBE_ACTIVE_MASK_GAP_PACK_POLICY = MODULE["describe_active_mask_gap_pack_policy"]
+READ_COMMIT_EXACT_EVENT_OPTIONS = MODULE["read_commit_exact_event_options"]
+DESCRIBE_COMMIT_EXACT_EVENT_POLICY = MODULE["describe_commit_exact_event_policy"]
 READ_DEFERRED_ACTIVATION_FORWARD_OPTIONS = MODULE["read_deferred_activation_forward_options"]
 READ_SAME_BATCH_ACTIVATION_COHORT_OPTIONS = MODULE[
     "read_same_batch_activation_cohort_options"
@@ -427,6 +429,74 @@ class XsGrhsimOptionTest(unittest.TestCase):
             options = READ_ACTIVE_MASK_GAP_PACK_OPTIONS()
             self.assertEqual(options, {})
             self.assertEqual(DESCRIBE_ACTIVE_MASK_GAP_PACK_POLICY(options), ("table", "cpp-low-env"))
+
+    def test_commit_exact_event_default_is_sparse(self) -> None:
+        high = "WOLVRIX_XS_GRHSIM_COMMIT_EXACT_EVENT_POLICY"
+        low = "WOLVRIX_GRHSIM_COMMIT_EXACT_EVENT_POLICY"
+        base = {key: value for key, value in os.environ.items() if key not in {high, low}}
+
+        with patch.dict(os.environ, base, clear=True):
+            options = READ_COMMIT_EXACT_EVENT_OPTIONS()
+            self.assertEqual(options, {})
+            self.assertEqual(
+                DESCRIBE_COMMIT_EXACT_EVENT_POLICY(options),
+                ("cpp-default", "cpp-default"),
+            )
+
+        with patch.dict(os.environ, {**base, low: "targeted-cold-layout"}, clear=True):
+            before = dict(os.environ)
+            options = READ_COMMIT_EXACT_EVENT_OPTIONS()
+            self.assertEqual(options, {})
+            self.assertEqual(
+                DESCRIBE_COMMIT_EXACT_EVENT_POLICY(options),
+                ("targeted-cold-layout", "cpp-low-env"),
+            )
+            self.assertEqual(os.environ, before)
+
+        with patch.dict(
+            os.environ,
+            {**base, high: "off", low: "targeted-cold-layout"},
+            clear=True,
+        ):
+            before = dict(os.environ)
+            options = READ_COMMIT_EXACT_EVENT_OPTIONS()
+            self.assertEqual(options, {"commit_exact_event_policy": "off"})
+            self.assertEqual(
+                DESCRIBE_COMMIT_EXACT_EVENT_POLICY(options),
+                ("off", "xs-override"),
+            )
+            self.assertEqual(os.environ, before)
+
+    def test_commit_exact_event_explicit_value_is_forwarded_verbatim(self) -> None:
+        env_name = "WOLVRIX_XS_GRHSIM_COMMIT_EXACT_EVENT_POLICY"
+        for value in ("off", "targeted-cold-layout"):
+            with self.subTest(value=value):
+                with patch.dict(os.environ, {env_name: value}, clear=True):
+                    options = READ_COMMIT_EXACT_EVENT_OPTIONS()
+                    self.assertEqual(options, {"commit_exact_event_policy": value})
+                    _compile_emit_grhsim_cpp_kwargs(options)
+
+    def test_commit_exact_event_invalid_value_is_not_normalized(self) -> None:
+        env_name = "WOLVRIX_XS_GRHSIM_COMMIT_EXACT_EVENT_POLICY"
+        for value in ("targeted", "cold-layout", " targeted-cold-layout ", ""):
+            with self.subTest(value=value):
+                with patch.dict(os.environ, {env_name: value}, clear=True):
+                    options = READ_COMMIT_EXACT_EVENT_OPTIONS()
+                    self.assertEqual(options, {"commit_exact_event_policy": value})
+                    with self.assertRaisesRegex(ValueError, "commit_exact_event_policy"):
+                        _compile_emit_grhsim_cpp_kwargs(options)
+
+    def test_commit_exact_event_low_env_is_observed_without_xs_validation(self) -> None:
+        high = "WOLVRIX_XS_GRHSIM_COMMIT_EXACT_EVENT_POLICY"
+        low = "WOLVRIX_GRHSIM_COMMIT_EXACT_EVENT_POLICY"
+        base = {key: value for key, value in os.environ.items() if key not in {high, low}}
+        with patch.dict(os.environ, {**base, low: "cold-layout"}, clear=True):
+            options = READ_COMMIT_EXACT_EVENT_OPTIONS()
+            self.assertEqual(options, {})
+            self.assertEqual(
+                DESCRIBE_COMMIT_EXACT_EVENT_POLICY(options),
+                ("cold-layout", "cpp-low-env"),
+            )
 
     def test_deferred_activation_forward_defaults_are_sparse(self) -> None:
         names = {

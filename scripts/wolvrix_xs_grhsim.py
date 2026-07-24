@@ -278,6 +278,23 @@ def describe_active_mask_gap_pack_policy(options: dict[str, str]) -> tuple[str, 
     return "cpp-default", "cpp-default"
 
 
+def read_commit_exact_event_options() -> dict[str, str]:
+    env_name = "WOLVRIX_XS_GRHSIM_COMMIT_EXACT_EVENT_POLICY"
+    if env_name not in os.environ:
+        return {}
+    return {"commit_exact_event_policy": os.environ[env_name]}
+
+
+def describe_commit_exact_event_policy(options: dict[str, str]) -> tuple[str, str]:
+    option_name = "commit_exact_event_policy"
+    if option_name in options:
+        return options[option_name], "xs-override"
+    low_env_name = "WOLVRIX_GRHSIM_COMMIT_EXACT_EVENT_POLICY"
+    if low_env_name in os.environ:
+        return os.environ[low_env_name], "cpp-low-env"
+    return "cpp-default", "cpp-default"
+
+
 def read_deferred_activation_forward_options() -> dict[str, str]:
     options: dict[str, str] = {}
     for env_name, option_name in (
@@ -691,6 +708,10 @@ def main() -> int:
     active_mask_gap_pack_effective, active_mask_gap_pack_source = (
         describe_active_mask_gap_pack_policy(active_mask_gap_pack_options)
     )
+    commit_exact_event_options = read_commit_exact_event_options()
+    commit_exact_event_effective, commit_exact_event_source = (
+        describe_commit_exact_event_policy(commit_exact_event_options)
+    )
     deferred_activation_forward_options = read_deferred_activation_forward_options()
     same_batch_activation_cohort_options = read_same_batch_activation_cohort_options()
     sparse_options = read_activity_schedule_sparse_options()
@@ -765,6 +786,8 @@ def main() -> int:
         f"pure_event_word_pack_max_changed_word_ppm={pure_event_word_pack_max_changed_word_ppm} "
         f"active_mask_gap_pack_policy_effective={active_mask_gap_pack_effective} "
         f"active_mask_gap_pack_policy_source={active_mask_gap_pack_source} "
+        f"commit_exact_event_policy_effective={commit_exact_event_effective} "
+        f"commit_exact_event_policy_source={commit_exact_event_source} "
         f"deferred_activation_forward_policy="
         f"{format_native_default_option(deferred_activation_forward_options, 'deferred_activation_forward_policy')} "
         f"deferred_activation_forward_profile_path="
@@ -1050,6 +1073,7 @@ def main() -> int:
             pure_event_word_pack_max_moved_supernode_ppm=pure_event_word_pack_max_moved_supernode_ppm,
             pure_event_word_pack_max_changed_word_ppm=pure_event_word_pack_max_changed_word_ppm,
             **active_mask_gap_pack_options,
+            **commit_exact_event_options,
             **deferred_activation_forward_options,
             **same_batch_activation_cohort_options,
         )
