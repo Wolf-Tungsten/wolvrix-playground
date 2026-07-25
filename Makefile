@@ -93,6 +93,8 @@ XS_ROOT := $(CURDIR)/testcase/xiangshan
 XS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_emit.py
 XS_WOLVRIX_HIER_JSON_SCRIPT := $(CURDIR)/grh-ir-visualize/tools/export_xiangshan_hier_json.py
 XS_WOLVRIX_GRHSIM_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_grhsim.py
+XS_WOLVRIX_GRHSIM_AM_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_grhsim_am.py
+XS_GRHSIM_AM_LOWER_JSON ?= $(WOLVRIX_BUILD_DIR)/bin/grhsim-am-lower-json
 XS_WOLVRIX_REPCUT_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_repcut.py
 REF_GSIM_ROOT ?= $(CURDIR)/reference/gsim
 REF_GSIM_BIN ?= $(REF_GSIM_ROOT)/build/gsim/gsim
@@ -135,6 +137,7 @@ XS_REF_BUILD ?= $(XS_WORK_BASE)/ref
 XS_GSIM_BUILD ?= $(XS_WORK_BASE)/gsim
 XS_WOLF_BUILD ?= $(XS_WORK_BASE)/wolf
 XS_GRHSIM_BUILD ?= $(XS_WORK_BASE)/grhsim
+XS_GRHSIM_AM_BUILD ?= $(XS_WORK_BASE)/grhsim-am
 XS_REPCUT_BUILD ?= $(XS_WORK_BASE)/repcut
 # Keep the analysis-only v1 and executable v2 GSim exchanges isolated.
 XS_GSIM_PRECOARSEN_ROOT ?= $(REPO_ROOT)/ptmp/gsim_precoarsen_exchange
@@ -178,6 +181,14 @@ XS_WOLF_GRHSIM_POST_STATS_JSON ?= $(XS_GRHSIM_BUILD)/wolvrix_xs_post_stats.json
 XS_WOLF_GRHSIM_PRE_REG_TO_MEM_JSON ?= $(XS_GRHSIM_BUILD)/wolvrix_xs_pre_reg_to_mem.json
 XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON ?= 0
 XS_WOLF_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON ?= $(if $(filter 1,$(XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON)),0,$(if $(wildcard $(XS_WOLF_GRHSIM_PRE_REG_TO_MEM_JSON)),1,0))
+XS_WOLF_GRHSIM_AM_NORMALIZE_DIR ?= $(XS_GRHSIM_AM_BUILD)/normalize
+XS_WOLF_GRHSIM_AM_EMIT_DIR ?= $(XS_GRHSIM_AM_BUILD)/grhsim_emit
+XS_WOLF_GRHSIM_AM_POST_STATS_JSON ?= $(XS_GRHSIM_AM_BUILD)/wolvrix_xs_post_stats.json
+XS_WOLF_GRHSIM_AM_PRE_REG_TO_MEM_JSON ?= $(XS_GRHSIM_AM_BUILD)/wolvrix_xs_pre_reg_to_mem.json
+XS_WOLF_GRHSIM_AM_RESUME_FROM_STATS_JSON ?= 0
+XS_WOLF_GRHSIM_AM_RESUME_FROM_PRE_REG_TO_MEM_JSON ?= $(if $(filter 1,$(XS_WOLF_GRHSIM_AM_RESUME_FROM_STATS_JSON)),0,$(if $(wildcard $(XS_WOLF_GRHSIM_AM_PRE_REG_TO_MEM_JSON)),1,0))
+XS_WOLF_GRHSIM_AM_BLOCKS_PER_SOURCE ?= 2048
+XS_WOLF_GRHSIM_AM_MAX_SOURCE_BYTES ?= 4194304
 XS_SIM_DEFINES ?= DIFFTEST
 XS_SIM_DEFINES += $(XS_ZERO_INIT_DEFINES)
 XS_ROOT_ABS := $(abspath $(XS_ROOT))
@@ -187,6 +198,7 @@ XS_REF_BUILD_ABS := $(abspath $(XS_REF_BUILD))
 XS_GSIM_BUILD_ABS := $(abspath $(XS_GSIM_BUILD))
 XS_WOLF_BUILD_ABS := $(abspath $(XS_WOLF_BUILD))
 XS_GRHSIM_BUILD_ABS := $(abspath $(XS_GRHSIM_BUILD))
+XS_GRHSIM_AM_BUILD_ABS := $(abspath $(XS_GRHSIM_AM_BUILD))
 XS_GSIM_PRECOARSEN_DIR_ABS := $(abspath $(XS_GSIM_PRECOARSEN_DIR))
 XS_GSIM_PRECOARSEN_JSON_ABS := $(abspath $(XS_GSIM_PRECOARSEN_JSON))
 XS_GSIM_GRHSIM_ALIGNMENT_DIR_ABS := $(abspath $(XS_GSIM_GRHSIM_ALIGNMENT_DIR))
@@ -208,6 +220,10 @@ XS_WOLF_HIER_JSON_ABS := $(abspath $(XS_WOLF_HIER_JSON))
 XS_WOLF_GRHSIM_EMIT_DIR_ABS := $(abspath $(XS_WOLF_GRHSIM_EMIT_DIR))
 XS_WOLF_GRHSIM_POST_STATS_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_POST_STATS_JSON))
 XS_WOLF_GRHSIM_PRE_REG_TO_MEM_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_PRE_REG_TO_MEM_JSON))
+XS_WOLF_GRHSIM_AM_NORMALIZE_DIR_ABS := $(abspath $(XS_WOLF_GRHSIM_AM_NORMALIZE_DIR))
+XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS := $(abspath $(XS_WOLF_GRHSIM_AM_EMIT_DIR))
+XS_WOLF_GRHSIM_AM_POST_STATS_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_AM_POST_STATS_JSON))
+XS_WOLF_GRHSIM_AM_PRE_REG_TO_MEM_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_AM_PRE_REG_TO_MEM_JSON))
 XS_SIM_TOP_V := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).$(XS_RTL_SUFFIX)
 XS_SIM_TOP_FIR := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).fir
 XS_WOLF_JSON ?= $(XS_WOLF_EMIT_DIR_ABS)/xs_wolf.json
@@ -271,8 +287,8 @@ HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS
 	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_gsim_precoarsen_export xs_gsim_grhsim_alignment \
 	xs_gsim_executable_grh_gsim \
 	xs_gsim_executable_grh_export xs_gsim_executable_grh_import xs_gsim_executable_grh_emu run_xs_gsim_executable_grh_emu \
-	xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
-	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
+	xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_grhsim_am_tool xs_wolf_grhsim_am_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu xs_wolf_grhsim_am_emu run_xs_json_test \
+	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean xs_wolf_grhsim_am_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_wolf_grhsim_am_emu run_xs_diff \
 	xs_no0076_stats clean
 
 all: build
@@ -321,6 +337,19 @@ $(WOLVRIX_APP): build
 py_install:
 	@echo "[PY] Installing wolvrix into the current Python environment via scikit-build-core"
 	@PIP_DISABLE_PIP_VERSION_CHECK=1 $(PIP) install --no-build-isolation $(PIP_CONFIG_SETTINGS) -e $(WOLVRIX_DIR)
+
+xs_grhsim_am_tool: py_install
+	@if [ ! -f "$(WOLVRIX_BUILD_DIR)/CMakeCache.txt" ]; then \
+		env -u MAKE_TERMOUT $(CMAKE) -S "$(WOLVRIX_DIR)" -B "$(WOLVRIX_BUILD_DIR)" \
+			-DCMAKE_BUILD_TYPE=Release \
+			-DCMAKE_C_COMPILER="$(CC)" \
+			-DCMAKE_CXX_COMPILER="$(CXX)"; \
+	fi
+	@$(CMAKE) --build "$(WOLVRIX_BUILD_DIR)" --target grhsim-am-lower-json
+	@test -x "$(XS_GRHSIM_AM_LOWER_JSON)" || { \
+		echo "[FAIL] GRHSIM-AM lower-json binary not found: $(XS_GRHSIM_AM_LOWER_JSON)"; \
+		exit 1; \
+	}
 
 $(HDLBITS_EMITTED_DUT) $(HDLBITS_EMITTED_JSON): $(HDLBITS_DUT_SRC) $(HDLBITS_WOLVRIX_SCRIPT) check_id
 	@mkdir -p $(HDLBITS_OUT_DIR)
@@ -853,6 +882,67 @@ xs_wolf_grhsim_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 	echo "[EXIT] xs_wolf_grhsim_emit $$status" | tee -a "$(XS_BUILD_LOG_FILE)"; \
 	exit $$status
 
+xs_wolf_grhsim_am_emit: $(XS_WOLF_FILELIST_ABS) xs_grhsim_am_tool
+	@if [ "$(XS_GRHSIM_AM_BUILD_ABS)" = "$(XS_GRHSIM_BUILD_ABS)" ] || \
+		[ "$(XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS)" = "$(XS_WOLF_GRHSIM_EMIT_DIR_ABS)" ]; then \
+		echo "[FAIL] legacy GrhSIM and GRHSIM-AM must use different build and emit directories"; \
+		exit 1; \
+	fi
+	@if [ "$(XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS)" = "/" ] || \
+		[ "$(XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS)" = "$(REPO_ROOT)" ]; then \
+		echo "[FAIL] unsafe GRHSIM-AM emit directory: $(XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS)"; \
+		exit 1; \
+	fi
+	@if [ "$(WOLVRIX_GRHSIM_WAVEFORM)" != "0" ] || [ "$(WOLVRIX_GRHSIM_PERF)" != "0" ]; then \
+		echo "[FAIL] GRHSIM-AM emit does not yet support waveform or runtime-profile generation"; \
+		echo "[FAIL] Use WOLVRIX_GRHSIM_WAVEFORM=0 WOLVRIX_GRHSIM_PERF=0"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
+		$(MAKE) --no-print-directory -B xs_rtl; \
+	fi
+	@rm -rf "$(XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS)"
+	@mkdir -p "$(XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS)" \
+		"$(XS_WOLF_GRHSIM_AM_NORMALIZE_DIR_ABS)" \
+		"$(dir $(XS_WOLF_GRHSIM_AM_POST_STATS_JSON_ABS))" \
+		"$(dir $(XS_WOLF_GRHSIM_AM_PRE_REG_TO_MEM_JSON_ABS))" \
+		"$(XS_LOG_DIR_ABS)"
+	@$(eval RUN_ID := $(RUN_ID))
+	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_grhsim_am_build_$(RUN_ID).log)
+	@$(eval XS_READ_ARGS_FILE := $(XS_WOLF_GRHSIM_AM_NORMALIZE_DIR_ABS)/wolvrix_read_args.txt)
+	@echo "[LOG] Capturing wolf grhsim-am emit output to: $(XS_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_READ_ARGS_FILE)"
+	@printf "%s\n" $(XS_WOLF_INCLUDE_FLAGS) $(XS_WOLF_GRHSIM_DEFINE_FLAGS) >> "$(XS_READ_ARGS_FILE)"
+	@set -o pipefail; { \
+		echo "[RUN] Normalizing XiangShan and emitting an independent GRHSIM-AM model"; \
+		echo "[CMD] $(PYTHON) $(XS_WOLVRIX_GRHSIM_AM_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) --emit-dir $(XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS) --post-stats-json $(XS_WOLF_GRHSIM_AM_POST_STATS_JSON_ABS)"; \
+		PYTHONDONTWRITEBYTECODE=1 \
+		WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON="$(XS_WOLF_GRHSIM_AM_RESUME_FROM_PRE_REG_TO_MEM_JSON)" \
+		$(PYTHON) "$(XS_WOLVRIX_GRHSIM_AM_SCRIPT)" \
+			"$(XS_WOLF_FILELIST_ABS)" \
+			"$(XS_SIM_TOP)" \
+			--emit-dir "$(XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS)" \
+			--normalize-dir "$(XS_WOLF_GRHSIM_AM_NORMALIZE_DIR_ABS)" \
+			--post-stats-json "$(XS_WOLF_GRHSIM_AM_POST_STATS_JSON_ABS)" \
+			--pre-reg-to-mem-json "$(XS_WOLF_GRHSIM_AM_PRE_REG_TO_MEM_JSON_ABS)" \
+			--read-args-file "$(XS_READ_ARGS_FILE)" \
+			--legacy-script "$(XS_WOLVRIX_GRHSIM_SCRIPT)" \
+			--lower-json-bin "$(XS_GRHSIM_AM_LOWER_JSON)" \
+			--log-level "$(WOLF_LOG)" \
+			--blocks-per-source "$(XS_WOLF_GRHSIM_AM_BLOCKS_PER_SOURCE)" \
+			--max-source-bytes "$(XS_WOLF_GRHSIM_AM_MAX_SOURCE_BYTES)" \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_AM_RESUME_FROM_STATS_JSON)),--reuse-post-stats,); \
+	} 2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"; \
+	status=$$?; \
+	echo "[EXIT] xs_wolf_grhsim_am_emit $$status" | tee -a "$(XS_BUILD_LOG_FILE)"; \
+	exit $$status
+	@if [ ! -s "$(XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS)/Makefile" ] || \
+		[ ! -s "$(XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS)/grhsim_$(XS_SIM_TOP).hpp" ]; then \
+		echo "[FAIL] GRHSIM-AM C++ emit is incomplete: $(XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS)"; \
+		exit 1; \
+	fi
+
 run_xs_repcut: py_install
 	@if [ ! -f "$(XS_WOLF_JSON)" ]; then \
 		echo "[FAIL] xs repcut: missing json $(XS_WOLF_JSON)"; \
@@ -1144,7 +1234,7 @@ xs_wolf_grhsim_emu: xs_wolf_grhsim_emit
 	@echo "[LOG] Capturing build output to: $(XS_BUILD_LOG_FILE)"
 	@printf '' >> "$(XS_BUILD_LOG_FILE)"
 	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_GRHSIM_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) NUM_CORES=$(XS_NUM_CORES) WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) GRHSIM=1 GRHSIM_MODEL_DIR=$(XS_WOLF_GRHSIM_EMIT_DIR_ABS) WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM)" | tee -a "$(XS_BUILD_LOG_FILE)"
-	NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
+	@set -o pipefail; NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
 		BUILD_DIR=$(XS_GRHSIM_BUILD_ABS) \
 		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
 		NUM_CORES=$(XS_NUM_CORES) \
@@ -1154,6 +1244,34 @@ xs_wolf_grhsim_emu: xs_wolf_grhsim_emit
 		GRHSIM_MODEL_DIR=$(XS_WOLF_GRHSIM_EMIT_DIR_ABS) \
 		WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM) \
 		2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
+
+xs_wolf_grhsim_am_emu: xs_wolf_grhsim_am_emit
+	@echo "[RUN] Building XiangShan wolf grhsim-am emu..."
+	@mkdir -p "$(XS_LOG_DIR_ABS)"
+	@$(eval RUN_ID := $(if $(RUN_ID),$(RUN_ID),$(shell date +%Y%m%d_%H%M%S)))
+	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_grhsim_am_build_$(RUN_ID).log)
+	@echo "[LOG] Capturing build output to: $(XS_BUILD_LOG_FILE)"
+	@printf '' >> "$(XS_BUILD_LOG_FILE)"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_GRHSIM_AM_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) NUM_CORES=$(XS_NUM_CORES) GRHSIM=1 GRHSIM_MODEL_DIR=$(XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS) WOLVRIX_GRHSIM_WAVEFORM=0" | tee -a "$(XS_BUILD_LOG_FILE)"
+	@set -o pipefail; NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
+		BUILD_DIR=$(XS_GRHSIM_AM_BUILD_ABS) \
+		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		NUM_CORES=$(XS_NUM_CORES) \
+		VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) \
+		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
+		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
+		GRHSIM=1 \
+		GRHSIM_MODEL_DIR=$(XS_WOLF_GRHSIM_AM_EMIT_DIR_ABS) \
+		WOLVRIX_GRHSIM_WAVEFORM=0 \
+		2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
+
+xs_wolf_grhsim_am_clean:
+	@if [ "$(XS_GRHSIM_AM_BUILD_ABS)" = "/" ] || \
+		[ "$(XS_GRHSIM_AM_BUILD_ABS)" = "$(REPO_ROOT)" ]; then \
+		echo "[FAIL] unsafe GRHSIM-AM build directory: $(XS_GRHSIM_AM_BUILD_ABS)"; \
+		exit 1; \
+	fi
+	rm -rf "$(XS_GRHSIM_AM_BUILD_ABS)"
 
 xs_diff_clean:
 	rm -rf "$(XS_REF_BUILD_ABS)/verilator-compile" \
@@ -1287,7 +1405,8 @@ run_xs_wolf_grhsim_emu:
 		echo "[FAIL] xs wolf grhsim: runtime waveform requested, but model was emitted without waveform support; rebuild with WOLVRIX_GRHSIM_WAVEFORM=1"; \
 		exit 1; \
 	fi
-	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
+	@set -o pipefail; \
+	RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
 	LOG_DIR="$(XS_LOG_DIR_ABS)"; \
 	GRHSIM_LOG="$$LOG_DIR/xs_wolf_grhsim_$${RUN_ID}.log"; \
 	GRHSIM_WAVEFORM="$(if $(XS_WAVEFORM_PATH_ABS),$(XS_WAVEFORM_PATH_ABS),$(XS_WAVEFORM_DIR_ABS)/xs_wolf_grhsim_$${RUN_ID}.fst)"; \
@@ -1310,6 +1429,35 @@ run_xs_wolf_grhsim_emu:
 			$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) \
 			$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$GRHSIM_WAVEFORM,) \
 		2>&1 | tee "$$GRHSIM_LOG"
+
+run_xs_wolf_grhsim_am_emu:
+	@if [ "$(XS_WAVEFORM)" != "0" ] || [ -n "$(XS_WAVEFORM_PATH)" ]; then \
+		echo "[FAIL] xs wolf grhsim-am: waveform is not supported by the current AM emitter"; \
+		exit 1; \
+	fi
+	@if [ ! -x "$(XS_GRHSIM_AM_BUILD_ABS)/emu" ]; then \
+		echo "[FAIL] xs wolf grhsim-am emu not found: $(XS_GRHSIM_AM_BUILD_ABS)/emu"; \
+		echo "[FAIL] Build it with xs_wolf_grhsim_am_emu first."; \
+		exit 1; \
+	fi
+	@set -o pipefail; \
+	RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
+	LOG_DIR="$(XS_LOG_DIR_ABS)"; \
+	GRHSIM_AM_LOG="$$LOG_DIR/xs_wolf_grhsim_am_$${RUN_ID}.log"; \
+	mkdir -p "$$LOG_DIR"; \
+	printf '' > "$$GRHSIM_AM_LOG"; \
+	echo "[RUN] xs wolf grhsim-am emu"; \
+	echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_COMMIT_TRACE=$(XS_COMMIT_TRACE) XS_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) XS_LOG_BEGIN=$(XS_LOG_BEGIN) XS_LOG_END=$(XS_LOG_END)"; \
+	echo "[LOG] wolf grhsim-am: $$GRHSIM_AM_LOG"; \
+	echo "[CMD] cd $(XS_GRHSIM_AM_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,)"; \
+	cd "$(XS_GRHSIM_AM_BUILD_ABS)" && EMU_PROGRESS_EVERY_CYCLES="$(XS_PROGRESS_EVERY_CYCLES)" $(XS_EMU_PREFIX) ./emu \
+		-i "$(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin" \
+		--diff "$(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so" \
+		-b "$(XS_LOG_BEGIN)" -e "$(XS_LOG_END)" \
+		$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) \
+		$(XS_RAM_TRACE_ARGS) \
+		$(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) \
+		2>&1 | tee "$$GRHSIM_AM_LOG"
 
 run_xs_json_test:
 	@RUN_ID="$$(date +%Y%m%d_%H%M%S)"; \
