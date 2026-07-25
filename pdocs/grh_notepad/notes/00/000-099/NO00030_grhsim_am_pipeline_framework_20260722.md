@@ -291,15 +291,25 @@ The following implementation replaces those software-level blockers while keepin
 boundary `LinearProgramArtifact&& -> ExecutableModel -> C++ emitter`; it does not import the
 legacy Graph/session scheduling tables.
 
-1. The production AM scheduler now classifies indivisible DAG atoms as `Compute`, `Commit`,
-   or `Isolated`. Pure instructions and state reads use the compute cap
-   `maxInstructionsPerBlock` (default 128); state-targeted reg/latch/memory writes use the
-   independent `maxCommitInstructionsPerBlock` cap (default 4096); both are bounded by
-   `maxStateWritesPerBlock` (default 4096). Same-class Kahn-ready atoms can coarsen only when
-   all limits hold. Host calls remain isolated until a typed merge rule is proved; raw
-   `changed` is compute-class but keeps its direct-event lifetime and activation rules.
-   Oversized indivisible atoms remain whole and are reported. Final state/memory watchers are
-   still materialized only at their final write frontier.
+1. As implemented on 2026-07-23, the production AM scheduler classifies SCC-condensed DAG
+   atoms as `Compute` or `Commit`; `BlockClass::Isolated` no longer exists. Pure instructions,
+   state reads, DPI/system calls, and `SystemFunction` use the compute cap
+   `maxInstructionsPerBlock` (default 128). State-targeted reg/latch/memory writes use the
+   independent `maxCommitInstructionsPerBlock` cap (default 4096); both classes are bounded by
+   `maxStateWritesPerBlock` (default 4096). Same-class Kahn-ready atoms can coarsen when the
+   limits and commit-event bucket rules hold. Raw `changed` remains compute-class and retains
+   its direct-event lifetime and activation rules. Oversized indivisible atoms remain whole
+   and are reported. Final state/memory watchers are materialized only at their final write
+   frontier.
+
+   An indivisible DAG atom is exactly one SCC of the instruction dependency graph; a singleton
+   SCC is one atom. The scheduler has no non-SCC contraction rule. A DPI/system/effect sequence
+   and multiple writes to one state target contribute directed ordering edges only. They may
+   span atoms and Blocks when those edges remain ordered. Multiple writes still use one watcher
+   at the final scheduled writer frontier; when earlier and final writers occupy different
+   Blocks, a local `reduce.or` normalizes the writer guard to an unsigned one-bit event before
+   runtime `act.f` propagation reaches that frontier without contracting the writers.
+
 2. The AM C++ emitter now produces bounded staged multi-TU output:
 
    ```text
@@ -321,6 +331,20 @@ legacy Graph/session scheduling tables.
    and a vector of actually fired results, so only fired events are cleared at eval/epoch
    boundaries rather than emitting one store per detector.
 
+Commit writes have a stricter per-instruction event lifetime than Pending host calls.
+`RegisterWrite`, `MemoryWrite`, and `MemoryFill` use **consume-on-event**, not
+complete-on-write: once a commit instruction observes any triggering event during an
+`eval()`, that event instance is consumed for that instruction. Other consumers of the same
+event may still observe it independently. A false guard, an out-of-range `MemoryWrite`
+address, or a zero write mask suppresses the state/memory mutation but must not preserve the observed
+event for replay after a new operand capture. A later attempt requires a new event instance.
+
+The XiangShan commit-path investigation confirmed that Block 36995 recaptures its guard and
+address operands for every new activation batch; it does not reuse an old operand capture.
+The state that survived across batches was the pending event. Restoring that old event and
+testing it against newly captured operands is exactly the replay forbidden by consume-on-event.
+Capture-batch integrity remains an independent runtime invariant.
+
 Focused verification for this incremental implementation:
 
 ```text
@@ -337,7 +361,35 @@ uses `act.b` to execute B65 in the next epoch. It also asserts that generated so
 packed activity/dirty-result paths and no longer contains the dense activity scan or static
 per-result clear path.
 
-### Incremental update 2026-07-23 (full SimTop Block/TU boundary)
+### Implemented 2026-07-23: removed the `Isolated` scheduling class
+
+`Isolated` was an implementation policy, not an AM semantic class. The production scheduler
+now has only compute and commit scheduling phases: `BlockClass::Isolated`, its ready queue, its
+statistics, and its unconditional no-coarsen path have been removed. Every non-commit host
+instruction, including `SystemFunction`, enters the compute phase and may share a Block with
+other compute instructions under the normal instruction cap.
+
+DPI/system/effect order and same-target write priority remain explicit directed edges; neither
+an ordered call sequence nor a common state target contracts instructions into an atom.
+`system.task` and `dpi.call` retain their instruction-local condition/event gating and
+Normal/Once/Final lifecycle. Execution opportunity, however, now follows the merged Block's
+union activation domain rather than a private host Block. Eventful task/DPI instructions can
+self-filter unrelated activation through their event predicate; eventless task/DPI and
+`SystemFunction` may be invoked more often when another member activates the shared Block.
+That repeated execution is the explicit behavior of the current host-as-compute policy, not a
+reason to restore `Isolated`. Directed edges preserve observable call order, but equivalence
+of call counts to the pre-lowering source still requires the per-call trace differential gate;
+it is not proved merely by ScheduledProgram validity.
+
+Focused scheduler coverage now checks that ordered and implicit host sequences can split or
+coarsen without becoming oversized atoms, that a posedge-driven host call can share a compute
+Block, and that a `SystemFunction` coarsened with its ordinary producer runs again after an
+input change. Same-target writers split at commit caps while retaining one final watcher; the
+frontier path also covers signed one-bit writer guards normalized to unsigned events. Runtime
+regressions cover next-epoch activation of an earlier writer and a chained `A -> B -> C`
+writer frontier using local guarded `act.f`, with no static transitive closure.
+
+### Historical pre-removal snapshot: full SimTop Block/TU boundary
 
 The legacy scheduler's `supernode` and an AM normal `Block` are corresponding activity-driven
 execution units. A Block is therefore an indivisible semantic unit for C++ emission: the
@@ -345,8 +397,11 @@ emitter may pack complete Blocks into multiple translation units, but it must ne
 Block's instruction sequence across translation units. The generated `_part_N.cpp` suffix
 means a physical continuation containing later complete Block cases, not part of a Block.
 
-The canonical legacy plain result contains 72,682 supernodes (72,180 compute and 502 commit).
-The fresh AM event-bucket schedule contains 51,600 normal Blocks plus B0:
+The following event-bucket run predates removal of `BlockClass::Isolated`. Its physical
+Block/TU evidence remains valid for that generated model, but its `isolated` count and total
+Block count are historical and do not describe the current scheduler. The canonical legacy
+plain result contains 72,682 supernodes (72,180 compute and 502 commit). That historical AM
+schedule contains 51,600 normal Blocks plus B0:
 
 ```text
 compute       37,321
@@ -364,7 +419,7 @@ cap 108 and a different coarsen/DP partition, while AM uses cap 128 and SCC/Kahn
 Even legacy nosplit/default variants differ by 38 compute supernodes, so the count is not a
 semantic constant and AM must not be artificially split to approach 70k.
 
-Fresh artifact audit for
+Historical artifact audit for
 `ptmp/grhsim_am_xs_phase_20260722/grhsim_emit_event_buckets`:
 
 ```text
@@ -397,25 +452,133 @@ There were no earlier AM commits. The NEMU crash is downstream of the incorrect 
 it is not evidence of a TU boundary failure. The 20k and 50k gates were not run because the 2k
 gate is required to pass first.
 
+### Incremental update 2026-07-23 (post-`Isolated` XiangShan rerun)
+
+The complete `SimTop` pipeline was rerun after SCC-only atom formation and removal of the
+`Isolated` class. Every linear instruction is a singleton SCC in this input; ordered host/effect
+sequences and same-target writes remain edges and therefore do not reduce the atom count:
+
+```text
+linear AM instructions                   5,080,563
+SCC atoms                                5,080,563
+oversized atoms                                  0
+
+compute Blocks                              37,423
+commit Blocks                                  515
+input sink Block                                  1
+normal Blocks                               37,939
+normal Blocks plus B0                       37,940
+
+changed detectors                        2,022,159
+activation targets                       3,556,634
+writer-frontier activations                      0
+scheduled instructions                   9,532,818
+emitted artifacts                              411
+```
+
+`writer-frontier activations=0` is a property of this XiangShan input and schedule, not an
+absence of the mechanism; focused interpreter tests cover split same-target frontiers and a
+multi-level runtime frontier chain.
+
+The full emit completed in 47.22 seconds with peak RSS 28,458,200 KiB. The generated model
+build completed in 15:20.43; `libgrhsim_SimTop.a` is 843 MiB and the model directory is
+3.1 GiB. Linking the XiangShan difftest emu took 1.68 seconds with peak RSS 971,808 KiB; the
+resulting emu file is 503 MiB.
+
+CoreMark/NEMU localization for that newly built emu is:
+
+```text
+-C 100      PASS
+-C 571      PASS
+-C 572      FAIL, SIGSEGV
+-C 2000     FAIL, SIGSEGV
+first bad model tick approximately cycleCnt 568
+-C 20000    NOT RUN
+-C 50000    NOT RUN
+```
+
+The 2k acceptance gate fails consistently with the smaller 572-cycle boundary. The 20k and
+50k gates were not attempted after that first failure.
+
+### Incremental update 2026-07-24/25 (wide-result shift lowering and XiangShan rerun)
+
+The consume-on-event v7 model passed the 2,000-cycle gate (`instrCnt=3`,
+`cycleCnt=1996`) but failed the required 20,000-cycle gate at `cycleCnt=8250`.
+All five observed RefillBuffer cache lines were zero, so the 50,000-cycle gate was not run.
+The failing GRH chain was a one-bit `SliceStatic`, followed by `Shl` with a 514-bit
+result, then a 514-bit `MemoryWritePort`. The old lowering executed the shift at the
+one-bit lhs width and widened only afterward, irreversibly truncating bits 1..513. The
+full checkpoint contains 5,400 `kShl` operations; 3,376 have a result wider than lhs,
+including 2,048 instances of 1 -> 514.
+
+The lowering now chooses `BV<result width, lhs signedness>` as the native Type for
+`kShl` / `kLShr` / `kAShr`, coerces lhs before the shift, and retains the existing
+post-shift `assign` when the mapped result Signedness differs. Preserving lhs Signedness
+is required for the eight signed-lhs/unsigned-result `kAShr` instances in this checkpoint.
+Constant folding now applies the same resize-before-shift rule. None of the 3,376 wide
+`kShl` operations in the fresh XiangShan JSON has a direct or recursively constant lhs,
+and that JSON has no wide `kLShr` or `kAShr`, so the adjacent constant-fold fix does not
+change the v8 product. Focused coverage checks wide `Shl`, signed wide `LShr`, signed
+wide `AShr`, and their constant-fold counterparts. All eight `grhsim-am-*` CTests and
+the newly registered `transform-const-fold` CTest pass.
+
+The fresh v8 product was regenerated from
+`ptmp/grhsim_am_gsim_define_v5_20260724/wolvrix_xs_post_stats.json` (SHA-256
+`a2f50b37834dbf97be15f336a6e05ccc59f87a499187f2d15edd78dc1fd727ea`):
+
+```text
+linear AM instructions                   4,950,236
+compute Blocks                              36,963
+commit Blocks                                  497
+input sink Block                                  1
+normal Blocks                               37,461
+normal Blocks plus B0                       37,462
+changed detectors                        1,875,970
+activation targets                       3,218,269
+commit groups                                    1
+commit operand captures                    256,085
+scheduled instructions                   8,992,117
+emitted artifacts                              426
+```
+
+The saved lower log records 40.26 seconds with peak RSS 28,027,228 KiB for fresh
+lower/schedule/emit. The contemporaneous `/usr/bin/time -v` terminal record reports
+6:19.79 with peak RSS 6,126,112 KiB for the fresh model and emu build; that build-time
+record was not saved as a separate log. The resulting emu SHA-256 is
+`addf9dccfdae7cd2c21620782b99faa2d817d5b1749ea5bd5f3e10f11957d212`.
+
+CoreMark/NEMU gates for that emu were run strictly in order, starting the next gate only
+after the preceding gate passed:
+
+```text
+-C 2000     PASS, instrCnt=3,     cycleCnt=1996,  host=140574 ms
+-C 20000    PASS, instrCnt=14121, cycleCnt=19996, host=1542760 ms
+-C 50000    PASS, instrCnt=73580, cycleCnt=49996, host=4178703 ms
+             guestCycles=50001, IPC=1.471718, exit=0
+```
+
+Difftest remained enabled throughout; no mismatch, refill failure, assertion, or crash
+occurred. The 50k instruction/cycle counters exactly match the existing functional
+baseline. Runtime does not: 4,178,703 ms is 11.77x the 355,000 ms performance target.
+This closes the functional gates, not the performance gate.
+
 ### Current full-design gates
 
 Full SimTop schedule, bounded multi-TU emit, per-TU compilation, archive creation, difftest
-link, and the 100-cycle smoke gate are now closed. The active blocker is the first incorrect
-architectural event at cycle 568; 2k/20k/50k remain open.
+link, and the strict 2k -> 20k -> 50k functional sequence are now closed on the fresh v8
+model. The 50k architectural counters match the legacy baseline. The active blocker is
+performance: host time is 4,178,703 ms rather than the existing <= 355,000 ms target.
 
-### Remaining acceptance order
+### Remaining acceptance work
 
-The gates must close in this order; a small generated-model test cannot substitute for a
-later gate:
+The ordered functional sequence above is complete. Remaining work is:
 
-1. Emit the complete SimTop as bounded multi-TU C++ with no partial publication.
-2. Compile every shard and create `libgrhsim_SimTop.a`.
-3. Link the XiangShan difftest emu and resolve all 34 DPI symbols.
-4. Run CoreMark/NEMU difftest at 100 and 2,000 cycles; fix the first semantic mismatch.
-5. Measure the sparse runtime at 2,000 cycles and adjust AM block coarsening only if the
-   remaining dispatch/activation profile requires it.
-6. Run 20,000 and 50,000 cycles with no mismatch, assertion, fatal termination, or skipped
-   difftest.
+1. Profile the fresh 50k run and reduce its 4,178,703 ms host time toward the existing
+   <= 355,000 ms target without changing the now-closed architectural counters.
+2. Complete any still-required per-call host trace differential gate for the host-as-compute
+   policy; ScheduledProgram validity and CoreMark counters do not prove host call-count parity.
+3. Audit and separately fix signed widened `kShl` / `kLShr` parity in the SystemVerilog emitter;
+   that backend is not used by the GRHSIM-AM v8 functional product.
 
 The existing fast 50k gate expects `max_cycles=50000`, `guest_cycle_spent=50001`,
 `guest_instr_cnt=73580`, `guest_cycle_cnt=49996`, and host time no greater than 355,000 ms.
