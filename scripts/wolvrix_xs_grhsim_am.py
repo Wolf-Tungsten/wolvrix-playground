@@ -62,6 +62,12 @@ def main() -> int:
     parser.add_argument("--reuse-post-stats", action="store_true")
     parser.add_argument("--blocks-per-source", type=parse_positive)
     parser.add_argument("--max-source-bytes", type=parse_positive)
+    parser.add_argument("--max-instructions-per-block", type=parse_positive)
+    parser.add_argument(
+        "--block-formation", choices=("greedy", "coarsen-dp"), default=None
+    )
+    parser.add_argument("--dp-segment-penalty", type=float, default=None)
+    parser.add_argument("--dp-coarsen-budget", type=int, default=None)
     args = parser.parse_args()
 
     emit_dir = args.emit_dir.resolve()
@@ -129,6 +135,18 @@ def main() -> int:
         lower_command.extend(["--blocks-per-source", str(args.blocks_per_source)])
     if args.max_source_bytes is not None:
         lower_command.extend(["--max-source-bytes", str(args.max_source_bytes)])
+    if args.max_instructions_per_block is not None:
+        lower_command.extend(
+            ["--max-instructions-per-block", str(args.max_instructions_per_block)]
+        )
+    if args.block_formation is not None:
+        lower_command.extend(["--block-formation", args.block_formation])
+    if args.dp_segment_penalty is not None:
+        lower_command.extend(["--dp-segment-penalty", str(args.dp_segment_penalty)])
+    if args.dp_coarsen_budget is not None:
+        if args.dp_coarsen_budget < 0:
+            parser.error("--dp-coarsen-budget must be non-negative")
+        lower_command.extend(["--dp-coarsen-budget", str(args.dp_coarsen_budget)])
     run(lower_command)
 
     require_file(emit_dir / "Makefile", "GRHSIM-AM emitted Makefile")
