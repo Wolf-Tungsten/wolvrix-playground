@@ -389,6 +389,41 @@ diff out_legacy.txt out_am_codp.txt    → 一致（20000/20000 行）
 - **验证**：本 case `set_commit_changed_result` 站点 153→1；20k 向量 bit-exact；XiangShan difftest。
 - **预期**：detector 总数 −10%（本 case 1527→1375），XiangShan 上 commit event 相关的 dirty/capture/restore 簿记随 detector 数等比下降。
 
+> **2026-07-27 P1 完成记录**：已按上述方案落地——`lowering.cpp` `lowerEvents` 增加
+> `eventDetectorMemo_`（`map<(Opcode, VariableId raw), VariableId event>`），同
+> (edge kind, watched variable) 的 event 直接复用首个 detector，不再重复建
+> old/event/指令；`ChangedPos/ChangedNeg` 以外的语义未动。`test_lowering.cpp` 的
+> opcode inventory 断言同步更新（ChangedPos 4→1），并新增"posedge(clk) 各写共享同一
+> detector 结果变量"的回归断言。验收结果：
+>
+> 1. `ctest -R grhsim-am` 8/8 全绿（含 lowering/pipeline/emitter/interpreter/end-to-end）。
+> 2. `XsReal053FtqFtqLarge`：`set_commit_changed_result` 站点 **153→1**
+>    （`kCommitEventCount=1`）；linear 指令 4656→4504；scheduled 指令 greedy
+>    7557→7245 / coarsen-dp 8293→7973；activation 调用点 2441→2263（greedy）。
+>    两条 AM 路线 `clang++ -std=c++20 -O3` 编译通过，compare_driver 20,000 向量与
+>    legacy bit-exact。驱动时间 greedy 0.57→0.44 s、codp 0.71→0.55 s（小 case，仅作
+>    方向参考）。
+> 3. `XsReal100BackendNfmappedelemidxSmall`：纯组合 case（0 commit Block，不覆盖
+>    P1 路径本身），AM-P1 模型 GSIM-verify 2048 向量 pass、100k bench checksum 与
+>    GSIM 一致。
+> 4. `XsReal044SramSramtemplateLarge`（SRAM 密集）：`kCommitEventCount=1`，
+>    AM-P1 模型 GSIM-verify 2048 向量 pass、100k bench checksum 与 GSIM 一致。
+> 5. XiangShan（复用既有 post-stats JSON 重新 emit）：commit detector 站点
+>    **276,182→413**（413 = 全设计不同的 (edge, watched var) 对数）；linear 指令
+>    4,950,236→4,660,708（−289,528）；detector 总数 1,875,970→1,875,379；
+>    activation edges 3,218,269→2,908,430；scheduled 指令 8,992,117→8,411,879。
+>    difftest（coremark-2-iteration + NEMU，新旧 emu 同机对照）：
+>
+>    | 周期 | 旧 AM host ms | P1 host ms | 加速 | instrCnt/cycleCnt |
+>    |---|---|---|---|---|
+>    | 2k | 145,442 | 49,630 | 2.93x | 一致（3 / 1,996，无 mismatch） |
+>    | 20k | 1,730,723 | 696,928 | 2.48x | 一致（14,121 / 19,996，pc 相同） |
+>    | 50k | 4,178,703（历史记录） | 1,953,414 | 2.14x | 一致（73,580 / 49,996，与历史通过记录相同） |
+>
+>    host time 倍率（对 legacy 355,000 ms 基线）由 ~11.8x 降至 **~5.5x**；收益主体是
+>    commit event dirty/capture/restore 簿记从 276k 槽位降到 413 的每 eval 固定开销
+>    压缩。
+
 ### P2：act 传播合并为掩码写
 
 - **现状**：`cpp_emitter.cpp:1579-1592` 对每个 target 生成一次 `activate_forward/backward` 调用，函数内做 word/bit 定位、summary 更新、`is_commit_block` 特判（`:3901-3932`）。本 case 2441 个调用点 vs legacy 337 条掩码语句。
