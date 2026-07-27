@@ -93,6 +93,7 @@ def main() -> int:
     parser.add_argument("--top", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--json", default="")
+    parser.add_argument("--pre-schedule-json", default="")
     parser.add_argument("--max-op-in-compute-supernode", type=int, default=8)
     parser.add_argument("--max-op-in-commit-supernode", type=int, default=768)
     parser.add_argument("--sched-batch-max-ops", type=int, default=2048)
@@ -103,8 +104,12 @@ def main() -> int:
     parser.add_argument("--input-fullpass-specialization", action="store_true")
     parser.add_argument("--posedge-fullpass-specialization", action="store_true")
     parser.add_argument("--export-compute-dag", default="")
+    parser.add_argument("--stop-after-pre-schedule", action="store_true")
     parser.add_argument("--stop-after-activity-schedule", action="store_true")
     args = parser.parse_args()
+
+    if args.stop_after_pre_schedule and not args.pre_schedule_json:
+        parser.error("--stop-after-pre-schedule requires --pre-schedule-json")
 
     sv_path = Path(args.sv).resolve()
     out_dir = Path(args.out).resolve()
@@ -115,7 +120,7 @@ def main() -> int:
         log(f"read_sv {sv_path}")
         sess.read_sv(str(sv_path), out_design="design.main", slang_args=["--top", args.top])
 
-        passes: list[tuple[str, dict]] = [
+        normalization_passes: list[tuple[str, dict]] = [
             ("xmr-resolve", {}),
             ("multidriven-guard", {}),
             ("blackbox-guard", {}),
@@ -128,21 +133,33 @@ def main() -> int:
             ("memory-init-check", {}),
             ("reg-to-mem", {}),
             ("stats", {}),
-            (
-                "activity-schedule",
-                {
-                    "path": args.top,
-                    "max_op_in_compute_supernode": args.max_op_in_compute_supernode,
-                    "max_op_in_commit_supernode": args.max_op_in_commit_supernode,
-                    **({"export_compute_dag": args.export_compute_dag} if args.export_compute_dag else {}),
-                },
-            ),
         ]
-        for name, kwargs in passes:
+        for name, kwargs in normalization_passes:
             log(f"pass {name}")
             sess.run_pass(name, design="design.main", **kwargs)
-            if name == "activity-schedule":
-                write_activity_schedule_stats(sess, args.top, out_dir)
+
+        if args.pre_schedule_json:
+            pre_schedule_json_path = Path(args.pre_schedule_json).resolve()
+            pre_schedule_json_path.parent.mkdir(parents=True, exist_ok=True)
+            log(f"store pre-schedule JSON {pre_schedule_json_path}")
+            sess.store_json(
+                design="design.main", output=str(pre_schedule_json_path), top=[args.top]
+            )
+
+        if args.stop_after_pre_schedule:
+            log("stop after pre-schedule normalization")
+            return 0
+
+        log("pass activity-schedule")
+        sess.run_pass(
+            "activity-schedule",
+            design="design.main",
+            path=args.top,
+            max_op_in_compute_supernode=args.max_op_in_compute_supernode,
+            max_op_in_commit_supernode=args.max_op_in_commit_supernode,
+            **({"export_compute_dag": args.export_compute_dag} if args.export_compute_dag else {}),
+        )
+        write_activity_schedule_stats(sess, args.top, out_dir)
 
         if args.json:
             json_path = Path(args.json).resolve()

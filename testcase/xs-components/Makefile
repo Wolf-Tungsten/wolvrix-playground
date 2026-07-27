@@ -221,8 +221,11 @@ FIR_DIR := $(CASE_BUILD)/chisel-fir
 SV_DIR := $(CASE_BUILD)/chisel-sv
 GSIM_DIR := $(CASE_BUILD)/gsim
 GRHSIM_DIR := $(CASE_BUILD)/grhsim
+GRHSIM_AM_DIR := $(CASE_BUILD)/grhsim-am
+GRHSIM_AM_NORMALIZE_DIR := $(GRHSIM_AM_DIR)/normalize
 GSIM_MODEL_DIR := $(GSIM_DIR)/model
 GRHSIM_MODEL_DIR := $(GRHSIM_DIR)/model
+GRHSIM_AM_MODEL_DIR := $(GRHSIM_AM_DIR)/model
 TB_DIR := $(CASE_BUILD)/tb
 STATS_DIR := $(CASE_BUILD)/stats
 MATRIX_DIR := $(BUILD_DIR)/matrix
@@ -231,8 +234,10 @@ FIR := $(FIR_DIR)/$(CASE).fir
 SV := $(SV_DIR)/$(CASE).sv
 GSIM_GRAPH_STATS := $(GSIM_MODEL_DIR)/$(CASE)_0Final_Stats.json
 GRHSIM_GRAPH_STATS := $(GRHSIM_MODEL_DIR)/activity_schedule_stats.json
+GRHSIM_AM_PRE_SCHEDULE_JSON := $(GRHSIM_AM_NORMALIZE_DIR)/$(CASE).json
 GSIM_BUILD_STAMP := $(GSIM_DIR)/obj/.stamp
 GRHSIM_LIB := $(GRHSIM_MODEL_DIR)/libgrhsim_$(CASE).a
+GRHSIM_AM_LIB := $(GRHSIM_AM_MODEL_DIR)/libgrhsim_$(CASE).a
 BENCH_TB := $(TB_DIR)/$(CASE)_bench
 BENCH_LOG := $(TB_DIR)/$(CASE)_bench.log
 GSIM_PORT_WIDTHS_HEADER := $(TB_DIR)/gsim_port_widths.hpp
@@ -250,12 +255,20 @@ GRHSIM_PERF ?= off
 GRHSIM_INPUT_FULLPASS_SPECIALIZATION ?= 0
 GRHSIM_POSEDGE_FULLPASS_SPECIALIZATION ?= 0
 GRHSIM_CXXFLAGS ?= -O3 -std=c++20
+GRHSIM_AM_LOWER_JSON ?= ../../wolvrix/build/bin/grhsim-am-lower-json
+GRHSIM_AM_BLOCKS_PER_SOURCE ?= 2048
+GRHSIM_AM_MAX_SOURCE_BYTES ?= 4194304
+GRHSIM_AM_MAX_INSTRUCTIONS_PER_BLOCK ?= 128
+GRHSIM_AM_BLOCK_FORMATION ?= greedy
+GRHSIM_AM_DP_SEGMENT_PENALTY ?= 64
+GRHSIM_AM_DP_COARSEN_BUDGET ?= 0
+GRHSIM_AM_CXXFLAGS ?= $(GRHSIM_CXXFLAGS)
 BENCH_CXXFLAGS ?= -O3 -std=c++20 -I$(abspath $(GSIM_MODEL_DIR)) -I$(abspath $(GRHSIM_MODEL_DIR))
 BENCH_VECTORS ?= 100000
 BENCH_VERIFY ?= 2048
 BENCH_REPEAT ?= 1
 
-.PHONY: all generate chisel-fir chisel-sv gsim grhsim bench stats stat one matrix clean list
+.PHONY: all generate chisel-fir chisel-sv gsim grhsim grhsim-am grhsim-am-emit grhsim-am-build bench stats stat one matrix clean list
 
 all: matrix
 
@@ -317,6 +330,33 @@ $(GRHSIM_LIB): $(GRHSIM_MODEL_DIR)/Makefile
 	$(MAKE) -C $(GRHSIM_MODEL_DIR) CXX=$(CXX) CXXFLAGS="$(GRHSIM_CXXFLAGS)"
 
 grhsim: $(GRHSIM_LIB)
+
+$(GRHSIM_AM_PRE_SCHEDULE_JSON): $(SV) scripts/emit_grhsim.py
+	@mkdir -p $(GRHSIM_AM_NORMALIZE_DIR)
+	$(PYTHON) scripts/emit_grhsim.py --sv $(SV) --top $(CASE) --out $(GRHSIM_AM_NORMALIZE_DIR) \
+		--pre-schedule-json $@ --stop-after-pre-schedule
+	test -f $@
+
+$(GRHSIM_AM_MODEL_DIR)/Makefile: $(GRHSIM_AM_PRE_SCHEDULE_JSON) $(GRHSIM_AM_LOWER_JSON)
+	@mkdir -p $(GRHSIM_AM_MODEL_DIR)
+	set -o pipefail; $(GRHSIM_AM_LOWER_JSON) $(GRHSIM_AM_PRE_SCHEDULE_JSON) $(CASE) \
+		--emit $(GRHSIM_AM_MODEL_DIR) \
+		--blocks-per-source $(GRHSIM_AM_BLOCKS_PER_SOURCE) \
+		--max-source-bytes $(GRHSIM_AM_MAX_SOURCE_BYTES) \
+		--max-instructions-per-block $(GRHSIM_AM_MAX_INSTRUCTIONS_PER_BLOCK) \
+		--block-formation $(GRHSIM_AM_BLOCK_FORMATION) \
+		--dp-segment-penalty $(GRHSIM_AM_DP_SEGMENT_PENALTY) \
+		--dp-coarsen-budget $(GRHSIM_AM_DP_COARSEN_BUDGET) \
+		2>&1 | tee $(GRHSIM_AM_DIR)/lower.log
+	test -f $(GRHSIM_AM_MODEL_DIR)/Makefile
+	test -f $(GRHSIM_AM_MODEL_DIR)/grhsim_$(CASE).hpp
+
+grhsim-am-emit: $(GRHSIM_AM_MODEL_DIR)/Makefile
+
+$(GRHSIM_AM_LIB): $(GRHSIM_AM_MODEL_DIR)/Makefile
+	$(MAKE) -C $(GRHSIM_AM_MODEL_DIR) CXX=$(CXX) CXXFLAGS="$(GRHSIM_AM_CXXFLAGS)"
+
+grhsim-am grhsim-am-build: $(GRHSIM_AM_LIB)
 
 $(GSIM_PORT_WIDTHS_HEADER): $(GSIM_MODEL_DIR)/$(CASE).h scripts/gsim_port_widths.py
 	@mkdir -p $(TB_DIR)
