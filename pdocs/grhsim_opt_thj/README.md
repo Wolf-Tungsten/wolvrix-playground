@@ -195,12 +195,15 @@
 | `TNO0183` | `2026-07-27` | [SimpleTES v2 direct ablation final attribution and retention decision](./TNO0183_simpletes_v2_direct_ablation_final_attribution_and_retention_decision_20260727.md) | 顶层 direct 消融确认 R `6.567272%`、W `1.869589%`、A `2.585383%` 正向，F pooled 仅 `0.159522%` 且双 order 反向；B→RW endpoint 为 `60513.50→55394.00 ms`（`5119.50 ms/8.460096%`）。保留 R/W，停止 F；A 待 no-F 的 RWA direct/endpoint 后再决定默认。 |
 | `TNO0184` | `2026-07-27` | [SimpleTES v2 RWA materialization and fresh gate](./TNO0184_simpletes_v2_rwa_materialization_and_fresh_gate_20260727.md) | 从 RW/RWF/RWFA full patch 机械构造无 F 的 RWA；`RW+A == RWFA-F`、`RWA+F == RWFA` 逐字节闭合。新 default-path/零 option arm 完成 fresh build、focused `29/29`、100/10k、proof 与 11-file manifest，SimpleTES `140 passed`。 |
 | `TNO0185` | `2026-07-27` | [SimpleTES v2 F repeat and RWA endpoint decision](./TNO0185_simpletes_v2_f_repeat_and_rwa_endpoint_decision_20260727.md) | F 复测 pooled 仅 `55381.75→55248.75 ms`（`133.00 ms/0.240151%`），确认无可靠保留收益；无 F 的 B→RWA fresh endpoint 为 `60583.50→53992.75 ms`（`6590.75 ms/10.878787%`），双 order 和全门禁通过，最终组合收敛为 R/W/A，排除 F。 |
+| `TNO0186` | `2026-07-27` | [RWA Wolvrix landing implementation and provenance](./TNO0186_rwa_wolvrix_landing_implementation_and_provenance_20260727.md) | R/W/A 已落入 Wolvrix `16a9f493`，parent executable snapshot 为 `d31118be`；fresh Ninja `94` steps、focused、CTest `50/52`（仅两项历史 expected failures）、pybind `22/22`、XS `32/32` 通过，F 排除；SimpleTES production/canary 与正式性能仍为 PENDING。 |
+| `TNO0187` | `2026-07-27` | [RWA landing SimpleTES repin and native control canary](./TNO0187_rwa_landing_simpletes_repin_and_native_control_canary_20260727.md) | SimpleTES `b0c7754` 已 pin parent `d31118b` / Wolvrix `16a9f49` 并改为 post-RWA 空 control；旧 checkpoint fail-close，bench `69/69`、全量 `141/141`、production focused/100/10k 与同 ELF 50k canary 全过，未启动 auto research。 |
+| `TNO0188` | `2026-07-27` | [RWA landing native 50k performance and default decision](./TNO0188_rwa_landing_native_50k_performance_and_default_decision_20260727.md) | 实际 B→native-RWA final pooled wall 为 `60,881.50→54,088.00 ms`，减少 `6,793.50 ms/11.158562%`；ABBA/BAAB 双 order 与全部 ASLR/CCD/NUMA/PMU/功能门禁通过，最终保留通用默认 R/W/A，F 排除、targeted-direct 保持 off。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`185`（`TNO0001..TNO0185`）。
+- 当前记录类文档总数：`188`（`TNO0001..TNO0188`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
