@@ -354,7 +354,7 @@ diff out_legacy.txt out_am_codp.txt    → 一致（20000/20000 行）
 |---|---|---|---|---|---|---|
 | P0 | §5.3 emitter 少 `}` | 可编译 | emitter | 低 | 前置项 | 立即 |
 | P1 | event 共享：153 写各配 1 个 posedge detector vs legacy 共享 1 slot | 按 (edge, watched var) 去重 | lowering | 低-中 | detector −10%、commit 簿记大降 | 高 |
-| P2 | 传播：逐 target `activate_*` 调用 vs 常量掩码 | 同类 target 合并为掩码写 | emitter | 低 | 传播语句 −80%+ | 高 |
+| P2 | 传播：逐 target `activate_*` 调用 vs 常量掩码 | ~~同类 target 合并为掩码写~~ → 按点位足迹混合（已完成，见 §7.3 记录；后续为 P2' 同扇出聚合） | emitter | 低 | 2k host −2%；原 −80% 前提被证伪 | 高 |
 | P3 | dispatch 热路径运行期 profile 分支 | 编译期开关 | emitter | 低 | 每次 activate/execute 省分支 | 高 |
 | P4 | 动态位图扫描 + switch dispatch vs 静态 batch 直接调用 | word 级跳过 + 顺序 dispatch | emitter | 中 | XiangShan 规模才显著 | 中（需 profile） |
 | P5 | commit 写不判变 + 尾部 detector 二次比较 vs 写点内联判变 | 单写场景融合写与 detector | scheduler+emitter | 中-高 | 每 state 写省一次比较+old | 中 |
@@ -439,6 +439,64 @@ diff out_legacy.txt out_am_codp.txt    → 一致（20000/20000 行）
 - **前提**：BlockId 静态已知（现状如此），同一 act 的 targets 编译期可分组——无需改 AM 指令语义，`act.f/act.b` 的 targets 列表不变，只是发射形态变化。
 - **验证**：生成代码 `activate_*` 调用点计数（本 case 2441 → 预计 <400）；bit-exact；ctest。
 - **预期**：传播热点指令数 −80%+；XiangShan 322 万 activation target 的调用开销大幅压缩。
+
+> **2026-07-27 P2 完成记录（最终形态：按点位足迹选择发射形态）**：方案按上
+> 述落地，但初版"一律内联掩码"在 XiangShan 实测**回退 ~10%**，根因定位后修正
+> 为混合形态。过程与结论：
+>
+> **初版（全内联掩码，已否决）**：targets 按四类目标位图分组、按 64-block word
+> 聚合成常量掩码 `|=` 写，`activate_*` 调用点 2,908,430→0，指令数 −1.7%，生成
+> 源体积 −23%（2.2→1.7 GB）——但 2k/20k host time 均 +8~10%。perf 定位：
+> XiangShan AM sim 是**前端受限**负载（IPC 仅 ~0.2），全内联使
+> L1-icache-load-misses +13.4%（2.81G→3.19G）、周期 +10.7%。机制：fanout 分布
+> 高度倾斜（1,875,795 条 act 中 **81% 为单 target**），单 target act 的调用形态
+> 点位仅 ~10 B（arg+call），word/bit/summary 逻辑留在两个共享热函数；内联掩码
+> 则 ~30 B（word RMW + summary RMW + profile 分支），低扇出 act 的内联把每 epoch
+> 的执行足迹放大 3 倍，挤爆 L1I。**"逐 target 调用开销大"的前提不成立——调用是
+> 后端便宜、前端紧凑的形态**。
+>
+> **最终形态（混合）**：每条 act 按目标类（compute/commit）分别估算两种形态的
+> 点位字节（call ≈ 10×N；compute 掩码 ≈ 10+11×(word 数+summary word 数)，
+> commit 掩码 ≈ 10+45×word 数+11×summary word 数，commit 词需额外
+> `newlyPending` captured 失效），**仅当掩码更小时才内联**，否则保持
+> `activate_*` 调用（函数与逐 target 语义不变，含 commit-backward 检查
+> `pendingCommitWords_` 的既有行为）。掩码路径的等价性论证：同 word 多 target 的
+> "此前不 pending"逐位检查互不影响，`newly = mask & ~pending` 批量清 captured 与
+> 逐 target 循环清相同的位集合；summary 位无条件置位安全（误置只多一次空扫）。
+> target 越界检查改为 emit 期报错；`profileActivateForward_/Backward_` 计数语义
+> 不变（调用路径函数内 ++，掩码路径 `if (runtimeProfileEnabled_) += N`）。
+> `testPackedActivityRuntime` fixture 新增一条 8-target act（目标全为空 Block，
+> 执行无副作用）覆盖掩码路径，低扇出 act 断言保持调用形态。
+>
+> 验收结果：
+>
+> 1. `ctest -R grhsim-am` 8/8 全绿；全量 ctest 54/57（3 个既有失败不变）。
+> 2. `XsReal053FtqFtqLarge`：调度统计与 P1 逐项一致（emitter-only 改动）；
+>    `activate_*` 调用点 greedy 2263→1513（commit act 全为单 target → 保持调用，
+>    750 个 target 走掩码）；两条路线 `clang++ -std=c++20 -O3` 编译通过，
+>    compare_driver 20,000 向量与 legacy bit-exact。小 case 驱动时间仅供参考
+>    （25/37 个执行单元，IPC ~2.9 非前端受限，不表征 XiangShan）。
+> 3. XiangShan（同 post-stats JSON、同 Makefile 默认参数）：调度统计与 P1 逐项
+>    一致；`activate_*` 调用点 2,908,430→2,292,738（616k target、21% 走掩码）。
+>    difftest（coremark-2-iteration + NEMU，P1/P2 emu 同机背靠背）：
+>
+>    | 周期 | P1 host ms | P2 host ms | Δ | instrCnt/cycleCnt |
+>    |---|---|---|---|---|
+>    | 2k | 49,888 / 49,348（两次） | 48,451 / 48,676 | **−2.1%** | 一致（3 / 1,996，无 mismatch） |
+>    | 20k | 637,641 | 634,533 | **−0.5%** | 一致（14,121 / 19,996，pc 相同） |
+>
+>    2k perf stat（P1 → P2）：指令 57.21G→56.57G（−1.1%），L1I miss
+>    2.81G→2.80G（持平，全内联版为 3.19G），周期 281.9G→278.1G（−1.3%）。
+>
+> **结论与后续**：混合形态以"低扇出保调用、高扇出用掩码"消除了初版的 I-cache
+> 回退，host time 较 P1 小幅改善（2k −2.1%、20k −0.5%，同窗口背靠背测量）。
+> 本项最大的产出是**证伪了 P2 原前提**：传播路径的收益不在"掩码 vs 调用"，
+> legacy 的真正优势是 `buildDeferredActivationGroups` 的**跨 detector 同扇出
+> 聚合**（扇出集合相同的 detector 共享一个组标志 + 一次掩码写，本 case
+> 600 检测点→337 组）——同时压缩调用数与点位。该方向需 scheduler 在物化
+> watch group 时按 target 集合签名合并（等价性：同组 detector 任一触发都激活
+> 相同目标），建议作为 P2' 单独立项，优先级高于 P4。P3（编译期关 profile
+> 分支）仍按原计划进行。
 
 ### P3：runtime profile 改为编译期开关
 
