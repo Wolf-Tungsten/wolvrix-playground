@@ -166,3 +166,13 @@ perf CSV、group result、provenance 与最终 result 全部为 `OK`。
 代码、fresh/full regression、production canary 与 final 50k 均通过，故 R/W/A 默认开启的最终裁决为
 `KEEP`。SimpleTES 已 repin 到该 landed baseline，并对旧 checkpoint fail-close；后续可以从新空 control
 继续探索，但本阶段没有自动启动 research。
+
+## 9. 增量勘误 2026-07-28：ABBA attempt 1 失败时点
+
+第 4.1 节“首个样本前 fixed-CCD 复核”表述不准确。实际时序是：attempt 1 已完成第一个 B/control raw
+样本，`Host time spent=60,401 ms`；随后在第二个 candidate 样本前的 fixed-CCD 复核中出现 mean idle
+`97.5575%`、min idle `69.9%`，整组被标记为 retryable。
+
+该 raw control 功能审计通过，但 attempt result 明确为 `valid=false`、`samples=[]`，没有进入 accepted ABBA、
+BAAB 或 pooled headline。此勘误只修正失败时点，不改变 `60,881.50 -> 54,088.00 ms / 11.158562%`
+结论、artifact SHA 或默认裁决。
