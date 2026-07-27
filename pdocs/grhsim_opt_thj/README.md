@@ -193,12 +193,14 @@
 | `TNO0181` | `2026-07-27` | [SimpleTES v2 cumulative ablation design and launch](./TNO0181_simpletes_v2_cumulative_ablation_design_and_launch_20260727.md) | 机械恢复 gen7/gen16/gen22/gen40 为 `R/RW/RWF/RWFA` 四个 default-path、零 option 累计 arm；固定 current-default paired baseline、fresh build、quiet-CCD fixed-ASLR ABBA→BAAB 协议，已串行启动，尚无 fresh 性能或默认结论。 |
 | `TNO0182` | `2026-07-27` | [SimpleTES v2 R result and RW quiet-gate exhaustion](./TNO0182_simpletes_v2_r_result_and_rw_quiet_gate_exhaustion_20260727.md) | R 正式 pooled wall 为 `61505.75→57466.50 ms`，减少 `4039.25 ms/6.567272%`，双 order、fixed-ASLR、CCD/NUMA/PMU/功能门禁全过；RW build/proof/功能通过但 9 次 infra 调用耗尽，最终 attempt 报 strict quiet-gate failure，accepted 50k samples 为 0（walltime=`null`），不能裁决 W。 |
 | `TNO0183` | `2026-07-27` | [SimpleTES v2 direct ablation final attribution and retention decision](./TNO0183_simpletes_v2_direct_ablation_final_attribution_and_retention_decision_20260727.md) | 顶层 direct 消融确认 R `6.567272%`、W `1.869589%`、A `2.585383%` 正向，F pooled 仅 `0.159522%` 且双 order 反向；B→RW endpoint 为 `60513.50→55394.00 ms`（`5119.50 ms/8.460096%`）。保留 R/W，停止 F；A 待 no-F 的 RWA direct/endpoint 后再决定默认。 |
+| `TNO0184` | `2026-07-27` | [SimpleTES v2 RWA materialization and fresh gate](./TNO0184_simpletes_v2_rwa_materialization_and_fresh_gate_20260727.md) | 从 RW/RWF/RWFA full patch 机械构造无 F 的 RWA；`RW+A == RWFA-F`、`RWA+F == RWFA` 逐字节闭合。新 default-path/零 option arm 完成 fresh build、focused `29/29`、100/10k、proof 与 11-file manifest，SimpleTES `140 passed`。 |
+| `TNO0185` | `2026-07-27` | [SimpleTES v2 F repeat and RWA endpoint decision](./TNO0185_simpletes_v2_f_repeat_and_rwa_endpoint_decision_20260727.md) | F 复测 pooled 仅 `55381.75→55248.75 ms`（`133.00 ms/0.240151%`），确认无可靠保留收益；无 F 的 B→RWA fresh endpoint 为 `60583.50→53992.75 ms`（`6590.75 ms/10.878787%`），双 order 和全门禁通过，最终组合收敛为 R/W/A，排除 F。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`183`（`TNO0001..TNO0183`）。
+- 当前记录类文档总数：`185`（`TNO0001..TNO0185`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
