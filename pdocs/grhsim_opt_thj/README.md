@@ -204,12 +204,13 @@
 | `TNO0192` | `2026-07-28` | [SimpleTES K3 grounded generation fix and capability gate](./TNO0192_simpletes_k3_grounded_generation_fix_and_capability_gate_20260728.md) | SimpleTES `88abf71` 加入 JSON-only/local validation/repair、required-first loopback、bounded trace 与 grounded gate；全量 `210 passed`，真实 K3 deterministic preflight 约 `36 s`、`1` repo tool、`632 chars` PASS，未启动正式 research。 |
 | `TNO0193` | `2026-07-28` | [SimpleTES K3 grounded fresh research launch](./TNO0193_simpletes_k3_grounded_fresh_research_launch_20260728.md) | fresh instance `7291c6c2` 已以 Kimi `k3/ultra`、`64 proposals/32 valid` 启动；deterministic capability/TOCTOU gate 通过，initial control 正按空闲 CCD、fixed-ASLR SimTop 50k 协议运行，尚无 candidate 或性能结论。 |
 | `TNO0194` | `2026-07-28` | [SimpleTES K3 grounded initial control result](./TNO0194_simpletes_k3_grounded_initial_control_result_20260728.md) | 前 3 次 runtime invocation 因 strict CCD gate 作废；第 4 次正式同码 ABBA 为 control `54,512.5 ms`、candidate-control `54,584.0 ms`，仅 `0.131163%` 噪声，四样本 fixed-ASLR/CCD/NUMA/PMU/功能门禁全过，随后进入首条 K3 generation。 |
+| `TNO0195` | `2026-07-28` | [SimpleTES K3 context window correction and resume](./TNO0195_simpletes_k3_context_window_correction_and_resume_20260728.md) | 旧首条 generation 在错误 `272000` context 下运行 `4,053 s` 后按指示优雅取消，无 final JSON/build/eval；`1,284,303 B` trace 与 `db_state_045321` 已保留。配置更正为 `1000000` 后从同一 control checkpoint 恢复，实际 private config 二次核验通过，剩余 `63` proposals 已继续运行。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`194`（`TNO0001..TNO0194`）。
+- 当前记录类文档总数：`195`（`TNO0001..TNO0195`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
