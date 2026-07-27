@@ -504,6 +504,43 @@ diff out_legacy.txt out_am_codp.txt    → 一致（20000/20000 行）
 - **方案**：`GrhSimAmCppOptions.attributes` 增加 `runtimeProfile`（编译期 bool，默认 off）；off 时完全不生成 profile 分支与计数字段，`set_runtime_profile_enabled/dump_runtime_profile` 退化为 no-op stub 保持 host 接口（`afcd5fd` 引入的接口不变）。on 时保持现状。
 - **验证**：off 时生成代码 grep 无 `profilePerBlockExecs_`；bit-exact；开/关两态各编一次。
 
+> **2026-07-27 P3 完成记录**：已按上述方案落地——`cpp_emitter.cpp` 的
+> `EmitState` 新增 `runtimeProfile`（读自 attributes，默认 off），
+> `grhsim-am-lower-json` 增加 `--runtime-profile` CLI 开关。off 时：16 个
+> 计数字段与 `profilePerBlockExecs_` 数组不再生成，`execute_block` /
+> `activate_*` / `capture_*` / `mark_*` / `clear_changed_results` / `eval`
+> 热路径的 profile 分支全部不发射，`kRuntimeProfileCompiled = false`；
+> `set_runtime_profile_enabled(bool)` 退化为 `(void)enabled;`、
+> `runtime_profile_enabled()` 返回 false、`dump_runtime_profile()` 空体，
+> host 接口签名不变。on 时：生成代码与改动前**逐字节一致**，唯一差异是
+> `kRuntimeProfileCompiled` 由硬编码 false 修正为 true。验收结果：
+>
+> 1. `ctest -R grhsim-am` 8/8 全绿；全量 ctest 54/57（3 个既有失败不变）。
+>    `testPackedActivityRuntime` 改为 on 态 fixture（保留 P2 掩码路径
+>    `profileActivateForward_ += 8;` 断言 + `kRuntimeProfileCompiled = true`），
+>    `testPhasedCommitRuntime` 新增 off 态断言（header/runtime/blocks 均无
+>    `runtimeProfileEnabled_`、stub 形态、 harness 内 `static_assert` + stub
+>    调用），两态各有"emit → make 编译 → 运行"覆盖。
+> 2. `XsReal053FtqFtqLarge`：调度统计与 P2 逐项一致（greedy 7245 指令/36
+>    Block，codp 7973/38，emitter-only 改动）；off 态两路线生成代码
+>    `runtimeProfileEnabled_` 计数为 0，`clang++ -std=c++20 -O3` 编译通过，
+>    compare_driver 20,000 向量与 legacy bit-exact；on 态（greedy）同样
+>    编译 + bit-exact。
+> 3. XiangShan（同 post-stats JSON、同 Makefile 默认参数）：调度统计与 P2
+>    逐项一致（linear 4,660,708；scheduled 8,411,879；35,200 Block）；生成
+>    runtime 无 profile 引用。difftest（coremark-2-iteration + NEMU，P2/P3
+>    emu 同机背靠背）：
+>
+>    | 周期 | P2 host ms | P3 host ms | Δ | instrCnt/cycleCnt |
+>    |---|---|---|---|---|
+>    | 2k | 48,580 | 48,151 | **−0.9%** | 一致（3 / 1,996，无 mismatch） |
+>    | 20k | 623,348 | 615,634 | **−1.2%** | 一致（14,121 / 19,996，pc 相同） |
+>    | 50k | —（P1 记录 1,953,414） | 1,818,856 | −6.9% vs P1（非同窗口，仅参考） | 一致（73,580 / 49,996，与历史通过记录相同） |
+>
+>    host time 倍率（对 legacy 355,000 ms 基线，50k 口径）由 P1 的 ~5.5x 降至
+>    **~5.1x**。收益量级与 P2 相符（分支移除属小项）；M1（P1+P2+P3）三项
+>    emitter/lowering-local 优化至此全部完成并通过完整验证。
+
 ### P8：epoch 推进避免整数组拷贝
 
 - **现状**：eval 主循环 `activeWords_ = nextActiveWords_; activeSummary_ = nextActiveSummary_;`（生成代码 `:992-997`）每 epoch 全量拷贝，随后 `fill(0)` next 侧。
