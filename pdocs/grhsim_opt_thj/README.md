@@ -202,12 +202,13 @@
 | `TNO0190` | `2026-07-28` | [SimpleTES K3 post-RWA long research launch](./TNO0190_simpletes_k3_post_rwa_long_research_launch_20260728.md) | 旧 6 个 instance 均因无 checkpoint 或 pre-RWA/schema-v1 pin 不兼容而 fail-close；fresh instance `583068cb` 已用 Kimi `k3/ultra` 按 `64 proposals/32 valid` 启动，initial control evaluator 正在运行，尚无本轮 walltime 或性能结论。 |
 | `TNO0191` | `2026-07-28` | [SimpleTES K3 broken run diagnosis and graceful stop](./TNO0191_simpletes_k3_broken_run_diagnosis_and_graceful_stop_20260728.md) | instance `583068cb` 在确认 K3 持续输出 placeholder 后 graceful stop；initial control `53,794.5 ms`，27 个持久化 output 全部无效、`0/32` valid，无 candidate build/50k 性能结果，旧 preflight 被勘误为只证明 transport/schema。 |
 | `TNO0192` | `2026-07-28` | [SimpleTES K3 grounded generation fix and capability gate](./TNO0192_simpletes_k3_grounded_generation_fix_and_capability_gate_20260728.md) | SimpleTES `88abf71` 加入 JSON-only/local validation/repair、required-first loopback、bounded trace 与 grounded gate；全量 `210 passed`，真实 K3 deterministic preflight 约 `36 s`、`1` repo tool、`632 chars` PASS，未启动正式 research。 |
+| `TNO0193` | `2026-07-28` | [SimpleTES K3 grounded fresh research launch](./TNO0193_simpletes_k3_grounded_fresh_research_launch_20260728.md) | fresh instance `7291c6c2` 已以 Kimi `k3/ultra`、`64 proposals/32 valid` 启动；deterministic capability/TOCTOU gate 通过，initial control 正按空闲 CCD、fixed-ASLR SimTop 50k 协议运行，尚无 candidate 或性能结论。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`192`（`TNO0001..TNO0192`）。
+- 当前记录类文档总数：`193`（`TNO0001..TNO0193`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
