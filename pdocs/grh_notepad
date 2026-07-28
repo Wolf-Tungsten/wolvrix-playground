@@ -1,0 +1,79 @@
+# grhsim 推进记录（notepad）
+
+## 2026-07-28 AM 运行时调度模型整体替换为 legacy 两阶段 round 模型（含 read-old 修正）
+
+### 本阶段事实
+
+- 按 `pdocs/draft/grhsim-am-legacy-round-model-plan-20260728.md` 完成 AM 运行时调度模型
+  整体替换：epoch + `act.f`/`act.b` 双缓冲 + commit 双通道 → 两阶段 round 模型
+  （compute 段升序 active 过滤、commit 段连续后缀常扫描、任一 `act.b` 激发即下一轮、
+  跨块 `changed` 结果轮末清零）。interpreter 与 C++ emitter 同构切换，无兼容开关。
+- 严格删除：`BaselineActivityScheduleStage`、`AmBlockFormation::Greedy`、
+  `maxStateWritesPerBlock`、commit group 执行计划、commit operand capture、
+  consume-on-event（pending commit event 槽）、writer-frontier、eval 首 preCommitSnapshot
+  绑定。全仓只剩一份 activity schedule 实现（`wolvrix/lib/grhsim/am/activity_schedule.cpp`，
+  legacy 移植 coarsen + segment DP；`dpSegmentPenalty` 默认 1.0、`dpCoarsenBudget`
+  自动 = 32×128）。
+- validator 新增结构不变量：commit 连续后缀（end == blockCount）、state write 仅 commit
+  块、`act.f` 仅 B0/compute 且 target 为更大 compute 块、`act.b` 仅 commit 块且 target
+  为 compute 块、跨块 `changed` 结果仅前向流；B0 输入 watch 只要求覆盖非 commit 块
+  读取的输入。
+- **difftest 裁决出一处语义修正**：commit 写指令操作数直接引用寄存器 state 时，就地
+  read-new 破坏先写后读链（XiangShan BPU 预测 PC 管线 16954→17116，首取指地址被
+  多推进一个 64B 块 → flash_read 读全 0 → 伪非法指令异常 → NEMU 崩溃于 cycle ~568）。
+  修复：lowering 将此类操作数改经快照变量 + 普通 compute `assign`（commit 段前收敛、
+  随 state 变化经 `act.b` 重激活），恒等于本轮 commit 前值（read-old）；XS 上共 8,787
+  处。RMW target 旧值与 event 操作数保持就地（与 legacy 一致）。
+
+### 选择及替代方案
+
+- 不做 P1–P9 增量优化，直接替换调度模型（计划 §0 决策）。
+- read-old 的三种实现中选了 lowering compute-assign：①恢复运行时 capture（与"严格
+  删除"冲突最大）；②每轮 commit 段首全量快照（机制等价但有运行时簿记）；③compute
+  assign（零运行时机制，复用 act.b 天然覆盖）。②③语义等价，③最简。
+- 未覆盖 LatchWrite 与 commit 内 MemoryRead 的直通 state 读（旧模型同样不覆盖；
+  difftest 未暴露问题，列为观察项）。
+
+### 测量数据
+
+- 单测：`tests/grhsim/am` 8/8 全绿；全量 ctest 仅剩 3 个既有失败
+  （transform-comb-lane-pack、transform-repcut、ingest-write-back-slice，与本次无关，
+  2026-07-27 P0 记录已备案）。
+- HDLBits：Verilator 套件 162/162；grhsim 套件 160/162（023 posedge、119 async reset
+  为 legacy 路线既有失败，与本次零共享代码）。
+- xs-components：053/044/100 三案各 20,000 随机向量与 legacy bit-exact（修复前后均过）。
+- XiangShan CoreMark/NEMU difftest（修复版，严格升档）：2k/20k/50k 全过；50k 双方
+  退休指令数 73,580、IPC 1.471718 完全一致。
+- host time（同窗口，本机）：AM 2k=82,885 ms / 20k=962,166 ms / 50k=2,682,743 ms；
+  legacy 2k=1,461 ms / 20k=45,365 ms / 50k=169,387 ms。AM/legacy @50k = 15.8x；
+  对比旧 AM 4,178,703 ms（历史）提升 1.56x；对比 legacy 355,000 ms（历史基线）差
+  7.56x，未达"回到基线附近同一数量级"的预期，阈值需评审。
+- 调度统计（XS 修复版）：4,669,495 线性指令 → 182,615+8,787 相关 cluster → 9,415
+  compute 块 + 497 commit 块；detector 2,009,185、激活边 2,706,574；coarsen 2.5s +
+  DP 0.14s。
+
+### 未关闭风险
+
+- 性能差距（~8–16x）仍在：逐 Block 动态 dispatch、detector 密度、commit 段常扫描
+  （497 块×每轮）是主要来源（`grhsim-am-vs-legacy-analysis-20260727.md` §3.4/§3.5）。
+  后续优化方向：dispatch 静态化/直接调用 batch、detector 共享、commit 段合并执行。
+- LatchWrite 直通 state 操作数、commit 内 MemoryRead 读到同轮先写的内存：旧模型同等
+  语义，未验证是否安全（difftest 未暴露）。
+- host 调用次数未做逐次 call-trace 对比（计划允许以 difftest 裁决）。
+
+### 执行过的命令（关键路径）
+
+- 单测：`cmake --build wolvrix/build -j && ctest --test-dir wolvrix/build -R grhsim-am`
+- HDLBits：`make run_all_hdlbits_tests`、`make run_all_hdlbits_grhsim_tests`（keep-going 循环）
+- xs-components：`wolvrix/build/bin/grhsim-am-lower-json <normalize.json> <top> --emit <dir>`
+  → `make -C <dir>` → compare_driver 20,000 向量 diff（产物 `build/analysis/am_round_20260728/`）
+- XS gate：`make xs_wolf_grhsim_am_emu XS_GRHSIM_AM_BUILD=... XS_WOLF_GRHSIM_AM_EMIT_DIR=...
+  XS_WOLF_GRHSIM_AM_POST_STATS_JSON=build/xs/grhsim-am/wolvrix_xs_post_stats.json
+  XS_WOLF_GRHSIM_AM_RESUME_FROM_STATS_JSON=1`，然后
+  `build/xs/grhsim-am-round-fix1/run_round_gate.sh`（日志 `build/xs/grhsim-am-round-fix1/`）
+
+### 下阶段入口
+
+- 性能阈值评审：当前 15.8x（同窗口）/7.56x（历史基线）是否可接受；不可接受则按
+  §3.4/§3.5 的收益排序做 dispatch 静态化与 detector 去重。
+- 如需进一步提升功能置信度：host call-trace 对比、更大规模 difftest（Linux 启动）。

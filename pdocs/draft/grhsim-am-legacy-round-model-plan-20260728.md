@@ -166,6 +166,15 @@ eval(S):
   writer-frontier（earlier writer 快照 guard + `act.f` 激活 final frontier）机制整体
   删除。可能出现"写变又被写回"导致的多余一轮激活，legacy 行为相同，属允许的多执行。
 
+> **2026-07-28 difftest 修正（§1.5 第一条部分收回）**：XS difftest 裁决表明，"没有
+> operand 快照"在"commit 写指令的操作数**直接引用寄存器 state**"时不成立——就地
+> read-new 会破坏 commit 段内/段间的先写后读链（XiangShan BPU 预测 PC 管线
+> 16954→17116，首取指地址被多推进一个 64B 块）。legacy 的正确语义是 read-old（sink
+> 数据来自 compute 已收敛值）。修复方式不是恢复任何运行时快照机制，而是在 lowering
+> 把这类操作数替换为快照变量 + 一条普通 compute `assign`（commit 段前收敛、随
+> state 变化经 act.b 重激活），其余语义（无 capture 表、无 pending event、无跨轮保留）
+> 不变。详见 `grhsim-am-pipeline.md` 的 2026-07-28 进展记录。
+
 ### 1.6 host / DPI / system call
 
 - host 指令仍在 compute Block 中；`event_mode = immediate/pending`、once/final 生命周期

@@ -63,9 +63,6 @@ def main() -> int:
     parser.add_argument("--blocks-per-source", type=parse_positive)
     parser.add_argument("--max-source-bytes", type=parse_positive)
     parser.add_argument("--max-instructions-per-block", type=parse_positive)
-    parser.add_argument(
-        "--block-formation", choices=("greedy", "coarsen-dp"), default=None
-    )
     parser.add_argument("--dp-segment-penalty", type=float, default=None)
     parser.add_argument("--dp-coarsen-budget", type=int, default=None)
     args = parser.parse_args()
@@ -139,8 +136,6 @@ def main() -> int:
         lower_command.extend(
             ["--max-instructions-per-block", str(args.max_instructions_per_block)]
         )
-    if args.block_formation is not None:
-        lower_command.extend(["--block-formation", args.block_formation])
     if args.dp_segment_penalty is not None:
         lower_command.extend(["--dp-segment-penalty", str(args.dp_segment_penalty)])
     if args.dp_coarsen_budget is not None:
