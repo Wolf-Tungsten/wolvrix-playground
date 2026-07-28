@@ -330,6 +330,7 @@ diff out_legacy.txt out_am_codp.txt    → 一致（20000/20000 行）
 3. **dispatch 静态化**：对固定 Block 拓扑，生成直接调用的 batch 函数（legacy 形态）替代 `execute_block` switch 扫描；至少把 runtime profile 分支编译期关掉（当前 `runtimeProfileEnabled_` 是运行期判断，dispach 热路径每次 `execute_block` 都查）。
 4. **detector 降密度**：提高 AM Block cap 或对纯组合长链启用更大的 coarsen budget，减少跨块边界数量（detector 数 ∝ 边界变量数）。
 5. 修复 §5.3 的回归并加编译型回归测试。
+6. **commit operand capture 热点**（2026-07-28 P4 profile 顺带发现）：P3 emu 2k perf 中 `eval()` 自时间的 ~90%（全程序 ~5%）是 `capture_pending_commit_operands` 内联循环——256k capture 槽位按 pending commit Block 逐个查表拷贝。收益方向：capture 与 guard 消费融合、按 commit group 批量快照、或消除对同一 eval 内不再变化的 operand 的重复 capture（与 P5 的写点判变融合天然叠加）。优先级应高于已关闭的 P4。
 
 ## 附：关键源码位置
 
@@ -356,7 +357,8 @@ diff out_legacy.txt out_am_codp.txt    → 一致（20000/20000 行）
 | P1 | event 共享：153 写各配 1 个 posedge detector vs legacy 共享 1 slot | 按 (edge, watched var) 去重 | lowering | 低-中 | detector −10%、commit 簿记大降 | 高 |
 | P2 | 传播：逐 target `activate_*` 调用 vs 常量掩码 | ~~同类 target 合并为掩码写~~ → 按点位足迹混合（已完成，见 §7.3 记录；后续为 P2' 同扇出聚合） | emitter | 低 | 2k host −2%；原 −80% 前提被证伪 | 高 |
 | P3 | dispatch 热路径运行期 profile 分支 | 编译期开关 | emitter | 低 | 每次 activate/execute 省分支 | 高 |
-| P4 | 动态位图扫描 + switch dispatch vs 静态 batch 直接调用 | word 级跳过 + 顺序 dispatch | emitter | 中 | XiangShan 规模才显著 | 中（需 profile） |
+| P4 | 动态位图扫描 + switch dispatch vs 静态 batch 直接调用 | ~~word 级跳过 + 顺序 dispatch~~ → 实测净回退，已回退关闭（见 §7.4 记录） | emitter | 中 | 负（指令 −2.1% 但 L1I +3.6%、周期 +4.6%） | ~~中~~ 关闭 |
+| P4.5 | 同上（P4 修正版） | ~~8-bit byte 快照 + 局部接力 + countr_zero~~ → 实测仍净回退（2k +3.7%/20k +2.4%），已回退关闭（见 §7.4 记录） | emitter | 中 | 负（指令 −1.5% 但 L1I +4.1%、周期 +4.1%） | ~~高~~ 关闭 |
 | P5 | commit 写不判变 + 尾部 detector 二次比较 vs 写点内联判变 | 单写场景融合写与 detector | scheduler+emitter | 中-高 | 每 state 写省一次比较+old | 中 |
 | P6 | 分块粒度：36 block/128 cap/budget 16 vs legacy 24 SN/budget 4096 | 扫参选默认，对齐 budget 公式 | scheduler 参数 | 低 | detector 密度下降 | 中 |
 | P7 | B0 通用 detector 播种 vs eval 内联比较播种 | B0 形态特化 | emitter | 低-中 | 小（输入少） | 低 |
@@ -547,6 +549,63 @@ diff out_legacy.txt out_am_codp.txt    → 一致（20000/20000 行）
 - **方案**：双缓冲——生成代码用 `cur`/`next` 两组存储的指针/索引互换（或直接 `std::swap`），换出的 next 侧只需清"本 epoch 被置过位"的 word；commit 的 `pendingCommitWords_ |= nextCommitWords_` merge 语义保持不变。eval 开头的 8 个 `fill(0)`（37k Block 时约 37 KB/次）同理可保留（首次必须），但 epoch 内不再全清。
 - **验证**：bit-exact；多 epoch 设计（state 反馈密集 case）重点回归。
 
+> **2026-07-28 P8 完成记录**：已按上述方案落地（emitter-local，
+> `cpp_emitter.cpp` 一处改动）——
+>
+> **形态**：compute activity 改为双缓冲存储（`activeWordBuffers_[2]` /
+> `activeSummaryBuffers_[2]` + cur/next 指针成员），compute 相位的 epoch
+> 推进由"拷贝 + fill"改为 `std::swap` 指针互换——`execute_active_blocks()`
+> 返回时任一侧必为全零（扫描循环只在所有 summary word 清空后退出，而
+> summary 是 word 非零的精确镜像），换出的旧 cur 侧即干净的 next，无需
+> 再清；swap 与该点的 copy+fill 严格等价。commit 侧保持单存储与
+> `pending |= nextCommit` merge 语义，但两处 epoch 推进（compute 相位、
+> commit 相位 `active |= nextActive`）的 merge+fill 均改为经 next 侧
+> summary 位图的**稀疏 drain**（`drain_next_active_activity` /
+> `drain_next_commit_activity`）：next 侧 summary bit 与 word 非零一一对应
+> （激活永远同时置 word 位与 summary 位，next 侧仅在 drain/swap 处清零），
+> drain 只触碰实际置位的 word，与 dense merge 置的是同一个位集合。
+> `init()`/eval 入口的 8 个 `fill(0)` 保留（等价代价），并把指针复位到
+> 基准侧。生成类删除拷贝构造/赋值——指针成员下隐式拷贝会串 buffer
+> （已核实 ctest harness、difftest emu（`new GrhSIMModel`）、xs-components
+> bench/compare driver（栈对象）均无拷贝行为，删除只是防护，不改 host
+> 用法）。`activate_*` / 掩码形态 / 扫描循环的生成文本不变（指针下标与
+> 数组下标同形），hot path 仅多一次成员指针加载。
+>
+> **验收结果**：
+>
+> 1. `ctest -R grhsim-am` 8/8 全绿；全量 ctest 54/57（3 个既有失败不变）。
+>    `testPackedActivityRuntime` 的头部断言更新为双缓冲声明形态，新增
+>    "swap 推进 + drain 存在、旧 copy/fill 序列不得回潮"锁定断言；
+>    Array Fill 测试的 `std::fill_n(` 计数断言收窄为
+>    `std::fill_n(wideValues_.data()`（原计数被 `activate_all_blocks` 的
+>    两个新 `fill_n` 干扰，意图不变）。
+> 2. `XsReal053FtqFtqLarge`：调度统计与 P3 逐项一致（greedy 7245 指令/36
+>    Block，codp 7973/38，detector/act 站点逐项相同，emitter-only 改动）；
+>    两路线 `clang++ -std=c++20 -O3` 编译通过，compare_driver 20,000 向量
+>    与 legacy bit-exact；`--runtime-profile`（on 态）同样编译 + bit-exact。
+>    小 case 驱动时间仅供参考（greedy 0.43 s vs P3 0.44 s）。
+> 3. `XsReal100BackendNfmappedelemidxSmall`（纯组合）：AM-P8 模型
+>    GSIM-verify 2048 向量 pass、100k bench checksum 与 GSIM 一致
+>    （`0x3416b5cb2a9e4ee0`）。
+> 4. `XsReal044SramSramtemplateLarge`（SRAM 密集，覆盖 commit 相位 drain
+>    路径）：AM-P8 与 AM-P1 模型 20,000 向量逐拍 bit-exact。
+> 5. XiangShan（同 post-stats JSON、同 Makefile 默认参数）：调度统计与 P3
+>    逐项一致（scheduled 8,411,879；35,200 Block；activation_targets
+>    2,908,430），emu 构建通过。difftest（coremark-2-iteration + NEMU）：
+>
+>    | 周期 | P3 host ms（既有记录） | P8 host ms | Δ | instrCnt/cycleCnt |
+>    |---|---|---|---|---|
+>    | 2k | 48,151 | 47,897 | **−0.5%** | 一致（3 / 1,996，无 mismatch） |
+>    | 20k | 615,634 | 613,883 | **−0.3%** | 一致（14,121 / 19,996，pc 相同） |
+>
+>    50k、同窗 P3 基线重跑与 perf stat 未执行（2026-07-28 gate 运行至
+>    2k/20k 完成后应要求提前终止）；上表为非同窗对照，仅作方向参考。
+>    收益量级与 P8"低收益"定位一致：每 epoch 的 ~8 趟 O(words) 扫描
+>    （2 拷贝 + 2 merge + 4 fill）压成 2 次指针互换 + 2 趟稀疏 drain，
+>    抵偿 hot path 上的指针间接后约 −0.3~−0.5%。产物：
+>    `ptmp/grhsim_am_p8_epoch_swap_20260728/`（gate 脚本/日志、044 对比
+>    驱动与输出）、`build/xs/grhsim-am-p8/`（emit、emu、difftest 日志）。
+
 ## 7.4 阶段 2：参数与中风险项（P6/P4）
 
 ### P6：分块粒度扫参与默认值对齐
@@ -571,6 +630,146 @@ diff out_legacy.txt out_am_codp.txt    → 一致（20000/20000 行）
   利用 act.f 严格前向，按 BlockId 升序单遍扫描即为一个 epoch（与现位图扫描同构，省 countr_zero 逐位扫描与 switch 间接）。Block 体积分片仍按 `blocksPerSource` 控制单函数规模。
 - **前提**：先做 P2/P3 后在 XiangShan 上 profile（开编译期 profile），确认 dispatch 开销占比仍显著再动手；37k Block 全展开可能反而增大 I-cache 压力，需要实测。
 - **风险**：中——必须保持"同 epoch 按 BlockId 升序、每 Block 最多执行一次"的消费语义；B0 不在 epoch 扫描内。
+
+> **2026-07-28 P4 完成记录（结论：实测净回退，已回退不提交）**：按上述方案完整
+> 实现并通过全部功能 gate，但 XiangShan A/B 为负，依据本项自己的"实测再决定"
+> 前置条款回退。过程与数据：
+>
+> **前提实测**：P3 emu（2k, perf record）：`execute_active_blocks` 被内联进
+> `eval()`，扫描循环样本占比 ~0%；`execute_block` 自身 0.08%；
+> `activate_forward/backward` 合计 0.32%——**dispatch 开销不显著**（≈0.2%）。
+> 顺带发现 `eval()` 自时间（5.69% 总占比）的 ~90% 是
+> `capture_pending_commit_operands` 内联循环（256k capture 表驱动），这是比
+> dispatch 大一个数量级的真实热点，已补记为 §6 第 6 项（与 P5/P8 协同）。
+>
+> **实现（emitter-local，补丁留存 `ptmp/grhsim_am_p4_static_dispatch_20260727/p4_static_dispatch.patch`）**：
+> 每 part 生成 `execute_active_blocks_<S>[_part_P]()`——按 64-block word 展开
+> `if (activeWords_[w] != 0) { if ((activeWords_[w] & MASK_b) != 0) { 清位; 块体 } }`，
+> Block 体直接内联；块 0 只清位不执行（对齐旧扫描 `block != 0` 守卫）；
+> block 0 与 commit Block 保留原 `execute_blocks_<S>` switch 由 `execute_block`
+> dispatch（eval 入口与 commit group 不变）；`execute_active_blocks()` 改为按
+> (source, part) 升序直接调用各 scan 函数，结尾 `activeSummary_.fill(0)`（act.f
+> 严格前向 ⇒ 单遍后全零）；profile-on 时 per-block 计数在 scan chunk 内原语义
+> 保留；`maxSourceBytes` 计量按 scan/case 两形态分别精确累计。
+>
+> **功能 gate（全过）**：`ctest -R grhsim-am` 8/8、全量 54/57（3 个既有失败不变）；
+> `XsReal053FtqFtqLarge` 调度统计与 P3 逐项一致、两路线 clang++ -O3 编译、
+> compare_driver 20,000 向量与 legacy bit-exact；`XsReal100BackendNfmappedelemidxSmall`
+> GSIM-verify 2048 pass + 100k bench checksum 与 GSIM 一致；
+> `XsReal044SramSramtemplateLarge` 与 P1 模型 20,000 向量逐拍 bit-exact；
+> XiangShan 重新 emit（调度统计与 P3 一致：linear 4,660,708、scheduled 8,411,879、
+> 35,200 Block、34,702 scan chunk）+ emu 构建通过，difftest 2k（3/1,996）、
+> 20k（14,121/19,996）功能与 P3 记录完全一致。
+>
+> **性能 A/B（coremark-2-iteration + NEMU，P3/P4 emu 同机背靠背）**：
+>
+> | 周期 | P3 host ms | P4 host ms | Δ |
+> |---|---|---|---|
+> | 2k | 48,216 | 50,087 | **+3.9%** |
+> | 20k | 617,404 | 633,063 | **+2.5%** |
+>
+> 2k perf stat（P3 → P4）：指令 55.61G→54.46G（**−2.1%**），周期
+> 276.5G→289.1G（**+4.6%**），L1-icache-load-misses 2.787G→2.886G
+> （**+3.6%**），branch-misses 1.767G→1.796G（+1.7%）。
+>
+> **机制**（经符号级 L1I 归因与反汇编核实，较初版记录更精确）：L1I miss 在两侧
+> 的分布几乎同构（body 容器占比均 ~93.5%），+3.6% 是**全程序同比例变多**——
+> 即取指流总量变大，而非静态布局挤压。字节账：XiangShan 的 activity 是**稠密**
+> 的（每 eval 约 23k/34.7k 个 compute Block 被执行），"word 检查跳过大部分
+> word"的前提不成立，P4 每 epoch 实际取遍几乎全部 34,702 个 chunk 检查——每个
+> chunk 编译为 `lea + mov(7+3B 重新加载 activeWords_[w]) + test(2B) + je(6B)` ≈
+> **18B**，64 个/word ⇒ ~1,152B/活跃 word、全 epoch ~600KB；按 ~3 epoch/eval ×
+> 2000 eval 估算 ~3.6GB 检查取指（~113M 行填充），与实测 +99M 次 L1I miss 量级
+> 吻合。对照 legacy 的**同构**形态（31,534 compute supernode、283 个 batch）：
+> 每活跃 byte-word 仅 ~77B——清字节 7B + 8 个**寄存器**位测试
+> （`test $imm,%al`，2B+6B）+ 回写 6B，因其 batch 内同 word 激活写**本地快照**
+> （局部接力，batch 末 `or` 回全局），位测试无需重读内存；AM 的
+> `activate_forward()` 写全局数组，P4 的每个 chunk 只能重读全局 word，单检查
+> 字节数差 ~2.3×、每执行单元摊到 ~18B vs ~9.6B。省掉的 2.1% 指令（间接跳转 +
+> countr_zero）抵不过每 epoch 多取的 ~0.5MB 检查码。**前提判断（dispatch 显著）
+> 与方案假设（省间接跳转 = 净赚）同时被证伪**；该 sim 的瓶颈在前端取指，且
+> XiangShan 的稠密 activity 使"展开跳过"无从获益。
+>
+> **决定**：回退不提交（工作区已恢复 P3 形态，`ctest -R grhsim-am` 复测 8/8 全绿）；
+> 两级 summary 位图扫描 + switch 间接 dispatch 在前端受限负载下已是更优形态。
+> P4 项以负结果关闭。注：legacy 的同构展开能赢**不是**因为执行单元更少
+> （31,534 supernode 与 AM 同量级），而是**寄存器快照位测试**（~8B/单元）
+> + 局部接力；AM 要复刻需把 scan 改为"word 快照 + 同 word 前向激活改写快照 +
+> countr_zero 循环"的形态（把单检查压到 ~8B 以下），重写面大且收益上限实测仅
+> ~0.2~2%，不再追求对齐。
+
+### P4.5：byte 快照 + 局部接力 + countr_zero（P4 修正版）
+
+- **修正点**（对 P4 回退根因的逐项对齐，全部 emitter-local）：
+  1. **8-bit word**：扫描粒度从 64-Block u64 word 改为 8-Block byte（对齐
+     legacy/GSIM 的 batch 粒度），存储仍是 `activeWords_` u64 数组（activate_*
+     与 epoch 推进零改动），扫描经 `active_byte_ref()` 字节视图读写（小端假设，
+     x86_64 宿主）。
+  2. **word 快照**：每 byte 一次 `std::uint8_t byteFlags = active_byte_ref(b)`
+     （part 在 byte 中间分裂时按所属位掩码 `& ownedMask`，清位也只清所属位
+     `&= ~ownedMask`），后续位测试全部打在寄存器快照上（P4 的每个 chunk
+     重读内存的 10B 开销消除）。
+  3. **countr_zero 消费**：`do { bit = countr_zero(byteFlags); byteFlags &= byteFlags-1;
+     switch (bit) { case k: <body> } } while (byteFlags)`，只迭代置位块、严格升序；
+     `switch` 归一到本 byte 的 8 路分派（无 P3 的两级 switch 间接）。
+  4. **局部接力**：scan 上下文中（`EmitState.scanRelayByte/Mask`）act.f 的同 byte
+     compute 目标改写为 `byteFlags |= mask`（目标块由同一 do-while 稍后消费，
+     严格前向保证其位尚未被扫描）；同 act 的跨 byte 目标保持原 call/mask 形态
+     （P2 形态选择器只对未接力目标决策）。接力目标须属于当前 byte chunk 的
+     ownedMask——part 在 byte 中间分裂时，落在另一 part 的目标回退全局路径，
+     由该 part 的 byte chunk 后续快照看到。
+- **语义不变量**（与 P3/P4 同一套）：同 epoch 按 BlockId 升序、每 Block 最多
+  执行一次、消费位先于执行；byte 快照所属位清零在前、执行在后，未所属位不动；
+  commit Block 与 block 0 仍走 `execute_block` switch；profile 计数语义不变
+  （masked + relayed 合计）；`execute_active_blocks()` 结尾 `activeSummary_.fill(0)`
+  （act.f 严格前向 ⇒ 单遍后全零）。
+- **预期**：每活跃 byte 的扫描开销从 P4 的 ~1,152B（64×18B）降到 ~15B（字节
+  检查）+ 置位块数 × ~10B（tzcnt/blsr/分派），与 legacy 的 ~77B/byte 同量级；
+  每 Block 执行的 dispatch 从 P3 的 2 次间接跳转降为 1 次（byte 内 switch）。
+
+> **2026-07-28 P4.5 验收记录（结论：功能全对，XiangShan 仍为净回退，回退不提交）**：
+> 按上述四点完整实现（补丁留存 `ptmp/grhsim_am_p4_static_dispatch_20260727/p4_5_byte_snapshot.patch`）。
+>
+> **功能 gate（全过）**：`ctest -R grhsim-am` 8/8、全量 54/57（3 个既有失败不变）；
+> `XsReal053FtqFtqLarge` 调度统计与 P3 逐项一致、两路线 clang++ -O3 编译、
+> compare_driver 20,000 向量与 legacy bit-exact（小 case 时间 greedy 0.44→0.40 s）；
+> `XsReal100BackendNfmappedelemidxSmall` GSIM-verify 2048 pass + 100k checksum 一致；
+> `XsReal044SramSramtemplateLarge` 与 P1 模型 20,000 向量逐拍 bit-exact；
+> XiangShan 重新 emit（调度统计与 P3 一致；**368,722 个 act 目标（12.7%）走局部
+> 接力**，activate_* 调用点 2,292,738→1,920,205）+ emu 构建通过，difftest 2k
+> （3/1,996）、20k（14,121/19,996）功能与 P3 记录完全一致。
+>
+> **性能 A/B（coremark-2-iteration + NEMU，P3/P4.5 emu 同机背靠背）**：
+>
+> | 周期 | P3 host ms | P4.5 host ms | Δ |
+> |---|---|---|---|
+> | 2k | 48,240 / 48,182 | 49,956 / 50,071 | **+3.7%** |
+> | 20k | 618,837 | 633,444 | **+2.4%** |
+>
+> 2k perf stat（P3 → P4.5）：指令 55.61G→54.78G（**−1.5%**），周期
+> 276.5G→287.9G（**+4.1%**），L1-icache-load-misses 2.787G→2.901G
+> （**+4.1%**），branch-misses 1.767G→1.790G（+1.4%）。
+>
+> **机制（反汇编 + 归因核实）**：四点对齐全部生效（byte 快照 `movzbl` 7B、
+> 快照寄存器消费、12.7% 目标接力进 `byteFlags`、间接跳转从 2 降为 1），但
+> **countr_zero 分派循环是每个 byte chunk 各复制一份**（`tzcnt+blsr+表加载+
+> 间接跳` ~25B × 4,400 chunk；实测 `execute_active_blocks_4` 内 12 chunk =
+> 12 份）——XiangShan activity 稠密（每 eval ~23k/34.7k Block 执行、~2/3 byte
+> 活跃），每 epoch 仍要取 ~350KB 的分派胶+检查码（P4 为 ~600KB，改善但未消除），
+> 且每 Block 的 byte 内 jump table 间接跳保留了一次间接跳转。与 legacy 对照的
+> 最后一项差异（legacy 是 8 个直线 `test $imm,%al` 无间接跳）即使对齐也只是
+> 取指量持平、省一次预测良好的间接跳，实测收益预期 <0.1%，不构成翻盘项。
+>
+> **结论**：P4/P4.5 两组实测共同证伪了"静态展开 dispatch"方向在 XiangShan 的
+> 适用性——**稠密 activity + 前端受限** 的组合下，任何"每个执行单元每 epoch
+> 触碰独立代码"的形态都要付出 ~+3% 的取指代价，而 P3 的两级 summary 扫描把
+> dispatch 代码压成 ~100B 共享热循环（取指≈0）、间接跳转预测良好，已是局部
+> 最优。legacy 的 batch 形态在其负载结构下成立，不是因为形式本身更优，而是
+> legacy 的总时间不由 dispatch 取指主导。回退不提交（工作区恢复 P3 形态）；
+> dispatch 方向以两次完整实测关闭，后续性能工作转向 §6 第 6 项（commit
+> operand capture 热点）与 P5/P6/P8。
+
+
 
 ## 7.5 阶段 3：语义相关后置项（P5/P7/P9）
 
@@ -608,7 +807,8 @@ diff out_legacy.txt out_am_codp.txt    → 一致（20000/20000 行）
 M0（立即）   P0 提交 + 编译回归测试
 M1（1~2 天） P1 + P2 + P3：三项 emitter/lowering-local，叠加后做一次完整验证
              （ctest + 3 case bit-exact + XiangShan 2k/20k/50k difftest + host time）
-M2（2~3 天） P8 + P6 扫参；XiangShan profile 后决定 P4 是否做、做到什么程度
+M2（2~3 天） P8 + P6 扫参；~~XiangShan profile 后决定 P4 是否做、做到什么程度~~
+             P4/P4.5 已按该条款实测并双双关闭（净回退，见 §7.4 两组记录，2026-07-28）
 M3（评估后） P5（先论证等价性）、P7；P9 视 memory 收益单独立项
 ```
 
