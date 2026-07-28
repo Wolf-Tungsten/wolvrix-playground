@@ -206,12 +206,13 @@
 | `TNO0194` | `2026-07-28` | [SimpleTES K3 grounded initial control result](./TNO0194_simpletes_k3_grounded_initial_control_result_20260728.md) | 前 3 次 runtime invocation 因 strict CCD gate 作废；第 4 次正式同码 ABBA 为 control `54,512.5 ms`、candidate-control `54,584.0 ms`，仅 `0.131163%` 噪声，四样本 fixed-ASLR/CCD/NUMA/PMU/功能门禁全过，随后进入首条 K3 generation。 |
 | `TNO0195` | `2026-07-28` | [SimpleTES K3 context window correction and resume](./TNO0195_simpletes_k3_context_window_correction_and_resume_20260728.md) | 旧首条 generation 在错误 `272000` context 下运行 `4,053 s` 后按指示优雅取消，无 final JSON/build/eval；`1,284,303 B` trace 与 `db_state_045321` 已保留。配置更正为 `1000000` 后从同一 control checkpoint 恢复，实际 private config 二次核验通过，剩余 `63` proposals 已继续运行。 |
 | `TNO0196` | `2026-07-28` | [SimpleTES K3 parallel generation, subagents, and 1M catalog](./TNO0196_simpletes_k3_parallel_generation_subagents_and_context_catalog_20260728.md) | 根因确认 unknown-K3 metadata 将 `1000000` 钳为 `272000`；SimpleTES `50de044` 加入 private 1M catalog、K3-only 自由 3-subagent、4 路 generation 与 `10800s` timeout，全量 `213 passed`。旧实例由 `db_state_124118` 正常恢复，连续 `4 active/0 queued`、无 fallback；已追加两个 root 各自主 spawn `3` 个 subagent 的运行证据，尚无新 50k 结果。 |
+| `TNO0197` | `2026-07-28` | [SimpleTES repair raw-response persistence and JSON diagnostics](./TNO0197_simpletes_repair_raw_response_persistence_and_json_diagnostics_20260728.md) | SimpleTES `c4e4a05` 修复 repair 仅见压平末尾 `2000` 字与 InvalidJSON 无定位：完整结构保持 response 在 retry 前写入 private `llm_attempts`，精确记录 line/column/character/byte；4 请求/12 artifacts 并发隔离，全量 `225 passed`。运行中旧实例未重启，修复从下次启动生效。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`196`（`TNO0001..TNO0196`）。
+- 当前记录类文档总数：`197`（`TNO0001..TNO0197`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
