@@ -77,3 +77,63 @@
 - 性能阈值评审：当前 15.8x（同窗口）/7.56x（历史基线）是否可接受；不可接受则按
   §3.4/§3.5 的收益排序做 dispatch 静态化与 detector 去重。
 - 如需进一步提升功能置信度：host call-trace 对比、更大规模 difftest（Linux 启动）。
+
+## 2026-07-29 AM 路线三项对齐：静态 dispatch + 块粒度扫参 + 成员存储/PCH
+
+### 本阶段事实
+
+- 静态 dispatch（round 模型版）：compute 段按 (source,part) 升序静态调用 `eval_scan_*()`，
+  函数内 8 Block/byte chunk 活动字节快照 + 所属位升序直线测试 + 内联 body + 同 byte
+  前向 act 局部接力（`byteFlags |=`）；commit 段 `eval_commit_*()` 无条件内联；B0 独立
+  `execute_block_0()`。废弃 `execute_block` 三级动态分派与位图扫描主循环。
+- 块粒度：根因是 `coarsenBudget=32×cap=4096` 在单指令 atom DAG（XS 70% outdeg-1 长链）
+  上跑满收敛，产出 (128,4096] DP 不可拆 oversized singleton；legacy coarsen 提前
+  tail-stop，128 cap 才真正约束。扫参（XS，cap=128、penalty=1.0 不变，commit 恒 497）：
+  budget 4096/512/256/192/128 → compute 块 9,415/17,418/27,257/33,738/44,254
+  （legacy 31,534），detectors 恒 ~2.0M、激活边 +9% 以内。**默认公式改为 1.5×cap=192**。
+- 存储：持久化窄值全部改为独立类成员 `v<VariableId>`（XS 6.64M 个）；跨块 changed
+  result（唯一运行时下标访问）单列 `changedResults_`（XS 413）；生成 Makefile 带 PCH
+  + `ifeq ($(origin CXX),default)` 兜底 g++。
+- 关键缺陷：clang 22.1.2 隐式默认 ctor 对数万以上 `{}` 初始化成员静默截断（2M 成员
+  复现仅初始化 33,922 个；XS 6.6M 时 stringValues_ 未构造 → init() SIGSEGV）。修复：
+  成员不带初始化式 + init() 单条 memset 清零连续成员区。与 PCH 无关（文本包含同现）。
+
+### 测量数据（XiangShan CoreMark/NEMU，干净机，host ms）
+
+| 配置 | 2k | 20k | 50k |
+|---|---|---|---|
+| 动态 b4096（07-28 基线） | 82,885 | 962,166 | 2,682,743 |
+| 静态 b4096 | 101,314 | 1,146,681 | — |
+| 静态 b192 | 82,409 | 918,278 | — |
+| 最终 b4096（静态+成员） | 103,154 | 1,126,442 | — |
+| 最终 b192（静态+成员） | 81,760 | 905,050 | 1,982,820 |
+| legacy（07-28 同窗口） | 1,461 | 45,365 | 169,387 |
+
+- 静态 dispatch 同块数下仍净回退（+19~22%，与 P4/P4.5 同机制：扫描胶取指开销），
+  由块细化（b192）抵消并反超基线（20k −6.0%）；成员存储在 20k 再贡献 −1.4~1.8%。
+- 编译侧 spike：每百万成员 ≈ 1.3s/TU + 0.8GB RSS（2M：PCH 5.6s/258MB/2.3s每TU；
+  8M：PCH 25.8s/1.1GB/10.5s每TU）。XS 实测 hpp 190MB、PCH 1.3GB、单 TU ~4-5GB。
+  代价已知并由需求方拍板接受（换取编译器对独立成员的静态排布与寄存器分配）。
+- 功能 gate：ctest AM 8/8、全量 54/57（3 个既有无关失败）；xs-components 053/044/100
+  各 20,000 向量与 legacy bit-exact（静态形态、成员形态、新默认路径各一轮）；
+  XS difftest 2k/20k 双配置通过，50k 通过（双方退休指令数 73,580、IPC 1.471718
+  与 legacy 完全一致）。50k 口径：最终 b192 = 1,982,820 ms，对比 07-28 基线 −26.1%，
+  对比 legacy 同窗口 169,387 ms 为 11.7x（07-28 基线为 15.8x）。
+
+### 执行过的命令（关键路径）
+
+- 扫参：`grhsim-am-lower-json <v5 post-stats json> SimTop --emit <dir> --dp-coarsen-budget B`
+  （B∈{0,128,192,256,512}，产物 `ptmp/grhsim_am_coarsen_sweep_20260729/`）
+- 回归脚本：`ptmp/grhsim_am_static_dispatch_20260729/run_xs_components.sh`（三案 bit-exact）、
+  `ptmp/grhsim_am_static_dispatch_20260729/run_gate.sh`（通用 difftest gate）
+- ctor bug 复现：`ptmp/grhsim_am_member_pch_spike_20260729/ctor_repro*.{hpp,cpp}`
+- v2 模型与 emu：`ptmp/grhsim_am_members_20260729/xs_b{4096,192}_v2`、
+  `build/xs/grhsim-am-members-b{4096,192}-v2/`
+
+### 下阶段入口
+
+- 与 legacy 的 ~20x（20k 口径）剩余差距：commit operand capture、detector 密度、
+  commit 段每轮无条件全扫（497 块 × ~2k 语句/轮）——按分析文档 §6/§7.5（P1/P5/P9）。
+- 成员布局实验：声明顺序当前按 VariableId，可按访问频度/块亲和重排（用户关注的
+  编译器静态排布方向的下一步）。
+- HDLBits 023/119 与 3 个既有 ctest 失败仍为本仓历史遗留，与本阶段无关。

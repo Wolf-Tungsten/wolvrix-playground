@@ -819,3 +819,85 @@ M3（评估后） P5（先论证等价性）、P7；P9 视 memory 收益单独�
 - **值级内联 change 检测**（legacy 每个 tracked value 内联比较）：AM 的 Block 边界物化 detector 是 ScheduledProgram 可验证性的基础，回退等于放弃 AM 架构目标；应通过 P1/P5/P6 降低 detector 总量，而不是改变检测粒度模型。
 - **session side table ↔ ExecutableModel 的耦合差异**：方向相反，legacy 侧才是要被替代的一方（pipeline 文档 §5）。
 - **round ↔ epoch 语义**：官方已认定不同构（pipeline 文档 `:655`），对齐只到"eval 内不动点"的净效果等价（§5.2 已验证），不追求逐 round/epoch 对齐。
+
+# 8. round 模型时代的三项对齐（2026-07-29，完成记录）
+
+对应 §6 遗留方向在 round 模型（2026-07-28 重构）之后的三项落地：dispatch 静态化、
+块粒度扫参对齐、存储成员变量化 + PCH。注意前提已与 §7.4 的 P4/P4.5 时代不同：
+round 模型默认参数下块数已从 35,200 降到 9,415，且存储/emit 链路整体重写。
+
+## 8.1 dispatch 静态化（P4 的 round 模型版）
+
+- **形态**：废弃"位图扫描 + `execute_block` 三级动态分派（switch(block/2048) + part
+  范围链 + 函数内 switch）"，改为 §3.2 legacy batch 的逐项对齐——compute 段按
+  (source, part) 升序静态调用 `eval_scan_*()`，函数内 8 Block/byte chunk：活动字节
+  快照入局部 `byteFlags`、清全局字节的所属位、所属位升序直线
+  `if ((byteFlags & bit) != 0) { body }`（body 内联，无 switch/countr_zero/间接跳）；
+  同 byte 前向 act 目标局部接力 `byteFlags |= mask`（P4.5 的 relay 机制保留），其余
+  走全局常量掩码；commit 段 `eval_commit_*()` 无条件内联；B0 独立 `execute_block_0()`。
+- **2k/20k host time（干净机，coremark-2-iteration + NEMU）**：静态 b4096 =
+  101,314 / 1,146,681 ms（对比动态基线 82,885 / 962,166 ms：+22% / +19%）；静态
+  b192 = 82,409 / 918,278 ms（−0.6% / −4.5%）。即静态 dispatch 在同块数下仍是净
+  回退（与 P4/P4.5 同机制：扫描胶代码取指开销），由 §8.2 的块粒度细化抵消并反超。
+- **功能**：ctest `grhsim-am` 8/8；xs-components 053/044/100 各 20,000 向量与
+  legacy bit-exact；XS difftest 2k/20k 通过。
+
+## 8.2 块粒度扫参对齐（P6 执行记录）
+
+- **机制定位**（§7.4 P6 的验证）：块偏大的根因不是 DP 的 128 上限而是
+  `coarsenBudget = 32×cap = 4096`——AM 的合并单位是单指令 atom（XS 上 70% outdeg-1
+  长链），coarsen 跑满收敛把大量 cluster 推进 (128, 4096] 区间成为 DP 不可拆的
+  oversized singleton；legacy 的 coarsen 在 compute-node DAG 上提前 tail-stop，
+  cluster 始终 ≪128，128 cap 才真正起作用。
+- **XS 扫参**（`--dp-coarsen-budget`，maxInstructionsPerBlock=128、penalty=1.0 不变；
+  commit 块恒为 497 不受影响）：
+
+  | budget | compute 块 | vs legacy 31,534 | detectors | activation edges |
+  |---|---|---|---|---|
+  | 4096（自动=32×128，旧默认） | 9,415 | 0.30× | 2,009,185 | 2,706,574 |
+  | 512 | 17,418 | 0.55× | 2,016,785 | 2,787,432 |
+  | 256 | 27,257 | 0.86× | 2,022,678 | 2,854,432 |
+  | 192 | 33,738 | 1.07× | 2,026,898 | 2,908,735 |
+  | 128 | 44,254 | 1.40× | 2,021,812 | 2,953,271 |
+
+  detector 数在全域几乎不变（~2.0M），激活边仅 +9%（128 档）——块细化不会引爆
+  detector/act 物化。
+- **默认值**：由扫参与 §8.1 的 host time 共同决定（以运行时间为目标函数，见
+  notepad 当日记录）。
+
+## 8.3 窄值存储成员变量化 + PCH
+
+- **形态**：持久化窄标量（BitVector ≤64bit 且非块内局部）全部改为独立类成员
+  `v<VariableId>`（gsim 形态；目的：让编译器把每个值当独立变量做静态排布与寄存器
+  分配，而非钉死在数组布局）。跨块 changed result（唯一经运行时下标访问的值：
+  `set_changed_result` 与 dirty list 清零）单列密集数组 `changedResults_[denseId]`
+  （XS 仅 413 个）；宽值/Real/String 保持原数组。生成 Makefile 加 PCH
+  （`-x c++-header` + 每 TU `-include-pch`，对齐 legacy grhsim_cpp.cpp:23309-23395），
+  并用 `ifeq ($(origin CXX),default)` 兜底 GNU make 内建 g++ 默认值。
+- **PCH/成员规模 spike**（合成头文件，clang++ -O3，本机）：2M 成员 → PCH 5.6s/1.5GB、
+  258MB、每 TU 2.3s/1.6GB；8M 成员 → PCH 25.8s/5.4GB、1.1GB、每 TU 10.5s/6.3GB。
+  即每百万成员 ≈ 1.3s/TU + 0.8GB RSS。XS 实测：6.64M 成员、hpp 190MB、PCH 1.3GB。
+- **关键缺陷与修复**：clang（本机 18.x）对含数万以上 `{}` 初始化成员的类的**隐式默认
+  构造函数会静默截断初始化**（复现：2M 个 `{}` 成员的 ctor 只 memset 前 ~33,794 个；
+  XS 6.6M 时只初始化 15,339 个，stringValues_ 未构造，init() 中 string::clear 写穿
+  垃圾指针 → SIGSEGV）。修复：成员声明一律不带初始化式，`init()` 用一条
+  `std::memset(&v0, 0, sizeof(v0) * N)` 清零连续成员区（同时把 re-init 语义恢复为
+  全量复位）。该缺陷与是否使用 PCH 无关（文本包含同样复现）。
+- **功能**：ctest `grhsim-am` 8/8；xs-components 053/044/100 各 20,000 向量与
+  legacy bit-exact（含 memset 形态）。
+
+## 8.4 组合形态（静态 dispatch + 成员存储 + PCH + 扫参默认值）验收
+
+- 最终形态（静态 dispatch + 成员存储 + PCH，b4096/b192 对照，干净机 host ms）：
+
+  | 配置 | 2k | 20k | 50k |
+  |---|---|---|---|
+  | 动态 b4096（07-28 基线） | 82,885 | 962,166 | 2,682,743 |
+  | 最终 b4096 | 103,154 | 1,126,442 | — |
+  | 最终 b192 | 81,760 | 905,050 | 1,982,820 |
+  | legacy（07-28 同窗口） | 1,461 | 45,365 | 169,387 |
+
+  功能：双配置 difftest 2k/20k 通过；最终 b192 50k 通过（退休指令数 73,580、
+  IPC 1.471718 与 legacy 完全一致）。50k 口径最终 b192 对比基线 −26.1%，对 legacy
+  同窗口 11.7x（07-28 基线 15.8x）。默认 coarsen budget 公式已按扫参与 host time
+  改为 1.5×cap（=192）。
