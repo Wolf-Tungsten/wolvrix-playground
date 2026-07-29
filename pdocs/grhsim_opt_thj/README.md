@@ -210,12 +210,13 @@
 | `TNO0198` | `2026-07-28` | [SimpleTES GPT-5.6 Sol THJ switch and resume preflight](./TNO0198_simpletes_gpt56sol_thj_switch_and_resume_preflight_20260728.md) | K3 continuation 停止后固定 `db_state_153501`；launcher 保持 K3 默认并新增显式 model/effort，GPT 分支使用原生 structured/auto 且不接收 K3 agent/catalog；新 THJ config/auth 的真实 GPT preflight `1` repo tool、`632 chars` PASS，准备按 `64/32` 从既有 `3/32` valid 继续。 |
 | `TNO0199` | `2026-07-29` | [SimpleTES K3/GPT post-RWA research completion](./TNO0199_simpletes_k3_gpt_post_rwa_research_completion_20260729.md) | post-RWA 连续搜索在 `64 attempts/15 valid` 自然停止；15 个 valid 均为正收益，最终 best 为 `53,742.50→51,534.50 ms`（减少 `2,208.00 ms/4.108480%`），并归档 K3/GPT 阶段、主要方向与失败审计。 |
 | `TNO0200` | `2026-07-29` | [SimpleTES monotonic resume budget extension and GPT max launch](./TNO0200_simpletes_monotonic_resume_budget_extension_and_gpt_max_launch_20260729.md) | SimpleTES 以显式单调契约同时扩展全局/逐 chain resume budget，加入 `xhigh/max` CLI 兼容并通过全量 `231/231`；现已从 `64 attempts/15 valid` exact state 以 `gpt-5.6-sol/max`、`192 proposals/32 valid`、`4 gen` 正式续跑。 |
+| `TNO0201` | `2026-07-30` | [SimpleTES GPT CodexExecError diagnosis](./TNO0201_simpletes_gpt_codexexecerror_diagnosis_20260730.md) | continuation 当前有 `15` 次 Codex status-1 failure；排除 effort、持续 auth、evaluator 和资源上限等系统性原因，确认 PATH warning 非根因证明，并定位 non-zero 分支删除 stdout JSONL、只留 stderr 的诊断缺口；运行仍在推进，修复应先持久化完整失败事件。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`200`（`TNO0001..TNO0200`）。
+- 当前记录类文档总数：`201`（`TNO0001..TNO0201`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
