@@ -213,12 +213,14 @@
 | `TNO0201` | `2026-07-30` | [SimpleTES GPT CodexExecError diagnosis](./TNO0201_simpletes_gpt_codexexecerror_diagnosis_20260730.md) | continuation 当前有 `15` 次 Codex status-1 failure；排除 effort、持续 auth、evaluator 和资源上限等系统性原因，确认 PATH warning 非根因证明，并定位 non-zero 分支删除 stdout JSONL、只留 stderr 的诊断缺口；运行仍在推进，修复应先持久化完整失败事件。 |
 | `TNO0202` | `2026-07-30` | [SimpleTES Codex failure persistence, retry, and budget-256 restart](./TNO0202_simpletes_codex_failure_persistence_retry_and_budget256_restart_20260730.md) | SimpleTES 完整保存并脱敏 non-zero JSONL/stderr/final output，真实定位 provider capacity；加入分类退避 retry、稳定非 `/tmp` HOME、bounded repo inspection 和 exact extended-resume，full `239/239`。旧运行停于 `143 attempts/21 valid`，扩容后正式从 `150 attempts/21 valid` 以 `256/32`、GPT max、4 gen 续跑。 |
 | `TNO0203` | `2026-07-30` | [SimpleTES Codex capacity session continuation](./TNO0203_simpletes_codex_capacity_session_continuation_20260730.md) | Stop hook 不覆盖 provider sampling error；SimpleTES 改用 exact thread ID 的 `codex exec resume ... continue`，默认每会话 `3` 次独立续跑且不消耗普通 retry，四 worker 不用 `--last`。focused `151/151`、full `245/245`、真实 GPT preflight 通过；运行中旧进程未重启，新机制下次启动生效。 |
+| `TNO0204` | `2026-07-31` | [SimpleTES extended best-path ablation materialization and launch](./TNO0204_simpletes_extended_bestpath_ablation_materialization_and_launch_20260731.md) | 从 `db_state_235014` 恢复六段语义并构造 final gen150 加六个严格 final-minus-one arm，全部 remove/re-add 闭包且 validate-only PASS；已追加首版 runner 未保证跨 order 同 CCD 的勘误，正式结果见 TNO0205。 |
+| `TNO0205` | `2026-07-31` | [SimpleTES extended best-path direct ablation result](./TNO0205_simpletes_extended_bestpath_direct_ablation_result_20260731.md) | 六项均取得同 CCD ABBA+BAAB 且 order gap `<0.25 pp` 的正式轮次：cold `+1.282339%` 可信，inline/constant/shift 分别 `+0.743762%/+0.730784%/+0.242861%` 为稳定弱正向，residual/physical 分别 `−0.115054%/−0.247575%` 双 order 回退；48 个样本的 ASLR/CCD/NUMA/PMU/功能门禁全过。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`203`（`TNO0001..TNO0203`）。
+- 当前记录类文档总数：`205`（`TNO0001..TNO0205`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
