@@ -375,3 +375,44 @@ leave-one-out 测的是完整上下文中的单项 marginal，gen29→gen150 测
 direct-pair artifact 位于
 `build/grhsim_bestpath_ablation_20260731/endpoint_gen29_to_gen150_v1/`。本轮没有修改 Wolvrix 或
 SimpleTES 源码，也没有启动 auto research。
+
+## 11. 增量更新 2026-07-31：residual/physical 复测闭合不一致
+
+第 10 节四项→六项联合 direct pair 为 `+0.181305%`，而 TNO0205 首轮正式单项 marginal 分别为
+residual `−0.115054%`、physical `−0.247575%`。为判断这是交互还是测量不稳定，本轮用原始完全相同的
+final-minus-one ELF 重新运行两项 ABBA+BAAB。详细勘误同时追加在
+[TNO0205](./TNO0205_simpletes_extended_bestpath_direct_ablation_result_20260731.md) 第 10 节。
+
+复测结果为：
+
+| 对比 | control→final / ms | final 变化 | ABBA | BAAB | gap | 结论 |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| final−residual → final | `51,656.25→51,644.25` | `+12.00 ms/+0.023230%` | `−0.001936%` | `+0.048395%` | `0.050331 pp` | 跨零、中性 |
+| final−physical → final | `51,733.75→51,759.25` | `−25.50 ms/−0.049291%` | `+0.029012%` | `−0.127501%` | `0.156512 pp` | 跨零、中性 |
+
+两项首轮都满足同一 CCD/CPU 和 gap `<0.25 pp`，但两个 order 的方向都不一致。16 个 accepted sample
+的 ASLR personality 均为 `00040000`，CPU migrations 均为 `0`，affinity、pre/monitor gate、NUMA、
+PMU scheduled ratio 与功能审计全部通过。复测没有发现新的环境有效性缺口。
+
+三类相关结果现在可以一致解释：
+
+| 实验 | 观测变化 |
+| --- | ---: |
+| residual 单项旧正式 | `−0.115054%` |
+| residual 单项复测 | `+0.023230%` |
+| physical 单项旧正式 | `−0.247575%` |
+| physical 单项复测 | `−0.049291%` |
+| residual+physical 联合 gen29→gen150 | `+0.181305%` |
+
+所有观测都小于 `1%` 可信线；两项单项复测跨零，联合结果虽然双 order 数值正向，也只有
+`0.181305%`。因此现有证据不需要用强交互来解释：更稳健的结论是 residual、physical 及其联合变化在
+当前 50k 协议下都属于中性噪声区间。旧单项结果不是无效样本，但其“稳定负向”分类没有复现。
+
+最终决策不变但理由更正：四项 gen29 子集相对 RWA 的 `4.117704%` 是可信端到端收益；额外两项没有
+达到可复现正收益门槛，继续保持排除/默认关闭。不能再声称 residual/physical 已被证明稳定拖慢，只能
+声称它们未证明值得默认开启。
+
+本轮继续复用 ignored build artifact，没有修改 Wolvrix 或 SimpleTES 源码，也没有启动 auto
+research。结果 SHA-256 为：residual result
+`daa053fc94af3e6aec0f8e54e5415bde4df13c672ee1d6c92a50e023da885e26`，physical result
+`ba63663c4dcffe9a9956c03833b3e367022a89f6c48b6e375f7380590281ef6b`。

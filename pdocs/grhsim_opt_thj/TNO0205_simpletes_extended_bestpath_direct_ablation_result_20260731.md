@@ -196,3 +196,53 @@ checkpoint 根目录仍保留历史 `launcher.pid=3369780`，但该 PID 已不�
 文件的活跃锁检查；它不是 evaluator lock。消融工具、candidate、binary 和结果均位于 playground 的
 ignored `build/` 树，没有改动 checkpoint 或 SimpleTES 源码。因此后续可以从既有 exact checkpoint
 继续探索；本轮没有擅自启动新实例。
+
+## 10. 增量复测勘误 2026-07-31：residual/physical 应改判中性
+
+后续四项 gen29→六项 gen150 direct pair 得到六项数值快 `0.181305%`，与本文件第 1 节把 residual
+MemoryRead 和 physical zero-tail 分别写成“双 order 稳定回退”不一致。为排除候选身份或构建变化，
+复测直接复用本文件第 2 节的三份 immutable snapshot：`final_gen150`、
+`minus_residual_memread`、`minus_physical_zero_tail`。三份 snapshot 的 11 项 `SHA256SUMS` 均重新验证
+通过，parent/Wolvrix/build-config/toolchain/image/NEMU 与原实验完全相同；control 仍是 `final−X`，
+candidate 仍是完整 final。
+
+两项均重新取得同 CCD ABBA+BAAB 且 order gap `<0.25 pp` 的首轮正式结果：
+
+| 机制 | 旧正式 control→final | 新正式 control→final | 新 ABBA | 新 BAAB | 新 gap |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| residual MemoryRead | `51,715.00→51,774.50 ms`，`−59.50 ms/−0.115054%` | `51,656.25→51,644.25 ms`，`+12.00 ms/+0.023230%` | `−0.001936%` | `+0.048395%` | `0.050331 pp` |
+| physical zero-tail | `51,297.50→51,424.50 ms`，`−127.00 ms/−0.247575%` | `51,733.75→51,759.25 ms`，`−25.50 ms/−0.049291%` | `+0.029012%` | `−0.127501%` | `0.156512 pp` |
+
+residual 新旧正式轮次甚至使用同一个 node0 CCD `24-31,216-223` 和 CPU `24/216`；新结果相对旧结果
+漂移 `+0.138284 pp`，且从双 order 负向变为跨零。physical 新结果使用 node0 CCD
+`48-55,240-247`、CPU `49/241`，相对旧结果漂移 `+0.198285 pp`，同样从双 order 负向变为跨零。
+因此不能把差异归因于 patch、binary 或 residual 的 CCD 类型变化；更直接的解释是这些约
+`0.02%..0.25%` 的观测本来就在亚百分比 runtime 噪声区间。
+
+新 residual 样本为 control `51687,51621,51769,51548 ms`、final
+`51659,51651,51607,51660 ms`；新 physical 样本为 control `51756,51650,51751,51778 ms`、final
+`51736,51640,51782,51879 ms`。两组共 16 个 sample 的 fixed-ASLR、同 CCD/CPU、affinity、0
+migration、pre/monitor quiet gate、NUMA local-page、PMU scheduling 与功能审计全部通过。
+
+新 PMU 也只显示中性量级变化：
+
+| 机制 | cycles | instructions | frontend no-ops | frontend-starved | backend stalls |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| residual MemoryRead | `+0.004453%` | `−0.000125%` | `−0.100054%` | `−0.065835%` | `+1.211270%` |
+| physical zero-tail | `+0.040967%` | `−0.000880%` | `+0.028415%` | `+0.005281%` | `+0.183186%` |
+
+据此勘误第 1、6、7 节的分类措辞：旧样本与数值继续保留，但“两个 order 都回退”“稳定回退”的概括
+不再成立。residual MemoryRead 与 physical zero-tail 的可复现结论都应是 **中性、未证明端到端正
+收益**。这仍不足以把两项保留或默认开启，因此四项 landing 子集不变；理由应从“已证明稳定回退”
+修正为“复测跨零且所有观测都远低于 `1%` 可信线，没有默认开启证据”。
+
+新增结果 SHA-256：
+
+| artifact | SHA-256 |
+| --- | --- |
+| residual `round-1/result.json` | `daa053fc94af3e6aec0f8e54e5415bde4df13c672ee1d6c92a50e023da885e26` |
+| residual `summary.json` | `13bbff97f472fee9e92078b0837f857a9deddb0401530f2d3af2138db5713256` |
+| physical `round-1/result.json` | `ba63663c4dcffe9a9956c03833b3e367022a89f6c48b6e375f7380590281ef6b` |
+| physical `summary.json` | `4657e0d0ccd6b39d837bbbc6fbd46f10f2eddfc1cea56cec148329c922eaa30c` |
+
+artifact 位于 `build/grhsim_bestpath_ablation_20260731/rerun_residual_physical_v1/`。
