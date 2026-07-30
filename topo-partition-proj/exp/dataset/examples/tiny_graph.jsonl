@@ -1,0 +1,17 @@
+{"record":"header","format":"wolvrix.am-instruction-graph.v1","instructions":7,"variables":12,"atoms":6,"comb_loop_atoms":1,"def_use_edges":3,"external_reads":5,"order_edges":1}
+{"record":"node","id":0,"op":0,"opcode":"assign","width":8,"state_write":false,"atom":1,"comb_loop_atom":false}
+{"record":"node","id":1,"op":0,"opcode":"assign","width":8,"state_write":false,"atom":0,"comb_loop_atom":false}
+{"record":"node","id":2,"op":0,"opcode":"assign","width":8,"state_write":false,"atom":2,"comb_loop_atom":true}
+{"record":"node","id":3,"op":0,"opcode":"assign","width":8,"state_write":false,"atom":2,"comb_loop_atom":true}
+{"record":"node","id":4,"op":43,"opcode":"system.function","width":8,"state_write":false,"atom":4,"comb_loop_atom":false}
+{"record":"node","id":5,"op":43,"opcode":"system.function","width":8,"state_write":false,"atom":3,"comb_loop_atom":false}
+{"record":"node","id":6,"op":38,"opcode":"reg.write","width":0,"state_write":true,"atom":5,"comb_loop_atom":false}
+{"record":"edge","kind":"external_read","dst":0,"var":0,"width":8}
+{"record":"edge","kind":"def_use","src":0,"dst":1,"var":1,"width":8}
+{"record":"edge","kind":"def_use","src":2,"dst":3,"var":3,"width":8}
+{"record":"edge","kind":"def_use","src":3,"dst":2,"var":4,"width":8}
+{"record":"edge","kind":"external_read","dst":6,"var":7,"width":1}
+{"record":"edge","kind":"external_read","dst":6,"var":8,"width":8}
+{"record":"edge","kind":"external_read","dst":6,"var":9,"width":8}
+{"record":"edge","kind":"external_read","dst":6,"var":11,"width":1}
+{"record":"edge","kind":"order","src":4,"dst":5}

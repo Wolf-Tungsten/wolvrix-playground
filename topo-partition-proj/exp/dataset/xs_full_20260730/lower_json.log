@@ -1,0 +1,40 @@
+[grhsim-am-lower-json] read complete ms=744 peak_rss_kib=2979888
+[grhsim-am-lower-json] parse complete ms=20179 peak_rss_kib=28051732
+[grhsim-am-lower-json] lower complete ms=4531 peak_rss_kib=28051732
+[grhsim-am-lower-json] graph released current_rss_kib=1343840
+[grhsim-am-lower-json] schedule complete ms=7393 peak_rss_kib=28051732 current_rss_kib=1940040
+flattened X/Z Logic literals for two-state AM lowering: count=89 [grhsim-am-lowering]
+exported AM instruction graph: path=/home/gaoruihao/wksp/wolvrix-playground/topo-partition-proj/exp/dataset/xs_full_20260730/instruction_graph.jsonl instructions=4669495 def_use_edges=8031598 external_reads=2234514 order_edges=19046 comb_loop_atoms=0 [grhsim-am-production-activity-schedule]
+coarsen-dp block formation stats: clusters_after_coarsen=212158 dp_segments=33738 coarsen_ms=2659 dp_ms=138 rounds=58 out1_merges=1938401 in1_merges=437934 sibling_merges=1862012 [grhsim-am-production-activity-schedule]
+coarsen-dp initial degree histogram: clusters=4450505 outdeg{ total=7393545 0=334881 1=3113100 2=752687 3=76391 4-7=102971 8-15=38807 16-63=27658 >=64=4010 } indeg{ total=7393545 0=316760 1=1528844 2=2240118 3=331983 4-7=16788 8-15=9069 16-63=6535 >=64=408 } [grhsim-am-production-activity-schedule]
+exported AM block assignment: path=/home/gaoruihao/wksp/wolvrix-playground/topo-partition-proj/exp/dataset/xs_full_20260730/block_assignment.jsonl blocks=34236 dag_edges=325838 compute_compute_value_pairs=3305393 incoming_copy_cost=6468546 [grhsim-am-production-activity-schedule]
+production schedule stats: linear_instructions=4669495 def_use_edges=10404294 atoms=4669495 oversized_atoms=0 max_atom_instructions=1 max_atom_state_writes=1 normal_blocks=34236 compute_blocks=33738 commit_blocks=497 detectors=2026898 activation_edges=2908735 scheduled_instructions=8723319 storage_bytes=428606596 reserved_bytes=457740145 [grhsim-am-production-activity-schedule]
+{
+  "top": "SimTop",
+  "graph_operations": 5158238,
+  "graph_values": 4787147,
+  "am_instructions": 4669495,
+  "am_variables": 4803814,
+  "am_operands": 10623697,
+  "am_results": 4436753,
+  "am_estimated_bytes": 256273052,
+  "am_reserved_bytes": 315004220,
+  "interface_ports": 13,
+  "declared_variables": 913664,
+  "ordered_effects": 218990,
+  "scheduled": true,
+  "scheduled_instructions": 8723319,
+  "scheduled_variables": 8857610,
+  "blocks": 34237,
+  "activation_targets": 2908735,
+  "commit_blocks": 497,
+  "scheduled_estimated_bytes": 428606596,
+  "read_ms": 744,
+  "parse_ms": 20179,
+  "lower_ms": 4531,
+  "schedule_ms": 7393,
+  "emit_ms": 0,
+  "emitted_artifacts": 0,
+  "current_rss_kib": 1940040,
+  "peak_rss_kib": 28051732
+}
