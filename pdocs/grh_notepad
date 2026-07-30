@@ -137,3 +137,135 @@
 - 成员布局实验：声明顺序当前按 VariableId，可按访问频度/块亲和重排（用户关注的
   编译器静态排布方向的下一步）。
 - HDLBits 023/119 与 3 个既有 ctest 失败仍为本仓历史遗留，与本阶段无关。
+
+## 2026-07-29 ST00010 detector 分组折叠（emitter 同扇出聚合，P2' 落地）
+
+### 本阶段事实
+
+- 对分析文档 §6 P2' 的落地：块尾 (changed.*, act.f/act.b) watch-group run 在发射期
+  按激活目标签名（方向 + 排序 target 集合）重新分组（emitter peephole，IR/scheduler/
+  validator 不动）。组内 detector 无分支累加进块局部 `detGrp_N`（old 基线逐 detector
+  私有、原位置更新），每组一次合并；纯同 byte relay 的 forward 组退化为无分支
+  `byteFlags |= -detGrp & mask`（legacy deferred-group 惯用法）。被折叠 event 变量
+  不再声明成员（其 zeroInit 无显式 init 写，安全）。折叠条件：窄标量、非跨块
+  changed result、event 全部 use 为同 run 内 act、操作数不定义在 run 内。
+- act 发射重构出共享 helper（`splitActivationTargets` / `emitActivationMerge`），
+  独立 act 文本与旧形态逐字节一致；组合并与之同体。
+- 等价性：活动位置位幂等且无序，"组内任一 event 触发"与逐 detector 分支激活完全
+  相同的 target 集合；old 独占性不变；跨块 changed result（dirty list）不参与。
+
+### 测量数据
+
+- 单测：`ctest -R grhsim-am` 8/8；全量 ctest 仅剩 3 个既有无关失败
+  （transform-comb-lane-pack、transform-repcut、ingest-write-back-slice）。
+  `testPackedActivityRuntime` 断言更新为新形态（折叠 event 无成员、detGrp 累加/
+  合并、profile 计数按组合并）并新增 ST00010 锁定断言。
+- xs-components：053/044/100 各 20,000 向量与 legacy bit-exact（脚本
+  `ptmp/grhsim_am_detgroup_20260729/run_xs_components.sh`，产物
+  `build/analysis/am_detgroup_20260729/`）。
+- 折叠覆盖（生成代码计数）：053 案 1,594/1,636 detector 折为 308 组（58 组无分支
+  relay）；044 案 1,793/1,843 折为 327 组；100 案 12/12 折为 5 组。未折叠者为跨块
+  changed result 与宽值/数组 detector。
+- XS gate（b192，全量 normalize+emit+emu build+difftest 2k/20k，产物
+  `build/xs/grhsim-am-detgroup*/`）：进行中，结果待补；对照基线为 07-29 最终
+  b192（2k 81,760 / 20k 905,050 ms）。
+
+### 选择及替代方案
+
+- 选 emitter peephole 而非 IR 级分组：保持 ScheduledProgram  canonical 形态与可验证性，
+  与 P2"发射期形态选择"同一哲学；interpreter 无需同步。
+- 组不跨 run：run 内合并锚定一次，跨 run 共享收益可忽略（watch group 天然连续）。
+- 独立 act 不并入折叠（同事件多 act 在 scheduler 产物中实际不存在，M2 为空集）。
+- 条件 old 回写（if (e) old=v）未做：会把无分支累加打回逐 detector 分支，与前端
+  受限矛盾；待 L1D profile 证明 store 流量显著再议。
+
+### 下阶段入口
+
+- XS gate 结果评审：若 host time 改善不及预期，下一步是 P5（commit 写点判变融合，
+  结构性消除 commit 侧 detector）与 commit 段常扫描瘦身。
+- old 基线宽度分级（窄 watched 值用窄成员）：D-cache 方向，需成员区分段 memset。
+
+## 2026-07-30 AM commit 相位根因定位与三项 emitter 修复（ST00011/12/13）
+
+### 根因定位（gprofng @ ST00010 emu 2k，PMU 被禁后的替代采样）
+
+- perf_event_paranoid=4 禁掉全部 PMU；改用 gprofng（setitimer 采样，binutils 自带）
+  对 detgroup emu 2k 采样：commit 相位（eval_commit_*）自时间合计 ~47%，libc 静态
+  热点 ~23%（PC 反汇编核实为 memcmp/memcpy 的 AVX2 循环），compute scan ~23%。
+- libc 热点来源：commit 块尾部 1,667 个全数组 changed.any（memory 整粒度保守激活的
+  物化），每轮对每个被 watch 的 memory 做一次 `std::equal`（编译为 bcmp）+ 一次
+  `std::copy_n` 基线回写（~4KB/个/轮）。生成代码计数核实：1,667 处，~53GB/2k周期。
+- 其余 commit 侧结构税（对照 legacy 生成代码逐项确认）：写点无判变抑制（masked RMW
+  无条件写 + 尾部再比较一次）、事件检查逐语句不提升（legacy 批门控一次）、commit
+  尾部标量 detector 32.2 万行/轮（detGrp 累加 + old 回写，比写语句 22.2 万行还多）。
+
+### 修复（均为 emitter peephole，IR/scheduler/validator/interpreter 不动）
+
+- ST00011 数组写点激活：commit 块内 mem.write 在写元素时顺带判变
+  （masked_write_words_detect），mem.fill 在填充循环内逐元素判变（assign_words_detect
+  /slice_words_detect，保持"重填相同值不再激活"的收敛语义——无条件置位会在 reset
+  期间每轮激活导致不收敛，该坑已论证避开）；尾部全数组 detector 改读块局部标志
+  arrChg_N，memcmp/memcpy/基线存储全消。完备性：每个写数组的块自带 (块,target)
+  detector 且 act.b 覆盖全部 reader，只检测本块写仍完备；跨块基线漂移触发是冗余。
+  XS：std::equal 1,667→0，detect 调用点 6,951。
+- ST00012 commit 事件批次门控：每个 commit 块全部写/判变/act 包进一条事件并集
+  分支（事件操作数去重 OR，legacy commit-batch 惯用法）；静默轮整块一次分支跳过。
+  无事件写/latch 写/事件块内产生的块不门控。
+- ST00013 标量写点判变融合（分析文档 P5 的 emitter 落地）：RegisterWrite 写点
+  比较 next != target，真变才写并置 wrChg_N（legacy 写点判变惯用法，窄路径带写
+  抑制、宽路径 masked_write_words_detect）；尾部 detector 改读标志（ST00010 组
+  累加或 event 变量），old 基线死亡。多写 target 跨写点 OR 累加（多余激活为规范
+  允许）；写回相同值不再激活（收敛性不变）。XS：尾部标量比较 277,431→67,394
+  （−75.7%），wrChg 引用 423,770。
+
+### 测量数据
+
+- 单测：ctest AM 8/8、全量仅 3 个既有无关失败。testMemoryOperations 新增 ST00011
+  文本锁定断言；testPackedActivityRuntime 的 ST00010 commit 侧断言更新为 ST00013
+  形态（B0 侧不变）。
+- xs-components：053/044/100 各 20,000 向量与 legacy bit-exact（ST00011、
+  ST00011+12、ST00011+12+13 各一轮，脚本
+  `ptmp/grhsim_am_arraywatch_20260730/run_xs_components*.sh`）。
+- XiangShan CoreMark/NEMU difftest（ST00011）：2k/20k 通过，instrCnt 3/1,996 与
+  14,121/19,996 与历史完全一致。host time（同窗口对 ST00010 detgroup）：
+  2k 25,366 vs 51,887 ms（2.05x）；20k 569,934 vs 905,050 ms（1.59x，07-29 记录）。
+  对 legacy 同窗口（1,461 / 45,365 ms）：2k 17.4x、20k 12.6x。
+- XiangShan 组合 gate（干净机串行；difftest 全过、instrCnt 逐项一致）：
+
+  | 配置 | 2k | 20k | 50k |
+  |---|---|---|---|
+  | ST00010 detgroup（干净基线重测） | 52,431 | 592,416 | — |
+  | ST00011 | 25,366 | 569,934 | — |
+  | ST00011+12+13 | 22,431 | 279,039 | 757,952 |
+  | legacy（07-28 同窗口记录） | 1,461 | 45,365 | 169,387 |
+
+  注：07-29 记录的 905,050/1,982,820（20k/50k）经今日干净重测证伪为**测量期并发
+  构建污染**（同日曾实测 detgroup 2k 被拖慢 7.7x）；干净同窗口基线以本表为准。
+  干净口径：ST00011 主要消掉 reset/首评尖峰（2k 2.07x）与少量稳态（20k 1.04x）；
+  ST00012+13 是稳态主体（20k 在 ST00011 之上再 −51%）。组合对 ST00010：
+  2k 2.34x、20k 2.12x。对 legacy：20k 6.15x（07-29 记录口径 ~20x）、
+  50k 4.47x（对 07-29 的 11.7x 记录口径）；20k→50k 边际每拍 15.96 vs
+  4.13 ms = 3.86x。
+- ST00011 50k（干净）：1,045,557 ms（对 legacy 6.17x）。三项 50k 的 instrCnt
+  73,580、cycleCnt 49,996、IPC 1.471718 与 legacy/历史记录完全一致。
+- 修复后热点分布（gprofng @ 组合 emu 2k）：commit 43.9% / compute scan 44.3% /
+  libc 0.3%（memcmp/memcpy 热点消除）；函数级最高仅 ~4%（insert_words、
+  bitwise_words、slice_words 等宽值 helper 合计 ~9%），无单一热点——
+  剩余差距为 compute 与 commit 两侧的扁平结构性成本（detector 密度、
+  每块固定开销、宽值 helper、guards），后续方向见下。
+
+### 执行过的命令（关键路径）
+
+- 采样：`gprofng collect app -O <exp>.er ./emu -i <img> --diff <nemu> -b 0 -e 2000 -C 2000`，
+  `gprofng display text -functions/-calltree/-pcs <exp>.er`。
+- XS gate：`make xs_wolf_grhsim_am_emu XS_GRHSIM_AM_BUILD=build/xs/grhsim-am-<tag>
+  XS_WOLF_GRHSIM_AM_POST_STATS_JSON=build/xs/grhsim-am-detgroup/wolvrix_xs_post_stats.json
+  XS_WOLF_GRHSIM_AM_RESUME_FROM_STATS_JSON=1`（复用 post-stats JSON，emit ~2min +
+  emu build ~40min），difftest 用 `ptmp/grhsim_am_static_dispatch_20260729/run_gate.sh`。
+
+### 下阶段入口
+
+- 剩余差距主体转向 compute 侧（ST00011 后 2k 中 compute scan ~12s/25s）：detector
+  密度 ~2.0M 站点、跨块值判变、宽值 helper；legacy 同负载 1.46s。
+- 标量 detector 残留 6.7 万/轮：跨块消费 event 与非 act 消费者的去重方向。
+- old 基线宽度分级、成员布局亲和重排（既有方向，不变）。
