@@ -1,3 +1,10 @@
 # 大规模导出数据不入库，只保留目录结构、说明与小样例
 *.jsonl
 !examples/*.jsonl
+# 图缓存、采样数据集、标签与实测报告是派生产物，本地保留（重生成见 README）
+*.npz
+regions_*/
+labels_*/
+gnn_cpu_bench.json
+cpsat_gap.json
+plaindp_nocoarsen_baseline.json

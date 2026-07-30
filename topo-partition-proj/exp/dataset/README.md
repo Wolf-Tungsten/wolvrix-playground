@@ -10,18 +10,31 @@ Phase 0 起，一切实验（采样/打分/搜索/训练）的唯一图输入来
 | `xs_full_20260730/instruction_graph.jsonl` | 全香山 AM 指令图导出（格式 `wolvrix.am-instruction-graph.v1`） | 1.44 GB，14,954,654 行 |
 | `xs_full_20260730/block_assignment.jsonl` | 生产调度 plain 基线解（格式 `wolvrix.am-block-assignment.v1`，header 含对账指标） | 233 MB，4,703,732 行 |
 | `xs_full_20260730/lower_json.log` | 导出当次 lower-json 运行日志（统计与耗时，溯源用） | 2.4 KB |
+| `xs_full_20260730/graph_cache.npz` | harness 图缓存（numpy 数组 + 规范拓扑序，由 `harness.graph.load_graph` 自动生成/复用） | 派生产物 |
+| `xs_full_20260730/gnn_cpu_bench.json` | Phase 0 任务 5 CPU 摸底实测（gather/SpMM/matmul 耗时） | 派生产物 |
+| `xs_full_20260730/cpsat_gap.json` | Phase 1 任务 3 CP-SAT 精确最优 vs 搜索 gap 实测（12 个小区域） | 派生产物 |
+| `regions_xs_full_20260730/` | 第一版训练数据集：512 个采样区域（`region_XXXX.npz`）+ `manifest.json` + `coverage.json`，生成方式与覆盖检查见 docs/07 | 206 MB |
+| `labels_xs_full_20260730/` | Phase 1 标签：512 区域的最优排列 + 锚点/搜索分数（`label_XXXX.npz`）+ `manifest.json`（M1 汇总），见 docs/08 | 派生产物 |
 | `examples/tiny_graph.jsonl` | 7 指令手工小程序的导出样例（导出器单测产物），供读图代码做格式冒烟 | 17 行 |
 
 基线锚点（详见 `docs/06-基线解导出与对账.md`）：plain 基线 34,236 blocks
 （33,738 compute + 497 commit + 1 input sink），`dag_edges=325,838`，
 `compute_compute_value_pairs=3,305,393`，cost（`incoming_copy_cost`）= **6,468,546**。
 三项指标已经 `exp/tools/reconcile_baseline.py` 独立复算对账一致；对任意新划分
-用同一脚本对账：
+用 harness scorer（`exp/harness/scorer.py`，向量化、全图约 4s）重算，基线对账入口：
 
 ```bash
-python3 exp/tools/reconcile_baseline.py \
+python3 exp/tools/score_baseline.py \
     exp/dataset/xs_full_20260730/instruction_graph.jsonl \
     exp/dataset/xs_full_20260730/block_assignment.jsonl
+```
+
+区域数据集重生成（harness 采样器，参数见 `exp/harness/sampler.py` 的 `SamplerConfig`）：
+
+```bash
+python3 exp/tools/sample_dataset.py \
+    exp/dataset/xs_full_20260730/instruction_graph.jsonl \
+    exp/dataset/regions_xs_full_20260730 --count 512
 ```
 
 ## `xs_full_20260730` 溯源

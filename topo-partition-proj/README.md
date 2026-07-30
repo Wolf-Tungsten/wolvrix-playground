@@ -16,6 +16,8 @@
 | [docs/04-实现计划.md](docs/04-实现计划.md) | 按阶段实施计划（自足版：背景一页纸 + 全术语白话解释）：Phase 0–4 任务/验收门、D1–D12 待定细节、风险登记 |
 | [docs/05-图导出实现记录.md](docs/05-图导出实现记录.md) | Phase 0 任务 1 落地记录：AM 指令图 JSONL 导出器（as-built 格式、对 D1 的三处扩展、全香山验证证据） |
 | [docs/06-基线解导出与对账.md](docs/06-基线解导出与对账.md) | Phase 0 任务 2 前半：plain 基线 block assignment 导出 + 三项指标生产/独立复算对账（cost 基线 6,468,546） |
+| [docs/07-harness重建与M0验收.md](docs/07-harness重建与M0验收.md) | Phase 0 任务 2 后半–5：harness 四模块（scorer/采样器/搜索器骨架/CPU 摸底）as-built、512 区域数据集、M0 验收门核对 |
+| [docs/08-Phase1搜索标签与M1验收.md](docs/08-Phase1搜索标签与M1验收.md) | Phase 1：C 段 DP 内核 + 完整 SA、512 区域标签、CP-SAT gap（中位 0%）、全图 no-coarsen 基线（cost −8.5% / footprint +21.6%）与段惩罚权衡、M1 核对 |
 
 ## 工作方式
 
