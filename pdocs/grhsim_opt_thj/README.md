@@ -218,6 +218,7 @@
 | `TNO0206` | `2026-07-31` | [SimpleTES RWA to gen150 endpoint replication](./TNO0206_simpletes_rwa_to_gen150_endpoint_replication_20260731.md) | 当前默认 RWA→四项 gen29 为 `+4.117704%`、RWA→完整六项为 `+4.135115%`；四项→六项 direct 为六项数值快 `0.181305%`，residual/physical 单项复测为 `+0.023230%/−0.049291%` 且双 order 都跨零。所有额外两项相关变化均低于 `1%`，统一判中性；四项默认子集不变，额外两项保持关闭。 |
 | `TNO0207` | `2026-07-31` | [Four-positive Wolvrix landing and regression](./TNO0207_four_positive_wolvrix_landing_and_regression_20260731.md) | 四项已作为 Wolvrix 通用默认落入 `fd12d83`，parent executable snapshot 为 `de37459`；fresh Ninja `407/407`、focused、CTest `50/52`（仅两项历史失败）、pybind `29/29` 与 XS `32/32` 通过，不依赖或开启 targeted-direct。 |
 | `TNO0208` | `2026-07-31` | [Four-positive SimpleTES repin and native 50k](./TNO0208_four_positive_simpletes_repin_and_native_50k_20260731.md) | SimpleTES `de12067` 已 repin 到 landed four-positive 空 control；production/功能/canary 通过，正式同 CCD 第二轮 RWA→native-four wall 为 `53,749.25→51,575.00 ms`，减少 `2,174.25 ms/4.045173%`，ABBA/BAAB gap `0.043458 pp`，四项最终 KEEP；未启动 research。 |
+| `TNO0209` | `2026-07-31` | [SimpleTES post-four GPT max fresh launch](./TNO0209_simpletes_post_four_gpt_max_fresh_launch_20260731.md) | 新 fresh instance `73ee9786` 已用 `gpt-5.6-sol/max`、THJ config/auth、`64 proposals/32 valid`、`4 gen/1 eval` 启动并进入 initial control；首次错误 cwd 启动在 capacity continuation 时 fail-fast、未创建 checkpoint，失败日志已保留。 |
 
 ## 来源覆盖
 
