@@ -216,6 +216,8 @@
 | `TNO0204` | `2026-07-31` | [SimpleTES extended best-path ablation materialization and launch](./TNO0204_simpletes_extended_bestpath_ablation_materialization_and_launch_20260731.md) | 从 `db_state_235014` 恢复六段语义并构造 final gen150 加六个严格 final-minus-one arm，全部 remove/re-add 闭包且 validate-only PASS；已追加首版 runner 未保证跨 order 同 CCD 的勘误，正式结果见 TNO0205。 |
 | `TNO0205` | `2026-07-31` | [SimpleTES extended best-path direct ablation result](./TNO0205_simpletes_extended_bestpath_direct_ablation_result_20260731.md) | 六项初轮 direct ablation 中 cold `+1.282339%` 可信，inline/constant/shift 为弱正向；已追加 residual/physical 同 binary 复测勘误：分别由旧 `−0.115054%/−0.247575%` 变为 `+0.023230%/−0.049291%`，新双 order 均跨零，故“稳定回退”不再成立，两项改判中性、未证明默认开启收益。 |
 | `TNO0206` | `2026-07-31` | [SimpleTES RWA to gen150 endpoint replication](./TNO0206_simpletes_rwa_to_gen150_endpoint_replication_20260731.md) | 当前默认 RWA→四项 gen29 为 `+4.117704%`、RWA→完整六项为 `+4.135115%`；四项→六项 direct 为六项数值快 `0.181305%`，residual/physical 单项复测为 `+0.023230%/−0.049291%` 且双 order 都跨零。所有额外两项相关变化均低于 `1%`，统一判中性；四项默认子集不变，额外两项保持关闭。 |
+| `TNO0207` | `2026-07-31` | [Four-positive Wolvrix landing and regression](./TNO0207_four_positive_wolvrix_landing_and_regression_20260731.md) | 四项已作为 Wolvrix 通用默认落入 `fd12d83`，parent executable snapshot 为 `de37459`；fresh Ninja `407/407`、focused、CTest `50/52`（仅两项历史失败）、pybind `29/29` 与 XS `32/32` 通过，不依赖或开启 targeted-direct。 |
+| `TNO0208` | `2026-07-31` | [Four-positive SimpleTES repin and native 50k](./TNO0208_four_positive_simpletes_repin_and_native_50k_20260731.md) | SimpleTES `de12067` 已 repin 到 landed four-positive 空 control；production/功能/canary 通过，正式同 CCD 第二轮 RWA→native-four wall 为 `53,749.25→51,575.00 ms`，减少 `2,174.25 ms/4.045173%`，ABBA/BAAB gap `0.043458 pp`，四项最终 KEEP；未启动 research。 |
 
 ## 来源覆盖
 
