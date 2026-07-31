@@ -219,12 +219,13 @@
 | `TNO0207` | `2026-07-31` | [Four-positive Wolvrix landing and regression](./TNO0207_four_positive_wolvrix_landing_and_regression_20260731.md) | 四项已作为 Wolvrix 通用默认落入 `fd12d83`，parent executable snapshot 为 `de37459`；fresh Ninja `407/407`、focused、CTest `50/52`（仅两项历史失败）、pybind `29/29` 与 XS `32/32` 通过，不依赖或开启 targeted-direct。 |
 | `TNO0208` | `2026-07-31` | [Four-positive SimpleTES repin and native 50k](./TNO0208_four_positive_simpletes_repin_and_native_50k_20260731.md) | SimpleTES `de12067` 已 repin 到 landed four-positive 空 control；production/功能/canary 通过，正式同 CCD 第二轮 RWA→native-four wall 为 `53,749.25→51,575.00 ms`，减少 `2,174.25 ms/4.045173%`，ABBA/BAAB gap `0.043458 pp`，四项最终 KEEP；未启动 research。 |
 | `TNO0209` | `2026-07-31` | [SimpleTES post-four GPT max fresh launch](./TNO0209_simpletes_post_four_gpt_max_fresh_launch_20260731.md) | 新 fresh instance `73ee9786` 已用 `gpt-5.6-sol/max`、THJ config/auth、`64 proposals/32 valid`、`4 gen/1 eval` 启动并进入 initial control；首次错误 cwd 启动在 capacity continuation 时 fail-fast、未创建 checkpoint，失败日志已保留。 |
+| `TNO0210` | `2026-07-31` | [SimpleTES Codex remote-compact/reconnect session continuation](./TNO0210_simpletes_codex_remote_compact_and_reconnect_session_continuation_20260731.md) | 当前实例四次长 trace 终止被定位为 remote compact，其中最新一次先出现 reconnect/stream disconnect；SimpleTES `6517bfc` 新增独立 exact-thread transient continuation，默认 `3` 次且不占 capacity/ordinary retry，full `251/251`。运行中旧进程未重启，新机制下次启动生效。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`206`（`TNO0001..TNO0206`）。
+- 当前记录类文档总数：`210`（`TNO0001..TNO0210`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
