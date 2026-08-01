@@ -221,12 +221,13 @@
 | `TNO0209` | `2026-07-31` | [SimpleTES post-four GPT max fresh launch](./TNO0209_simpletes_post_four_gpt_max_fresh_launch_20260731.md) | 新 fresh instance `73ee9786` 已用 `gpt-5.6-sol/max`、THJ config/auth、`64 proposals/32 valid`、`4 gen/1 eval` 启动并进入 initial control；首次错误 cwd 启动在 capacity continuation 时 fail-fast、未创建 checkpoint，失败日志已保留。 |
 | `TNO0210` | `2026-07-31` | [SimpleTES Codex remote-compact/reconnect session continuation](./TNO0210_simpletes_codex_remote_compact_and_reconnect_session_continuation_20260731.md) | 当前实例四次长 trace 终止被定位为 remote compact，其中最新一次先出现 reconnect/stream disconnect；SimpleTES `6517bfc` 新增独立 exact-thread transient continuation，默认 `3` 次且不占 capacity/ordinary retry，full `251/251`。运行中旧进程未重启，新机制下次启动生效。 |
 | `TNO0211` | `2026-08-01` | [SimpleTES post-four GPT max research completion](./TNO0211_simpletes_post_four_gpt_max_research_completion_20260801.md) | instance `73ee9786` 正常达到 `32/32` valid；最佳 gen28 pooled wall 为 `51,376.50→47,473.50 ms`（减少 `3,903.00 ms/7.596858%`），双 order gap `0.008800 pp` 且全门禁通过；优势来自 dominant event typed storage、decoded bool 与 batch-local snapshot，尚未落地或改默认。 |
+| `TNO0212` | `2026-08-01` | [Hot-event best-path ablation design and materialization](./TNO0212_hot_event_bestpath_ablation_design_and_materialization_20260801.md) | 固定 `de37459/fd12d83` current-default，物化 exact search-path 与 final mechanical-decomposition 共六个 zero-option arm；全部 apply/schema gate 通过，预注册八组同 CCD ABBA+BAAB direct pair，parallel build 正在运行。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`211`（`TNO0001..TNO0211`）。
+- 当前记录类文档总数：`212`（`TNO0001..TNO0212`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
