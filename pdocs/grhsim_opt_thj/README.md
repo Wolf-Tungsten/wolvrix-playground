@@ -224,12 +224,13 @@
 | `TNO0212` | `2026-08-01` | [Hot-event best-path ablation design and materialization](./TNO0212_hot_event_bestpath_ablation_design_and_materialization_20260801.md) | 固定 `de37459/fd12d83` current-default，物化 exact search-path 与 final mechanical-decomposition 共六个 zero-option arm；全部 apply/schema gate 通过，预注册八组同 CCD ABBA+BAAB direct pair，parallel build 正在运行。 |
 | `TNO0213` | `2026-08-01` | [Hot-event best-path direct ablation result](./TNO0213_hot_event_bestpath_direct_ablation_result_20260801.md) | 八组同 CCD direct pair 全部收敛；`B→TRBS` 为 `51,562.00→47,632.25 ms`（减少 `3,929.75 ms/7.621407%`，order gap `0.045683 pp`）。机械分解确认 typed storage `+2.748192%`、bool decode `+3.098466%`、bool snapshot `+1.969566%`，remap 单独中性；进入原则化门禁落地。 |
 | `TNO0214` | `2026-08-01` | [Principled hot-event landing and native gate](./TNO0214_principled_hot_event_landing_and_native_gate_20260801.md) | TRBS 以 Wolvrix 通用 C++ 默认落地，并用 final-schedule exact-posedge reuse 替代 `event slots>=256`；fresh `407/407`、CTest `51/53`（仅两项历史失败）与功能 gate 通过。旧门禁→原则化门禁为 `47,567.25→47,597.00 ms`（`−0.062543%`，gap `0.072499 pp`），generated fingerprint 相同，判性能等价并保留。 |
+| `TNO0215` | `2026-08-01` | [Principled hot-event SimpleTES repin and continuation readiness](./TNO0215_principled_hot_event_simpletes_repin_and_continuation_readiness_20260801.md) | SimpleTES `6a169d4` 已 repin 到 parent `52ba7d9` / Wolvrix `d3ed9de` 空 control；旧 four-positive checkpoint fail-close，bench `80/80`、full `251/251`、validate-only 与 GPT max dry-run 全过，未启动 research 或调用模型。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`214`（`TNO0001..TNO0214`）。
+- 当前记录类文档总数：`215`（`TNO0001..TNO0215`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
