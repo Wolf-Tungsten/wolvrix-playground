@@ -1,0 +1,40 @@
+{
+  "graph": "topo-partition-proj/exp/dataset/xs_full_20260731_l2/instruction_graph.jsonl",
+  "nodes": 3930359,
+  "def_use_edges": 6641223,
+  "order_edges": 19046,
+  "dead": 11627,
+  "dead_share": 0.002958,
+  "dead_logic": 1627,
+  "top_dead_ops": [
+    [
+      "eq",
+      6931
+    ],
+    [
+      "assign",
+      3067
+    ],
+    [
+      "and",
+      1625
+    ],
+    [
+      "concat",
+      1
+    ],
+    [
+      "reduce_and",
+      1
+    ],
+    [
+      "slice_dynamic",
+      1
+    ],
+    [
+      "not",
+      1
+    ]
+  ],
+  "scan_seconds": 44.2
+}

@@ -1,0 +1,35 @@
+am.optimize: instructions 4669500 -> 3930359 (fold=6 cse=21712 dce=717423) constants_added=2 [grhsim.am.optimize]
+exported AM instruction graph: path=/home/gaoruihao/wksp/wolvrix-playground/topo-partition-proj/exp/dataset/xs_full_20260731_l2/instruction_graph.jsonl instructions=3930359 def_use_edges=6641223 external_reads=2090034 order_edges=19046 comb_loop_atoms=0 [grhsim-am-production-activity-schedule]
+coarsen-dp block formation stats: clusters_after_coarsen=205173 dp_segments=28604 coarsen_ms=2894 dp_ms=190 rounds=55 out1_merges=1672512 in1_merges=409238 sibling_merges=1424442 [grhsim-am-production-activity-schedule]
+coarsen-dp initial degree histogram: clusters=3711365 outdeg{ total=6003162 0=247530 1=2750915 2=480336 3=67488 4-7=100667 8-15=36734 16-63=24556 >=64=3139 } indeg{ total=6003162 0=306429 1=1345418 2=1802955 3=224396 4-7=16772 8-15=9047 16-63=5940 >=64=408 } [grhsim-am-production-activity-schedule]
+exported AM block assignment: path=/home/gaoruihao/wksp/wolvrix-playground/topo-partition-proj/exp/dataset/xs_full_20260731_l2/block_assignment.jsonl blocks=29102 dag_edges=293650 compute_compute_value_pairs=2806512 incoming_copy_cost=5939415 [grhsim-am-production-activity-schedule]
+production schedule stats: linear_instructions=3930359 def_use_edges=8868906 atoms=3930359 oversized_atoms=0 max_atom_instructions=1 max_atom_state_writes=1 normal_blocks=29102 compute_blocks=28604 commit_blocks=497 detectors=1690573 activation_edges=2480350 scheduled_instructions=7311533 storage_bytes=384566074 reserved_bytes=386139486 [grhsim-am-production-activity-schedule]
+{
+  "top": "SimTop",
+  "graph_operations": 5158247,
+  "graph_values": 4787148,
+  "am_instructions": 3930359,
+  "am_variables": 4803821,
+  "am_operands": 9088313,
+  "am_results": 3697613,
+  "am_estimated_bytes": 240465900,
+  "am_reserved_bytes": 251137484,
+  "interface_ports": 13,
+  "declared_variables": 913664,
+  "ordered_effects": 218994,
+  "scheduled": true,
+  "scheduled_instructions": 7311533,
+  "scheduled_variables": 8184967,
+  "blocks": 29103,
+  "activation_targets": 2480350,
+  "commit_blocks": 497,
+  "scheduled_estimated_bytes": 384566074,
+  "read_ms": 1325,
+  "parse_ms": 26036,
+  "lower_ms": 6084,
+  "schedule_ms": 7672,
+  "emit_ms": 0,
+  "emitted_artifacts": 0,
+  "current_rss_kib": 4552628,
+  "peak_rss_kib": 28047388
+}

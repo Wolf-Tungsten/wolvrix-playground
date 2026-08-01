@@ -1,0 +1,14 @@
+[100%] Built target grhsim-am-lower-json
+[wolvrix-xs-grhsim-am] exec /home/gaoruihao/wksp/wolvrix-playground/build/wolvrix/bin/grhsim-am-lower-json /home/gaoruihao/wksp/wolvrix-playground/build/xs/grhsim-am/wolvrix_xs_post_stats.json SimTop --emit /home/gaoruihao/wksp/wolvrix-playground/build/xs/grhsim-am/grhsim_emit --blocks-per-source 2048 --max-source-bytes 4194304 --max-instructions-per-block 128 --dp-segment-penalty 1.0 --dp-coarsen-budget 0
+[grhsim-am-lower-json] read complete ms=1039 peak_rss_kib=2573744
+[grhsim-am-lower-json] parse complete ms=19557 peak_rss_kib=23901748
+[grhsim-am-lower-json] lower complete ms=4866 peak_rss_kib=23901748
+[grhsim-am-lower-json] graph released current_rss_kib=1194348
+[grhsim-am-lower-json] schedule complete ms=6994 peak_rss_kib=23901748 current_rss_kib=2117532
+flattened X/Z Logic literals for two-state AM lowering: count=89 [grhsim-am-lowering]
+exported AM instruction graph: path=/home/gaoruihao/wksp/wolvrix-playground/topo-partition-proj/exp/dataset/xs_full_20260731_l1/instruction_graph.jsonl instructions=3946245 def_use_edges=6659365 external_reads=2103342 order_edges=19046 comb_loop_atoms=0 [grhsim-am-production-activity-schedule]
+coarsen-dp block formation stats: clusters_after_coarsen=204721 dp_segments=28833 coarsen_ms=2607 dp_ms=181 rounds=55 out1_merges=1682209 in1_merges=410658 sibling_merges=1429663 [grhsim-am-production-activity-schedule]
+coarsen-dp initial degree histogram: clusters=3727251 outdeg{ total=6021304 0=247874 1=2763729 2=485660 3=65756 4-7=100893 8-15=35541 16-63=24632 >=64=3166 } indeg{ total=6021304 0=309613 1=1353229 2=1807518 3=224685 4-7=16793 8-15=9065 16-63=5940 >=64=408 } [grhsim-am-production-activity-schedule]
+exported AM block assignment: path=/home/gaoruihao/wksp/wolvrix-playground/topo-partition-proj/exp/dataset/xs_full_20260731_l1/block_assignment.jsonl blocks=29331 dag_edges=296488 compute_compute_value_pairs=2810259 incoming_copy_cost=5949859 [grhsim-am-production-activity-schedule]
+production schedule stats: linear_instructions=3946245 def_use_edges=8900369 atoms=3946245 oversized_atoms=0 max_atom_instructions=1 max_atom_state_writes=1 normal_blocks=29331 compute_blocks=28833 commit_blocks=497 detectors=1695164 activation_edges=2481921 scheduled_instructions=7336601 storage_bytes=376511926 reserved_bytes=402452414 [grhsim-am-production-activity-schedule]
+[grhsim-am-lower-json] emit complete ms=8577 peak_rss_kib=23901748 current_rss_kib=2630064

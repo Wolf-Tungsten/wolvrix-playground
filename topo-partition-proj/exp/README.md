@@ -14,6 +14,7 @@ Phase 0 起在本目录重建"导出 → 采样 → 评分 → 搜索"闭环（d
 | `harness/kernel.c` / `harness/kernel.py` | 段 DP 的 C 内核（ctypes 桥接，约 40µs/次 @n=5k，比 Python 快 ~1000×；无编译器时回退 Python DP） |
 | `harness/cpsat_oracle.py` | 小区域（≤200 节点）精确最优：CP-SAT  monotone-seg 建模，量搜索离最优的 gap |
 | `harness/gnn_bench.py` | CPU gather/SpMM/matmul 实测，校准编译期 GNN 推理预算（K7） |
+| `harness/fullgraph.py` | 全图排序搜索（R1 预案）：整图无冻结边界的 SA（comb 环收缩为组、组序展开为节点序过段 DP）、随机线性扩张零假设探针 |
 
 ## 命令行入口（`tools/`）
 
@@ -35,11 +36,21 @@ python3 tools/run_cpsat_gap.py dataset/xs_full_20260730/instruction_graph.jsonl 
 # 搜索器冒烟（采样 → 锚点 → 搜索闭环）
 python3 tools/run_search_smoke.py dataset/regions_xs_full_20260730 \
     dataset/xs_full_20260730/block_assignment.jsonl --regions 3 --iterations 10000
+# 全图排序油水实验（R1：整图 SA + 随机线性扩张 vs 规范序）
+python3 tools/run_fullgraph_search.py dataset/c910_full_20260730/instruction_graph.jsonl \
+    dataset/c910_full_20260730/block_assignment.jsonl \
+    dataset/c910_full_20260730/fullgraph --chains 32 --iterations 2000
 # CPU 推理摸底
 python3 tools/run_gnn_bench.py dataset/xs_full_20260730/instruction_graph.jsonl
 # 旧版逐行对账脚本（docs/06 的首次对账证据，保留）
 python3 tools/reconcile_baseline.py dataset/xs_full_20260730/instruction_graph.jsonl \
     dataset/xs_full_20260730/block_assignment.jsonl
+# 死锥复测（docs/19 §4 方法固化，T2 验证链）：state_write + 副作用 op + order 端点为根，def_use 反图 BFS
+python3 tools/dead_cone_check.py dataset/xs_full_20260731_l1/instruction_graph.jsonl
+# T3 模块级归因（docs/21）：AM(loc.file) × gsim(fir 实例树) 模块桶差表
+python3 tools/module_attr_compare.py --grh-json ../../build/xs/grhsim-am/wolvrix_xs_post_stats.json \
+    --gsim-jsonl dataset/xs_gsim_flatten_20260731/instruction_graph.jsonl \
+    --fir ../../build/xs/rtl/rtl/SimTop.fir --out dataset/module_attr_20260731.json
 ```
 
 ## 测试

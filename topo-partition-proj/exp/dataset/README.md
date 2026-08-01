@@ -16,6 +16,9 @@ Phase 0 起，一切实验（采样/打分/搜索/训练）的唯一图输入来
 | `regions_xs_full_20260730/` | 第一版训练数据集：512 个采样区域（`region_XXXX.npz`）+ `manifest.json` + `coverage.json`，生成方式与覆盖检查见 docs/07 | 206 MB |
 | `labels_xs_full_20260730/` | Phase 1 标签：512 区域的最优排列 + 锚点/搜索分数（`label_XXXX.npz`）+ `manifest.json`（M1 汇总），见 docs/08 | 派生产物 |
 | `examples/tiny_graph.jsonl` | 7 指令手工小程序的导出样例（导出器单测产物），供读图代码做格式冒烟 | 17 行 |
+| `xs_full_20260731_l1/` | T2-E1 数据集：L1（GRH 层 reg-to-mem 后 simplify）后的 AM 指令图 + 生产划分 + plaindp 复算 + 导出日志 | 见 doc 20 §4 |
+| `xs_full_20260731_l2/` | T2-E2 数据集：L2 单干（AM 层 DCE/fold/CSE，未经 L1 的脏图输入） | 见 doc 20 §4 |
+| `xs_full_20260731_l1l2/` | T2-E3 数据集：L1+L2 两级 | 见 doc 20 §4 |
 
 基线锚点（详见 `docs/06-基线解导出与对账.md`）：plain 基线 34,236 blocks
 （33,738 compute + 497 commit + 1 input sink），`dag_edges=325,838`，
