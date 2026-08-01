@@ -222,12 +222,13 @@
 | `TNO0210` | `2026-07-31` | [SimpleTES Codex remote-compact/reconnect session continuation](./TNO0210_simpletes_codex_remote_compact_and_reconnect_session_continuation_20260731.md) | 当前实例四次长 trace 终止被定位为 remote compact，其中最新一次先出现 reconnect/stream disconnect；SimpleTES `6517bfc` 新增独立 exact-thread transient continuation，默认 `3` 次且不占 capacity/ordinary retry，full `251/251`。运行中旧进程未重启，新机制下次启动生效。 |
 | `TNO0211` | `2026-08-01` | [SimpleTES post-four GPT max research completion](./TNO0211_simpletes_post_four_gpt_max_research_completion_20260801.md) | instance `73ee9786` 正常达到 `32/32` valid；最佳 gen28 pooled wall 为 `51,376.50→47,473.50 ms`（减少 `3,903.00 ms/7.596858%`），双 order gap `0.008800 pp` 且全门禁通过；优势来自 dominant event typed storage、decoded bool 与 batch-local snapshot，尚未落地或改默认。 |
 | `TNO0212` | `2026-08-01` | [Hot-event best-path ablation design and materialization](./TNO0212_hot_event_bestpath_ablation_design_and_materialization_20260801.md) | 固定 `de37459/fd12d83` current-default，物化 exact search-path 与 final mechanical-decomposition 共六个 zero-option arm；全部 apply/schema gate 通过，预注册八组同 CCD ABBA+BAAB direct pair，parallel build 正在运行。 |
+| `TNO0213` | `2026-08-01` | [Hot-event best-path direct ablation result](./TNO0213_hot_event_bestpath_direct_ablation_result_20260801.md) | 八组同 CCD direct pair 全部收敛；`B→TRBS` 为 `51,562.00→47,632.25 ms`（减少 `3,929.75 ms/7.621407%`，order gap `0.045683 pp`）。机械分解确认 typed storage `+2.748192%`、bool decode `+3.098466%`、bool snapshot `+1.969566%`，remap 单独中性；进入原则化门禁落地。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`212`（`TNO0001..TNO0212`）。
+- 当前记录类文档总数：`213`（`TNO0001..TNO0213`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
