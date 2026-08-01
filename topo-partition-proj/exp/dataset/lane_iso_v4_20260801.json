@@ -1,0 +1,2406 @@
+{
+ "total_save": 901408,
+ "n_groups": 1811,
+ "groups": [
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_perfDebugInfo_enqRsTime",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 101.0,
+   "save": 35350
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_perfDebugInfo_selectTime",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 101.0,
+   "save": 35350
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_perfDebugInfo_issueTime",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 101.0,
+   "save": 35350
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_perfDebugInfo_writebackTime",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 101.0,
+   "save": 35350
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_needVTB",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 59.0,
+   "save": 20650
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_lqIdx_value",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 49.0,
+   "save": 17150
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_commitType",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_ftqIdx_value",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_ftqOffset",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_traceBlockInPipe_iretire",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_crossFtqCommit",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_pc",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_instr",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_ldest",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_pdest",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_fuType",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_fusionNum",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_fuOpType",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_perfDebugInfo_renameTime",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_commitType",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 36.0,
+   "save": 12600
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_fpWen",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 35.0,
+   "save": 12250
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_rfWen",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 35.0,
+   "save": 12250
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_wflags",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 35.0,
+   "save": 12250
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_dirtyVs",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 35.0,
+   "save": 12250
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_ftqIdx_flag",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 35.0,
+   "save": 12250
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_isRVC",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 35.0,
+   "save": 12250
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_vecWen",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 35.0,
+   "save": 12250
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_v0Wen",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 35.0,
+   "save": 12250
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$debug_exuData_*",
+   "lanes": 352,
+   "merged": 336,
+   "sigs": 3,
+   "avg_priv": 35.0,
+   "save": 11725
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$dt_exuDebug_*_paddr",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 32.0,
+   "save": 11200
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$rab$renameBuffer_*_info_isMove",
+   "lanes": 352,
+   "merged": 352,
+   "sigs": 1,
+   "avg_priv": 30.0,
+   "save": 10530
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_interrupt_safe",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 30.0,
+   "save": 10500
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_isHls",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 27.0,
+   "save": 9450
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_sqIdx_value",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 21.0,
+   "save": 7350
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rename$intFreeList$freeList_*",
+   "lanes": 224,
+   "merged": 224,
+   "sigs": 1,
+   "avg_priv": 19.0,
+   "save": 4237
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rename$fpFreeList$freeList_*",
+   "lanes": 222,
+   "merged": 208,
+   "sigs": 2,
+   "avg_priv": 19.0,
+   "save": 3933
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$vtypeBuffer$vtypeBuffer_*_vtype_vsew",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 63.0,
+   "save": 3906
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$vtypeBuffer$vtypeBuffer_*_vtype_vlmul",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 63.0,
+   "save": 3906
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$vtypeBuffer$vtypeBuffer_*_pdestVl",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 63.0,
+   "save": 3906
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$vtypeBuffer$vtypeBuffer_*_vtype_illegal",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 62.0,
+   "save": 3844
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$vtypeBuffer$vtypeBuffer_*_vtype_vma",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 62.0,
+   "save": 3844
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$vtypeBuffer$vtypeBuffer_*_vtype_vta",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 62.0,
+   "save": 3844
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$vtypeBuffer$vtypeBuffer_*_isVsetvl",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 62.0,
+   "save": 3844
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$debug_lsTopdownInfo_*_s1_vaddr_bits",
+   "lanes": 352,
+   "merged": 336,
+   "sigs": 3,
+   "avg_priv": 11.0,
+   "save": 3685
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$debug_lsTopdownInfo_*_s2_paddr_bits",
+   "lanes": 352,
+   "merged": 336,
+   "sigs": 3,
+   "avg_priv": 11.0,
+   "save": 3685
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$blockSqIdx_*_flag",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 48.0,
+   "save": 3408
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$blockSqIdx_*_value",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 48.0,
+   "save": 3408
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_vecRegion$vecDataPath$vfRegFile$mem_*",
+   "lanes": 128,
+   "merged": 127,
+   "sigs": 2,
+   "avg_priv": 26.0,
+   "save": 3276
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_fpRegion$fpDataPath$fpRegFile$mem_*",
+   "lanes": 256,
+   "merged": 240,
+   "sigs": 3,
+   "avg_priv": 12.0,
+   "save": 2868
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$intDataPath$intRegFile$mem_*",
+   "lanes": 223,
+   "merged": 208,
+   "sigs": 2,
+   "avg_priv": 13.0,
+   "save": 2691
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$virtualLoadQueue$robIdx_*_flag",
+   "lanes": 72,
+   "merged": 65,
+   "sigs": 5,
+   "avg_priv": 38.0,
+   "save": 2432
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$virtualLoadQueue$robIdx_*_value",
+   "lanes": 72,
+   "merged": 65,
+   "sigs": 5,
+   "avg_priv": 38.0,
+   "save": 2432
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$virtualLoadQueue$uopIdx_*",
+   "lanes": 72,
+   "merged": 65,
+   "sigs": 5,
+   "avg_priv": 38.0,
+   "save": 2432
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$vecLastFlow_*",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 47.0,
+   "save": 2209
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$commitQueue$mem_*_bits_rasAction",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 34.0,
+   "save": 2108
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$commitQueue$mem_*_bits_ftqPtr_value",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 34.0,
+   "save": 2108
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_perfDebugInfo_dispatchTime",
+   "lanes": 352,
+   "merged": 351,
+   "sigs": 2,
+   "avg_priv": 6.0,
+   "save": 2100
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robDeqGroup_*_isVls",
+   "lanes": 8,
+   "merged": 8,
+   "sigs": 1,
+   "avg_priv": 269.0,
+   "save": 1883
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rename$vecFreeList$freeList_*",
+   "lanes": 81,
+   "merged": 80,
+   "sigs": 2,
+   "avg_priv": 19.0,
+   "save": 1501
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_level",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_0",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_1",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_2",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_3",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_4",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_5",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_6",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_7",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_8",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_9",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_10",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_11",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_12",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_13",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_14",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_15",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_16",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_17",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_18",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_19",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_20",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_21",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_22",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_exceptionVec_23",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_trigger",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_fuOpType",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_vpu_nf",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_vpu_veew",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_uopIdx",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_robIdx_flag",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_robIdx_value",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_sqIdx_flag",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_sqIdx_value",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_perfDebugInfo_renameTime",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 31.0,
+   "save": 1457
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_ppn",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 28.0,
+   "save": 1316
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueRAR$freeList$freeList_*",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 18.0,
+   "save": 1278
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$freeList$freeList_*",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 18.0,
+   "save": 1278
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_ptw$ptw$cache$l0asids_*_0",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 20.0,
+   "save": 1240
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_ptw$ptw$cache$l0asids_*_1",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 20.0,
+   "save": 1240
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_ptw$ptw$cache$l0asids_*_2",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 20.0,
+   "save": 1240
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_ptw$ptw$cache$l0asids_*_3",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 20.0,
+   "save": 1240
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$missMSHRId_*",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 14.0,
+   "save": 994
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$tlbHintId_*",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 14.0,
+   "save": 994
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$dataInLastBeatReg_*",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 14.0,
+   "save": 994
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_ptw$ptw$cache$l0vpns_*_0",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 16.0,
+   "save": 992
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_ptw$ptw$cache$l0vpns_*_1",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 16.0,
+   "save": 992
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_ptw$ptw$cache$l0vpns_*_2",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 16.0,
+   "save": 992
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_ptw$ptw$cache$l0vpns_*_3",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 16.0,
+   "save": 992
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_level",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 21.0,
+   "save": 987
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_level",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 21.0,
+   "save": 987
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_level",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 21.0,
+   "save": 987
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$l2top$inner_l2cache$prefetcher$vbop$scoreTable$st_*_score",
+   "lanes": 109,
+   "merged": 109,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 972
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_ppn",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 20.0,
+   "save": 940
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_ppn",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 20.0,
+   "save": 940
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_ppn",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 20.0,
+   "save": 940
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$memCtrl$lfst$robIdxVec_*_0_flag",
+   "lanes": 32,
+   "merged": 31,
+   "sigs": 2,
+   "avg_priv": 30.0,
+   "save": 900
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$memCtrl$lfst$robIdxVec_*_1_flag",
+   "lanes": 32,
+   "merged": 31,
+   "sigs": 2,
+   "avg_priv": 30.0,
+   "save": 900
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$memCtrl$lfst$robIdxVec_*_2_flag",
+   "lanes": 32,
+   "merged": 31,
+   "sigs": 2,
+   "avg_priv": 30.0,
+   "save": 900
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$memCtrl$lfst$robIdxVec_*_3_flag",
+   "lanes": 32,
+   "merged": 31,
+   "sigs": 2,
+   "avg_priv": 30.0,
+   "save": 900
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueRAR$paddrModule$data_*",
+   "lanes": 72,
+   "merged": 64,
+   "sigs": 2,
+   "avg_priv": 14.0,
+   "save": 882
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_prefetcher$smsOpt$pht$s3_hist_*",
+   "lanes": 30,
+   "merged": 16,
+   "sigs": 3,
+   "avg_priv": 49.0,
+   "save": 735
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueRAR$uop_*_robIdx_flag",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueRAR$uop_*_lqIdx_flag",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueRAR$uop_*_lqIdx_value",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_pc",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_isRVC",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_ftqPtr_flag",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_ftqPtr_value",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_ftqOffset",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_rfWen",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_fpWen",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_vpu_veew",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_uopIdx",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_robIdx_flag",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_storeSetHit",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_waitForRobIdx_flag",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_loadWaitBit",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_lqIdx_flag",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_lqIdx_value",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_sqIdx_flag",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_sqIdx_value",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$vecReplay_*_isvec",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$vecReplay_*_is128bit",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$vecReplay_*_alignedType",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$vecReplay_*_mbIndex",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$vecReplay_*_reg_offset",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$vecReplay_*_vecActive",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$vecReplay_*_mask",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 710
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$virtualLoadQueue$isvec_*",
+   "lanes": 72,
+   "merged": 65,
+   "sigs": 5,
+   "avg_priv": 10.0,
+   "save": 640
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_prefetcher$bertiOpt$detlaTable$entries_*_deltaList_1_delta",
+   "lanes": 64,
+   "merged": 59,
+   "sigs": 3,
+   "avg_priv": 11.0,
+   "save": 638
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_prefetcher$bertiOpt$detlaTable$entries_*_deltaList_2_delta",
+   "lanes": 64,
+   "merged": 59,
+   "sigs": 3,
+   "avg_priv": 11.0,
+   "save": 638
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_pmp$wen_reg_last_REG_*",
+   "lanes": 71,
+   "merged": 71,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 630
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_ptw$ptw$pmp$wen_reg_last_REG_*",
+   "lanes": 71,
+   "merged": 71,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 630
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_pmp$wen_reg_last_REG_*",
+   "lanes": 71,
+   "merged": 71,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 630
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_prefetcher$bertiOpt$detlaTable$entries_*_deltaList_3_delta",
+   "lanes": 64,
+   "merged": 58,
+   "sigs": 3,
+   "avg_priv": 11.0,
+   "save": 627
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_*_mispredictBranchInfo_taken",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 10.0,
+   "save": 620
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_*_mispredictBranchInfo_cfiPosition",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 10.0,
+   "save": 620
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_*_mispredictBranchInfo_attribute_branchType",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 10.0,
+   "save": 620
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_*_mispredictBranchInfo_attribute_rasAction",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 10.0,
+   "save": 620
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rat$fpRat$arch_table_*",
+   "lanes": 34,
+   "merged": 32,
+   "sigs": 2,
+   "avg_priv": 19.0,
+   "save": 589
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rat$vecRat$arch_table_*",
+   "lanes": 47,
+   "merged": 32,
+   "sigs": 2,
+   "avg_priv": 19.0,
+   "save": 589
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$debug_vaddr_*",
+   "lanes": 72,
+   "merged": 64,
+   "sigs": 2,
+   "avg_priv": 9.0,
+   "save": 567
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$cause_*",
+   "lanes": 72,
+   "merged": 64,
+   "sigs": 2,
+   "avg_priv": 9.0,
+   "save": 567
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$memBackTypeMM_*",
+   "lanes": 56,
+   "merged": 56,
+   "sigs": 1,
+   "avg_priv": 10.0,
+   "save": 550
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dcache$dcache$bankedDataArray$ecc_data_delayed_REG_*",
+   "lanes": 31,
+   "merged": 15,
+   "sigs": 3,
+   "avg_priv": 39.0,
+   "save": 546
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueRAW$freeList$freeList_*",
+   "lanes": 32,
+   "merged": 31,
+   "sigs": 2,
+   "avg_priv": 18.0,
+   "save": 540
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_n",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_valididx_0",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_valididx_1",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_valididx_2",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_valididx_3",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_valididx_4",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_valididx_5",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_valididx_6",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_valididx_7",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$isVec_*",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_n",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_valididx_0",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_valididx_1",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_valididx_2",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_valididx_3",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_valididx_4",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_valididx_5",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_valididx_6",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_valididx_7",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_n",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_valididx_0",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_valididx_1",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_valididx_2",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_valididx_3",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_valididx_4",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_valididx_5",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_valididx_6",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_valididx_7",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_n",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_valididx_0",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_valididx_1",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_valididx_2",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_valididx_3",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_valididx_4",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_valididx_5",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_valididx_6",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_valididx_7",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_prefetcher$bertiOpt$detlaTable$entries_*_deltaList_0_delta",
+   "lanes": 64,
+   "merged": 48,
+   "sigs": 4,
+   "avg_priv": 11.0,
+   "save": 517
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_perfDebugInfo_renameTime",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 7.0,
+   "save": 497
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_perfDebugInfo_dispatchTime",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 7.0,
+   "save": 497
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_perfDebugInfo_enqRsTime",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 7.0,
+   "save": 497
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_perfDebugInfo_selectTime",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 7.0,
+   "save": 497
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_perfDebugInfo_issueTime",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 7.0,
+   "save": 497
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_perfDebugInfo_runahead_checkpoint_id",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 7.0,
+   "save": 497
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_perfDebugInfo_tlbFirstReqTime",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 7.0,
+   "save": 497
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_perfDebugInfo_tlbRespTime",
+   "lanes": 72,
+   "merged": 72,
+   "sigs": 1,
+   "avg_priv": 7.0,
+   "save": 497
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_fuType",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 10.0,
+   "save": 470
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_perfDebugInfo_dispatchTime",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 10.0,
+   "save": 470
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_perfDebugInfo_enqRsTime",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 10.0,
+   "save": 470
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_perfDebugInfo_selectTime",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 10.0,
+   "save": 470
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_perfDebugInfo_issueTime",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 10.0,
+   "save": 470
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_perfDebugInfo_runahead_checkpoint_id",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 10.0,
+   "save": 470
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_perfDebugInfo_tlbFirstReqTime",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 10.0,
+   "save": 470
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$uop_*_perfDebugInfo_tlbRespTime",
+   "lanes": 56,
+   "merged": 48,
+   "sigs": 7,
+   "avg_priv": 10.0,
+   "save": 470
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$memCtrl$lfst$robIdxVec_*_0_value",
+   "lanes": 32,
+   "merged": 28,
+   "sigs": 3,
+   "avg_priv": 17.0,
+   "save": 459
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$memCtrl$lfst$robIdxVec_*_1_value",
+   "lanes": 32,
+   "merged": 28,
+   "sigs": 3,
+   "avg_priv": 17.0,
+   "save": 459
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$memCtrl$lfst$robIdxVec_*_2_value",
+   "lanes": 32,
+   "merged": 28,
+   "sigs": 3,
+   "avg_priv": 17.0,
+   "save": 459
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$memCtrl$lfst$robIdxVec_*_3_value",
+   "lanes": 32,
+   "merged": 28,
+   "sigs": 3,
+   "avg_priv": 17.0,
+   "save": 459
+  },
+  {
+   "group": "cpu$l_soc$l3cacheOpt$tpmeta$rdata_rawData_*",
+   "lanes": 12,
+   "merged": 11,
+   "sigs": 2,
+   "avg_priv": 45.0,
+   "save": 450
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_vlMergeBuffer$entries_*_vl",
+   "lanes": 16,
+   "merged": 15,
+   "sigs": 2,
+   "avg_priv": 32.0,
+   "save": 448
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueRAR$uop_*_robIdx_value",
+   "lanes": 72,
+   "merged": 64,
+   "sigs": 2,
+   "avg_priv": 7.0,
+   "save": 441
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ibuffer$ibuf_*_inst",
+   "lanes": 48,
+   "merged": 12,
+   "sigs": 5,
+   "avg_priv": 40.0,
+   "save": 440
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ibuffer$ibuf_*_pc_addr",
+   "lanes": 48,
+   "merged": 12,
+   "sigs": 5,
+   "avg_priv": 40.0,
+   "save": 440
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ibuffer$ibuf_*_foldpc",
+   "lanes": 48,
+   "merged": 12,
+   "sigs": 5,
+   "avg_priv": 40.0,
+   "save": 440
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ibuffer$ibuf_*_isRvc",
+   "lanes": 48,
+   "merged": 12,
+   "sigs": 5,
+   "avg_priv": 40.0,
+   "save": 440
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ibuffer$ibuf_*_predTaken",
+   "lanes": 48,
+   "merged": 12,
+   "sigs": 5,
+   "avg_priv": 40.0,
+   "save": 440
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ibuffer$ibuf_*_fixedTaken",
+   "lanes": 48,
+   "merged": 12,
+   "sigs": 5,
+   "avg_priv": 40.0,
+   "save": 440
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ibuffer$ibuf_*_ftqPtr_flag",
+   "lanes": 48,
+   "merged": 12,
+   "sigs": 5,
+   "avg_priv": 40.0,
+   "save": 440
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ibuffer$ibuf_*_ftqPtr_value",
+   "lanes": 48,
+   "merged": 12,
+   "sigs": 5,
+   "avg_priv": 40.0,
+   "save": 440
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ibuffer$ibuf_*_instrEndOffset",
+   "lanes": 48,
+   "merged": 12,
+   "sigs": 5,
+   "avg_priv": 40.0,
+   "save": 440
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ibuffer$ibuf_*_triggered",
+   "lanes": 48,
+   "merged": 12,
+   "sigs": 5,
+   "avg_priv": 40.0,
+   "save": 440
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ibuffer$ibuf_*_isLastInFtqEntry",
+   "lanes": 48,
+   "merged": 12,
+   "sigs": 5,
+   "avg_priv": 40.0,
+   "save": 440
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_ptw$ptw$cache$l0h_*_0",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 7.0,
+   "save": 434
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_ptw$ptw$cache$l0h_*_1",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 7.0,
+   "save": 434
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_ptw$ptw$cache$l0h_*_2",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 7.0,
+   "save": 434
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_ptw$ptw$cache$l0h_*_3",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 7.0,
+   "save": 434
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_prefetcher$bertiOpt$detlaTable$entries_*_pcTag",
+   "lanes": 64,
+   "merged": 63,
+   "sigs": 2,
+   "avg_priv": 7.0,
+   "save": 434
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_tag",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_pteidx_0",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_pteidx_1",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_pteidx_2",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_pteidx_3",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_pteidx_4",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_pteidx_5",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_pteidx_6",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_pteidx_7",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_ppn_low_0",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_ppn_low_1",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_ppn_low_2",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_ppn_low_3",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_ppn_low_4",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_ppn_low_5",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_ppn_low_6",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_ppn_low_7",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_vmid",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_tag",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_pteidx_0",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_pteidx_1",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_pteidx_2",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_pteidx_3",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_pteidx_4",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_pteidx_5",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_pteidx_6",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_pteidx_7",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_ppn_low_0",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_ppn_low_1",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_ppn_low_2",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_ppn_low_3",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_ppn_low_4",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_ppn_low_5",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_ppn_low_6",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_ppn_low_7",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_vmid",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_tag",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_pteidx_0",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_pteidx_1",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_pteidx_2",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_pteidx_3",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_pteidx_4",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_pteidx_5",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_pteidx_6",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_pteidx_7",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_ppn_low_0",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_ppn_low_1",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_ppn_low_2",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_ppn_low_3",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_ppn_low_4",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_ppn_low_5",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_ppn_low_6",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_ppn_low_7",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_vmid",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_tag",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_pteidx_0",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_pteidx_1",
+   "lanes": 48,
+   "merged": 48,
+   "sigs": 1,
+   "avg_priv": 9.0,
+   "save": 423
+  }
+ ]
+}

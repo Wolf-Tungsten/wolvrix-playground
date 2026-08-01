@@ -1,0 +1,1406 @@
+{
+ "total_save": 315300,
+ "n_groups": 2210,
+ "groups": [
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$delayedWriteBack_*_valid_last_REG",
+   "lanes": 24,
+   "covered": 24,
+   "tree_ops": 22911,
+   "save": 22908
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$delayedNotFlushedWriteBack_delayed_bits_perfDebugInfo_writebackTime_c_*",
+   "lanes": 23,
+   "covered": 23,
+   "tree_ops": 7744,
+   "save": 7741
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$delayedNotFlushedWriteBack_delayed_bits_r_*_perfDebugInfo_enqRsTime",
+   "lanes": 23,
+   "covered": 23,
+   "tree_ops": 7744,
+   "save": 7741
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$delayedNotFlushedWriteBack_delayed_bits_r_*_perfDebugInfo_selectTime",
+   "lanes": 23,
+   "covered": 23,
+   "tree_ops": 7744,
+   "save": 7741
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$delayedNotFlushedWriteBack_delayed_bits_r_*_perfDebugInfo_issueTime",
+   "lanes": 23,
+   "covered": 23,
+   "tree_ops": 7744,
+   "save": 7741
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$delayedNotFlushedWriteBackNums_delayed_bits_r_*",
+   "lanes": 23,
+   "covered": 19,
+   "tree_ops": 6992,
+   "save": 6989
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$rab$renameBuffer_*_info_isMove",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 5632,
+   "save": 5629
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$delayedNotFlushedWriteBack_delayed_valid_last_REG_*",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 3324,
+   "save": 3321
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_v0Wen",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2832,
+   "save": 2829
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_flushPipe",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2832,
+   "save": 2829
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_hasException",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2828,
+   "save": 2825
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_rfWen",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2824,
+   "save": 2821
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_vecWen",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2824,
+   "save": 2821
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_ftqPtr_value",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2820,
+   "save": 2817
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_ftqOffset",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2820,
+   "save": 2817
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_isVset",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2820,
+   "save": 2817
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_isRVC",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_ftqPtr_flag",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_commitType",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_ldest",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_fuType",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_fuOpType",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_vpu_isVleff",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_wfflags",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_pdest",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_dirtyFs",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_dirtyVs",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_traceBlockInPipe_itype",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_traceBlockInPipe_iretire",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_debug_pc",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_debug_instr",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_debug_fusionNum",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_debug_perfDebugInfo_renameTime",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_crossFtqCommit",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2816,
+   "save": 2813
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_numWB",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2576,
+   "save": 2573
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_isMove",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2464,
+   "save": 2461
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$memCtrl$ssit$valid_array$r_*",
+   "lanes": 31,
+   "covered": 31,
+   "tree_ops": 2232,
+   "save": 2229
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$memCtrl$ssit$data_array$r_*_ssid",
+   "lanes": 31,
+   "covered": 31,
+   "tree_ops": 2232,
+   "save": 2229
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_valid",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 2112,
+   "save": 2109
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_fpRegion$fpDataPath$REG_*",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 2104,
+   "save": 2101
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$intDataPath$REG_*",
+   "lanes": 9,
+   "covered": 9,
+   "tree_ops": 2079,
+   "save": 2076
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_sbuffer$dataModule$sbuffer_in_s2_line_wen_last_REG_*",
+   "lanes": 31,
+   "covered": 31,
+   "tree_ops": 1984,
+   "save": 1981
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_bpu$tage$tables_*$writeReq_entries_0_takenCtr_value",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 1792,
+   "save": 1789
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rename$intFreeList$freeList_*",
+   "lanes": 224,
+   "covered": 224,
+   "tree_ops": 1792,
+   "save": 1789
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rename$fpFreeList$freeList_*",
+   "lanes": 222,
+   "covered": 222,
+   "tree_ops": 1776,
+   "save": 1773
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rename$fpFreeList_io_freeReq_*_last_REG",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 1776,
+   "save": 1773
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_bpu$tage$tables_*$writeReq_setIdx",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 1408,
+   "save": 1405
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$memCtrl$ssit$data_array$r_*_strict",
+   "lanes": 15,
+   "covered": 15,
+   "tree_ops": 1080,
+   "save": 1077
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$debug_lsIssued_*",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 1056,
+   "save": 1053
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_sbuffer$dataModule$line_write_buffer_wline_*",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 1024,
+   "save": 1021
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_sbuffer$dataModule$line_write_buffer_wline_*_1",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 1024,
+   "save": 1021
+  },
+  {
+   "group": "cpu$l_simMMIO$intrGen$REG_*",
+   "lanes": 999,
+   "covered": 999,
+   "tree_ops": 1006,
+   "save": 1003
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$hitVecReg_*",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 960,
+   "save": 957
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$hitVecReg_*",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 960,
+   "save": 957
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$hitVecReg_*",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 912,
+   "save": 909
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_bpu$tage$tables_*$writeReq_entries_0_valid",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 896,
+   "save": 893
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_bpu$tage$tables_*$writeReq_entries_0_tag",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 896,
+   "save": 893
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_bpu$tage$tables_*$writeReq_usefulCtrs_0_value",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 896,
+   "save": 893
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$hitVecReg_*",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 768,
+   "save": 765
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_interrupt_safe",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_rfWen",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_wflags",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_dirtyVs",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_commitType",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_ftqIdx_flag",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_ftqIdx_value",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_ftqOffset",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_isRVC",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_needVTB",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_isHls",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_traceBlockInPipe_iretire",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_crossFtqCommit",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_ldest",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_pdest",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_debug_fusionNum",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_mmio",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$debug_lsTopdownInfo_*_s1_vaddr_valid",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$debug_lsTopdownInfo_*_s2_paddr_valid",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 704,
+   "save": 701
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$v_*",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 672,
+   "save": 669
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rename$vecFreeList$freeList_*",
+   "lanes": 81,
+   "covered": 81,
+   "tree_ops": 648,
+   "save": 645
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rename$vecFreeList_io_freeReq_*_last_REG",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 648,
+   "save": 645
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$allocated_*",
+   "lanes": 72,
+   "covered": 72,
+   "tree_ops": 648,
+   "save": 645
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_bpu$tage$tables_*$writeReq_entries_1_takenCtr_value",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 640,
+   "save": 637
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$v_*",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 624,
+   "save": 621
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$iqWakeUpBundleDelayed_delayed_REG_*_bits_rfWen",
+   "lanes": 9,
+   "covered": 9,
+   "tree_ops": 612,
+   "save": 609
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$blocking_*",
+   "lanes": 72,
+   "covered": 72,
+   "tree_ops": 576,
+   "save": 573
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$v_*",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 576,
+   "save": 573
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_vecRegion$vecDataPath$REG_*",
+   "lanes": 17,
+   "covered": 17,
+   "tree_ops": 561,
+   "save": 558
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$allocated_*",
+   "lanes": 56,
+   "covered": 56,
+   "tree_ops": 560,
+   "save": 557
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$v_*",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 528,
+   "save": 525
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_fpRegion$issueQueueFEX0_FaluFmacFcvtFcmpF2v$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 528,
+   "save": 525
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_fpRegion$issueQueueFEX1_FaluFmacFdiv$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 528,
+   "save": 525
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_fpRegion$issueQueueFEX2_FaluFmacFdiv$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 528,
+   "save": 525
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_fpRegion$issueQueueFEX3_FaluFmac$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 528,
+   "save": 525
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_bpu$utage$MicroTageTable$entries_*_valid",
+   "lanes": 512,
+   "covered": 512,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_bpu$tage$tables_*$writeReq_entries_1_valid",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_bpu$tage$tables_*$writeReq_entries_1_tag",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_bpu$tage$tables_*$writeReq_usefulCtrs_1_value",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_vpu_vill",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_vpu_vma",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_vpu_vta",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_vpu_vsew",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_vpu_vlmul",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$enqRob_req_*_bits_r_pdestVl",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_sbuffer$valid_tag_match_reg_*",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_sbuffer$inflight_tag_match_reg_*",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_sbuffer$valid_tag_match_reg_*_1",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_sbuffer$inflight_tag_match_reg_*_1",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_sbuffer$valid_tag_match_reg_*_2",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_sbuffer$inflight_tag_match_reg_*_2",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 512,
+   "save": 509
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueRAR$allocated_*",
+   "lanes": 72,
+   "covered": 72,
+   "tree_ops": 504,
+   "save": 501
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_n",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 480,
+   "save": 477
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$intDataPath$regCache$int_ren_last_REG_*",
+   "lanes": 24,
+   "covered": 24,
+   "tree_ops": 408,
+   "save": 405
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_n",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 384,
+   "save": 381
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$issueQueueALU0BJU0_AluCsrFenceBrhJmp$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 360,
+   "save": 357
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$issueQueueALU1BJU1_AluDivBrhJmp$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 360,
+   "save": 357
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$issueQueueALU2BJU2_AluI2fVsetriwiVsetriwvfI2vBrhJmp$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 360,
+   "save": 357
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$issueQueueALU3_AluBku$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 360,
+   "save": 357
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$issueQueueALU4_AluMul$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 360,
+   "save": 357
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$issueQueueALU5_AluMul$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 360,
+   "save": 357
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$virtualLoadQueue$allocated_*",
+   "lanes": 72,
+   "covered": 72,
+   "tree_ops": 360,
+   "save": 357
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_fflags",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 352,
+   "save": 349
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_vxsat",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 352,
+   "save": 349
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$robEntries_*_needFlush",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 352,
+   "save": 349
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$dt_exuDebug_*_isMMIO",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 352,
+   "save": 349
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$dt_exuDebug_*_isNCIO",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 352,
+   "save": 349
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob$dt_exuDebug_*_isPerfCnt",
+   "lanes": 352,
+   "covered": 352,
+   "tree_ops": 352,
+   "save": 349
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$decodeBufValid_*",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 328,
+   "save": 325
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$intDataPath$regCache$mem_ren_last_REG_*",
+   "lanes": 24,
+   "covered": 24,
+   "tree_ops": 312,
+   "save": 309
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$iqWakeUpBundleDelayed_delayed_REG_*_bits_rcDest",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 304,
+   "save": 301
+  },
+  {
+   "group": "_op_*",
+   "lanes": 346,
+   "covered": 298,
+   "tree_ops": 298,
+   "save": 295
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_bpu$tage$t2_branches_*_bits_taken",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 296,
+   "save": 293
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dcache$dcache$missQueue$entries_*$req_valid",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 288,
+   "save": 285
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueRAR$released_*",
+   "lanes": 72,
+   "covered": 72,
+   "tree_ops": 288,
+   "save": 285
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_st_tlb_st$entries$page_sttlb_storage_fa$entries_*_n",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 288,
+   "save": 285
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ifu$s1_fetchBlockSelect_*",
+   "lanes": 32,
+   "covered": 32,
+   "tree_ops": 287,
+   "save": 284
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ifu$s1_twoFetchPcLower_*",
+   "lanes": 32,
+   "covered": 32,
+   "tree_ops": 287,
+   "save": 284
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$flushCopyRegVec_next_valid_last_REG_*",
+   "lanes": 14,
+   "covered": 14,
+   "tree_ops": 283,
+   "save": 280
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$flushCopyRegVec_next_bits_r_*_level",
+   "lanes": 14,
+   "covered": 14,
+   "tree_ops": 280,
+   "save": 277
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$addrvalid_*",
+   "lanes": 56,
+   "covered": 56,
+   "tree_ops": 280,
+   "save": 277
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$dispatch$rcTagTable$IntRCTagTable$v_*",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 272,
+   "save": 269
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_vecRegion$vecDataPath$r_*",
+   "lanes": 27,
+   "covered": 15,
+   "tree_ops": 269,
+   "save": 266
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$issueQueueSTD0_StdMoud$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 264,
+   "save": 261
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$issueQueueSTD1_StdMoud$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 264,
+   "save": 261
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dcache$dcache$accessArray$meta_array_*_0",
+   "lanes": 256,
+   "covered": 256,
+   "tree_ops": 256,
+   "save": 253
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dcache$dcache$accessArray$meta_array_*_1",
+   "lanes": 256,
+   "covered": 256,
+   "tree_ops": 256,
+   "save": 253
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dcache$dcache$accessArray$meta_array_*_2",
+   "lanes": 256,
+   "covered": 256,
+   "tree_ops": 256,
+   "save": 253
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dcache$dcache$accessArray$meta_array_*_3",
+   "lanes": 256,
+   "covered": 256,
+   "tree_ops": 256,
+   "save": 253
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$dispatch$fpBusyTable$table_r_*",
+   "lanes": 255,
+   "covered": 255,
+   "tree_ops": 255,
+   "save": 252
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rename$vlFreeList$freeList_*",
+   "lanes": 31,
+   "covered": 31,
+   "tree_ops": 248,
+   "save": 245
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rename$vlFreeList_io_freeReq_*_last_REG",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 248,
+   "save": 245
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_perm_g",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 240,
+   "save": 237
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$dispatch$intBusyTable$table_r_*",
+   "lanes": 223,
+   "covered": 223,
+   "tree_ops": 223,
+   "save": 220
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$issueQueueLDU0_Ldu$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 216,
+   "save": 213
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$issueQueueLDU1_Ldu$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 216,
+   "save": 213
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$issueQueueLDU2_Ldu$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 216,
+   "save": 213
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$issueQueueSTA0_StaMou$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 216,
+   "save": 213
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$issueQueueSTA1_StaMou$entries$othersEntriesComp_*$validReg_last_REG",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 216,
+   "save": 213
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ifu$s3_alignInstrValid_*",
+   "lanes": 35,
+   "covered": 35,
+   "tree_ops": 210,
+   "save": 207
+  },
+  {
+   "group": "logEndpoint$max_*",
+   "lanes": 207,
+   "covered": 207,
+   "tree_ops": 207,
+   "save": 204
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$dispatch$rcTagTable$MemRCTagTable$v_*",
+   "lanes": 12,
+   "covered": 12,
+   "tree_ops": 204,
+   "save": 201
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_itlb$entries$page_itlb_storage_fa$entries_*_n",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_pbmt",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_g_pbmt",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_perm_pf",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_perm_af",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_perm_v",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_perm_d",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_perm_a",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_perm_u",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_perm_x",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_perm_w",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_perm_r",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_g_perm_pf",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_g_perm_af",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_g_perm_d",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_g_perm_a",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_g_perm_x",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_g_perm_w",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_ld_tlb_ld$entries$page_ldtlb_storage_fa$entries_*_g_perm_r",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlb_prefetch_tlb_prefetch$entries$page_pftlb_storage_fa$entries_*_perm_g",
+   "lanes": 48,
+   "covered": 48,
+   "tree_ops": 192,
+   "save": 189
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$frontend$inner_ifu$s3_alignIsPredTaken_*",
+   "lanes": 35,
+   "covered": 35,
+   "tree_ops": 175,
+   "save": 172
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rename$v0FreeList$freeList_*",
+   "lanes": 21,
+   "covered": 21,
+   "tree_ops": 168,
+   "save": 165
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rename$v0FreeList_io_freeReq_*_last_REG",
+   "lanes": 8,
+   "covered": 8,
+   "tree_ops": 168,
+   "save": 165
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$paddrModule$mask_*",
+   "lanes": 56,
+   "covered": 56,
+   "tree_ops": 168,
+   "save": 165
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$paddrModule$lineflag_*",
+   "lanes": 56,
+   "covered": 56,
+   "tree_ops": 168,
+   "save": 165
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$vaddrModule$mask_*",
+   "lanes": 56,
+   "covered": 56,
+   "tree_ops": 168,
+   "save": 165
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$vaddrModule$lineflag_*",
+   "lanes": 56,
+   "covered": 56,
+   "tree_ops": 168,
+   "save": 165
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$datavalid_*",
+   "lanes": 56,
+   "covered": 56,
+   "tree_ops": 168,
+   "save": 165
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$storeQueue$mmio_*",
+   "lanes": 56,
+   "covered": 56,
+   "tree_ops": 168,
+   "save": 165
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueRAW$allocated_*",
+   "lanes": 32,
+   "covered": 32,
+   "tree_ops": 160,
+   "save": 157
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$backend$inner_intRegion$intBypassNetwork$bypassDataVec_r_*",
+   "lanes": 10,
+   "covered": 9,
+   "tree_ops": 156,
+   "save": 153
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_dtlbRepeater$load_filter_load_entry$v_*",
+   "lanes": 16,
+   "covered": 16,
+   "tree_ops": 152,
+   "save": 149
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$strict_*",
+   "lanes": 72,
+   "covered": 72,
+   "tree_ops": 144,
+   "save": 141
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_exceptionVec_0",
+   "lanes": 72,
+   "covered": 72,
+   "tree_ops": 144,
+   "save": 141
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_exceptionVec_1",
+   "lanes": 72,
+   "covered": 72,
+   "tree_ops": 144,
+   "save": 141
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_exceptionVec_2",
+   "lanes": 72,
+   "covered": 72,
+   "tree_ops": 144,
+   "save": 141
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_exceptionVec_6",
+   "lanes": 72,
+   "covered": 72,
+   "tree_ops": 144,
+   "save": 141
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_exceptionVec_7",
+   "lanes": 72,
+   "covered": 72,
+   "tree_ops": 144,
+   "save": 141
+  },
+  {
+   "group": "cpu$l_soc$core_with_l2$core$memBlock$inner_lsq$loadQueue$loadQueueReplay$uop_*_exceptionVec_8",
+   "lanes": 72,
+   "covered": 72,
+   "tree_ops": 144,
+   "save": 141
+  }
+ ]
+}
