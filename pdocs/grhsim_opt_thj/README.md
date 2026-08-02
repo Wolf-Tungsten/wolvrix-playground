@@ -226,12 +226,13 @@
 | `TNO0214` | `2026-08-01` | [Principled hot-event landing and native gate](./TNO0214_principled_hot_event_landing_and_native_gate_20260801.md) | TRBS 以 Wolvrix 通用 C++ 默认落地，并用 final-schedule exact-posedge reuse 替代 `event slots>=256`；fresh `407/407`、CTest `51/53`（仅两项历史失败）与功能 gate 通过。旧门禁→原则化门禁为 `47,567.25→47,597.00 ms`（`−0.062543%`，gap `0.072499 pp`），generated fingerprint 相同，判性能等价并保留。 |
 | `TNO0215` | `2026-08-01` | [Principled hot-event SimpleTES repin and continuation readiness](./TNO0215_principled_hot_event_simpletes_repin_and_continuation_readiness_20260801.md) | SimpleTES `6a169d4` 已 repin 到 parent `52ba7d9` / Wolvrix `d3ed9de` 空 control；旧 four-positive checkpoint fail-close，bench `80/80`、full `251/251`、validate-only 与 GPT max dry-run 全过，未启动 research 或调用模型。 |
 | `TNO0216` | `2026-08-01` | [SimpleTES principled-TRBS GPT max fresh research launch](./TNO0216_simpletes_principled_trbs_gpt_max_fresh_launch_20260801.md) | fresh instance `efb346a8` 已用 `gpt-5.6-sol/max`、THJ config/auth、`64 proposals/32 valid`、`4 gen/1 eval` 启动并进入原则化 TRBS empty-control evaluator；真实 preflight 通过，尚无 candidate 或本轮 50k 结果。 |
+| `TNO0217` | `2026-08-03` | [SimpleTES principled-TRBS GPT max second fresh launch](./TNO0217_simpletes_principled_trbs_gpt_max_second_fresh_launch_20260803.md) | 上轮 `efb346a8` 达到 `32/32 valid` 后已退出；新 `instance-44cd457d` 明确不 resume、不 seed old best，以同一原则化 TRBS 空 control、`gpt-5.6-sol/max`、THJ config/auth 和 `64/32` 预算 fresh 启动，现处 initial evaluator。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`216`（`TNO0001..TNO0216`）。
+- 当前记录类文档总数：`217`（`TNO0001..TNO0217`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
