@@ -26,6 +26,7 @@
 | NO0018 | [数组value语义实施与段2验收](NO0018_数组value语义实施与段2验收_20260801.md) | 2026-08-01 | 段 2 验收：compute 3,278,538→3,080,136（1.1653x→1.0948x）；50k difftest 通过；**增量 08-02：runtime 修复 640.7→473.6s（array 反超 wide）**；段 3 前提修正（when 区域降级，主战场转段 4）；段 4 侦察（exact-all 兜底 + C 级叶解锁 MSHR/WB） | — |
 | NO0019 | [段4模块残余治理一](NO0019_段4模块残余治理一_20260802.md) | 2026-08-02 | 命名错位 artifact 警示（DecodeUnit 伪目标）；解锁三板斧（exact-all/C 级叶/min_lanes=4）+ sibling bug 修复；a3：merged 2,632 组，compute 2,996,468（1.0650x）；DataModule shl-onehot 匹配器（超 gsim 削减注记） | — |
 | NO0020 | [冲线R级叶与102x达成](NO0020_冲线R级叶与102x达成_20260802.md) | 2026-08-02 | R 级 affine-gather 叶（零成本物化，+2,045 组）；a6 compute 2,858,845 = 1.0161x；**收官：b1（comb-lane-pack array）compute 2,825,239（1.0042x）、difftest 绿、host 438.6s（+1.6%）——五项判据全过**；全程轨迹表（1.2142x→1.0042x） | — |
+| NO0021 | [默认开启与全面测试](NO0021_默认开启与全面测试_20260802.md) | 2026-08-02 | 四开关默认 on；array-lower 接入 legacy emit（c910 暴露）；测试矩阵：香山/c910 全流水过、hdlbits SV 162/162、grhsim 160/162（023/119 既有）；tb 的 Verilator 5.x VlWide 兼容修复 | — |
 
 ## 备注
 

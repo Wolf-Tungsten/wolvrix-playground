@@ -569,10 +569,10 @@ def main() -> int:
     export_compute_dag_path = Path(export_compute_dag).resolve() if export_compute_dag else None
     simplify_keep_declared_symbols = env_flag("WOLVRIX_XS_GRHSIM_SIMPLIFY_KEEP_DECLARED_SYMBOLS", default=False)
     skip_comb_lane_pack = env_flag("WOLVRIX_XS_GRHSIM_SKIP_COMB_LANE_PACK", default=False)
-    lane_aggregate = env_flag("WOLVRIX_XS_GRHSIM_LANE_AGGREGATE", default=False)
-    lane_aggregate_min_lanes = env_int("WOLVRIX_XS_GRHSIM_LANE_AGGREGATE_MIN_LANES", 8)
-    lane_aggregate_array = env_flag("WOLVRIX_XS_GRHSIM_LANE_AGGREGATE_ARRAY", default=False)
-    comb_lane_pack_array = env_flag("WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_ARRAY", default=False)
+    lane_aggregate = env_flag("WOLVRIX_XS_GRHSIM_LANE_AGGREGATE", default=True)
+    lane_aggregate_min_lanes = env_int("WOLVRIX_XS_GRHSIM_LANE_AGGREGATE_MIN_LANES", 4)
+    lane_aggregate_array = env_flag("WOLVRIX_XS_GRHSIM_LANE_AGGREGATE_ARRAY", default=True)
+    comb_lane_pack_array = env_flag("WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_ARRAY", default=True)
     reg_to_mem_intent = env_flag("WOLVRIX_XS_GRHSIM_REG_TO_MEM_INTENT", default=True)
     reg_to_mem_ordered_writes = env_flag(
         "WOLVRIX_XS_GRHSIM_REG_TO_MEM_ORDERED_WRITES",
@@ -871,6 +871,16 @@ def main() -> int:
                         )
                         log(f"post-stats summary written {summary_path}")
                 log(f"pass {pass_name} done {int((time.perf_counter() - start) * 1000)}ms")
+
+        if (lane_aggregate_array or comb_lane_pack_array) and not stop_after_pre_sched:
+            # 数组语义产物（kArray*）在 legacy grhsim emit 前降解回标准形态
+            # （post stats 已在上面写出，保留 array 形态供 AM lower-json；
+            # array-lower 为语义等价展开，见 docs/transform/array-lower.md）。
+            start = time.perf_counter()
+            log("pass array-lower start")
+            diags = sess.run_pass("array-lower", design="design.main")
+            require_ok(diags, "pass array-lower")
+            log(f"pass array-lower done {int((time.perf_counter() - start) * 1000)}ms")
 
         if stop_after_pre_sched:
             log("stop after pre-sched enabled")
