@@ -22,6 +22,10 @@
 | NO0014 | [rb-lane重向量化pass设计草案](NO0014_rb-lane重向量化pass设计草案_20260801.md) | 2026-08-01 | R-B lane-aggregate 设计：名字分组+同构签名+常量 lane 参数化+masked 宽写；决策门 v4 可省 901,408 ops | 30 |
 | NO0015 | [lane-aggregate实施与验收](NO0015_lane-aggregate实施与验收_20260801.md) | 2026-08-01 | lane-aggregate 落地：合并 275 组/24,364 lane，compute 3,429,884→3,278,538（−151,346，1.1653x），difftest/ctest 双过；≤1.10x 在本路线不可达论证 | 31 |
 | NO0016 | [am与gsim剩余差距拆解](NO0016_am与gsim剩余差距拆解_20260801.md) | 2026-08-01 | 1.0x 完全对齐场景：剩余 465,007 compute-op 的正负项结构、logic +75.1 万三分解剖、可消除性分类——结构性地板兜底，1.0x 需数组 value/when 区域级 IR 语义 | —（本专题首篇原生记录） |
+| NO0017 | [数组value与when区域语义总体设计](NO0017_数组value与when区域语义总体设计_20260801.md) | 2026-08-01 | 冲击 1.0x 总设计：D1-D8 决策（不新增 ValueType、复用 kMemory/kMemoryReadPort、7 个新 kArray* op、array-lower 展开 pass 兼作等价证明）、逐 op operand 语义、迁移映射与口径登记、when 区域扁平守卫框架、穿透清单与分段验收账 | — |
+| NO0018 | [数组value语义实施与段2验收](NO0018_数组value语义实施与段2验收_20260801.md) | 2026-08-01 | 段 2 验收：compute 3,278,538→3,080,136（1.1653x→1.0948x）；50k difftest 通过；**增量 08-02：runtime 修复 640.7→473.6s（array 反超 wide）**；段 3 前提修正（when 区域降级，主战场转段 4）；段 4 侦察（exact-all 兜底 + C 级叶解锁 MSHR/WB） | — |
+| NO0019 | [段4模块残余治理一](NO0019_段4模块残余治理一_20260802.md) | 2026-08-02 | 命名错位 artifact 警示（DecodeUnit 伪目标）；解锁三板斧（exact-all/C 级叶/min_lanes=4）+ sibling bug 修复；a3：merged 2,632 组，compute 2,996,468（1.0650x）；DataModule shl-onehot 匹配器（超 gsim 削减注记） | — |
+| NO0020 | [冲线R级叶与102x达成](NO0020_冲线R级叶与102x达成_20260802.md) | 2026-08-02 | R 级 affine-gather 叶（零成本物化，+2,045 组）；a6 compute 2,858,845 = 1.0161x；**收官：b1（comb-lane-pack array）compute 2,825,239（1.0042x）、difftest 绿、host 438.6s（+1.6%）——五项判据全过**；全程轨迹表（1.2142x→1.0042x） | — |
 
 ## 备注
 

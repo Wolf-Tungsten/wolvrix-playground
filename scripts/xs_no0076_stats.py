@@ -18,16 +18,29 @@ def summarize_compute_ops_from_post_stats(post_stats_json: Path, top_name: str) 
         ops = graph.get("ops")
         if ops is None:
             ops = graph.get("operations", [])
-        source_kinds = {"kConstant", "kRegisterReadPort", "kLatchReadPort"}
-        sink_kinds = {"kRegisterWritePort", "kLatchWritePort", "kMemoryWritePort", "kMemoryFillPort"}
+        source_kinds = {"kConstant", "kRegisterReadPort", "kLatchReadPort", "kArrayReadAllPort"}
+        sink_kinds = {"kRegisterWritePort", "kLatchWritePort", "kMemoryWritePort", "kMemoryFillPort", "kArrayWritePort"}
         decl_kinds = {"kRegister", "kMemory", "kLatch", "kDpicImport"}
         hier_kinds = {"kInstance", "kBlackbox", "kXMRRead", "kXMRWrite"}
+        array_kinds = {
+            "kArrayMux",
+            "kArrayReduceOr",
+            "kArrayReduceAnd",
+            "kArrayReduceXor",
+            "kArrayBroadcast",
+            "kArrayLaneConst",
+            "kArrayOnehot",
+            "kArrayReduceLanesOr",
+            "kArrayReduceLanesAnd",
+            "kArrayReduceLanesXor",
+        }
         total_ops = len(ops)
         source_ops = sum(1 for op in ops if op.get("kind") in source_kinds)
         sink_ops = sum(1 for op in ops if op.get("kind") in sink_kinds)
         declaration_ops = sum(1 for op in ops if op.get("kind") in decl_kinds)
         hierarchy_ops = sum(1 for op in ops if op.get("kind") in hier_kinds)
-        compute_ops = total_ops - source_ops - sink_ops - declaration_ops - hierarchy_ops
+        array_ops = sum(1 for op in ops if op.get("kind") in array_kinds)
+        compute_ops = total_ops - source_ops - sink_ops - declaration_ops - hierarchy_ops - array_ops
         return {
             "top_total_ops": total_ops,
             "top_compute_ops": compute_ops,
@@ -35,6 +48,7 @@ def summarize_compute_ops_from_post_stats(post_stats_json: Path, top_name: str) 
             "top_sink_ops": sink_ops,
             "top_declaration_ops": declaration_ops,
             "top_hierarchy_ops": hierarchy_ops,
+            "top_array_ops": array_ops,
             "top_values": len(graph.get("vals", [])),
         }
     raise RuntimeError(f"top graph not found in post stats: {top_name}")

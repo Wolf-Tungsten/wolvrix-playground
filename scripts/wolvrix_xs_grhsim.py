@@ -67,16 +67,29 @@ def summarize_compute_ops_from_post_stats(post_stats_json: Path, top_name: str) 
         ops = graph.get("ops")
         if ops is None:
             ops = graph.get("operations", [])
-        source_kinds = {"kConstant", "kRegisterReadPort", "kLatchReadPort"}
-        sink_kinds = {"kRegisterWritePort", "kLatchWritePort", "kMemoryWritePort", "kMemoryFillPort"}
+        source_kinds = {"kConstant", "kRegisterReadPort", "kLatchReadPort", "kArrayReadAllPort"}
+        sink_kinds = {"kRegisterWritePort", "kLatchWritePort", "kMemoryWritePort", "kMemoryFillPort", "kArrayWritePort"}
         decl_kinds = {"kRegister", "kMemory", "kLatch", "kDpicImport"}
         hier_kinds = {"kInstance", "kBlackbox", "kXMRRead", "kXMRWrite"}
+        array_kinds = {
+            "kArrayMux",
+            "kArrayReduceOr",
+            "kArrayReduceAnd",
+            "kArrayReduceXor",
+            "kArrayBroadcast",
+            "kArrayLaneConst",
+            "kArrayOnehot",
+            "kArrayReduceLanesOr",
+            "kArrayReduceLanesAnd",
+            "kArrayReduceLanesXor",
+        }
         total_ops = len(ops)
         source_ops = sum(1 for op in ops if op.get("kind") in source_kinds)
         sink_ops = sum(1 for op in ops if op.get("kind") in sink_kinds)
         declaration_ops = sum(1 for op in ops if op.get("kind") in decl_kinds)
         hierarchy_ops = sum(1 for op in ops if op.get("kind") in hier_kinds)
-        compute_ops = total_ops - source_ops - sink_ops - declaration_ops - hierarchy_ops
+        array_ops = sum(1 for op in ops if op.get("kind") in array_kinds)
+        compute_ops = total_ops - source_ops - sink_ops - declaration_ops - hierarchy_ops - array_ops
         return {
             "top_total_ops": total_ops,
             "top_compute_ops": compute_ops,
@@ -84,6 +97,7 @@ def summarize_compute_ops_from_post_stats(post_stats_json: Path, top_name: str) 
             "top_sink_ops": sink_ops,
             "top_declaration_ops": declaration_ops,
             "top_hierarchy_ops": hierarchy_ops,
+            "top_array_ops": array_ops,
             "top_values": len(graph.get("vals", [])),
         }
     return None
@@ -557,6 +571,8 @@ def main() -> int:
     skip_comb_lane_pack = env_flag("WOLVRIX_XS_GRHSIM_SKIP_COMB_LANE_PACK", default=False)
     lane_aggregate = env_flag("WOLVRIX_XS_GRHSIM_LANE_AGGREGATE", default=False)
     lane_aggregate_min_lanes = env_int("WOLVRIX_XS_GRHSIM_LANE_AGGREGATE_MIN_LANES", 8)
+    lane_aggregate_array = env_flag("WOLVRIX_XS_GRHSIM_LANE_AGGREGATE_ARRAY", default=False)
+    comb_lane_pack_array = env_flag("WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_ARRAY", default=False)
     reg_to_mem_intent = env_flag("WOLVRIX_XS_GRHSIM_REG_TO_MEM_INTENT", default=True)
     reg_to_mem_ordered_writes = env_flag(
         "WOLVRIX_XS_GRHSIM_REG_TO_MEM_ORDERED_WRITES",
@@ -708,24 +724,34 @@ def main() -> int:
             # lane-aggregate 处理 reg-to-mem 拒绝的 lane 组（v4 的 901,408 就是在
             # post-reg2mem 图上统计的）；必须在 reg-to-mem 之后，否则会抢走
             # reg-to-mem 本可转成 kMemory 的组（宽寄存器比 memory op 更贵）。
+            lane_aggregate_kwargs: dict = {"min_lanes": lane_aggregate_min_lanes,
+                                           "keep_declared_symbols": False}
+            if lane_aggregate_array:
+                # 数组语义产出（NO0017 设计）：kMemory + kArray* 形态，
+                # 打包/守卫开销移出 compute 口径；默认 wide 不变。
+                lane_aggregate_kwargs["output_mode"] = "array"
             reg_to_mem_pipeline.append(
-                ("lane-aggregate", {"min_lanes": lane_aggregate_min_lanes,
-                                    "keep_declared_symbols": False})
+                ("lane-aggregate", lane_aggregate_kwargs)
             )
-            log(f"lane-aggregate enabled min_lanes={lane_aggregate_min_lanes}")
+            log(f"lane-aggregate enabled min_lanes={lane_aggregate_min_lanes}"
+                f" output_mode={'array' if lane_aggregate_array else 'wide'}")
         if post_reg2mem_simplify:
             reg_to_mem_pipeline.append(("simplify", {"semantics": "2state"}))
         if enable_stats:
             reg_to_mem_pipeline.append(("stats", {"out_stats": "stats.main"}))
         if not skip_comb_lane_pack:
+            comb_lane_pack_kwargs: dict = {
+                "enable_declared_roots": False,
+                "out_comb_lane_pack_report": "comb-lane-pack.reports",
+            }
+            if comb_lane_pack_array:
+                # mux 打包产 kArrayMux/kArrayBroadcast（数组语义，compute 口径外）
+                comb_lane_pack_kwargs["output_mode"] = "array"
             pre_sched_pipeline.insert(
                 6,
                 (
                     "comb-lane-pack",
-                    {
-                        "enable_declared_roots": False,
-                        "out_comb_lane_pack_report": "comb-lane-pack.reports",
-                    },
+                    comb_lane_pack_kwargs,
                 ),
             )
         else:
@@ -840,6 +866,7 @@ def main() -> int:
                             f"top_compute_ops={compute_summary['top_compute_ops']} "
                             f"top_declaration_ops={compute_summary['top_declaration_ops']} "
                             f"top_hierarchy_ops={compute_summary['top_hierarchy_ops']} "
+                            f"top_array_ops={compute_summary['top_array_ops']} "
                             f"top_values={compute_summary['top_values']}"
                         )
                         log(f"post-stats summary written {summary_path}")

@@ -120,6 +120,18 @@ GRH_OP_BUCKETS = {
     "kDpicCall": "hierarchy_call",
     "kXMRRead": "hierarchy_call",
     "kXMRWrite": "hierarchy_call",
+    "kArrayReadAllPort": "array_state",
+    "kArrayWritePort": "array_state",
+    "kArrayMux": "array_state",
+    "kArrayReduceOr": "array_state",
+    "kArrayReduceAnd": "array_state",
+    "kArrayReduceXor": "array_state",
+    "kArrayBroadcast": "array_state",
+    "kArrayLaneConst": "array_state",
+    "kArrayOnehot": "array_state",
+    "kArrayReduceLanesOr": "array_state",
+    "kArrayReduceLanesAnd": "array_state",
+    "kArrayReduceLanesXor": "array_state",
 }
 
 

@@ -45,6 +45,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--min-lanes", type=int, default=8)
     ap.add_argument("--max-index-holes", type=int, default=2)
+    ap.add_argument("--output-mode", choices=["wide", "array"], default="wide",
+                    help="lane-aggregate 产出模式：wide=宽标量形态（现状），array=数组语义形态")
     ap.add_argument("--skip-lane-aggregate", action="store_true",
                     help="baseline 模式：只跑 reg-to-mem+simplify+stats，用于复核 E1 口径")
     ap.add_argument("--out-dir", type=Path, default=Path("build/xs/lane-agg-probe"))
@@ -81,6 +83,7 @@ def main() -> int:
                 design="main",
                 min_lanes=args.min_lanes,
                 max_index_holes=args.max_index_holes,
+                output_mode=args.output_mode,
                 keep_declared_symbols=False,
                 out_lane_aggregate_report="lane_agg.report",
             )
@@ -122,6 +125,7 @@ def main() -> int:
         "top_total_ops": total,
         "top_compute_ops": compute,
         "min_lanes": args.min_lanes,
+        "output_mode": args.output_mode,
         "kind_counts": dict(sorted(kinds.items(), key=lambda kv: -kv[1])),
         "report": report,
         "elapsed_readme": "compare vs E1: compute 3,415,591 (AM) vs 2,813,531 (gsim)",
