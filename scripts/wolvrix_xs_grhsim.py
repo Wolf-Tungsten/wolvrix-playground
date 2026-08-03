@@ -67,8 +67,8 @@ def summarize_compute_ops_from_post_stats(post_stats_json: Path, top_name: str) 
         ops = graph.get("ops")
         if ops is None:
             ops = graph.get("operations", [])
-        source_kinds = {"kConstant", "kRegisterReadPort", "kLatchReadPort", "kArrayReadAllPort"}
-        sink_kinds = {"kRegisterWritePort", "kLatchWritePort", "kMemoryWritePort", "kMemoryFillPort", "kArrayWritePort"}
+        source_kinds = {"kConstant", "kRegisterReadPort", "kLatchReadPort", "kMemoryReadAllPort"}
+        sink_kinds = {"kRegisterWritePort", "kLatchWritePort", "kMemoryWritePort", "kMemoryFillPort", "kMemoryWriteLanesPort"}
         decl_kinds = {"kRegister", "kMemory", "kLatch", "kDpicImport"}
         hier_kinds = {"kInstance", "kBlackbox", "kXMRRead", "kXMRWrite"}
         array_kinds = {

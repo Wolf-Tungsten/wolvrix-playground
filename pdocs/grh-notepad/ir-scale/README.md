@@ -27,6 +27,7 @@
 | NO0019 | [段4模块残余治理一](NO0019_段4模块残余治理一_20260802.md) | 2026-08-02 | 命名错位 artifact 警示（DecodeUnit 伪目标）；解锁三板斧（exact-all/C 级叶/min_lanes=4）+ sibling bug 修复；a3：merged 2,632 组，compute 2,996,468（1.0650x）；DataModule shl-onehot 匹配器（超 gsim 削减注记） | — |
 | NO0020 | [冲线R级叶与102x达成](NO0020_冲线R级叶与102x达成_20260802.md) | 2026-08-02 | R 级 affine-gather 叶（零成本物化，+2,045 组）；a6 compute 2,858,845 = 1.0161x；**收官：b1（comb-lane-pack array）compute 2,825,239（1.0042x）、difftest 绿、host 438.6s（+1.6%）——五项判据全过**；全程轨迹表（1.2142x→1.0042x） | — |
 | NO0021 | [默认开启与全面测试](NO0021_默认开启与全面测试_20260802.md) | 2026-08-02 | 四开关默认 on；array-lower 接入 legacy emit（c910 暴露）；测试矩阵：香山/c910 全流水过、hdlbits SV 162/162、grhsim 160/162（023/119 既有）；tb 的 Verilator 5.x VlWide 兼容修复 | — |
+| NO0022 | [存储端口op更名入kMemory家族](NO0022_存储端口op更名入kMemory家族_20260803.md) | 2026-08-03 | GRH `kArrayReadAllPort`→`kMemoryReadAllPort`、`kArrayWritePort`→`kMemoryWriteLanesPort`，AM `ArrayReadAll`→`MemoryReadAll`、`ArrayWrite`→`MemoryWriteLanes`（按状态访问对象命名惯例，纯改名零语义变化）；统计桶保持不动；旧 JSON 产物不兼容需重跑流水；grh-ir.md 撤销 6.10 独立章节：kArray* 组合 op 集中 §6.2.10、两个存储端口入 §6.5，共享布局约定移至 §2.4 | — |
 
 ## 备注
 
