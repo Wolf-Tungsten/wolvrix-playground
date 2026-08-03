@@ -228,12 +228,13 @@
 | `TNO0216` | `2026-08-01` | [SimpleTES principled-TRBS GPT max fresh research launch](./TNO0216_simpletes_principled_trbs_gpt_max_fresh_launch_20260801.md) | fresh instance `efb346a8` 已用 `gpt-5.6-sol/max`、THJ config/auth、`64 proposals/32 valid`、`4 gen/1 eval` 启动并进入原则化 TRBS empty-control evaluator；真实 preflight 通过，尚无 candidate 或本轮 50k 结果。 |
 | `TNO0217` | `2026-08-03` | [SimpleTES principled-TRBS GPT max second fresh launch](./TNO0217_simpletes_principled_trbs_gpt_max_second_fresh_launch_20260803.md) | 上轮 `efb346a8` 达到 `32/32 valid` 后已退出；新 `instance-44cd457d` 明确不 resume、不 seed old best，以同一原则化 TRBS 空 control、`gpt-5.6-sol/max`、THJ config/auth 和 `64/32` 预算 fresh 启动，现处 initial evaluator。 |
 | `TNO0218` | `2026-08-04` | [SimpleTES principled-TRBS second fresh completion](./TNO0218_simpletes_principled_trbs_second_fresh_completion_20260804.md) | `instance-44cd457d` 达到 `32/32 valid`；typed persistent-state storage best 为 `47,620.25→44,582.25 ms`（`3,038.00 ms/6.379639%`），同 digest 复测为 `47,692.00→44,669.00 ms`（`3,023.00 ms/6.338589%`），两轮 order gap 均 `<0.25 pp`。候选通用、零 option、功能/attribution gate 通过，尚待消融与 landing regression；已追加 alias、依赖链、数据/代码布局的机制解释与证据边界。 |
+| `TNO0219` | `2026-08-04` | [SimpleTES typed-storage search budget-128/valid-64 resume launch](./TNO0219_simpletes_typed_storage_budget128_valid64_resume_launch_20260804.md) | `instance-44cd457d/db_state_000359` 已按 exact monotonic contract 原地续跑：保留 `40 attempts/32 valid/38 nodes`、四条 chain history 和 `6.379639%` best，将绝对预算 `64→128 generations`、累计目标 `32→64 valid`；GPT 5.6 Sol max、THJ config/auth、`4 gen/1 eval` 已实查运行，尚无扩容后的新性能结果。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`218`（`TNO0001..TNO0218`）。
+- 当前记录类文档总数：`219`（`TNO0001..TNO0219`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
