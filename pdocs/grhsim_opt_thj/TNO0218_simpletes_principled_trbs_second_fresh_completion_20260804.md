@@ -212,3 +212,99 @@ MemoryWrite range caching、guard snapshot、bitmap-derived commit summary、div
 | latest candidate proof | `5d6e13e1fad2f8056f471a1aff7b65850348a7495304b2be9eb58bc9e01434a2` |
 | gen31 evaluation | `6717d42fc40261eb311c4869763b182d69352c088ae165e8157aeed11bbe5f1a` |
 | gen36 repeat evaluation | `c920d1107053c3b789a6aaca88cf3e7cbc27503dff84a511880028b082fbd241` |
+
+## 11. 增量说明 2026-08-04：typed storage 为何可能改善执行效率
+
+本节补充第 6 节中“别名分析、依赖链、代码布局与访存执行”的具体含义，并限定当前证据能够支持的
+因果强度。typed storage 并不会仅凭“类型化”三个字自动加速；这个 candidate 同时改变了编译器看到的
+对象结构、persistent state 的物理布局和最终机器码，`6.36%` 可能是这些因素的合成结果。
+
+### 11.1 旧、新访问表达式的区别
+
+旧 native state arena 是一个统一的 `std::array<std::byte, ...>`。生成的状态访问在语义上类似：
+
+```cpp
+auto &a = *reinterpret_cast<std::uint64_t *>(state_logic_storage_.data() + byte_offset_a);
+auto &b = *reinterpret_cast<std::uint8_t *>(state_logic_storage_.data() + byte_offset_b);
+```
+
+实际代码由 inline `grhsim_value_storage_ref<T>(storage, offset)` helper 形成上述表达式。candidate 改为：
+
+```cpp
+auto &a = state_logic_storage_.u64_slots_[slot_a];
+auto &b = state_logic_storage_.u8_slots_[slot_b];
+```
+
+两者保持相同的状态语义，但后者把 struct member、元素类型、数组边界和元素下标直接保留在 C++/LLVM IR
+对象结构中。旧 helper 理论上也可能在 constant offset 和完全 inline 后被优化为同样简单的地址；因此这里的
+差异是“让证明更直接、降低分析保守性”，而不是声称旧形式必然无法优化。
+
+### 11.2 别名分析与编译器假依赖
+
+考虑一个简化的热路径：
+
+```cpp
+auto x = state_a;
+state_b = next_b;
+auto y = state_a;
+```
+
+若编译器不能证明 `state_a` 与 `state_b` 不重叠，它就必须假定中间 store 可能改写 `state_a`，从而不能安全地
+消除或提前第二次 load，也更难让 `state_a` 长时间驻留寄存器。统一 byte arena 中的所有引用共享同一 base，
+并混合不同访问宽度和 `reinterpret_cast`；即使 offset 多为常量，巨大生成函数、跨基本块引用和 helper 降低后
+仍可能使 BasicAA/TBAA 等分析采取保守结果。
+
+typed aggregate 则为不同 bucket 提供明确的 struct field 路径，同一 bucket 中也有固定数组元素范围。编译器
+更容易证明不同 member 或不相交元素之间没有覆盖，从而允许 load reuse、store/load 重排、CSE 和更自由的
+指令调度。`std::uint8_t` 在常见实现中具有 char-like alias 特性，不能单靠不同 scalar type 获得全部 TBAA
+收益；明确的 member 范围和常量元素位置仍然可以给基础地址/范围分析提供信息。
+
+这里的“依赖链改善”主要是指编译器因保守别名判断而生成的假内存依赖最终减少。CPU 并不知道 C++ 类型，
+只执行编译后的地址和指令；typed storage 只有在改变了机器码、寄存器保留、访存顺序或实际地址布局后才会
+产生 runtime 收益，不能把源语言类型本身当成硬件加速机制。
+
+### 11.3 数据布局、padding 与工作集
+
+旧 allocator 按原状态顺序逐项放入 byte arena，并在每一项前满足其对齐。例如反复交错的
+`u8, u64, u8, u64` 可能近似形成：
+
+```text
+u8 | 7-byte padding | u64 | u8 | 7-byte padding | u64 | ...
+```
+
+typed buckets 将相同类型集中，只需在 bucket 边界处理对齐，并保持每个 bucket 内的分配顺序。这解释了
+candidate payload 从 `1,066,944 B` 降到 `590,568 B`，绝对减少 `476,376 B / 44.648641%`。仅按容量粗略
+换算，约相当于从 `261` 个降到 `145` 个 4 KiB page、从 `16,671` 个降到 `9,228` 个 64-byte cache-line
+容量单位；实际触及多少 page/cache line 仍取决于热状态分布、对象起始地址和访问轨迹。
+
+更小的热工作集可能降低 D-cache、DTLB 和 cache-set 冲突压力；相同类型状态聚集也可能改变空间局部性。
+这种物理布局效应不依赖编译器是否成功利用严格别名规则，很可能是本轮收益的重要组成部分，但当前实验尚未
+将它从 typed direct reference 中单独拆出。
+
+### 11.4 代码布局与前端
+
+97 个 schedule translation units 中共有 `1,329,837` 个旧 state-arena helper reference。candidate 让这些
+访问直接引用 typed member；即使 helper 原本可 inline，简化后的 IR、常量地址和别名关系仍可能带来 CSE、
+更紧凑的指令选择或删除冷冗余。最终静态证据是 generated directory 缩小 `3.365239%`、ELF `.text` 缩小
+`2.536002%`。
+
+更小或重新排列的 `.text` 可能减少 I-cache/ITLB 覆盖并让热基本块更紧凑。实测 frontend no-ops 下降
+`5.528036%`、frontend cmask no-dispatch 下降 `6.436250%`，与该解释一致；但 `.text` 缩小可能主要发生在
+冷代码，PMU 相关性也不等同于单独的因果证明，所以不能仅凭这组数据断言代码布局贡献了多少个百分点。
+
+### 11.5 证据边界与后续消融
+
+当前能够直接确认的是：动态 instructions 仅下降 `0.035262%`，而 cycles 下降 `6.360735%`、backend stalls
+下降 `21.956508%`，同时数据 payload 和 ELF `.text` 均明显缩小。这支持“逻辑仿真工作几乎未变，收益来自
+执行效率”的结论；“更好的别名分析、依赖链、数据/代码布局”仍是与这些事实一致的组合机制解释，尚不是
+各自完成定量归因的结论。
+
+后续至少应构造以下直接消融：
+
+1. byte arena 按 type/width 重新分组但继续使用 helper，尽量隔离 compaction/layout；
+2. typed buckets 与 direct member reference 分开切换，隔离对象类型可见性和表达式形态；
+3. scalar typed buckets、wide typed buckets 分开启用；
+4. 对主要 u8/u64 bucket 单独开关，结合 D-cache/DTLB/frontend PMU 与 LLVM IR/优化报告检查；
+5. 比较 objdump、静态指令数和热函数布局，确认 `.text` 减少是否落在实际热路径。
+
+只有这些消融完成后，才应给 `6.36%` 中的 alias、payload footprint 与 code-layout 贡献分配具体比例。
