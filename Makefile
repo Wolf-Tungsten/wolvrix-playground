@@ -44,7 +44,7 @@ CASE ?=
 LOG_ONLY_SIM ?= 0
 
 BUILD_DIR ?= build
-WOLVRIX_BUILD_DIR ?= $(WOLVRIX_DIR)/build
+WOLVRIX_BUILD_DIR ?= $(BUILD_DIR)/wolvrix
 FST_ROI_DISCOVERY_DIR := $(REPO_ROOT)/tools/fst_tools/roi_discovery
 CMAKE ?= cmake
 WOLVRIX_APP := $(WOLVRIX_BUILD_DIR)/bin/wolvrix
