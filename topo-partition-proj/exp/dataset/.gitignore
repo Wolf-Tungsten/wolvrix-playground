@@ -8,3 +8,6 @@ labels_*/
 gnn_cpu_bench.json
 cpsat_gap.json
 plaindp_nocoarsen_baseline.json
+# wolvrix 流水中间产物（pre-reg2mem 图可达数 GB），重生成见 wolvrix_xs_grhsim.py
+*_pre_reg_to_mem.json
+*_post_stats.json
