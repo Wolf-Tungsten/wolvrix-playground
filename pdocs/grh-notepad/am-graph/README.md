@@ -9,3 +9,6 @@
 | 编号 | 标题 | 日期 | 内容摘要 |
 |---|---|---|---|
 | [NO0001](NO0001_AM执行模型升级与图重构_20260804.md) | AM 执行模型升级与图重构 | 2026-08-04 | 五条指令模型升级的落地；AmGraph 图层落地（容器/调度器过图）；锥打包两个 def-after-use 根因修复后，mem.write 回退 cond/mask（快照 vs 活读不对称），锥打包随之整体移除（保留事件签名门控 + def-before-use 硬校验 + 相位审计）；t0 错位根治，香山 difftest 73,580/49,996 通过，回退版取优 329.7s |
+| [NO0002](NO0002_compute_commit分图与两路独立分区_20260806.md) | compute/commit 分图与两路独立分区 | 2026-08-06 | 分块单体式实现拆为「分图 + 两路分区 pass + 组合入口」：atom DAG 分图成 compute/commit 诱导子图，compute 按活动度 coarsen+DP、commit 按事件聚类，生产调用点显式三段；香山指令图/划分结果/发射产物全部字节级不变，AM 10/10 |
+| [NO0003](NO0003_转换方向修正GRH到AmGraph到Program_20260806.md) | 转换方向修正：GRH IR → AM Graph → AM Program | 2026-08-06 | AmGraph 升为一等 IR：lowering 原生建图、optimize 移植到图、scheduler 直接消费图，线性程序只在 finalize 物化；artifact.hpp 拆型解循环依赖；香山三份产物字节级不变，AM 10/10 |
+| [NO0004](NO0004_流程框架与术语统一_20260806.md) | 流程框架与术语统一 | 2026-08-06 | 用户裁定标准流程（lowering-to-am-graph → opt-am-graph → split-am-graph → opt-am-compute-graph → partition-am-compute-graph / partition-am-commit-graph → materialize → emit）已落到代码与文档：每阶段一个文件、总流程命名 GrhToGrhSimAMProgram、空阶段留钩子；香山三份产物字节级不变，AM 10/10 |
