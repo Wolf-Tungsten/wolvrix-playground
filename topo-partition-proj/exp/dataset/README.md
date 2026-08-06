@@ -19,6 +19,13 @@ Phase 0 起，一切实验（采样/打分/搜索/训练）的唯一图输入来
 | `xs_full_20260731_l1/` | T2-E1 数据集：L1（GRH 层 reg-to-mem 后 simplify）后的 AM 指令图 + 生产划分 + plaindp 复算 + 导出日志 | 见 doc 20 §4 |
 | `xs_full_20260731_l2/` | T2-E2 数据集：L2 单干（AM 层 DCE/fold/CSE，未经 L1 的脏图输入） | 见 doc 20 §4 |
 | `xs_full_20260731_l1l2/` | T2-E3 数据集：L1+L2 两级 | 见 doc 20 §4 |
+| `xs_gsim_prod_20260803/` | supernode-align 专题：gsim 生产口径（不 flatten，supernode-max-size=15）topo-proj 导出，含 instruction_graph + coarsen/dp 两段 assignment（`--stop-after-stage=graphPartition`） | 1.9 GB，见 pdocs/grh-notepad/supernode-align/NO0002 |
+| `xs_am_prod_20260803/` | supernode-align 专题：AM 生产口径（grhsim-am-rename post-stats，b1 调度参数）指令图 + block assignment | 1.3 GB，同上 |
+| `supernode_align_baseline_20260803.json` | 上述两侧的 supernode-align 基线指标（`scripts/supernode_align_metrics.py` 输出） | 见 NO0002 §3 |
+| `xs_gsim_flat_prod_20260804/` | supernode-align **新基线**（NO0010）：gsim 打平图生产口径（--flatten-nodes，supernode-max-size=15）topo-proj 导出 | 见 pdocs/grh-notepad/supernode-align/NO0010 |
+| `xs_am_flat_final_20260804/` | 同上：AM 侧（ir-scale 收官提交 5335696 重建，rotation coarsen）指令图 + assignment | 同上 |
+| `xs_am_flat_final_seq_20260804/` | 同上：AM 侧（5335696 + 相位式 coarsen）指令图 + assignment | 同上 |
+| `xs_am_opt1_seq_20260804/` | 同上：AM 侧（HEAD ba0a69a + 相位式 + 新 optimize：CSE 解锁 Observable / assign 别名 / ROM 折叠）指令图 + assignment，cross_values 704,356（3.65x） | 见 pdocs/grh-notepad/supernode-align/NO0011 |
 
 基线锚点（详见 `docs/06-基线解导出与对账.md`）：plain 基线 34,236 blocks
 （33,738 compute + 497 commit + 1 input sink），`dag_edges=325,838`，

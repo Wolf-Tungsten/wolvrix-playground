@@ -1,0 +1,49 @@
+{
+  "gsim": {
+    "graph": "topo-partition-proj/exp/dataset/xs_gsim_prod_20260803/instruction_graph.jsonl",
+    "assignment": "topo-partition-proj/exp/dataset/xs_gsim_prod_20260803/block_assignment_dp.jsonl",
+    "instructions": 2708079,
+    "variables": 2710353,
+    "def_use_edges": 3996156,
+    "external_reads": 913092,
+    "blocks": 84786,
+    "compute_blocks": 84786,
+    "commit_blocks": 0,
+    "supernodes": 84786,
+    "cross_values": 185716,
+    "cross_values_compute_consumer": 185716,
+    "external_read_values": 151219,
+    "external_read_values_compute_consumer": 151219,
+    "dag_edges": 434737,
+    "compute_compute_value_pairs": 1280876,
+    "incoming_copy_cost": 1290715,
+    "measure_seconds": 24.3
+  },
+  "am": {
+    "graph": "topo-partition-proj/exp/dataset/xs_am_prod_20260803/instruction_graph.jsonl",
+    "assignment": "topo-partition-proj/exp/dataset/xs_am_prod_20260803/block_assignment.jsonl",
+    "instructions": 3394012,
+    "variables": 3419653,
+    "def_use_edges": 5734197,
+    "external_reads": 1698119,
+    "blocks": 25861,
+    "compute_blocks": 25379,
+    "commit_blocks": 481,
+    "supernodes": 25860,
+    "cross_values": 1503473,
+    "cross_values_compute_consumer": 1327573,
+    "external_read_values": 169581,
+    "external_read_values_compute_consumer": 168661,
+    "dag_edges": 286642,
+    "compute_compute_value_pairs": 2455504,
+    "incoming_copy_cost": 5685836,
+    "measure_seconds": 4.2
+  },
+  "compare": {
+    "supernode_blocks_ok": true,
+    "cross_values_ratio": 8.095549118008142,
+    "cross_values_compute_consumer_ratio": 7.148404014732172,
+    "ratio_target": 1.1,
+    "aligned": false
+  }
+}

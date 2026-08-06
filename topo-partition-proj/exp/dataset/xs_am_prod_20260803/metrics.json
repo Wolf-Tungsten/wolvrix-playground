@@ -1,0 +1,22 @@
+{
+  "am": {
+    "graph": "topo-partition-proj/exp/dataset/xs_am_prod_20260803/instruction_graph.jsonl",
+    "assignment": "topo-partition-proj/exp/dataset/xs_am_prod_20260803/block_assignment.jsonl",
+    "instructions": 3394012,
+    "variables": 3419653,
+    "def_use_edges": 5734197,
+    "external_reads": 1698119,
+    "blocks": 25861,
+    "compute_blocks": 25379,
+    "commit_blocks": 481,
+    "supernodes": 25860,
+    "cross_values": 1503473,
+    "cross_values_compute_consumer": 1327573,
+    "external_read_values": 169581,
+    "external_read_values_compute_consumer": 168661,
+    "dag_edges": 286642,
+    "compute_compute_value_pairs": 2455504,
+    "incoming_copy_cost": 5685836,
+    "measure_seconds": 25.3
+  }
+}
