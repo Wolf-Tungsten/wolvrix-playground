@@ -231,12 +231,13 @@
 | `TNO0219` | `2026-08-04` | [SimpleTES typed-storage search budget-128/valid-64 resume launch](./TNO0219_simpletes_typed_storage_budget128_valid64_resume_launch_20260804.md) | `instance-44cd457d/db_state_000359` 已按 exact monotonic contract 原地续跑：保留 `40 attempts/32 valid/38 nodes`、四条 chain history 和 `6.379639%` best，将绝对预算 `64→128 generations`、累计目标 `32→64 valid`；GPT 5.6 Sol max、THJ config/auth、`4 gen/1 eval` 已实查运行，尚无扩容后的新性能结果。 |
 | `TNO0220` | `2026-08-06` | [SimpleTES 64-valid node029-to-node032 migration](./TNO0220_simpletes_64valid_node029_to_node032_migration_20260806.md) | node029 因 whole-CCD evaluator retry 卡在 `34/64 valid` 后已 SIGINT 干净退出，final `db_state_020746` 为 `46 attempts/34 valid/40 nodes`；node032 同 NFS/commit/topology 接管，首次默认 Codex `0.145.0` 启动在零结果时撤销，最终固定与原机一致的 NVM `0.146.0` exact restart，GPT max `4 gen/1 eval` 已运行，尚无远端新性能结果。 |
 | `TNO0221` | `2026-08-06` | [SimpleTES node032 post-reboot exact restart](./TNO0221_simpletes_node032_postreboot_exact_restart_20260806.md) | node032 于 `17:03:46` 重启，中断前 1 active/3 queued evaluations 未持久化且无新 checkpoint；重新排除 `db_state_021244` 审计状态，从 `db_state_020746` 精确恢复 `46 attempts/34 valid/40 nodes` 和绝对 `128/64` 预算，显式 NVM Codex `0.146.0` 的 GPT max 四个 gen workers 已运行。 |
+| `TNO0222` | `2026-08-06` | [SimpleTES node032 scanner recovery and retry diagnostics](./TNO0222_simpletes_node032_scanner_recovery_and_retry_diagnostics_20260806.md) | post-reboot `36` 次 retry 确认为 fresh control build 缺 `clang-scan-deps-19`，非 CCD；不停止现有实例完成 package/cache 在线恢复，evaluator 已越过失败点进入 SimTop emit。SimpleTES `a32116d` 新增 matching-scanner launch gate 与脱敏限长 retry root cause，full `254/254` 通过；暂无新 50k walltime。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`221`（`TNO0001..TNO0221`）。
+- 当前记录类文档总数：`222`（`TNO0001..TNO0222`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
