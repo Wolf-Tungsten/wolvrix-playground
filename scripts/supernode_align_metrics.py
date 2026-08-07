@@ -16,6 +16,15 @@ non-state-write consumer. State-write consumers (AM commit blocks, gsim
 state-write supernode members) are execution-model taps and excluded on both
 sides alike.
 
+Node-unit 口径 (NO0007): the alignment node unit is the scheduling atom.
+When the AM assignment export carries post-merge atom ids
+(``wolvrix.am-block-assignment.v1`` assign records with ``atom``, NO0007 P3),
+``nodes``/``block_node_*`` count atoms — the AM counterpart of a gsim node
+(1 compute enode + folded when skeleton; NO0007 §1-§2). Legacy datasets and
+the gsim side have no atom column and fall back to instruction/node counts,
+which for gsim is already the aligned unit. cross_values* are distinct-value
+metrics and are multiplicity- and atom-invariant given the same assignment.
+
 Legacy metrics: ``cross_values`` (all consumers) and the block-level
 compute-consumer variant; context: the production scoreboard
 (dag_edges / compute_compute_value_pairs / incoming_copy_cost) and
@@ -72,6 +81,15 @@ def measure_side(graph_path: Path, assign_path: Path) -> dict:
         np.unique(graph.du_var[cross & ~state_write_consumer]).size
     )
 
+    # Distinct value-edge 口径 (NO0007): unique (consumer, var) pairs — the
+    # gsim export dedups refs per (dst, node) at source while the AM export is
+    # per-operand; this metric is the unit-fair edge count for both sides.
+    def_use_value_edges = int(
+        np.unique(
+            (graph.du_dst.astype(np.uint64) << 32) | graph.du_var.astype(np.uint64)
+        ).size
+    )
+
     ext_consumer_block = instr_block[graph.er_dst.astype(np.int64)]
     external_read_values = int(np.unique(graph.er_var).size)
     external_read_values_compute_consumer = int(
@@ -79,17 +97,41 @@ def measure_side(graph_path: Path, assign_path: Path) -> dict:
     )
 
     board = score_assignment(graph, assignment.instr_block, commit_mask)
+
+    # Node-unit accounting (NO0007): atoms when the assignment carries them,
+    # instructions otherwise (legacy AM datasets, gsim nodes).
+    if assignment.instr_atom is not None:
+        pair = (instr_block.astype(np.uint64) << 32) | assignment.instr_atom.astype(np.uint64)
+        uniq_blocks = (np.unique(pair) >> 32).astype(np.int64)
+        node_unit = "atom"
+        nodes = int(np.unique(assignment.instr_atom).size)
+    else:
+        uniq_blocks = None
+        node_unit = "instruction"
+        nodes = int(graph.instructions)
+    if uniq_blocks is not None:
+        block_sizes = np.bincount(uniq_blocks, minlength=2)[1:]
+    else:
+        block_sizes = np.bincount(instr_block[instr_block > 0])
+    block_node_max = int(block_sizes.max()) if block_sizes.size else 0
+    block_node_mean = round(float(block_sizes.mean()), 2) if block_sizes.size else 0.0
+
     return {
         "graph": str(graph_path),
         "assignment": str(assign_path),
         "instructions": int(graph.instructions),
         "variables": int(graph.variables),
         "def_use_edges": int(graph.du_src.size),
+        "def_use_value_edges": def_use_value_edges,
         "external_reads": int(graph.er_dst.size),
         "blocks": int(assignment.blocks),
         "compute_blocks": int(assignment.compute_blocks),
         "commit_blocks": int(assignment.commit_blocks),
         "supernodes": int(assignment.compute_blocks + assignment.commit_blocks),
+        "node_unit": node_unit,
+        "nodes": nodes,
+        "block_node_max": block_node_max,
+        "block_node_mean": block_node_mean,
         "cross_values": cross_values,
         "cross_values_compute_consumer": cross_values_compute_consumer,
         "cross_values_compute_network": cross_values_compute_network,
@@ -109,11 +151,16 @@ def print_side(name: str, metrics: dict) -> None:
         "instructions",
         "variables",
         "def_use_edges",
+        "def_use_value_edges",
         "external_reads",
         "blocks",
         "compute_blocks",
         "commit_blocks",
         "supernodes",
+        "node_unit",
+        "nodes",
+        "block_node_max",
+        "block_node_mean",
         "cross_values",
         "cross_values_compute_consumer",
         "cross_values_compute_network",
@@ -137,11 +184,11 @@ def main() -> int:
                         default=default_data / "xs_gsim_flat_prod_20260804" / "block_assignment_dp.jsonl",
                         help="gsim block_assignment_dp.jsonl (default: flattened-prod baseline)")
     parser.add_argument("--am-graph", type=Path,
-                        default=default_data / "xs_am_opt1_seq_20260804" / "instruction_graph.jsonl",
-                        help="AM instruction_graph.jsonl (default: opt1 = irscale-final + graph passes + sequential coarsen, NO0011)")
+                        default=default_data / "xs_am_no0007p3_20260808" / "instruction_graph.jsonl",
+                        help="AM instruction_graph.jsonl (default: NO0007 P3 = atom-weighted partition, post-merge atom ids)")
     parser.add_argument("--am-assign", type=Path,
-                        default=default_data / "xs_am_opt1_seq_20260804" / "block_assignment.jsonl",
-                        help="AM block_assignment.jsonl (default: opt1 = irscale-final + graph passes + sequential coarsen)")
+                        default=default_data / "xs_am_no0007p3_20260808" / "block_assignment.jsonl",
+                        help="AM block_assignment.jsonl (default: NO0007 P3, assign records carry post-merge atom ids)")
     parser.add_argument("--json", type=Path, help="write the full report as JSON")
     args = parser.parse_args()
 
@@ -181,6 +228,15 @@ def main() -> int:
         ratio_ok = ratio <= RATIO_TARGET
         network_ok = ratio_network <= RATIO_TARGET
         ok = blocks_ok and network_ok
+        nodes_ratio = am["nodes"] / gsim["nodes"] if gsim["nodes"] else 0.0
+        print(
+            f"[compare] nodes am={am['nodes']} ({am['node_unit']}) "
+            f"gsim={gsim['nodes']} ({gsim['node_unit']}) ratio={nodes_ratio:.4f}"
+        )
+        print(
+            f"[compare] block_node_size am max={am['block_node_max']} mean={am['block_node_mean']} | "
+            f"gsim max={gsim['block_node_max']} mean={gsim['block_node_mean']}"
+        )
         print(
             f"[compare] supernodes am={am['supernodes']} gsim={gsim['supernodes']} "
             f"(am <= gsim: {blocks_ok})"
@@ -197,6 +253,7 @@ def main() -> int:
         )
         report["compare"] = {
             "supernode_blocks_ok": blocks_ok,
+            "nodes_ratio": nodes_ratio,
             "cross_values_ratio": ratio,
             "cross_values_compute_consumer_ratio": ratio_compute,
             "cross_values_compute_network_ratio": ratio_network,

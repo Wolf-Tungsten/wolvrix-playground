@@ -2,9 +2,9 @@
 
 主题：超节点构造对齐——grhsim AM 的 compute block 构造 vs gsim 的 supernode 构造。目标：在同等超节点数量前提下，AM 跨超节点边数差距收敛（**自 NO0012 起主指标为 compute 网络口径：两侧同规则剔除 state-write 消费方**）；手段是扩展 coarsen 合并规则与图形级 pass，性能不回退为硬约束。
 
-**口径沿革**：NO0002–NO0011 主指标 = cross_values（含 commit 消费方）；**NO0012 起主指标 = cross_values_compute_network**（commit 消费方作为 context 跟踪）。旧文档比值按各自口径阅读。
+**口径沿革**：NO0002–NO0011 主指标 = cross_values（含 commit 消费方）；**NO0012 起主指标 = cross_values_compute_network**（commit 消费方作为 context 跟踪）；**NO0013 起节点单位 = atom（AM 侧）/ node（gsim 侧）**（atom 一等公民化落地，gsim when 折叠口径证实后裁定 gsim 统计不动）。旧文档比值按各自口径阅读。
 
-**当前基线（自 NO0010 起）：gsim 打平图**（88,375 超节点 / 193,181 cross_values / 178,151 compute_network）。**当前最佳（NO0011+NO0012）：2.91x（518,808，opt1：图形级 pass 生产落地；仿真反快 15.5%，difftest 通过）；可选 2.59x（460,912，opt1cap 容量微调档，+2% 仿真时间）**。旧口径对应值：3.65x / 3.35x。
+**当前基线（自 NO0013 起，atom 口径）：gsim 打平图不变（88,375 超节点 / 178,151 compute_network），AM `xs_am_no0007p3_20260808`（22,565 块 / 2,620,125 atoms / 515,057）——当前读数 2.8911x（达标线 195,966），nodes 0.8608x，difftest 通过且仿真 −1.0%**。NO0010–NO0012 基线（打平图 instruction 口径）与旧最佳 2.91x（518,808，opt1）存档见各文档。
 
 管理规则见 [../RULES.md](../RULES.md)。
 
@@ -24,3 +24,4 @@
 | [NO0010](NO0010_归零重启打平图基线_20260804.md) | 归零重启：打平图基线 | 2026-08-04 | T5 口径确认（gsim 精确命中 2,813,531）；收官复现 2,827,613（1.0050x）；新基线 rotation 7.64x / sequential 3.96x；复现配置固化为默认（HEAD≡收官） |
 | [NO0011](NO0011_新基线归因与图形级pass落地_20260804.md) | 新基线归因终审与图形级 pass 生产落地 | 2026-08-04 | 新基线归因（fanout≥2 2.46x、出度1 链环 29.4 万、commit 19.5 万结构性）；容量路线 2.74x 终审封顶；CSE 被 Observable 封死的根因（84.4 万声明变量）与解锁+assign 别名+ROM 折叠落地生产：3.96x→3.65x，指令 -9.9%，difftest 通过 |
 | [NO0012](NO0012_口径重构compute网络主指标_20260804.md) | 口径重构：compute 网络主指标与 commit 开销审计 | 2026-08-04 | 用户裁定：commit 块不被激活（act.f 入 commit 审计零剩余）；主指标改 compute 网络口径（两侧剔 state-write 消费方），结构性地板移除；新基线 opt1 2.91x / opt1cap 2.59x；新达标线 195,966 |
+| [NO0013](NO0013_atom口径基线_20260808.md) | atom 口径基线：节点单位对齐与新读数 | 2026-08-08 | gsim when 折叠口径证实（126,005 根藏 87,356 嵌套 mux）；用户三点判断落地（am-graph NO0007：atom 一等公民化）；新基线 AM 22,565 块 / 2,620,125 atoms / 515,057 = **2.8911x**（现最佳），nodes 0.8608x，def_use_value_edges 证据边口径本无水分；旧口径数字存档不回改 |

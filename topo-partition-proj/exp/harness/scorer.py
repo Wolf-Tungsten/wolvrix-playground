@@ -110,6 +110,9 @@ class Assignment:
     compute_blocks: int
     commit_blocks: int
     header: dict
+    # Post-merge scheduling atom per instruction (NO0007 P3 export), None when
+    # the export predates the atom field (legacy datasets / gsim side).
+    instr_atom: np.ndarray | None = None
 
 
 def load_assignment(path: str | Path) -> Assignment:
@@ -118,6 +121,9 @@ def load_assignment(path: str | Path) -> Assignment:
     header = None
     kinds: dict[int, bool] = {}
     instr_block = []
+    instr_atom = []
+    atom_seen = False
+    atom_missing = False
     with open(path) as stream:
         for line in stream:
             record = json.loads(line)
@@ -130,12 +136,22 @@ def load_assignment(path: str | Path) -> Assignment:
                 kinds[record["id"]] = record["kind"] == "commit"
             elif kind == "assign":
                 instr_block.append(record["block"])
+                if "atom" in record:
+                    atom_seen = True
+                    instr_atom.append(record["atom"])
+                else:
+                    atom_missing = True
+                    instr_atom.append(0)
     if header is None:
         raise ValueError(f"{path} has no header record")
     if len(instr_block) != header["instructions"]:
         raise ValueError(
             f"assign records {len(instr_block)} != header instructions {header['instructions']}"
         )
+    # All-or-nothing: a partial atom column is an export bug, not a legacy file.
+    atoms_array = None
+    if atom_seen and not atom_missing:
+        atoms_array = np.array(instr_atom, dtype=np.uint32)
     max_block = max(kinds) if kinds else 0
     commit_mask = np.zeros(max_block + 1, dtype=bool)
     for block_id, is_commit in kinds.items():
@@ -151,4 +167,5 @@ def load_assignment(path: str | Path) -> Assignment:
         compute_blocks=len(kinds) - commit_blocks - input_sink,
         commit_blocks=commit_blocks,
         header=header,
+        instr_atom=atoms_array,
     )

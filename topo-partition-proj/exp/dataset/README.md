@@ -26,6 +26,7 @@ Phase 0 起，一切实验（采样/打分/搜索/训练）的唯一图输入来
 | `xs_am_flat_final_20260804/` | 同上：AM 侧（ir-scale 收官提交 5335696 重建，rotation coarsen）指令图 + assignment | 同上 |
 | `xs_am_flat_final_seq_20260804/` | 同上：AM 侧（5335696 + 相位式 coarsen）指令图 + assignment | 同上 |
 | `xs_am_opt1_seq_20260804/` | 同上：AM 侧（HEAD ba0a69a + 相位式 + 新 optimize：CSE 解锁 Observable / assign 别名 / ROM 折叠）指令图 + assignment，cross_values 704,356（3.65x） | 见 pdocs/grh-notepad/supernode-align/NO0011 |
+| `xs_am_no0007p3_20260808/` | supernode-align **atom 口径基线**（NO0013）：AM 侧（NO0007 P3：atom 计权分区，指令图/归属均带 post-merge atom 字段）指令图 + assignment，compute_network 515,057（2.8911x），nodes 2,620,125 atoms（0.8608x） | 见 pdocs/grh-notepad/supernode-align/NO0013 |
 
 基线锚点（详见 `docs/06-基线解导出与对账.md`）：plain 基线 34,236 blocks
 （33,738 compute + 497 commit + 1 input sink），`dag_edges=325,838`，
