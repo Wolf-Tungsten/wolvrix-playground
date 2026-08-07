@@ -233,12 +233,13 @@
 | `TNO0221` | `2026-08-06` | [SimpleTES node032 post-reboot exact restart](./TNO0221_simpletes_node032_postreboot_exact_restart_20260806.md) | node032 于 `17:03:46` 重启，中断前 1 active/3 queued evaluations 未持久化且无新 checkpoint；重新排除 `db_state_021244` 审计状态，从 `db_state_020746` 精确恢复 `46 attempts/34 valid/40 nodes` 和绝对 `128/64` 预算，显式 NVM Codex `0.146.0` 的 GPT max 四个 gen workers 已运行。 |
 | `TNO0222` | `2026-08-06` | [SimpleTES node032 scanner recovery and retry diagnostics](./TNO0222_simpletes_node032_scanner_recovery_and_retry_diagnostics_20260806.md) | post-reboot `36` 次 retry 确认为 fresh control build 缺 `clang-scan-deps-19`，非 CCD；不停止现有实例完成 package/cache 在线恢复，evaluator 已越过失败点进入 SimTop emit。SimpleTES `a32116d` 新增 matching-scanner launch gate 与脱敏限长 retry root cause，full `254/254` 通过；暂无新 50k walltime。 |
 | `TNO0223` | `2026-08-07` | [SimpleTES c333 NUMA fixed-page gate retry diagnosis](./TNO0223_simpletes_c333_numa_page_gate_retry_diagnosis_20260807.md) | scanner 恢复后已推进至 `54/64` valid；当前 c333 候选把 ELF 缩小 `3,874,816 B/4.243101%`，其 `19,877` 个 file pages 全部位于目标 NUMA node，却因固定 `20,000` 页门槛被误判并持续 retry。八轮 immutable attempts 与跨 CPU/NUMA node 复现已闭合根因；本阶段未停运行、未改代码，待改为候选规模相对 coverage gate。 |
+| `TNO0224` | `2026-08-07` | [SimpleTES relative NUMA page gate hot recovery](./TNO0224_simpletes_relative_numa_gate_hot_recovery_20260807.md) | SimpleTES `414ad80` 以 control/candidate ELF `PT_LOAD` footprint 保持相同最低 coverage，live c333 门槛由固定 `20,000` 原则化缩放为 `19,151`，`19,877/19,877` 本地页严格通过；`108/108` focused、`256/256` full 通过，原 launcher/main 未重启。正式 pooled wall 为 `48,120.25→44,186.75 ms`，减少 `3,933.50 ms/8.174313%`，成为 `55/64` valid 新 best。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`223`（`TNO0001..TNO0223`）。
+- 当前记录类文档总数：`224`（`TNO0001..TNO0224`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
