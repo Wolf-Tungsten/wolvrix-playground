@@ -17,3 +17,7 @@
 [submodule "reference/gsim"]
 	path = reference/gsim
 	url = https://github.com/OpenXiangShan/gsim.git
+[submodule "wolvriHDL"]
+	path = wolvriHDL
+	url = git@github.com:Wolf-Tungsten/wolvriHDL.git
+	branch = main
