@@ -65,7 +65,14 @@ def main() -> int:
     parser.add_argument("--max-atoms-per-block", type=parse_positive)
     parser.add_argument("--dp-segment-penalty", type=float, default=None)
     parser.add_argument("--dp-coarsen-atom-budget", type=int, default=None)
-    parser.add_argument("--mux-atom-max", type=int, default=None)
+    parser.add_argument("--merge-when-min-group", type=int, default=None)
+    parser.add_argument("--dp-refinement-rounds", type=int, default=None)
+    parser.add_argument("--fanout-absorb-max-instructions", type=int, default=None)
+    parser.add_argument("--fanout-absorb-budget-mult", type=float, default=None)
+    parser.add_argument("--fanout-absorb-max-consumers", type=int, default=None)
+    parser.add_argument("--runtime-profile", action="store_true")
+    parser.add_argument("--full-evaluation", action="store_true")
+    parser.add_argument("--changed-trace", action="store_true")
     args = parser.parse_args()
 
     emit_dir = args.emit_dir.resolve()
@@ -143,10 +150,30 @@ def main() -> int:
         if args.dp_coarsen_atom_budget < 0:
             parser.error("--dp-coarsen-atom-budget must be non-negative")
         lower_command.extend(["--dp-coarsen-atom-budget", str(args.dp_coarsen_atom_budget)])
-    if args.mux_atom_max is not None:
-        if args.mux_atom_max < 0:
-            parser.error("--mux-atom-max must be non-negative")
-        lower_command.extend(["--mux-atom-max", str(args.mux_atom_max)])
+    if args.merge_when_min_group is not None:
+        if args.merge_when_min_group < 0:
+            parser.error("--merge-when-min-group must be non-negative")
+        lower_command.extend(["--merge-when-min-group", str(args.merge_when_min_group)])
+    if args.dp_refinement_rounds is not None:
+        if args.dp_refinement_rounds < 0:
+            parser.error("--dp-refinement-rounds must be non-negative")
+        lower_command.extend(["--dp-refinement-rounds", str(args.dp_refinement_rounds)])
+    if args.fanout_absorb_max_instructions is not None:
+        if args.fanout_absorb_max_instructions < 0:
+            parser.error("--fanout-absorb-max-instructions must be non-negative")
+        lower_command.extend(["--fanout-absorb-max-instructions", str(args.fanout_absorb_max_instructions)])
+    if args.fanout_absorb_budget_mult is not None:
+        lower_command.extend(["--fanout-absorb-budget-mult", str(args.fanout_absorb_budget_mult)])
+    if args.fanout_absorb_max_consumers is not None:
+        if args.fanout_absorb_max_consumers < 0:
+            parser.error("--fanout-absorb-max-consumers must be non-negative")
+        lower_command.extend(["--fanout-absorb-max-consumers", str(args.fanout_absorb_max_consumers)])
+    if args.runtime_profile:
+        lower_command.append("--runtime-profile")
+    if args.full_evaluation:
+        lower_command.append("--full-evaluation")
+    if args.changed_trace:
+        lower_command.append("--changed-trace")
     run(lower_command)
 
     require_file(emit_dir / "Makefile", "GRHSIM-AM emitted Makefile")

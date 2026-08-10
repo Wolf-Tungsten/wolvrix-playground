@@ -33,6 +33,11 @@ external-read (state / interface) unique value counts.
 Verdict (only printed when both sides are given):
   AM supernodes (compute + commit blocks) <= gsim supernodes, and
   AM cross_values_compute_network / gsim cross_values_compute_network <= 1.10.
+Methodology ruling (2026-08-08, user): cross-metric comparisons are only
+  meaningful at *matched* supernode counts — a coarser partition cuts fewer
+  edges by construction. The compare output therefore always prints
+  ``block_count_ratio`` and ``block_count_matched`` (AM/gsim within +/-10%),
+  and ``aligned`` requires the match in addition to the ratio gate.
 
 Usage:
     supernode_align_metrics.py --gsim-graph G --gsim-assign A \
@@ -227,7 +232,11 @@ def main() -> int:
         blocks_ok = am["supernodes"] <= gsim["supernodes"]
         ratio_ok = ratio <= RATIO_TARGET
         network_ok = ratio_network <= RATIO_TARGET
-        ok = blocks_ok and network_ok
+        # Block-count match gate (2026-08-08 ruling): cross metrics are only
+        # comparable at matched supernode counts (+-10%).
+        block_ratio = am["supernodes"] / gsim["supernodes"] if gsim["supernodes"] else 0.0
+        block_matched = 0.9 <= block_ratio <= 1.1
+        ok = blocks_ok and network_ok and block_matched
         nodes_ratio = am["nodes"] / gsim["nodes"] if gsim["nodes"] else 0.0
         print(
             f"[compare] nodes am={am['nodes']} ({am['node_unit']}) "
@@ -242,6 +251,10 @@ def main() -> int:
             f"(am <= gsim: {blocks_ok})"
         )
         print(
+            f"[compare] block_count_ratio={block_ratio:.4f} "
+            f"block_count_matched(+-10%)={block_matched}"
+        )
+        print(
             f"[compare] cross_values am={am['cross_values']} gsim={gsim['cross_values']} "
             f"ratio={ratio:.4f} (legacy all-consumer metric, target <= {RATIO_TARGET}: {ratio_ok})"
         )
@@ -253,6 +266,8 @@ def main() -> int:
         )
         report["compare"] = {
             "supernode_blocks_ok": blocks_ok,
+            "block_count_ratio": block_ratio,
+            "block_count_matched": block_matched,
             "nodes_ratio": nodes_ratio,
             "cross_values_ratio": ratio,
             "cross_values_compute_consumer_ratio": ratio_compute,
@@ -260,7 +275,7 @@ def main() -> int:
             "ratio_target": RATIO_TARGET,
             "aligned": ok,
         }
-        print(f"[compare] aligned(compute-network)={ok}")
+        print(f"[compare] aligned(compute-network, block-matched)={ok}")
 
     if args.json is not None:
         args.json.parent.mkdir(parents=True, exist_ok=True)

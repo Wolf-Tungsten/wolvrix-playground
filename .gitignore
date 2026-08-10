@@ -8,3 +8,5 @@ tmp/
 .venv/
 .cache/
 ptmp/
+topo-partition-proj/exp/dataset/
+topo-partition-proj/exp/partition_lab

@@ -629,7 +629,9 @@ def main() -> int:
             raise RuntimeError(
                 "GSim executable GRH import cannot be combined with an existing GrhSIM resume point"
             )
-        if stop_after_pre_sched:
+        if stop_after_pre_sched and not env_flag(
+            "WOLVRIX_XS_GRHSIM_EXPORT_POST_STATS_ON_IMPORT", default=False
+        ):
             raise RuntimeError("GSim executable GRH import requires activity-schedule to run")
         if not gsim_executable_grh_path.is_file():
             raise RuntimeError(f"GSim executable GRH not found: {gsim_executable_grh_path}")
@@ -798,6 +800,19 @@ def main() -> int:
                 "GSim executable GRH import skips pre-schedule normalization, "
                 "reg-to-mem, and stats"
             )
+            # NO0017 D-layer: optionally serialize the imported graph as a
+            # post-stats design JSON so grhsim-am-lower-json can consume the
+            # gsim graph through the AM pipeline (engine normalization).
+            if env_flag("WOLVRIX_XS_GRHSIM_EXPORT_POST_STATS_ON_IMPORT", default=False):
+                log(f"export post-stats on import start {post_stats_json}")
+                write_design_json(
+                    sess,
+                    "design.main",
+                    top_name,
+                    post_stats_json,
+                    "write_post_stats_json_on_import",
+                )
+                log("export post-stats on import done")
         elif resume_from_stats_json:
             if not post_stats_json.exists():
                 raise RuntimeError(f"post-stats json not found: {post_stats_json}")
