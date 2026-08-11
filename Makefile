@@ -189,11 +189,19 @@ XS_WOLF_GRHSIM_AM_RESUME_FROM_STATS_JSON ?= 0
 XS_WOLF_GRHSIM_AM_RESUME_FROM_PRE_REG_TO_MEM_JSON ?= $(if $(filter 1,$(XS_WOLF_GRHSIM_AM_RESUME_FROM_STATS_JSON)),0,$(if $(wildcard $(XS_WOLF_GRHSIM_AM_PRE_REG_TO_MEM_JSON)),1,0))
 XS_WOLF_GRHSIM_AM_BLOCKS_PER_SOURCE ?= 2048
 XS_WOLF_GRHSIM_AM_MAX_SOURCE_BYTES ?= 4194304
-XS_WOLF_GRHSIM_AM_MAX_ATOMS_PER_BLOCK ?= 48
-XS_WOLF_GRHSIM_AM_DP_SEGMENT_PENALTY ?= 1
+# Aligned partition configuration (emit-cost NO0002, locked 2026-08-10):
+# tree-atom fold cap 2 + 9 atoms/block lands the AM structure at
+# L2 0.95x / L3 0.98x of gsim on the same exec-GRH graph.
+XS_WOLF_GRHSIM_AM_TREE_ATOM_FOLD_MAX_INSTR ?= 2
+XS_WOLF_GRHSIM_AM_MAX_ATOMS_PER_BLOCK ?= 9
+XS_WOLF_GRHSIM_AM_DP_SEGMENT_PENALTY ?= 0
 XS_WOLF_GRHSIM_AM_DP_COARSEN_ATOM_BUDGET ?= 0
+# Instruction-unit coarsen merge limit (gsim MAX_NODES_PER_SUPER in emitted
+# terms): keeps every generated function inside the host compiler's feasible
+# envelope; 32768 validated on the gsim-imported XS graph (emit-cost NO0001).
+XS_WOLF_GRHSIM_AM_DP_COARSEN_INSTR_BUDGET ?= 32768
 XS_WOLF_GRHSIM_AM_MERGE_WHEN_MIN_GROUP ?= 5
-XS_WOLF_GRHSIM_AM_DP_REFINEMENT_ROUNDS ?= 10
+XS_WOLF_GRHSIM_AM_DP_REFINEMENT_ROUNDS ?= 0
 XS_WOLF_GRHSIM_AM_FANOUT_ABSORB_MAX_INSTRUCTIONS ?= 0
 XS_WOLF_GRHSIM_AM_FANOUT_ABSORB_BUDGET_MULT ?= 1.0
 XS_WOLF_GRHSIM_AM_FANOUT_ABSORB_MAX_CONSUMERS ?= 256
@@ -944,8 +952,10 @@ xs_wolf_grhsim_am_emit: $(XS_WOLF_FILELIST_ABS) xs_grhsim_am_tool
 			--blocks-per-source "$(XS_WOLF_GRHSIM_AM_BLOCKS_PER_SOURCE)" \
 			--max-source-bytes "$(XS_WOLF_GRHSIM_AM_MAX_SOURCE_BYTES)" \
 			--max-atoms-per-block "$(XS_WOLF_GRHSIM_AM_MAX_ATOMS_PER_BLOCK)" \
+			--tree-atom-fold-max-instr "$(XS_WOLF_GRHSIM_AM_TREE_ATOM_FOLD_MAX_INSTR)" \
 			--dp-segment-penalty "$(XS_WOLF_GRHSIM_AM_DP_SEGMENT_PENALTY)" \
 			--dp-coarsen-atom-budget "$(XS_WOLF_GRHSIM_AM_DP_COARSEN_ATOM_BUDGET)" \
+			--dp-coarsen-instr-budget "$(XS_WOLF_GRHSIM_AM_DP_COARSEN_INSTR_BUDGET)" \
 			--merge-when-min-group "$(XS_WOLF_GRHSIM_AM_MERGE_WHEN_MIN_GROUP)" \
 			--dp-refinement-rounds "$(XS_WOLF_GRHSIM_AM_DP_REFINEMENT_ROUNDS)" \
 			--fanout-absorb-max-instructions "$(XS_WOLF_GRHSIM_AM_FANOUT_ABSORB_MAX_INSTRUCTIONS)" \

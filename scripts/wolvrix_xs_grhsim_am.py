@@ -63,8 +63,10 @@ def main() -> int:
     parser.add_argument("--blocks-per-source", type=parse_positive)
     parser.add_argument("--max-source-bytes", type=parse_positive)
     parser.add_argument("--max-atoms-per-block", type=parse_positive)
+    parser.add_argument("--tree-atom-fold-max-instr", type=int, default=None)
     parser.add_argument("--dp-segment-penalty", type=float, default=None)
     parser.add_argument("--dp-coarsen-atom-budget", type=int, default=None)
+    parser.add_argument("--dp-coarsen-instr-budget", type=int, default=None)
     parser.add_argument("--merge-when-min-group", type=int, default=None)
     parser.add_argument("--dp-refinement-rounds", type=int, default=None)
     parser.add_argument("--fanout-absorb-max-instructions", type=int, default=None)
@@ -144,12 +146,22 @@ def main() -> int:
         lower_command.extend(
             ["--max-atoms-per-block", str(args.max_atoms_per_block)]
         )
+    if args.tree_atom_fold_max_instr is not None:
+        if args.tree_atom_fold_max_instr < 0:
+            parser.error("--tree-atom-fold-max-instr must be non-negative")
+        lower_command.extend(
+            ["--tree-atom-fold-max-instr", str(args.tree_atom_fold_max_instr)]
+        )
     if args.dp_segment_penalty is not None:
         lower_command.extend(["--dp-segment-penalty", str(args.dp_segment_penalty)])
     if args.dp_coarsen_atom_budget is not None:
         if args.dp_coarsen_atom_budget < 0:
             parser.error("--dp-coarsen-atom-budget must be non-negative")
         lower_command.extend(["--dp-coarsen-atom-budget", str(args.dp_coarsen_atom_budget)])
+    if args.dp_coarsen_instr_budget is not None:
+        if args.dp_coarsen_instr_budget < 0:
+            parser.error("--dp-coarsen-instr-budget must be non-negative")
+        lower_command.extend(["--dp-coarsen-instr-budget", str(args.dp_coarsen_instr_budget)])
     if args.merge_when_min_group is not None:
         if args.merge_when_min_group < 0:
             parser.error("--merge-when-min-group must be non-negative")
