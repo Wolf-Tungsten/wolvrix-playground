@@ -91,11 +91,22 @@ workload sample，随后转移到 node032 完成正式 pair，不计入性能均
 SimTop 专用开关，也没有把 `targeted-direct` 当作依赖。
 
 SimpleTES 的 evaluator/launcher 使用精确 parent 与 Wolvrix pin，并在身份不符时
-fail-closed。父仓库完成 landing commit 后，bench 会更新到该 parent commit 和
-Wolvrix `79ec2037...`；旧 checkpoint 不会被伪装成新 baseline，后续 research 应
-从新的 typed-state control seed fresh 启动。更新后的 `validate-only`、launcher
-`dry-run` 和 bench tests 将作为继续探索的回归门禁；本阶段不自动启动下一轮
-research。
+fail-closed。已完成的 bench repin commit 为
+`40baf938014bb6a382b54a6d282210f3548edfea`，当前 pin 为 parent
+`b2fd50a4cac034cea8420835c6869d05cdde670c`、Wolvrix
+`79ec2037b00f2d4894d72785277ebe3f5d37782d`。旧 checkpoint 不会被伪装成新
+baseline，后续 research 应从新的 typed-state control seed fresh 启动。
+
+repin 后已验证：
+
+- `evaluator.py init_program.txt --validate-only` 通过，返回 `control` seed；
+- GPT 5.6 Sol/max、`config.thj.toml`/`auth.thj.json` 的 launcher `--dry-run`
+  生成了 `64 proposals/32 valid`、`4` 个 gen workers、`10,800 s` generation
+  timeout 的命令，且没有启动模型或 research；
+- `tests/test_grhsim_bench.py tests/test_grhsim_runtime.py` 为 `115 passed`。
+
+因此后续 SimpleTES 可以从新 pin 继续，旧 checkpoint 会按身份契约拒绝；本阶段
+不自动启动下一轮 research。
 
 ## 6. 复现产物
 
