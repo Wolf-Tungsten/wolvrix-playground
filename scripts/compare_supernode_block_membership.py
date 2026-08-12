@@ -232,6 +232,58 @@ def main():
           f"({100.0 * single / max(1, len(block_records)):.2f}%)")
     print()
 
+    # --- NO0018 refined caliber: dup boundary nodes counted as commit ---
+    # Nodes claimed by BOTH a compute atom and a commit atom are REG_UPDATE
+    # boundary nodes: gsim keeps the register node as an inert super member
+    # while AM splits its next-value cone root (compute atom) from the state
+    # write (commit atom), and both atoms carry the node id. Counting them as
+    # commit-side yields the mapping-quality metrics for the compute line.
+    dup_boundary = set(node_compute_block) & set(node_commit_block)
+    refined = None
+    if dup_boundary:
+        node_compute_refined = {
+            n: b for n, b in node_compute_block.items() if n not in dup_boundary
+        }
+        refined_perfect = 0
+        refined_mw_num = 0
+        refined_mw_den = 0
+        refined_block_supers = {block: set() for block in compute_blocks}
+        for sid, _cpp, _type, nodes in supers:
+            blocks = Counter()
+            mapped = 0
+            for node in nodes:
+                block = node_compute_refined.get(node)
+                if block is not None:
+                    blocks[block] += 1
+                    mapped += 1
+            if blocks:
+                refined_mw_den += mapped
+                if len(blocks) == 1:
+                    refined_perfect += 1
+                    refined_mw_num += mapped
+            for block in blocks:
+                refined_block_supers[block].add(sid)
+        refined_touched = sum(1 for ss in refined_block_supers.values() if ss)
+        refined_single = sum(1 for ss in refined_block_supers.values() if len(ss) == 1)
+        refined = {
+            "dup_boundary_nodes": len(dup_boundary),
+            "supernodes_perfect_nesting": refined_perfect,
+            "member_weighted_nesting": (
+                refined_mw_num / refined_mw_den if refined_mw_den else 0.0
+            ),
+            "blocks_single_supernode": refined_single,
+            "blocks_touched": refined_touched,
+        }
+        print("== NO0018 refined caliber (dup boundary nodes counted as commit) ==")
+        print(f"dup boundary nodes (compute+commit): {len(dup_boundary)}")
+        print(f"perfectly nested in exactly 1 AM block: {refined_perfect} / {len(supers)} "
+              f"({100.0 * refined_perfect / max(1, len(supers)):.2f}%)")
+        print(f"member-weighted nesting: "
+              f"{100.0 * refined['member_weighted_nesting']:.2f}%")
+        print(f"blocks touching exactly 1 gsim supernode: {refined_single} / {refined_touched} "
+              f"({100.0 * refined_single / max(1, refined_touched):.2f}%)")
+        print()
+
     # --- outliers ---
     print(f"== top {args.top} supernodes by AM-block spread ==")
     for r in sorted(super_records, key=lambda r: -r["am_blocks"])[: args.top]:
@@ -259,6 +311,7 @@ def main():
             "dup_compute_node_mappings": dup_compute_nodes,
             "supernodes_perfect_nesting": perfect,
             "blocks_single_supernode": single,
+            "refined_dup_as_commit": refined,
             "super_records": super_records,
             "block_records": block_records,
         }
