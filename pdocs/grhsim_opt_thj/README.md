@@ -236,6 +236,7 @@
 | `TNO0224` | `2026-08-07` | [SimpleTES relative NUMA page gate hot recovery](./TNO0224_simpletes_relative_numa_gate_hot_recovery_20260807.md) | SimpleTES `414ad80` 以 control/candidate ELF `PT_LOAD` footprint 保持相同最低 coverage，live c333 门槛由固定 `20,000` 原则化缩放为 `19,151`，`19,877/19,877` 本地页严格通过；`108/108` focused、`256/256` full 通过，原 launcher/main 未重启。正式 pooled wall 为 `48,120.25→44,186.75 ms`，减少 `3,933.50 ms/8.174313%`，成为 `55/64` valid 新 best。 |
 | `TNO0225` | `2026-08-12` | [SimpleTES fixed NUMA coverage across baseline repins](./TNO0225_simpletes_fixed_numa_coverage_across_baseline_repins_20260812.md) | SimpleTES `869a11a` 将 NUMA 门槛固定为协议 coverage `20,000/22,260=89.847260%`，不再从当前 control ELF 漂移；`21,314→19,151` 与最终 best `20,401→18,330` 回归、repin invariance、非法配置和 `115` focused/`263` full tests 全通过。 |
 | `TNO0226` | `2026-08-12` | [SimpleTES principled TRBS 64-valid completion](./TNO0226_simpletes_principled_trbs_64valid_completion_20260812.md) | node032 实例 `44cd457d` 最终 `83` generation attempts、`74` completed evaluations、`64/64 valid`；最佳 `297a7032` 的 SimTop 50k wall 为 `48,074.00→43,300.00 ms`，减少 `4,774.00 ms/9.930524%`，ABBA/BAAB gap `0.094283 pp`，尚未 landing/default。 |
+| `TNO0227` | `2026-08-12` | [Typed-state best-path ablation design and materialization](./TNO0227_typed_state_bestpath_ablation_design_and_materialization_20260812.md) | 在 node032 固定原则化 TRBS pin，预注册 `B→S8→SB→SBV` 三个累计阶段和 `B→SBV` endpoint；gen60/gen68/gen72 三个 zero-option emitter arm 已物化并通过 validate-only，fresh parallel build/runtime 结果待补。 |
 
 ## 来源覆盖
 
