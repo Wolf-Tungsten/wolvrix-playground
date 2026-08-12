@@ -234,12 +234,14 @@
 | `TNO0222` | `2026-08-06` | [SimpleTES node032 scanner recovery and retry diagnostics](./TNO0222_simpletes_node032_scanner_recovery_and_retry_diagnostics_20260806.md) | post-reboot `36` 次 retry 确认为 fresh control build 缺 `clang-scan-deps-19`，非 CCD；不停止现有实例完成 package/cache 在线恢复，evaluator 已越过失败点进入 SimTop emit。SimpleTES `a32116d` 新增 matching-scanner launch gate 与脱敏限长 retry root cause，full `254/254` 通过；暂无新 50k walltime。 |
 | `TNO0223` | `2026-08-07` | [SimpleTES c333 NUMA fixed-page gate retry diagnosis](./TNO0223_simpletes_c333_numa_page_gate_retry_diagnosis_20260807.md) | scanner 恢复后已推进至 `54/64` valid；当前 c333 候选把 ELF 缩小 `3,874,816 B/4.243101%`，其 `19,877` 个 file pages 全部位于目标 NUMA node，却因固定 `20,000` 页门槛被误判并持续 retry。八轮 immutable attempts 与跨 CPU/NUMA node 复现已闭合根因；本阶段未停运行、未改代码，待改为候选规模相对 coverage gate。 |
 | `TNO0224` | `2026-08-07` | [SimpleTES relative NUMA page gate hot recovery](./TNO0224_simpletes_relative_numa_gate_hot_recovery_20260807.md) | SimpleTES `414ad80` 以 control/candidate ELF `PT_LOAD` footprint 保持相同最低 coverage，live c333 门槛由固定 `20,000` 原则化缩放为 `19,151`，`19,877/19,877` 本地页严格通过；`108/108` focused、`256/256` full 通过，原 launcher/main 未重启。正式 pooled wall 为 `48,120.25→44,186.75 ms`，减少 `3,933.50 ms/8.174313%`，成为 `55/64` valid 新 best。 |
+| `TNO0225` | `2026-08-12` | [SimpleTES fixed NUMA coverage across baseline repins](./TNO0225_simpletes_fixed_numa_coverage_across_baseline_repins_20260812.md) | SimpleTES `869a11a` 将 NUMA 门槛固定为协议 coverage `20,000/22,260=89.847260%`，不再从当前 control ELF 漂移；`21,314→19,151` 与最终 best `20,401→18,330` 回归、repin invariance、非法配置和 `115` focused/`263` full tests 全通过。 |
+| `TNO0226` | `2026-08-12` | [SimpleTES principled TRBS 64-valid completion](./TNO0226_simpletes_principled_trbs_64valid_completion_20260812.md) | node032 实例 `44cd457d` 最终 `83` generation attempts、`74` completed evaluations、`64/64 valid`；最佳 `297a7032` 的 SimTop 50k wall 为 `48,074.00→43,300.00 ms`，减少 `4,774.00 ms/9.930524%`，ABBA/BAAB gap `0.094283 pp`，尚未 landing/default。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`224`（`TNO0001..TNO0224`）。
+- 当前记录类文档总数：`226`（`TNO0001..TNO0226`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
