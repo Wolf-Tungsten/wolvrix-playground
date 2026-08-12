@@ -238,12 +238,13 @@
 | `TNO0226` | `2026-08-12` | [SimpleTES principled TRBS 64-valid completion](./TNO0226_simpletes_principled_trbs_64valid_completion_20260812.md) | node032 实例 `44cd457d` 最终 `83` generation attempts、`74` completed evaluations、`64/64 valid`；最佳 `297a7032` 的 SimTop 50k wall 为 `48,074.00→43,300.00 ms`，减少 `4,774.00 ms/9.930524%`，ABBA/BAAB gap `0.094283 pp`，尚未 landing/default。 |
 | `TNO0227` | `2026-08-12` | [Typed-state best-path ablation design and materialization](./TNO0227_typed_state_bestpath_ablation_design_and_materialization_20260812.md) | 在 node032 固定原则化 TRBS pin，预注册 `B→S8→SB→SBV` 三个累计阶段和 `B→SBV` endpoint；gen60/gen68/gen72 三个 zero-option emitter arm 已物化并通过 validate-only，fresh parallel build/runtime 结果待补。 |
 | `TNO0228` | `2026-08-12` | [Typed-state ablation paused for node032 load](./TNO0228_typed_state_ablation_node032_infrastructure_pause_20260812.md) | 三个 arm 与共享 control 均完成并行构建及功能/身份门禁；`B→S8` 已落盘 `72` 次 wrapper attempt，但完整 ABBA+BAAB 为 `0`，均因外部负载或 strict quiet-CCD gate 作废，按指示暂停，未改默认。 |
+| `TNO0229` | `2026-08-13` | [Typed-state best-path ablation node032 runtime completion](./TNO0229_typed_state_bestpath_ablation_node032_runtime_completion_20260813.md) | 四组同 CCD ABBA/BAAB 全部完成且 gap `<0.25 pp`：`B→S8` `48,023.50→44,595.25 ms`（`7.138693%`），`S8→SB` `44,760.25→44,195.25 ms`（`1.262281%`），`SB→SBV` `44,198.00→43,373.50 ms`（`1.865469%`），endpoint `B→SBV` `48,054.25→43,335.50 ms`（`9.819631%`）；所有功能/ASLR/NUMA/PMU 门禁通过，未改默认。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`228`（`TNO0001..TNO0228`）。
+- 当前记录类文档总数：`229`（`TNO0001..TNO0229`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
