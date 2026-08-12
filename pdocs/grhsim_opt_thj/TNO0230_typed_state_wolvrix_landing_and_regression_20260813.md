@@ -92,7 +92,8 @@ SimTop 专用开关，也没有把 `targeted-direct` 当作依赖。
 
 SimpleTES 的 evaluator/launcher 使用精确 parent 与 Wolvrix pin，并在身份不符时
 fail-closed。已完成的 bench repin commit 为
-`40baf938014bb6a382b54a6d282210f3548edfea`，当前 pin 为 parent
+`40baf938014bb6a382b54a6d282210f3548edfea`（随后仅更新操作说明的
+`7181056377ea03fecb9af2f8b9b9492435c76080`），当前 pin 为 parent
 `b2fd50a4cac034cea8420835c6869d05cdde670c`、Wolvrix
 `79ec2037b00f2d4894d72785277ebe3f5d37782d`。旧 checkpoint 不会被伪装成新
 baseline，后续 research 应从新的 typed-state control seed fresh 启动。
