@@ -1,36 +1,61 @@
 # 003. W：singleton MemoryWrite 的冷分支提示
 
 W 是 RWA 链的第二项增量，合入 `16a9f493687a21a5428f1e1327a69834ea60c9f5`。
-它建立在 [002](002_r_register_cold_layout.md) 的 R-selected runs 上：R 先决定
-哪些 run 值得重排，W 再在这些 run 内处理 MemoryWrite guard。[^design][^landing]
+RWA 是本阶段三个增量的简称：R 为 register-write run 筛选，W 为本篇的 MemoryWrite
+提示，A 为 assertion 相关的外层 guard。W 建立在 R-selected runs 上：R 先决定哪些
+run 值得做 cold layout，W 再在这些 run 内处理 MemoryWrite guard。因此准确的依赖
+方向是“W 依赖 R”，而不是 R 依赖 W。[^design][^landing]
+
+## 先理解本篇术语
+
+GrhSIM 把同一个 supernode（由若干 IR，即中间表示操作组成的调度单元）中连续出现、
+且共享同一精确事件条件的一段写操作称为 **run**。**guard** 是决定一次写入是否执行
+的布尔条件；拥有相同 guard 的写操作组成一个 guard group，group 中只有一个写操作时称为
+**singleton**。singleton 在这里不表示单 bit、单字节或全设计唯一的存储端口。
+
+`MemoryWritePort` 是 Wolvrix IR 中表示一次存储器写入的操作种类。`unlikely(cond)`
+只是向编译器提供 `cond` 通常为假的分支概率提示，让它有机会把低频代码放到热路径
+之外；条件仍会正常求值，写地址、写数据和写入顺序均不改变。
 
 ## 做了什么
 
-对于 R 已选中的 run，生成器识别 singleton `MemoryWritePort` 条件，并只把其 guard
-标为 `unlikely`。W 不改变 R 的 admission threshold，也不改变 MemoryWrite 的地址、
-数据、写入顺序或条件判断；不属于 R-selected run 的 MemoryWrite 仍使用原来的生成
-形式。[^source]
+R 的 admission（静态准入判断）只统计 eligible register-write groups：当 singleton
+register guard 达到 `256`，或 eligible register writes 总数达到 `2048` 时，run 才被
+选中。MemoryWrite 本身不参与这项计数。对于已经由 R 选中的 run，W 再识别恰好只含
+一个 `MemoryWritePort` 的 guard group，并把其 guard 标为 `unlikely`；静态已知为非零
+的常量 guard 不处理，共享同一 guard 的多个 memory writes 也不作为 singleton 处理。
+[^design][^source]
+
+W 不改变 R 的 admission threshold，也不改变 MemoryWrite 的地址、数据、写入顺序或
+条件判断。不属于 R-selected run 的 MemoryWrite，以及同一 group 内有多项写入的
+MemoryWrite，仍使用原来的生成形式。[^source]
 
 ## 为什么这样做
 
-MemoryWrite 的 singleton guard 通常是大量提交条件中的冷分支。让编译器知道这一点，
-可把写入慢路径移出热代码，并减少热前端被低概率分支打断的机会。W 刻意复用 R 的
-结构门禁，避免另起一个只针对某个模型的启发式；因此它是 R 的依赖项，而不是
-`targeted-direct` 的别名。[^design]
+MemoryWrite 的 singleton guard 在这个被 R 选中的结构里预期是低概率分支。让编译器
+知道这一点，可把写入慢路径移出高频直线路径，并减少 CPU 前端的取指和解码受低概率
+代码干扰。W 刻意复用 R 的通用结构门禁，不匹配 SimTop 的端口或变量名；它依赖 R，
+也不是 `targeted-direct`（另一个 activity-bitmap gap-pack 实验开关）的别名。[^design]
 
 ## 收益（SimTop 50k walltime）
 
-在 R baseline 上的 direct `R→RW` 配对为：[^ablation]
+这是 direct `R→RW` 配对：control `R` 已含前一篇的 register 优化，candidate `RW`
+在完全相同的基础上再增加 W；direct 表示两侧只相差 W。ABBA 表示按
+control-candidate-candidate-control 运行，BAAB 是反向顺序，pooled 值合并两种顺序
+的有效样本后分别取均值。SimTop 运行到 50k cycle，绝对值取日志中的
+`Host time spent` walltime：[^ablation]
 
 | 对比 | control（ms） | candidate（ms） | 减少（ms） | 相对改善 | ABBA / BAAB |
 |---|---:|---:|---:|---:|---:|
 | `R→RW` | 57,031.25 | 55,965.00 | 1,066.25 | **1.869589%** | 1.521228% / 2.220306% |
 
-这一项的 order gap 为 `0.699078 pp`。TNO0183 当时按预注册的“双 order 同向、
-pooled 超过 control-spread 信任线”流程接受该结果；这个 gap 高于后来其他消融阶段
-采用的 `0.25 pp` 复测线，因此不应事后把它描述成满足新复测线。PMU cycles
-`-1.966156%`、frontend `-2.111833%`、instructions `+0.000600%`，支持“主要是
-代码布局/前端供给”的解释。[^ablation]
+这一项的 **order gap**（ABBA 与 BAAB 所得改善率之差）为 `0.699078 pp`，其中 pp
+表示百分点。TNO0183 当时按预注册的“双 order 同向、pooled 改善超过 control-spread
+信任线”流程接受该结果；control spread 是 control 样本极差相对其均值的比例。这个
+gap 高于后来其他消融阶段采用的 `0.25 pp` 复测线，因此不应事后把它描述成满足新
+复测线。PMU（CPU 硬件性能计数器）cycles `-1.966156%`、frontend no-op
+`-2.111833%`、retired instructions `+0.000600%`，说明指令数基本不变而周期和前端
+空槽下降，支持“主要是代码布局/前端供给”的解释。[^ablation]
 
 作为组合背景，exact-event baseline 到 RW（不含 A）的 pooled 结果为
 `60,513.50→55,394.00 ms`，减少 `5,119.50 ms`、改善 `8.460096%`；这个数字不能
@@ -39,8 +64,9 @@ pooled 超过 control-spread 信任线”流程接受该结果；这个 gap 高�
 ## 落地状态与边界
 
 W 随 R/A 在 `16a9f493...` 合入通用 emitter 并默认启用，Python 继承 C++ 默认；没有
-SimTop 专门选项。它必须在 R-selected 上下文中才有意义，单独打开而没有 R 的组合
-没有被本轮性能数据验证。[^landing]
+SimTop 专门选项。emitter 是把 Wolvrix IR 和 schedule 生成 C++ 仿真源码的代码生成器。
+W 必须在 R-selected 上下文中才有意义，单独打开而没有 R 的组合没有被本轮性能数据
+验证。[^landing]
 
 ### 数据来源（尾注）
 

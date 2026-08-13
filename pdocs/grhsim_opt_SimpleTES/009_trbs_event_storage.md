@@ -1,16 +1,24 @@
-# 009. TRBS：typed event-edge storage（有类型事件边存储）
+# 009. T：typed event-edge storage（有类型事件边存储）
 
 这是 SimpleTES 在四项正收益优化之后发现的 TRBS 路线的第一步。历史搜索把它称为
 `T`（typed direct event array），最终与后续的 hot-event remap、posedge 预解码和
 batch snapshot 一起形成 `TRBS`。本篇只说明“存储表示”这一机制；最终落地提交是
 `d3ed9dea975bddf01185dde5c548a69241a09de9`。[^0211][^0214]
 
+`T/TR/TRB/TRBS` 是逐项累积的实验节点：T 是本篇 typed storage；R 是热点事件
+重映射；B 是上升沿 bool 预解码；S 是 batch 局部快照。本篇的 `B→T` 数字只隔离 T，
+不包含后三项的收益。`T` 也是历史 arm 标签，不是用户可配置开关。
+
 ## 做了什么
 
-旧 emitter 为事件边分配一段 byte arena，然后在每次查询时通过
-`reinterpret_cast<grhsim_event_edge_kind *>` 访问它。T arm 改为：
+事件边沿是本次输入采样相对前值的分类：`posedge` 是 0→1 上升沿，`negedge` 是
+1→0 下降沿，general/none 表示其他或无特定边沿。旧 emitter 为这些分类分配一段
+**byte arena**，即没有元素类型的原始连续字节存储；每个事件值占用一个内部 **slot**。
+查询时再用 `reinterpret_cast<grhsim_event_edge_kind *>` 把字节地址解释成事件枚举指针。
+这里的 enum 是 C++ 中只有有限几个命名取值的类型，`reinterpret_cast` 只改变编译器
+看待同一地址的指针类型。T arm 改为：
 
-1. 用按 `grhsim_event_edge_kind` 元素类型生成的 fixed typed array 直接承载事件边（而不是 byte arena）；
+1. 用按 `grhsim_event_edge_kind` 元素类型生成的固定长度 typed array 直接承载事件边；
 2. 保持事件边的 enum 类型和索引关系，避免“byte 存储 → 指针重解释 → enum
    比较”的中间层；
 3. 为后续按 input event 统计和重映射保留稳定的 typed slot 表示。
@@ -21,11 +29,12 @@ batch snapshot 一起形成 `TRBS`。本篇只说明“存储表示”这一机�
 
 ## 为什么这样做
 
-事件边是高频 predicate 的输入。byte arena 和重解释指针让生成代码跨越一层别名
-边界，编译器难以稳定地证明相邻查询读取的是同一类对象。直接的 typed array
-提供明确的元素类型、连续布局和可分析的索引，使后续 hot-event 选择、bool 解码
-和 batch-local snapshot 能在 emitter 层安全实现。它还让非热点的 negedge/general
-事件继续保留完整 enum，避免为了一个热点而牺牲其他 edge 语义。[^0211][^source]
+事件边沿分类会被大量 guard 重复读取。原始字节和重解释指针迫使编译器保守考虑这些
+访问是否与其他字节访问指向同一内存，即别名关系；直接 typed array 则明确告诉编译器
+“这里是一组事件枚举对象”。这有机会让它更容易合并重复读取、安排 load/store 依赖并
+布置代码，也为后续 hot-event 选择、bool 解码和 batch snapshot 提供安全承载位置。
+这不是保证编译器一定做某个特定优化，因此仍用 50k walltime 裁决。非热点的
+negedge/general 继续保存完整 enum，不会因一个上升沿热点而丢失语义。[^0211][^source]
 
 这里的“更好的别名分析/依赖链/代码布局”是编译器层面的合理解释，而不是额外的
 性能测量结论：文档中的端到端裁决仍只采用 SimTop 50k walltime。[^0213]

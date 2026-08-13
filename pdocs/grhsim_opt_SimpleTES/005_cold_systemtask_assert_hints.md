@@ -6,21 +6,34 @@
 
 ## 做了什么
 
-生成器对满足“无返回、无输出、仅有保护性副作用”条件的 standalone `xs_assert_v2`
-以及合资格的 `SystemTask` guard 发射 `unlikely`。只改变分支权重和布局，保留原条件、
-调用顺序、错误/断言触发和 DPIC 语义；不能证明无副作用的节点不会被标记。[^source]
+`SystemTask` 是 HDL 中 `$display`、`$fatal` 等系统任务形成的副作用操作；
+`xs_assert_v2` 是 XiangShan 用来报告断言的特定 DPI-C 调用，DPI-C 是
+SystemVerilog 调用 C/C++ 函数的接口。这里的 standalone assertion 指没有与前一篇
+所述 SystemTask 组成相邻配对、需要单独生成的 `xs_assert_v2`。
+
+生成器会把进入常规 schedule、非 `final` 且带执行条件的 SystemTask 完整 guard 标为
+`unlikely`；`final` SystemTask 在仿真结束的 finalize 路径另行生成，不使用本提示。
+对于 standalone `xs_assert_v2`，只有确认它没有 C 返回值、输出参数或供后续节点使用的
+IR 结果时，
+才应用相同提示。这些限制不是所有 SystemTask 的共同前提；SystemTask 也不一定只是
+“保护性”操作。优化只改变分支权重和代码布局，原条件、调用顺序、错误/断言触发及
+DPI-C 副作用全部保留。[^source]
 
 ## 为什么这样做
 
-正常仿真很少走断言失败和保护性 task 路径，但这些代码若与主 schedule 紧邻，会占用
-热路径的前端空间。把它们移到 cold layout 可以减少取指干扰。与 #004 的差异在于：
-#004 要求一对相邻操作共享条件，本项只依赖单个操作可证明的副作用属性，所以覆盖更广。
+正常仿真很少触发断言失败；许多 SystemTask 也位于低概率 guard 后。这些代码若与主
+schedule 紧邻，会占用热路径的取指和指令缓存空间。把低概率分支移到 cold layout
+可以减少这种干扰。与 #004 的差异在于：#004 要求一对相邻操作共享条件，本项直接给
+单个 SystemTask 或合资格的 standalone assertion 提示，所以覆盖更广。
 [^design]
 
 ## 收益（SimTop 50k walltime）
 
-采用 full-gen150 的 `final-minus-one` 配对：每个 candidate 只删除本项，其余三项仍在。
-因此该数字是组合中的边际收益，而不是从 RWA baseline 独立测出的收益。[^ablation]
+采用 full-gen150 的 `final-minus-one` 配对。完整候选当时有六项改动；control
+`final-minus-#005` 移除 #005、保留另外五项，candidate full 恢复全部六项。另两项
+后来因
+复测不能确认正收益而未落地，所以这个数字是在六项研究组合中的边际贡献，不是从 RWA
+baseline 单独启用 #005 的收益。最终四项组合另有独立 endpoint 验证。[^ablation]
 
 | 对比 | control（ms） | candidate（ms） | 减少（ms） | 相对改善 | ABBA / BAAB | gap |
 |---|---:|---:|---:|---:|---:|---:|
@@ -31,8 +44,9 @@
 
 ## 落地状态与边界
 
-该提示以 generic default 进入 C++ emitter，Python/XS 流程继承；没有 SimTop 专用名字
-表或额外开关。它只负责 SystemTask/assertion 形状，不能替代 #004 的相邻配对证明。[^landing]
+该提示以 generic default 进入 C++ emitter，Python 和 XiangShan（XS）集成流程继承；
+没有 SimTop 专用名字表或额外开关。它只负责 SystemTask/assertion 形状，不能替代
+#004 的相邻配对证明。[^landing]
 
 ### 数据来源（尾注）
 

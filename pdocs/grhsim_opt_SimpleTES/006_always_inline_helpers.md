@@ -1,13 +1,16 @@
 # 006. 高频 word helpers 的 always-inline 提示
 
 这是 `fd12d83f5150cc98540ed3e8f2af3b79f8054da0` 中的第二项四项热路径优化。它针对
-生成 C++ 中反复出现的标量 word 操作 helper，不依赖某个 SimTop 变量。[^design]
+生成 C++ 中反复出现的 word 操作 helper，不依赖某个 SimTop 变量。宽 HDL 位向量在
+生成代码中会拆成一个或多个通常为 64 bit 的 word；helper 是完成截断、拼接、切片等
+常用操作的小函数。[^design]
 
 ## 做了什么
 
 对选定且调用频率高的 helper 统一发射 `GRHSIM_ALWAYS_INLINE`，覆盖 truncation、
 assign/clear、insert、concat、slice、bitwise 和 reduce 等小型 word 操作。宏在编译器
-不支持时退化为普通 inline/空定义；helper 的输入、输出和边界行为没有改变。[^source]
+不支持强制内联属性时退化为普通 `inline`，不会变为空定义；helper 的输入、输出和
+边界行为没有改变。被选择的集合由 emitter 静态确定，并非运行时 profiling。[^source]
 
 ## 为什么这样做
 
@@ -18,7 +21,10 @@ assign/clear、insert、concat、slice、bitwise 和 reduce 等小型 word 操�
 
 ## 收益（SimTop 50k walltime）
 
-同一 full-gen150 final-minus-one 消融中，去掉本项、保留其余三项的结果为：[^ablation]
+同一 full-gen150 final-minus-one 消融中，control 去掉本项并保留另外五项，candidate
+为完整六项候选。其余五项包括后来未落地的 residual MemoryRead 和 physical
+zero-tail；
+因此下表是六项研究组合内的边际结果，最终四项另由 endpoint 验证。[^ablation]
 
 | 对比 | control（ms） | candidate（ms） | 减少（ms） | 相对改善 | ABBA / BAAB | gap |
 |---|---:|---:|---:|---:|---:|---:|

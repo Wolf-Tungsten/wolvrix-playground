@@ -5,6 +5,11 @@ persistent state 和 SB 的 native-bool persistent state 之上，进一步处�
 value bucket（`kBool`）本身；三项增量共同形成 `SBV` endpoint，并于
 2026-08-13 作为 Wolvrix 通用默认行为落地。[^design][^landing]
 
+**materialized value** 原本可以直接嵌入某个 C++ 表达式；当它需要跨多个使用点复用时，
+emitter 会为它实际分配存储。**value bucket** 是把相同类型/宽度的这些中间值集中放入
+一个数组。它不是 RTL 寄存器，不承担跨仿真步骤保存设计状态的职责。`kBool` 是 emitter
+内部对一位真假逻辑值的分类名。
+
 ## 做了什么
 
 SBV 将生成的 materialized `kBool` bucket 从旧的 byte-like owning element 改为
@@ -16,8 +21,10 @@ schedule。换句话说，SBV 和 [013](./013_sb_native_bool.md) 都使用 nativ
 ## 为什么这样做
 
 materialized 布尔值在热点表达式中被频繁读取。让 owning bucket 的真实 C++ 类型就是
-`bool`，可避免 byte→bool 的隐式转换和不必要的宽加载；与前两项的直接 typed member
-布局结合后，编译器可能进一步收紧别名/依赖关系并改善热路径布局。这里的“可能”是
+`bool`，可减少 byte 表示与布尔表达式之间的规范化，并向编译器表达准确的值类型；
+已有证据并不能证明旧 `uint8_t` 表示造成了“宽加载”，因此不作这个更强的声称。与前
+两项的直接 typed member 布局结合后，编译器可能进一步收紧别名/依赖关系并改善热路径
+布局。这里的“可能”是
 代码形态的解释，实际是否保留只由 SimTop 50k walltime 和功能门禁决定，不由 ELF 大小
 或单个 PMU 计数决定。[^ablation]
 
@@ -36,6 +43,10 @@ materialized 布尔值在热点表达式中被频繁读取。让 owning bucket �
 `48,162.50 → 43,434.50 ms`，减少 `4,728.00 ms`、改善 **9.816766%**，ABBA/BAAB
 分别为 `9.841082%`/`9.792411%`。两轮绝对数值来自不同实验窗口，不能彼此相减；它们
 共同确认 endpoint 的端到端收益和默认落地方向。[^ablation][^landing]
+
+名称关系上，`SB` 是“S8 加 persistent native bool”的累计节点；`SBV` 再加本篇的
+materialized-value native bool。SBV 是最终 endpoint 名，不是第四项独立优化。真正的
+三项相邻增量是 `B→S8`、`S8→SB`、`SB→SBV`。
 
 ## 落地、依赖与默认行为
 

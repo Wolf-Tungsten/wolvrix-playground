@@ -5,11 +5,17 @@
 C++ 原生 `bool`。该机制与下一篇的 materialized value bucket 分开消融，最终随三项
 组合一起落入 Wolvrix 默认提交 `79ec2037b00f2d4894d72785277ebe3f5d37782d`。[^design][^landing]
 
+这里的 **owning storage** 是真正拥有并长期保存值的 C++ 字段，不是临时引用或访问
+表达式；**native bool** 表示该字段的实际 C++ 类型是 `bool`，不是“使用某条原生 CPU
+布尔指令”。persistent bool 会跨 batch 和仿真步骤保存设计状态，与下一篇只缓存组合
+中间结果的 materialized bool 生命周期不同。
+
 ## 做了什么
 
 在 S8 arm 中，按 kind 分桶已经让状态通过直接成员访问，但 bool 状态仍使用 byte
 对象；SB 进一步让 persistent bool 字段的 C++ 元素类型为 `bool`，初始化/清零也按
 `bool{}` 进行。整数、宽向量、memory staging 和 event-edge storage 不在这项变化内。
+memory staging 是 memory 读写在提交前后使用的暂存表示，不属于本项持久 bool 字段。
 因此 SB 不是重新设计状态机，而是把已有的“布尔语义”准确传给生成 C++ 的对象类型。
 [^source]
 
@@ -39,7 +45,8 @@ C++ 原生 `bool`。该机制与下一篇的 materialized value bucket 分开消
 * SimpleTES 的直接 arm 是归因实验，不单独发布为一个开关。S8、SB、SBV 的完整
   endpoint 通过功能和 native 默认回归后，以通用 C++/Python 默认行为一起保留；
   Wolvrix commit 为 `79ec2037b00f2d4894d72785277ebe3f5d37782d`。[^landing]
-* 若将来只想回退 SB 而保留 S8/SBV，必须重新 materialize、做功能回归并测 fresh
+* 若将来只想回退 SB 而保留 S8/SBV，必须重新 materialize（把实验 patch 应用成可构建
+  源码）、做功能回归并测 fresh（从固定身份重新生成和构建的）
   50k；本历史整理不声称这种未测组合的性能。
 
 ## 可复核身份

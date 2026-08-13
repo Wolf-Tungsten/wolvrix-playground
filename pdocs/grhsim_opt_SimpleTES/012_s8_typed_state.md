@@ -5,24 +5,36 @@
 GrhSIM C++ emitter；落地提交是 `79ec2037b00f2d4894d72785277ebe3f5d37782d`。
 [^design][^landing]
 
+`S8` 只是 SimpleTES 搜索中保留下来的历史 arm 标签；现有记录没有给出足以可靠展开的
+全称，因此本文不猜测其含义。特别地，`8` 不表示 8-bit，也不表示八项优化。
+
 ## 做了什么
 
-旧 emitter 把 persistent、非 memory 的逻辑状态放进一个按字节/packed 方式管理的
-arena。S8 保留旧的 `slotIndex`（它仍用于既有排序和元数据），另外为每个状态分配
-按 scalar kind 或 wide word count 的 `logicSlotIndex`。生成代码不再通过一个 byte
-arena 的偏移访问状态，而是访问对应 kind 的 typed field；宽状态则按 word 数分桶。
+**persistent state（持久状态）**是寄存器、锁存器等跨 schedule batch、并在后续仿真
+步骤继续保存的 RTL 状态；本项不包括 memory，也不是临时组合结果。旧 emitter 把这些
+非 memory 状态放进按字节/packed 方式管理的 arena，也就是一块通用存储区。
+
+S8 保留旧 `slotIndex` 供排序和元数据使用，另外分配 `logicSlotIndex` 作为状态在其
+类型类别内的位置。`scalar kind` 是 bool、不同宽度整数等生成器类型分类；宽值会拆成
+若干通常为 64 bit 的 word，`wide word count` 是所需 word 数。生成代码不再用统一
+byte arena 的偏移访问，而是访问相应类型的 C++ struct field；宽状态按 word 数分组，
+这里的“分桶”只是按表示类型归类，不代表所有状态仍位于同一个数组。
 在 S8 这个消融阶段，persistent bool 仍保留旧的 byte 表示，所以它只隔离了“按字段/类型
 分桶和直接成员访问”这一变化。[^design][^source]
 
-这不是改变 RTL 状态语义，也不是按 SimTop 的端口名、变量名或 `ValueId` 选择路径：
-状态的 kind、宽度和 emitter 的结构信息决定布局；不满足条件时仍生成原路径。
+这不改变 RTL 状态语义，也不按 SimTop 的端口名、变量名或固定 `ValueId` 编号选择。
+适用范围由状态的 kind、宽度和 emitter 结构决定；memory、register-to-memory staging
+等明确排除的类别继续使用各自原有表示。S8 是通用布局变化，不存在一个对整模型进行
+“通过/失败后回退”的运行时 selector。
 
 ## 为什么这样做
 
 一个真实类型的成员表达式比“同一个 `std::byte` 数组加动态偏移”提供更窄的类型边界。
 编译器可以少做 byte 与逻辑值之间的转换，并更容易判断哪些访问可能别名、哪些写入形成
-依赖链；字段顺序和对齐也可能让热点代码布局改变。这里是对生成 C++ 形态的解释，不是
-独立的别名分析证明。PMU 中 backend stall 的下降与 walltime 同向，但最终保留标准仍是
+依赖链；字段顺序和对齐也可能改变热点代码布局。别名分析是编译器判断两个地址是否可能
+指向同一内存的过程；更明确的字段类型可以减少某些保守假设，但这里是对生成 C++ 形态
+的解释，不是独立证明。PMU 中 backend stall（执行后端等待数据或执行资源的周期）的
+下降与 walltime 同向，但最终保留标准仍是
 端到端 SimTop 50k walltime。[^ablation]
 
 ## 收益（SimTop 50k walltime）

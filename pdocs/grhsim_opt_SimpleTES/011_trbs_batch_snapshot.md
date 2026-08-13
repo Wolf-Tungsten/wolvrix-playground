@@ -1,9 +1,13 @@
-# 011. TRBS：batch-local non-volatile bool snapshot
+# 011. TRBS：batch-local bool snapshot
 
 这是 TRBS 的第三个机制层，也是最终 `TRBS` 中最后加入的优化。它建立在 typed
 event storage 和 `hot_event_posedge_` 预解码之上：每个 schedule/fullpass batch
 入口先把对象成员复制到一个 batch-local 的 `const bool`，本 batch 内的 event
 predicate 都读取这个局部值。[^0211][^source]
+
+batch-local snapshot 的含义很直接：进入一个 batch 时把对象成员读一次，保存到普通
+局部 `const bool`，本 batch 后续都读这个局部变量。历史候选曾用 `non-volatile`
+描述它，但生成代码没有使用 C++ `volatile`；删除该词是为了避免把两者混淆。
 
 ## 做了什么
 
@@ -16,16 +20,18 @@ void Model::schedule_batch_...() {
 }
 ```
 
-full-pass 变体同样生成 snapshot。对象成员仍由输入分类阶段更新、由每轮 clear/init
-清零；snapshot 不改变事件值，只固定本 batch 看到的值。negedge/general residual
-查询继续走完整 enum。[^source]
+full-pass 变体同样生成 snapshot；full-pass 是无增量活动筛选、直接执行该批完整计算的
+调度入口。对象成员仍由输入分类阶段更新、由每轮 clear/init 清零。调度语义保证同一
+batch 执行期间该事件分类不变，所以 snapshot 只是缓存一个稳定值，并非忽略中途更新。
+negedge/general 的剩余查询继续走完整 enum。[^source]
 
 ## 为什么这样做
 
-schedule batch 内可能包含 SystemTask、DPIC 或其他编译器无法证明“不修改对象”的
-调用。若每个 leaf 都重新读取 `this->hot_event_posedge_`，编译器必须保守地保留
-对象别名依赖；局部 `const` 给它一个批次内不变的值，使 predicate 能留在寄存器/热
-路径中，并避免重复成员 load。这个解释来自生成代码形态和 PMU 归因；是否保留仍以
+schedule batch 内可能包含 SystemTask（HDL 系统任务）、DPI-C 调用或其他编译器无法
+证明“不修改当前模型对象”的函数。若每个 leaf 都重新读取对象成员，编译器必须保守
+假设调用可能通过另一个指针改写它，这就是对象别名依赖。先复制到局部 `const` 后，
+后续表达式不再需要跨这些调用重复读取成员，编译器也更有机会把局部值放在 CPU 寄存器
+中。这个解释来自生成代码形态和 PMU 归因；是否保留仍以
 端到端 walltime 为准。[^0213]
 
 snapshot 只在 selector 已经证明存在足够 `reusableUses` 时启用，且每个 batch
@@ -43,10 +49,12 @@ SimpleTES 从最终 gen28 机械构造 `TRB`（有 decoded bool、无 snapshot�
 order gap 为 `0.053293 pp`，低于 `0.25 pp` 复测线；固定 ASLR、whole-CCD quiet、
 NUMA、PMU、功能和迁移检查均通过。[^0213]
 
-在搜索路径的早期实现中，`H→HS`（input-only + enum snapshot）为
+在搜索路径的早期实现中，H 是 hot scalar enum，即为热点输入保留标量事件枚举；HS
+是在 H 上再加入 enum batch snapshot。`H→HS` 为
 `48,226.75→47,566.50 ms`，减少 `660.25 ms`、改善 `1.369053%`；这是完整 enum
 快照的历史 arm，不应与最终 bool snapshot 的 `TRB→TRBS` 数字相加。两者属于同一
-“批次内缓存事件 predicate”思想的不同中间表示。[^0212][^0213]
+“批次内缓存事件 predicate”思想的早期替代实现。HS 与 TRBS 处理同一热点，不能叠加。
+[^0212][^0213]
 
 最终组合 `B→TRBS` 为 `51,562.00→47,632.25 ms`，减少 `3,929.75 ms`、改善
 `7.621407%`；各相邻边际有交互，正式总收益只采用 endpoint。[^0213]
@@ -55,8 +63,10 @@ NUMA、PMU、功能和迁移检查均通过。[^0213]
 
 batch snapshot 随 TRBS 一起进入 Wolvrix 通用默认 C++ emitter（提交
 `d3ed9dea975bddf01185dde5c548a69241a09de9`），Python 流程直接继承，不是 SimTop
-专用开关。原则化 selector 用 `reusableUses > fixedCost(2)` 作为门禁，小机会
-fail-closed；旧 `eventEdgeSlotCount >= 256` raw 阈值已删除。[^0214]
+专用开关。原则化 selector 用 `reusableUses > fixedCost(2)` 作为门禁；这里的
+`reusableUses` 是可复用查询次数，`fixedCost(2)` 是前一篇解释的静态成本单位，不是
+两条指令。机会不足时 fail closed，保留通用路径；旧
+`eventEdgeSlotCount >= 256` raw 阈值已删除。[^0214]
 
 专项测试覆盖 fullpass 与普通 batch、端口改名/注册顺序、event edge 混用、平手稳定性
 以及门槛边界；fresh direct-hot、主 emitter、pybind、XS 和 full CTest 均通过（full

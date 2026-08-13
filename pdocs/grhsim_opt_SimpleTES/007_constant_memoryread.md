@@ -1,24 +1,40 @@
 # 007. 常量 MemoryRead 行的直接加载与 OOB 清理消除
 
 这是 `fd12d83f5150cc98540ed3e8f2af3b79f8054da0` 的第三项四项热路径优化。它只处理
-生成器能够证明 row index 恒定的 MemoryRead，不等同于后来被否决的通用 residual
-MemoryRead 优化。[^design][^excluded]
+生成器能证明读取范围的 MemoryRead；其中既包括合法常量 row 的直接下标，也包括
+所有已知范围内读取的冗余清零消除。它不等同于后来被否决的 residual MemoryRead
+优化。[^design][^excluded]
+
+`MemoryRead` 是从模型化 memory 的某一行取值的 IR 操作；row index 决定读取哪一行。
+OOB（out of bounds）表示该行号越过合法范围。这里的“常量”是生成时由 IR 证明的
+常量表达式，不是通过观察 SimTop 运行时恰好总读同一行得出的猜测。
 
 ## 做了什么
 
-当 `constLogicIndexValue` 证明 MemoryRead 的行号是常量时，emitter 直接生成对应的
-constant-row load，并把访问标记为 always-in-range；因此删掉了对该路径不可能触发的
-out-of-bounds 清理分支。若行号仍动态或证明失败，原有边界检查和清理完整保留。[^source]
+本项包含两个相关但适用范围不同的生成改动：
+
+1. 对没有落入既有“memory 深度为 2 的幂”等快速路径的 MemoryRead，只有当
+   `constLogicIndexValue` 能在生成时证明 row 是合法范围内常量，才直接发射字面量数组
+   下标；动态 row、越界常量或证明失败都保留原有边界处理。
+2. 对所有已经由任一结构证明为 `always-in-range`、并且需要把读取结果存入临时值的
+   MemoryRead，删除“先把临时值清零，紧接着又用合法 load 完整覆盖”的冗余清零。这一
+   范围不仅包括第一类常量行，也包括既有的 2 次幂或地址域证明路径。[^source]
+
+所以“常量直接下标”和“已知范围内读取的 zero-before-load 消除”是两个增量，不能理解
+成“只要 row 是常量，就自动删掉所有 OOB 处理”。
 
 ## 为什么这样做
 
-常量证明消除了每次读取都要做的索引计算和不可能分支，同时给编译器一个稳定的数组
-元素/别名关系。门禁是语义证明，不是基于 SimTop 名称、行号字符串或 workload 的
-特判；这也是它与 residual MemoryRead 候选的原则性区别。[^design][^excluded]
+合法常量证明让生成代码直接定位固定数组元素，并去掉该路径不需要的动态索引/OOB
+分支；独立的 zero-before-load 消除则避免先写零再马上被合法 load 覆盖。两者门禁都
+来自 IR 和 memory 范围证明，不是基于 SimTop 名称、行号字符串或 workload 的特判；
+这也是它与 residual MemoryRead 候选的原则性区别。[^design][^excluded]
 
 ## 收益（SimTop 50k walltime）
 
-在 full-gen150 的 final-minus-one 配对中，去掉本项、保留其余三项：[^ablation]
+在 full-gen150 的 final-minus-one 配对中，control 去掉本项、保留另外五项，candidate
+是完整六项候选；其中两项后来被排除。因此这是六项组合中的边际结果，落地四项的总效果由
+独立 endpoint 验证：[^ablation]
 
 | 对比 | control（ms） | candidate（ms） | 减少（ms） | 相对改善 | ABBA / BAAB | gap |
 |---|---:|---:|---:|---:|---:|---:|
@@ -29,8 +45,12 @@ out-of-bounds 清理分支。若行号仍动态或证明失败，原有边界检
 
 ## 落地状态与排除项
 
-常量行证明和直接 load 进入 generic default。另有 residual MemoryRead 与 physical
-zero-tail 消融：早期结果分别为 `-0.115054%`、`-0.247575%`，同 binary 复测为
+上述两项进入 generic default。另有两个不同候选：residual MemoryRead 给未被常量或
+其他范围证明覆盖的动态读取 OOB fallback 增加 `unlikely`；physical zero-tail 针对
+元素宽度不超过 8 bit、逻辑深度为 256..1024 且不是 2 的幂的小 memory，把物理行数
+扩展到下一 2 的幂（例如 352→512），并让新增尾部行保持只读零。这样物理地址域内但
+超出逻辑深度的读取可直接得到零，尝试省掉逻辑 OOB 判断。它们早期结果分别为
+`-0.115054%`、`-0.247575%`，同 binary 复测为
 `+0.023230%`、`-0.049291%`，跨过零且不到 1%，所以没有合入。不能用那些负/零结果
 否定本篇的 constant-row proof。[^excluded]
 

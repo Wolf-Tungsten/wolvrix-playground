@@ -4,19 +4,25 @@
 `posedge` 判断远多于其他判断，是否可以提前把这个布尔结果物化，而不让每个
 schedule leaf 都重复读取 enum 并比较。[^0211]
 
+schedule 是生成器安排仿真操作执行先后的计划；batch 是其中一组连续执行的计算；
+leaf 是具体计算节点；operand 是该节点读取的输入；predicate 是最终用作 guard 的真假
+条件。这里的 **exact-posedge** 只指明确要求某输入发生 0→1 上升沿的 predicate，
+不泛指 negedge 或任意事件。
+
 ## 做了什么
 
 ### 1. 选择热点并稳定重映射
 
 emitter 遍历最终 schedule 的每个 batch，按 input event 统计：
 
-* `posedgeUses`：exact-`posedge` operand 出现次数；
+* `posedgeUses`：所有 exact-posedge 查询的总次数；
 * `coveredBatches`：至少出现一次该 operand 的 batch 数；
 * `reusableUses = posedgeUses - coveredBatches`。
 
 选择 `reusableUses` 最大的 input event，平手时再比较 `posedgeUses`，仍相等时保持
-input registration order。选中后把它稳定放到 typed event slot 0；这只是内部布局，
-不改变端口 API 或事件语义。[^0214]
+input registration order。`reusableUses` 的直观含义是：每个覆盖 batch 至少要读取
+一次，扣除这些不可避免的读取后，还有多少次查询能够复用预解码结果。选中后把事件放到
+typed array 的内部第一个元素 slot 0；这不改变外部端口编号、绑定顺序或 API。[^0214]
 
 ### 2. 在对象中预解码 exact-posedge
 
@@ -33,17 +39,19 @@ hot_event_posedge_ = event_edge_storage_[0] == posedge;
 
 ## 为什么这样做
 
-如果一个热点事件在同一轮的很多 batch 中被重复查询，反复做 enum load/compare 会
-形成共同的对象依赖链，并限制编译器把 predicate 保留在寄存器中。将一次分类结果
-保存为 bool，把后续查询变成廉价的标量读取，能够减少这条热点链上的别名和分支
-判断。这里的“热点”由最终 schedule 的实际 exact-posedge 使用量决定，不使用
+如果一个热点事件在同一轮的很多 batch 中被重复查询，反复读取 enum 成员并比较会
+形成共同的对象依赖链。将分类结果物化为 bool，即实际分配一个对象字段保存这次比较
+结果，让后续查询直接读取该字段，可以减少重复成员读取和 enum 比较。这里不声称每次
+enum 比较都会生成 CPU 分支；具体机器码由编译器决定。“热点”由最终 schedule 的
+exact-posedge 使用量决定，不使用
 SimTop 端口名、ValueId、固定模型大小或 benchmark 字符串。[^0214]
 
-原则化门禁收取固定成本 `2`（一次 bool materialize + 一次 clear），只有
+原则化门禁收取启发式固定成本 `2`（概括一次 bool materialize 和一次 clear），只有
 `reusableUses > 2` 才启用；因此小模型或机会不足时保持旧路径。SimTop 的诊断值为
 `input_events=2`、`event_slots=412`、`selected_input_index=0`、
 `posedge_uses=220132`、`covered_batches=76`、`reusable_uses=220056`、
-`fixed_cost=2`，远超门槛但没有依赖任何负载名字。[^0214]
+`fixed_cost=2`，远超门槛但没有依赖任何负载名字。这里的 2 是生成器用于比较机会和
+成本的静态单位，不表示两条 CPU 指令或两个 cycle。[^0214]
 
 ## 收益（SimTop 50k）
 

@@ -5,9 +5,12 @@
 
 ## 做了什么
 
-对生成的动态 scalar/word 操作，将 `shift >= 64`、scalar index 越界和 word index
-越界等 fallback 条件写成 `unlikely`。正常范围内的 load/store、越界时的清零/默认值和
-异常语义都不变；静态可证明的常量路径不依赖这项提示。[^source]
+scalar 是单个 C++ 标量可以表示的值；更宽的 HDL 位向量由多个通常为 64 bit 的 word
+表示。对这些值的动态 shift/index 操作，生成器将 `shift >= 64`、scalar index 越界
+和 word index 越界等 fallback 条件写成 `unlikely`。fallback 是输入超出正常范围时
+采用的保守路径，例如移位量达到 64 时返回零，或索引 helper 返回 OOB 哨兵并执行原有
+处理。正常范围内的 load/store 以及这些越界结果都不变；这里没有 C++ exception，
+“越界语义”仅指原有 fallback 行为。静态常量路径不依赖这项提示。[^source]
 
 ## 为什么这样做
 
@@ -18,20 +21,23 @@
 
 ## 收益（SimTop 50k walltime）
 
-full-gen150 final-minus-one 直接消融（其余三项保留）为：[^ablation]
+full-gen150 final-minus-one 直接消融中，control 移除本项并保留另外五项，candidate
+为完整六项。另外五项包括后来被排除的两个候选，因此它衡量的是六项组合中的边际贡献；最终落地
+四项有独立 endpoint。[^ablation]
 
 | 对比 | control（ms） | candidate（ms） | 减少（ms） | 相对改善 | ABBA / BAAB | gap |
 |---|---:|---:|---:|---:|---:|---:|
 | 去掉 #008 → full | 51,778.50 | 51,652.75 | 125.75 | **0.242861%** | 0.197044% / 0.288655% | 0.091610 pp |
 
-两种 order 同向，但收益低于常用的 1% 实用门槛；它之所以仍随四项一起落地，是因为
+两种 order 同向，但收益低于该轮预先约定的可信线；该可信线至少为 1%，若 control
+自身波动更大则取 control spread。它之所以仍随四项一起落地，是因为
 四项组合的整体 endpoint 明确改善（RWA→four：`53,749.25→51,575.00 ms`，
 `+4.045173%`），且该 hint 对语义无侵入。[^landing]
 
 ## 落地状态与边界
 
-本项进入 generic C++ emitter 默认，Python/XS 流程继承；没有按 SimTop 的具体索引值
-或变量名硬编码。若未来编译器/负载变化使它成为负收益，应单独重测并回退，不应把四项
+本项进入 generic C++ emitter 默认，Python 和 XiangShan（XS）集成流程继承；没有按
+SimTop 的具体索引值或变量名硬编码。若未来编译器/负载变化使它成为负收益，应单独重测并回退，不应把四项
 总收益作为本项的独立保证。[^landing]
 
 ### 数据来源（尾注）
