@@ -243,12 +243,13 @@
 | `TNO0231` | `2026-08-13` | [GSIM/GrhSIM PGO SimTop walltime comparison](./TNO0231_pgo_gsim_grhsim_simtop_walltime_comparison_20260813.md) | node030 完成 GSIM/GrhSIM LLVM PGO 构建，node032 同一 `node1:152-159,344-351` CCD/CPU 152 上完成 fixed-ASLR ABBA+BAAB；GSIM-PGO `17,097.50 ms` 对 GrhSIM-PGO `32,141.25 ms`，GrhSIM 慢 `15,043.75 ms/87.988010%`。跨引擎临时 runner 仅旁路不适用的绝对 ELF 页数下限，NUMA local ratio、PMU、功能和连续 CCD 门禁均保留。 |
 | `TNO0232` | `2026-08-13` | [PGO toolchain and plain cross-check](./TNO0232_pgo_toolchain_and_plain_crosscheck_20260813.md) | 审计确认本轮实际是 `PGO_BOLT=0` 的 LLVM instrumentation PGO、没有使用 BOLT；已追加勘误：旧 GSIM plain 复用了 PGO model objects，原 plain 性能与 plain/PGO 收益结论撤销，详见 TNO0233。 |
 | `TNO0233` | `2026-08-13` | [Clean RTL-to-GSIM plain rebuild and correction](./TNO0233_clean_rtl_gsim_plain_rebuild_and_correction_20260813.md) | 从 Scala/Chisel RTL 全新生成 SV/FIR 和 `332` 个 GSIM C++，全量重编且无 PGO/BOLT；node032 正式 clean plain pooled wall 为 `30,907.75 ms`。旧 `17,032.25 ms` plain 被证实是 PGO model objects + plain harness 的混合产物；与历史 PGO 的 `45.144017%` 差值因 fresh C++ manifest 不同只能作跨构建观察。 |
+| `TNO0234` | `2026-08-14` | [Clean plain GSIM/GrhSIM walltime comparison](./TNO0234_clean_plain_gsim_grhsim_walltime_comparison_20260814.md) | 基于同一 fresh RTL 全量发射/编译当前默认 GrhSIM，GSIM/GrhSIM 均为无 PGO/BOLT 的普通 `-O3`；node032 同 CCD fixed-ASLR 正式 pooled wall 为 `30,643.00→42,837.25 ms`，GrhSIM 慢 `12,194.25 ms/39.794570%`，ABBA/BAAB gap `0.179811 pp`，八个样本的功能/NUMA/PMU/连续负载门禁均通过。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`233`（`TNO0001..TNO0233`）。
+- 当前记录类文档总数：`234`（`TNO0001..TNO0234`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
