@@ -127,3 +127,13 @@ order gap 仍高于历史 `0.25%` 复测线，精确百分比应视为当前机�
 bench、runtime gate 或正在运行的 checkpoint。若后续要研究 BOLT，应单独以
 `PGO_BOLT=1` 生成 `perf.data/perf.fdata`，并在同一 CCD 协议下与本记录的
 instrumentation-PGO 和 plain 三方比较；不能把两种 PGO 结果混称为同一方案。
+
+## 7. 勘误（2026-08-13）
+
+后续从 RTL 全新重建时发现，本记录的 GSIM `plain` 目录复用了 PGO 阶段已经
+以 `-fprofile-use` 编译的 `332` 个模型对象；当时只重编了 `41` 个
+harness/common 对象。两个最终 ELF 不同只能证明链接产物不同，不能排除内部
+模型对象复用。因此本记录第 3 至第 5 节关于 GSIM plain、plain/PGO 自身收益和
+plain GSIM/GrhSIM 差距的结论全部撤销；PGO 工具链确为 LLVM instrumentation、
+未使用 BOLT 的审计结论仍然有效。完整证据和新的 clean plain walltime 见
+[TNO0233](./TNO0233_clean_rtl_gsim_plain_rebuild_and_correction_20260813.md)。
