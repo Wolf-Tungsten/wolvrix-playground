@@ -240,12 +240,13 @@
 | `TNO0228` | `2026-08-12` | [Typed-state ablation paused for node032 load](./TNO0228_typed_state_ablation_node032_infrastructure_pause_20260812.md) | 三个 arm 与共享 control 均完成并行构建及功能/身份门禁；`B→S8` 已落盘 `72` 次 wrapper attempt，但完整 ABBA+BAAB 为 `0`，均因外部负载或 strict quiet-CCD gate 作废，按指示暂停，未改默认。 |
 | `TNO0229` | `2026-08-13` | [Typed-state best-path ablation node032 runtime completion](./TNO0229_typed_state_bestpath_ablation_node032_runtime_completion_20260813.md) | 四组同 CCD ABBA/BAAB 全部完成且 gap `<0.25 pp`：`B→S8` `48,023.50→44,595.25 ms`（`7.138693%`），`S8→SB` `44,760.25→44,195.25 ms`（`1.262281%`），`SB→SBV` `44,198.00→43,373.50 ms`（`1.865469%`），endpoint `B→SBV` `48,054.25→43,335.50 ms`（`9.819631%`）；所有功能/ASLR/NUMA/PMU 门禁通过，未改默认。 |
 | `TNO0230` | `2026-08-13` | [Typed-state Wolvrix landing and regression](./TNO0230_typed_state_wolvrix_landing_and_regression_20260813.md) | 明确为三项增量机制、四个实验 arm；完整 `SBV` 已在 Wolvrix 通用 emitter 默认启用，node032 同 CCD SimTop 50k 为 `48,162.50→43,434.50 ms`，减少 `4,728.00 ms/9.816766%`，gap `0.048671 pp`；功能/构建 gate 通过，SimpleTES 已以 `40baf93` repin 到新 parent/Wolvrix。 |
+| `TNO0231` | `2026-08-13` | [GSIM/GrhSIM PGO SimTop walltime comparison](./TNO0231_pgo_gsim_grhsim_simtop_walltime_comparison_20260813.md) | node030 完成 GSIM/GrhSIM LLVM PGO 构建，node032 同一 `node1:152-159,344-351` CCD/CPU 152 上完成 fixed-ASLR ABBA+BAAB；GSIM-PGO `17,097.50 ms` 对 GrhSIM-PGO `32,141.25 ms`，GrhSIM 慢 `15,043.75 ms/87.988010%`。跨引擎临时 runner 仅旁路不适用的绝对 ELF 页数下限，NUMA local ratio、PMU、功能和连续 CCD 门禁均保留。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`230`（`TNO0001..TNO0230`）。
+- 当前记录类文档总数：`231`（`TNO0001..TNO0231`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
