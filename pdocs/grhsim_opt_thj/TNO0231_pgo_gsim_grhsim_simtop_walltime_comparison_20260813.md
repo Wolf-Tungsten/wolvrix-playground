@@ -139,4 +139,3 @@ order 噪声，结论不依赖于选择 ABBA 或 BAAB。
 SimpleTES bench、pin 或运行中的 checkpoint。当前 SimpleTES 仍可按其
 `be78e837`/`79ec2037` 身份继续研究；node030 的构建产物和 node032 的原始
 `emu.log`/`perf.csv`/`audit.txt` 保留在各自 `/tmp/pgo_compare_*` 目录，供复核。
-
