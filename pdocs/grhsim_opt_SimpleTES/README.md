@@ -22,10 +22,11 @@ Wolvrix 的 GrhSIM **emitter（代码生成器）**先把硬件模型的中间�
 每个 compute supernode 在位图中对应的 bit 位置就是它的 **active ID**。commit
 supernode 每轮按 schedule 扫描，不靠该位图激活。
 
-本文中的 **event edge（事件边沿）**指一个输入本次采样相对前值的变化分类，例如
-上升沿、下降沿或无边沿；它不是调度图中的一条 graph edge。**guard** 是决定写入或
-副作用是否执行的布尔条件；**run** 是同一 supernode 中连续且共享同一精确事件表达式
-的一段 write-port 序列；**batch** 是生成器安排在同一 C++ 函数中连续执行的一批计算。
+本文中的 **event edge（事件边沿）**指某个 event value 相对旧值的变化分类，例如
+上升沿、下降沿或无边沿；该值可以来自外部输入，也可以来自 compute 结果。它不是调度
+图中的一条 graph edge。**guard** 是决定写入或副作用是否执行的布尔条件；**run** 是
+同一 supernode 中连续且共享同一精确事件表达式的一段 write-port 序列；**batch** 是
+生成器安排在同一 C++ 函数中连续执行的一批计算。
 
 ## 怎么读这些数字
 
@@ -195,7 +196,9 @@ C++/Python 流程继承生成器的 generic default；SimpleTES 后续研究也�
 default 作为 baseline。相关默认值、功能回归和源码指纹见各阶段的 landing 文档。
 [^rwa][^four][^trbs][^typed]
 
-当前继续运行的 SimpleTES 实例仍固定在启动时的代码提交；本目录只增加说明文档，不改动其 executable pin。若要让未来实例从最新主线开始，应在启动新轮次时显式更新 baseline commit。
+SimpleTES 实例会固定使用启动时的代码提交；修改本目录不会改变已经启动实例的
+executable pin。若要让未来实例从最新主线开始，需要在启动新轮次时显式更新 baseline
+commit。
 
 ## 最近的仿真二进制示例
 
