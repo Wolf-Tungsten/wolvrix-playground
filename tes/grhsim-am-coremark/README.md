@@ -19,9 +19,12 @@
   94.1% 静态胶消除仅 ~1% 运行时，胶归一降级非一阶）
 - t0/s01 双探针（A0002）：chunk 12000 证伪（+2.2% 回退，跨 chunk 往返非一阶）；
   branchy-mux 弱正（-0.74%，分支轴未否决、非一阶）
-- 下一个 action：`round-summary`（第 1 轮齐平小结；随后 step 建议方向：
-  `--init-zero-elision` 死 store 消除（编译预算结构性改善 + 布局轴前置）、
-  branchy+elision 组合、运行时结构成本探针）
+- 第 1 轮小结（A0005）：静态 emit 单旋钮空间扫完、收益饱和 ~1%/个；主失败
+  模式是编译预算门（2/6）；`--init-zero-elision` 为元杠杆；块间机械
+  （调度器/事件/commit）是唯一未触探大轴
+- 下一个 action：`step`（t0/s02，round-robin 第 2 轮开始；建议方向：
+  `--init-zero-elision` 死 store 消除、运行时结构成本探针、
+  branchy+elision 组合）
 - 已知参考点：AM Host 324.0s（emit-cost NO0018 收口，2026-08-14；与 r001 实测 273.1s
   有约 15% 漂移，单点数字注意机器状态/布局影响）
 - run-init 备注：evaluator 修了 emu 相对路径 exec bug；金标改为计数窗

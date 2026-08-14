@@ -119,9 +119,11 @@
     }
   ],
   "current_step": null,
-  "round_summaries_done": [],
+  "round_summaries_done": [
+    1
+  ],
   "counters": {
-    "actions": 4,
+    "actions": 5,
     "evals": 8
   },
   "best_overall": {
@@ -156,6 +158,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0004_step_t2s01_layout修复重测与宽态炸开_20260815.md",
       "ts": "2026-08-15T04:24:47+08:00"
+    },
+    {
+      "n": 5,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0005_round-summary_第1轮跨轨迹小结_20260815.md",
+      "ts": "2026-08-15T07:11:09+08:00"
     }
   ]
 }
