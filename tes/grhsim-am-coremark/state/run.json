@@ -110,16 +110,19 @@
     {
       "id": "t2",
       "branch": "tes/r001/t2/main",
-      "tip": "a88e7a234b7fd1055cee13f15fda146a509271ca",
-      "steps_completed": 0,
-      "best": null
+      "tip": "0919aec5eee64fa7e9be87979a3582e811b5ab06",
+      "steps_completed": 1,
+      "best": {
+        "eval_id": "e00008",
+        "score": -272743
+      }
     }
   ],
   "current_step": null,
   "round_summaries_done": [],
   "counters": {
-    "actions": 3,
-    "evals": 6
+    "actions": 4,
+    "evals": 8
   },
   "best_overall": {
     "eval_id": "e00006",
@@ -127,7 +130,7 @@
     "commit": "b798b9dc6e4faefef5d8aea2b7b92939f2ffa44c"
   },
   "phi_selection_counts": {
-    "e00001": 2
+    "e00001": 3
   },
   "history": [
     {
@@ -147,6 +150,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0003_step_t1s01_布局与胶双攻坚_20260814.md",
       "ts": "2026-08-15T00:03:42+08:00"
+    },
+    {
+      "n": 4,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0004_step_t2s01_layout修复重测与宽态炸开_20260815.md",
+      "ts": "2026-08-15T04:24:47+08:00"
     }
   ]
 }

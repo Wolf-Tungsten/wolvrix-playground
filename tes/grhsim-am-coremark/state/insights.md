@@ -52,3 +52,25 @@
 - 候选设计教训：lower-json CLI `mergeWhenMinGroup` 默认 1（<2 关停 coarsen 归组），
   设计旋钮候选前必须核实 CLI 默认值与开关语义，避免「与基线等价」的伪候选；
   emitter mux-run 融合（planMuxFusionRuns）无开关。
+
+## r001/t2/s01 布局修复重测与宽态炸开（2026-08-15，action A0004）
+
+- **compile_timeout 再现**（e00007，c1 affinity+init修复）：init 宽池 store 按
+  offset 升序修复（emit 核验 violations=0）**未**恢复编译——runtime.o 单 TU
+  ≥27min 被杀。文本取证：id/affinity 两版 init() 宽池 store 多重集相同、
+  零值-run 结构统计等价（62k vs 60k run），唯一结构差 = id 全局单次升序扫描
+  vs affinity 被 158k 条标量 store 切成 1,237 个 run。**继续修顺序无解**。
+- **本质发现**：init() 182 万行中 98.2% 宽池 store / 93.5% 标量 store 是
+  字面量 0 死 store（memset/fill(0) 已覆盖，emitter 按构造可知）。init()
+  体量是所有候选编译预算的结构性风险（id 布局也要 ~10min）。方向：
+  `--init-zero-elision` 发射期消死 store（1.82M→~4 万行），是布局假设
+  获得运行时证据的前置。
+- **证伪**（e00008，c2 wide-state-explode）：272.7s（-0.13%，亚噪声）。
+  ABTB 族命中炸开（emit 实证：4,875 处元素直读 + 3,072 处单元素 RMW）但
+  持平——NO0018 切片内联已吸收该族主要成本，NO0017 §5 锚点是 NO0018 前的账；
+  残余提取机械在关键路径外。覆盖窄（274/~33.5K）非主因。**宽态炸开轴关闭**；
+  b83570 全宽写退化风险实证可忽略。
+- x0 三大残余轴（跨 chunk 往返 / 状态 gather / 适配胶）+ 表示轴全部关闭或
+  降级；11x 差距重心移向运行时结构成本（调度器/事件/commit）与弱正组合。
+- 测量环境：rep 期 loadavg 1.0-1.6 成常态，亚 1% 效应低于协议分辨极限；
+  c2 的 +0.13% winner adoption 是机械规则产物，不代表机制收益。
