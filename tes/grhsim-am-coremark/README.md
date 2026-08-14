@@ -9,7 +9,11 @@
 - 活跃 run：**r001**（C=3, L=8, K=2，N=48；base `a88e7a2`）
 - 基线（2026-08-14，同协议 3-rep 中位）：AM y0 = **273.1s**（e00001，CV 0.39%）；
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
-- 下一个 action：`step`（t0/s01，K=2 候选）
+- 当前 best：**271.1s**（e00004，branchy-mux，-0.74%），t0 步进 1/8
+- t0/s01 双探针（A0002）：chunk 12000 证伪（+2.2% 回退，跨 chunk 往返非一阶）；
+  branchy-mux 弱正（-0.74%，分支轴未否决、非一阶）。归因重心转向状态 gather
+  与 2.87x instr/atom 适配胶
+- 下一个 action：`step`（t1/s01，K=2 候选）
 - 已知参考点：AM Host 324.0s（emit-cost NO0018 收口，2026-08-14；与 r001 实测 273.1s
   有约 15% 漂移，单点数字注意机器状态/布局影响）
 - run-init 备注：evaluator 修了 emu 相对路径 exec bug；金标改为计数窗

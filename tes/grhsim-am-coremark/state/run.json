@@ -90,9 +90,12 @@
     {
       "id": "t0",
       "branch": "tes/r001/t0/main",
-      "tip": "a88e7a234b7fd1055cee13f15fda146a509271ca",
-      "steps_completed": 0,
-      "best": null
+      "tip": "1bae6a4287e36b47406ee0e196f3038e0be48a04",
+      "steps_completed": 1,
+      "best": {
+        "eval_id": "e00004",
+        "score": -271095
+      }
     },
     {
       "id": "t1",
@@ -112,21 +115,29 @@
   "current_step": null,
   "round_summaries_done": [],
   "counters": {
-    "actions": 1,
-    "evals": 2
+    "actions": 2,
+    "evals": 4
   },
   "best_overall": {
-    "eval_id": "e00001",
-    "score": -273103,
-    "commit": "a88e7a234b7fd1055cee13f15fda146a509271ca"
+    "eval_id": "e00004",
+    "score": -271095,
+    "commit": "1bae6a4287e36b47406ee0e196f3038e0be48a04"
   },
-  "phi_selection_counts": {},
+  "phi_selection_counts": {
+    "e00001": 1
+  },
   "history": [
     {
       "n": 1,
       "type": "run-init",
       "note": "tes/grhsim-am-coremark/actions/A0001_run-init_基线与系统校准_20260814.md",
       "ts": "2026-08-14T18:18:48+08:00"
+    },
+    {
+      "n": 2,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0002_step_t0s01_chunk与branchy探针_20260814.md",
+      "ts": "2026-08-14T20:35:49+08:00"
     }
   ]
 }

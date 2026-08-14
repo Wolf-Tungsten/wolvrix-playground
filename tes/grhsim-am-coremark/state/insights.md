@@ -38,3 +38,17 @@
 - brief.md 新增「优化哲学（变更面纪律）」：GRH IR 冻结；grhsim AM IR 为主要优化面；
   优化手段应尽量体现为显式 AM pass（有名字、可开关、可归因）；emit 规则变更须随候选
   同步文档。自 r001 的 t0/s01 起生效，约束后续全部候选。
+
+## r001/t0/s01 双探针（2026-08-14，action A0002）
+
+- **证伪**：`--block-chunk-instructions 12000`（基线 3000）→ 279.2s（+2.2% 真实回退）。
+  跨 chunk uint64 槽 store→load 往返在当前块尺寸/编译器行为下**非一阶可收成本**；
+  chunk 尺寸轴关闭（3000 维持），且对编译预算中性（emu_build 822s vs 842s）。
+- **弱正效应**：`--branchy-mux`（标量 mux 全量 if/else）→ 271.1s（-0.74%，winner，
+  已入 t0/main）。分支轴未被否决，推翻「全 cmov 即最优」隐含假设；但 <1% 非一阶，
+  定位是后续 pass 的组成选项而非独立方向。附带 emu_build 789s（-6%，NO0001 B2 初衷）。
+- 11x 差距两轴归因一否一微正 → 残余重心向 NO0018 另两项集中：**194MB 模型对象
+  状态 gather** 与 **2.87x instr/atom 适配胶**。下一步主攻状态布局/gather。
+- 候选设计教训：lower-json CLI `mergeWhenMinGroup` 默认 1（<2 关停 coarsen 归组），
+  设计旋钮候选前必须核实 CLI 默认值与开关语义，避免「与基线等价」的伪候选；
+  emitter mux-run 融合（planMuxFusionRuns）无开关。
