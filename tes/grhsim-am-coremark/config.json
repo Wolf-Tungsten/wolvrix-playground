@@ -1,5 +1,6 @@
 {
-  "comment": "TES (SimpleTES-style) 实验系统默认配置。run-init 时冻结进 runs/<run>/manifest.json；运行中改这里不影响活跃 run。",
+  "comment": "TES 任务 grhsim-am-coremark 的默认配置。run-init 时冻结进 runs/<run>/manifest.json；运行中改这里不影响活跃 run。",
+  "baseline_sides": ["am", "gsim"],
   "search": {
     "C": 3,
     "L": 8,
@@ -33,7 +34,7 @@
   "restart": { "max": 1, "auto": false },
   "retention": {
     "keep_loser_branches": true,
-    "note": "败者分支默认保留；run 收口时可 format-patch 归档到 tes/runs/<run>/archive/ 后删分支（需用户确认）。"
+    "note": "败者分支默认保留；run 收口时可 format-patch 归档到 tes/<task>/runs/<run>/archive/ 后删分支（需用户确认）。"
   },
   "paths": {
     "exec_json": "build/logs/no0009/gsim_flat_export/SimTop.exec.json",
@@ -43,7 +44,6 @@
     "gen_csrc_dir": "testcase/xiangshan/build/generated-src",
     "dep_root": "build/dependency/root",
     "gsim_emu": "build/xs/gsim-flat/emu",
-    "wolvrix_repo": "wolvrix",
-    "build_root": "build/tes"
+    "wolvrix_repo": "wolvrix"
   }
 }

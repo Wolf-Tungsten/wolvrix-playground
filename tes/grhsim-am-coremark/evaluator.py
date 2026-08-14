@@ -26,10 +26,14 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[2]
-CONFIG = json.loads((REPO / "tes" / "config.json").read_text(encoding="utf-8"))
+TASK_DIR = Path(__file__).resolve().parent          # tes/<task>/
+TASK = TASK_DIR.name
+REPO = TASK_DIR.parents[1]                           # playground 根
+CONFIG = json.loads((TASK_DIR / "config.json").read_text(encoding="utf-8"))
 PATHS = CONFIG["paths"]
 EVAL_CFG = CONFIG["eval"]
+BUILD_ROOT = REPO / "build" / "tes"                  # 全局：LOCK、ccache
+BUILD_TASK = BUILD_ROOT / TASK                       # 本任务：evals/、src/
 
 HOST_RE = re.compile(r"Host time spent:\s*([\d,]+)\s*ms")
 CNT_RE = re.compile(r"instrCnt\s*=\s*([\d,]+),\s*cycleCnt\s*=\s*([\d,]+)")
@@ -145,12 +149,12 @@ def build_env_extra() -> dict:
     return {
         "CPLUS_INCLUDE_PATH": f"{dep}/usr/include:{dep}/usr/include/x86_64-linux-gnu",
         "LIBRARY_PATH": f"{dep}/usr/lib/x86_64-linux-gnu",
-        "CCACHE_DIR": str(REPO / PATHS["build_root"] / "ccache"),
+        "CCACHE_DIR": str(BUILD_ROOT / "ccache"),  # 跨任务共享（同一代码库的编译缓存）
     }
 
 
 def evaluate_candidate(worktree: Path, eval_id: str, emit_args_override: list[str] | None) -> dict:
-    evdir = REPO / PATHS["build_root"] / "evals" / eval_id
+    evdir = BUILD_TASK / "evals" / eval_id
     wbuild, emit_dir, emu_build, run_dir = (evdir / d for d in ("wbuild", "emit", "emu_build", "run"))
     for d in (wbuild, emit_dir, emu_build, run_dir):
         d.mkdir(parents=True, exist_ok=True)
@@ -227,7 +231,7 @@ def evaluate_candidate(worktree: Path, eval_id: str, emit_args_override: list[st
 
 
 def evaluate_gsim(eval_id: str) -> dict:
-    evdir = REPO / PATHS["build_root"] / "evals" / eval_id
+    evdir = BUILD_TASK / "evals" / eval_id
     run_dir = evdir / "run"
     run_dir.mkdir(parents=True, exist_ok=True)
     emu = REPO / PATHS["gsim_emu"]
@@ -254,7 +258,7 @@ def main() -> int:
     p.add_argument("--eval-id", required=True)
     args = ap.parse_args()
 
-    lock = REPO / PATHS["build_root"] / "LOCK"
+    lock = BUILD_ROOT / "LOCK"  # 全局锁：测量干扰是机器级的，跨任务也只允许一个评估
     lock.parent.mkdir(parents=True, exist_ok=True)
     with open(lock, "w") as lf:
         try:
@@ -272,7 +276,7 @@ def main() -> int:
         else:
             result = evaluate_gsim(args.eval_id)
 
-    evdir = REPO / PATHS["build_root"] / "evals" / args.eval_id
+    evdir = BUILD_TASK / "evals" / args.eval_id
     evdir.mkdir(parents=True, exist_ok=True)
     result["finished_at"] = now_iso()
     with open(evdir / "result.json", "w", encoding="utf-8") as f:

@@ -18,8 +18,15 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 TES = REPO / "tes"
-LEDGER = TES / "state" / "ledger.jsonl"
-RUN_JSON = TES / "state" / "run.json"
+TASK_DIR: Path | None = None  # main() 里按 --task 设置
+
+
+def ledger_file() -> Path:
+    return TASK_DIR / "state" / "ledger.jsonl"
+
+
+def run_json_file() -> Path:
+    return TASK_DIR / "state" / "run.json"
 
 
 def load_json(path: Path):
@@ -28,9 +35,10 @@ def load_json(path: Path):
 
 
 def iter_ledger():
-    if not LEDGER.exists():
+    lp = ledger_file()
+    if not lp.exists():
         return
-    with open(LEDGER, encoding="utf-8") as f:
+    with open(lp, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:
@@ -138,12 +146,15 @@ def rpucg_select(S: list[dict], counts: dict[str, int], gamma: float, lam: float
 
 def main() -> int:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--task", required=True)
     ap.add_argument("--trajectory", required=True)
     ap.add_argument("--step", type=int, required=True)
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
-    run = load_json(RUN_JSON)
+    global TASK_DIR
+    TASK_DIR = TES / args.task
+    run = load_json(run_json_file())
     run_id = run["run_id"]
     cfg = run["config"]
     phi_cfg = cfg["phi"]
@@ -167,21 +178,22 @@ def main() -> int:
     for nid in selected:
         counts[nid] = counts.get(nid, 0) + 1
     run["phi_selection_counts"] = counts
-    tmp = RUN_JSON.with_suffix(".json.tmp")
+    rj = run_json_file()
+    tmp = rj.with_suffix(".json.tmp")
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(run, f, ensure_ascii=False, indent=2)
         f.write("\n")
-    tmp.replace(RUN_JSON)
+    tmp.replace(rj)
 
     by_id = {e["eval_id"]: e for e in S}
-    brief = (TES / "brief.md").read_text(encoding="utf-8")
+    brief = (TASK_DIR / "brief.md").read_text(encoding="utf-8")
     ev = cfg["eval"]
     gsim_ms = (run["baselines"].get("gsim") or {}).get("host_ms_median")
     tstate = next(t for t in run["trajectories"] if t["id"] == tid)
 
     lines: list[str] = []
     lines.append(f"# Proposal {run_id}/{tid}/s{args.step:02d}（Φ 自动生成）\n")
-    lines.append(f"- run: {run_id}  trajectory: {tid}  step: {args.step}/{cfg['search']['L']}")
+    lines.append(f"- task: {args.task}  run: {run_id}  trajectory: {tid}  step: {args.step}/{cfg['search']['L']}")
     lines.append(f"- 轨迹主线分支: `{tstate['branch']}`  best: {json.dumps(tstate.get('best'))}")
     if gsim_ms:
         lines.append(f"- gsim target: {gsim_ms} ms（Host 中位）；AM 基线: "

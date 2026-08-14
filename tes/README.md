@@ -1,33 +1,35 @@
-# tes — grhsim-am 性能调优的结构化搜索（SimpleTES 式）
+# tes — SimpleTES 式结构化搜索实验系统
 
-按 SimpleTES（arXiv:2604.19341，见 `../ptmp/2604.19341.pdf`）的 (C, L, K, Φ) 框架组织
-grhsim-am 仿真 xiangshan coremark 50k 的性能调优：目标 Host wall time 不劣于 gsim
-同等负载。设计与映射论证见 [DESIGN.md](DESIGN.md)，执行纪律见 [RULES.md](RULES.md)。
+按 SimpleTES（arXiv:2604.19341，本地副本 `ptmp/2604.19341.pdf`）的 (C, L, K, Φ) 框架
+组织性能调优类开放问题的实验。设计与串行等价论证见 [DESIGN.md](DESIGN.md)，执行纪律见
+[RULES.md](RULES.md)。
 
-## 当前状态速览
+## 驱动方式（无状态工作流）
 
-- 活跃 run：无（系统已初始化，等待第一个 goal 执行 run-init）
-- 下一个 action：`run-init`（冻结配置、pin 现场、双基线测量）
-- 默认参数：C=3, L=8, K=2（N=48），见 [config.json](config.json)
+每次推进 = 启动一个 goal：**`/goal tes/goal.md`**。goal 会话运行
+`python3 tes/tools/tesctl.py next` 得到唯一 action，按 [playbook.md](playbook.md)
+执行到底后停止。系统无状态：所有进度在任务目录的文件里。
 
-## 如何使用
+## 任务索引
 
-每次推进 = 启动一个 goal（如「推进 tes 下一个 action」）。goal 会话加载
-`.agents/skills/tes` skill，运行 `python3 tes/tools/tesctl.py next` 得到唯一 action，
-按 playbook 执行到底后停止。系统无状态：所有进度在 tes/ 的文件里。
+tes/ 下每个含 `config.json` 的一级子目录是一个独立优化任务，各有自己的
+brief/config/state/actions/proposals/runs 与专属 evaluator.py。
+新增任务：复制现有任务目录，改 brief.md / config.json / evaluator.py，并在本表登记。
 
-## 目录
+| 任务 | 主题 | 状态 | 最新进展 |
+|---|---|---|---|
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | 待 run-init | 系统骨架就绪（2026-08-14） |
 
-- `brief.md` — 常驻任务指令（x0）：目标、硬约束、已知机制背景
-- `config.json` — 默认参数（run-init 时冻结）
-- `state/` — `run.json`（活跃 run 状态机）、`ledger.jsonl`（append-only 评估台账）、`insights.md`
-- `actions/` — action 笔记（`Axxxx_类型_主题_日期.md`）
-- `proposals/` — Φ 生成的 proposal 快照
-- `runs/` — 每个 run 的 `manifest.json`（冻结配置/基线/指纹）与收口 `summary.md`
-- `tools/` — `tesctl.py`（调度器）、`phi.py`（Φ/RPUCG）、`evaluate.py`（评估器 V）
+## 共享件
 
-重物（不入库，在 `build/tes/`）：`src/`（wolvrix worktree）、`evals/e*/`（每次评估的
-构建/emit/emu/日志/result.json）、`ccache/`、`LOCK`（串行锁）。
+- `goal.md` — /goal 入口文件（固定流程 + 纪律）
+- `playbook.md` — 各 action 类型的操作步骤
+- `tools/tesctl.py` — 调度器/状态机（`--task` 指定任务，单任务自动解析）
+- `tools/phi.py` — Φ / RPUCG 提案构造
+- `DESIGN.md` / `RULES.md` — 设计与纪律（任务无关部分）
+
+重物（不入库）：`build/tes/LOCK`（全局串行锁）、`build/tes/ccache/`（跨任务共享）、
+`build/tes/<task>/{src,evals}/`（worktree 与评估产物）。
 
 ## 相关文献与记录
 

@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""tesctl — TES 实验系统的无状态调度器/状态机。
+"""tesctl — TES 实验系统的无状态调度器/状态机（多任务版）。
 
-所有状态都在 tes/ 目录的文件里（state/run.json + state/ledger.jsonl + runs/<run>/manifest.json）。
-本工具只读取/推进状态，不保存任何跨调用内存。每个 goal 会话通过 `tesctl.py next`
-获得下一个（且唯一一个）要执行的 action。
+tes/ 下每个一级子目录是一个优化任务（含 config.json 即视为任务目录），各自持有
+state/run.json + state/ledger.jsonl + runs/。本工具只读取/推进状态，不保存跨调用内存。
+每个 goal 会话通过 `tesctl.py next` 获得下一个（且唯一一个）要执行的 action。
+
+任务解析（--task 省略时）：只有一个任务目录 → 用之；多个则取有活跃 run 的唯一任务；
+仍歧义 → 报错并列出可选任务。
 
 子命令：
+  tasks             列出所有任务及其状态
   status            人类可读的当前状态
   next              计算并展示下一个 action（--json 输出机器可读）
   init-run          开新 run：冻结配置、建 wolvrix 分支、写 manifest 与 run.json
@@ -15,6 +19,7 @@
   finish-step       收口一个 step：裁决 winner、推进轨迹主线
   round-summary-done 标记某轮 round-summary 已完成
   close-run         收口当前 run（status=completed）
+  action-done       登记一个已完成的 action（更新计数与历史）
 """
 from __future__ import annotations
 
@@ -28,10 +33,9 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 TES = REPO / "tes"
-STATE = TES / "state"
-RUN_JSON = STATE / "run.json"
-LEDGER = STATE / "ledger.jsonl"
-CONFIG = TES / "config.json"
+BUILD_TES = REPO / "build" / "tes"
+
+TASK_DIR: Path | None = None  # main() 解析 --task 后设置
 
 
 def now_iso() -> str:
@@ -51,18 +55,67 @@ def save_json(path: Path, obj) -> None:
     os.replace(tmp, path)
 
 
+def discover_tasks() -> list[str]:
+    return sorted(p.name for p in TES.iterdir()
+                  if p.is_dir() and (p / "config.json").exists())
+
+
+def task_has_active_run(name: str) -> bool:
+    rj = TES / name / "state" / "run.json"
+    if not rj.exists():
+        return False
+    try:
+        return load_json(rj).get("status") == "active"
+    except (json.JSONDecodeError, OSError):
+        return False
+
+
+def resolve_task(arg: str | None) -> Path:
+    tasks = discover_tasks()
+    if arg:
+        if arg not in tasks:
+            print(f"[FAIL] 任务 {arg} 不存在（tes/{arg}/config.json）。可选: {tasks}", file=sys.stderr)
+            sys.exit(1)
+        return TES / arg
+    if not tasks:
+        print("[FAIL] tes/ 下没有任何任务目录（含 config.json 的子目录）", file=sys.stderr)
+        sys.exit(1)
+    if len(tasks) == 1:
+        return TES / tasks[0]
+    active = [t for t in tasks if task_has_active_run(t)]
+    if len(active) == 1:
+        return TES / active[0]
+    print(f"[FAIL] 多任务歧义，请用 --task 指定。任务: {tasks}，活跃: {active}", file=sys.stderr)
+    sys.exit(1)
+
+
+def state_dir() -> Path:
+    return TASK_DIR / "state"
+
+
+def run_json_path() -> Path:
+    return state_dir() / "run.json"
+
+
+def ledger_path() -> Path:
+    return state_dir() / "ledger.jsonl"
+
+
+def task_name() -> str:
+    return TASK_DIR.name
+
+
 def load_config() -> dict:
-    return load_json(CONFIG)
+    return load_json(TASK_DIR / "config.json")
 
 
 def load_run() -> dict | None:
-    if not RUN_JSON.exists():
-        return None
-    return load_json(RUN_JSON)
+    p = run_json_path()
+    return load_json(p) if p.exists() else None
 
 
 def save_run(run: dict) -> None:
-    save_json(RUN_JSON, run)
+    save_json(run_json_path(), run)
 
 
 def git_wolvrix(*args: str) -> str:
@@ -101,14 +154,15 @@ def ensure_worktree(branch: str, start: str, wt_path: Path) -> None:
 
 
 def append_ledger(entry: dict) -> None:
-    with open(LEDGER, "a", encoding="utf-8") as f:
+    with open(ledger_path(), "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 def iter_ledger():
-    if not LEDGER.exists():
+    p = ledger_path()
+    if not p.exists():
         return
-    with open(LEDGER, encoding="utf-8") as f:
+    with open(p, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:
@@ -116,7 +170,7 @@ def iter_ledger():
 
 
 # ---------------------------------------------------------------------------
-# next / status
+# next / status / tasks
 # ---------------------------------------------------------------------------
 
 def compute_next_action(run: dict | None) -> dict:
@@ -125,15 +179,17 @@ def compute_next_action(run: dict | None) -> dict:
     语义：C 条轨迹相互独立，串行交错执行与论文并行执行等价（轨迹间无信息流）。
     """
     if run is None:
-        return {"type": "run-init", "reason": "无活跃 run，初始化 r001"}
+        return {"type": "run-init", "reason": f"任务 {task_name()} 无活跃 run，初始化 r001"}
     if run["status"] != "active":
         return {"type": "run-closed", "reason": f"{run['run_id']} 已收口；可开新 run（restart）"}
 
     cfg = run["config"]["search"]
     C, L, K = cfg["C"], cfg["L"], cfg["K"]
 
-    if run["baselines"]["am"] is None or run["baselines"]["gsim"] is None:
-        return {"type": "baseline", "reason": "run-init 待完成：测量 AM y0 与 gsim target 基线"}
+    for side in run.get("baseline_sides", []):
+        if run["baselines"].get(side) is None:
+            return {"type": "baseline", "side": side,
+                    "reason": f"run-init 待完成：测量 {side} 基线"}
 
     cs = run.get("current_step")
     if cs is not None:
@@ -151,26 +207,38 @@ def compute_next_action(run: dict | None) -> dict:
     if all(s >= L for s in done_steps):
         return {"type": "run-summary", "reason": f"全部 {C} 条轨迹已达 L={L} 步，写 run 总结并裁决是否 restart"}
 
-    # 轮次齐平检查：所有轨迹步数一致且 >=1 且该轮未总结 -> round-summary
     m = done_steps[0]
     if all(s == m for s in done_steps) and m >= 1 and m not in run["round_summaries_done"]:
         return {"type": "round-summary", "round": m,
                 "reason": f"第 {m} 轮（全部 {C} 条轨迹各完成 1 步）已齐平，做跨轨迹小结"}
 
-    # round-robin：步数最少者优先，平手取小编号
     t = min(trajs, key=lambda t: (t["steps_completed"], t["id"]))
     return {"type": "step", "trajectory": t["id"], "step": t["steps_completed"] + 1,
             "K": K,
             "reason": f"推进轨迹 {t['id']} 到第 {t['steps_completed'] + 1} 步（round-robin 最少步数优先）"}
 
 
+def cmd_tasks(_args) -> int:
+    for name in discover_tasks():
+        active = task_has_active_run(name)
+        line = f"{name}: {'活跃' if active else '无活跃 run'}"
+        if active:
+            run = load_json(TES / name / "state" / "run.json")
+            cfg = run["config"]["search"]
+            done = sum(t["steps_completed"] for t in run["trajectories"])
+            line += (f"  run {run['run_id']} (C={cfg['C']},L={cfg['L']},K={cfg['K']}) "
+                     f"steps {done}/{cfg['C']*cfg['L']} evals {run['counters']['evals']}")
+        print(line)
+    return 0
+
+
 def cmd_status(_args) -> int:
     run = load_run()
     if run is None:
-        print("TES: 无活跃 run。下一个 action: run-init")
+        print(f"TES[{task_name()}]: 无活跃 run。下一个 action: run-init")
         return 0
     cfg = run["config"]["search"]
-    print(f"run: {run['run_id']}  status: {run['status']}  "
+    print(f"task: {task_name()}  run: {run['run_id']}  status: {run['status']}  "
           f"(C={cfg['C']}, L={cfg['L']}, K={cfg['K']}, N={cfg['C']*cfg['L']*cfg['K']})")
     print(f"evals 已用: {run['counters']['evals']}  actions 已完成: {run['counters']['actions']}")
     for t in run["trajectories"]:
@@ -194,6 +262,7 @@ def cmd_status(_args) -> int:
 def cmd_next(args) -> int:
     run = load_run()
     na = compute_next_action(run)
+    na["task"] = task_name()
     if run is not None:
         na["run_id"] = run["run_id"]
         na["evals_used"] = run["counters"]["evals"]
@@ -201,10 +270,10 @@ def cmd_next(args) -> int:
     if args.json:
         print(json.dumps(na, ensure_ascii=False, indent=2))
     else:
-        print(f"NEXT ACTION: {na['type']}")
+        print(f"NEXT ACTION: {na['type']}  (task {task_name()})")
         print(f"reason: {na['reason']}")
         for k, v in na.items():
-            if k not in ("type", "reason"):
+            if k not in ("type", "reason", "task"):
                 print(f"{k}: {v}")
     return 0
 
@@ -214,7 +283,7 @@ def cmd_next(args) -> int:
 # ---------------------------------------------------------------------------
 
 def cmd_init_run(args) -> int:
-    if RUN_JSON.exists():
+    if run_json_path().exists():
         old = load_run()
         if old["status"] == "active" and not args.force:
             print(f"[FAIL] 已有活跃 run {old['run_id']}；先 close-run 或用 --force", file=sys.stderr)
@@ -222,11 +291,12 @@ def cmd_init_run(args) -> int:
 
     cfg = load_config()
     run_id = args.run_id
+    runs_root = TASK_DIR / "runs"
     if run_id is None:
-        existing = sorted(p.name for p in (TES / "runs").glob("r*") if p.is_dir())
+        existing = sorted(p.name for p in runs_root.glob("r*") if p.is_dir())
         n = max([int(x[1:]) for x in existing], default=0) + 1
         run_id = f"r{n:03d}"
-    run_dir = TES / "runs" / run_id
+    run_dir = runs_root / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
 
     search = dict(cfg["search"]); search.pop("note", None)
@@ -260,6 +330,7 @@ def cmd_init_run(args) -> int:
 
     manifest = {
         "run_id": run_id,
+        "task": task_name(),
         "created_at": now_iso(),
         "config": frozen,
         "budget_N": search["C"] * search["L"] * search["K"],
@@ -279,11 +350,13 @@ def cmd_init_run(args) -> int:
     run = {
         "schema": 1,
         "run_id": run_id,
+        "task": task_name(),
         "status": "active",
         "created_at": now_iso(),
         "config": frozen,
         "pins": manifest["pins"],
-        "baselines": {"am": None, "gsim": None},
+        "baseline_sides": list(cfg.get("baseline_sides", ["am", "gsim"])),
+        "baselines": {s: None for s in cfg.get("baseline_sides", ["am", "gsim"])},
         "trajectories": trajectories,
         "current_step": None,
         "round_summaries_done": [],
@@ -293,9 +366,9 @@ def cmd_init_run(args) -> int:
         "history": [],
     }
     save_run(run)
-    print(f"[OK] run {run_id} 已初始化：base={wolvrix_base[:12]} 分支 {base_branch} + "
+    print(f"[OK] [{task_name()}] run {run_id} 已初始化：base={wolvrix_base[:12]} 分支 {base_branch} + "
           f"{search['C']} 条轨迹；N={manifest['budget_N']}")
-    print("下一步：按 playbook 完成 run-init action（输入指纹 + 双基线测量 + record-baseline）")
+    print("下一步：按 playbook 完成 run-init action（输入指纹 + 基线测量 + record-baseline）")
     return 0
 
 
@@ -309,7 +382,7 @@ def cmd_record_baseline(args) -> int:
     entry = {
         "eval_id": result["eval_id"], "run": run["run_id"], "trajectory": None,
         "step": 0, "candidate": 0, "branch": None,
-        "commit": run["pins"]["wolvrix_base_commit"] if side == "am" else run["pins"]["gsim_commit"],
+        "commit": run["pins"]["wolvrix_base_commit"] if side == "am" else run["pins"].get("gsim_commit"),
         "proposal_nodes": [], "status": result["status"],
         "score": result.get("score"), "host_ms": result.get("host_ms"),
         "hypothesis": f"{side} baseline", "insight": args.insight or "",
@@ -354,14 +427,14 @@ def cmd_begin_step(args) -> int:
     K = run["config"]["search"]["K"]
     t = next(t for t in run["trajectories"] if t["id"] == tid)
     eval_ids = next_eval_ids(run, K)
-    proposal_rel = f"proposals/{run['run_id']}-{tid}-s{step:02d}.md"
+    proposal_rel = f"tes/{task_name()}/proposals/{run['run_id']}-{tid}-s{step:02d}.md"
 
     candidates = []
     for k in range(1, K + 1):
         br = f"tes/{run['run_id']}/{tid}/s{step:02d}-c{k}"
-        wt = f"build/tes/src/{eval_ids[k-1]}-{tid}-s{step:02d}c{k}"
-        ensure_worktree(br, t["branch"], REPO / wt)
-        candidates.append({"k": k, "branch": br, "worktree": wt,
+        wt = BUILD_TES / task_name() / "src" / f"{eval_ids[k-1]}-{tid}-s{step:02d}c{k}"
+        ensure_worktree(br, t["branch"], wt)
+        candidates.append({"k": k, "branch": br, "worktree": str(wt.relative_to(REPO)),
                            "eval_id": eval_ids[k - 1], "status": "pending", "score": None})
 
     run["current_step"] = {"trajectory": tid, "step": step, "proposal": proposal_rel,
@@ -370,8 +443,9 @@ def cmd_begin_step(args) -> int:
 
     # 生成 Φ proposal（选历史节点 + 组装上下文）
     phi = TES / "tools" / "phi.py"
-    r = subprocess.run([sys.executable, str(phi), "--trajectory", tid, "--step", str(step),
-                        "--out", str(TES / proposal_rel)],
+    r = subprocess.run([sys.executable, str(phi), "--task", task_name(),
+                        "--trajectory", tid, "--step", str(step),
+                        "--out", str(REPO / proposal_rel)],
                        capture_output=True, text=True)
     print(r.stdout, end="")
     selected = []
@@ -389,7 +463,7 @@ def cmd_begin_step(args) -> int:
     print(f"[OK] step 开始: {tid} s{step:02d}，K={K}")
     for c in candidates:
         print(f"  c{c['k']}: {c['branch']}  worktree {c['worktree']}  eval {c['eval_id']}")
-    print(f"  proposal: tes/{proposal_rel}")
+    print(f"  proposal: {proposal_rel}")
     return 0
 
 
@@ -517,9 +591,12 @@ def cmd_action_done(args) -> int:
 
 
 def main() -> int:
+    global TASK_DIR
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--task", help="任务名（tes/ 下一级目录）；省略时自动解析")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
+    sub.add_parser("tasks")
     sub.add_parser("status")
     p = sub.add_parser("next"); p.add_argument("--json", action="store_true")
 
@@ -529,11 +606,11 @@ def main() -> int:
     p.add_argument("--force", action="store_true")
 
     p = sub.add_parser("record-baseline")
-    p.add_argument("--side", choices=["am", "gsim"], required=True)
+    p.add_argument("--side", required=True)
     p.add_argument("--result", required=True, help="repo 相对路径 result.json")
     p.add_argument("--insight")
 
-    p = sub.add_parser("begin-step")
+    sub.add_parser("begin-step")
 
     p = sub.add_parser("record-eval")
     p.add_argument("--result", required=True)
@@ -552,12 +629,13 @@ def main() -> int:
     p.add_argument("--note", required=True, help="actions/Axxxx_...md 的 repo 相对路径")
 
     args = ap.parse_args()
+    TASK_DIR = resolve_task(args.task)
     return {
-        "status": cmd_status, "next": cmd_next, "init-run": cmd_init_run,
-        "record-baseline": cmd_record_baseline, "begin-step": cmd_begin_step,
-        "record-eval": cmd_record_eval, "finish-step": cmd_finish_step,
-        "round-summary-done": cmd_round_summary_done, "close-run": cmd_close_run,
-        "action-done": cmd_action_done,
+        "tasks": cmd_tasks, "status": cmd_status, "next": cmd_next,
+        "init-run": cmd_init_run, "record-baseline": cmd_record_baseline,
+        "begin-step": cmd_begin_step, "record-eval": cmd_record_eval,
+        "finish-step": cmd_finish_step, "round-summary-done": cmd_round_summary_done,
+        "close-run": cmd_close_run, "action-done": cmd_action_done,
     }[args.cmd](args)
 
 

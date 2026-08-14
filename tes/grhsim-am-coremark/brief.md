@@ -1,6 +1,6 @@
 # TES 任务指令（x0）：grhsim-am xiangshan coremark 50k 性能优化
 
-这是每个 proposal 都会携带的常驻任务指令。它定义目标、约束与裁决口径，不随实验进展改变；如需修改，修改即构成新的实验条件，必须在 `tes/state/insights.md` 追加记录。
+这是每个 proposal 都会携带的常驻任务指令。它定义目标、约束与裁决口径，不随实验进展改变；如需修改，修改即构成新的实验条件，必须在 `tes/grhsim-am-coremark/state/insights.md` 追加记录。
 
 ## 目标
 
@@ -8,7 +8,7 @@
 
 - 分数：`score = -median_host_ms`（越高越好）。
 - 进度指标：`ratio = am_median / gsim_median`，目标 `ratio <= 1.0`。
-- 参考基线在 run-init 时实测并冻结进 `tes/runs/<run>/manifest.json`。
+- 参考基线在 run-init 时实测并冻结进 `tes/grhsim-am-coremark/runs/<run>/manifest.json`。
 
 ## 硬约束（任一违反即判失败候选）
 

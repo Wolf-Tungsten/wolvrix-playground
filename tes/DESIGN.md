@@ -26,10 +26,10 @@ SimpleTES 把「评估驱动的发现循环」组织为设计元组 **(C, L, K, 
 | SimpleTES 概念 | 本系统实例 |
 |---|---|
 | 解 y | wolvrix 仓库的一个 commit（tes 候选分支）+ 可选 emit 参数覆盖 |
-| 评估器 V | `tes/tools/evaluate.py`：wolvrix 构建 → ctest 回归门 → 固定 exec-GRH emit → difftest emu 构建 → 绑核 3-rep 计时；返回 (score, 反馈) |
+| 评估器 V | `tes/grhsim-am-coremark/evaluator.py`：wolvrix 构建 → ctest 回归门 → 固定 exec-GRH emit → difftest emu 构建 → 绑核 3-rep 计时；返回 (score, 反馈) |
 | 分数 r | `-median_host_ms`（越高越好）；辅助列：emu 构建耗时、noisy 标记 |
 | 反馈 m | 逐 rep host_ms / difftest 计数 / 负载；失败时的阶段（build/emit/ctest/timeout）与日志指针 |
-| 指令 x0 | `tes/brief.md`（目标、硬约束、已知机制背景），run 期间冻结 |
+| 指令 x0 | `tes/grhsim-am-coremark/brief.md`（目标、硬约束、已知机制背景），run 期间冻结 |
 | 目标 | `ratio = am_median / gsim_median ≤ 1.0`（基线于 run-init 同协议实测冻结） |
 | LLM G | 推进 tes 的 goal 会话本身（按 proposal 设计 K 个候选并实施） |
 | 初始解 y0 | run 起点 commit（r001 = `grh/dev-grhsim-topo-partition` tip，即 NO0018 收口态） |
@@ -46,7 +46,7 @@ SimpleTES 把「评估驱动的发现循环」组织为设计元组 **(C, L, K, 
 推进**（每条轨迹各走一步为一轮），只要满足两点即与原语义等价：
 
 1. 每条轨迹的 proposal 只看自己的历史（`phi.cross_trajectory=false`，默认）；
-2. 评估结果不被机器状态污染（由测量纪律保证，见 RULES.md，由 evaluate.py 的
+2. 评估结果不被机器状态污染（由测量纪律保证，见 RULES.md，由任务 evaluator.py 的
    flock + 干扰守卫 + 绑核 + CV 检查硬执行）。
 
 串行反而带来两个实务收益：任何时刻只有一个构建/测量负载（可复现）；goal 粒度天然
@@ -54,9 +54,15 @@ SimpleTES 把「评估驱动的发现循环」组织为设计元组 **(C, L, K, 
 
 ## 4. 无状态工作流与 action 模型
 
-系统本身不持有内存：全部状态在 `tes/state/run.json` + `tes/state/ledger.jsonl`
-（append-only）+ `tes/runs/<run>/manifest.json`。每次 goal 启动后加载
-`.agents/skills/tes` skill，执行 `tesctl.py next` 算出的**恰好一个** action 后停止。
+系统本身不持有内存：全部状态在任务目录下——`tes/<task>/state/run.json` +
+`tes/<task>/state/ledger.jsonl`（append-only）+ `tes/<task>/runs/<run>/manifest.json`。
+每次推进由 `/goal tes/goal.md` 驱动：goal 会话执行 `tesctl.py next` 算出的**恰好一个**
+action（流程见 `tes/playbook.md`）后停止。
+
+**多任务**：`tes/` 下每个含 `config.json` 的一级子目录是一个独立任务，自带
+brief/config/evaluator.py/state/actions/proposals/runs。任务间共享：调度器
+（tesctl.py --task）、Φ（phi.py --task）、全局串行锁 `build/tes/LOCK`（测量干扰是
+机器级的）与 ccache `build/tes/ccache/`。任何时刻全机器只允许一个评估在跑，与任务数无关。
 
 Action 类型（括号内为评估查询开销）：
 
@@ -76,7 +82,6 @@ Action 类型（括号内为评估查询开销）：
 命名规范（全部带 `tes/` 前缀，避免与开发分支混淆）：
 
 - `tes/<run>/base` —— run 起点快照，run 期间不移动。例：`tes/r001/base`
-- `tes/<run>/base` —— run 起点快照，run 期间不移动。例：`tes/r001/base`
 - `tes/<run>/t<i>/main` —— 轨迹主线（i = 0..C-1）。每个被提交的 step = 其 winner 候选的
   tip，用 `git branch -f` 快移指针（主线从不被 checkout）。例：`tes/r001/t0/main`
   （主线带 `main` 叶是因为 git ref 不能同时作文件与目录：`tes/r001/t0` 与
@@ -86,13 +91,16 @@ Action 类型（括号内为评估查询开销）：
 提交信息：`tes(r001/t0/s01): c1 <一句话假设>`；winner 合入后主线 tip 即该 commit。
 
 保留策略：败者分支 run 期间一律保留（可复现）；run 收口时可 `format-patch` 归档进
-`tes/runs/<run>/archive/` 后删分支（删分支属破坏性操作，需用户确认）。worktree 放在
-`build/tes/src/`（playground 已 gitignore build/），评估产物在 `build/tes/evals/e*`。
+`tes/<task>/runs/<run>/archive/` 后删分支（删分支属破坏性操作，需用户确认）。worktree
+放在 `build/tes/<task>/src/`（playground 已 gitignore build/），评估产物在
+`build/tes/<task>/evals/e*`。
 
 playground 仓库：不开分支，tes/ 的每次状态推进在当期分支（`grh/tes-grhsim-am`）提交，
-信息前缀 `tes(<run>): ...`。wolvrix  submodule 指针在 playground 侧保持指向开发分支的
-正式 commit，不随 tes 实验分支移动；实验现场由 ledger 里的 commit sha + 分支名锚定。
-tes 分支均为本地分支，推送与否由用户另行决定。
+信息前缀 `tes(<task>/<run>): ...`。wolvrix  submodule 指针在 playground 侧保持指向开发
+分支的正式 commit，不随 tes 实验分支移动；实验现场由 ledger 里的 commit sha + 分支名
+锚定。tes 分支均为本地分支，推送与否由用户另行决定。
+（分支名不含任务名：分支空间属于 wolvrix 仓库，run_id 已与任务绑定——若未来多个任务
+共用 wolvrix 且 run_id 冲突，再引入 `tes/<task>/<run>/...` 前缀。）
 
 ## 6. Φ 的本系统实例化
 
@@ -103,14 +111,15 @@ tes 分支均为本地分支，推送与否由用户另行决定。
   连续性要求，是对论文 Φ 的唯一增补）。
 - proposal 另含：已否决变体清单（本轨迹评估成功但未中选者，避免原样重试）、失败模式
   摘要（build/emit/difftest/timeout 各自的假设与日志指针）、评估协议与 emit 旋钮基线。
-- proposal 快照存 `tes/proposals/`，候选分支与 proposal 的父子边记进 ledger
+- proposal 快照存 `tes/<task>/proposals/`，候选分支与 proposal 的父子边记进 ledger
   （`proposal_nodes`），供 RPUCG 的 Ch(i) 传播使用。
 
 ## 7. 默认参数与预算
 
 C=3, L=8, K=2 → N=48 次评估，串行约 32 机时。理由：本问题为增量工程精修主导
 （论文建议 L 重），单次评估 ~35-50min 决定了 K 必须小；C=3 提供方向多样性下限。
-参数在 `tes/config.json` 改，run-init 冻结进 manifest，run 期间不可变（改动即新 run）。
+参数在 `tes/<task>/config.json` 改，run-init 冻结进 manifest，run 期间不可变（改动即新 run）。
+（预算口径：N 只计搜索评估；run-init 的基线测量额外计入 evals 计数。）
 
 ## 8. 与既有纪律的关系
 

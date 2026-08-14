@@ -40,8 +40,8 @@
 - When describing IR or normalized forms (e.g., `kMemoryWritePort`), explicitly define each operand and show small input/output examples; do not assume the reader knows the intended normalization.
 
 ## TES 实验系统（tes/）
-- `tes/` 是 grhsim-am 性能调优的 SimpleTES 式结构化搜索系统：状态机 + append-only 台账 + 无状态工作流，见 `tes/DESIGN.md`、`tes/RULES.md`；执行入口是项目级 skill `.agents/skills/tes/`。
-- 推进实验一律经由 `tes/tools/tesctl.py next` 给出的 action，每个 goal 只做一个 action；评估只走 `tes/tools/evaluate.py`（串行 flock + 绑核 + difftest 门）。
+- `tes/` 是 SimpleTES 式结构化搜索系统（状态机 + append-only 台账 + 无状态工作流），见 `tes/DESIGN.md`、`tes/RULES.md`；每个含 `config.json` 的一级子目录是一个优化任务（当前：`grhsim-am-coremark`）。
+- 推进实验由 `/goal tes/goal.md` 驱动：每个 goal 只做 `tes/tools/tesctl.py next` 给出的一个 action，操作步骤见 `tes/playbook.md`；评估只走任务自带的 `tes/<task>/evaluator.py`（全局 flock + 绑核 + difftest 门）。
 - wolvrix 实验分支命名 `tes/<run>/...`（模型见 `tes/DESIGN.md` §5）；playground 不开分支，tes/ 进展在当前分支提交，不 bump wolvrix submodule 指针。
 
 ## Commit & Pull Request Guidelines
