@@ -21,6 +21,13 @@
 
 候选解 = wolvrix 仓库的一个 commit（在 tes 候选分支上）+ 可选的 emit 参数覆盖（`emit_args`，如 `--blocks-per-source`、`--dp-coarsen-*`、`--max-atoms-per-block` 等旋钮）。评估输入固定为 gsim 导出的同一张 exec-GRH（见 manifest 指纹），保证跨候选可控对比。
 
+## 优化哲学（变更面纪律）
+
+1. **GRH IR 冻结**：候选不得改变 GRH IR 的定义与语义（`wolvrix/include/core/grh.h`、`wolvrix/lib/core/grh.cpp` 等 GRH 数据结构与算子语义），也不得以 ingest 侧行为变化作为收益来源——GRH 是跨工具的稳定契约，冻结它以保证候选间可比、可归因。
+2. **grhsim AM IR 可变**：AM IR（lower 之后的块/atom/调度结构）是主要优化面，允许灵活调整——新增或修改 AM IR 的结构与变换规则均合法。
+3. **优化显式化为 pass**：优化手段应尽量体现为**显式的 grhsim AM 优化 pass**——有名字、可独立开关、能在 pipeline 中定位，便于单变量归因与回撤；避免把变换隐式揉进 emit/lower 的边角逻辑里。
+4. **emit 规则变更须配文档**：确需改变 emit 规则的候选，应尽可能同步提供或更新文档（`wolvrix/docs/grhsim/`，如 `grhsim-am-pipeline.md`），说明规则变化与动机；文档随候选 commit 一并提交。
+
 ## 已知机制背景（来自 pdocs/grh-notepad/emit-cost 等，run-init 时的起点知识）
 
 - Host 465.8s → 324.0s 的修复链：巨 atom 常量折叠（NO0011）、动态基座元素级发射（NO0012）、装配锥窗口化（NO0013）、dynblend 锥塌缩（NO0014）、窄值标量化（NO0016）、宽状态切片内联 + 掩码写展开（NO0018）。

@@ -32,3 +32,9 @@
   emit 62s + emu_build 842s；单候选全评估 ~32min。emu_build 占大头且 emit 全量重写
   .cpp 导致无法增量——后续若要压评估时延，emit 端「内容不变不重写」是最大杠杆。
 - 冷 ccache 首轮：compile_s 1299s（放宽的 90min 预算内），wolvrix 全量构建 107s。
+
+## 任务定义修订（2026-08-14，用户指令）
+
+- brief.md 新增「优化哲学（变更面纪律）」：GRH IR 冻结；grhsim AM IR 为主要优化面；
+  优化手段应尽量体现为显式 AM pass（有名字、可开关、可归因）；emit 规则变更须随候选
+  同步文档。自 r001 的 t0/s01 起生效，约束后续全部候选。

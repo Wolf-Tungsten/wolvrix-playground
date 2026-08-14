@@ -32,6 +32,12 @@ python3 tes/grhsim-am-coremark/evaluator.py gsim --eval-id e00002
 - 依赖 `build/xs/gsim-flat/emu`（config `paths.gsim_emu`）。不存在则停止并报告用户
   （tes 不自行构建 gsim）。
 
+## 候选实施纪律
+
+变更面约束见 `brief.md`「优化哲学（变更面纪律）」：GRH IR 冻结；优化应体现为
+显式 grhsim AM pass；emit 规则变更须随候选同步文档。proposal 与 action 笔记中
+应说明候选落在哪个面（pass / 旋钮 / emit 规则），便于归因。
+
 ## 候选评估命令（step action 用）
 
 ```bash
