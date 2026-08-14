@@ -21,6 +21,25 @@ run 内拥有相同写入条件的操作组成一个 **guard group**；guard 就
 
 ## 做了什么
 
+### 先看总结
+
+R 不会少执行寄存器写入，而是扩大 `unlikely` 冷分支提示的适用范围。生成器仍先按
+exact-event run 的结构做静态筛选；只有一段 run 中出现足够多的合格寄存器写，才把
+其中符合条件的 guard 标成冷分支，未入选的代码继续使用原来的普通条件。
+
+| 层面 | 旧生成形式 | 新生成形式 | 目的 / 边界 |
+|---|---|---|---|
+| run 准入 | 只覆盖至少 `1024` 个 singleton register-write guard 的大 run | singleton 门槛降到 `256`；或者 eligible register writes 总数达到 `2048` 也准入 | 把同一布局原则扩展到更多有足够规模的 run；MemoryWrite 不参与这里的计数 |
+| guard 生成 | 未达到旧门槛时使用普通 `if (cond)` | run 准入后，合格的 register-write guard 使用 `if (unlikely(cond))` | 只给编译器冷热布局提示，不改变 `cond` 的求值或寄存器写入 |
+| 保守限制 | 不满足旧大 run 条件时保持通用路径 | 恒真或静态已知非零的 guard 被排除；单个共享 guard group 最多 `2048` 项 | 避免把必经路径标冷或让一个过大的共享 group 进入；未通过时仍生成旧形式 |
+
+**只需记住：R 把 001 已验证的 register-write cold-layout 从超大 singleton run
+推广到更多经过结构筛选的 run。在已含 001 exact-event 的基线上加入 R 后，合并两种
+运行顺序的 SimTop 50k walltime 为 `61,505.75→57,466.50 ms`，减少 `4,039.25 ms`、
+改善 `6.567272%`。**[^ablation]
+
+### 实现与边界
+
 生成器先对 exact-event register-write run 做结构化 admission：singleton register
 guard 的数量门槛从 `1024` 放宽到 `256`；即使 singleton 不足 `256`，当所有 eligible
 register writes 的总数达到 `2048` 时也允许进入。eligible group 必须非空、不是恒真

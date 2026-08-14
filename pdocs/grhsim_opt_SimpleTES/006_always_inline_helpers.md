@@ -7,6 +7,25 @@
 
 ## 做了什么
 
+### 先看总结
+
+GrhSIM 生成代码会反复调用一批很小的 word helper。006 给其中的高频、短小 helper
+统一加上强内联属性，使函数体更稳定地展开到调用处；运算本身、边界行为和结果完全
+不变。
+
+| 层面 | 旧生成形式 | 新生成形式 | 目的 / 边界 |
+|---|---|---|---|
+| helper 调用 | 依赖编译器自行决定是否内联 | 选定 helper 使用 `GRHSIM_ALWAYS_INLINE` | 减少 call/return，并把常量、guard 和相邻计算暴露给同一次优化 |
+| 覆盖范围 | 所有 helper 使用原有声明 | 只覆盖 truncation、concat、slice、bitwise 等选定小函数 | 避免强制展开大函数导致代码膨胀；集合由 emitter 静态确定 |
+| 编译器兼容 | 普通 `inline` | 支持时使用强内联属性，不支持时退化为普通 `inline` | 不依赖某一编译器才能保持正确性 |
+
+**只需记住：006 只改变“小 helper 是否尽量在调用点展开”。在完整六项候选中先去掉
+本项、再恢复本项，合并两种运行顺序后的 walltime 从 `52,032.75` 降到
+`51,645.75 ms`，减少 `387.00 ms`、边际改善 `0.743762%`；最终四项组合另有独立
+整体对比。**[^ablation]
+
+### 实现与边界
+
 对选定且调用频率高的 helper 统一发射 `GRHSIM_ALWAYS_INLINE`，覆盖 truncation、
 assign/clear、insert、concat、slice、bitwise 和 reduce 等小型 word 操作。宏在编译器
 不支持强制内联属性时退化为普通 `inline`，不会变为空定义；helper 的输入、输出和
@@ -23,8 +42,8 @@ assign/clear、insert、concat、slice、bitwise 和 reduce 等小型 word 操�
 
 同一 full-gen150 final-minus-one 消融中，control 去掉本项并保留另外五项，candidate
 为完整六项候选。其余五项包括后来未落地的 residual MemoryRead 和 physical
-zero-tail；
-因此下表是六项研究组合内的边际结果，最终四项另由 endpoint 验证。[^ablation]
+zero-tail；因此下表是六项研究组合内的边际结果，最终四项另由 endpoint 验证。
+[^ablation]
 
 | 对比 | control（ms） | candidate（ms） | 减少（ms） | 相对改善 | ABBA / BAAB | gap |
 |---|---:|---:|---:|---:|---:|---:|

@@ -12,6 +12,26 @@ emitter 会为它实际分配存储。**value bucket** 是把相同类型/宽度
 
 ## 做了什么
 
+### 先看总结
+
+SBV 把“为了复用而临时保存的组合布尔结果”也改成 C++ `bool` 数组。它和 SB 都在消除
+byte 形式的布尔存储，但作用对象不同：SB 管跨仿真步骤存在的持久状态，SBV 管本可内联、
+因为有多个使用点才被 emitter 缓存起来的组合中间值。
+
+| 对象 | 修改前 | 修改后 | 目的与边界 |
+| --- | --- | --- | --- |
+| materialized `kBool` value bucket | byte-like 元素数组 | `std::array<bool, N>` | 让频繁读取的组合布尔缓存直接具有布尔类型 |
+| bucket reset | 按旧元素类型清零 | 填入 `bool{}` | 与新的 owning element 类型一致 |
+| persistent bool | 已由 SB 改为 native bool | 保持不变 | SBV 不重复修改持久状态 |
+| event、memory、schedule | 各自原表示和行为 | 保持不变 | 只改变 materialized bool 的存储类型 |
+
+**只需记住：SBV 是“组合布尔缓存改用 native bool”。相邻消融 `SB→SBV` 为
+`44,198.00→43,373.50 ms`，减少 `824.50 ms`、改善 `1.865469%`；三项 typed-state
+合起来从实验基线到 SBV 为 `48,054.25→43,335.50 ms`，减少 `4,718.75 ms`、改善
+`9.819631%`。这里的实验基线（原实验记作 `B`）已包含此前的原则化 TRBS。**[^ablation]
+
+### 实现与边界
+
 SBV 将生成的 materialized `kBool` bucket 从旧的 byte-like owning element 改为
 `std::array<bool, N>`，复位也直接填入 `bool{}`。它只作用于已经 materialize 的组合值
 缓存，不改变 persistent state 的分桶规则、event-edge enum、memory staging 或

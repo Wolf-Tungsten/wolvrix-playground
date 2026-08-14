@@ -19,6 +19,24 @@ GrhSIM 把同一个 supernode（由若干 IR，即中间表示操作组成的调
 
 ## 做了什么
 
+### 先看总结
+
+W 不会自行挑选新的 run；它先复用 R 的准入结果，再把这些 run 里恰好只有一次
+MemoryWrite 的候选 guard 标成 `unlikely`。MemoryWrite 仍按原地址、数据、条件和
+顺序执行，W 改变的只是生成 C++ 时提供给编译器的分支布局提示。
+
+| 层面 | 旧生成形式 | 新生成形式 | 目的 / 边界 |
+|---|---|---|---|
+| 适用范围 | R-selected run 中的 MemoryWrite guard 仍是普通条件 | 仅在 R 已选中的 run 内继续筛选 MemoryWrite | 复用 R 的通用结构门禁；W 不会单独让一个 run 获得准入 |
+| singleton 写入 | `if (cond)` 中执行一项 `MemoryWritePort` | `if (unlikely(cond))` 中执行同一项写入 | 让编译器可将低概率写入代码移出热路径；地址、数据和写入顺序不变 |
+| 保守回退 | 所有不属于 R 提示范围的 MemoryWrite 保持普通生成 | 只有恰好一项 MemoryWrite、且 guard 不是静态已知非零常量时加提示 | 多项共享同一 guard、未被 R 选中的 run 或不合格 guard 均维持旧形式 |
+
+**只需记住：W 是 R 之后的附加提示，而不是独立的 run selector。在 R 基础上加入 W
+后，合并两种运行顺序的 SimTop 50k walltime 为 `57,031.25→55,965.00 ms`，减少
+`1,066.25 ms`、改善 `1.869589%`。**[^ablation]
+
+### 实现与边界
+
 R 的 admission（静态准入判断）只统计 eligible register-write groups：当 singleton
 register guard 达到 `256`，或 eligible register writes 总数达到 `2048` 时，run 才被
 选中。MemoryWrite 本身不参与这项计数。对于已经由 R 选中的 run，W 再识别恰好只含

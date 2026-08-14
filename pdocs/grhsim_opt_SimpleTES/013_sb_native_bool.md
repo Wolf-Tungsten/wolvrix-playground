@@ -12,6 +12,25 @@ C++ 原生 `bool`。该机制与下一篇的 materialized value bucket 分开消
 
 ## 做了什么
 
+### 先看总结
+
+S8 已经让 persistent state 变成按类型组织的字段，但其中的布尔状态仍由一个 byte
+承载。SB 只补齐这一点：让真正长期拥有布尔状态的字段直接使用 C++ `bool`。它不改变
+状态机逻辑，也不处理临时组合值；后者属于下一篇 SBV。
+
+| 对象 | 修改前 | 修改后 | 目的与边界 |
+| --- | --- | --- | --- |
+| persistent bool owning storage | byte 类型字段保存 0/1 | 原生 C++ `bool` 字段 | 让字段类型准确表达布尔值域，减少 byte/布尔转换 |
+| 其他 persistent state | S8 的 typed field | 保持不变 | SB 只处理 bool kind |
+| materialized bool | 仍在原 value bucket 中 | 保持不变 | 由 SBV 单独优化 |
+| memory、event edge、staging | 各自原表示 | 保持不变 | 不扩大到其他存储生命周期 |
+
+**只需记住：SB 是“持久布尔状态改用 native bool”。在 S8 基础上的直接消融
+`S8→SB` 为 `44,760.25→44,195.25 ms`，walltime 减少 `565.00 ms`，改善
+`1.262281%`。**[^ablation]
+
+### 实现与边界
+
 在 S8 arm 中，按 kind 分桶已经让状态通过直接成员访问，但 bool 状态仍使用 byte
 对象；SB 进一步让 persistent bool 字段的 C++ 元素类型为 `bool`，初始化/清零也按
 `bool{}` 进行。整数、宽向量、memory staging 和 event-edge storage 不在这项变化内。

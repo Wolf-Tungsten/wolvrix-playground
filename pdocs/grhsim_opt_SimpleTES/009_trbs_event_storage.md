@@ -6,13 +6,33 @@ batch snapshot 一起形成 `TRBS`。本篇只说明“存储表示”这一机�
 `d3ed9dea975bddf01185dde5c548a69241a09de9`。[^0211][^0214]
 
 `T/TR/TRB/TRBS` 是逐项累积的实验节点：T 是本篇 typed storage；R 是热点事件
-重映射；B 是上升沿 bool 预解码；S 是 batch 局部快照。本篇的 `B→T` 数字只隔离 T，
-不包含后三项的收益。`T` 也是历史 arm 标签，不是用户可配置开关。
+重映射；B 是上升沿 bool 预解码；S 是 batch 局部快照。本篇表格沿用原实验的 `B→T`
+标签，其中 `B` 是上一阶段 four-positive baseline，不是 TRBS 名字中的 bool 层；该配对
+只隔离 T，不包含后三项的收益。`T` 也是历史 arm 标签，不是用户可配置开关。
 
 ## 做了什么
 
-事件边沿是本次输入采样相对前值的分类：`posedge` 是 0→1 上升沿，`negedge` 是
-1→0 下降沿，general/none 表示其他或无特定边沿。旧 emitter 为这些分类分配一段
+### 先看总结
+
+T 只改变“事件边沿分类存在哪里、以什么 C++ 类型存”，不改变事件是什么，也不在这一
+步挑选热点。它把原来藏在原始字节区里的事件枚举，改成真正的事件枚举数组，为后面的
+热点重映射、bool 预解码和 batch snapshot 提供一个类型明确的承载层。
+
+| 层面 | 修改前 | 修改后 | 目的与边界 |
+| --- | --- | --- | --- |
+| 事件边存储 | 原始 byte arena，读取时把地址重解释成事件枚举指针 | `grhsim_event_edge_kind` typed array | 减少字节表示和枚举表示之间的中间层，让编译器看到真实对象类型 |
+| 保存的信息 | 完整保存 posedge、negedge、general/none | 完整保存同样的分类 | 不改变事件语义、索引和调度 |
+| 在 TRBS 中的职责 | 尚无稳定的 typed slot 供热点专门化使用 | 为 R、B、S 三层提供承载位置 | T 本身不选择热点，也不做 bool 预解码 |
+
+**只需记住：T 是“换成有类型的事件边存储”，不是整套 TRBS。从上一阶段
+四项优化基线（原实验记作 `B`）到 T 的直接消融为 `51,333.75→49,923.00 ms`，
+walltime 减少 `1,410.75 ms`，改善 `2.748192%`。**[^0213]
+
+### 实现与边界
+
+事件边沿是某个 event value 相对前值的分类；这个值既可以来自 input，也可以来自
+compute。`posedge` 是 0→1 上升沿，`negedge` 是 1→0 下降沿，general/none 表示其他
+或无特定边沿。旧 emitter 为这些分类分配一段
 **byte arena**，即没有元素类型的原始连续字节存储；每个事件值占用一个内部 **slot**。
 查询时再用 `reinterpret_cast<grhsim_event_edge_kind *>` 把字节地址解释成事件枚举指针。
 这里的 enum 是 C++ 中只有有限几个命名取值的类型，`reinterpret_cast` 只改变编译器
@@ -59,8 +79,9 @@ ASLR 和迁移检查均通过。[^0213]
 ## 落地状态与边界
 
 * Wolvrix 提交 `d3ed9dea...` 将 typed storage 放入通用 C++ emitter 默认路径，
-  Python 直接继承同一生成逻辑；没有新增 SimTop wrapper 开关，也没有读取端口名、
-  ValueId 或 benchmark 名字。[^0214]
+  Python 直接继承同一生成逻辑；没有新增 SimTop wrapper 开关，也不会匹配端口名、
+  benchmark 名字或硬编码的 `ValueId` 编号。`ValueId` 仍只作为生成器里的通用值身份。
+  [^0214]
 * 原始搜索曾使用 `eventEdgeSlotCount >= 256` 作为候选门槛；落地时删除了这个
   raw model-size 门禁，改由基于 exact-posedge 复用机会的原则化选择器决定是否
   启用整套热点表示。小模型或复用不足时 fail-closed，保持旧生成结果。[^0214]

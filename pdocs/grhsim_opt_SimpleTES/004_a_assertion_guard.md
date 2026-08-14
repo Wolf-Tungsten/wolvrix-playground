@@ -21,6 +21,25 @@ SystemVerilog 调用 C/C++ 的接口。**guard** 是决定一段代码是否执�
 
 ## 做了什么
 
+### 先看总结
+
+A 识别一对严格相邻、共享同一条件和 exact event 的 `SystemTask` 与 `xs_assert_v2`
+调用，把它们放进同一个标为 `unlikely` 的外层 guard。内层 assertion 的原条件仍会
+再次检查，两项操作的先后顺序和副作用都保留；任何结构或接口条件不满足时仍逐条生成。
+
+| 层面 | 旧生成形式 | 新生成形式 | 目的 / 边界 |
+|---|---|---|---|
+| 代码形态 | 相邻的 SystemTask 与 assertion 分别带条件逐条生成 | 以 SystemTask 的条件形成 cold 外层，`xs_assert_v2` 嵌套其中并保留自己的内层条件 | 让编译器可将符合门禁的整对代码移出高频直线路径，不删除 assertion 或 SystemTask |
+| 配对条件 | 通用 emitter 不利用两项已经相同的 guard/event 关系 | 仅配对同 phase、同条件值、同 exact-event 表达式且严格相邻的两项操作 | 只在生成器能够证明共同触发前提时重排；不按 workload 或变量名选择 |
+| 接口与回退 | 各 DPI-C/SystemTask 按通用路径生成 | DPI-C 必须恰为无 return、output、IR result 的 `xs_assert_v2`，并排除特殊旁路等情况 | 保留可观察副作用和数据依赖；任一证明失败就完整维持旧形式 |
+
+**只需记住：A 不是关闭断言，而是对可证明共享触发条件的一对副作用操作做 cold
+嵌套。该单项实验的 control 已含 R、W 和后来未落地的 MemoryFill hint F；加入 A 后，
+合并两种运行顺序的 SimTop 50k walltime 为 `55,485.00→54,050.50 ms`，减少
+`1,434.50 ms`、改善 `2.585383%`。**[^ablation]
+
+### 实现与边界
+
 emitter（把 Wolvrix IR 和 schedule 生成 C++ 仿真源码的代码生成器）只在以下条件
 全部成立时嵌套相邻操作：
 

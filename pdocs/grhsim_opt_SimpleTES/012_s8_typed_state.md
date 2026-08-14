@@ -10,6 +10,26 @@ GrhSIM C++ emitter；落地提交是 `79ec2037b00f2d4894d72785277ebe3f5d37782d`�
 
 ## 做了什么
 
+### 先看总结
+
+S8 把“跨仿真步骤保存的非 memory RTL 状态”从一块按字节和偏移访问的通用 arena，改成
+按逻辑类型组织的 C++ 成员。最直观的变化是：生成代码不再先算某个状态位于第几个字节，
+再把那段字节解释成目标类型，而是直接访问对应类型的字段。
+
+| 对象 | 修改前 | 修改后 | 目的与边界 |
+| --- | --- | --- | --- |
+| 非 bool persistent state | byte/packed arena 加偏移访问 | 按 scalar kind 分组的 typed C++ struct field | 给编译器更明确的类型、别名和布局信息 |
+| 宽状态 | 在通用 arena 中按偏移定位多个 word | 按所需 word 数分组后直接访问 typed field | 保留原宽值语义，只改变承载布局 |
+| persistent bool | 在 S8 阶段仍是 byte 表示 | 暂时保持 byte 表示 | native bool 是下一篇 SB 的独立增量 |
+| memory 与临时值 | 使用各自原有存储 | 保持不变 | S8 只处理非 memory 的持久状态 |
+
+**只需记住：S8 是“把持久状态改成按 kind/width 分组的直接字段访问”，但 bool 在这
+一步仍保持 byte。typed-state 实验基线（原实验记作 `B`）已包含此前的原则化 TRBS；
+从该基线到 S8 的直接消融为 `48,023.50→44,595.25 ms`，walltime 减少
+`3,428.25 ms`，改善 `7.138693%`。**[^ablation]
+
+### 实现与边界
+
 **persistent state（持久状态）**是寄存器、锁存器等跨 schedule batch、并在后续仿真
 步骤继续保存的 RTL 状态；本项不包括 memory，也不是临时组合结果。旧 emitter 把这些
 非 memory 状态放进按字节/packed 方式管理的 arena，也就是一块通用存储区。

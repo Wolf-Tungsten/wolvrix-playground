@@ -5,6 +5,24 @@
 
 ## 做了什么
 
+### 先看总结
+
+008 不删除越界处理，也不假定索引永远合法。它只告诉编译器：动态 shift/index 的
+OOB fallback 通常很少执行，因此应优先保持正常范围内的计算为连续热路径。
+
+| 场景 | 旧生成形式 | 新生成形式 | 目的 / 边界 |
+|---|---|---|---|
+| 正常范围 | 与越界 fallback 使用普通分支共同布局 | 正常 load/store、shift/index 计算不变 | 不改变高频路径的值和副作用 |
+| 越界 fallback | `shift >= 64`、scalar/word index OOB 使用普通条件 | 同一条件写成 `unlikely(...)` | 让编译器可把清零、默认值或 OOB 哨兵处理放到冷区 |
+| 静态常量与语义 | 常量路径按原有证明生成 | 常量路径不依赖本 hint；fallback 结果也完整保留 | 纯分支概率提示，不涉及 C++ exception 或 SimTop 特判 |
+
+**只需记住：008 是“保留越界语义，只把 fallback 标冷”。在完整六项候选中先去掉本项、
+再恢复本项，合并两种运行顺序后的 walltime 从 `51,778.50` 降到 `51,652.75 ms`，减少
+`125.75 ms`、边际改善 `0.242861%`；这个逐项移除边际低于该轮可信线，保留决策主要由
+四项组合的整体对比支撑。**[^ablation]
+
+### 实现与边界
+
 scalar 是单个 C++ 标量可以表示的值；更宽的 HDL 位向量由多个通常为 64 bit 的 word
 表示。对这些值的动态 shift/index 操作，生成器将 `shift >= 64`、scalar index 越界
 和 word index 越界等 fallback 条件写成 `unlikely`。fallback 是输入超出正常范围时
@@ -22,8 +40,8 @@ scalar 是单个 C++ 标量可以表示的值；更宽的 HDL 位向量由多个
 ## 收益（SimTop 50k walltime）
 
 full-gen150 final-minus-one 直接消融中，control 移除本项并保留另外五项，candidate
-为完整六项。另外五项包括后来被排除的两个候选，因此它衡量的是六项组合中的边际贡献；最终落地
-四项有独立 endpoint。[^ablation]
+为完整六项。另外五项包括后来被排除的两个候选，因此它衡量的是六项组合中的边际贡献；
+最终落地四项有独立 endpoint。[^ablation]
 
 | 对比 | control（ms） | candidate（ms） | 减少（ms） | 相对改善 | ABBA / BAAB | gap |
 |---|---:|---:|---:|---:|---:|---:|
@@ -37,8 +55,8 @@ full-gen150 final-minus-one 直接消融中，control 移除本项并保留另�
 ## 落地状态与边界
 
 本项进入 generic C++ emitter 默认，Python 和 XiangShan（XS）集成流程继承；没有按
-SimTop 的具体索引值或变量名硬编码。若未来编译器/负载变化使它成为负收益，应单独重测并回退，不应把四项
-总收益作为本项的独立保证。[^landing]
+SimTop 的具体索引值或变量名硬编码。若未来编译器/负载变化使它成为负收益，应单独重测
+并回退，不应把四项总收益作为本项的独立保证。[^landing]
 
 ### 数据来源（尾注）
 

@@ -11,7 +11,31 @@ leaf 是具体计算节点；operand 是该节点读取的输入；predicate 是
 
 ## 做了什么
 
-### 1. 选择热点并稳定重映射
+### 先看总结
+
+这一层先从最终 schedule 中找出 exact-posedge 查询最值得复用的 input event，把它稳定地
+放到 typed event array 的 slot 0，再额外保存“它当前是否发生 posedge”的对象级 bool。
+实验把这两步拆开后表明：选热点和重映射主要是建立通用承载位置，真正的性能收益来自
+后面的 bool 预解码。
+
+| 层面 | 修改前 | 修改后 | 目的与边界 |
+| --- | --- | --- | --- |
+| 热点选择与布局 | 所有事件只按原 typed slot 使用 | 按 schedule 的可复用 exact-posedge 次数选一个 input event，并稳定映射到 slot 0 | 不改外部端口编号；单独性能近似中性 |
+| exact-posedge 查询 | 每个 leaf 读取完整 enum 再与 `posedge` 比较 | 分类时同步写入 `hot_event_posedge_`，leaf 直接读 bool | 消除同一热点的大量重复 enum 读取和比较 |
+| 其他事件语义 | 读取完整 enum | 仍读取完整 enum | negedge、general 和非热点事件不被 bool 替代 |
+
+**只需记住：性能提升来自“把热点 exact-posedge 预先解码成 bool”，不是把它搬到
+slot 0。`T→TR` 为 `49,854.50→49,859.00 ms`，变化 `−0.009026%`；加入 bool 的
+`TR→TRB` 为 `50,024.75→48,474.75 ms`，减少 `1,550.00 ms`，改善
+`3.098466%`。**[^0213]
+
+这两个直接配对在不同采样窗口独立运行，所以共同节点 `TR` 的绝对 walltime 不同；两组
+数字不能首尾拼接，整套 TRBS 的总收益应看后文从该阶段基线到 TRBS 的整体对比
+（原实验记作 `B→TRBS`）。
+
+### 实现与边界
+
+#### 1. 选择热点并稳定重映射
 
 emitter 遍历最终 schedule 的每个 batch，按 input event 统计：
 
@@ -24,7 +48,7 @@ input registration order。`reusableUses` 的直观含义是：每个覆盖 batc
 一次，扣除这些不可避免的读取后，还有多少次查询能够复用预解码结果。选中后把事件放到
 typed array 的内部第一个元素 slot 0；这不改变外部端口编号、绑定顺序或 API。[^0214]
 
-### 2. 在对象中预解码 exact-posedge
+#### 2. 在对象中预解码 exact-posedge
 
 每次输入事件分类时，完整 enum 仍被写入 typed event storage；若该事件是选中的
 hot input，则同时写入对象成员 `hot_event_posedge_`。之后 exact-posedge leaf

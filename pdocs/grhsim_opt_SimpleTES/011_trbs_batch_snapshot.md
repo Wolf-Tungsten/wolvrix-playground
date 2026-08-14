@@ -11,6 +11,24 @@ batch-local snapshot 的含义很直接：进入一个 batch 时把对象成员�
 
 ## 做了什么
 
+### 先看总结
+
+前一层已经把热点 exact-posedge 保存成对象成员 bool；本项再在每个 batch 入口把该成员
+复制到一个局部 `const bool`。于是一个 batch 内无论查询多少次、途中出现多少个编译器
+看不透的函数调用，都只需要从模型对象读取一次热点状态。
+
+| 场景 | 修改前 | 修改后 | 目的与边界 |
+| --- | --- | --- | --- |
+| 普通 schedule batch | 每个 exact-posedge leaf 都可能重新读取对象成员 | batch 入口读一次，后续 leaf 复用局部 `const bool` | 缩短跨函数调用的对象成员依赖链 |
+| full-pass batch | 同样反复引用对象成员 | 同样在入口建立局部 snapshot | 两类调度入口行为一致 |
+| 其他边沿 | 继续读取完整 enum | 保持不变 | snapshot 只覆盖已选热点的 exact-posedge |
+
+**只需记住：S 是“每个 batch 读一次热点 bool”，不是又做一次事件分类。
+`TRB→TRBS` 为 `48,449.75→47,495.50 ms`，walltime 减少 `954.25 ms`，改善
+`1.969566%`。**[^0213]
+
+### 实现与边界
+
 对启用了 hot-event specialization 的 batch，emitter 生成类似：
 
 ```cpp
