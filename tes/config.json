@@ -1,0 +1,49 @@
+{
+  "comment": "TES (SimpleTES-style) 实验系统默认配置。run-init 时冻结进 runs/<run>/manifest.json；运行中改这里不影响活跃 run。",
+  "search": {
+    "C": 3,
+    "L": 8,
+    "K": 2,
+    "note": "N = C*L*K 次评估查询。本问题属增量工程精修型（论文建议 L 重、K 适中）；单次评估 ~35-50min 串行，默认 N=48。"
+  },
+  "phi": {
+    "gamma": 0.9,
+    "lambda": 1.0,
+    "max_nodes": 4,
+    "include_rejected": true,
+    "include_failures": true,
+    "cross_trajectory": false,
+    "note": "RPUCG 参数。cross_trajectory=false 保持轨迹独立（串行等价于论文并行语义）；跨轨迹学习只经 restart 发生。"
+  },
+  "eval": {
+    "reps": 3,
+    "max_reps": 5,
+    "cv_max": 0.05,
+    "core": 12,
+    "cycles": 50000,
+    "rep_timeout_sec": 1800,
+    "build_timeout_sec": 10800,
+    "ctest_gate": true,
+    "ctest_regex": "grhsim",
+    "golden": { "instrCnt": 73580, "cycleCnt": 49996 },
+    "emit_args": ["--block-chunk-instructions", "3000"],
+    "vm_build_jobs": 16,
+    "note": "计时与计数分离：正式 reps 不开任何 profile/插桩。difftest 逐位一致（golden 计数）是所有分数的前置门。"
+  },
+  "restart": { "max": 1, "auto": false },
+  "retention": {
+    "keep_loser_branches": true,
+    "note": "败者分支默认保留；run 收口时可 format-patch 归档到 tes/runs/<run>/archive/ 后删分支（需用户确认）。"
+  },
+  "paths": {
+    "exec_json": "build/logs/no0009/gsim_flat_export/SimTop.exec.json",
+    "coremark_bin": "testcase/xiangshan/ready-to-run/coremark-2-iteration.bin",
+    "nemu_so": "testcase/xiangshan/ready-to-run/riscv64-nemu-interpreter-so",
+    "difftest_dir": "testcase/xiangshan/difftest",
+    "gen_csrc_dir": "testcase/xiangshan/build/generated-src",
+    "dep_root": "build/dependency/root",
+    "gsim_emu": "build/xs/gsim-flat/emu",
+    "wolvrix_repo": "wolvrix",
+    "build_root": "build/tes"
+  }
+}

@@ -39,6 +39,11 @@
 ## Documentation Lessons
 - When describing IR or normalized forms (e.g., `kMemoryWritePort`), explicitly define each operand and show small input/output examples; do not assume the reader knows the intended normalization.
 
+## TES 实验系统（tes/）
+- `tes/` 是 grhsim-am 性能调优的 SimpleTES 式结构化搜索系统：状态机 + append-only 台账 + 无状态工作流，见 `tes/DESIGN.md`、`tes/RULES.md`；执行入口是项目级 skill `.agents/skills/tes/`。
+- 推进实验一律经由 `tes/tools/tesctl.py next` 给出的 action，每个 goal 只做一个 action；评估只走 `tes/tools/evaluate.py`（串行 flock + 绑核 + difftest 门）。
+- wolvrix 实验分支命名 `tes/<run>/...`（模型见 `tes/DESIGN.md` §5）；playground 不开分支，tes/ 进展在当前分支提交，不 bump wolvrix submodule 指针。
+
 ## Commit & Pull Request Guidelines
 - Commits follow conventional prefixes (`feat`, `fix`, `test`, `docs`, `chore`, `bump`); keep scopes brief (e.g., `feat: optimize slice emit`).
 - Keep changes atomic and include updated fixtures/docs when behavior shifts; run `ctest` and relevant `make run_hdlbits_test` targets before pushing.
