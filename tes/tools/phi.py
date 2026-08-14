@@ -187,24 +187,22 @@ def main() -> int:
 
     by_id = {e["eval_id"]: e for e in S}
     brief = (TASK_DIR / "brief.md").read_text(encoding="utf-8")
-    ev = cfg["eval"]
-    gsim_ms = (run["baselines"].get("gsim") or {}).get("host_ms_median")
+    protocol_file = TASK_DIR / "protocol.md"  # 任务自定义的评估协议文本，可选
     tstate = next(t for t in run["trajectories"] if t["id"] == tid)
 
     lines: list[str] = []
     lines.append(f"# Proposal {run_id}/{tid}/s{args.step:02d}（Φ 自动生成）\n")
     lines.append(f"- task: {args.task}  run: {run_id}  trajectory: {tid}  step: {args.step}/{cfg['search']['L']}")
     lines.append(f"- 轨迹主线分支: `{tstate['branch']}`  best: {json.dumps(tstate.get('best'))}")
-    if gsim_ms:
-        lines.append(f"- gsim target: {gsim_ms} ms（Host 中位）；AM 基线: "
-                     f"{(run['baselines'].get('am') or {}).get('host_ms_median')} ms")
+    for side, b in (run.get("baselines") or {}).items():
+        if b:
+            lines.append(f"- 基线 {side}: score {b.get('score')}"
+                         f"（host 中位 {b.get('host_ms_median')} ms，eval {b.get('eval_id')}）")
     lines.append("\n---\n\n## 任务指令（x0）\n")
     lines.append(brief)
-    lines.append("\n## 评估协议\n")
-    lines.append(f"- reps={ev['reps']}（CV≤{ev['cv_max']}，最多 {ev['max_reps']} rep），绑核 core {ev['core']}，"
-                 f"cycles={ev['cycles']}，单 rep 超时 {ev['rep_timeout_sec']}s")
-    lines.append(f"- 金标: instrCnt={ev['golden']['instrCnt']}, cycleCnt={ev['golden']['cycleCnt']}（difftest 逐位一致）")
-    lines.append(f"- emit 参数基线: {' '.join(ev['emit_args'])}")
+    if protocol_file.exists():
+        lines.append("\n## 评估协议\n")
+        lines.append(protocol_file.read_text(encoding="utf-8"))
     lines.append("\n## Φ 选中的历史节点（本轮 refinement 的出发材料）\n")
     if not selected:
         lines.append("-（无历史节点；本 step 从基线直接出发）")
@@ -230,8 +228,9 @@ def main() -> int:
                          f"（日志见 `{e.get('result_json')}`）")
     lines.append("\n## 本 step 任务\n")
     lines.append(f"设计并实现 **{K} 个互不相同的候选**（机制层面不同，不是同一想法的参数微调；"
-                 "可以包括 emit 参数旋钮组合）。每个候选：在各自 worktree 实施 → 提交到各自候选分支 → "
-                 "`evaluate.py` 串行评估 → `tesctl.py record-eval` 登记。全部完成后 `tesctl.py finish-step` 裁决。")
+                 "任务支持的可调旋钮见上方任务指令）。每个候选：在各自 worktree 实施 → 提交到各自"
+                 "候选分支 → 任务 evaluator 串行评估 → `tesctl.py record-eval` 登记。"
+                 "全部完成后 `tesctl.py finish-step` 裁决。")
     lines.append("\n## Φ 选择调试表（RPUCG）\n")
     lines.append("| node | score | U | ρ | n | RPUCG | selected |")
     lines.append("|---|---|---|---|---|---|---|")

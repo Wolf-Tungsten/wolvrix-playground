@@ -1,6 +1,17 @@
 {
-  "comment": "TES 任务 grhsim-am-coremark 的默认配置。run-init 时冻结进 runs/<run>/manifest.json；运行中改这里不影响活跃 run。",
+  "comment": "任务 grhsim-am-coremark 的默认配置。tesctl/phi 只认本文件的声明（repos/baseline_sides/inputs 等），不内置任何任务知识；run-init 时冻结进 runs/<run>/manifest.json。",
+  "repos": {
+    "target": "wolvrix",
+    "pin": ["reference/gsim", "testcase/xiangshan"],
+    "note": "target = 候选解所在仓库（tes 分支与 worktree 都在这里操作）；pin = 只读引用、run-init 记录 commit 进 manifest 的仓库。"
+  },
+  "inputs": [
+    { "name": "exec_json", "path": "build/logs/no0009/gsim_flat_export/SimTop.exec.json",
+      "note": "gsim 导出的 exec-GRH（全部候选共享的固定输入图）；run-init 时 sha256 写入 manifest" }
+  ],
   "baseline_sides": ["am", "gsim"],
+  "primary_baseline": "am",
+  "baseline_note": "am = 目标仓库基线的全流水线评估（evaluator.py run）；gsim = 对现存 emu 的协议化计时（evaluator.py gsim），作为要超越的 target。",
   "search": {
     "C": 3,
     "L": 8,
@@ -38,13 +49,12 @@
     "note": "败者分支默认保留；run 收口时可 format-patch 归档到 tes/<task>/runs/<run>/archive/ 后删分支（需用户确认）。"
   },
   "paths": {
-    "exec_json": "build/logs/no0009/gsim_flat_export/SimTop.exec.json",
     "coremark_bin": "testcase/xiangshan/ready-to-run/coremark-2-iteration.bin",
     "nemu_so": "testcase/xiangshan/ready-to-run/riscv64-nemu-interpreter-so",
     "difftest_dir": "testcase/xiangshan/difftest",
     "gen_csrc_dir": "testcase/xiangshan/build/generated-src",
     "dep_root": "build/dependency/root",
     "gsim_emu": "build/xs/gsim-flat/emu",
-    "wolvrix_repo": "wolvrix"
+    "note": "以下路径只被本任务的 evaluator.py 消费；tesctl/phi 不读 paths。"
   }
 }

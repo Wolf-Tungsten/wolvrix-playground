@@ -12,8 +12,8 @@ state/run.json + state/ledger.jsonl + runs/。本工具只读取/推进状态，
   tasks             列出所有任务及其状态
   status            人类可读的当前状态
   next              计算并展示下一个 action（--json 输出机器可读）
-  init-run          开新 run：冻结配置、建 wolvrix 分支、写 manifest 与 run.json
-  record-baseline   登记 AM/gsim 基线测量结果
+  init-run          开新 run：冻结配置、建目标仓库 tes 分支、写 manifest 与 run.json
+  record-baseline   登记基线测量结果（side 由任务 config 的 baseline_sides 定义）
   begin-step        开始一个 step：生成 Φ proposal、建候选分支与 worktree
   record-eval       登记一次评估结果（append ledger）
   finish-step       收口一个 step：裁决 winner、推进轨迹主线
@@ -118,17 +118,22 @@ def save_run(run: dict) -> None:
     save_json(run_json_path(), run)
 
 
-def git_wolvrix(*args: str) -> str:
+def target_repo() -> Path:
+    """候选解所在仓库（config repos.target）。"""
+    return REPO / load_config()["repos"]["target"]
+
+
+def git_target(*args: str) -> str:
     r = subprocess.run(
-        ["git", "-C", str(REPO / "wolvrix"), *args],
+        ["git", "-C", str(target_repo()), *args],
         check=True, capture_output=True, text=True,
     )
     return r.stdout.strip()
 
 
-def git_wolvrix_ok(*args: str) -> bool:
+def git_target_ok(*args: str) -> bool:
     return subprocess.run(
-        ["git", "-C", str(REPO / "wolvrix"), *args],
+        ["git", "-C", str(target_repo()), *args],
         capture_output=True,
     ).returncode == 0
 
@@ -137,15 +142,15 @@ def ensure_worktree(branch: str, start: str, wt_path: Path) -> None:
     """幂等建立候选 worktree：分支不存在则从 start 建分支+worktree；
     分支在但 worktree 不在则补 worktree；最后确保子模块已初始化（本地 reference，免网络）。
     这样 begin-step 在崩溃/中断后重入能补齐任何半成品现场。"""
-    if not git_wolvrix_ok("rev-parse", "--verify", branch):
-        git_wolvrix("worktree", "add", str(wt_path), "-b", branch, start)
+    if not git_target_ok("rev-parse", "--verify", branch):
+        git_target("worktree", "add", str(wt_path), "-b", branch, start)
     elif not wt_path.exists():
-        git_wolvrix("worktree", "add", str(wt_path), branch)
+        git_target("worktree", "add", str(wt_path), branch)
     status = subprocess.run(["git", "-C", str(wt_path), "submodule", "status"],
                             check=True, capture_output=True, text=True).stdout
     needs_init = [line[1:].split()[1] for line in status.splitlines() if line.startswith("-")]
     for sp in needs_init:
-        ref = REPO / "wolvrix" / sp
+        ref = target_repo() / sp
         cmd = ["git", "-C", str(wt_path), "submodule", "update", "--init"]
         if (ref / ".git").exists():  # gitfile 或目录皆可，exists() 都覆盖
             cmd += ["--reference", str(ref)]
@@ -305,27 +310,28 @@ def cmd_init_run(args) -> int:
             search[k] = getattr(args, k)
     frozen = {"search": search, "phi": cfg["phi"], "eval": cfg["eval"], "restart": cfg["restart"]}
 
-    # pin 现场：三个仓库的 commit
-    wolvrix_base = args.base_commit or git_wolvrix("rev-parse", "HEAD")
-    gsim_commit = subprocess.run(["git", "-C", str(REPO / "reference/gsim"), "rev-parse", "HEAD"],
-                                 check=True, capture_output=True, text=True).stdout.strip()
-    xs_commit = subprocess.run(["git", "-C", str(REPO / "testcase/xiangshan"), "rev-parse", "HEAD"],
-                               check=True, capture_output=True, text=True).stdout.strip()
+    # pin 现场：目标仓库基线 commit + config 声明的只读引用仓库
+    target_base = args.base_commit or git_target("rev-parse", "HEAD")
+    pin_commits = {}
+    for repo in cfg["repos"].get("pin", []):
+        pin_commits[repo] = subprocess.run(
+            ["git", "-C", str(REPO / repo), "rev-parse", "HEAD"],
+            check=True, capture_output=True, text=True).stdout.strip()
 
-    # 建 wolvrix 分支：base + C 条轨迹主线
+    # 建目标仓库分支：base + C 条轨迹主线
     base_branch = f"tes/{run_id}/base"
-    if git_wolvrix_ok("rev-parse", "--verify", base_branch):
+    if git_target_ok("rev-parse", "--verify", base_branch):
         print(f"[INFO] 分支 {base_branch} 已存在，复用")
     else:
-        git_wolvrix("branch", base_branch, wolvrix_base)
+        git_target("branch", base_branch, target_base)
     trajectories = []
     for i in range(search["C"]):
         tid = f"t{i}"
         # 主线用 .../main 叶分支：git ref 不能同时是文件与目录（t0 与 t0/s01-c1 冲突）
         br = f"tes/{run_id}/{tid}/main"
-        if not git_wolvrix_ok("rev-parse", "--verify", br):
-            git_wolvrix("branch", br, base_branch)
-        trajectories.append({"id": tid, "branch": br, "tip": wolvrix_base,
+        if not git_target_ok("rev-parse", "--verify", br):
+            git_target("branch", br, base_branch)
+        trajectories.append({"id": tid, "branch": br, "tip": target_base,
                              "steps_completed": 0, "best": None})
 
     manifest = {
@@ -335,12 +341,12 @@ def cmd_init_run(args) -> int:
         "config": frozen,
         "budget_N": search["C"] * search["L"] * search["K"],
         "pins": {
-            "wolvrix_base_commit": wolvrix_base,
-            "wolvrix_base_branch": base_branch,
-            "gsim_commit": gsim_commit,
-            "xiangshan_commit": xs_commit,
-            "exec_json": cfg["paths"]["exec_json"],
-            "exec_json_sha256": None,  # run-init action 里补测
+            "target_repo": cfg["repos"]["target"],
+            "target_base_commit": target_base,
+            "target_base_branch": base_branch,
+            "repos": pin_commits,
+            # run-init action 里对每个 input 补测 sha256 后回填
+            "inputs": [dict(i) for i in cfg.get("inputs", [])],
         },
         "baselines": {},
         "notes": [],
@@ -355,8 +361,8 @@ def cmd_init_run(args) -> int:
         "created_at": now_iso(),
         "config": frozen,
         "pins": manifest["pins"],
-        "baseline_sides": list(cfg.get("baseline_sides", ["am", "gsim"])),
-        "baselines": {s: None for s in cfg.get("baseline_sides", ["am", "gsim"])},
+        "baseline_sides": list(cfg.get("baseline_sides", ["base"])),
+        "baselines": {s: None for s in cfg.get("baseline_sides", ["base"])},
         "trajectories": trajectories,
         "current_step": None,
         "round_summaries_done": [],
@@ -366,7 +372,7 @@ def cmd_init_run(args) -> int:
         "history": [],
     }
     save_run(run)
-    print(f"[OK] [{task_name()}] run {run_id} 已初始化：base={wolvrix_base[:12]} 分支 {base_branch} + "
+    print(f"[OK] [{task_name()}] run {run_id} 已初始化：base={target_base[:12]} 分支 {base_branch} + "
           f"{search['C']} 条轨迹；N={manifest['budget_N']}")
     print("下一步：按 playbook 完成 run-init action（输入指纹 + 基线测量 + record-baseline）")
     return 0
@@ -379,10 +385,11 @@ def cmd_record_baseline(args) -> int:
         return 1
     result = load_json(REPO / args.result)
     side = args.side
+    primary = load_config().get("primary_baseline")
     entry = {
         "eval_id": result["eval_id"], "run": run["run_id"], "trajectory": None,
         "step": 0, "candidate": 0, "branch": None,
-        "commit": run["pins"]["wolvrix_base_commit"] if side == "am" else run["pins"].get("gsim_commit"),
+        "commit": run["pins"]["target_base_commit"] if side == primary else None,
         "proposal_nodes": [], "status": result["status"],
         "score": result.get("score"), "host_ms": result.get("host_ms"),
         "hypothesis": f"{side} baseline", "insight": args.insight or "",
@@ -394,9 +401,9 @@ def cmd_record_baseline(args) -> int:
                               "host_ms_median": (result.get("host_ms") or {}).get("median"),
                               "score": result.get("score")}
     run["counters"]["evals"] += 1
-    if side == "am" and result["status"] == "ok":
+    if side == primary and result["status"] == "ok":
         run["best_overall"] = {"eval_id": result["eval_id"], "score": result["score"],
-                               "commit": run["pins"]["wolvrix_base_commit"]}
+                               "commit": run["pins"]["target_base_commit"]}
     save_run(run)
     print(f"[OK] {side} 基线已登记: {result.get('score')} (eval {result['eval_id']})")
     return 0
@@ -481,7 +488,7 @@ def cmd_record_eval(args) -> int:
     if cand["status"] == "done":
         print(f"[FAIL] eval {result['eval_id']} 已登记过", file=sys.stderr)
         return 1
-    commit = git_wolvrix("rev-parse", cand["branch"]) if git_wolvrix_ok("rev-parse", "--verify", cand["branch"]) else None
+    commit = git_target("rev-parse", cand["branch"]) if git_target_ok("rev-parse", "--verify", cand["branch"]) else None
     entry = {
         "eval_id": result["eval_id"], "run": run["run_id"], "trajectory": cs["trajectory"],
         "step": cs["step"], "candidate": cand["k"], "branch": cand["branch"], "commit": commit,
@@ -529,7 +536,7 @@ def cmd_finish_step(args) -> int:
     if ok:
         winner = max(ok, key=lambda e: e["score"])
         # winner 合入轨迹主线（移动分支指针 = fast-forward；主线分支从不被 checkout）
-        git_wolvrix("branch", "-f", t["branch"], winner["branch"])
+        git_target("branch", "-f", t["branch"], winner["branch"])
         t["tip"] = winner["commit"]
         if t.get("best") is None or winner["score"] > t["best"]["score"]:
             t["best"] = {"eval_id": winner["eval_id"], "score": winner["score"]}

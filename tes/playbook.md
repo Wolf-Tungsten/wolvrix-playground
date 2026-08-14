@@ -1,9 +1,11 @@
-# TES action playbook
+# TES action playbook（方法层，任务无关）
 
-每个 action 的逐步操作。命令默认在 playground 仓库根执行；`<task>` = 任务目录名
-（如 `grhsim-am-coremark`），`tesctl.py` = `python3 tes/tools/tesctl.py`
-（单任务时省略 `--task`，多任务歧义时加 `--task <task>`）。
-任务专属评估器为 `tes/<task>/evaluator.py`，下同。
+每个 action 的通用步骤。命令默认在 playground 仓库根执行；`tesctl.py` =
+`python3 tes/tools/tesctl.py`（单任务时省略 `--task`，多任务歧义时加 `--task <task>`）。
+
+**任务契约**：每个任务目录 `tes/<task>/` 自带 `evaluator.py`（评估器）与
+`playbook.md`（任务专属操作细节：基线怎么测、候选怎么评估、有哪些旋钮）。
+本文件只描述与任务无关的 action 生命周期；具体命令以任务 playbook 为准。
 
 ## run-init / baseline
 
@@ -13,51 +15,37 @@
 1. 初始化结构（用户在 goal 上下文给了 C/L/K 时用 `--C/--L/--K` 覆盖；restart 时加
    `--base-commit <上一 run 最佳 commit>`）：
    `python3 tes/tools/tesctl.py init-run`
-   它会：冻结配置到 `tes/<task>/runs/<run>/manifest.json`、建 wolvrix 分支
-   `tes/<run>/base` 与 `tes/<run>/t0..t(C-1)/main`、pin 三仓库 commit。
-2. 输入指纹：`sha256sum build/logs/no0009/gsim_flat_export/SimTop.exec.json`（~3.2GB，
-   约 10-30s），把值写入 manifest 与 `tes/<task>/state/run.json` 的
-   `pins.exec_json_sha256`（这是唯一允许手改 run.json 的场景）。
-3. AM 基线（y0）：
-   - `git -C wolvrix worktree add build/tes/<task>/src/base-<run> tes/<run>/base`
-     `git -C build/tes/<task>/src/base-<run> submodule update --init --reference .../wolvrix/external/<name>`
-     （三个子模块逐个 --reference 主 checkout，避免网络 clone；或直接信赖 tesctl
-     begin-step 同款的 ensure_worktree 逻辑——手工建则用同样命令。）
-   - `python3 tes/<task>/evaluator.py run --worktree build/tes/<task>/src/base-<run> --eval-id e00001 --compile-budget-sec 5400`
-     （首次评估预热 ccache，wolvrix 全量构建较慢属正常；全程约 40-60min。AM 基线允许
-     一次性放宽编译预算到 90min 以容纳冷 ccache；实测 compile_s 要记进 insights.md，
-     之后所有候选一律按 40min 预算执行。）
-   - `python3 tes/tools/tesctl.py record-baseline --side am --result build/tes/<task>/evals/e00001/result.json --insight "<一句话>"`
-4. gsim 基线（target）：
-   - `python3 tes/<task>/evaluator.py gsim --eval-id e00002`
-   - `python3 tes/tools/tesctl.py record-baseline --side gsim --result build/tes/<task>/evals/e00002/result.json --insight "<一句话>"`
-   - 若 `build/xs/gsim-flat/emu` 不存在：停止并报告用户（tes 不自行构建 gsim）。
-5. 在 `tes/<task>/state/insights.md` 追加：双基线数值、ratio、与 emit-cost 系列最新
-   Host（NO0018: 324.0s）的对照、起点判断。
-6. 按 goal.md 固定流程第 3-7 步收口（action 笔记写清 ratio 与差距分解的初步判断）。
+   它会：冻结配置到 `tes/<task>/runs/<run>/manifest.json`、在**目标仓库**
+   （config `repos.target`）建分支 `tes/<run>/base` 与 `tes/<run>/t0..t(C-1)/main`、
+   pin `repos.pin` 声明的只读仓库 commit、登记 `inputs` 清单。
+2. 输入指纹：对 manifest `pins.inputs` 的每一项跑 `sha256sum`，把值回填到 manifest
+   与 `tes/<task>/state/run.json` 的对应 `pins.inputs[].sha256`
+   （这是唯一允许手改 run.json 的场景）。
+3. 按**任务 playbook** 的基线流程，对 config `baseline_sides` 的每一侧各测一次并登记：
+   `python3 tes/tools/tesctl.py record-baseline --side <side> --result <result.json 路径> --insight "<一句话>"`
+   基线 eval-id 从 e00001 起顺序分配。
+4. 在 `tes/<task>/state/insights.md` 追加：各侧基线数值、与既有记录的对照、起点判断。
+5. 按 goal.md 固定流程第 3-7 步收口。
 
 ## step / step-resume（finish-step 同节）
 
-对应 `next` = `step` / `step-resume` / `finish-step`。核心开销：K × ~40min。
+对应 `next` = `step` / `step-resume` / `finish-step`。
 
 1. `python3 tes/tools/tesctl.py begin-step`（step-resume 跳过此步）。
    产物：proposal `tes/<task>/proposals/<run>-<t>-sNN.md`、候选分支
-   `tes/<run>/<t>/sNN-c{1..K}`、worktree `build/tes/<task>/src/e*-*c{1..K}`（含子模块）。
+   `tes/<run>/<t>/sNN-c{1..K}`、目标仓库 worktree `build/tes/<task>/src/e*-*c{1..K}`。
 2. 通读 proposal（Φ 选中的历史节点、否决清单、失败摘要）与
    `tes/<task>/state/insights.md`。
 3. 设计 **K 个机制互异**的候选，每个先写下可证伪的一句话假设。
 4. 对每个候选（严格串行、一次一个）：
-   a. 在其 worktree 实施；emit 旋钮类候选不改代码，把旋钮记进假设即可。
+   a. 在其 worktree 实施（旋钮类候选不改代码，把旋钮记进假设）。
    b. 提交到候选分支：`git -C <worktree> add -A && git -C <worktree> commit -m "tes(<run>/<t>/sNN): c<k> <假设>"`。
-      （旋钮类候选无代码改动时用 allow-empty 说明性 commit，保证分支可定位。）
-   c. 评估：`python3 tes/<task>/evaluator.py run --worktree <worktree> --eval-id <eNNNNN>`；
-      旋钮候选加 `--emit-args "<覆盖参数>"`。
-   d. 登记：`python3 tes/tools/tesctl.py record-eval --result build/tes/<task>/evals/<eNNNNN>/result.json --hypothesis "<假设>" --insight "<结果一句话>"`
-   e. 评估失败（build/emit/ctest/difftest/timeout/compile_timeout/interference）同样
-      record-eval；`interference` 表示有外部干扰，排除后用同一 eval-id 重跑评估再登记
-      （重复登记同一 eval-id 会被拒绝：先把 result.json 里的新结果准备好再登记一次即可，
-      若已登记过失败记录，则保留原记录、在 action 笔记里说明重测结果）。
-      `compile_timeout`（编译流程累计超 40min 预算）是正常失败判定，不重跑。
+      （无代码改动时用 `--allow-empty` 说明性 commit，保证分支可定位。）
+   c. 按**任务 playbook** 的候选评估命令评估（用 begin-step 分配的 eval-id）。
+   d. 登记：`python3 tes/tools/tesctl.py record-eval --result <result.json> --hypothesis "<假设>" --insight "<结果一句话>"`
+   e. 失败状态（build/emit/ctest/difftest/timeout/compile_timeout 等）同样 record-eval；
+      `interference` 表示有外部干扰，排除后重跑该候选（同一 eval-id 覆盖 result.json
+      再登记；已登记过的失败记录保留，在 action 笔记里说明重测）。
 5. `python3 tes/tools/tesctl.py finish-step`：winner 快移入轨迹主线；全失败则轨迹
    原地消耗一步（预算语义）。
 6. action 笔记必须含：K 个候选的假设/结果对比表、winner 裁决、机制分析
@@ -76,7 +64,7 @@
 
 对应 `next` = `run-summary`。无评估开销。
 
-1. 汇总整个 run：各轨迹分数曲线、best_overall、vs target 的 ratio。
+1. 汇总整个 run：各轨迹分数曲线、best_overall、vs 参照基线的差距。
 2. 写 `tes/<task>/runs/<run>/summary.md`（含 restart 建议：y0 候选 commit、建议的新
    C/L/K）+ action 笔记；更新 insights.md。
 3. `python3 tes/tools/tesctl.py close-run`。

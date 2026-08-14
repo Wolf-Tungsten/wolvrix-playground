@@ -32,6 +32,7 @@ REPO = TASK_DIR.parents[1]                           # playground 根
 CONFIG = json.loads((TASK_DIR / "config.json").read_text(encoding="utf-8"))
 PATHS = CONFIG["paths"]
 EVAL_CFG = CONFIG["eval"]
+EXEC_JSON = next(i["path"] for i in CONFIG["inputs"] if i["name"] == "exec_json")
 BUILD_ROOT = REPO / "build" / "tes"                  # 全局：LOCK、ccache
 BUILD_TASK = BUILD_ROOT / TASK                       # 本任务：evals/、src/
 
@@ -222,7 +223,7 @@ def evaluate_candidate(worktree: Path, eval_id: str, emit_args_override: list[st
     # 3. emit
     emit_args = emit_args_override if emit_args_override is not None else EVAL_CFG["emit_args"]
     rc, dur = sh([str(wbuild / "bin" / "grhsim-am-lower-json"),
-                  str(REPO / PATHS["exec_json"]), "SimTop", "--schedule",
+                  str(REPO / EXEC_JSON), "SimTop", "--schedule",
                   "--emit", str(emit_dir), *emit_args],
                  evdir / "emit.log", timeout=phase_timeout(),
                  env_extra={"WOLVRIX_GRHSIM_AM_BLOCK_ATOM_JSONL": str(evdir / "block_atom.jsonl")})

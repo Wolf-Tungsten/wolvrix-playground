@@ -14,6 +14,8 @@
 ## 本任务构成
 
 - `brief.md` — 常驻任务指令（目标、硬约束、已知机制背景）
+- `protocol.md` — 评估协议（Φ 会原样内联进每个 proposal）
+- `playbook.md` — 任务专属操作细节（基线流程、候选评估命令、结果解读）
 - `config.json` — 默认参数与路径（run-init 冻结）
 - `evaluator.py` — 评估器 V：`run`（候选/基线全流水线）与 `gsim`（现存 emu 协议化计时）两模式
 - `state/` — `run.json`、`ledger.jsonl`（append-only）、`insights.md`

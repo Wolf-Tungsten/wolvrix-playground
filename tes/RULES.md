@@ -1,6 +1,7 @@
 # TES 运行规则
 
-约束 tes/ 目录的记录方式与实验执行纪律。范式沿用 `pdocs/grh-notepad/RULES.md` 的
+约束 tes/ 目录的记录方式与实验执行纪律（方法层，任务无关；各任务自己的门定义与
+操作细节在 `tes/<task>/` 内）。范式沿用 `pdocs/grh-notepad/RULES.md` 的
 append-only 精神，差异：tes/ 是机器可读的执行状态 + 人读的分析记录的混合系统。
 
 ## 1. 测量纪律（硬约束，由 evaluate.py 强制执行的部分不赘述）
@@ -13,20 +14,16 @@ append-only 精神，差异：tes/ 是机器可读的执行状态 + 人读的分
   插桩；profiling 如需做，另开不计时的分析 pass。
 - 构建负载与计时严格分离：评估内任何并行构建完成后才进入计时阶段；goal 会话不得
   在评估计时阶段发起任何其他编译/仿真任务。
-- 功能门不可协商：每 rep 退出码 0 且计数等于任务 config 的 golden（本任务
-  instrCnt=73,580 / cycleCnt=49,996），否则候选判 `difftest_fail`，无论多快都不得入选。
-- 编译预算不可协商：cmake→emu 二进制就绪累计墙钟 ≤ `eval.compile_budget_sec`
-  （默认 40min），超预算判 `compile_timeout`，不进入计时阶段。唯一例外：run-init 的
-  AM 基线（冷 ccache 首次全量构建），playbook 允许一次性放宽并在 insights.md 记录实测值。
-- 回归门：`ctest -R grhsim` 全绿。既有失败项（transform-comb-lane-pack / repcut）
-  与 grhsim 无关，不在门内；新增失败即 `ctest_fail`。
+- 门不可协商：各任务的功能门/回归门/预算门定义在任务层（brief.md + protocol.md +
+  config.json），由任务 evaluator 硬执行；未过门的候选无论分数多好都判失败。
+  门的豁免条款（若有）只能写在任务 playbook 里并同步记录到 insights.md。
 
 ## 2. 状态与记录规则
 
 - `tes/<task>/state/ledger.jsonl` **只追加**：评估结果、commit-marker 一经写入不得
   修改；修正以新条目 + 勘误说明形式追加。
 - `tes/<task>/state/run.json` 只能由 tesctl.py 或 phi.py 写；人/agent 不手改
-  （唯一例外：run-init 时补写 `pins.exec_json_sha256`，见 playbook）。
+  （唯一例外：run-init 时回填 `pins.inputs[].sha256`，见 playbook）。
 - action 笔记：`tes/<task>/actions/Axxxx_<类型>_<主题>_<YYYYMMDD>.md`，Axxxx 按任务
   递增、不复用；内容 = 本 action 做了什么、各候选结果、裁决、机制分析、对下一 step 的
   建议。追加不覆盖，同 pdocs 惯例。
@@ -37,20 +34,20 @@ append-only 精神，差异：tes/ 是机器可读的执行状态 + 人读的分
 
 ## 3. git 纪律
 
-- wolvrix 分支只按 DESIGN.md §5 的命名模型创建；轨迹主线只用 `branch -f` 移动，
+- 目标仓库的 tes 分支只按 DESIGN.md §5 的命名模型创建；轨迹主线只用 `branch -f` 移动，
   永不 checkout 到任何 worktree（候选分支才允许 checkout）。worktree 一律在
   `build/tes/<task>/src/` 下。
-- 不在 tes 流程里改动 wolvrix 主工作目录（`wolvrix/` 的 checkout 属于用户开发现场）。
+- 不在 tes 流程里改动目标仓库的主 checkout（属于用户开发现场）。
 - 不 push、不删分支、不删 worktree，除非用户当场确认。
-- reference/gsim 与 testcase/xiangshan 只读引用（pin commit 记录进 manifest），不在
-  tes 流程里修改它们；若必须改 gsim（如加插桩），走 pdocs 既有人工流程。
-- playground 不开分支；tes/ 的提交不 bump wolvrix submodule 指针。
+- manifest `pins.repos` 里的仓库只读引用，不在 tes 流程里修改；若必须改，走 tes 之外
+  的既有人工流程并在任务 insights.md 记录。
+- playground 不开分支；tes/ 的提交不 bump 任何 submodule 指针。
 
 ## 4. 忠实性规则（对 SimpleTES 语义的守护）
 
 - run 内轨迹独立：proposal 不得引用其他轨迹的评估结果（round-summary 是给人看的，
   不回流进 proposal）。跨轨迹学习只发生在 restart。
-- K 个候选必须机制互异；若实在想不出第二个机制，候选可以是「emit 旋钮组合」或
+- K 个候选必须机制互异；若实在想不出第二个机制，候选可以是「任务暴露的调参旋钮组合」或
   「同一机制的不同实现策略」，但必须在 action 笔记里说明多样性妥协。
 - 预算用尽（evals = N）或 L 步跑完即 run-summary；不得在 run 中途改 C/L/K。
 - 失败候选同样是信息：必须登记 ledger 并在失败摘要中可见，不许悄悄丢弃。

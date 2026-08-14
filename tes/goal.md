@@ -22,7 +22,7 @@
    机制分析、对下一步的建议。
 4. 更新 `tes/<task>/README.md` 的「当前状态速览」与 `tes/README.md` 的任务索引行。
 5. 登记：`python3 tes/tools/tesctl.py action-done --type <类型> --note tes/<task>/actions/Axxxx_....md`。
-6. 提交 playground 当前分支（不 bump wolvrix submodule 指针）：
+6. 提交 playground 当前分支（不 bump 任何 submodule 指针）：
    `git add tes/ && git commit -m "tes(<task>/<run>): <一句话>"`。
 7. 向用户汇报本 action 结果与下一个 action 预告，停止。
 
@@ -30,17 +30,17 @@
 
 上述 1-7 全部完成，即 goal 达成。任一环节失败且 playbook 无恢复路径时，
 把现场与失败原因写进 action 笔记并提交，然后报告阻塞——不许绕过状态机手工修补
-`run.json`（唯一例外：run-init 里补写 `pins.exec_json_sha256`，见 playbook）。
+`run.json`（唯一例外：run-init 里回填 `pins.inputs[].sha256`，见 playbook）。
 
 ## 绝对纪律（违反即破坏实验有效性）
 
 - 评估严格串行：只走任务自带的 `tes/<task>/evaluator.py`（内置 flock + 干扰守卫 +
-  绑核 + difftest 金标门）。不得手工跑计时，不得在评估计时阶段并发任何构建/仿真负载。
-- 功能门一票否决：difftest 计数不符的候选无论多快都判失败。
+  绑核 + 任务功能门）。不得手工跑计时，不得在评估计时阶段并发任何构建/仿真负载。
+- 功能门一票否决：未过任务功能门（见任务 brief/protocol，evaluator 硬执行）的候选
+  无论分数多好都判失败。
 - run 内轨迹独立：proposal 不引用其他轨迹的结果；跨轨迹学习只发生在 restart。
-- wolvrix 主工作目录（`wolvrix/` checkout）是用户开发现场，tes 一律在
+- 任务目标仓库（config `repos.target`）的主 checkout 是用户开发现场，tes 一律在
   `build/tes/<task>/src/` 的 worktree 里动代码。
-- 不 push、不删分支/worktree、不改 `reference/gsim` 与 `testcase/xiangshan`，
-  除非用户当场确认。
+- 不 push、不删分支/worktree、不改 manifest 里 pin 的只读仓库，除非用户当场确认。
 - ledger.jsonl 只追加；action 笔记只追加；manifest/proposal 不修改。
 - 一个 goal 只推进一个 action。

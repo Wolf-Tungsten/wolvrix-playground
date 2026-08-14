@@ -77,8 +77,9 @@ Action 类型（括号内为评估查询开销）：
 中断恢复：step 内每个候选评估完成即落 ledger；goal 中断后下一个 goal 以
 `step-resume` 续跑剩余候选，不重跑已完成者。
 
-## 5. 分支模型（wolvrix 仓库；playground 不开分支）
+## 5. 分支模型（任务目标仓库；playground 不开分支）
 
+分支建在任务的目标仓库（config `repos.target`，当前任务为 `wolvrix`）。
 命名规范（全部带 `tes/` 前缀，避免与开发分支混淆）：
 
 - `tes/<run>/base` —— run 起点快照，run 期间不移动。例：`tes/r001/base`
