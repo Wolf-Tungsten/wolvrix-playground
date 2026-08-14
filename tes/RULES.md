@@ -15,6 +15,9 @@ append-only 精神，差异：tes/ 是机器可读的执行状态 + 人读的分
   在评估计时阶段发起任何其他编译/仿真任务。
 - 功能门不可协商：每 rep 退出码 0 且计数等于任务 config 的 golden（本任务
   instrCnt=73,580 / cycleCnt=49,996），否则候选判 `difftest_fail`，无论多快都不得入选。
+- 编译预算不可协商：cmake→emu 二进制就绪累计墙钟 ≤ `eval.compile_budget_sec`
+  （默认 40min），超预算判 `compile_timeout`，不进入计时阶段。唯一例外：run-init 的
+  AM 基线（冷 ccache 首次全量构建），playbook 允许一次性放宽并在 insights.md 记录实测值。
 - 回归门：`ctest -R grhsim` 全绿。既有失败项（transform-comb-lane-pack / repcut）
   与 grhsim 无关，不在门内；新增失败即 `ctest_fail`。
 

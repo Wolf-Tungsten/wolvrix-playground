@@ -153,41 +153,69 @@ def build_env_extra() -> dict:
     }
 
 
-def evaluate_candidate(worktree: Path, eval_id: str, emit_args_override: list[str] | None) -> dict:
+def evaluate_candidate(worktree: Path, eval_id: str, emit_args_override: list[str] | None,
+                       compile_budget_sec: int) -> dict:
     evdir = BUILD_TASK / "evals" / eval_id
     wbuild, emit_dir, emu_build, run_dir = (evdir / d for d in ("wbuild", "emit", "emu_build", "run"))
     for d in (wbuild, emit_dir, emu_build, run_dir):
         d.mkdir(parents=True, exist_ok=True)
     logs = {"dir": str(evdir.relative_to(REPO))}
     result: dict = {"eval_id": eval_id, "worktree": str(worktree), "started_at": now_iso(),
-                    "status": "ok", "logs": logs}
+                    "status": "ok", "logs": logs,
+                    "compile_budget_sec": compile_budget_sec}
 
     commit = subprocess.run(["git", "-C", str(worktree), "rev-parse", "HEAD"],
                             capture_output=True, text=True)
     result["commit"] = commit.stdout.strip() if commit.returncode == 0 else None
+
+    # 编译流程总预算：从 cmake 到 emu 二进制就绪的累计墙钟，超预算即 compile_timeout。
+    # 计时 reps 不计入预算（预算是对「代码生成 + 编译」成本的约束）。
+    t0 = time.monotonic()
+    outer = EVAL_CFG["build_timeout_sec"]  # 单阶段兜底超时（远大于预算，仅防挂死）
+
+    def remaining() -> float:
+        return compile_budget_sec - (time.monotonic() - t0)
+
+    def phase_timeout() -> int:
+        return max(1, int(min(outer, remaining())))
+
+    def check_budget(phase: str, rc: int) -> bool:
+        """返回 True = 因预算/超时应判 compile_timeout。"""
+        if rc == 124 or remaining() <= 0:
+            result.update(status="compile_timeout", phase=phase,
+                          compile_s=round(time.monotonic() - t0, 1))
+            return True
+        result["compile_s"] = round(time.monotonic() - t0, 1)
+        return False
 
     # 1. wolvrix 构建
     cmake_args = ["-S", str(worktree), "-B", str(wbuild),
                   "-DCMAKE_BUILD_TYPE=Release", "-G", "Unix Makefiles"]
     if shutil.which("ccache"):
         cmake_args += ["-DCMAKE_CXX_COMPILER_LAUNCHER=ccache", "-DCMAKE_C_COMPILER_LAUNCHER=ccache"]
-    rc, dur = sh(["cmake", *cmake_args], evdir / "cmake.log", timeout=EVAL_CFG["build_timeout_sec"])
+    rc, dur = sh(["cmake", *cmake_args], evdir / "cmake.log", timeout=phase_timeout())
     if rc != 0:
+        if check_budget("cmake", rc):
+            return result
         result.update(status="build_fail", phase="cmake")
         return result
     rc, dur = sh(["cmake", "--build", str(wbuild), "-j", str(os.cpu_count() or 8)],
-                 evdir / "build.log", timeout=EVAL_CFG["build_timeout_sec"])
+                 evdir / "build.log", timeout=phase_timeout())
     result.setdefault("timings", {})["wolvrix_build_s"] = round(dur, 1)
     if rc != 0:
+        if check_budget("build", rc):
+            return result
         result.update(status="build_fail", phase="build")
         return result
 
     # 2. ctest 回归门
     if EVAL_CFG["ctest_gate"]:
         rc, _ = sh(["ctest", "--test-dir", str(wbuild), "-R", EVAL_CFG["ctest_regex"],
-                    "--output-on-failure"], evdir / "ctest.log", timeout=3600)
+                    "--output-on-failure"], evdir / "ctest.log", timeout=phase_timeout())
         result["gates"] = {"ctest": rc == 0}
         if rc != 0:
+            if check_budget("ctest", rc):
+                return result
             result.update(status="ctest_fail", phase="ctest")
             return result
 
@@ -196,11 +224,13 @@ def evaluate_candidate(worktree: Path, eval_id: str, emit_args_override: list[st
     rc, dur = sh([str(wbuild / "bin" / "grhsim-am-lower-json"),
                   str(REPO / PATHS["exec_json"]), "SimTop", "--schedule",
                   "--emit", str(emit_dir), *emit_args],
-                 evdir / "emit.log", timeout=EVAL_CFG["build_timeout_sec"],
+                 evdir / "emit.log", timeout=phase_timeout(),
                  env_extra={"WOLVRIX_GRHSIM_AM_BLOCK_ATOM_JSONL": str(evdir / "block_atom.jsonl")})
     result["timings"]["emit_s"] = round(dur, 1)
     result["emit_args"] = emit_args
     if rc != 0 or not (emit_dir / "Makefile").exists():
+        if check_budget("emit", rc):
+            return result
         result.update(status="emit_fail", phase="emit")
         return result
 
@@ -213,13 +243,16 @@ def evaluate_candidate(worktree: Path, eval_id: str, emit_args_override: list[st
                   "WOLVRIX_GRHSIM_WAVEFORM=0",
                   f"VM_BUILD_JOBS={EVAL_CFG['vm_build_jobs']}",
                   "WITH_CHISELDB=0", "WITH_CONSTANTIN=0"],
-                 evdir / "emu_build.log", timeout=EVAL_CFG["build_timeout_sec"],
+                 evdir / "emu_build.log", timeout=phase_timeout(),
                  env_extra=build_env_extra())
     result["timings"]["emu_build_s"] = round(dur, 1)
     emu_real = emu_build / "grhsim-compile" / "emu"
     if rc != 0 or not emu_real.exists():
+        if check_budget("emu_build", rc):
+            return result
         result.update(status="build_fail", phase="emu_build")
         return result
+    result["compile_s"] = round(time.monotonic() - t0, 1)
 
     # 5. 计时 reps（优先从 emu 构建目录用根符号链运行，与历史脚本一致）
     if (emu_build / "emu").exists():
@@ -254,6 +287,8 @@ def main() -> int:
     p.add_argument("--eval-id", required=True)
     p.add_argument("--emit-args", default=None,
                    help="覆盖 config 的 emit_args（单个字符串，内部按空白切分）")
+    p.add_argument("--compile-budget-sec", type=int, default=None,
+                   help="覆盖 config 的编译流程总预算（秒）；超预算判 compile_timeout")
     p = sub.add_parser("gsim")
     p.add_argument("--eval-id", required=True)
     args = ap.parse_args()
@@ -272,7 +307,8 @@ def main() -> int:
             if not wt.is_absolute():
                 wt = REPO / wt
             override = args.emit_args.split() if args.emit_args else None
-            result = evaluate_candidate(wt, args.eval_id, override)
+            budget = args.compile_budget_sec or EVAL_CFG["compile_budget_sec"]
+            result = evaluate_candidate(wt, args.eval_id, override, budget)
         else:
             result = evaluate_gsim(args.eval_id)
 

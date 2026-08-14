@@ -23,8 +23,10 @@
      `git -C build/tes/<task>/src/base-<run> submodule update --init --reference .../wolvrix/external/<name>`
      （三个子模块逐个 --reference 主 checkout，避免网络 clone；或直接信赖 tesctl
      begin-step 同款的 ensure_worktree 逻辑——手工建则用同样命令。）
-   - `python3 tes/<task>/evaluator.py run --worktree build/tes/<task>/src/base-<run> --eval-id e00001`
-     （首次评估预热 ccache，wolvrix 全量构建较慢属正常；全程约 40-60min）
+   - `python3 tes/<task>/evaluator.py run --worktree build/tes/<task>/src/base-<run> --eval-id e00001 --compile-budget-sec 5400`
+     （首次评估预热 ccache，wolvrix 全量构建较慢属正常；全程约 40-60min。AM 基线允许
+     一次性放宽编译预算到 90min 以容纳冷 ccache；实测 compile_s 要记进 insights.md，
+     之后所有候选一律按 40min 预算执行。）
    - `python3 tes/tools/tesctl.py record-baseline --side am --result build/tes/<task>/evals/e00001/result.json --insight "<一句话>"`
 4. gsim 基线（target）：
    - `python3 tes/<task>/evaluator.py gsim --eval-id e00002`
@@ -51,10 +53,11 @@
    c. 评估：`python3 tes/<task>/evaluator.py run --worktree <worktree> --eval-id <eNNNNN>`；
       旋钮候选加 `--emit-args "<覆盖参数>"`。
    d. 登记：`python3 tes/tools/tesctl.py record-eval --result build/tes/<task>/evals/<eNNNNN>/result.json --hypothesis "<假设>" --insight "<结果一句话>"`
-   e. 评估失败（build/emit/ctest/difftest/timeout/interference）同样 record-eval；
-      `interference` 表示有外部干扰，排除后用同一 eval-id 重跑评估再登记
+   e. 评估失败（build/emit/ctest/difftest/timeout/compile_timeout/interference）同样
+      record-eval；`interference` 表示有外部干扰，排除后用同一 eval-id 重跑评估再登记
       （重复登记同一 eval-id 会被拒绝：先把 result.json 里的新结果准备好再登记一次即可，
       若已登记过失败记录，则保留原记录、在 action 笔记里说明重测结果）。
+      `compile_timeout`（编译流程累计超 40min 预算）是正常失败判定，不重跑。
 5. `python3 tes/tools/tesctl.py finish-step`：winner 快移入轨迹主线；全失败则轨迹
    原地消耗一步（预算语义）。
 6. action 笔记必须含：K 个候选的假设/结果对比表、winner 裁决、机制分析

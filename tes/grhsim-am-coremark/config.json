@@ -29,7 +29,8 @@
     "golden": { "instrCnt": 73580, "cycleCnt": 49996 },
     "emit_args": ["--block-chunk-instructions", "3000"],
     "vm_build_jobs": 16,
-    "note": "计时与计数分离：正式 reps 不开任何 profile/插桩。difftest 逐位一致（golden 计数）是所有分数的前置门。"
+    "compile_budget_sec": 2400,
+    "note": "计时与计数分离：正式 reps 不开任何 profile/插桩。difftest 逐位一致（golden 计数）是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout（不进入计时）；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。"
   },
   "restart": { "max": 1, "auto": false },
   "retention": {
