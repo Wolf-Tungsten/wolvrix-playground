@@ -100,9 +100,12 @@
     {
       "id": "t1",
       "branch": "tes/r001/t1/main",
-      "tip": "a88e7a234b7fd1055cee13f15fda146a509271ca",
-      "steps_completed": 0,
-      "best": null
+      "tip": "b798b9dc6e4faefef5d8aea2b7b92939f2ffa44c",
+      "steps_completed": 1,
+      "best": {
+        "eval_id": "e00006",
+        "score": -270502
+      }
     },
     {
       "id": "t2",
@@ -115,16 +118,16 @@
   "current_step": null,
   "round_summaries_done": [],
   "counters": {
-    "actions": 2,
-    "evals": 4
+    "actions": 3,
+    "evals": 6
   },
   "best_overall": {
-    "eval_id": "e00004",
-    "score": -271095,
-    "commit": "1bae6a4287e36b47406ee0e196f3038e0be48a04"
+    "eval_id": "e00006",
+    "score": -270502,
+    "commit": "b798b9dc6e4faefef5d8aea2b7b92939f2ffa44c"
   },
   "phi_selection_counts": {
-    "e00001": 1
+    "e00001": 2
   },
   "history": [
     {
@@ -138,6 +141,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0002_step_t0s01_chunk与branchy探针_20260814.md",
       "ts": "2026-08-14T20:35:49+08:00"
+    },
+    {
+      "n": 3,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0003_step_t1s01_布局与胶双攻坚_20260814.md",
+      "ts": "2026-08-15T00:03:42+08:00"
     }
   ]
 }

@@ -21,7 +21,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 搜索中 | t0/s01 收口：best 271.1s（branchy-mux，-0.74%）；基线 AM 273.1s vs gsim 24.7s（11.06x），t1/s01 待启动（2026-08-14） |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 搜索中 | t1/s01 收口：best 270.5s（resize-elision，-0.95%）；亲和布局 compile_timeout（init-布局耦合，可修复重测）；基线 AM 273.1s vs gsim 24.7s（11.06x），t2/s01 待启动（2026-08-15） |
 
 ## 共享件
 
