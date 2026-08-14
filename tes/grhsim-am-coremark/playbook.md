@@ -9,9 +9,11 @@
 AM 基线（y0，目标仓库基线 commit 的全流水线）：
 
 ```bash
-git -C wolvrix worktree add build/tes/grhsim-am-coremark/src/base-<run> tes/<run>/base
-git -C build/tes/grhsim-am-coremark/src/base-<run> submodule update --init \
-  --reference "$PWD/wolvrix/external/slang" -- external/slang   # mt-kahypar / libfst 同理
+# 注意：worktree 路径必须给绝对路径（git -C wolvrix 下相对路径会落进 wolvrix/ 内部）
+git -C wolvrix worktree add "$PWD/build/tes/grhsim-am-coremark/src/base-<run>" tes/<run>/base
+cd build/tes/grhsim-am-coremark/src/base-<run> && for m in external/slang external/mt-kahypar external/libfst; do
+  git submodule update --init --reference "$OLDPWD/wolvrix/$m" -- "$m"
+done && cd "$OLDPWD"
 python3 tes/grhsim-am-coremark/evaluator.py run \
   --worktree build/tes/grhsim-am-coremark/src/base-<run> \
   --eval-id e00001 --compile-budget-sec 5400

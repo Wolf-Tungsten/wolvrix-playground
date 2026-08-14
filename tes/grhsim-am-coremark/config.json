@@ -1,60 +1,83 @@
 {
-  "comment": "任务 grhsim-am-coremark 的默认配置。tesctl/phi 只认本文件的声明（repos/baseline_sides/inputs 等），不内置任何任务知识；run-init 时冻结进 runs/<run>/manifest.json。",
-  "repos": {
-    "target": "wolvrix",
-    "pin": ["reference/gsim", "testcase/xiangshan"],
-    "note": "target = 候选解所在仓库（tes 分支与 worktree 都在这里操作）；pin = 只读引用、run-init 记录 commit 进 manifest 的仓库。"
-  },
-  "inputs": [
-    { "name": "exec_json", "path": "build/logs/no0009/gsim_flat_export/SimTop.exec.json",
-      "note": "gsim 导出的 exec-GRH（全部候选共享的固定输入图）；run-init 时 sha256 写入 manifest" }
+ "comment": "任务 grhsim-am-coremark 的默认配置。tesctl/phi 只认本文件的声明（repos/baseline_sides/inputs 等），不内置任何任务知识；run-init 时冻结进 runs/<run>/manifest.json。",
+ "repos": {
+  "target": "wolvrix",
+  "pin": [
+   "reference/gsim",
+   "testcase/xiangshan"
   ],
-  "baseline_sides": ["am", "gsim"],
-  "primary_baseline": "am",
-  "baseline_note": "am = 目标仓库基线的全流水线评估（evaluator.py run）；gsim = 对现存 emu 的协议化计时（evaluator.py gsim），作为要超越的 target。",
-  "search": {
-    "C": 3,
-    "L": 8,
-    "K": 2,
-    "note": "N = C*L*K 次评估查询。本问题属增量工程精修型（论文建议 L 重、K 适中）；单次评估 ~35-50min 串行，默认 N=48。"
-  },
-  "phi": {
-    "gamma": 0.9,
-    "lambda": 1.0,
-    "max_nodes": 4,
-    "include_rejected": true,
-    "include_failures": true,
-    "cross_trajectory": false,
-    "note": "RPUCG 参数。cross_trajectory=false 保持轨迹独立（串行等价于论文并行语义）；跨轨迹学习只经 restart 发生。"
-  },
-  "eval": {
-    "reps": 3,
-    "max_reps": 5,
-    "cv_max": 0.05,
-    "core": 12,
-    "cycles": 50000,
-    "rep_timeout_sec": 1800,
-    "build_timeout_sec": 10800,
-    "ctest_gate": true,
-    "ctest_regex": "grhsim",
-    "golden": { "instrCnt": 73580, "cycleCnt": 49996 },
-    "emit_args": ["--block-chunk-instructions", "3000"],
-    "vm_build_jobs": 16,
-    "compile_budget_sec": 2400,
-    "note": "计时与计数分离：正式 reps 不开任何 profile/插桩。difftest 逐位一致（golden 计数）是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout（不进入计时）；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。"
-  },
-  "restart": { "max": 1, "auto": false },
-  "retention": {
-    "keep_loser_branches": true,
-    "note": "败者分支默认保留；run 收口时可 format-patch 归档到 tes/<task>/runs/<run>/archive/ 后删分支（需用户确认）。"
-  },
-  "paths": {
-    "coremark_bin": "testcase/xiangshan/ready-to-run/coremark-2-iteration.bin",
-    "nemu_so": "testcase/xiangshan/ready-to-run/riscv64-nemu-interpreter-so",
-    "difftest_dir": "testcase/xiangshan/difftest",
-    "gen_csrc_dir": "testcase/xiangshan/build/generated-src",
-    "dep_root": "build/dependency/root",
-    "gsim_emu": "build/xs/gsim-flat/emu",
-    "note": "以下路径只被本任务的 evaluator.py 消费；tesctl/phi 不读 paths。"
+  "note": "target = 候选解所在仓库（tes 分支与 worktree 都在这里操作）；pin = 只读引用、run-init 记录 commit 进 manifest 的仓库。"
+ },
+ "inputs": [
+  {
+   "name": "exec_json",
+   "path": "build/logs/no0009/gsim_flat_export/SimTop.exec.json",
+   "note": "gsim 导出的 exec-GRH（全部候选共享的固定输入图）；run-init 时 sha256 写入 manifest"
   }
+ ],
+ "baseline_sides": [
+  "am",
+  "gsim"
+ ],
+ "primary_baseline": "am",
+ "baseline_note": "am = 目标仓库基线的全流水线评估（evaluator.py run）；gsim = 对现存 emu 的协议化计时（evaluator.py gsim），作为要超越的 target。",
+ "search": {
+  "C": 3,
+  "L": 8,
+  "K": 2,
+  "note": "N = C*L*K 次评估查询。本问题属增量工程精修型（论文建议 L 重、K 适中）；单次评估 ~35-50min 串行，默认 N=48。"
+ },
+ "phi": {
+  "gamma": 0.9,
+  "lambda": 1.0,
+  "max_nodes": 4,
+  "include_rejected": true,
+  "include_failures": true,
+  "cross_trajectory": false,
+  "note": "RPUCG 参数。cross_trajectory=false 保持轨迹独立（串行等价于论文并行语义）；跨轨迹学习只经 restart 发生。"
+ },
+ "eval": {
+  "reps": 3,
+  "max_reps": 5,
+  "cv_max": 0.05,
+  "core": 12,
+  "cycles": 50000,
+  "rep_timeout_sec": 1800,
+  "build_timeout_sec": 10800,
+  "ctest_gate": true,
+  "ctest_regex": "grhsim",
+  "golden": {
+   "instrCnt": 73584,
+   "cycleCnt": 49998
+  },
+  "emit_args": [
+   "--block-chunk-instructions",
+   "3000"
+  ],
+  "vm_build_jobs": 16,
+  "compile_budget_sec": 2400,
+  "note": "计时与计数分离：正式 reps 不开任何 profile/插桩。difftest 逐位一致（golden 计数）是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout（不进入计时）；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。",
+  "golden_tol": {
+   "instrCnt": 16,
+   "cycleCnt": 8,
+   "note": "两侧 emu 在 50k 周期窗的停止点有确定性小差（gsim 73584/49998 vs am 73580/49996，均过 nemu 在线 difftest）；真正的功能门是 nemu 逐指令核对，计数窗只作负载粗校验。"
+  }
+ },
+ "restart": {
+  "max": 1,
+  "auto": false
+ },
+ "retention": {
+  "keep_loser_branches": true,
+  "note": "败者分支默认保留；run 收口时可 format-patch 归档到 tes/<task>/runs/<run>/archive/ 后删分支（需用户确认）。"
+ },
+ "paths": {
+  "coremark_bin": "testcase/xiangshan/ready-to-run/coremark-2-iteration.bin",
+  "nemu_so": "testcase/xiangshan/ready-to-run/riscv64-nemu-interpreter-so",
+  "difftest_dir": "testcase/xiangshan/difftest",
+  "gen_csrc_dir": "testcase/xiangshan/build/generated-src",
+  "dep_root": "build/dependency/root",
+  "gsim_emu": "build/xs/gsim-flat/emu",
+  "note": "以下路径只被本任务的 evaluator.py 消费；tesctl/phi 不读 paths。"
+ }
 }

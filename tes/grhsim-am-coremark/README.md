@@ -6,10 +6,15 @@
 
 ## 当前状态速览
 
-- 活跃 run：无（等待第一个 goal 执行 run-init）
-- 下一个 action：`run-init`（冻结配置、pin 现场、双基线测量）
-- 默认参数：C=3, L=8, K=2（N=48）
-- 已知参考点：AM Host 324.0s（emit-cost NO0018 收口，2026-08-14）；gsim target 待 run-init 同协议实测
+- 活跃 run：**r001**（C=3, L=8, K=2，N=48；base `a88e7a2`）
+- 基线（2026-08-14，同协议 3-rep 中位）：AM y0 = **273.1s**（e00001，CV 0.39%）；
+  gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
+- 下一个 action：`step`（t0/s01，K=2 候选）
+- 已知参考点：AM Host 324.0s（emit-cost NO0018 收口，2026-08-14；与 r001 实测 273.1s
+  有约 15% 漂移，单点数字注意机器状态/布局影响）
+- run-init 备注：evaluator 修了 emu 相对路径 exec bug；金标改为计数窗
+  （73584/49998 ±16/±8，覆盖两种 emu 停止点确定性小差）。详见
+  [A0001](actions/A0001_run-init_基线与系统校准_20260814.md)
 
 ## 本任务构成
 

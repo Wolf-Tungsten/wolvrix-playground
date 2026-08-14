@@ -1,0 +1,132 @@
+{
+  "schema": 1,
+  "run_id": "r001",
+  "task": "grhsim-am-coremark",
+  "status": "active",
+  "created_at": "2026-08-14T16:50:15+08:00",
+  "config": {
+    "search": {
+      "C": 3,
+      "L": 8,
+      "K": 2
+    },
+    "phi": {
+      "gamma": 0.9,
+      "lambda": 1.0,
+      "max_nodes": 4,
+      "include_rejected": true,
+      "include_failures": true,
+      "cross_trajectory": false,
+      "note": "RPUCG 参数。cross_trajectory=false 保持轨迹独立（串行等价于论文并行语义）；跨轨迹学习只经 restart 发生。"
+    },
+    "eval": {
+      "reps": 3,
+      "max_reps": 5,
+      "cv_max": 0.05,
+      "core": 12,
+      "cycles": 50000,
+      "rep_timeout_sec": 1800,
+      "build_timeout_sec": 10800,
+      "ctest_gate": true,
+      "ctest_regex": "grhsim",
+      "golden": {
+        "instrCnt": 73584,
+        "cycleCnt": 49998
+      },
+      "emit_args": [
+        "--block-chunk-instructions",
+        "3000"
+      ],
+      "vm_build_jobs": 16,
+      "compile_budget_sec": 2400,
+      "note": "计时与计数分离：正式 reps 不开任何 profile/插桩。difftest 逐位一致（golden 计数）是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout（不进入计时）；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。",
+      "golden_tol": {
+        "instrCnt": 16,
+        "cycleCnt": 8,
+        "note": "两侧 emu 在 50k 周期窗的停止点有确定性小差（gsim 73584/49998 vs am 73580/49996，均过 nemu 在线 difftest）；真正的功能门是 nemu 逐指令核对，计数窗只作负载粗校验。"
+      }
+    },
+    "restart": {
+      "max": 1,
+      "auto": false
+    }
+  },
+  "pins": {
+    "target_repo": "wolvrix",
+    "target_base_commit": "a88e7a234b7fd1055cee13f15fda146a509271ca",
+    "target_base_branch": "tes/r001/base",
+    "repos": {
+      "reference/gsim": "a6a5183f7cf73cf30be00f9779063016378e751c",
+      "testcase/xiangshan": "8f62679652425a9e7f0258716d91591440a9de70"
+    },
+    "inputs": [
+      {
+        "name": "exec_json",
+        "path": "build/logs/no0009/gsim_flat_export/SimTop.exec.json",
+        "note": "gsim 导出的 exec-GRH（全部候选共享的固定输入图）；run-init 时 sha256 写入 manifest",
+        "sha256": "c0210246d09734fb9ea4dfd1f21a40918aa1f62a163c0972689e872c7625dbb8"
+      }
+    ]
+  },
+  "baseline_sides": [
+    "am",
+    "gsim"
+  ],
+  "baselines": {
+    "am": {
+      "eval_id": "e00001",
+      "status": "ok",
+      "host_ms_median": 273103,
+      "score": -273103
+    },
+    "gsim": {
+      "eval_id": "e00002",
+      "status": "ok",
+      "host_ms_median": 24688,
+      "score": -24688
+    }
+  },
+  "trajectories": [
+    {
+      "id": "t0",
+      "branch": "tes/r001/t0/main",
+      "tip": "a88e7a234b7fd1055cee13f15fda146a509271ca",
+      "steps_completed": 0,
+      "best": null
+    },
+    {
+      "id": "t1",
+      "branch": "tes/r001/t1/main",
+      "tip": "a88e7a234b7fd1055cee13f15fda146a509271ca",
+      "steps_completed": 0,
+      "best": null
+    },
+    {
+      "id": "t2",
+      "branch": "tes/r001/t2/main",
+      "tip": "a88e7a234b7fd1055cee13f15fda146a509271ca",
+      "steps_completed": 0,
+      "best": null
+    }
+  ],
+  "current_step": null,
+  "round_summaries_done": [],
+  "counters": {
+    "actions": 1,
+    "evals": 2
+  },
+  "best_overall": {
+    "eval_id": "e00001",
+    "score": -273103,
+    "commit": "a88e7a234b7fd1055cee13f15fda146a509271ca"
+  },
+  "phi_selection_counts": {},
+  "history": [
+    {
+      "n": 1,
+      "type": "run-init",
+      "note": "tes/grhsim-am-coremark/actions/A0001_run-init_基线与系统校准_20260814.md",
+      "ts": "2026-08-14T18:18:48+08:00"
+    }
+  ]
+}

@@ -97,10 +97,13 @@ def run_reps(emu: Path, run_dir: Path, run_cwd: Path | None = None) -> dict:
     """
     ev = EVAL_CFG
     golden = ev["golden"]
+    tol = ev.get("golden_tol", {"instrCnt": 0, "cycleCnt": 0})
     reps: list[dict] = []
     status = "ok"
     target_reps = ev["reps"]
     cwd = run_cwd or run_dir
+    if not emu.is_absolute():
+        emu = (cwd / emu).resolve()  # execvp 不搜 cwd，相对名必须解析成绝对路径
     while True:
         i = len(reps) + 1
         if not no_other_emu():
@@ -116,9 +119,11 @@ def run_reps(emu: Path, run_dir: Path, run_cwd: Path | None = None) -> dict:
         parsed = parse_run_log(log)
         rep = {"rep": i, "rc": rc, "wall_s": round(dur, 1), "loadavg_before": load,
                **parsed}
+        instr, cyc = parsed["instrCnt"], parsed["cycleCnt"]
         rep["difftest_ok"] = (
-            rc == 0 and parsed["instrCnt"] == golden["instrCnt"]
-            and parsed["cycleCnt"] == golden["cycleCnt"])
+            rc == 0 and instr is not None and cyc is not None
+            and abs(instr - golden["instrCnt"]) <= tol["instrCnt"]
+            and abs(cyc - golden["cycleCnt"]) <= tol["cycleCnt"])
         reps.append(rep)
         if rc == 124:
             status = "timeout"

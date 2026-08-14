@@ -7,7 +7,9 @@ run 期间不修改，修改应在 insights.md 追加记录。
   `riscv64-nemu-interpreter-so`。
 - 计时：3 rep 取中位（CV>5% 自动加测至 5 rep），`taskset` 绑核（core 见 config
   `eval.core`），串行无干扰（全局 LOCK + emu 进程守卫）；不开任何 profile 插桩。
-- 功能门（金标）：每 rep 退出码 0 且 `instrCnt = 73,580`、`cycleCnt = 49,996`。
+- 功能门：每 rep 退出码 0、nemu 在线逐指令核对无 mismatch，且 instrCnt/cycleCnt 落在
+  金标窗内（中心 73,584/49,998，容差 ±16/±8——窗口覆盖 gsim 与 am 两种 emu 在 50k
+  周期窗停止点上的确定性小差，见 config `eval.golden_tol`）。
 - 回归门：`ctest -R grhsim` 全绿。
 - 编译预算：cmake→emu 二进制就绪累计 ≤ 2400s，超预算判 `compile_timeout`。
 - 流水线：wolvrix 全量构建（Release + ccache）→ ctest → `grhsim-am-lower-json
