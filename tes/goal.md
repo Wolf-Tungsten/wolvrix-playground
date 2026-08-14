@@ -21,7 +21,8 @@
    （编号取该任务 actions/ 现有最大值 +1）：做了什么、各候选/评估的量化结果、裁决、
    机制分析、对下一步的建议。
 4. 更新 `tes/<task>/README.md` 的「当前状态速览」与 `tes/README.md` 的任务索引行。
-5. 登记：`python3 tes/tools/tesctl.py action-done --type <类型> --note tes/<task>/actions/Axxxx_....md`。
+5. 登记：`python3 tes/tools/tesctl.py action-done --type <类型> --note tes/<task>/actions/Axxxx_....md`
+   （该命令及 record-eval/finish-step 等会自动刷新 `tes/dashboard.md` 看板，无需手改）。
 6. 提交 playground 当前分支（不 bump 任何 submodule 指针）：
    `git add tes/ && git commit -m "tes(<task>/<run>): <一句话>"`。
 7. 向用户汇报本 action 结果与下一个 action 预告，停止。

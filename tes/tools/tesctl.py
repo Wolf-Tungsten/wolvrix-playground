@@ -12,6 +12,7 @@ state/run.json + state/ledger.jsonl + runs/。本工具只读取/推进状态，
   tasks             列出所有任务及其状态
   status            人类可读的当前状态
   next              计算并展示下一个 action（--json 输出机器可读）
+  dashboard         由 run.json + ledger.jsonl 重新生成 tes/dashboard.md（状态变更命令会自动刷新）
   init-run          开新 run：冻结配置、建目标仓库 tes 分支、写 manifest 与 run.json
   record-baseline   登记基线测量结果（side 由任务 config 的 baseline_sides 定义）
   begin-step        开始一个 step：生成 Φ proposal、建候选分支与 worktree
@@ -375,6 +376,7 @@ def cmd_init_run(args) -> int:
     print(f"[OK] [{task_name()}] run {run_id} 已初始化：base={target_base[:12]} 分支 {base_branch} + "
           f"{search['C']} 条轨迹；N={manifest['budget_N']}")
     print("下一步：按 playbook 完成 run-init action（输入指纹 + 基线测量 + record-baseline）")
+    _refresh_dashboard()
     return 0
 
 
@@ -406,6 +408,7 @@ def cmd_record_baseline(args) -> int:
                                "commit": run["pins"]["target_base_commit"]}
     save_run(run)
     print(f"[OK] {side} 基线已登记: {result.get('score')} (eval {result['eval_id']})")
+    _refresh_dashboard()
     return 0
 
 
@@ -510,6 +513,7 @@ def cmd_record_eval(args) -> int:
     print(f"[OK] 评估已登记: {result['eval_id']} status={result['status']} score={result.get('score')}")
     remaining = [c["k"] for c in cs["candidates"] if c["status"] != "done"]
     print(f"当前 step 剩余候选: {remaining if remaining else '无（可 finish-step）'}")
+    _refresh_dashboard()
     return 0
 
 
@@ -553,6 +557,7 @@ def cmd_finish_step(args) -> int:
     else:
         print(f"[OK] {tid} s{cs['step']:02d} 收口：{K} 个候选全部失败，轨迹不前进（预算已耗）")
     print("下一步：写 action 笔记（actions/Axxxx_...md）并提交 playground")
+    _refresh_dashboard()
     return 0
 
 
@@ -582,6 +587,7 @@ def cmd_close_run(args) -> int:
     run["closed_at"] = now_iso()
     save_run(run)
     print(f"[OK] run {run['run_id']} 已收口。best_overall={json.dumps(run.get('best_overall'), ensure_ascii=False)}")
+    _refresh_dashboard()
     return 0
 
 
@@ -594,7 +600,142 @@ def cmd_action_done(args) -> int:
                            "note": args.note, "ts": now_iso()})
     save_run(run)
     print(f"[OK] action A{run['counters']['actions']:04d} ({args.type}) 已记录: {args.note}")
+    _refresh_dashboard()
     return 0
+
+
+# ---------------------------------------------------------------------------
+# dashboard — 由 run.json + ledger.jsonl 重新生成 tes/dashboard.md（纯导出，不手改）
+# ---------------------------------------------------------------------------
+
+def _fmt_s(ms) -> str:
+    return f"{ms / 1000:.1f}s" if isinstance(ms, (int, float)) else "-"
+
+
+def _fmt_ratio(ms, target_ms) -> str:
+    if isinstance(ms, (int, float)) and target_ms:
+        return f"{ms / target_ms:.2f}x"
+    return "-"
+
+
+def _progress_bar(frac: float, width: int = 20) -> str:
+    frac = max(0.0, min(1.0, frac))
+    n = round(frac * width)
+    return "█" * n + "░" * (width - n)
+
+
+def _render_task_section(name: str) -> list[str]:
+    global TASK_DIR
+    TASK_DIR = TES / name
+    lines = [f"## 任务 `{name}`", ""]
+    run = load_run()
+    if run is None:
+        lines += ["尚无 run。", ""]
+        return lines
+
+    cfg = load_config()
+    search = run["config"]["search"]
+    budget = search["C"] * search["L"] * search["K"]
+    sides = run.get("baseline_sides", [])
+    primary = cfg.get("primary_baseline")
+    target_side = next((s for s in sides if s != primary), None)
+    base = run["baselines"].get(primary) if primary else None
+    target = run["baselines"].get(target_side) if target_side else None
+    base_ms = (base or {}).get("host_ms_median")
+    target_ms = (target or {}).get("host_ms_median")
+    bo = run.get("best_overall") or {}
+    best_ms = -bo["score"] if bo.get("score") is not None else None
+    na = compute_next_action(run)
+
+    lines.append(f"run **{run['run_id']}**（{run['status']}）· C={search['C']} L={search['L']} "
+                 f"K={search['K']} · evals {run['counters']['evals']}/{budget} · "
+                 f"actions {run['counters']['actions']} · 下一步 `{na['type']}`：{na['reason']}")
+    lines.append("")
+    lines.append("| 基准 | eval | Host 中位 | vs target |")
+    lines.append("|---|---|---|---|")
+    if target:
+        lines.append(f"| {target_side}（target） | {target['eval_id']} | {_fmt_s(target_ms)} | 1.00x |")
+    if base:
+        lines.append(f"| {primary}（y0 基线） | {base['eval_id']} | {_fmt_s(base_ms)} | "
+                     f"{_fmt_ratio(base_ms, target_ms)} |")
+    if best_ms is not None:
+        lines.append(f"| **当前 best** | {bo.get('eval_id', '-')} | **{_fmt_s(best_ms)}** | "
+                     f"**{_fmt_ratio(best_ms, target_ms)}** |")
+    lines.append("")
+    if base_ms and target_ms and best_ms is not None and base_ms != target_ms:
+        frac = (base_ms - best_ms) / (base_ms - target_ms)
+        lines.append(f"基线→target 进度：`{_progress_bar(frac)}` {frac * 100:.1f}%"
+                     f"（{_fmt_s(base_ms)} → 目标 {_fmt_s(target_ms)}，当前差距 "
+                     f"{_fmt_ratio(best_ms, target_ms)}）")
+        lines.append("")
+
+    lines.append("| 轨迹 | 分支 | 步数 | best eval | best Host |")
+    lines.append("|---|---|---|---|---|")
+    for t in run["trajectories"]:
+        b = t.get("best") or {}
+        bms = -b["score"] if b.get("score") is not None else None
+        lines.append(f"| {t['id']} | `{t['branch']}` | {t['steps_completed']}/{search['L']} | "
+                     f"{b.get('eval_id') or '-'} | {_fmt_s(bms)} |")
+    lines.append("")
+
+    entries = [e for e in iter_ledger() if e.get("kind") != "commit-marker"]
+    if entries:
+        lines.append("| eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |")
+        lines.append("|---|---|---|---|---|---|---|")
+        for e in entries:
+            ms = (e.get("host_ms") or {}).get("median")
+            pos = "-" if e.get("trajectory") is None else (
+                f"{e['trajectory']}/s{e['step']:02d}c{e['candidate']}")
+            hyp = (e.get("hypothesis") or "").replace("|", "\\|")
+            if len(hyp) > 50:
+                hyp = hyp[:50] + "…"
+            lines.append(f"| {e['eval_id']} | {e.get('kind', '-')} | {pos} | {_fmt_s(ms)} | "
+                         f"{_fmt_ratio(ms, target_ms)} | {e.get('status', '-')} | {hyp} |")
+        lines.append("")
+
+    hist = run.get("history", [])[-5:]
+    if hist:
+        lines.append("最近 actions："
+                     + "；".join(f"A{h['n']:04d} {h['type']}" for h in hist))
+        lines.append("")
+    return lines
+
+
+def render_dashboard() -> str:
+    global TASK_DIR
+    saved = TASK_DIR
+    try:
+        lines = [
+            "# TES 性能看板",
+            "",
+            "> 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /",
+            "> finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**",
+            f"> 生成于 {now_iso()}",
+            "",
+        ]
+        tasks = discover_tasks()
+        if not tasks:
+            lines.append("暂无任务（tes/ 下没有含 config.json 的目录）。")
+        for name in tasks:
+            lines.extend(_render_task_section(name))
+        return "\n".join(lines) + "\n"
+    finally:
+        TASK_DIR = saved
+
+
+def cmd_dashboard(_args) -> int:
+    out = TES / "dashboard.md"
+    out.write_text(render_dashboard(), encoding="utf-8")
+    print(f"[OK] 看板已生成: {out.relative_to(REPO)}")
+    return 0
+
+
+def _refresh_dashboard() -> None:
+    """状态变更后尽力自动刷新看板；失败不影响主命令。"""
+    try:
+        (TES / "dashboard.md").write_text(render_dashboard(), encoding="utf-8")
+    except Exception as e:  # noqa: BLE001
+        print(f"[WARN] 看板自动刷新失败: {e}", file=sys.stderr)
 
 
 def main() -> int:
@@ -605,6 +746,7 @@ def main() -> int:
 
     sub.add_parser("tasks")
     sub.add_parser("status")
+    sub.add_parser("dashboard")
     p = sub.add_parser("next"); p.add_argument("--json", action="store_true")
 
     p = sub.add_parser("init-run")
@@ -639,6 +781,7 @@ def main() -> int:
     TASK_DIR = resolve_task(args.task)
     return {
         "tasks": cmd_tasks, "status": cmd_status, "next": cmd_next,
+        "dashboard": cmd_dashboard,
         "init-run": cmd_init_run, "record-baseline": cmd_record_baseline,
         "begin-step": cmd_begin_step, "record-eval": cmd_record_eval,
         "finish-step": cmd_finish_step, "round-summary-done": cmd_round_summary_done,

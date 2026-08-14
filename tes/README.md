@@ -10,6 +10,9 @@
 `python3 tes/tools/tesctl.py next` 得到唯一 action，按 [playbook.md](playbook.md)
 执行到底后停止。系统无状态：所有进度在任务目录的文件里。
 
+进展跟踪看板：[dashboard.md](dashboard.md)（由 `tesctl.py dashboard` 生成，
+状态变更命令自动刷新，勿手改）。
+
 ## 任务索引
 
 tes/ 下每个含 `config.json` 的一级子目录是一个独立优化任务，各有自己的
