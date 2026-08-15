@@ -21,7 +21,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 2 轮中 | best 269.7s（e00014）；t2/s02：commit 写站空转实测 idle 97.35% 但朝代门控证伪（覆盖 6%、机制≈中性）；**winner `--guard-event-gating` -1.10%**（纯守卫块 b83400+b26518 按 changedResults_ 事件槽整块门控，negedge 半数触发消除）；基线 273.1s vs 24.7s（11.06x）；下一 action round-summary（第 2 轮，2026-08-15） |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 2 轮完成 | best 269.7s（较 AM y0 -1.23%，仍为 gsim 10.93x）；第 2 轮无一阶收益，emit 微调与粗粒度激活/preset 手术关闭；commit 写站 7.32G compare/97.35% idle 坐实，但朝代门控仅覆盖 6%，下一机制指向 commit 内锥状态输入快照检测；下一 action `t0/s03`（2026-08-15） |
 
 ## 共享件
 
