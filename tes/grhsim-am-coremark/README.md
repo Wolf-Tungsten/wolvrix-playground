@@ -9,7 +9,11 @@
 - 活跃 run：**r001**（C=3, L=8, K=2，N=48；base `a88e7a2`）
 - 基线（2026-08-14，同协议 3-rep 中位）：AM y0 = **273.1s**（e00001，CV 0.39%）；
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
-- 当前 best：**270.5s**（e00006，resize-elision，-0.95%）；t0 步进 2/8，t1/t2 各 1/8
+- 当前 best：**270.5s**（e00006，resize-elision，-0.95%）；t0/t1 步进 2/8，t2 1/8
+- t1/s02（A0007）：块间机械首轮触探双证伪——`--branchless-activation` 289.2s
+  （+6.9%，条件激活写承力、轴关闭）；`--am-skip-preset-activation` difftest
+  死锁（preset→act.b 双激活承力）；winner e00011 机械入 t1/main（语义中性：
+  默认 off 开关，emit 不携带即逐字节等价，回退不继承）
 - t0/s02（A0006）：`--init-zero-elision` 元杠杆落地（init() 1.82M→4.2 万行，
   runtime.o 572s→14.7s，emu_build -56%，运行时中性）——布局轴前置已备
   （分支 tes/r001/t0/s02-c1 常备）；弱正组合 273.3s 可加性证伪（~1% 级微调

@@ -100,8 +100,8 @@
     {
       "id": "t1",
       "branch": "tes/r001/t1/main",
-      "tip": "b798b9dc6e4faefef5d8aea2b7b92939f2ffa44c",
-      "steps_completed": 1,
+      "tip": "3bd89cdb9143363495c2a0db4115b394d886fa6b",
+      "steps_completed": 2,
       "best": {
         "eval_id": "e00006",
         "score": -270502
@@ -123,8 +123,8 @@
     1
   ],
   "counters": {
-    "actions": 6,
-    "evals": 10
+    "actions": 7,
+    "evals": 12
   },
   "best_overall": {
     "eval_id": "e00006",
@@ -133,7 +133,8 @@
   },
   "phi_selection_counts": {
     "e00001": 3,
-    "e00004": 1
+    "e00004": 1,
+    "e00006": 1
   },
   "history": [
     {
@@ -171,6 +172,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0006_step_t0s02_init消除与弱正组合_20260815.md",
       "ts": "2026-08-15T11:37:01+08:00"
+    },
+    {
+      "n": 7,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0007_step_t1s02_块间机械双探针_20260815.md",
+      "ts": "2026-08-15T15:52:41+08:00"
     }
   ]
 }

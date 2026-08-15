@@ -21,7 +21,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 2 轮中 | best 270.5s（e00006）；t0/s02：init-zero-elision 元杠杆落地（emu_build -56%、运行时中性，布局轴前置已备）、弱正组合可加性证伪（微调路线到头）；基线 273.1s vs 24.7s（11.06x）；下一 action step t1/s02（2026-08-15） |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 2 轮中 | best 270.5s（e00006）；t1/s02：块间机械双探针双证伪——激活写去分支化 +6.9% 回退（条件激活写承力）、preset 激活省略 difftest 死锁（preset→act.b 双激活承力），缺口重心转向每轮求值总量与 commit 写站机械；基线 273.1s vs 24.7s（11.06x）；下一 action step t2/s02（2026-08-15） |
 
 ## 共享件
 

@@ -109,3 +109,22 @@
 - **evaluator 修复**（A0006 入）：parse_run_log 对 append 式 rep 日志取
   首匹配 → 重测同 eval-id 读到旧段；已改 last-match 并单测验证。
   （继 A0001 相对路径修复后第二个评估器 bug。）
+
+## r001/t1/s02 块间机械双探针（2026-08-15，action A0007）
+
+- **证伪（e00011）**：`--branchless-activation`（激活合并去分支化、恒写活动字）→
+  289.2s（+6.9% vs t1 主线，CV 0.12%）显著回退。条件激活写是承力设计：安静组
+  条件分支高度可预测，恒写引入 ~4.8G 次额外共享 store 污染活动字 cache 行
+  （扫描侧每轮重读）。**激活写去分支化轴关闭；后续 emit_args 永不携带该旋钮。**
+- **证伪（e00012）**：`--am-skip-preset-activation`（commit-act.b 再激活块摘除
+  preset 激活）→ difftest_fail（instrCnt=0 死锁）。被 commit act.b 再激活的
+  compute 块 round-1 输出馈给同轮 commit 消费者，preset→act.b 双激活是承力
+  结构；「跳轮」类手术需边级消费者分析才可在更小集合重试。b83400 61.6G
+  未分解账保持未决，回到块内分解路线。
+- 机械裁决新边界：显著回退（+6.9%）的 ok 候选也会被 finish-step 机械合入
+  主线；本次无害仅因变更新增默认 off 开关（emit 不携带即逐字节等价）。
+  默认 on 变更若显著回退，finish-step 前须人工拦截。
+- 运行时结构新事实（探索确认）：eval 100,102 次/全程、1.5 round/eval、
+  5,862 块触发/round、激活合并静态 455K 站点/动态 4.77G 次、纯扫描机械上界
+  1-1.5%、commit 相 23.75%（每 eval 2,970 commit 块全触发，激活侧全 ChangedAny）。
+  11.06x 缺口重心进一步指向每轮求值总量与 commit 写站 compare 机械。
