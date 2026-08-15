@@ -110,11 +110,11 @@
     {
       "id": "t2",
       "branch": "tes/r001/t2/main",
-      "tip": "0919aec5eee64fa7e9be87979a3582e811b5ab06",
-      "steps_completed": 1,
+      "tip": "f45f75d196e0ba45f2acfa76b839b7bcd96c6853",
+      "steps_completed": 2,
       "best": {
-        "eval_id": "e00008",
-        "score": -272743
+        "eval_id": "e00014",
+        "score": -269731
       }
     }
   ],
@@ -123,18 +123,19 @@
     1
   ],
   "counters": {
-    "actions": 7,
-    "evals": 12
+    "actions": 8,
+    "evals": 14
   },
   "best_overall": {
-    "eval_id": "e00006",
-    "score": -270502,
-    "commit": "b798b9dc6e4faefef5d8aea2b7b92939f2ffa44c"
+    "eval_id": "e00014",
+    "score": -269731,
+    "commit": "f45f75d196e0ba45f2acfa76b839b7bcd96c6853"
   },
   "phi_selection_counts": {
     "e00001": 3,
     "e00004": 1,
-    "e00006": 1
+    "e00006": 1,
+    "e00008": 1
   },
   "history": [
     {
@@ -178,6 +179,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0007_step_t1s02_块间机械双探针_20260815.md",
       "ts": "2026-08-15T15:52:41+08:00"
+    },
+    {
+      "n": 8,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0008_step_t2s02_commit写站朝代门控与守卫块事件门控_20260815.md",
+      "ts": "2026-08-15T20:59:53+08:00"
     }
   ]
 }

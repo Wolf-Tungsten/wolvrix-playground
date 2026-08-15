@@ -9,7 +9,14 @@
 - 活跃 run：**r001**（C=3, L=8, K=2，N=48；base `a88e7a2`）
 - 基线（2026-08-14，同协议 3-rep 中位）：AM y0 = **273.1s**（e00001，CV 0.39%）；
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
-- 当前 best：**270.5s**（e00006，resize-elision，-0.95%）；t0/t1 步进 2/8，t2 1/8
+- 当前 best：**269.7s**（e00014，守卫块事件门控，-1.10%）；t0/t1/t2 步进 2/8
+- t2/s02（A0008）：commit 写站空转实测坐实（`--commit-station-stats` 离线
+  插桩：7.32G compares、idle 97.35%）但朝代门控证伪——静态覆盖仅 6%
+  （其余写站 next 锥在 commit 块内部），协议中位 +13.5%（噪声日 CV 41.7%，
+  rep5≈基线，机制≈中性），路线关闭，正确机制指向 commit 内锥状态输入
+  快照检测；**winner c2 `--guard-event-gating` 269.7s（-1.10%，CV 0.88%
+  干净窗口）——纯 fatal/fwrite 守卫块（b83400+b26518）按 changedResults_
+  事件槽整块门控，negedge 半数触发消除，已入 t2/main**
 - t1/s02（A0007）：块间机械首轮触探双证伪——`--branchless-activation` 289.2s
   （+6.9%，条件激活写承力、轴关闭）；`--am-skip-preset-activation` difftest
   死锁（preset→act.b 双激活承力）；winner e00011 机械入 t1/main（语义中性：
