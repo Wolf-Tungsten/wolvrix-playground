@@ -90,8 +90,8 @@
     {
       "id": "t0",
       "branch": "tes/r001/t0/main",
-      "tip": "1bae6a4287e36b47406ee0e196f3038e0be48a04",
-      "steps_completed": 1,
+      "tip": "95aa68d3a04f957d8de82a97cce941c1fd0a1b04",
+      "steps_completed": 2,
       "best": {
         "eval_id": "e00004",
         "score": -271095
@@ -123,8 +123,8 @@
     1
   ],
   "counters": {
-    "actions": 5,
-    "evals": 8
+    "actions": 6,
+    "evals": 10
   },
   "best_overall": {
     "eval_id": "e00006",
@@ -132,7 +132,8 @@
     "commit": "b798b9dc6e4faefef5d8aea2b7b92939f2ffa44c"
   },
   "phi_selection_counts": {
-    "e00001": 3
+    "e00001": 3,
+    "e00004": 1
   },
   "history": [
     {
@@ -164,6 +165,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0005_round-summary_第1轮跨轨迹小结_20260815.md",
       "ts": "2026-08-15T07:11:09+08:00"
+    },
+    {
+      "n": 6,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0006_step_t0s02_init消除与弱正组合_20260815.md",
+      "ts": "2026-08-15T11:37:01+08:00"
     }
   ]
 }

@@ -88,3 +88,24 @@
   可证伪假设（可离线复用 pdocs block 级 profile，如 b83400 61.9G 未分解账）。
 - 亚噪声 adoption 纪律：winner 机械规则会收编 <CV 的读数（e00008 +0.13%），
   action 笔记须标注「噪声级 adoption 非机制收益」；<0.5% 的 winner 读数存疑。
+
+## r001/t0/s02 init 消除与弱正组合（2026-08-15，action A0006）
+
+- **元杠杆落地**：`--init-zero-elision`（8087d74，tes/r001/t0/s02-c1）发射期
+  消除 init() 字面量 0 死 store（宽 1.63M + 窄 147.8k，非零集合三元组比对
+  零偏差）→ init() 1.82M→4.2 万行，runtime.o 单 TU 572s→14.7s（-97%），
+  emu_build 789→347s（-56%）；全程 compile_s 仅 -11%（ctest/emit/wolvrix
+  固定 ~740s 稀释）。**亲和布局两次 compile_timeout 的直接根因已除**，
+  布局/表示类候选此后以该分支为底座。运行时中性成立（274.4s vs 271.1s，
+  在 ±1.5% 噪声带内）。
+- **弱正可加性证伪**（e00010）：branchy-mux+resize-elision 组合 273.3s
+  （+0.06%），相对两单因子（-0.74%/-0.95%）收益全消——~1% 级 emit 微调
+  及其组合路线到头，勿再为此消耗评估预算。
+- **测量纪律重要更正**：rep1 的 loadavg_before≈15 是 evaluator 自身
+  emu_build（-j16）刚结束的 1-min loadavg 滞后尾部，不是外部干扰——
+  构建进程在 rep 期间已退出。interference 判定须结合进程级证据（ps），
+  勿仅凭 loadavg。同代码三次评估 run-to-run 全距 ±1.5%（269.0-277.5），
+  winner 裁决对 <2% 分差保持存疑。
+- **evaluator 修复**（A0006 入）：parse_run_log 对 append 式 rep 日志取
+  首匹配 → 重测同 eval-id 读到旧段；已改 last-match 并单测验证。
+  （继 A0001 相对路径修复后第二个评估器 bug。）

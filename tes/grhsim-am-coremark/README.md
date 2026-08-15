@@ -9,7 +9,11 @@
 - 活跃 run：**r001**（C=3, L=8, K=2，N=48；base `a88e7a2`）
 - 基线（2026-08-14，同协议 3-rep 中位）：AM y0 = **273.1s**（e00001，CV 0.39%）；
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
-- 当前 best：**270.5s**（e00006，resize-elision，-0.95%）；t0/t1/t2 各步进 1/8
+- 当前 best：**270.5s**（e00006，resize-elision，-0.95%）；t0 步进 2/8，t1/t2 各 1/8
+- t0/s02（A0006）：`--init-zero-elision` 元杠杆落地（init() 1.82M→4.2 万行，
+  runtime.o 572s→14.7s，emu_build -56%，运行时中性）——布局轴前置已备
+  （分支 tes/r001/t0/s02-c1 常备）；弱正组合 273.3s 可加性证伪（~1% 级微调
+  路线到头）；winner e00010 机械入 t0/main；evaluator parser 修复一处
 - t2/s01（A0004）：亲和布局+init修复 再遭 compile_timeout（炸弹是 init()
   182 万行死 store 流本身，98.2% 宽池 store 为字面量 0——方向升级为
   `--init-zero-elision`）；宽态炸开 272.7s 持平证伪（ABTB 族命中但 NO0018
@@ -22,9 +26,9 @@
 - 第 1 轮小结（A0005）：静态 emit 单旋钮空间扫完、收益饱和 ~1%/个；主失败
   模式是编译预算门（2/6）；`--init-zero-elision` 为元杠杆；块间机械
   （调度器/事件/commit）是唯一未触探大轴
-- 下一个 action：`step`（t0/s02，round-robin 第 2 轮开始；建议方向：
-  `--init-zero-elision` 死 store 消除、运行时结构成本探针、
-  branchy+elision 组合）
+- 下一个 action：`step`（t1/s02，K=2；建议方向：运行时结构成本首个候选
+  （调度器活动字扫描/commit 检测/b83400 未分解账）、以 init-zero-elision
+  为底座的亲和布局最终裁决）
 - 已知参考点：AM Host 324.0s（emit-cost NO0018 收口，2026-08-14；与 r001 实测 273.1s
   有约 15% 漂移，单点数字注意机器状态/布局影响）
 - run-init 备注：evaluator 修了 emu 相对路径 exec bug；金标改为计数窗

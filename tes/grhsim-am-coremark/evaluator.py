@@ -75,13 +75,15 @@ def parse_run_log(log: Path) -> dict:
     host_ms, instr, cyc = None, None, None
     with open(log, "rb") as f:
         text = f.read().decode("utf-8", errors="replace")
-    m = HOST_RE.search(text)
-    if m:
-        host_ms = int(m.group(1).replace(",", ""))
-    m = CNT_RE.search(text)
-    if m:
-        instr = int(m.group(1).replace(",", ""))
-        cyc = int(m.group(2).replace(",", ""))
+    # 日志为 append 式（重测同 eval-id 会叠加新段）：取最后一次匹配，
+    # 保证重跑覆盖时读到的是最新一轮的计数/计时。
+    hits = HOST_RE.findall(text)
+    if hits:
+        host_ms = int(hits[-1].replace(",", ""))
+    hits = CNT_RE.findall(text)
+    if hits:
+        instr = int(hits[-1][0].replace(",", ""))
+        cyc = int(hits[-1][1].replace(",", ""))
     return {"host_ms": host_ms, "instrCnt": instr, "cycleCnt": cyc}
 
 
