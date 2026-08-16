@@ -90,11 +90,11 @@
     {
       "id": "t0",
       "branch": "tes/r001/t0/main",
-      "tip": "95aa68d3a04f957d8de82a97cce941c1fd0a1b04",
-      "steps_completed": 2,
+      "tip": "96b8df23e0d3ef059b7ba82d9cadb50962e17e8b",
+      "steps_completed": 3,
       "best": {
-        "eval_id": "e00004",
-        "score": -271095
+        "eval_id": "e00015",
+        "score": -247458
       }
     },
     {
@@ -124,19 +124,20 @@
     2
   ],
   "counters": {
-    "actions": 9,
-    "evals": 14
+    "actions": 10,
+    "evals": 16
   },
   "best_overall": {
-    "eval_id": "e00014",
-    "score": -269731,
-    "commit": "f45f75d196e0ba45f2acfa76b839b7bcd96c6853"
+    "eval_id": "e00015",
+    "score": -247458,
+    "commit": "96b8df23e0d3ef059b7ba82d9cadb50962e17e8b"
   },
   "phi_selection_counts": {
     "e00001": 3,
-    "e00004": 1,
+    "e00004": 2,
     "e00006": 1,
-    "e00008": 1
+    "e00008": 1,
+    "e00010": 1
   },
   "history": [
     {
@@ -192,6 +193,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0009_round-summary_第2轮跨轨迹小结_20260815.md",
       "ts": "2026-08-15T22:57:23+08:00"
+    },
+    {
+      "n": 10,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0010_step_t0s03_source-part守卫与宽态首触布局_20260816.md",
+      "ts": "2026-08-16T17:49:52+08:00"
     }
   ]
 }

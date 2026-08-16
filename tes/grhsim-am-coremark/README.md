@@ -9,8 +9,15 @@
 - 活跃 run：**r001**（C=3, L=8, K=2，N=48；base `a88e7a2`）
 - 基线（2026-08-14，同协议 3-rep 中位）：AM y0 = **273.1s**（e00001，CV 0.39%）；
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
-- 当前 best：**269.7s**（e00014，守卫块事件门控，较 AM y0 -1.23%）；仍为
-  gsim 的 **10.93x**，AM/gsim 绝对差距只关闭 1.36%；t0/t1/t2 步进 2/8
+- 当前 best：**247.5s**（e00015，source-part activity guard，较 AM y0
+  **-9.39%**）；仍为 gsim 的 **10.02x**，AM/gsim 绝对差距关闭 10.32%；
+  t0/t1/t2 步进 **3/2/2**
+- t0/s03（A0010）：两个候选均越过第 3 轮 3% 门。winner c1
+  `--source-part-activity-guard` 247.5s（vs e00010 **-9.44%，CV 0.82%**），
+  334 个静态 part 调用以精确 64-bit activity 区间预检，静默时跳过调用与逐 byte
+  扫描；c2 `--wide-storage-first-touch` 257.4s（**-5.79%，CV 1.15%**），
+  将 Block-touched 宽态跨度压缩 65.66%、page 减少 7.69%，首次确认布局 locality
+  是有效运行时轴。两者 ctest 17/17、3 rep difftest 全过；c1 已入 t0/main
 - 第 2 轮小结（A0009）：6 候选仍无 ≥5% 一阶收益；t0 弱正组合回到 y0、
   t1 激活恒写 +6.9% 且 preset 摘除 difftest 死锁，粗粒度机械路线关闭；
   t2 守卫事件门控 -1.10% 为唯一干净收益。commit 写站 7.32G compare/
@@ -44,8 +51,8 @@
 - 第 1 轮小结（A0005）：静态 emit 单旋钮空间扫完、收益饱和 ~1%/个；主失败
   模式是编译预算门（2/6）；`--init-zero-elision` 为元杠杆；块间机械
   （调度器/事件/commit）是唯一未触探大轴
-- 下一个 action：`step`（r001/t0/s03，K=2；由下一 action 的轨迹内 proposal
-  选候选，本轮跨轨迹小结不向 t0 预注入其他轨迹结果）
+- 下一个 action：`step`（r001/t1/s03，K=2；由下一 action 的 t1-local proposal
+  选候选，`cross_trajectory=false` 下不注入本次 t0 结果）
 - 已知参考点：AM Host 324.0s（emit-cost NO0018 收口，2026-08-14；与 r001 实测 273.1s
   有约 15% 漂移，单点数字注意机器状态/布局影响）
 - run-init 备注：evaluator 修了 emu 相对路径 exec bug；金标改为计数窗

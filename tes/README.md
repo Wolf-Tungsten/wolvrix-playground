@@ -21,7 +21,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 2 轮完成 | best 269.7s（较 AM y0 -1.23%，仍为 gsim 10.93x）；第 2 轮无一阶收益，emit 微调与粗粒度激活/preset 手术关闭；commit 写站 7.32G compare/97.35% idle 坐实，但朝代门控仅覆盖 6%，下一机制指向 commit 内锥状态输入快照检测；下一 action `t0/s03`（2026-08-15） |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 3 轮进行中（t0/s03 完成） | best e00015 247.5s（较 AM y0 -9.39%，仍为 gsim 10.02x）；source-part activity guard 跳过静默 part 调用/扫描，vs t0 tip -9.44%；wide-state first-touch 布局亦确认 -5.79%；下一 action `t1/s03`（2026-08-16） |
 
 ## 共享件
 

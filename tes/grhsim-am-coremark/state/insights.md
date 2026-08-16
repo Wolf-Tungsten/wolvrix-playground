@@ -180,3 +180,24 @@
 - 第 3 轮升级门槛：停止亚 1% emit 微调、守卫特例和无边级证明的整轮跳过；
   若完整一轮仍无 ≥3% 干净收益，在 round-3 summary 请求用户裁决继续
   commit 内锥/调度 AM pass，或提前 restart 做更大粒度结构变换。
+
+## r001/t0/s03 source-part 守卫与宽态首触布局（2026-08-16，action A0010）
+
+- **首次获得干净一阶收益**：`--source-part-activity-guard`（e00015）= 247.458s
+  （CV 0.82%，vs t0 tip e00010 **-9.44%**），17/17 ctest 与 3 rep difftest 全过；
+  334 个静态 part 调用（compute 248 / commit 86）以精确 64-bit activity 区间预检，
+  静默时跳过函数调用及逐 byte 扫描。source-part 空扫描由“固定小开销”升级为
+  2.87x instr/atom 适配胶中的实质病灶，winner 已入 t0/main。
+- **状态 locality 轴确认**：`--wide-storage-first-touch`（e00016）= 257.443s
+  （CV 1.15%，vs e00010 **-5.79%**），同样全过功能门。419,243 个宽变量中
+  191,955 个按 scheduled Block 首触排序；首 cache-line 161,680→151,616
+  （-6.22%）、触及跨度 24,304,307→8,347,000 words（-65.66%）、page
+  17,661→16,303（-7.69%）。此前布局轴只有 compile_timeout，本次首次取得
+  运行时证据；未中选不等于机制证伪。
+- 两候选共享 branchy-mux + resize-elision + init-zero-elision，compile_s
+  603.7/590.9s 且均远低于 2400s；init-zero-elision 已把布局实验从编译门中解放。
+  c1 比 c2 快 3.88%，说明当前负载上跳过静默控制流比只改善宽状态局部性更有杠杆。
+- 新 best_overall = e00015 247.458s：较 AM y0 273.103s 改善 **9.39%**，仍为
+  gsim 24.688s 的 **10.02x**，绝对差距关闭 **10.32%**。未来 t0 优先检验 guard
+  + first-touch 组合，但不得预设收益可加；细化 source-part 前先量化动态 guard
+  命中/扫描长度。下一 t1 action 仍须保持轨迹独立，不注入本节结果。
