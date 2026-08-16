@@ -9,9 +9,15 @@
 - 活跃 run：**r001**（C=3, L=8, K=2，N=48；base `a88e7a2`）
 - 基线（2026-08-14，同协议 3-rep 中位）：AM y0 = **273.1s**（e00001，CV 0.39%）；
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
-- 当前 best：**247.5s**（e00015，source-part activity guard，较 AM y0
-  **-9.39%**）；仍为 gsim 的 **10.02x**，AM/gsim 绝对差距关闭 10.32%；
-  t0/t1/t2 步进 **3/2/2**
+- 当前 best：**244.3s**（e00018，inline scalar helpers，较 AM y0
+  **-10.55%**）；仍为 gsim 的 **9.89x**，AM/gsim 绝对差距关闭 11.60%；
+  t0/t1/t2 步进 **3/3/2**
+- t1/s03（A0011）：winner c2 `--inline-scalar-helpers` 将窄标量 slice/
+  移位/signed helper 改为生成 header 内 `constexpr`，244.3s（vs t1 tip
+  **-9.69%，CV 1.62%**），3 rep difftest 与 17/17 ctest 全过；至少
+  531K 个静态调用站点暴露了跨 TU helper 边界的一阶成本，c2 已入
+  t1/main 并刷新 run best。c1 `stateLayout=affinity` 已修正宽 init store
+  物理顺序，但正式流水线仍于 2399.1s compile_timeout，无运行时证据
 - t0/s03（A0010）：两个候选均越过第 3 轮 3% 门。winner c1
   `--source-part-activity-guard` 247.5s（vs e00010 **-9.44%，CV 0.82%**），
   334 个静态 part 调用以精确 64-bit activity 区间预检，静默时跳过调用与逐 byte
@@ -51,8 +57,8 @@
 - 第 1 轮小结（A0005）：静态 emit 单旋钮空间扫完、收益饱和 ~1%/个；主失败
   模式是编译预算门（2/6）；`--init-zero-elision` 为元杠杆；块间机械
   （调度器/事件/commit）是唯一未触探大轴
-- 下一个 action：`step`（r001/t1/s03，K=2；由下一 action 的 t1-local proposal
-  选候选，`cross_trajectory=false` 下不注入本次 t0 结果）
+- 下一个 action：`step`（r001/t2/s03，K=2；由下一 action 的 t2-local proposal
+  选候选，`cross_trajectory=false` 下不注入本次 t1 结果）
 - 已知参考点：AM Host 324.0s（emit-cost NO0018 收口，2026-08-14；与 r001 实测 273.1s
   有约 15% 漂移，单点数字注意机器状态/布局影响）
 - run-init 备注：evaluator 修了 emu 相对路径 exec bug；金标改为计数窗

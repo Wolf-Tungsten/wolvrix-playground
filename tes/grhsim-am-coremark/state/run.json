@@ -100,11 +100,11 @@
     {
       "id": "t1",
       "branch": "tes/r001/t1/main",
-      "tip": "3bd89cdb9143363495c2a0db4115b394d886fa6b",
-      "steps_completed": 2,
+      "tip": "deb4c37957663548da71ad8e8fe44072b3b98e4b",
+      "steps_completed": 3,
       "best": {
-        "eval_id": "e00006",
-        "score": -270502
+        "eval_id": "e00018",
+        "score": -244278
       }
     },
     {
@@ -124,20 +124,21 @@
     2
   ],
   "counters": {
-    "actions": 10,
-    "evals": 16
+    "actions": 11,
+    "evals": 18
   },
   "best_overall": {
-    "eval_id": "e00015",
-    "score": -247458,
-    "commit": "96b8df23e0d3ef059b7ba82d9cadb50962e17e8b"
+    "eval_id": "e00018",
+    "score": -244278,
+    "commit": "deb4c37957663548da71ad8e8fe44072b3b98e4b"
   },
   "phi_selection_counts": {
     "e00001": 3,
     "e00004": 2,
-    "e00006": 1,
+    "e00006": 2,
     "e00008": 1,
-    "e00010": 1
+    "e00010": 1,
+    "e00011": 1
   },
   "history": [
     {
@@ -199,6 +200,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0010_step_t0s03_source-part守卫与宽态首触布局_20260816.md",
       "ts": "2026-08-16T17:49:52+08:00"
+    },
+    {
+      "n": 11,
+      "type": "step-resume",
+      "note": "tes/grhsim-am-coremark/actions/A0011_step-resume_t1s03_亲和布局重测与标量helper内联_20260816.md",
+      "ts": "2026-08-16T23:24:58+08:00"
     }
   ]
 }

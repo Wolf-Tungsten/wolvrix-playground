@@ -201,3 +201,23 @@
   gsim 24.688s 的 **10.02x**，绝对差距关闭 **10.32%**。未来 t0 优先检验 guard
   + first-touch 组合，但不得预设收益可加；细化 source-part 前先量化动态 guard
   命中/扫描长度。下一 t1 action 仍须保持轨迹独立，不注入本节结果。
+
+## r001/t1/s03 亲和布局重测与标量 helper 内联（2026-08-16，action A0011）
+
+- **编译门再否决（e00017）**：`stateLayout=affinity` 将 1,663,331 个字面量
+  宽池 store 按物理 offset 排序后，103MB runtime TU 能在约 26min 独立编译，
+  但正式全流水线仍于 2399.1s `compile_timeout`（ctest 17/17 和 emit 已过，
+  emu_build 1611.0s 未完成）。“单 TU 可终止”不等于满足 40min 协议门；
+  t1 内关闭当前 affinity + 百万级显式 init store 路线，但未获得局部性的
+  运行时否定证据。
+- **首个跨 TU helper 一阶收益（e00018）**：将窄标量 slice/逻辑与算术移位/
+  signed helper 改为生成 header 内 `constexpr`，Host 中位 **244.278s**（CV 1.62%），
+  较 t1 tip 270.502s **-9.69%**，3 rep difftest 与 17/17 ctest 全过。至少
+  531,194 个静态 slice/逻辑移位调用构成了之前未识别的一阶适配胶；
+  AM schedule 工作量不变，收益来自 C++ 调用边界与常量传播。
+- 内联边界须保持选择性：e00018 compile_s 2006.3s，距 2400s 仅 393.7s。
+  宽值/数组/除法/取模 helper 继续 outlined；后续扩张必须同时给出热点覆盖和
+  生成代码/编译预算证据。
+- 新 best_overall = e00018 244.278s：较 AM y0 改善 **10.55%**，仍为 gsim 的
+  **9.89x**，绝对差距关闭 **11.60%**。后续 t1 必须继承
+  `--resize-elision --inline-scalar-helpers`；下一 t2 action 保持轨迹独立。
