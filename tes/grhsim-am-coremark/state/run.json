@@ -110,11 +110,11 @@
     {
       "id": "t2",
       "branch": "tes/r001/t2/main",
-      "tip": "f45f75d196e0ba45f2acfa76b839b7bcd96c6853",
-      "steps_completed": 2,
+      "tip": "06986dcc9c2c8b767311b27a65bdc1ca229eef20",
+      "steps_completed": 3,
       "best": {
-        "eval_id": "e00014",
-        "score": -269731
+        "eval_id": "e00019",
+        "score": -264466
       }
     }
   ],
@@ -124,8 +124,8 @@
     2
   ],
   "counters": {
-    "actions": 11,
-    "evals": 18
+    "actions": 12,
+    "evals": 20
   },
   "best_overall": {
     "eval_id": "e00018",
@@ -133,12 +133,13 @@
     "commit": "deb4c37957663548da71ad8e8fe44072b3b98e4b"
   },
   "phi_selection_counts": {
-    "e00001": 3,
+    "e00001": 4,
     "e00004": 2,
     "e00006": 2,
     "e00008": 1,
     "e00010": 1,
-    "e00011": 1
+    "e00011": 1,
+    "e00014": 1
   },
   "history": [
     {
@@ -206,6 +207,12 @@
       "type": "step-resume",
       "note": "tes/grhsim-am-coremark/actions/A0011_step-resume_t1s03_亲和布局重测与标量helper内联_20260816.md",
       "ts": "2026-08-16T23:24:58+08:00"
+    },
+    {
+      "n": 12,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0012_step_t2s03_commit输入门控与亲和布局消零_20260817.md",
+      "ts": "2026-08-17T14:29:20+08:00"
     }
   ]
 }

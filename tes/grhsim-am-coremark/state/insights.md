@@ -221,3 +221,25 @@
 - 新 best_overall = e00018 244.278s：较 AM y0 改善 **10.55%**，仍为 gsim 的
   **9.89x**，绝对差距关闭 **11.60%**。后续 t1 必须继承
   `--resize-elision --inline-scalar-helpers`；下一 t2 action 保持轨迹独立。
+
+## r001/t2/s03 commit 输入门控与亲和布局消零（2026-08-17，action A0012）
+
+- **commit 输入门控部分确认（e00019，winner）**：追踪 commit next 锥外部叶，
+  compute 生产块执行或 ST00013 状态真写时传播块级 dirty，稳定时跳过幂等写
+  后缀。静态覆盖 2,922/2,973 commit 块、162,422/176,682 写站（91.9%）、
+  440,821 条指令；Host 264.466s（vs t2 tip **-1.95%**，CV 0.74%），未达
+  3% 目标但越过 1.5% 证伪线。240,198 条 dirty 边/55,320 个生产块的运行时
+  store 是主要抵消项；下一次只应在动态 gate skip/传播计数证明净收益 ≥3%
+  后做高收益块稀疏化。
+- **affinity 首次取得运行时弱正证据（e00020）**：`init-zero-elision` 消除
+  147,822 个窄 store 与 1,633,254 个宽 word store，`init()` 压到约 4.2 万行，
+  全流水线 compile_s=1036.1s，彻底越过此前 affinity 的 40min 编译障碍；
+  亲和布局 Host 265.243s（vs t2 tip **-1.66%**，CV 1.20%），低于 2% 假设
+  阈值但非持平/恶化。结论是静态全局 affinity **弱正、未充分确认**；原样
+  重测价值低，未来先用 cache/page/Block 地址跨度证据缩小到具体状态族。
+- c1/c2 中位仅差 777ms（0.29%，低于协议机制分辨率）；e00019 入 t2/main 是
+  TES 确定性裁决，不代表 commit 门控显著优于 affinity。两候选 17/17 ctest、
+  6 rep difftest 全过，全部计数 73,580/49,996。
+- t2 best 269.731s -> 264.466s（累计 vs AM y0 **-3.16%**），仍为 gsim
+  **10.71x**。第 3 轮 t0/t1/t2 已齐平，下一 action 做 round-summary；届时才
+  允许跨轨迹比较本轮机制，不能回写本 step 的候选来源。

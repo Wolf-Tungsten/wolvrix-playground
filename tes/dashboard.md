@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-16T23:24:58+08:00
+> 生成于 2026-08-17T14:29:20+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r001**（active）· C=3 L=8 K=2 · evals 18/48 · actions 11 · 下一步 `step`：推进轨迹 t2 到第 3 步（round-robin 最少步数优先）
+run **r001**（active）· C=3 L=8 K=2 · evals 20/48 · actions 12 · 下一步 `round-summary`：第 3 轮（全部 3 条轨迹各完成 1 步）已齐平，做跨轨迹小结
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -20,7 +20,7 @@ run **r001**（active）· C=3 L=8 K=2 · evals 18/48 · actions 11 · 下一步
 |---|---|---|---|---|
 | t0 | `tes/r001/t0/main` | 3/8 | e00015 | 247.5s |
 | t1 | `tes/r001/t1/main` | 3/8 | e00018 | 244.3s |
-| t2 | `tes/r001/t2/main` | 2/8 | e00014 | 269.7s |
+| t2 | `tes/r001/t2/main` | 3/8 | e00019 | 264.5s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
 |---|---|---|---|---|---|---|
@@ -42,6 +42,8 @@ run **r001**（active）· C=3 L=8 K=2 · evals 18/48 · actions 11 · 下一步
 | e00016 | candidate | t0/s03c2 | 257.4s | 10.43x | ok | 按调度块首次触及顺序重排宽 BitVector/Array 存储并叠加 init-zero-elis… |
 | e00017 | candidate | t1/s03c1 | - | - | compile_timeout | 重建 stateLayout=affinity 并按物理 offset 排列字面量宽初始化，若恢复编… |
 | e00018 | candidate | t1/s03c2 | 244.3s | 9.89x | ok | 将 slice_value、标量移位与 signed_value 定义移入生成头文件以消除跨 TU … |
+| e00019 | candidate | t2/s03c1 | 264.5s | 10.71x | ok | commit块next锥的外部叶子在绝大多数时钟事件不脏；由compute生产块执行与ST00013… |
+| e00020 | candidate | t2/s03c2 | 265.2s | 10.74x | ok | init-zero-elision消除98%+冗余init store后，affinity状态布局可… |
 
-最近 actions：A0007 step；A0008 step；A0009 round-summary；A0010 step；A0011 step-resume
+最近 actions：A0008 step；A0009 round-summary；A0010 step；A0011 step-resume；A0012 step
 

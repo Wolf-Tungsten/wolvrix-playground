@@ -11,7 +11,14 @@
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
 - 当前 best：**244.3s**（e00018，inline scalar helpers，较 AM y0
   **-10.55%**）；仍为 gsim 的 **9.89x**，AM/gsim 绝对差距关闭 11.60%；
-  t0/t1/t2 步进 **3/3/2**
+  t0/t1/t2 步进 **3/3/3**
+- t2/s03（A0012）：winner c1 `--commit-input-gating` 覆盖 2,922/2,973 个
+  commit 块与 91.9% 写站，以 dirty 传播跳过稳定 next 锥，264.5s（vs t2 tip
+  **-1.95%，CV 0.74%**）；未达 3% 目标，240,198 条传播边的 store 是主要
+  抵消项，已入 t2/main。c2 `affinity + init-zero-elision` 消除 1.78M 个 init
+  zero store，把全流水线编译压到 1036.1s 并首次取得 affinity 运行时读数：
+  265.2s（**-1.66%，CV 1.20%**），低于 2% 阈值但为弱正；两者 17/17 ctest
+  与全部 difftest 全过，中位仅差 0.29%，机械 winner 不代表显著机制差异
 - t1/s03（A0011）：winner c2 `--inline-scalar-helpers` 将窄标量 slice/
   移位/signed helper 改为生成 header 内 `constexpr`，244.3s（vs t1 tip
   **-9.69%，CV 1.62%**），3 rep difftest 与 17/17 ctest 全过；至少
@@ -57,8 +64,8 @@
 - 第 1 轮小结（A0005）：静态 emit 单旋钮空间扫完、收益饱和 ~1%/个；主失败
   模式是编译预算门（2/6）；`--init-zero-elision` 为元杠杆；块间机械
   （调度器/事件/commit）是唯一未触探大轴
-- 下一个 action：`step`（r001/t2/s03，K=2；由下一 action 的 t2-local proposal
-  选候选，`cross_trajectory=false` 下不注入本次 t1 结果）
+- 下一个 action：`round-summary`（第 3 轮 t0/t1/t2 均完成 s03；跨轨迹汇总
+  本轮机制与收益，不启动下一 step）
 - 已知参考点：AM Host 324.0s（emit-cost NO0018 收口，2026-08-14；与 r001 实测 273.1s
   有约 15% 漂移，单点数字注意机器状态/布局影响）
 - run-init 备注：evaluator 修了 emu 相对路径 exec bug；金标改为计数窗
