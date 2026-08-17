@@ -12,6 +12,13 @@
 - 当前 best：**244.3s**（e00018，inline scalar helpers，较 AM y0
   **-10.55%**）；仍为 gsim 的 **9.89x**，AM/gsim 绝对差距关闭 11.60%；
   t0/t1/t2 步进 **3/3/3**
+- 第 3 轮小结（A0013）：首次出现重复的一阶适配层收益——source-part activity
+  guard **-9.44%**、selective scalar helper inline **-9.69%**；wide first-touch
+  **-5.79%** 进一步确认访问顺序驱动的状态 locality。静态全局 affinity 仅
+  -1.66%，commit input gate 即使覆盖 91.9% 写站也仅 -1.95%，后续分别转向
+  定向布局与动态净收益稀疏化。e00018 compile_s=2006.3s，只余 393.7s 编译门
+  裕量，运行时与编译复杂度必须作为双目标；本轮满足 >=3% 继续条件，暂不提前
+  restart 或调整 C/L/K
 - t2/s03（A0012）：winner c1 `--commit-input-gating` 覆盖 2,922/2,973 个
   commit 块与 91.9% 写站，以 dirty 传播跳过稳定 next 锥，264.5s（vs t2 tip
   **-1.95%，CV 0.74%**）；未达 3% 目标，240,198 条传播边的 store 是主要
@@ -64,8 +71,8 @@
 - 第 1 轮小结（A0005）：静态 emit 单旋钮空间扫完、收益饱和 ~1%/个；主失败
   模式是编译预算门（2/6）；`--init-zero-elision` 为元杠杆；块间机械
   （调度器/事件/commit）是唯一未触探大轴
-- 下一个 action：`round-summary`（第 3 轮 t0/t1/t2 均完成 s03；跨轨迹汇总
-  本轮机制与收益，不启动下一 step）
+- 下一个 action：`step`（r001/t0/s04，K=2；继续保持轨迹独立，由下一 action
+  的 t0-local proposal 选候选）
 - 已知参考点：AM Host 324.0s（emit-cost NO0018 收口，2026-08-14；与 r001 实测 273.1s
   有约 15% 漂移，单点数字注意机器状态/布局影响）
 - run-init 备注：evaluator 修了 emu 相对路径 exec bug；金标改为计数窗

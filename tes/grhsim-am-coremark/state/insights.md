@@ -243,3 +243,27 @@
 - t2 best 269.731s -> 264.466s（累计 vs AM y0 **-3.16%**），仍为 gsim
   **10.71x**。第 3 轮 t0/t1/t2 已齐平，下一 action 做 round-summary；届时才
   允许跨轨迹比较本轮机制，不能回写本 step 的候选来源。
+
+## r001 第 3 轮跨轨迹小结（2026-08-17，action A0013）
+
+- run best 曲线 = y0 273.103s -> round 1 270.502s -> round 2 269.731s ->
+  round 3 **244.278s**；累计改善 **10.55%**，仍为 gsim 的 **9.89x**，
+  AM/gsim 绝对差距关闭 **11.60%**。本轮 5 个计时候选 CV 0.74%-1.62%，
+  ctest/difftest 全过；另 1 个候选被编译预算门否决。
+- **C++ 适配层成为首个重复出现的一阶成本中心**：source-part activity guard
+  跳过静默调用/逐 byte 扫描（-9.44%），selective scalar helper inline 消除
+  至少 531K 个跨 TU 调用并暴露常量传播（-9.69%）。两者均不减少 AM schedule
+  工作量，收益来自生成代码与运行时适配结构；跨轨迹尚未组合，不能相加。
+- **状态 locality 收敛到访问顺序驱动的定向布局**：wide first-touch 以跨度
+  -65.66%/page -7.69% 换得 Host -5.79%；全局 primary-Block affinity 仅
+  -1.66%。布局轴有效，但粗粒度 affinity 原样重测价值低。
+- **运行时与编译复杂度成为双目标**：affinity + 百万显式 init store 于
+  2399.1s timeout，init-zero-elision 后同类路径 compile_s=1036.1s；最强
+  e00018 又因 helper header 扩张达到 2006.3s，只剩 393.7s 裕量。后续候选
+  必须同时证明运行时覆盖与 2400s 编译余量。
+- **commit 门控的静态覆盖陷阱**：91.9% 写站覆盖只转化为 -1.95%，因为
+  240,198 条 dirty 边传播 store 抵消收益。未来只做带动态 open/skip、传播
+  次数与净跳过工作证据的 sparse gate，不再以覆盖率作为收益代理。
+- 第 3 轮已满足 >=3% 干净收益的继续条件，暂不调整 C/L/K 或提前 restart；
+  r001 继续保持轨迹独立。跨轨迹机制组合只在 restart 使用，下一轮仍坚持
+  离线覆盖/成本模型和 >=3% 正式评估门槛。
