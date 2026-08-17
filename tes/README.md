@@ -21,7 +21,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 3 轮已总结（各轨迹 3/8） | best e00018 244.3s（较 AM y0 -10.55%，仍为 gsim 9.89x）；本轮 source-part guard -9.44%、scalar helper inline -9.69%、wide first-touch -5.79%，适配层与定向 locality 成为一阶轴；下一 action `t0/s04`（2026-08-17） |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 4 轮进行中（t0/t1/t2 = 4/3/3） | best e00022 230.6s（较 AM y0 -15.57%，仍为 gsim 9.34x）；t0/s04 source-word guard 在 part guard 上再降 6.83%，guard + first-touch 组合也降 3.27%，activity 层内空扫描与定向 locality 均确认；下一 action `t1/s04`（2026-08-18） |
 
 ## 共享件
 

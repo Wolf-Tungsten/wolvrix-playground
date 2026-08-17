@@ -90,11 +90,11 @@
     {
       "id": "t0",
       "branch": "tes/r001/t0/main",
-      "tip": "96b8df23e0d3ef059b7ba82d9cadb50962e17e8b",
-      "steps_completed": 3,
+      "tip": "68b0634c343e4e4b8ece48e6b55a910a9b0b8347",
+      "steps_completed": 4,
       "best": {
-        "eval_id": "e00015",
-        "score": -247458
+        "eval_id": "e00022",
+        "score": -230568
       }
     },
     {
@@ -125,22 +125,23 @@
     3
   ],
   "counters": {
-    "actions": 13,
-    "evals": 20
+    "actions": 14,
+    "evals": 22
   },
   "best_overall": {
-    "eval_id": "e00018",
-    "score": -244278,
-    "commit": "deb4c37957663548da71ad8e8fe44072b3b98e4b"
+    "eval_id": "e00022",
+    "score": -230568,
+    "commit": "68b0634c343e4e4b8ece48e6b55a910a9b0b8347"
   },
   "phi_selection_counts": {
-    "e00001": 4,
+    "e00001": 5,
     "e00004": 2,
     "e00006": 2,
     "e00008": 1,
     "e00010": 1,
     "e00011": 1,
-    "e00014": 1
+    "e00014": 1,
+    "e00015": 1
   },
   "history": [
     {
@@ -220,6 +221,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0013_round-summary_第3轮跨轨迹小结_20260817.md",
       "ts": "2026-08-17T22:56:33+08:00"
+    },
+    {
+      "n": 14,
+      "type": "step-resume",
+      "note": "tes/grhsim-am-coremark/actions/A0014_step-resume_t0s04_word守卫与首触组合_20260818.md",
+      "ts": "2026-08-18T01:53:42+08:00"
     }
   ]
 }

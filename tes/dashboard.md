@@ -2,23 +2,23 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-17T22:56:33+08:00
+> 生成于 2026-08-18T01:53:42+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r001**（active）· C=3 L=8 K=2 · evals 20/48 · actions 13 · 下一步 `step`：推进轨迹 t0 到第 4 步（round-robin 最少步数优先）
+run **r001**（active）· C=3 L=8 K=2 · evals 22/48 · actions 14 · 下一步 `step`：推进轨迹 t1 到第 4 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
 | gsim（target） | e00002 | 24.7s | 1.00x |
 | am（y0 基线） | e00001 | 273.1s | 11.06x |
-| **当前 best** | e00018 | **244.3s** | **9.89x** |
+| **当前 best** | e00022 | **230.6s** | **9.34x** |
 
-基线→target 进度：`██░░░░░░░░░░░░░░░░░░` 11.6%（273.1s → 目标 24.7s，当前差距 9.89x）
+基线→target 进度：`███░░░░░░░░░░░░░░░░░` 17.1%（273.1s → 目标 24.7s，当前差距 9.34x）
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
-| t0 | `tes/r001/t0/main` | 3/8 | e00015 | 247.5s |
+| t0 | `tes/r001/t0/main` | 4/8 | e00022 | 230.6s |
 | t1 | `tes/r001/t1/main` | 3/8 | e00018 | 244.3s |
 | t2 | `tes/r001/t2/main` | 3/8 | e00019 | 264.5s |
 
@@ -44,6 +44,8 @@ run **r001**（active）· C=3 L=8 K=2 · evals 20/48 · actions 13 · 下一步
 | e00018 | candidate | t1/s03c2 | 244.3s | 9.89x | ok | 将 slice_value、标量移位与 signed_value 定义移入生成头文件以消除跨 TU … |
 | e00019 | candidate | t2/s03c1 | 264.5s | 10.71x | ok | commit块next锥的外部叶子在绝大多数时钟事件不脏；由compute生产块执行与ST00013… |
 | e00020 | candidate | t2/s03c2 | 265.2s | 10.74x | ok | init-zero-elision消除98%+冗余init store后，affinity状态布局可… |
+| e00021 | candidate | t0/s04c1 | 239.4s | 9.70x | ok | source-part guard消除空part扫描后，wide first-touch仍可通过收缩… |
+| e00022 | candidate | t0/s04c2 | 230.6s | 9.34x | ok | e00015仍会在活跃source part内逐byte扫描；按64-block activity … |
 
-最近 actions：A0009 round-summary；A0010 step；A0011 step-resume；A0012 step；A0013 round-summary
+最近 actions：A0010 step；A0011 step-resume；A0012 step；A0013 round-summary；A0014 step-resume
 

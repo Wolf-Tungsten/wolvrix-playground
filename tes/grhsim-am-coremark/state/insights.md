@@ -267,3 +267,26 @@
 - 第 3 轮已满足 >=3% 干净收益的继续条件，暂不调整 C/L/K 或提前 restart；
   r001 继续保持轨迹独立。跨轨迹机制组合只在 restart 使用，下一轮仍坚持
   离线覆盖/成本模型和 >=3% 正式评估门槛。
+
+## r001/t0/s04 word 守卫与首触组合（2026-08-18，action A0014）
+
+- **source-word 二级守卫取得本 run 当前最强单步细化**：e00022 在 e00015 的
+  source-part guard 内按 64-block `activeWords_` word 增加精确 owned-mask guard，
+  Host 中位 **230.568s**（CV 0.66%，vs e00015 **-6.83%**）；17/17 ctest 与
+  3 rep difftest 全过。完整模型生成 1,637 个 word guard/334 个 source 文件，
+  证明活跃 part 内部的空 word 逐 byte 扫描仍是一阶适配成本。
+- **guard 与 first-touch 可加**：e00021 将 wide-storage-first-touch 叠加到
+  e00015，得到 239.354s（CV 0.27%，vs e00015 **-3.27%**），达到假设门；
+  locality 增量低于 first-touch 单独的 -5.79%，但未被扫描剪枝吞没。c1 未中选
+  不代表布局证伪，未来可与 e00022 组合正式检验，不能直接相加现有读数。
+- c2 比 c1 快 3.67%，机械与机制裁决一致，e00022 已入 t0/main。新 best 相对
+  AM y0 累计 **-15.57%**，仍为 gsim 的 **9.34x**，绝对差距关闭 **17.12%**；
+  t0 完成 4/8，run 使用 22/48 eval。
+- activity 稀疏性已显出 part -> word -> byte 的层级结构：约 5,862/86,381 块
+  每 round 活跃时，打开一个 part 不代表其中各 word 有效。下一次细化必须先离线
+  统计 word guard open/skip 与有效 byte 分布，再决定连续空 word summary；精确
+  partial mask、同 word relay 和跨轮 `act.b` 语义保持不可妥协。
+- evaluator 基础设施修复：不同候选 worktree 仍使用隔离 wbuild（CMakeCache 绑定
+  绝对源码路径），但 FetchContent URL 改从 `wolvrix/build` 的现有本地 clone
+  读取，wolvrix 构建接入共享 `build/tes/ccache`。e00021/e00022 全新目录的离线
+  configure 分别只需 4.5s/4.4s；新 build 不再意味着重新联网获取依赖。

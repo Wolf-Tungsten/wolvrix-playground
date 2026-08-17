@@ -161,6 +161,32 @@ def build_env_extra() -> dict:
     }
 
 
+def cmake_env_extra() -> dict:
+    """Reuse pinned FetchContent clones without sharing candidate object files."""
+    env = build_env_extra()
+    target_build = REPO / CONFIG["repos"]["target"] / "build"
+    local_clones = [
+        ("https://github.com/fmtlib/fmt.git", target_build / "_deps/fmt-src"),
+        ("https://github.com/microsoft/mimalloc.git", target_build / "_deps/mimalloc-src"),
+        ("https://github.com/CLIUtils/CLI11.git", target_build / "_deps/cli11-src"),
+        ("https://github.com/oneapi-src/oneTBB.git", target_build / "_deps/tbb-src"),
+        ("https://github.com/kahypar/kahypar-shared-resources.git",
+         target_build / "external/mt-kahypar/external_tools/kahypar-shared-resources"),
+        ("https://github.com/larsgottesbueren/WHFC.git",
+         target_build / "external/mt-kahypar/external_tools/WHFC"),
+        ("https://github.com/cmuparlay/parlaylib.git",
+         target_build / "external/mt-kahypar/external_tools/parlay"),
+    ]
+    available = [(remote, source.resolve()) for remote, source in local_clones
+                 if (source / ".git").exists()]
+    config_offset = int(os.environ.get("GIT_CONFIG_COUNT", "0"))
+    env["GIT_CONFIG_COUNT"] = str(config_offset + len(available))
+    for index, (remote, source) in enumerate(available, start=config_offset):
+        env[f"GIT_CONFIG_KEY_{index}"] = f"url.{source.as_uri()}.insteadOf"
+        env[f"GIT_CONFIG_VALUE_{index}"] = remote
+    return env
+
+
 def evaluate_candidate(worktree: Path, eval_id: str, emit_args_override: list[str] | None,
                        compile_budget_sec: int) -> dict:
     evdir = BUILD_TASK / "evals" / eval_id
@@ -201,14 +227,15 @@ def evaluate_candidate(worktree: Path, eval_id: str, emit_args_override: list[st
                   "-DCMAKE_BUILD_TYPE=Release", "-G", "Unix Makefiles"]
     if shutil.which("ccache"):
         cmake_args += ["-DCMAKE_CXX_COMPILER_LAUNCHER=ccache", "-DCMAKE_C_COMPILER_LAUNCHER=ccache"]
-    rc, dur = sh(["cmake", *cmake_args], evdir / "cmake.log", timeout=phase_timeout())
+    rc, dur = sh(["cmake", *cmake_args], evdir / "cmake.log", timeout=phase_timeout(),
+                 env_extra=cmake_env_extra())
     if rc != 0:
         if check_budget("cmake", rc):
             return result
         result.update(status="build_fail", phase="cmake")
         return result
     rc, dur = sh(["cmake", "--build", str(wbuild), "-j", str(os.cpu_count() or 8)],
-                 evdir / "build.log", timeout=phase_timeout())
+                 evdir / "build.log", timeout=phase_timeout(), env_extra=build_env_extra())
     result.setdefault("timings", {})["wolvrix_build_s"] = round(dur, 1)
     if rc != 0:
         if check_budget("build", rc):
