@@ -2,23 +2,23 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-18T16:48:46+08:00
+> 生成于 2026-08-18T18:46:53+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r001**（active）· C=3 L=8 K=2 · evals 26/48 · actions 17 · 下一步 `step`：推进轨迹 t0 到第 5 步（round-robin 最少步数优先）
+run **r001**（active）· C=3 L=8 K=2 · evals 28/48 · actions 18 · 下一步 `step`：推进轨迹 t1 到第 5 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
 | gsim（target） | e00002 | 24.7s | 1.00x |
 | am（y0 基线） | e00001 | 273.1s | 11.06x |
-| **当前 best** | e00022 | **230.6s** | **9.34x** |
+| **当前 best** | e00027 | **222.7s** | **9.02x** |
 
-基线→target 进度：`███░░░░░░░░░░░░░░░░░` 17.1%（273.1s → 目标 24.7s，当前差距 9.34x）
+基线→target 进度：`████░░░░░░░░░░░░░░░░` 20.3%（273.1s → 目标 24.7s，当前差距 9.02x）
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
-| t0 | `tes/r001/t0/main` | 4/8 | e00022 | 230.6s |
+| t0 | `tes/r001/t0/main` | 5/8 | e00027 | 222.7s |
 | t1 | `tes/r001/t1/main` | 4/8 | e00024 | 241.3s |
 | t2 | `tes/r001/t2/main` | 4/8 | e00019 | 264.5s |
 
@@ -50,6 +50,8 @@ run **r001**（active）· C=3 L=8 K=2 · evals 26/48 · actions 17 · 下一步
 | e00024 | candidate | t1/s04c2 | 241.3s | 9.78x | ok | 将不可写且不超过 64 bit 的 InitKind::Constant 标量读取直接内联为掩码字面… |
 | e00025 | candidate | t2/s04c1 | 271.0s | 10.98x | ok | 稀疏 commit-input gating 仅保留尾部工作量至少为 dirty edge 数 4 … |
 | e00026 | candidate | t2/s04c2 | 271.3s | 10.99x | ok | wide-state explode 将 commit 输入门控的宽态传播边压缩，使剩余 gate … |
+| e00027 | candidate | t0/s05c1 | 222.7s | 9.02x | ok | 在e00022的source-word activity guard上叠加wide-storage … |
+| e00028 | candidate | t0/s05c2 | 235.6s | 9.54x | ok | e00022 的 source-word guard 仍逐 byte 从 activeWords_ … |
 
-最近 actions：A0013 round-summary；A0014 step-resume；A0015 step-resume；A0016 step-resume；A0017 round-summary
+最近 actions：A0014 step-resume；A0015 step-resume；A0016 step-resume；A0017 round-summary；A0018 step-resume
 

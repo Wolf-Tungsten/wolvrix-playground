@@ -90,11 +90,11 @@
     {
       "id": "t0",
       "branch": "tes/r001/t0/main",
-      "tip": "68b0634c343e4e4b8ece48e6b55a910a9b0b8347",
-      "steps_completed": 4,
+      "tip": "8dfd73e7b16b67ed388b71e4d18ed8120faed792",
+      "steps_completed": 5,
       "best": {
-        "eval_id": "e00022",
-        "score": -230568
+        "eval_id": "e00027",
+        "score": -222654
       }
     },
     {
@@ -126,17 +126,17 @@
     4
   ],
   "counters": {
-    "actions": 17,
-    "evals": 26
+    "actions": 18,
+    "evals": 28
   },
   "best_overall": {
-    "eval_id": "e00022",
-    "score": -230568,
-    "commit": "68b0634c343e4e4b8ece48e6b55a910a9b0b8347"
+    "eval_id": "e00027",
+    "score": -222654,
+    "commit": "8dfd73e7b16b67ed388b71e4d18ed8120faed792"
   },
   "phi_selection_counts": {
     "e00001": 6,
-    "e00004": 2,
+    "e00004": 3,
     "e00006": 2,
     "e00008": 2,
     "e00010": 1,
@@ -144,7 +144,8 @@
     "e00014": 1,
     "e00015": 1,
     "e00018": 1,
-    "e00019": 1
+    "e00019": 1,
+    "e00022": 1
   },
   "history": [
     {
@@ -248,6 +249,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0017_round-summary_第4轮跨轨迹小结_20260818.md",
       "ts": "2026-08-18T16:48:46+08:00"
+    },
+    {
+      "n": 18,
+      "type": "step-resume",
+      "note": "tes/grhsim-am-coremark/actions/A0018_step-resume_t0s05_守卫与首触组合及局部快照_20260818.md",
+      "ts": "2026-08-18T18:46:53+08:00"
     }
   ]
 }

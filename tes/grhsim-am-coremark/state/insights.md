@@ -350,3 +350,30 @@
 - 六个本轮候选均过 17/17 ctest、3 rep difftest 和 2400s 编译门，CV 0.27%-1.49%；
   依赖复用规则继续有效。第 4 轮已齐平，下一 action 是 `r001/t0/s05`，不调整
   C/L/K、不提前 restart，且保持轨迹独立。
+
+## r001/t0/s05 word guard + first-touch 组合与 word snapshot（2026-08-18，action A0018）
+
+- **组合确认并刷新 run best（e00027）**：在 e00022 的 source-part/source-word
+  activity guard 上启用 `--wide-storage-first-touch`，Host 中位 **222.654s**
+  （222.654/222.542/223.460，CV 0.22%），较 e00022 230.568s **-3.43%**；
+  17/17 ctest、3 rep 在线 difftest 和 2400s 编译门均通过，compile_s=606.3s。
+  419,243 个宽存储变量中 191,955 个被 Block 触及；候选布局将 static
+  block-first cache-line 161,680->151,616、触及跨度
+  24,304,307->8,347,000 words、page 17,661->16,303。word 层扫描剪枝后，
+  定向宽状态 locality 仍有独立的一阶余量。
+- **局部 word activity snapshot 证伪（e00028）**：`--source-word-activity-snapshot`
+  每个 source part 将 owned activity word 一次载入局部 `wordFlags`，同 word 未扫描
+  的 `act.f` 留在局部，跨 word/part、已消费 byte 与 `act.b` 仍写全局活动字；partial
+  mask 与 full-evaluation bypass 均由 emitter 测试覆盖。它的 235.610s
+  （232.455/235.610/236.299，CV 0.87%）较 e00022 **+2.19%**、较 e00027
+  **+5.82%**，虽然 17/17 ctest、3 rep difftest 均通过且 compile_s=507.6s。
+  因此不要把全局 activity word 访存量当作独立热成本代理：word guard 已收掉空扫描，
+  局部 snapshot 带来的 `wordFlags` 数据/控制依赖反而退化。
+- t0/s05 winner 为 e00027，已进入 `tes/r001/t0/main`。run best 从 230.568s
+  到 222.654s，较 AM y0 累计 **-18.47%**，仍为 gsim 24.688s 的 **9.02x**，
+  AM/gsim 绝对差距关闭 **20.31%**。t0 现为 5/8，run 已使用 28/48 eval；下一
+  action 按轮转为 t1/s05，当前 run 不把 t0 结论注入 t1 proposal。
+- 依赖复用约定继续按任务 `playbook.md` 的“构建与依赖复用”执行：独立 eval
+  目录只隔离 CMake cache/对象，FetchContent 本地 clone 与共享 ccache 不变；e00028
+  的 CMake configure 在离线本地 clone 条件下为 1.8s。该规则已固定，不再把新
+  `wbuild` 误解为需要联网下载。

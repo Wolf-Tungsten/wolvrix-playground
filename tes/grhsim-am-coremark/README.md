@@ -9,9 +9,15 @@
 - 活跃 run：**r001**（C=3, L=8, K=2，N=48；base `a88e7a2`）
 - 基线（2026-08-14，同协议 3-rep 中位）：AM y0 = **273.1s**（e00001，CV 0.39%）；
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
-- 当前 best：**230.6s**（e00022，source-word activity guard，较 AM y0
-  **-15.57%**）；仍为 gsim 的 **9.34x**，AM/gsim 绝对差距关闭 17.12%；
-  t0/t1/t2 步进 **4/4/4**
+- 当前 best：**222.7s**（e00027，source-word guard + wide-storage-first-touch，
+  较 AM y0 **-18.47%**）；仍为 gsim 的 **9.02x**，AM/gsim 绝对差距关闭
+  20.31%；t0/t1/t2 步进 **5/4/4**
+- t0/s05（A0018）：c1 将 e00022 的精确 source-word guard 与
+  `--wide-storage-first-touch` 正式组合，e00027 中位 **222.7s**（较 e00022
+  **-3.43%，CV 0.22%**），成为 winner 与新 run best；c2
+  `--source-word-activity-snapshot` 保持 activity relay 语义但为 **235.6s**
+  （较 e00022 **+2.19%，CV 0.87%**），证伪“局部 word snapshot 可减少热路径
+  成本”。两候选均 17/17 ctest、3 rep difftest 全过，compile_s=606.3/507.6s
 - t0/s04（A0014）：c2 在 e00015 source-part guard 内按 64-block activity word
   增加精确二级守卫，1,637 个 guard 覆盖 334 个 source 文件，230.6s（vs e00015
   **-6.83%，CV 0.66%**），成为 winner 与新 run best；c1 叠加 wide first-touch
@@ -88,7 +94,7 @@
 - 第 1 轮小结（A0005）：静态 emit 单旋钮空间扫完、收益饱和 ~1%/个；主失败
   模式是编译预算门（2/6）；`--init-zero-elision` 为元杠杆；块间机械
   （调度器/事件/commit）是唯一未触探大轴
-- 下一个 action：`r001/t0/s05`（第 4 轮跨轨迹小结已完成；按固定轮转进入第 5 轮，
+- 下一个 action：`r001/t1/s05`（t0 已完成第 5 步；按固定轮转推进最少步数轨迹，
   不调整 C/L/K）
 - 已知参考点：AM Host 324.0s（emit-cost NO0018 收口，2026-08-14；与 r001 实测 273.1s
   有约 15% 漂移，单点数字注意机器状态/布局影响）
