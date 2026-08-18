@@ -110,8 +110,8 @@
     {
       "id": "t2",
       "branch": "tes/r001/t2/main",
-      "tip": "06986dcc9c2c8b767311b27a65bdc1ca229eef20",
-      "steps_completed": 3,
+      "tip": "f7b1f87af7109ecab5c0b63be1797bc648cf4492",
+      "steps_completed": 4,
       "best": {
         "eval_id": "e00019",
         "score": -264466
@@ -125,8 +125,8 @@
     3
   ],
   "counters": {
-    "actions": 15,
-    "evals": 24
+    "actions": 16,
+    "evals": 26
   },
   "best_overall": {
     "eval_id": "e00022",
@@ -137,12 +137,13 @@
     "e00001": 6,
     "e00004": 2,
     "e00006": 2,
-    "e00008": 1,
+    "e00008": 2,
     "e00010": 1,
     "e00011": 1,
     "e00014": 1,
     "e00015": 1,
-    "e00018": 1
+    "e00018": 1,
+    "e00019": 1
   },
   "history": [
     {
@@ -234,6 +235,12 @@
       "type": "step-resume",
       "note": "tes/grhsim-am-coremark/actions/A0015_step-resume_t1s04_resize与常量内联_20260818.md",
       "ts": "2026-08-18T12:24:46+08:00"
+    },
+    {
+      "n": 16,
+      "type": "step-resume",
+      "note": "tes/grhsim-am-coremark/actions/A0016_step-resume_t2s04_稀疏commit门控与宽态炸开_20260818.md",
+      "ts": "2026-08-18T16:24:40+08:00"
     }
   ]
 }

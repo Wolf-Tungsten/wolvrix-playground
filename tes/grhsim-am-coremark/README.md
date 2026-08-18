@@ -11,7 +11,7 @@
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
 - 当前 best：**230.6s**（e00022，source-word activity guard，较 AM y0
   **-15.57%**）；仍为 gsim 的 **9.34x**，AM/gsim 绝对差距关闭 17.12%；
-  t0/t1/t2 步进 **4/4/3**
+  t0/t1/t2 步进 **4/4/4**
 - t0/s04（A0014）：c2 在 e00015 source-part guard 内按 64-block activity word
   增加精确二级守卫，1,637 个 guard 覆盖 334 个 source 文件，230.6s（vs e00015
   **-6.83%，CV 0.66%**），成为 winner 与新 run best；c1 叠加 wide first-touch
@@ -23,6 +23,12 @@
   1.49%**），17/17 ctest 与 3 rep difftest 全过，成为 t1 winner；c1 扩展
   signed/unsigned 同宽 resize 胶后回退至 256.4s（**+4.97%**）。两候选均在
   2400s 编译门内；e00024 为稳定弱正但未达 3% 一阶门，run best 仍为 e00022
+- t2/s04（A0016）：c1 `--commit-input-sparse` 的全局 dirty-edge 阈值拒绝全部
+  2,922 个 commit gate，e00025 为 **271.0s**（较 e00019 **+2.45%**）；c2
+  `--wide-state-explode` 将传播边从 240,198 降至 87,298，但 e00026 为
+  **271.3s**（**+2.58%**）。两者 17/17 ctest、3 rep difftest 全过，均为回退；
+  TES 按 step 内规则将 e00025 合入 t2/main，但 t2 best 仍是 e00019。第 4 轮已齐平，
+  下一 action 为 `round-summary`
 - 第 3 轮小结（A0013）：首次出现重复的一阶适配层收益——source-part activity
   guard **-9.44%**、selective scalar helper inline **-9.69%**；wide first-touch
   **-5.79%** 进一步确认访问顺序驱动的状态 locality。静态全局 affinity 仅
@@ -82,8 +88,8 @@
 - 第 1 轮小结（A0005）：静态 emit 单旋钮空间扫完、收益饱和 ~1%/个；主失败
   模式是编译预算门（2/6）；`--init-zero-elision` 为元杠杆；块间机械
   （调度器/事件/commit）是唯一未触探大轴
-- 下一个 action：`step`（r001/t2/s04，K=2；继续保持轨迹独立，由下一 action
-  的 t2-local proposal 选候选）
+- 下一个 action：`round-summary`（第 4 轮三条轨迹均完成 1 步；先做跨轨迹小结，
+  不提前启动第 5 轮）
 - 已知参考点：AM Host 324.0s（emit-cost NO0018 收口，2026-08-14；与 r001 实测 273.1s
   有约 15% 漂移，单点数字注意机器状态/布局影响）
 - run-init 备注：evaluator 修了 emu 相对路径 exec bug；金标改为计数窗

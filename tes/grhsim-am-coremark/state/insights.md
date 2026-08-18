@@ -309,3 +309,22 @@
   隔离，仅复用 `wolvrix/build` 的 FetchContent 本地 clone 与 `build/tes/ccache`；
   CMake configure 约 4.4/4.6s 且无联网。长期操作约定已写入任务
   [`playbook.md`](../playbook.md)「构建与依赖复用」，后续按 evaluator 执行即可。
+
+## r001/t2/s04 稀疏 commit 门控与宽态炸开（2026-08-18，action A0016）
+
+- **全局 dirty-edge 阈值证伪**：e00025 的 `min_work_per_edge=4` 拒绝全部
+  2,922 个 commit gate（dirty edges 240,198，最终 gated=0），Host 270.956s，
+  较 e00019 回退 2.45%。commit 内锥的动态 skip 不能用单一静态边数阈值近似；未来
+  若重访，先做逐 gate 的 open/skip 与实际跳过指令统计。
+- **宽态炸开与 commit gating 组合证伪**：e00026 炸开 274 状态/16,818 元素，
+  将 commit gating 缩为 2,165 gate、87,298 dirty edges、59,160 writes，但 Host
+  271.282s（较 e00019 **+2.58%**）。传播边减少没有转成收益，覆盖下降与生成代码
+  布局成本共同抵消；静态 edge 数不是运行时净收益代理。
+- 两候选均 17/17 ctest、3 rep difftest 全过且 compile_s=1007.5/1152.6s；
+  e00025 初次 ctest 失败仅为测试夹具误开稀疏属性，修复后同一 eval-id 重跑并通过，
+  没有把失败运行当作性能数据。按 step 内规则 e00025 进入 t2/main，但 t2 best
+  仍为 e00019；第 4 轮三轨迹齐平，下一 action 为 round-summary。
+- **离线依赖复用再次实证**：e00025/e00026 独立 wbuild/emu_build 的首次 CMake
+  configure 为 4.8/4.6s，FetchContent 从 `wolvrix/build` 本地 clone、C++ 使用
+  `build/tes/ccache`，全程无联网。后续执行直接遵守任务 playbook，不再新建依赖
+  树或反复询问复用规则。
