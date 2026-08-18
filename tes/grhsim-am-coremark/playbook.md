@@ -4,6 +4,26 @@
 评估器：`tes/grhsim-am-coremark/evaluator.py`，两模式：
 `run`（候选/AM 基线全流水线）与 `gsim`（现存 emu 协议化计时）。
 
+## 构建与依赖复用（固定前置规则）
+
+- 正式评估必须直接调用本文件给出的 `evaluator.py` 命令；不要手工执行
+  `cmake`/FetchContent，也不要为依赖申请联网。
+- 候选的 `wbuild` 和 `emu_build` 仍按 `eval-id` 放在
+  `build/tes/grhsim-am-coremark/evals/<eval-id>/`，保持候选对象文件和
+  `CMakeCache.txt` 隔离。不能把不同 worktree 直接混用 `wolvrix/build`：CMake
+  cache 绑定绝对源码路径，强行复用会拒绝配置或引入 stale object。
+- 依赖源与编译缓存必须复用：`evaluator.py` 的 `cmake_env_extra()` 会把
+  FetchContent 的 fmt、mimalloc、CLI11、oneTBB 及 mt-kahypar 嵌套依赖 URL
+  重定向到 `wolvrix/build` 中已有的本地 clone；`build_env_extra()` 将
+  `CCACHE_DIR` 固定为共享的 `build/tes/ccache`。因此“新 wbuild”不等于“重新
+  下载依赖”或“冷编译”。
+- CMake 输出中的 `Fetching dependencies...` 是项目配置阶段的固定提示；只要
+  `wolvrix/build` 的本地 clone 完整，配置应在受限网络下完成。若本地 clone
+  缺失/损坏，先在正式评估之外修复依赖缓存并记录原因，再运行候选；不要在计时
+  流程中临时联网或手工填充新的依赖目录。
+- 评估产物保留在 `build/tes/.../evals/` 供审计，默认不删除；清理旧目录需用户
+  明确确认。
+
 ## 基线流程（run-init action 用）
 
 AM 基线（y0，目标仓库基线 commit 的全流水线）：

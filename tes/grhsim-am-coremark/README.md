@@ -92,11 +92,17 @@
 - `playbook.md` — 任务专属操作细节（基线流程、候选评估命令、结果解读）
 - `config.json` — 默认参数与路径（run-init 冻结）
 - `evaluator.py` — 评估器 V：`run`（候选/基线全流水线）与 `gsim`（现存 emu 协议化计时）两模式
+- 评估构建规则见 [`playbook.md`](playbook.md)「构建与依赖复用」：候选 `wbuild`/
+  `emu_build` 按 eval 隔离，FetchContent 依赖与 `build/tes/ccache` 复用，正式评估
+  不联网；不要把新 build 目录误解为重新下载依赖
 - `state/` — `run.json`、`ledger.jsonl`（append-only）、`insights.md`
 - `actions/` `proposals/` `runs/` — action 笔记、Φ 快照、run 清单/总结
 - 评估输入：gsim 导出的 exec-GRH（路径见 config `paths.exec_json`，run-init 记 sha256）
 
 ## 快速命令
+
+评估前先遵守上面的“构建与依赖复用”规则：候选 build 目录隔离，FetchContent
+依赖和 ccache 复用，不联网、不手工重建依赖。
 
 ```bash
 python3 tes/tools/tesctl.py status            # 状态
