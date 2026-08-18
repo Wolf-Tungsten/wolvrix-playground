@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-18T01:53:42+08:00
+> 生成于 2026-08-18T12:24:46+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r001**（active）· C=3 L=8 K=2 · evals 22/48 · actions 14 · 下一步 `step`：推进轨迹 t1 到第 4 步（round-robin 最少步数优先）
+run **r001**（active）· C=3 L=8 K=2 · evals 24/48 · actions 15 · 下一步 `step`：推进轨迹 t2 到第 4 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -19,7 +19,7 @@ run **r001**（active）· C=3 L=8 K=2 · evals 22/48 · actions 14 · 下一步
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
 | t0 | `tes/r001/t0/main` | 4/8 | e00022 | 230.6s |
-| t1 | `tes/r001/t1/main` | 3/8 | e00018 | 244.3s |
+| t1 | `tes/r001/t1/main` | 4/8 | e00024 | 241.3s |
 | t2 | `tes/r001/t2/main` | 3/8 | e00019 | 264.5s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
@@ -46,6 +46,8 @@ run **r001**（active）· C=3 L=8 K=2 · evals 22/48 · actions 14 · 下一步
 | e00020 | candidate | t2/s03c2 | 265.2s | 10.74x | ok | init-zero-elision消除98%+冗余init store后，affinity状态布局可… |
 | e00021 | candidate | t0/s04c1 | 239.4s | 9.70x | ok | source-part guard消除空part扫描后，wide first-touch仍可通过收缩… |
 | e00022 | candidate | t0/s04c2 | 230.6s | 9.34x | ok | e00015仍会在活跃source part内逐byte扫描；按64-block activity … |
+| e00023 | candidate | t1/s04c1 | 256.4s | 10.39x | ok | 将同宽 signed/unsigned resize_value 胶统一消除；若 signed 胶仍… |
+| e00024 | candidate | t1/s04c2 | 241.3s | 9.78x | ok | 将不可写且不超过 64 bit 的 InitKind::Constant 标量读取直接内联为掩码字面… |
 
-最近 actions：A0010 step；A0011 step-resume；A0012 step；A0013 round-summary；A0014 step-resume
+最近 actions：A0011 step-resume；A0012 step；A0013 round-summary；A0014 step-resume；A0015 step-resume
 

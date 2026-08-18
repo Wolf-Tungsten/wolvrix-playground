@@ -100,11 +100,11 @@
     {
       "id": "t1",
       "branch": "tes/r001/t1/main",
-      "tip": "deb4c37957663548da71ad8e8fe44072b3b98e4b",
-      "steps_completed": 3,
+      "tip": "6307fca53a9c660711602a450ae0d9461179a012",
+      "steps_completed": 4,
       "best": {
-        "eval_id": "e00018",
-        "score": -244278
+        "eval_id": "e00024",
+        "score": -241348
       }
     },
     {
@@ -125,8 +125,8 @@
     3
   ],
   "counters": {
-    "actions": 14,
-    "evals": 22
+    "actions": 15,
+    "evals": 24
   },
   "best_overall": {
     "eval_id": "e00022",
@@ -134,14 +134,15 @@
     "commit": "68b0634c343e4e4b8ece48e6b55a910a9b0b8347"
   },
   "phi_selection_counts": {
-    "e00001": 5,
+    "e00001": 6,
     "e00004": 2,
     "e00006": 2,
     "e00008": 1,
     "e00010": 1,
     "e00011": 1,
     "e00014": 1,
-    "e00015": 1
+    "e00015": 1,
+    "e00018": 1
   },
   "history": [
     {
@@ -227,6 +228,12 @@
       "type": "step-resume",
       "note": "tes/grhsim-am-coremark/actions/A0014_step-resume_t0s04_word守卫与首触组合_20260818.md",
       "ts": "2026-08-18T01:53:42+08:00"
+    },
+    {
+      "n": 15,
+      "type": "step-resume",
+      "note": "tes/grhsim-am-coremark/actions/A0015_step-resume_t1s04_resize与常量内联_20260818.md",
+      "ts": "2026-08-18T12:24:46+08:00"
     }
   ]
 }

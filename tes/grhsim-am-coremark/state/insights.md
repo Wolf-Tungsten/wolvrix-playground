@@ -290,3 +290,22 @@
   绝对源码路径），但 FetchContent URL 改从 `wolvrix/build` 的现有本地 clone
   读取，wolvrix 构建接入共享 `build/tes/ccache`。e00021/e00022 全新目录的离线
   configure 分别只需 4.5s/4.4s；新 build 不再意味着重新联网获取依赖。
+
+## r001/t1/s04 resize 胶与标量常量内联（2026-08-18，action A0015）
+
+- **同宽 signed/unsigned resize 扩张证伪（e00023）**：在已有
+  `--resize-elision --inline-scalar-helpers` 上扩展同宽 signed/unsigned 胶消除，
+  Host 中位 **256.419s**（CV 0.90%），较 t1 主线 e00018 **+4.97%**；17/17
+  ctest、3 rep difftest 全过，compile_s=1586.4s。静态站点减少没有转化为运行时
+  收益，且生成代码/优化交互可能造成布局回退；该独立扩张关闭。
+- **只读标量常量内联弱正（e00024，winner）**：不可写且 <=64 bit 的
+  `InitKind::Constant` 读取发射为掩码字面量，地址、init 写入和输入写入仍走
+  backing storage；Host 中位 **241.348s**（CV 1.49%），较 e00018 **-1.20%**，
+  compile_s=1036.3s，17/17 ctest 与 3 rep difftest 全过。方向稳定但未达 3% 一阶
+  门，后续先量化动态常量命中率与代码体积，不扩大 inline 边界。
+- 新 t1 best = e00024 241.348s（较 AM y0 **-11.63%**，gsim 比 **9.78x**）；
+  run best 仍为 e00022 230.568s。下一 action 轮转到 t2/s04，轨迹继续独立。
+- **依赖复用规则固化**：A0015 两个新 eval 各自保留 worktree 绑定的 wbuild/emu_build
+  隔离，仅复用 `wolvrix/build` 的 FetchContent 本地 clone 与 `build/tes/ccache`；
+  CMake configure 约 4.4/4.6s 且无联网。长期操作约定已写入任务
+  [`playbook.md`](../playbook.md)「构建与依赖复用」，后续按 evaluator 执行即可。
