@@ -377,3 +377,31 @@
   目录只隔离 CMake cache/对象，FetchContent 本地 clone 与共享 ccache 不变；e00028
   的 CMake configure 在离线本地 clone 条件下为 1.8s。该规则已固定，不再把新
   `wbuild` 误解为需要联网下载。
+
+## r001/t1/s05 标量 helper 与常量存储消除（2026-08-19，action A0019）
+
+- **除法 helper 内联为稳定弱正（e00029）**：在 t1/s04 的
+  `--resize-elision --inline-scalar-helpers --inline-scalar-constants` 基础上，
+  `--inline-scalar-divmod-helpers` 将窄标量 `divide_value` / `modulo_value` 移入
+  生成 header。固定 exec-GRH 只有 1,267 个 divide、0 个 modulo 静态站点；Host
+  中位 **237.380s**（237.667/237.380/237.256，CV 0.09%），较 t1 e00024
+  241.348s **-1.64%**。17/17 ctest、3 rep difftest 全过，compile_s=1039.3s；
+  该方向收益低于 3% 一阶门但没有编译膨胀，作为可复用旋钮保留。
+- **常量 backing storage 消除取得一阶收益（e00030，winner）**：新增
+  `--inline-scalar-constant-storage-elision`，只在字面量内联且 escape/pin 分析
+  确认无地址/状态需求时删除窄常量 `v<K>` 成员和 `init()` store。生成 header
+  成员文本由 1,263,224 减至 1,253,782，常量 init store 由 158,069 减至
+  148,627，runtime 源文件由 107,319,040 bytes 减至 106,652,747 bytes（减少
+  666,293 bytes）。Host 中位 **230.447s**（230.520/230.447/226.051，CV
+  1.12%），较 t1 e00024 **-4.52%**；17/17 ctest、3 rep difftest 全过，
+  compile_s=1032.7s。状态布局/初始化是继常量读取内联后仍可独立收取的成本，
+  但删除规则必须继续由 escape/pin 防线约束。
+- 两候选均在 2400s 编译预算内，正式 reps 串行绑核且无插桩；六次计数均为
+  `instrCnt=73580`、`cycleCnt=49996`，nemu 无 mismatch。`finish-step` 已将
+  e00030 合入 `tes/r001/t1/main`，t1 best 更新为 230.447s；本步结论只使用
+  t1 轨迹节点，未把其他轨迹实测结论注入归因。
+- **依赖复用规则继续固定**：e00029/e00030 各自保留 worktree 绑定的
+  `wbuild`/`emu_build`，FetchContent 依赖由 evaluator 重定向到
+  `wolvrix/build` 本地 clone，C++ 使用共享 `build/tes/ccache`；受限网络下
+  configure、编译和评估均未联网。该约定已记录在任务 `playbook.md` 与 README，
+  后续 action 直接遵守，不再重复创建依赖树或提醒联网。

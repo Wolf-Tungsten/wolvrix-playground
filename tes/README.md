@@ -21,7 +21,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 5 轮进行中（t0/t1/t2 = 5/4/4） | best e00027 222.7s（source-word guard + wide first-touch，较 AM y0 -18.47%，仍为 gsim 9.02x）；t0/s05 的局部 word activity snapshot 回退至 235.6s，组合 first-touch 成为新 best；下一 action `t1/s05` |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 5 轮进行中（t0/t1/t2 = 5/5/4） | best e00027 222.7s（source-word guard + wide first-touch，较 AM y0 -18.47%，仍为 gsim 9.02x）；t1/s05 的常量存储消除取得 230.4s 并刷新 t1 best；下一 action `t2/s05` |
 
 ## 共享件
 

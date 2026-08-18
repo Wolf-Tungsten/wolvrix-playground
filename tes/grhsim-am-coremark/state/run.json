@@ -100,11 +100,11 @@
     {
       "id": "t1",
       "branch": "tes/r001/t1/main",
-      "tip": "6307fca53a9c660711602a450ae0d9461179a012",
-      "steps_completed": 4,
+      "tip": "d7b9f012fa2c53adbb7df02d886b377e9904e773",
+      "steps_completed": 5,
       "best": {
-        "eval_id": "e00024",
-        "score": -241348
+        "eval_id": "e00030",
+        "score": -230447
       }
     },
     {
@@ -126,8 +126,8 @@
     4
   ],
   "counters": {
-    "actions": 18,
-    "evals": 28
+    "actions": 19,
+    "evals": 30
   },
   "best_overall": {
     "eval_id": "e00027",
@@ -137,7 +137,7 @@
   "phi_selection_counts": {
     "e00001": 6,
     "e00004": 3,
-    "e00006": 2,
+    "e00006": 3,
     "e00008": 2,
     "e00010": 1,
     "e00011": 1,
@@ -145,7 +145,8 @@
     "e00015": 1,
     "e00018": 1,
     "e00019": 1,
-    "e00022": 1
+    "e00022": 1,
+    "e00024": 1
   },
   "history": [
     {
@@ -255,6 +256,12 @@
       "type": "step-resume",
       "note": "tes/grhsim-am-coremark/actions/A0018_step-resume_t0s05_守卫与首触组合及局部快照_20260818.md",
       "ts": "2026-08-18T18:46:53+08:00"
+    },
+    {
+      "n": 19,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0019_step_t1s05_标量helper与常量存储消除_20260819.md",
+      "ts": "2026-08-19T02:55:51+08:00"
     }
   ]
 }

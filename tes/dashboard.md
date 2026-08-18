@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-18T18:46:53+08:00
+> 生成于 2026-08-19T02:55:51+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r001**（active）· C=3 L=8 K=2 · evals 28/48 · actions 18 · 下一步 `step`：推进轨迹 t1 到第 5 步（round-robin 最少步数优先）
+run **r001**（active）· C=3 L=8 K=2 · evals 30/48 · actions 19 · 下一步 `step`：推进轨迹 t2 到第 5 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -19,7 +19,7 @@ run **r001**（active）· C=3 L=8 K=2 · evals 28/48 · actions 18 · 下一步
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
 | t0 | `tes/r001/t0/main` | 5/8 | e00027 | 222.7s |
-| t1 | `tes/r001/t1/main` | 4/8 | e00024 | 241.3s |
+| t1 | `tes/r001/t1/main` | 5/8 | e00030 | 230.4s |
 | t2 | `tes/r001/t2/main` | 4/8 | e00019 | 264.5s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
@@ -52,6 +52,8 @@ run **r001**（active）· C=3 L=8 K=2 · evals 28/48 · actions 18 · 下一步
 | e00026 | candidate | t2/s04c2 | 271.3s | 10.99x | ok | wide-state explode 将 commit 输入门控的宽态传播边压缩，使剩余 gate … |
 | e00027 | candidate | t0/s05c1 | 222.7s | 9.02x | ok | 在e00022的source-word activity guard上叠加wide-storage … |
 | e00028 | candidate | t0/s05c2 | 235.6s | 9.54x | ok | e00022 的 source-word guard 仍逐 byte 从 activeWords_ … |
+| e00029 | candidate | t1/s05c1 | 237.4s | 9.62x | ok | 将窄标量 divide_value/modulo_value 定义内联到生成头文件，使固定宽度、si… |
+| e00030 | candidate | t1/s05c2 | 230.4s | 9.33x | ok | 在 inlineScalarConstants 的字面量读取基础上，按 escape/pin 分析删… |
 
-最近 actions：A0014 step-resume；A0015 step-resume；A0016 step-resume；A0017 round-summary；A0018 step-resume
+最近 actions：A0015 step-resume；A0016 step-resume；A0017 round-summary；A0018 step-resume；A0019 step
 
