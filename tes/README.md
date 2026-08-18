@@ -21,7 +21,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 4 轮已齐平（t0/t1/t2 = 4/4/4） | best e00022 230.6s（较 AM y0 -15.57%，仍为 gsim 9.34x）；t2/s04 的稀疏 commit 门控与宽态炸开均回退（e00025 271.0s、e00026 271.3s），t2 best 仍 e00019；下一 action `round-summary` |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 4 轮已总结（t0/t1/t2 = 4/4/4） | best e00022 230.6s（较 AM y0 -15.57%，仍为 gsim 9.34x）；t2/s04 的稀疏 commit 门控与宽态炸开均回退（e00025 271.0s、e00026 271.3s），t2 best 仍 e00019；下一 action `t0/s05` |
 
 ## 共享件
 

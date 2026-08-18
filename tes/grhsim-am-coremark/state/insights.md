@@ -328,3 +328,25 @@
   configure 为 4.8/4.6s，FetchContent 从 `wolvrix/build` 本地 clone、C++ 使用
   `build/tes/ccache`，全程无联网。后续执行直接遵守任务 playbook，不再新建依赖
   树或反复询问复用规则。
+
+## r001 第 4 轮跨轨迹小结（2026-08-18，action A0017）
+
+- **本轮 run best 再降 5.61%**：e00022 的 source-word activity guard 将
+  round 3 best e00018 的 244.278s 降至 **230.568s**（CV 0.66%），相对 AM y0
+  累计改善 15.57%，但仍为 gsim 的 9.34x。e00021 的 source-part guard +
+  wide first-touch 为 239.354s（-3.27%），证明定向 locality 与扫描剪枝可加；
+  两者已有正证据，但组合仍需单独评估。
+- **activity 稀疏性应继续按层级细化**：part -> word -> byte 的结果由 e00015/
+  e00022 重复确认，word 层仍有一阶收益。后续先统计每个 guard 的 open/skip、
+  有效 byte 和状态跨度，再考虑 word guard + first-touch 组合，不能直接相加历史
+  百分比。
+- **t1 只剩次一阶余量**：e00024 的只读标量常量内联较 e00018 改善 1.20%，
+  e00023 的 signed/unsigned resize 扩张回退 4.97%；静态站点减少不是运行时代理，
+  helper 扩张还会消耗编译预算。保留常量内联，关闭 resize 扩张。
+- **t2 commit 路线收敛为关闭**：e00019 的 91.9% 写站覆盖只带来 1.95%；
+  e00025 全局阈值拒绝全部 gate，e00026 将 dirty edges 降至 87,298 仍回退。
+  后续除非有逐 gate 动态 open/skip、传播 store 和实际跳过指令的净收益证据，
+  不再正式评估静态稀疏代理或 wide-state explode 组合。
+- 六个本轮候选均过 17/17 ctest、3 rep difftest 和 2400s 编译门，CV 0.27%-1.49%；
+  依赖复用规则继续有效。第 4 轮已齐平，下一 action 是 `r001/t0/s05`，不调整
+  C/L/K、不提前 restart，且保持轨迹独立。

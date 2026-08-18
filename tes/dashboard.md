@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-18T16:24:40+08:00
+> 生成于 2026-08-18T16:48:46+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r001**（active）· C=3 L=8 K=2 · evals 26/48 · actions 16 · 下一步 `round-summary`：第 4 轮（全部 3 条轨迹各完成 1 步）已齐平，做跨轨迹小结
+run **r001**（active）· C=3 L=8 K=2 · evals 26/48 · actions 17 · 下一步 `step`：推进轨迹 t0 到第 5 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -51,5 +51,5 @@ run **r001**（active）· C=3 L=8 K=2 · evals 26/48 · actions 16 · 下一步
 | e00025 | candidate | t2/s04c1 | 271.0s | 10.98x | ok | 稀疏 commit-input gating 仅保留尾部工作量至少为 dirty edge 数 4 … |
 | e00026 | candidate | t2/s04c2 | 271.3s | 10.99x | ok | wide-state explode 将 commit 输入门控的宽态传播边压缩，使剩余 gate … |
 
-最近 actions：A0012 step；A0013 round-summary；A0014 step-resume；A0015 step-resume；A0016 step-resume
+最近 actions：A0013 round-summary；A0014 step-resume；A0015 step-resume；A0016 step-resume；A0017 round-summary
 
