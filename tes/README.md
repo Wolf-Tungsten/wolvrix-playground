@@ -10,6 +10,14 @@
 `python3 tes/tools/tesctl.py next` 得到唯一 action，按 [playbook.md](playbook.md)
 执行到底后停止。系统无状态：所有进度在任务目录的文件里。
 
+**无人值守模式**：`tmux new -s tesloop 'tes/tools/tesloop.sh'`。tesloop 每轮起一个
+全新的 `kimi -p` 会话（等价手动 /new + /goal，每个 action 独立上下文），run 收口
+（run-summary 完成）后自动停止，等用户裁决 restart。中断（网络/断电/手动停止）后
+重跑同一命令即从状态机断点续跑：step 内已评估的候选由 ledger 锚定，以 step-resume
+续跑剩余候选，不重跑已完成者。日志在 `build/logs/tesloop/`。kimi 会话失败默认重试
+3 次（间隔 300s，`TESLOOP_RETRIES`/`TESLOOP_RETRY_DELAY` 可调），连续失败则停止待
+人工检查。断电重启后 tesloop 不会自动拉起，需人工重跑（或自行配 systemd/@reboot）。
+
 进展跟踪看板：[dashboard.md](dashboard.md)（由 `tesctl.py dashboard` 生成，
 状态变更命令自动刷新，勿手改）。
 
@@ -21,13 +29,14 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 t0/s06 完成（t0/t1/t2 = 6/5/5，evals 34/48） | best e00033 216.5s（concat-insert-inline 叠加 guard+first-touch，较 AM y0 -20.73%，仍为 gsim 8.77x）；t0 窄态首触布局 +3.23% 证伪、窄态布局轴关闭；下一 action `r001/t1/s06` |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 t1/s06 完成（t0/t1/t2 = 6/6/5，evals 36/48） | best e00033 216.5s（较 AM y0 -20.73%，仍为 gsim 8.77x）；t1 宽 helper 内联 -0.66% 未达 3% 门（emu_build 2.5x 恶化）、宽常量 rodata 迁移 +1.06% 回退（emu_build -67% 编译杠杆），两轴运行时关闭；下一 action `r001/t2/s06` |
 
 ## 共享件
 
 - `goal.md` — /goal 入口文件（固定流程 + 纪律）
 - `playbook.md` — 各 action 类型的操作步骤
 - `tools/tesctl.py` — 调度器/状态机（`--task` 指定任务，单任务自动解析）
+- `tools/tesloop.sh` — 无人值守循环驱动（断点续跑，用法见上「驱动方式」）
 - `tools/phi.py` — Φ / RPUCG 提案构造
 - `DESIGN.md` / `RULES.md` — 设计与纪律（任务无关部分）
 

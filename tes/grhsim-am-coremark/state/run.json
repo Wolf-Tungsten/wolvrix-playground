@@ -100,11 +100,11 @@
     {
       "id": "t1",
       "branch": "tes/r001/t1/main",
-      "tip": "d7b9f012fa2c53adbb7df02d886b377e9904e773",
-      "steps_completed": 5,
+      "tip": "188f6b280dcaf6d8dd7da1b679bf2003d473953c",
+      "steps_completed": 6,
       "best": {
-        "eval_id": "e00030",
-        "score": -230447
+        "eval_id": "e00035",
+        "score": -228935
       }
     },
     {
@@ -127,8 +127,8 @@
     5
   ],
   "counters": {
-    "actions": 22,
-    "evals": 34
+    "actions": 23,
+    "evals": 36
   },
   "best_overall": {
     "eval_id": "e00033",
@@ -136,7 +136,7 @@
     "commit": "424c569cea1ae97bdd72616b79c16fec4b7eec75"
   },
   "phi_selection_counts": {
-    "e00001": 7,
+    "e00001": 8,
     "e00004": 3,
     "e00006": 3,
     "e00008": 3,
@@ -144,12 +144,13 @@
     "e00011": 1,
     "e00014": 1,
     "e00015": 2,
-    "e00018": 1,
+    "e00018": 2,
     "e00019": 2,
     "e00022": 1,
     "e00024": 1,
     "e00025": 1,
-    "e00027": 1
+    "e00027": 1,
+    "e00030": 1
   },
   "history": [
     {
@@ -283,6 +284,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0022_step_t0s06_concat插入内联与窄态首触_20260819.md",
       "ts": "2026-08-19T12:59:03+08:00"
+    },
+    {
+      "n": 23,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0023_step_t1s06_宽helper内联与宽常量rodata迁移_20260819.md",
+      "ts": "2026-08-19T16:01:13+08:00"
     }
   ]
 }

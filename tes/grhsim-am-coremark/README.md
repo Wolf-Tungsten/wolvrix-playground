@@ -11,7 +11,16 @@
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
 - 当前 best：**216.5s**（e00033，word guard + wide first-touch + concat-insert
   inline，较 AM y0 **-20.73%**）；仍为 gsim 的 **8.77x**，AM/gsim 绝对差距关闭
-  22.76%；t0/t1/t2 步进 **6/5/5**，evals **34/48**
+  22.76%；t0/t1/t2 步进 **6/6/5**，evals **36/48**
+- t1/s06（A0023）：c1 `--inline-wide-helpers` 将六个宽 word helper（~23.5 万
+  静态站点）移入生成头文件内联，e00035 中位 **228.9s**（较 e00030 **-0.66%，
+  CV 0.41%**）未达 3% 门——宽值层调用边界非一阶（e00018 收益定位在窄标量层），
+  且 emu_build 恶化 697.5→1757.5s（b38653 单 TU ~28min），轴关闭；c2
+  `--wide-constant-rodata` 迁移 25,654 个宽常量（1.64M words，池 -6.77%，
+  init() 宽 store 1.66M→19K 行）为 **232.9s（+1.06%，CV 1.16%）** 小幅回退，
+  运行时轴关闭，但 emu_build **-67%**（697.5→230.0s）兑现编译杠杆（knob 默认
+  off，可作未来编译门减压选项）。两候选均 17/17 ctest、3 rep difftest 全过；
+  c1 按 step 内分数机械 winner 入 t1/main（t1 best 228.9s）
 - t0/s06（A0022）：c1 `--concat-insert-inline` 将单字退化拼接从 outlined
   `insert_words`/`replace_window_words` 调用改为内联 splice（满字对齐退化为
   直接 word store、全 store 时消除死 `zero_words` 前导），消除 9.59 亿次动态
