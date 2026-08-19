@@ -110,11 +110,11 @@
     {
       "id": "t2",
       "branch": "tes/r001/t2/main",
-      "tip": "cee385551c734c40a32024dd4003a133df3f8721",
-      "steps_completed": 7,
+      "tip": "b990f49835761c62b7596c3e9dd60c79f9de88c0",
+      "steps_completed": 8,
       "best": {
-        "eval_id": "e00044",
-        "score": -255105
+        "eval_id": "e00049",
+        "score": -254533
       }
     }
   ],
@@ -129,8 +129,8 @@
     7
   ],
   "counters": {
-    "actions": 31,
-    "evals": 48
+    "actions": 32,
+    "evals": 50
   },
   "best_overall": {
     "eval_id": "e00045",
@@ -138,13 +138,13 @@
     "commit": "9c0a89db94a3c3e303c2b9daefc2a79fb609fbce"
   },
   "phi_selection_counts": {
-    "e00001": 11,
+    "e00001": 12,
     "e00004": 4,
     "e00006": 4,
     "e00008": 4,
     "e00010": 1,
     "e00011": 1,
-    "e00014": 2,
+    "e00014": 3,
     "e00015": 3,
     "e00018": 3,
     "e00019": 3,
@@ -153,12 +153,13 @@
     "e00025": 1,
     "e00027": 2,
     "e00030": 2,
-    "e00031": 1,
+    "e00031": 2,
     "e00033": 1,
     "e00035": 1,
     "e00037": 1,
     "e00040": 1,
-    "e00041": 1
+    "e00041": 1,
+    "e00044": 1
   },
   "history": [
     {
@@ -346,6 +347,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0031_step_t1s08_窄层死成员消除与同日安慰剂_20260820.md",
       "ts": "2026-08-20T04:46:30+08:00"
+    },
+    {
+      "n": 32,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0032_step_t2s08_同日校准双锚点_20260820.md",
+      "ts": "2026-08-20T05:53:00+08:00"
     }
   ]
 }
