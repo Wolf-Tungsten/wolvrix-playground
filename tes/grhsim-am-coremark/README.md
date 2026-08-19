@@ -11,7 +11,13 @@
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
 - 当前 best：**222.7s**（e00027，source-word guard + wide-storage-first-touch，
   较 AM y0 **-18.47%**）；仍为 gsim 的 **9.02x**，AM/gsim 绝对差距关闭
-  20.31%；t0/t1/t2 步进 **5/5/5**
+  20.31%；t0/t1/t2 步进 **5/5/5**，evals **32/48**
+- 第 5 轮小结（A0021）：run best 本轮再降 **3.43%** 至 222.654s，满足 >=3%
+  继续条件，不调整 C/L/K、不提前 restart。t0 确认 word guard + first-touch
+  可加（activity 剪枝 x 定向 locality 为最强叠加轴）；t1 常量 backing storage
+  消除 -4.52% 为本轮最大单步（常量生命周期 read->storage 各层独立可收）；
+  t2 commit-input 静态细化四连未改善 e00019、全部关闭。t0/t1 经正交机制收敛到
+  222.7s vs 230.4s，是 restart 组合材料；下一 action 为 `r001/t0/s06`
 - t2/s05（A0020）：c1 `--commit-input-packed-dirty` 将 2,922 个 commit-gate
   dirty flag 压为 46 个 `uint64_t` word，e00031 中位 **265.3s**（较 t2 best
   e00019 **+0.30%，CV 1.43%**）；c2 `--commit-input-producer-change` 为 20,476
@@ -107,8 +113,6 @@
 - 第 1 轮小结（A0005）：静态 emit 单旋钮空间扫完、收益饱和 ~1%/个；主失败
   模式是编译预算门（2/6）；`--init-zero-elision` 为元杠杆；块间机械
   （调度器/事件/commit）是唯一未触探大轴
-- 第 5 轮三条轨迹均已完成第 5 步；下一个 action 是第 5 轮 `round-summary`，不调整
-  C/L/K
 - 已知参考点：AM Host 324.0s（emit-cost NO0018 收口，2026-08-14；与 r001 实测 273.1s
   有约 15% 漂移，单点数字注意机器状态/布局影响）
 - run-init 备注：evaluator 修了 emu 相对路径 exec bug；金标改为计数窗

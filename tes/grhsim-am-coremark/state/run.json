@@ -123,10 +123,11 @@
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
   "counters": {
-    "actions": 20,
+    "actions": 21,
     "evals": 32
   },
   "best_overall": {
@@ -269,6 +270,12 @@
       "type": "step-resume",
       "note": "tes/grhsim-am-coremark/actions/A0020_step-resume_t2s05_commit_dirty位图与producer变化门控_20260819.md",
       "ts": "2026-08-19T10:14:56+08:00"
+    },
+    {
+      "n": 21,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0021_round-summary_第5轮跨轨迹小结_20260819.md",
+      "ts": "2026-08-19T10:35:32+08:00"
     }
   ]
 }

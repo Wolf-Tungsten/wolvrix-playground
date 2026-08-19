@@ -427,3 +427,30 @@
   仍是 e00019。除非先有逐 producer/gate 的动态执行、真实变更率和跳过工作量证据，
   t2 不再正式评估 commit-input 位图压缩或 producer snapshot 的同类细化；这一结论
   只记录在 t2 轨迹，不作为当前 run 的跨轨迹组合依据。
+
+## r001 第 5 轮跨轨迹小结（2026-08-19，action A0021）
+
+- run best 曲线 = y0 273.103s -> r1 270.502s -> r2 269.731s -> r3 244.278s ->
+  r4 230.568s -> r5 **222.654s**（e00027）；累计 **-18.47%**，仍为 gsim 的
+  **9.02x**，AM/gsim 绝对差距关闭 **20.31%**；本轮 -3.43% 满足 >=3% 继续条件，
+  不调整 C/L/K、不提前 restart。evals 32/48，三轨迹各余 3 步。
+- **activity 扫描剪枝 x 定向状态 locality 是 run 内最强可叠加轴**：e00027
+  （word guard + first-touch，-3.43%）与 e00021（part guard + first-touch，
+  -3.27%）一致确认两级剪枝都不吞没定向布局收益。
+- **常量生命周期 read -> storage 各层独立可收**：e00024 读取内联 -1.20% 后，
+  e00030 backing storage/init store 删除再收 **-4.52%**（本轮最大单步）；e00029
+  divmod 内联 -1.64%（CV 0.09%）为稳定弱正旋钮。状态对象瘦身是 t1 继 helper
+  调用边界后的第二个一阶池。
+- **t0/t1 经正交机制收敛到相近数量级**（222.7s vs 230.4s）：扫描剪枝+布局 vs
+  helper/常量内联+状态瘦身，均只动生成 C++ 适配层；是 restart 跨轨迹组合的明确
+  材料（当前 run 不组合）。
+- **t2 commit-input gating 静态/准静态细化全部关闭**：e00025/e00026/e00031/
+  e00032 四连未改善 e00019；覆盖、静态边数、位图压缩、producer 侧真变化过滤
+  都不是动态净收益代理。重开条件 = 逐 gate 动态 open/skip、传播 store 与实际
+  跳过工作量的净收益证据；可重访形态是 commit 内锥输入侧快照检测（读侧，区别于
+  e00032 的 producer 写侧），正式评估前必须离线量化且门槛 >=3%。
+- **word 局部 snapshot 证伪**（e00028，+2.19%）：全局 activity word 访存量不是
+  独立热成本代理；扫描路径进一步本地化须先有离线 open/skip 与有效 byte 分布证据。
+- **机械 winner 边界**：e00031（+0.30%，亚 CV）入 t2/main，无害前提是
+  packed-dirty 默认 off；t2/main 现携带两个未证实默认 off 实现（sparse 阈值、
+  packed dirty），t2/s06 emit_args 不得携带它们除非有动态净收益证据。

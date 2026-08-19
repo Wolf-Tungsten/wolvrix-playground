@@ -21,7 +21,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 5 轮候选已齐平（t0/t1/t2 = 5/5/5） | best e00027 222.7s（source-word guard + wide first-touch，较 AM y0 -18.47%，仍为 gsim 9.02x）；t2/s05 的 packed dirty / producer-change 均回退，机械 winner e00031 265.3s，t2 best 仍为 e00019；下一 action `round-summary` |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 5 轮小结完成（t0/t1/t2 = 5/5/5，evals 32/48） | best e00027 222.7s（source-word guard + wide first-touch，较 AM y0 -18.47%，仍为 gsim 9.02x）；第 5 轮 t0 组合确认、t1 常量存储消除 -4.52%，t2 commit-input 静态细化四连未改善 e00019 并全部关闭；下一 action `r001/t0/s06` |
 
 ## 共享件
 
