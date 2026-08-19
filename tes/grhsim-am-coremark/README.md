@@ -9,9 +9,17 @@
 - 活跃 run：**r001**（C=3, L=8, K=2，N=48；base `a88e7a2`）
 - 基线（2026-08-14，同协议 3-rep 中位）：AM y0 = **273.1s**（e00001，CV 0.39%）；
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
-- 当前 best：**222.7s**（e00027，source-word guard + wide-storage-first-touch，
-  较 AM y0 **-18.47%**）；仍为 gsim 的 **9.02x**，AM/gsim 绝对差距关闭
-  20.31%；t0/t1/t2 步进 **5/5/5**，evals **32/48**
+- 当前 best：**216.5s**（e00033，word guard + wide first-touch + concat-insert
+  inline，较 AM y0 **-20.73%**）；仍为 gsim 的 **8.77x**，AM/gsim 绝对差距关闭
+  22.76%；t0/t1/t2 步进 **6/5/5**，evals **34/48**
+- t0/s06（A0022）：c1 `--concat-insert-inline` 将单字退化拼接从 outlined
+  `insert_words`/`replace_window_words` 调用改为内联 splice（满字对齐退化为
+  直接 word store、全 store 时消除死 `zero_words` 前导），消除 9.59 亿次动态
+  调用边界，e00033 中位 **216.5s**（较 e00027 **-2.78%，CV 0.35%**），成为
+  winner 与新 run best；c2 `--narrow-storage-first-touch` 把窄成员按首触排序
+  （span -27.8%、pages -14.9%）反而 **+3.23%**（CV 1.20%）且 emu_build 恶化
+  282s→964.5s——窄态 id 序已与数据流局部性对齐，窄态布局轴关闭。两候选均
+  17/17 ctest、3 rep difftest 全过
 - 第 5 轮小结（A0021）：run best 本轮再降 **3.43%** 至 222.654s，满足 >=3%
   继续条件，不调整 C/L/K、不提前 restart。t0 确认 word guard + first-touch
   可加（activity 剪枝 x 定向 locality 为最强叠加轴）；t1 常量 backing storage

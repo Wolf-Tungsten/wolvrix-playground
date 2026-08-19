@@ -90,11 +90,11 @@
     {
       "id": "t0",
       "branch": "tes/r001/t0/main",
-      "tip": "8dfd73e7b16b67ed388b71e4d18ed8120faed792",
-      "steps_completed": 5,
+      "tip": "424c569cea1ae97bdd72616b79c16fec4b7eec75",
+      "steps_completed": 6,
       "best": {
-        "eval_id": "e00027",
-        "score": -222654
+        "eval_id": "e00033",
+        "score": -216481
       }
     },
     {
@@ -127,28 +127,29 @@
     5
   ],
   "counters": {
-    "actions": 21,
-    "evals": 32
+    "actions": 22,
+    "evals": 34
   },
   "best_overall": {
-    "eval_id": "e00027",
-    "score": -222654,
-    "commit": "8dfd73e7b16b67ed388b71e4d18ed8120faed792"
+    "eval_id": "e00033",
+    "score": -216481,
+    "commit": "424c569cea1ae97bdd72616b79c16fec4b7eec75"
   },
   "phi_selection_counts": {
-    "e00001": 6,
+    "e00001": 7,
     "e00004": 3,
     "e00006": 3,
     "e00008": 3,
     "e00010": 1,
     "e00011": 1,
     "e00014": 1,
-    "e00015": 1,
+    "e00015": 2,
     "e00018": 1,
     "e00019": 2,
     "e00022": 1,
     "e00024": 1,
-    "e00025": 1
+    "e00025": 1,
+    "e00027": 1
   },
   "history": [
     {
@@ -276,6 +277,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0021_round-summary_第5轮跨轨迹小结_20260819.md",
       "ts": "2026-08-19T10:35:32+08:00"
+    },
+    {
+      "n": 22,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0022_step_t0s06_concat插入内联与窄态首触_20260819.md",
+      "ts": "2026-08-19T12:59:03+08:00"
     }
   ]
 }

@@ -454,3 +454,27 @@
 - **机械 winner 边界**：e00031（+0.30%，亚 CV）入 t2/main，无害前提是
   packed-dirty 默认 off；t2/main 现携带两个未证实默认 off 实现（sparse 阈值、
   packed dirty），t2/s06 emit_args 不得携带它们除非有动态净收益证据。
+
+## r001/t0/s06 concat 插入内联与窄态首触（2026-08-19，action A0022）
+
+- **宽拼接调用边界确认一阶（e00033，winner）**：`--concat-insert-inline` 将
+  单字退化拼接（静态 72,747/129,506 站点、动态 9.59 亿次 outlined 调用）从
+  `insert_words`/`replace_window_words` 改为内联 splice（满字对齐退化为直接
+  word store，882 处全 store 化的 `zero_words` 前导消除），Host 中位
+  **216.481s**（CV 0.35%），较 e00027 **-2.78%**；17/17 ctest、3 rep difftest
+  全过，compile_s=618.4s。残余 56,759 个跨 word insert 站点（动态 ~6.8 亿次）
+  是同类下一层候选，正式评估前须先离线核动态权重。
+- **窄态首触布局证伪并关闭（e00034）**：`--narrow-storage-first-touch` 把
+  911,882/1,263,224 个 touched 窄成员压实（span -27.8%、pages -14.9%），
+  Host 反而 **229.850s（+3.23%**，CV 1.20%），emu_build 282s->964.5s。窄态
+  VariableId 序已与创建/数据流局部性对齐（热块成员 id 稠密，如 b83400 的
+  7,001 个 guard 值），且 touched 占 72% 使「热点子集」假设不成立；
+  **窄态布局轴关闭**，排序变体不再重试。
+- **离线 runtime-profile recon 落地**（recon-t0s06，e00027 同代码 +19% 插桩
+  开销）：eval 100,102 次 / 150,154 rounds；compute 73.7% / commit 26.2%；
+  activations 4.77G 与 A0007 持平；块周期 top-122=50%、top-3230=80%，b83400
+  单块 5.34%（469K cyc/exec）；全部 2,973 个 commit 块每 eval 全触发。
+   cumulative block-execs 不能反映 per-round word 开闭（1,348/1,350 word
+  全开过），scan 侧进一步细化必须先做 per-round 插桩。
+- t0 best 216.481s（较 AM y0 **-20.73%**，gsim 比 **8.77x**，绝对差距关闭
+  **22.76%**）；t0 完成 6/8，run 使用 34/48 eval。
