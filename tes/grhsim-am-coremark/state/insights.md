@@ -405,3 +405,25 @@
   `wolvrix/build` 本地 clone，C++ 使用共享 `build/tes/ccache`；受限网络下
   configure、编译和评估均未联网。该约定已记录在任务 `playbook.md` 与 README，
   后续 action 直接遵守，不再重复创建依赖树或提醒联网。
+
+## r001/t2/s05 commit dirty 位图与 producer-change 门控（2026-08-19，action A0020）
+
+- **位图压缩未能收回 dirty 传播成本（e00031，mechanical winner）**：
+  `--commit-input-packed-dirty` 将 2,922 个 gate 的 dirty storage 压为 46 个
+  `uint64_t` word，并按 producer 的同 word 目标合并 OR mask；静态 dirty edge
+  仍为 240,198。Host 中位 **265.250s**（265.250/259.742/266.972，CV 1.43%），
+  较 t2 历史 best e00019 的 264.466s **+0.30%**。17/17 ctest、3 rep difftest
+  与 compile_s=1184.8s 均通过；差量小于本次 CV，不能证明回退，但也没有正收益
+  证据。bit test/clear 和 OR mask 的额外热路径至少没有被 byte-store 合并可靠抵消。
+- **producer 输出快照方向明确回退（e00032）**：
+  `--commit-input-producer-change` 对 20,476 个窄 producer block 建立输出快照，
+  只在真实变化时传播 dirty。它覆盖 2,512 个 gate、103,125 条 dirty edge，却需要
+  67,117 个 snapshot 槽；生成模型总文本比 e00031 多约 4.69 MB。Host 中位
+  **285.552s**（285.552/284.147/285.900，CV 0.33%），较 e00019 **+7.98%**；
+  17/17 ctest、3 rep difftest 和 compile_s=1175.3s 均通过。静态覆盖缩小不等于
+  动态净收益；这个明确回退与 producer snapshot compare/update 的普遍开销超过
+  省下传播的解释一致，但没有把静态规模当作动态因果证明。
+- `finish-step` 按 step 内最高分把 e00031 合入 `tes/r001/t2/main`，但 t2 best
+  仍是 e00019。除非先有逐 producer/gate 的动态执行、真实变更率和跳过工作量证据，
+  t2 不再正式评估 commit-input 位图压缩或 producer snapshot 的同类细化；这一结论
+  只记录在 t2 轨迹，不作为当前 run 的跨轨迹组合依据。

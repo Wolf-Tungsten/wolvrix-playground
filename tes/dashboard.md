@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-19T02:55:51+08:00
+> 生成于 2026-08-19T10:14:56+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r001**（active）· C=3 L=8 K=2 · evals 30/48 · actions 19 · 下一步 `step`：推进轨迹 t2 到第 5 步（round-robin 最少步数优先）
+run **r001**（active）· C=3 L=8 K=2 · evals 32/48 · actions 20 · 下一步 `round-summary`：第 5 轮（全部 3 条轨迹各完成 1 步）已齐平，做跨轨迹小结
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -20,7 +20,7 @@ run **r001**（active）· C=3 L=8 K=2 · evals 30/48 · actions 19 · 下一步
 |---|---|---|---|---|
 | t0 | `tes/r001/t0/main` | 5/8 | e00027 | 222.7s |
 | t1 | `tes/r001/t1/main` | 5/8 | e00030 | 230.4s |
-| t2 | `tes/r001/t2/main` | 4/8 | e00019 | 264.5s |
+| t2 | `tes/r001/t2/main` | 5/8 | e00019 | 264.5s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
 |---|---|---|---|---|---|---|
@@ -54,6 +54,8 @@ run **r001**（active）· C=3 L=8 K=2 · evals 30/48 · actions 19 · 下一步
 | e00028 | candidate | t0/s05c2 | 235.6s | 9.54x | ok | e00022 的 source-word guard 仍逐 byte 从 activeWords_ … |
 | e00029 | candidate | t1/s05c1 | 237.4s | 9.62x | ok | 将窄标量 divide_value/modulo_value 定义内联到生成头文件，使固定宽度、si… |
 | e00030 | candidate | t1/s05c2 | 230.4s | 9.33x | ok | 在 inlineScalarConstants 的字面量读取基础上，按 escape/pin 分析删… |
+| e00031 | candidate | t2/s05c1 | 265.2s | 10.74x | ok | c1: 每64个commit gate共用packed uint64 dirty位图，减少逐gate… |
+| e00032 | candidate | t2/s05c2 | 285.6s | 11.57x | ok | c2: producer block结束后比较窄标量输出快照，仅在真实变化时传播commit-inp… |
 
-最近 actions：A0015 step-resume；A0016 step-resume；A0017 round-summary；A0018 step-resume；A0019 step
+最近 actions：A0016 step-resume；A0017 round-summary；A0018 step-resume；A0019 step；A0020 step-resume
 

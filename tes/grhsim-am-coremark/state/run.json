@@ -110,8 +110,8 @@
     {
       "id": "t2",
       "branch": "tes/r001/t2/main",
-      "tip": "f7b1f87af7109ecab5c0b63be1797bc648cf4492",
-      "steps_completed": 4,
+      "tip": "cd165778882d192358de6d18a831591a5c6d6c15",
+      "steps_completed": 5,
       "best": {
         "eval_id": "e00019",
         "score": -264466
@@ -126,8 +126,8 @@
     4
   ],
   "counters": {
-    "actions": 19,
-    "evals": 30
+    "actions": 20,
+    "evals": 32
   },
   "best_overall": {
     "eval_id": "e00027",
@@ -138,15 +138,16 @@
     "e00001": 6,
     "e00004": 3,
     "e00006": 3,
-    "e00008": 2,
+    "e00008": 3,
     "e00010": 1,
     "e00011": 1,
     "e00014": 1,
     "e00015": 1,
     "e00018": 1,
-    "e00019": 1,
+    "e00019": 2,
     "e00022": 1,
-    "e00024": 1
+    "e00024": 1,
+    "e00025": 1
   },
   "history": [
     {
@@ -262,6 +263,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0019_step_t1s05_标量helper与常量存储消除_20260819.md",
       "ts": "2026-08-19T02:55:51+08:00"
+    },
+    {
+      "n": 20,
+      "type": "step-resume",
+      "note": "tes/grhsim-am-coremark/actions/A0020_step-resume_t2s05_commit_dirty位图与producer变化门控_20260819.md",
+      "ts": "2026-08-19T10:14:56+08:00"
     }
   ]
 }
