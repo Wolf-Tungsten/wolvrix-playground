@@ -124,10 +124,11 @@
     2,
     3,
     4,
-    5
+    5,
+    6
   ],
   "counters": {
-    "actions": 24,
+    "actions": 25,
     "evals": 38
   },
   "best_overall": {
@@ -297,6 +298,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0024_step_t2s06_读侧快照离线证伪与组合双探针_20260819.md",
       "ts": "2026-08-19T19:02:34+08:00"
+    },
+    {
+      "n": 25,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0025_round-summary_第6轮跨轨迹小结_20260819.md",
+      "ts": "2026-08-19T19:08:13+08:00"
     }
   ]
 }
