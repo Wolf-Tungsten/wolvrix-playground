@@ -11,7 +11,13 @@
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
 - 当前 best：**194.8s**（e00040，word guard + wide first-touch + concat-insert
   inline + 窄标量 helper 内联，较 AM y0 **-28.67%**）；仍为 gsim 的 **7.89x**，
-  AM/gsim 绝对差距关闭 31.52%；t0/t1/t2 步进 **7/6/6**，evals **40/48**
+  AM/gsim 绝对差距关闭 31.52%；t0/t1/t2 步进 **7/7/6**，evals **42/48**
+- t1/s07（A0027）：c1 `--dead-wide-storage-elision` 将宽池
+  24,304,307→**8,347,000 words**（-65.66%，约 122MB 死宽态移除），e00041 中位
+  **224.0s**（较 e00035 **-2.14%**、较 knob-off 等价基线 e00030 **-2.78%**，CV
+  1.53%），低于 3% 假设门但稳定为正，已入 t1/main；emu_build 697.5→220.3s
+  （-68%）。c2 divmod 内联在瘦身后基线复测反转为 **+1.38%**（CV 0.16%），
+  旋钮关闭。两候选均 17/17 ctest、3 rep difftest 全过，同日测量
 - t0/s07（A0026）：c2 `--inline-scalar-helpers` 把 5 个窄标量 helper
   （slice/shift/signed，动态 22.5 亿次 outlined 调用）移入生成头文件
   `constexpr`，e00040 中位 **194.8s**（较 e00033 **-10.02%，CV 0.45%**），

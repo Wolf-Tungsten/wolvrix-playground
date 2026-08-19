@@ -100,11 +100,11 @@
     {
       "id": "t1",
       "branch": "tes/r001/t1/main",
-      "tip": "188f6b280dcaf6d8dd7da1b679bf2003d473953c",
-      "steps_completed": 6,
+      "tip": "aecff4cd9700dce3cab2cd3d6590566363636c42",
+      "steps_completed": 7,
       "best": {
-        "eval_id": "e00035",
-        "score": -228935
+        "eval_id": "e00041",
+        "score": -224038
       }
     },
     {
@@ -128,8 +128,8 @@
     6
   ],
   "counters": {
-    "actions": 26,
-    "evals": 40
+    "actions": 27,
+    "evals": 42
   },
   "best_overall": {
     "eval_id": "e00040",
@@ -139,7 +139,7 @@
   "phi_selection_counts": {
     "e00001": 9,
     "e00004": 4,
-    "e00006": 3,
+    "e00006": 4,
     "e00008": 3,
     "e00010": 1,
     "e00011": 1,
@@ -148,12 +148,13 @@
     "e00018": 2,
     "e00019": 2,
     "e00022": 2,
-    "e00024": 1,
+    "e00024": 2,
     "e00025": 1,
     "e00027": 1,
     "e00030": 1,
     "e00031": 1,
-    "e00033": 1
+    "e00033": 1,
+    "e00035": 1
   },
   "history": [
     {
@@ -311,6 +312,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0026_step_t0s07_拼接unroll与标量helper内联_20260819.md",
       "ts": "2026-08-19T21:42:57+08:00"
+    },
+    {
+      "n": 27,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0027_step_t1s07_死宽态消除与divmod复测_20260819.md",
+      "ts": "2026-08-19T23:55:51+08:00"
     }
   ]
 }

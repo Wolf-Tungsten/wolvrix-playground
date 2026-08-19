@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-19T21:42:57+08:00
+> 生成于 2026-08-19T23:55:51+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r001**（active）· C=3 L=8 K=2 · evals 40/48 · actions 26 · 下一步 `step`：推进轨迹 t1 到第 7 步（round-robin 最少步数优先）
+run **r001**（active）· C=3 L=8 K=2 · evals 42/48 · actions 27 · 下一步 `step`：推进轨迹 t2 到第 7 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -19,7 +19,7 @@ run **r001**（active）· C=3 L=8 K=2 · evals 40/48 · actions 26 · 下一步
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
 | t0 | `tes/r001/t0/main` | 7/8 | e00040 | 194.8s |
-| t1 | `tes/r001/t1/main` | 6/8 | e00035 | 228.9s |
+| t1 | `tes/r001/t1/main` | 7/8 | e00041 | 224.0s |
 | t2 | `tes/r001/t2/main` | 6/8 | e00037 | 257.3s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
@@ -64,6 +64,8 @@ run **r001**（active）· C=3 L=8 K=2 · evals 40/48 · actions 26 · 下一步
 | e00038 | candidate | t2/s06c2 | 257.6s | 10.44x | ok | c2: atom 折叠上限 2->8 加粗 atom 粒度、减少逐 atom 边界适配胶，若 ato… |
 | e00039 | candidate | t0/s07c1 | 212.4s | 8.60x | ok | 残余跨 word 拼接（静态 56,759 站、动态 6.89 亿次 outlined 调用）按对齐… |
 | e00040 | candidate | t0/s07c2 | 194.8s | 7.89x | ok | t0 主线 5 个窄标量 helper（slice_value/shift_left/shift_r… |
+| e00041 | candidate | t1/s07c1 | 224.0s | 9.07x | ok | 若宽池约 65.7% 未引用 word（约 122MB 死宽态）摊薄状态 gather 局部性，--… |
+| e00042 | candidate | t1/s07c2 | 232.1s | 9.40x | ok | 若残余 1,267 站 divide_value 调用边界在常量存储瘦身后基线上仍是 >=1.5% … |
 
-最近 actions：A0022 step；A0023 step；A0024 step；A0025 round-summary；A0026 step
+最近 actions：A0023 step；A0024 step；A0025 round-summary；A0026 step；A0027 step
 
