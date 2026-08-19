@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 t1/s06 完成（t0/t1/t2 = 6/6/5，evals 36/48） | best e00033 216.5s（较 AM y0 -20.73%，仍为 gsim 8.77x）；t1 宽 helper 内联 -0.66% 未达 3% 门（emu_build 2.5x 恶化）、宽常量 rodata 迁移 +1.06% 回退（emu_build -67% 编译杠杆），两轴运行时关闭；下一 action `r001/t2/s06` |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 t2/s06 完成（t0/t1/t2 = 6/6/6，evals 38/48） | best e00033 216.5s（较 AM y0 -20.73%，仍为 gsim 8.77x）；t2 commit 读侧快照静态证伪（覆盖 ~2% < 3% 门）、affinity 组合同日对照 -0.13% 中性；安慰剂对照暴露同代码跨日漂移 ~2.6%（<3% 跨日裁决一律存疑）；下一 action 第 6 轮 round-summary |
 
 ## 共享件
 

@@ -501,3 +501,29 @@
   17.87%）；t1 完成 6/8，run 使用 36/48 eval。t1 两个一阶轴（C++ 调用边界、
   常量/状态瘦身）在宽值层均关闭，残余余量需要 per-block runtime-profile recon
   （t1 tip 代码、离线非计时）定位下一个一阶池；不建议继续堆叠亚 1% emit 微调。
+
+## r001/t2/s06 读侧快照离线证伪、组合中性与安慰剂漂移（2026-08-19，action A0024）
+
+- **commit 内锥读侧快照检测静态定量关闭**：实现 `--commit-input-snapshot-gating`
+  （afa419c，默认 off，文档 §3.2.13）后离线量化——沿用 dirty 制度筛选（64 叶/
+  W>=2L）时真设计 gated=0；放宽到读侧校准（256 叶/W>=L）也仅 gated=1,246、
+  保护 8,842 指令/3,058 写站（e00019 保护面的 ~2%），被接受门 W/L 均值 ~1.39；
+  807 个 unsafe 块（宽/非标量叶）持有 116,998 写。大叶数是 commit 锥宽的结构
+  属性，读侧按值比较的成本随叶数线性、收益上限 ~1.9% 写站 < 3% 门槛，按 A0021
+  纪律未进正式评估，该轴以定量证据关闭；动态 stats recon 未做（静态已封顶）。
+- **安慰剂对照暴露跨日漂移 ~2.6%**：c2 的 `--tree-atom-fold-max-instr 8` 在
+  gsim node-aligned 调度下惰性（emit 日志 `optimize skipped (gsim node-aligned)`），
+  e00038 生成代码与 e00019 逐字节一致（1,714,748,225 bytes，仅 .pch 差），
+  成为意外安慰剂：e00019 代码 8-17 测 264.466s、8-19 重测 257.629s（-2.58%）。
+  刻度：同代码跨日漂移 >2.5% 协议内 CV；凡对照点不同日且名义差 <3% 的裁决
+  一律存疑（e00019 自身的 -1.95% 也是跨日读数，restart 前需同日重测校准）。
+- **勘误 e00037 登记 insight**：其中「确认 -2.71% 越假设门」为跨日名义差，
+  同日对照（vs e00038 安慰剂）为 **-0.13%**——affinity+消零+commit 门控组合
+  相对门控单机制亚噪声中性，组合可加性在现协议分辨率下不可裁。
+- e00037 按 step 内分数机械 winner（0.13% 噪声级）入 t2/main；t2/main 此后携带
+  `--init-zero-elision --state-layout affinity`：运行时中性，但 emu_build
+  845s→296s（-65%）、compile_s 623.9s，t2 评估时延与编译预算裕量显著改善；
+  回撤路径 = emit_args 摘除两旋钮（代码默认 off 逐字节等价）。
+- atom 粒度轴不能经 `--tree-atom-fold-max-instr` 触达（node-aligned 跳过整个
+  optimize 管线）；要探 atom 粒度须先解除 node-aligned 对齐（属另一实验条件）。
+- evals 38/48，t2 余 2 步；下一 action = 第 6 轮 round-summary。

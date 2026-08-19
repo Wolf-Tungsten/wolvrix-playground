@@ -110,11 +110,11 @@
     {
       "id": "t2",
       "branch": "tes/r001/t2/main",
-      "tip": "cd165778882d192358de6d18a831591a5c6d6c15",
-      "steps_completed": 5,
+      "tip": "0bd9a554614d2f9797cd52045f5222bb9a258638",
+      "steps_completed": 6,
       "best": {
-        "eval_id": "e00019",
-        "score": -264466
+        "eval_id": "e00037",
+        "score": -257300
       }
     }
   ],
@@ -127,8 +127,8 @@
     5
   ],
   "counters": {
-    "actions": 23,
-    "evals": 36
+    "actions": 24,
+    "evals": 38
   },
   "best_overall": {
     "eval_id": "e00033",
@@ -136,13 +136,13 @@
     "commit": "424c569cea1ae97bdd72616b79c16fec4b7eec75"
   },
   "phi_selection_counts": {
-    "e00001": 8,
+    "e00001": 9,
     "e00004": 3,
     "e00006": 3,
     "e00008": 3,
     "e00010": 1,
     "e00011": 1,
-    "e00014": 1,
+    "e00014": 2,
     "e00015": 2,
     "e00018": 2,
     "e00019": 2,
@@ -150,7 +150,8 @@
     "e00024": 1,
     "e00025": 1,
     "e00027": 1,
-    "e00030": 1
+    "e00030": 1,
+    "e00031": 1
   },
   "history": [
     {
@@ -290,6 +291,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0023_step_t1s06_宽helper内联与宽常量rodata迁移_20260819.md",
       "ts": "2026-08-19T16:01:13+08:00"
+    },
+    {
+      "n": 24,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0024_step_t2s06_读侧快照离线证伪与组合双探针_20260819.md",
+      "ts": "2026-08-19T19:02:34+08:00"
     }
   ]
 }

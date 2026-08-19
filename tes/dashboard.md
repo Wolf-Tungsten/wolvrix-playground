@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-19T16:01:13+08:00
+> 生成于 2026-08-19T19:02:34+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r001**（active）· C=3 L=8 K=2 · evals 36/48 · actions 23 · 下一步 `step`：推进轨迹 t2 到第 6 步（round-robin 最少步数优先）
+run **r001**（active）· C=3 L=8 K=2 · evals 38/48 · actions 24 · 下一步 `round-summary`：第 6 轮（全部 3 条轨迹各完成 1 步）已齐平，做跨轨迹小结
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -20,7 +20,7 @@ run **r001**（active）· C=3 L=8 K=2 · evals 36/48 · actions 23 · 下一步
 |---|---|---|---|---|
 | t0 | `tes/r001/t0/main` | 6/8 | e00033 | 216.5s |
 | t1 | `tes/r001/t1/main` | 6/8 | e00035 | 228.9s |
-| t2 | `tes/r001/t2/main` | 5/8 | e00019 | 264.5s |
+| t2 | `tes/r001/t2/main` | 6/8 | e00037 | 257.3s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
 |---|---|---|---|---|---|---|
@@ -60,6 +60,8 @@ run **r001**（active）· C=3 L=8 K=2 · evals 36/48 · actions 23 · 下一步
 | e00034 | candidate | t0/s06c2 | 229.8s | 9.31x | ok | 窄标量 v<K> 成员（1,263,224 个/约 10.1MB）按 scheduled Block… |
 | e00035 | candidate | t1/s06c1 | 228.9s | 9.27x | ok | 若 t1 tip 约 23.5 万个宽 word-helper 跨 TU 调用边界是一阶适配成本，-… |
 | e00036 | candidate | t1/s06c2 | 232.9s | 9.43x | ok | 若宽常量占用的 6.8% 可变宽池与 1.64M 行 init store 是可收的状态/初始化成本… |
+| e00037 | candidate | t2/s06c1 | 257.3s | 10.42x | ok | c1: t2 仅有的两个独立正收益机制（commit 输入门控 e00019 -1.95%、affi… |
+| e00038 | candidate | t2/s06c2 | 257.6s | 10.44x | ok | c2: atom 折叠上限 2->8 加粗 atom 粒度、减少逐 atom 边界适配胶，若 ato… |
 
-最近 actions：A0019 step；A0020 step-resume；A0021 round-summary；A0022 step；A0023 step
+最近 actions：A0020 step-resume；A0021 round-summary；A0022 step；A0023 step；A0024 step
 
