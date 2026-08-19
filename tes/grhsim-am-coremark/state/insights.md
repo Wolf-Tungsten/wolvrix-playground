@@ -550,3 +550,30 @@
 - **restart 备选 y0 材料**：t0 扫描剪枝+宽态首触+concat 内联 x t1 窄标量
   helper/常量内联+常量存储消除，机制正交且只动生成 C++ 适配层；当前 run 保持
   轨迹独立不组合。
+
+## r001/t0/s07 拼接 unroll 与窄标量 helper 内联（2026-08-19，action A0026）
+
+- **窄标量 helper 调用边界是 t0 最大一阶适配胶（e00040，winner）**：
+  `--inline-scalar-helpers` 把 `slice_value`/`shift_left`/`shift_right`/
+  `arithmetic_shift_right`/`signed_value`（静态 534K 站、站点×块execs 加权动态
+  **22.5 亿次** outlined 调用，slice_value 独占 19.35 亿）移入生成头文件
+  `constexpr`，Host 中位 **194.792s**（CV 0.45%），较 e00033 **-10.02%**，
+  为 run 最大单步；17/17 ctest、3 rep difftest 全过，compile_s=603.3s、
+  emu_build 264.7s **无编译膨胀**。t0 的 C++ 适配层调用边界已三层确认：
+  扫描调用（part/word guard）、宽拼接写 splice、窄标量算值 helper。
+- **跨 word 拼接 unroll 弱正未确认（e00039）**：`--concat-insert-unroll`
+  三形（对齐满字直存 2,525 站、窄跨 word 双语句 7,029 站、≤8word 宽 unroll
+  37,679 站；残余 insert_words 56,763→10,379）Host 中位 **212.386s**
+  （CV 0.64%），较 e00033 **-1.89%**，低于 2% 假设门、高于 1% 证伪线。
+  e00033 收掉单字退化层后残余 splice 调用边界降为二阶（多 word 站点单次
+  调用已摊薄边界开销）。旋钮默认 off 留存，可与新 base 叠加复测；
+  遗留 867 站 width=64&shift≠0 未覆盖（Case B 可放宽至 width<=64）。
+- **离线方法**：perf 被 kernel 禁（paranoid=4 含软事件）后改用
+  recon 块execs × emit 文本站点动态加权盘点 helper 调用池——`extract_word`/
+  `concat_value`（31.9/40.9 亿次）已是头文件 constexpr 非候选；备查池：
+  commit 写侧 `*_detect` 族 6.4 亿、`index_words` 3.66 亿、`slice_words`
+  2.39 亿、`divide/modulo_value` 1.27 亿。`zero_words` 前导消除推广被离线
+  否决（残余前导所在语句组全部仍含 outlined 调用，可消组为 0）。
+- t0 best 194.792s（较 AM y0 **-28.67%**，gsim 比 **7.89x**，绝对差距关闭
+  **31.52%**）；t0 完成 7/8，run 使用 40/48 eval。两候选与 e00033 同日
+  测量，不涉 A0024 的跨日漂移刻度。

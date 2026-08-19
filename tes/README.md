@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 6 轮 round-summary 完成（t0/t1/t2 = 6/6/6，evals 38/48） | best e00033 216.5s（较 AM y0 -20.73%，仍为 gsim 8.77x）；第 6 轮无干净 >=3% 收益，触发继续 vs 提前 restart 用户裁决（预算余 10 eval 不足走满）；跨日漂移 ~2.6% 确立「<3% 跨日裁决存疑」刻度；restart 备选 y0 = t0/t1 正交机制组合（须同日校准）；用户无指示时下一 action = t0/s07 |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 t0/s07 完成（t0/t1/t2 = 7/6/6，evals 40/48） | best e00040 194.8s（较 AM y0 -28.67%，仍为 gsim 7.89x）：t0/s07 窄标量 helper 头文件内联 -10.02% 为 run 最大单步；第 6 轮曾触发继续 vs 提前 restart 用户裁决（跨日漂移 ~2.6% 刻度、预算余 8 eval 不足走满 r001） |
 
 ## 共享件
 

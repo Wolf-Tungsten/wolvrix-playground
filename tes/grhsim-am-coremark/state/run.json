@@ -90,11 +90,11 @@
     {
       "id": "t0",
       "branch": "tes/r001/t0/main",
-      "tip": "424c569cea1ae97bdd72616b79c16fec4b7eec75",
-      "steps_completed": 6,
+      "tip": "622a552a637b618d60fe86fa91afc321ac501013",
+      "steps_completed": 7,
       "best": {
-        "eval_id": "e00033",
-        "score": -216481
+        "eval_id": "e00040",
+        "score": -194792
       }
     },
     {
@@ -128,17 +128,17 @@
     6
   ],
   "counters": {
-    "actions": 25,
-    "evals": 38
+    "actions": 26,
+    "evals": 40
   },
   "best_overall": {
-    "eval_id": "e00033",
-    "score": -216481,
-    "commit": "424c569cea1ae97bdd72616b79c16fec4b7eec75"
+    "eval_id": "e00040",
+    "score": -194792,
+    "commit": "622a552a637b618d60fe86fa91afc321ac501013"
   },
   "phi_selection_counts": {
     "e00001": 9,
-    "e00004": 3,
+    "e00004": 4,
     "e00006": 3,
     "e00008": 3,
     "e00010": 1,
@@ -147,12 +147,13 @@
     "e00015": 2,
     "e00018": 2,
     "e00019": 2,
-    "e00022": 1,
+    "e00022": 2,
     "e00024": 1,
     "e00025": 1,
     "e00027": 1,
     "e00030": 1,
-    "e00031": 1
+    "e00031": 1,
+    "e00033": 1
   },
   "history": [
     {
@@ -304,6 +305,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0025_round-summary_第6轮跨轨迹小结_20260819.md",
       "ts": "2026-08-19T19:08:13+08:00"
+    },
+    {
+      "n": 26,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0026_step_t0s07_拼接unroll与标量helper内联_20260819.md",
+      "ts": "2026-08-19T21:42:57+08:00"
     }
   ]
 }

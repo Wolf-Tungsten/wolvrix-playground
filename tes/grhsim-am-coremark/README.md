@@ -9,9 +9,17 @@
 - 活跃 run：**r001**（C=3, L=8, K=2，N=48；base `a88e7a2`）
 - 基线（2026-08-14，同协议 3-rep 中位）：AM y0 = **273.1s**（e00001，CV 0.39%）；
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
-- 当前 best：**216.5s**（e00033，word guard + wide first-touch + concat-insert
-  inline，较 AM y0 **-20.73%**）；仍为 gsim 的 **8.77x**，AM/gsim 绝对差距关闭
-  22.79%；t0/t1/t2 步进 **6/6/6**，evals **38/48**
+- 当前 best：**194.8s**（e00040，word guard + wide first-touch + concat-insert
+  inline + 窄标量 helper 内联，较 AM y0 **-28.67%**）；仍为 gsim 的 **7.89x**，
+  AM/gsim 绝对差距关闭 31.52%；t0/t1/t2 步进 **7/6/6**，evals **40/48**
+- t0/s07（A0026）：c2 `--inline-scalar-helpers` 把 5 个窄标量 helper
+  （slice/shift/signed，动态 22.5 亿次 outlined 调用）移入生成头文件
+  `constexpr`，e00040 中位 **194.8s**（较 e00033 **-10.02%，CV 0.45%**），
+  run 最大单步，emu_build 无膨胀（264.7s）；c1 `--concat-insert-unroll`
+  三形 unroll 残余跨 word splice（站点 56,763→10,379）为 **212.4s**
+  （**-1.89%，CV 0.64%**），低于 2% 假设门但越 1% 证伪线，弱正留存（旋钮
+  默认 off，可与新 base 叠加复测）。两候选均 17/17 ctest、3 rep difftest
+  全过，同日测量不涉跨日漂移
 - 第 6 轮 round-summary（A0025）：**本轮三轨迹均无干净 >=3% 收益**（t0 名义
   -2.78% 但跨日存疑、t1 -0.66% 机械 winner、t2 同日对照 -0.13% 中性），按纪律
   触发**继续 vs 提前 restart 的用户裁决**；预算余 10 eval 已不足以走满 r001
