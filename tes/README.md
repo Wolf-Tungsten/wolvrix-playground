@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 三轨迹 8/8 全部走满（候选 evals 48/48 耗尽），下一 action = run-summary | best e00045 194.2s（较 AM y0 -28.89%，仍为 gsim 7.87x）；t2 末步同日校准双锚点：t2/main 254.5s（CV 0.25%）、e00019 配置 261.1s，affinity+消零效应 ≤ 噪声底不可裁；restart 校准 t1/t2 锚点已备、t0 缺 |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r001 已收口**（24/24 步、候选 48/48 走满；summary + restart 建议待用户裁决） | best e00045 194.2s（较 AM y0 -28.89%，仍为 gsim 7.87x，差距关闭 31.75%）；restart 建议：y0 = t0/main tip `9c0a89db` 叠加 t1 常量族四旋钮，C/L/K=2/8/2，确认后下一 goal 执行 init-run |
 
 ## 共享件
 

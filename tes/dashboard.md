@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-20T05:53:00+08:00
+> 生成于 2026-08-20T05:58:33+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r001**（active）· C=3 L=8 K=2 · evals 50/48 · actions 32 · 下一步 `run-summary`：全部 3 条轨迹已达 L=8 步，写 run 总结并裁决是否 restart
+run **r001**（completed）· C=3 L=8 K=2 · evals 50/48 · actions 33 · 下一步 `run-closed`：r001 已收口；可开新 run（restart）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -75,5 +75,5 @@ run **r001**（active）· C=3 L=8 K=2 · evals 50/48 · actions 32 · 下一步
 | e00049 | candidate | t2/s08c1 | 254.5s | 10.31x | ok | c1: t2/main 现行 emit 配置（guard-event-gating + commit… |
 | e00050 | candidate | t2/s08c2 | 261.1s | 10.58x | ok | c2: e00019 配置（guard-event-gating + commit-input-ga… |
 
-最近 actions：A0028 step；A0029 round-summary；A0030 step；A0031 step；A0032 step
+最近 actions：A0029 round-summary；A0030 step；A0031 step；A0032 step；A0033 run-summary
 

@@ -687,3 +687,21 @@
 - t2 走满 8/8，t2 best 名义 254.533s（较 AM y0 -6.80%，gsim 比 10.31x——三条
   轨迹中最弱，commit 轴全关后收益垫底）；evals 50/50（含 2 基线），候选 48/48
   耗尽，下一 action = run-summary。
+
+## r001 run-summary：run 收口与 restart 建议（2026-08-20，action A0033）
+
+- **r001 收口**：24/24 步走满、候选 48/48 耗尽（+2 基线 = 50 eval）。
+  best_overall **194.242s**（e00045，commit `9c0a89db`，t0/main tip），较 AM y0
+  **-28.89%**，仍为 gsim **7.87x**，AM/gsim 绝对差距关闭 **31.75%**。轨迹 best：
+  t0 194.2 / t1 219.0 / t2 254.5（秒）。候选健康度：ok 44 / compile_timeout 3 /
+  difftest_fail 1。详见 `runs/r001/summary.md`。
+- **三族正交一阶机制（restart y0 组合材料）**：适配层窄标量 helper 内联（-9.69%
+  × -10.02% 跨轨迹复证）；activity 扫描剪枝 × wide first-touch（-9.44/-6.83/
+  -3.43% 可加链）；常量/死态瘦身族（-1.20/-4.52/-2.78/-1.36%，随体积收敛关闭）。
+  t2 commit 轴 7 变体全关；e00019 与 affinity 收益不可裁，不作 restart 依据。
+- **restart 建议（auto=false，待用户确认）**：y0 = t0/main tip `9c0a89db`，叠加
+  t1 常量族四旋钮；建议 C/L/K = 2/8/2（N=32），K=2 一席常态化同日校准。t0 tip
+  同日锚点缺失由 r002 run-init 基线天然覆盖，勿在 r001 尾巴补测。
+- **方法论刻度（后续 run 继承）**：同夜漂移 <1%、跨日 ~2.6% > 协议 CV；跨日
+  名义差 <3% 的裁决存疑；弱正旋钮旧读数不可继承（基线依赖反转）；同日安慰剂/
+  锚点常态化。编译杠杆（init 消零/rodata/dead-wide）compile_s ~1200s→~600s。

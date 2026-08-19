@@ -6,15 +6,18 @@
 
 ## 当前状态速览
 
-- 活跃 run：**r001**（C=3, L=8, K=2，N=48；base `a88e7a2`）
+- 当前 run：**r001 已收口**（C=3, L=8, K=2，N=48；base `a88e7a2`；
+  2026-08-20 close-run，总结见 [runs/r001/summary.md](runs/r001/summary.md)）
 - 基线（2026-08-14，同协议 3-rep 中位）：AM y0 = **273.1s**（e00001，CV 0.39%）；
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
-- 当前 best：**194.2s**（e00045，e00040 基组 + concat-insert-unroll 噪声级
-  机械 adoption，较 AM y0 **-28.89%**；机制意义上 t0 止步于 e00040 的
-  194.792s 量级）；仍为 gsim 的 **7.87x**，AM/gsim 绝对差距关闭 31.74%；
-  t0/t1/t2 步进 **8/8/8 全部走满**，候选 evals **48/48 恰好耗尽**
-  （勘误：此前「48/48 预算耗尽、t2/s08 不发生」系把含 2 基线的计数器直接对
-  候选预算比较，见 A0032），下一 action = **run-summary**
+- run best：**194.2s**（e00045，commit `9c0a89db`，t0/main tip，较 AM y0
+  **-28.89%**）；仍为 gsim 的 **7.87x**，AM/gsim 绝对差距关闭 **31.75%**；
+  轨迹 best t0 194.2 / t1 219.0 / t2 254.5；候选 evals 48/48 走满
+  （ok 44 / compile_timeout 3 / difftest_fail 1）
+- run-summary（A0033）：**建议 restart**（auto=false，待用户确认）——y0 候选
+  commit = t0/main tip `9c0a89db`，叠加 t1 常量族四旋钮（机制正交，预期可加
+  ~-5~-8%），建议 C/L/K = 2/8/2；确认后下一 goal 执行
+  `init-run --base-commit 9c0a89db94a3c3e303c2b9daefc2a79fb609fbce`
 - t2/s08（A0032，t2 末步，同日校准型）：c1 t2/main 现行配置（摘除 hotness）
   同日重测 e00049 中位 **254.5s**（CV 0.25%，较同日 e00044 -0.22%）——hotness
   回撤零成本实证，t2 侧 restart 校准锚点落地（t1 侧 e00048 已备，t0 侧缺）；
