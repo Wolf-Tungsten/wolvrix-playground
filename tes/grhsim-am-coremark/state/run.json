@@ -100,11 +100,11 @@
     {
       "id": "t1",
       "branch": "tes/r001/t1/main",
-      "tip": "aecff4cd9700dce3cab2cd3d6590566363636c42",
-      "steps_completed": 7,
+      "tip": "7991ea90e455a3859f38b24a8095c430c31136a0",
+      "steps_completed": 8,
       "best": {
-        "eval_id": "e00041",
-        "score": -224038
+        "eval_id": "e00047",
+        "score": -218976
       }
     },
     {
@@ -129,8 +129,8 @@
     7
   ],
   "counters": {
-    "actions": 30,
-    "evals": 46
+    "actions": 31,
+    "evals": 48
   },
   "best_overall": {
     "eval_id": "e00045",
@@ -138,7 +138,7 @@
     "commit": "9c0a89db94a3c3e303c2b9daefc2a79fb609fbce"
   },
   "phi_selection_counts": {
-    "e00001": 10,
+    "e00001": 11,
     "e00004": 4,
     "e00006": 4,
     "e00008": 4,
@@ -146,18 +146,19 @@
     "e00011": 1,
     "e00014": 2,
     "e00015": 3,
-    "e00018": 2,
+    "e00018": 3,
     "e00019": 3,
     "e00022": 2,
     "e00024": 2,
     "e00025": 1,
     "e00027": 2,
-    "e00030": 1,
+    "e00030": 2,
     "e00031": 1,
     "e00033": 1,
     "e00035": 1,
     "e00037": 1,
-    "e00040": 1
+    "e00040": 1,
+    "e00041": 1
   },
   "history": [
     {
@@ -339,6 +340,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0030_step_t0s08_拼接unroll复测与commit-detect内联_20260820.md",
       "ts": "2026-08-20T03:13:01+08:00"
+    },
+    {
+      "n": 31,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0031_step_t1s08_窄层死成员消除与同日安慰剂_20260820.md",
+      "ts": "2026-08-20T04:46:30+08:00"
     }
   ]
 }

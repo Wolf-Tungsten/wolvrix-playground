@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 t0/s08 完成（t0/t1/t2 = 8/7/7，evals 46/48） | best e00045 194.2s（较 AM y0 -28.89%，仍为 gsim 7.87x）：t0 末步双证伪——concat-insert-unroll 新基线复测 -0.28% 亚噪声、commit detect helper 内联 +2.80% 回退（含循环函数体不可按调用次数内联）；余 2 eval 不足以走满 t1/t2 s08（需 4），r001 将在预算耗尽处提前转 run-summary |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 t1/s08 完成（t0/t1/t2 = 8/8/7，evals 48/48 预算耗尽，转 run-summary） | best e00045 194.2s（较 AM y0 -28.89%，仍为 gsim 7.87x）；t1 末步：死窄成员消除（350,989 成员，窄区 -28%）同日干净 -1.36% 确认入 t1/main（t1 best 219.0s），安慰剂锚定同夜漂移 <1%（跨日 ~2.6%）；t2/s08 不再发生 |
 
 ## 共享件
 
