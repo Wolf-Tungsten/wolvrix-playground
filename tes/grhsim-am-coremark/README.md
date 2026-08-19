@@ -9,9 +9,21 @@
 - 活跃 run：**r001**（C=3, L=8, K=2，N=48；base `a88e7a2`）
 - 基线（2026-08-14，同协议 3-rep 中位）：AM y0 = **273.1s**（e00001，CV 0.39%）；
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
-- 当前 best：**194.8s**（e00040，word guard + wide first-touch + concat-insert
-  inline + 窄标量 helper 内联，较 AM y0 **-28.67%**）；仍为 gsim 的 **7.89x**，
-  AM/gsim 绝对差距关闭 31.52%；t0/t1/t2 步进 **7/7/7**，evals **44/48**
+- 当前 best：**194.2s**（e00045，e00040 基组 + concat-insert-unroll 噪声级
+  机械 adoption，较 AM y0 **-28.89%**；机制意义上 t0 止步于 e00040 的
+  194.792s 量级）；仍为 gsim 的 **7.87x**，AM/gsim 绝对差距关闭 31.74%；
+  t0/t1/t2 步进 **8/7/7**（t0 已走满），evals **46/48**
+- t0/s08（A0030）：c1 把 e00039 的 `--concat-insert-unroll` cherry-pick 到
+  e00040 新基线复测，e00045 中位 **194.2s**（较 e00040 **-0.28%**，CV
+  0.95%，跨日亚噪声）**证伪**——标量 helper 内联后残余 splice 调用边界
+  已非一阶，拼接 unroll 轴关闭（旋钮默认 off 留存主线）；c2 新旋钮
+  `--inline-commit-detect-helpers` 把 commit 写侧 5 个 detect helper
+  （静态 6,439 站、动态 ~6.4 亿次，recon 最大残余 outlined 池）移入头文件
+  类内定义，e00046 中位 **200.3s**（同日较 c1 **+3.09%**，CV 0.43%）
+  **证伪回退**——含循环多出口的函数体铺进 334 个 TU 的 icache 代价超过
+  调用边界收益；判据推广：**内联收益由函数体形态决定而非调用次数**，
+  循环体 outlined helper（slice_words/index_words）同判据关闭。两候选
+  17/17 ctest、3 rep difftest 全过，compile_s 616.5/623.6s
 - 第 7 轮 round-summary（A0029）：run best 降至 **194.792s**（e00040，较 AM y0
   **-28.67%**，gsim 比 **7.89x**，绝对差距关闭 31.52%）；本轮满足 >=3% 干净
   继续条件（t0 同日 -10.02%），第 6 轮触发的继续/restart 裁决解除，按纪律继续

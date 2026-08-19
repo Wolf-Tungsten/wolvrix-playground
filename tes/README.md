@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 第 7 轮 round-summary 完成（t0/t1/t2 = 7/7/7，evals 44/48） | best e00040 194.8s（较 AM y0 -28.67%，仍为 gsim 7.89x）：第 7 轮满足 >=3% 继续条件（t0 窄标量 helper 内联同日 -10.02%）；余 4 eval 不足以走满 s08（需 6），r001 将在预算耗尽处提前转 run-summary；commit gating 7 变体以动态证据全关、热度加权布局关闭 |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 t0/s08 完成（t0/t1/t2 = 8/7/7，evals 46/48） | best e00045 194.2s（较 AM y0 -28.89%，仍为 gsim 7.87x）：t0 末步双证伪——concat-insert-unroll 新基线复测 -0.28% 亚噪声、commit detect helper 内联 +2.80% 回退（含循环函数体不可按调用次数内联）；余 2 eval 不足以走满 t1/t2 s08（需 4），r001 将在预算耗尽处提前转 run-summary |
 
 ## 共享件
 
