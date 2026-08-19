@@ -246,12 +246,13 @@
 | `TNO0234` | `2026-08-14` | [Clean plain GSIM/GrhSIM walltime comparison](./TNO0234_clean_plain_gsim_grhsim_walltime_comparison_20260814.md) | 基于同一 fresh RTL 全量发射/编译当前默认 GrhSIM，GSIM/GrhSIM 均为无 PGO/BOLT 的普通 `-O3`；node032 同 CCD fixed-ASLR 正式 pooled wall 为 `30,643.00→42,837.25 ms`，GrhSIM 慢 `12,194.25 ms/39.794570%`，ABBA/BAAB gap `0.179811 pp`，八个样本的功能/NUMA/PMU/连续负载门禁均通过。 |
 | `TNO0235` | `2026-08-18` | [SimpleTES typed-state budget-128/valid-64 resume launch](./TNO0235_simpletes_typed_state_budget128_valid64_resume_launch_20260818.md) | 从 `instance-5f0c84e9/db_state_012346` 精确续跑；上一轮 `43 attempts/41 evals/32 valid` 已按单调契约扩展到 `128 generations/64 valid`，gpt-5.6-sol/max、`4 gen/1 eval` 在 node032 已进入调度，尚无本轮新性能结果。 |
 | `TNO0236` | `2026-08-19` | [SimpleTES typed-state budget-256/valid-64 resume launch](./TNO0236_simpletes_typed_state_budget256_valid64_resume_launch_20260819.md) | 从 `db_state_211121` 精确续跑；上一轮 `128 attempts/51 evals/38 valid` 因 provider `429` 有 `74` 次 generation failure，现按单调契约扩展到 `256 attempts`、累计 valid 目标保持 `64`，gpt-5.6-sol/max、`4 gen/1 eval` 已在 node032 进入调度。 |
+| `TNO0237` | `2026-08-19` | [SimpleTES rate-limit and transport-timeout continuation](./TNO0237_simpletes_rate_limit_and_timeout_continuation_20260819.md) | 活跃 run.log 顶层快照为 `74` 次 429、`6` 次 remote compact、`1` 次 transport-backed timeout；SimpleTES `25d6b7a` 将显式 429 和带 reconnect/有效 thread ID 的 timeout 纳入有界 exact-thread `continue`，focused `79/79`、full `265/265` 通过。现有 node032 任务未重启，新规则下次启动或恢复生效。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`236`（`TNO0001..TNO0236`）。
+- 当前记录类文档总数：`237`（`TNO0001..TNO0237`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
