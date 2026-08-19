@@ -602,3 +602,27 @@
   （蕴含 dynblend/window plan 点名）。死宽变量 offset 置哨兵，init store 跳过；
   旋钮 off 逐字节等价。
 - evals 42/48，三轨迹各余 1 步，预算恰好 3x1xK=2；下一 action 按轮转为 t2/s07。
+
+## r001/t2/s07 动态 gate 白名单与热度加权布局（2026-08-20，action A0028）
+
+- **commit gating 细化轴以动态证据彻底关闭（e00043 证伪）**：按 A0021 唯一认可的
+  重开形态，先 recon 插桩（`--commit-input-gate-stats`）实测逐 gate open/skip，
+  按 skips×保护指令 ≥ 评估次数×dirty边 的净收益规则仅保留 **151/2,922** gate
+  （dirty 传播边 240,198→130,433，保留 66.8% 动态跳过工作），Host 中位 257.411s
+  （CV 1.16%）较 e00037 **+0.04%** 亚噪声持平。剪掉 46% 传播边无任何影响：
+  传播 store 与门控跳过同为二阶，且「传播边抵消 e00019 收益」的模型本身建立在
+  跨日读数上（A0024 安慰剂刻度 ~2.6%）。t2 commit 轴 7 变体（门控/稀疏阈值/
+  宽态炸开组合/位图/producer 快照/读侧快照/动态白名单）全部以证据关闭。
+- **热度加权 affinity 未确认、轴关闭（e00044）**：t2 自有 recon（880.3M block
+  execs，top 5,742 块=50%、单块最高仅 0.02%，86,342 簇全热）导出的簇降序重排，
+  Host 中位 255.105s（CV 0.95%），较 e00037 名义 -0.85%（跨日不可裁）、同日较
+  c1 -0.90%；低于 2% 假设门。热度分布平坦 ⇒ 热工作集≈全模型，重排无可压缩空间；
+  布局类收益上限 ~1-2% 收敛确认。
+- e00044 按同日 0.90% 噪声级机械 winner 入 t2/main（`--state-layout-hotness`
+  默认 off，emit 不携带即逐字节等价，回撤零成本）；t2 best 仍为 e00019。
+- 两候选 17/17 ctest、3 rep difftest 全过，compile_s 473.2/564.6s（affinity+消零
+  编译杠杆保持）； recon 产物 `evals/recon-t2s07c{1,2}/`（gate_stats.txt、
+  commit_gate_map.json、block_execs.txt）保留供审计。
+- **t2 自 e00019 起 9 候选无同日干净改善**；evals 44/48，三轨迹各余 1 步（共需
+  6 eval > 余 4）。t2/s08 建议同日校准型候选（安慰剂重测/默认 off 说明性候选），
+  把预算让给 restart 前的同日重测需求（A0025 纪律），不再开无证据新机制。

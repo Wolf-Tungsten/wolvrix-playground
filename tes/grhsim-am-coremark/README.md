@@ -11,7 +11,16 @@
   gsim target = **24.7s**（e00002，CV 1.5%）；**差距 11.06x**
 - 当前 best：**194.8s**（e00040，word guard + wide first-touch + concat-insert
   inline + 窄标量 helper 内联，较 AM y0 **-28.67%**）；仍为 gsim 的 **7.89x**，
-  AM/gsim 绝对差距关闭 31.52%；t0/t1/t2 步进 **7/7/6**，evals **42/48**
+  AM/gsim 绝对差距关闭 31.52%；t0/t1/t2 步进 **7/7/7**，evals **44/48**
+- t2/s07（A0028）：c1 按 t2 纪律唯一的 commit 轴重开形态做逐 gate 动态证据
+  筛选（recon 实测 open/skip，保留 151/2,922 净正 gate，dirty 传播边
+  240,198→130,433，保留 66.8% 动态跳过工作），e00043 中位 **257.4s**
+  （vs e00037 **+0.04%**，CV 1.16%）证伪——**commit gating 细化轴以动态证据
+  彻底关闭**；c2 按 t2 自有 recon 块执行频次（880M execs，分布平坦：top 6.65%
+  块=50%）对 affinity 簇降序重排，e00044 中位 **255.1s**（名义 -0.85% 跨日
+  不可裁，同日较 c1 -0.90%，CV 0.95%）低于 2% 假设门，**热度加权布局轴关闭**。
+  两候选均 17/17 ctest、3 rep difftest 全过，compile_s 473/565s；e00044 按
+  同日 0.90% 噪声级机械 winner 入 t2/main（knob 默认 off，t2 best 仍为 e00019）
 - t1/s07（A0027）：c1 `--dead-wide-storage-elision` 将宽池
   24,304,307→**8,347,000 words**（-65.66%，约 122MB 死宽态移除），e00041 中位
   **224.0s**（较 e00035 **-2.14%**、较 knob-off 等价基线 e00030 **-2.78%**，CV

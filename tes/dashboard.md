@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-19T23:55:51+08:00
+> 生成于 2026-08-20T02:04:47+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r001**（active）· C=3 L=8 K=2 · evals 42/48 · actions 27 · 下一步 `step`：推进轨迹 t2 到第 7 步（round-robin 最少步数优先）
+run **r001**（active）· C=3 L=8 K=2 · evals 44/48 · actions 28 · 下一步 `round-summary`：第 7 轮（全部 3 条轨迹各完成 1 步）已齐平，做跨轨迹小结
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -20,7 +20,7 @@ run **r001**（active）· C=3 L=8 K=2 · evals 42/48 · actions 27 · 下一步
 |---|---|---|---|---|
 | t0 | `tes/r001/t0/main` | 7/8 | e00040 | 194.8s |
 | t1 | `tes/r001/t1/main` | 7/8 | e00041 | 224.0s |
-| t2 | `tes/r001/t2/main` | 6/8 | e00037 | 257.3s |
+| t2 | `tes/r001/t2/main` | 7/8 | e00044 | 255.1s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
 |---|---|---|---|---|---|---|
@@ -66,6 +66,8 @@ run **r001**（active）· C=3 L=8 K=2 · evals 42/48 · actions 27 · 下一步
 | e00040 | candidate | t0/s07c2 | 194.8s | 7.89x | ok | t0 主线 5 个窄标量 helper（slice_value/shift_left/shift_r… |
 | e00041 | candidate | t1/s07c1 | 224.0s | 9.07x | ok | 若宽池约 65.7% 未引用 word（约 122MB 死宽态）摊薄状态 gather 局部性，--… |
 | e00042 | candidate | t1/s07c2 | 232.1s | 9.40x | ok | 若残余 1,267 站 divide_value 调用边界在常量存储瘦身后基线上仍是 >=1.5% … |
+| e00043 | candidate | t2/s07c1 | 257.4s | 10.43x | ok | c1: 逐 gate 动态证据筛选 commit-input gate——recon 实测每个 ga… |
+| e00044 | candidate | t2/s07c2 | 255.1s | 10.33x | ok | c2: 按 t2 自有 recon 块执行频次（880M execs，top 6.65% 块=50%… |
 
-最近 actions：A0023 step；A0024 step；A0025 round-summary；A0026 step；A0027 step
+最近 actions：A0024 step；A0025 round-summary；A0026 step；A0027 step；A0028 step
 

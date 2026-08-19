@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 t1/s07 完成（t0/t1/t2 = 7/7/6，evals 42/48） | best e00040 194.8s（较 AM y0 -28.67%，仍为 gsim 7.89x）：t0/s07 窄标量 helper 头文件内联 -10.02% 为 run 最大单步；t1/s07 死宽态消除（宽池 -65.66%）-2.14% 入 t1/main；第 6 轮曾触发继续 vs 提前 restart 用户裁决（跨日漂移 ~2.6% 刻度） |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | r001 t2/s07 完成（t0/t1/t2 = 7/7/7，evals 44/48） | best e00040 194.8s（较 AM y0 -28.67%，仍为 gsim 7.89x）：t2/s07 逐 gate 动态证据白名单 +0.04% 证伪（commit gating 细化轴彻底关闭）、热度加权 affinity -0.85% 未确认（布局精化轴关闭）；第 6 轮曾触发继续 vs 提前 restart 用户裁决（跨日漂移 ~2.6% 刻度） |
 
 ## 共享件
 
