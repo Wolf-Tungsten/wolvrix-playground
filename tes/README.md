@@ -10,7 +10,8 @@
 `python3 tes/tools/tesctl.py next` 得到唯一 action，按 [playbook.md](playbook.md)
 执行到底后停止。系统无状态：所有进度在任务目录的文件里。
 
-**无人值守模式**：`tmux new -s tesloop 'tes/tools/tesloop.sh'`。tesloop 每轮起一个
+**无人值守模式**：`tmux new -s tesloop 'tes/tools/tesloop.sh [task]'`（task 缺省
+grhsim-am-coremark；全机器同时只允许一个 tesloop 实例）。tesloop 每轮起一个
 全新的 `kimi -p` 会话（等价手动 /new + /goal，每个 action 独立上下文），run 收口
 （run-summary 完成）后自动停止，等用户裁决 restart。中断（网络/断电/手动停止）后
 重跑同一命令即从状态机断点续跑：step 内已评估的候选由 ledger 锚定，以 step-resume
