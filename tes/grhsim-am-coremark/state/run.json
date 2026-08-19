@@ -125,10 +125,11 @@
     3,
     4,
     5,
-    6
+    6,
+    7
   ],
   "counters": {
-    "actions": 28,
+    "actions": 29,
     "evals": 44
   },
   "best_overall": {
@@ -325,6 +326,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0028_step_t2s07_动态gate白名单与热度加权布局_20260820.md",
       "ts": "2026-08-20T02:04:47+08:00"
+    },
+    {
+      "n": 29,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0029_round-summary_第7轮跨轨迹小结_20260820.md",
+      "ts": "2026-08-20T02:09:49+08:00"
     }
   ]
 }

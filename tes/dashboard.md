@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-20T02:04:47+08:00
+> 生成于 2026-08-20T02:09:49+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r001**（active）· C=3 L=8 K=2 · evals 44/48 · actions 28 · 下一步 `round-summary`：第 7 轮（全部 3 条轨迹各完成 1 步）已齐平，做跨轨迹小结
+run **r001**（active）· C=3 L=8 K=2 · evals 44/48 · actions 29 · 下一步 `step`：推进轨迹 t0 到第 8 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -69,5 +69,5 @@ run **r001**（active）· C=3 L=8 K=2 · evals 44/48 · actions 28 · 下一步
 | e00043 | candidate | t2/s07c1 | 257.4s | 10.43x | ok | c1: 逐 gate 动态证据筛选 commit-input gate——recon 实测每个 ga… |
 | e00044 | candidate | t2/s07c2 | 255.1s | 10.33x | ok | c2: 按 t2 自有 recon 块执行频次（880M execs，top 6.65% 块=50%… |
 
-最近 actions：A0024 step；A0025 round-summary；A0026 step；A0027 step；A0028 step
+最近 actions：A0025 round-summary；A0026 step；A0027 step；A0028 step；A0029 round-summary
 
