@@ -10,7 +10,15 @@
   `9c0a89db`；2026-08-20 init-run，见 [A0034](actions/A0034_run-init_r002新机器clang与并行rep基线_20260820.md)）
 - 基线（2026-08-20，新机器 + clang 21.1.8 + rep 绑核并行协议，3-rep 中位）：
   AM y0 = **619.0s**（e00001，CV ~0.0%）；gsim target = **46.8s**（e00002，
-  CV ~0.0%）；**起跑差距 13.23x**
+  CV ~0.0%）；**起跑差距 13.23x**。**⚠ 基线完整性红旗（A0035）**：e00001/e00002
+  测于晨间慢机器态，同配置下午参照 452.8s（差 27%），vs 基线/gsim 的 ratio
+  暂不可裁，待重锚
+- t0/s01（2026-08-20，[A0035](actions/A0035_step_t0s01_机制链迁移与死宽态消除_20260820.md)）：
+  winner e00003 = **362.869s**（gsim-aligned 默认调度点 + r001 t0 winner 9 旋钮链，
+  已入 t0/main；t0 有效 emit_args = CLI 默认调度 + 9 旋钮）。因子分解：调度点
+  一阶（gsim-aligned 比 config 点快 16.4%，分区轴在 r002 重开）、旋钮链在
+  config 点上 -14.1%；死态瘦身族证伪（新图死宽池仅 0.46%）。测量教训：
+  evaluator `--emit-args` 为整体替换，候选须显式携带调度点全参数
 - r002 环境刻度：AMD EPYC 9654（384 线程）；输入切换为 wolvrix 自解析
   post-stats JSON（sha256 cbd78c0b…3246，取代 gsim 导出 exec-GRH）；rep 批内
   并行绑独立物理核（12/13/14），并行批均匀抬升 ~15-18%（AM +14.8%、gsim

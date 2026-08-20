@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`，基线已测） | 新机器 + clang 21 + rep 绑核并行协议基线：AM **619.0s** vs gsim **46.8s**（起跑 13.23x）；r001 已收口（旧机 best 194.2s，-28.89%），下一步 t0/s01 |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`，t0/s01 完成） | t0/s01 winner e00003 = **362.869s**（gsim-aligned 默认调度 + r001 机制链 9 旋钮）；发现基线慢窗口污染（ratio 暂不可裁）与调度点一阶效应（-16.4%），下一步 t1/s01 |
 
 ## 共享件
 

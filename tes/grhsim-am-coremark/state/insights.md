@@ -761,3 +761,35 @@
   winner，t1 常量族四旋钮叠加是两轨迹共同的近期组合材料；本机 compile_s
   ~622s ≪ 2400s 预算（注：本次 wolvrix 构建为 cache 命中，冷 wbuild 候选会
   更高，r001 口径下仍裕量充足）。
+
+## r002/t0/s01 机制链迁移、调度点一阶效应与基线污染红旗（2026-08-20，action A0035）
+
+- **winner（e00003，已入 t0/main）**：gsim-aligned 默认调度点 + r001 t0 winner
+  9 旋钮链 = **362.869s**（CV 0.0%，17/17 ctest、3 rep difftest 全过）。
+  t0 的有效 emit_args 此后 = CLI 默认调度点 + 9 旋钮（branchy-mux /
+  resize-elision / init-zero-elision / source-part+word-activity-guard /
+  wide-storage-first-touch / concat-insert-inline / inline-scalar-helpers /
+  concat-insert-unroll）。
+- **2×2 因子分解（同下午窗口，互可比）**：config 调度 +~0 = 452.803s
+  （e00004 重测）；config +9 旋钮 = 388.896s（旋钮链 -14.1%）；
+  gsim-aligned +~0 = 378.365s（调度 -16.4%）；gsim-aligned +9 旋钮 =
+  362.869s（旋钮在其上仅 -4.1%）。gsim-aligned 调度本身已消除大部分适配
+  胶——**调度点是一阶变量，分区/调度轴在 r002 重新打开**（旧图 NO0002
+  「分区形状中性」不适用于 wolvrix 自解析新输入）。
+- **死态瘦身族证伪**：新输入图死宽池仅 6,535 变量 / 34,284 words（占池
+  0.46%；r001 旧图 66%），死态已被 ingest/normalize 消化；
+  `--dead-wide-storage-elision`（重实现，0f17059，默认 off 逐字节等价，
+  含单测与文档）运行时无对象，族内（dead-narrow/常量存储）勿再投入。
+- **基线污染红旗**：e00001（619.019s，晨 11:54-12:04）与同配置语义下午
+  参照（452.803s）差 27%，机制上不可能（0.46% 池收缩 + init store 消除），
+  生成代码 diff 实证仅池 offset 平移——**晨间基线处于慢机器态，AM/gsim
+  基线比值与全部 vs 基线 ratio 暂不可裁，待重锚**。批内并行 CV≈0 不能
+  检测整批均匀污染；A0034 的「并行批 +14.8%/+18.1% 抬升」刻度混入机器态
+  变化嫌疑，需重估。
+- **测量/操作教训**：evaluator `--emit-args` 是整体替换（override 则 config
+  全丢），r002 起候选必须显式携带目标调度点全参数（r001 无此问题因 r001
+  config emit_args 恰为 CLI 默认值）；`--emit-args` 值以 `-` 开头时须用
+  `--emit-args=<值>` 等号形式（argparse 拒绝前导 `--` 的分离值）。
+- **勘误**：e00003 首轮 ledger 记录的 insight「机制链迁移确认 -41.38%」
+  归因错误（混入调度点差异）；record-eval 无 replace 路径，正确分解以
+  A0035 笔记与本条为准。

@@ -2,23 +2,23 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-20T12:15:23+08:00
+> 生成于 2026-08-20T15:11:52+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r002**（active）· C=2 L=8 K=2 · evals 2/32 · actions 1 · 下一步 `step`：推进轨迹 t0 到第 1 步（round-robin 最少步数优先）
+run **r002**（active）· C=2 L=8 K=2 · evals 4/32 · actions 2 · 下一步 `step`：推进轨迹 t1 到第 1 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
 | gsim（target） | e00002 | 46.8s | 1.00x |
 | am（y0 基线） | e00001 | 619.0s | 13.23x |
-| **当前 best** | e00001 | **619.0s** | **13.23x** |
+| **当前 best** | e00003 | **362.9s** | **7.75x** |
 
-基线→target 进度：`░░░░░░░░░░░░░░░░░░░░` 0.0%（619.0s → 目标 46.8s，当前差距 13.23x）
+基线→target 进度：`█████████░░░░░░░░░░░` 44.8%（619.0s → 目标 46.8s，当前差距 7.75x）
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
-| t0 | `tes/r002/t0/main` | 0/8 | - | - |
+| t0 | `tes/r002/t0/main` | 1/8 | e00003 | 362.9s |
 | t1 | `tes/r002/t1/main` | 0/8 | - | - |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
@@ -75,6 +75,8 @@ run **r002**（active）· C=2 L=8 K=2 · evals 2/32 · actions 1 · 下一步 `
 | e00050 | candidate | t2/s08c2 | 261.1s | 5.58x | ok | c2: e00019 配置（guard-event-gating + commit-input-ga… |
 | e00001 | baseline-am | - | 619.0s | 13.23x | ok | am baseline |
 | e00002 | baseline-gsim | - | 46.8s | 1.00x | ok | gsim baseline |
+| e00003 | candidate | t0/s01c1 | 362.9s | 7.75x | ok | r001 t0 winner 机制链（branchy-mux/resize-elision/init… |
+| e00004 | candidate | t0/s01c2 | 452.8s | 9.68x | ok | 新输入图宽池死变量占比与 r001 旧图相当（r001：-65.66% words），重实现 dea… |
 
-最近 actions：A0001 run-init
+最近 actions：A0001 run-init；A0002 step
 

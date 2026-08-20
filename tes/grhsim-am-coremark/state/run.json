@@ -112,9 +112,12 @@
     {
       "id": "t0",
       "branch": "tes/r002/t0/main",
-      "tip": "9c0a89db94a3c3e303c2b9daefc2a79fb609fbce",
-      "steps_completed": 0,
-      "best": null
+      "tip": "e8ba991d60fa5283256eb56a0b0e57d64e3d43eb",
+      "steps_completed": 1,
+      "best": {
+        "eval_id": "e00003",
+        "score": -362869
+      }
     },
     {
       "id": "t1",
@@ -127,21 +130,29 @@
   "current_step": null,
   "round_summaries_done": [],
   "counters": {
-    "actions": 1,
-    "evals": 2
+    "actions": 2,
+    "evals": 4
   },
   "best_overall": {
-    "eval_id": "e00001",
-    "score": -619019,
-    "commit": "9c0a89db94a3c3e303c2b9daefc2a79fb609fbce"
+    "eval_id": "e00003",
+    "score": -362869,
+    "commit": "e8ba991d60fa5283256eb56a0b0e57d64e3d43eb"
   },
-  "phi_selection_counts": {},
+  "phi_selection_counts": {
+    "e00001": 1
+  },
   "history": [
     {
       "n": 1,
       "type": "run-init",
       "note": "tes/grhsim-am-coremark/actions/A0034_run-init_r002新机器clang与并行rep基线_20260820.md",
       "ts": "2026-08-20T12:15:23+08:00"
+    },
+    {
+      "n": 2,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0035_step_t0s01_机制链迁移与死宽态消除_20260820.md",
+      "ts": "2026-08-20T15:11:52+08:00"
     }
   ]
 }
