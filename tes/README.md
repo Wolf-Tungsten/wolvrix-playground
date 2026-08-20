@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 3/8、t1 3/8） | 第 3 轮 round-summary（A0043）：**ledger best e00007 被 overturn 为双态快态抽签**（t0 tip 真值 ≈363s）；**t1 task-body-outline 同态 -10.91% 确认**（375.670s）；同窗安慰剂席位常态化，守卫池轴收敛为代码瘦身；evals 14/32，下一步 t0/s04 |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 4/8、t1 3/8） | t0/s04（A0044）：**sys-task-body-outline 同窗确认 -5.91%**（339.654s vs 安慰剂 361.053s，7,235 个 fwrite 体全 outline，守卫池瘦身在 t0 闭环）；t0 tip 真值 339.7s（常态窗）；evals 16/32，下一步 t1/s04 |
 
 ## 共享件
 

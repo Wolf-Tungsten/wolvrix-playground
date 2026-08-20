@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- t0/s04（2026-08-21，[A0044](actions/A0044_step_t0s04_sys-task-body-outline与安慰剂锚点_20260821.md)）：
+  **winner e00015 = 339.654s**（`--sys-task-body-outline`：全部 7,235 个非 final
+  fwrite 站体重活抽为 noinline 成员函数，e43ff4d，off 逐字节等价，已入 t0/main）；
+  同窗安慰剂 e00016（t0 tip 原样）361.053s 锚定本窗=常态 → **同态 -5.91% 确认**
+  （越 4% 假设门，双态 ×1.39 无法吸收）。静态实证：TaskFormatter 内联站
+  7,235→0，b90656/90657 所在 TU .o text -50.3%/-47.7%，全模型 blocks text -7.9%。
+  守卫池瘦身路线在 t0 整块守卫上闭环（A0041 预言路径确认）。**t0 tip 真值（常态窗）
+  363.4s → 339.7s**。t0 有效 emit_args = 10 旋钮 + sys-task-body-outline。
+  evals 16/32
 - r002 第 3 轮 round-summary（2026-08-21，[A0043](actions/A0043_round-summary_第3轮跨轨迹小结_20260821.md)）：
   两轨迹各完成 s03。本轮最重要裁决：**ledger best e00007（261.543s）被三重证据
   overturn 为双态快态抽签**（安慰剂回读 363.444s = 261.543×1.389 精确落带），

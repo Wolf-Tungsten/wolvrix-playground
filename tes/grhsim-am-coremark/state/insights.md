@@ -982,3 +982,27 @@
   -27.8%，接受为「方向为正、量级未知」的携带旋钮，不再补裁决。
 - 真值口径：t0 tip ≈363s（常态窗锚定）、t1 tip 375.670s（快态窗，同态
   -10.91% 确认）；跨轨迹绝对比分无意义。evals 14/32。
+
+## r002/t0/s04 sys-task-body-outline 同窗确认 -5.91%（2026-08-21，action A0044）
+
+- **确认（e00015，winner，已入 t0/main）**：`--sys-task-body-outline`（e43ff4d，
+  默认 off 逐字节等价，含 emitter 单测与文档）——全部 7,235 个非 final fwrite 站的
+  TaskFormatter 构造/append/ostream 输出抽为 noinline 成员函数，块内热路径只剩
+  preamble + fire 求值 + 窄标量实参物化 + 调用。Host 中位 **339.654s**（CV 0.0%，
+  17/17 ctest、3 rep difftest 全过，compile_s 974.1s），同窗安慰剂 e00016
+  （t0 tip 原样）**361.053s** 锚定本窗=常态（与 e00012 的 363.444s 跨窗 -0.66%
+  一致）→ **同态 -5.91%**，越 4% 假设门，双态 ×1.39 方向/量级均无法吸收。
+- **静态实证**：TaskFormatter 内联站 7,235→0；b90656/90657 所在 TU .o text
+  -50.3%/-47.7%；全模型 blocks .o text 96.34MB→88.74MB（-7.9%）；emu_build
+  1520.5s→621.6s（构建墙钟双态分裂前例在，量级不归因）。机制 = A0041 关闭守卫
+  门控轴后预言的「atom 代码瘦身」在 t0 整块守卫池（b90656/90657，9.3%）上的确认；
+  收益约为池占比的六成 → outline 收掉的是前端流式部分，残余为 fire 求值与真实
+  触发的 task 体。与 t1 task-body-outline 同族独立实现（t0 证据链：recon-t0s02/
+  s03 + A0041，命名该路径在先）。
+- **离线四分画像（recon-t0s03 解析，t0 后续候选的池地图）**：commit 32.8% /
+  守卫 task 12.5%（纯 task 守卫 9.3%）/ 纯宽数组 array 块 4.35%（成本集中于
+  b69159/69157/69158 的 22528-bit mux/broadcast 流扫）/ 窄标量 compute 长尾
+  50.4%（b93085/b83835 实为比较归约树块非 task 块）。assign_words 宽拷贝覆盖
+  9.5% 块周期但多为 1-8 word 窄拷贝，非主要矛盾。
+- 真值口径更新：**t0 tip ≈339.7s（常态窗）**；t0 有效 emit_args = 10 旋钮 +
+  sys-task-body-outline。evals 16/32；下一 action 按轮转为 t1/s04。
