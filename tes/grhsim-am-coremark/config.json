@@ -10,9 +10,9 @@
  },
  "inputs": [
   {
-   "name": "exec_json",
-   "path": "build/logs/no0009/gsim_flat_export/SimTop.exec.json",
-   "note": "gsim 导出的 exec-GRH（全部候选共享的固定输入图）；run-init 时 sha256 写入 manifest"
+   "name": "post_stats_json",
+   "path": "build/xs/grhsim-am/wolvrix_xs_post_stats.json",
+   "note": "wolvrix 自解析 XiangShan SV 的归一化 GRH（post-stats JSON，全部候选共享的固定输入图；r002 起取代 gsim 导出的 exec-GRH）；run-init 时 sha256 写入 manifest；重新生成走 make xs_wolf_grhsim_am_emit"
   }
  ],
  "baseline_sides": [
@@ -41,6 +41,7 @@
   "max_reps": 5,
   "cv_max": 0.05,
   "core": 12,
+  "rep_cores": [12, 13, 14],
   "cycles": 50000,
   "rep_timeout_sec": 1800,
   "build_timeout_sec": 10800,
@@ -51,12 +52,34 @@
    "cycleCnt": 49998
   },
   "emit_args": [
-   "--block-chunk-instructions",
-   "3000"
+   "--blocks-per-source",
+   "2048",
+   "--max-source-bytes",
+   "4194304",
+   "--max-atoms-per-block",
+   "9",
+   "--tree-atom-fold-max-instr",
+   "2",
+   "--dp-segment-penalty",
+   "0",
+   "--dp-coarsen-atom-budget",
+   "0",
+   "--dp-coarsen-instr-budget",
+   "32768",
+   "--merge-when-min-group",
+   "5",
+   "--dp-refinement-rounds",
+   "0",
+   "--fanout-absorb-max-instructions",
+   "0",
+   "--fanout-absorb-budget-mult",
+   "1.0",
+   "--fanout-absorb-max-consumers",
+   "256"
   ],
-  "vm_build_jobs": 16,
+  "vm_build_jobs": 128,
   "compile_budget_sec": 2400,
-  "note": "计时与计数分离：正式 reps 不开任何 profile/插桩。difftest 逐位一致（golden 计数）是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout（不进入计时）；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。",
+  "note": "计时与计数分离：正式 reps 不开任何 profile/插桩。rep_cores = reps 批内并行绑的独立物理核（2026-08-20 起，用户指示：384 核机器上 rep 绑核并行替代串行；12/13/14 同属 socket 0、非 SMT 兄弟；缺省退回 core 单核串行语义）。difftest 逐位一致（golden 计数）是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout（不进入计时）；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。",
   "golden_tol": {
    "instrCnt": 16,
    "cycleCnt": 8,
@@ -77,7 +100,7 @@
   "difftest_dir": "testcase/xiangshan/difftest",
   "gen_csrc_dir": "testcase/xiangshan/build/generated-src",
   "dep_root": "build/dependency/root",
-  "gsim_emu": "build/xs/gsim-flat/emu",
+  "gsim_emu": "build/xs/gsim/gsim-compile/emu",
   "note": "以下路径只被本任务的 evaluator.py 消费；tesctl/phi 不读 paths。"
  }
 }

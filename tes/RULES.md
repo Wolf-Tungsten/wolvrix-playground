@@ -6,9 +6,10 @@ append-only 精神，差异：tes/ 是机器可读的执行状态 + 人读的分
 
 ## 1. 测量纪律（硬约束，由 evaluate.py 强制执行的部分不赘述）
 
-- 评估严格串行：`build/tes/LOCK` 全局 flock（跨任务也只允许一个评估）；计时阶段前
-  检查无其他 `emu` 进程，有则中止。
-- 计时 reps：`taskset -c <core>` 绑核，默认 3 次取中位，CV>5% 自动加测至 5 次，
+- 评估严格串行：`build/tes/LOCK` 全局 flock（跨任务也只允许一个评估）；每个计时
+  批次起跑前检查无其他 `emu` 进程，有则中止（批内并行 rep 是本评估自身负载）。
+- 计时 reps：`taskset` 绑核（每 rep 一个独立物理核、批内并行，核清单由任务
+  config 指定），默认 3 次取中位，CV>5% 自动加测至 5 次，
   仍超则标 `noisy`（分数可用但必须在分析中注明）。
 - 计数与计时分离：正式计时 reps 不开 `EMU_RUNTIME_PROFILE`/`EMU_AM_BLOCK_EXECS` 等
   插桩；profiling 如需做，另开不计时的分析 pass。

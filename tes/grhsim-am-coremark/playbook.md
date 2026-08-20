@@ -49,7 +49,7 @@ gsim 基线（target，现成二进制的协议化计时）：
 python3 tes/grhsim-am-coremark/evaluator.py gsim --eval-id e00002
 ```
 
-- 依赖 `build/xs/gsim-flat/emu`（config `paths.gsim_emu`）。不存在则停止并报告用户
+- 依赖 `build/xs/gsim/gsim-compile/emu`（config `paths.gsim_emu`，gsim master 基线）。不存在则停止并报告用户
   （tes 不自行构建 gsim）。
 
 ## 候选实施纪律

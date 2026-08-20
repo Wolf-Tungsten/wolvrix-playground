@@ -1,8 +1,6 @@
 {
-  "schema": 1,
   "run_id": "r002",
   "task": "grhsim-am-coremark",
-  "status": "active",
   "created_at": "2026-08-20T11:14:45+08:00",
   "config": {
     "search": {
@@ -73,6 +71,7 @@
       "auto": false
     }
   },
+  "budget_N": 32,
   "pins": {
     "target_repo": "wolvrix",
     "target_base_commit": "9c0a89db94a3c3e303c2b9daefc2a79fb609fbce",
@@ -90,58 +89,6 @@
       }
     ]
   },
-  "baseline_sides": [
-    "am",
-    "gsim"
-  ],
-  "baselines": {
-    "am": {
-      "eval_id": "e00001",
-      "status": "ok",
-      "host_ms_median": 619019,
-      "score": -619019
-    },
-    "gsim": {
-      "eval_id": "e00002",
-      "status": "ok",
-      "host_ms_median": 46792,
-      "score": -46792
-    }
-  },
-  "trajectories": [
-    {
-      "id": "t0",
-      "branch": "tes/r002/t0/main",
-      "tip": "9c0a89db94a3c3e303c2b9daefc2a79fb609fbce",
-      "steps_completed": 0,
-      "best": null
-    },
-    {
-      "id": "t1",
-      "branch": "tes/r002/t1/main",
-      "tip": "9c0a89db94a3c3e303c2b9daefc2a79fb609fbce",
-      "steps_completed": 0,
-      "best": null
-    }
-  ],
-  "current_step": null,
-  "round_summaries_done": [],
-  "counters": {
-    "actions": 1,
-    "evals": 2
-  },
-  "best_overall": {
-    "eval_id": "e00001",
-    "score": -619019,
-    "commit": "9c0a89db94a3c3e303c2b9daefc2a79fb609fbce"
-  },
-  "phi_selection_counts": {},
-  "history": [
-    {
-      "n": 1,
-      "type": "run-init",
-      "note": "tes/grhsim-am-coremark/actions/A0034_run-init_r002新机器clang与并行rep基线_20260820.md",
-      "ts": "2026-08-20T12:15:23+08:00"
-    }
-  ]
+  "baselines": {},
+  "notes": []
 }

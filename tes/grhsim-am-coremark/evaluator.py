@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """evaluate — TES 的评估器 V。给定一个 wolvrix 现场（worktree），执行完整评估流水线：
 
-  wolvrix 构建（Release + ccache）→ ctest -R grhsim 回归门 → emit（固定 exec-GRH 输入）
-  → difftest emu 构建 → 绑核串行计时 reps（difftest 金标门 + CV 检查）
+  wolvrix 构建（Release + ccache）→ ctest -R grhsim 回归门 → emit（固定 post-stats
+  GRH 输入，wolvrix 自解析 XiangShan SV 的归一化产物）→ difftest emu 构建
+  → 绑核并行计时 reps（每 rep 独立物理核，difftest 金标门 + CV 检查）
 
 输出 build/tes/evals/<eval_id>/result.json，并把机器可读摘要打到 stdout。
 整个过程持 flock(build/tes/LOCK) —— 任何时刻只允许一个评估在跑（串行纪律的硬保证）。
@@ -32,7 +33,7 @@ REPO = TASK_DIR.parents[1]                           # playground 根
 CONFIG = json.loads((TASK_DIR / "config.json").read_text(encoding="utf-8"))
 PATHS = CONFIG["paths"]
 EVAL_CFG = CONFIG["eval"]
-EXEC_JSON = next(i["path"] for i in CONFIG["inputs"] if i["name"] == "exec_json")
+DESIGN_JSON = next(i["path"] for i in CONFIG["inputs"] if i["name"] == "post_stats_json")
 BUILD_ROOT = REPO / "build" / "tes"                  # 全局：LOCK、ccache
 BUILD_TASK = BUILD_ROOT / TASK                       # 本任务：evals/、src/
 
@@ -92,59 +93,107 @@ def no_other_emu() -> bool:
     return r.returncode != 0
 
 
+def _run_rep_batch(emu: Path, cwd: Path, run_dir: Path,
+                   start_idx: int, count: int, cores: list[str]) -> list[dict]:
+    """并行起跑 count 个 rep（各绑 rep_cores 中不同物理核），全部结束后按 rep 序返回。
+
+    干扰守卫在批次起跑前检查一次（批内 emu 是本评估自己的并行 rep）。
+    每 rep 独立 rep 超时（kill 进程组记 rc=124）。返回未经金标判定的原始结果。
+    """
+    import signal
+    ev = EVAL_CFG
+    timeout = ev["rep_timeout_sec"]
+    if not no_other_emu():
+        return [{"rep": start_idx, "rc": None, "interference": True,
+                 "error": "检测到其他 emu 进程，计时前中止（干扰守卫）"}]
+    load = loadavg()
+    procs = []
+    for j in range(count):
+        i = start_idx + j
+        core = cores[j % len(cores)]
+        log = run_dir / f"rep{i}.log"
+        cmd = ["taskset", "-c", str(core), str(emu),
+               "-i", str(REPO / PATHS["coremark_bin"]),
+               "--diff", str(REPO / PATHS["nemu_so"]),
+               "-b", "0", "-e", "0", "-C", str(ev["cycles"])]
+        lf = open(log, "ab")
+        lf.write(f"\n===== [{now_iso()}] {' '.join(str(c) for c in cmd)} =====\n".encode())
+        lf.flush()
+        p = subprocess.Popen(cmd, cwd=cwd, env=dict(os.environ), stdout=lf,
+                             stderr=subprocess.STDOUT, start_new_session=True)
+        procs.append({"rep": i, "core": core, "popen": p, "log": log, "lf": lf,
+                      "t0": time.monotonic(), "rc": None})
+    pending = list(procs)
+    while pending:
+        for pr in list(pending):
+            rc = pr["popen"].poll()
+            if rc is None and time.monotonic() - pr["t0"] > timeout:
+                os.killpg(pr["popen"].pid, signal.SIGKILL)
+                pr["popen"].wait()
+                pr["rc"] = 124
+            elif rc is not None:
+                pr["rc"] = rc
+            if pr["rc"] is not None:
+                pr["wall_s"] = round(time.monotonic() - pr["t0"], 1)
+                pr["lf"].close()
+                pending.remove(pr)
+        if pending:
+            time.sleep(1)
+    out = []
+    for pr in procs:
+        parsed = parse_run_log(pr["log"])
+        out.append({"rep": pr["rep"], "core": pr["core"], "rc": pr["rc"],
+                    "wall_s": pr["wall_s"], "loadavg_before": load, **parsed})
+    return out
+
+
 def run_reps(emu: Path, run_dir: Path, run_cwd: Path | None = None) -> dict:
     """协议化计时 reps。返回 {status, reps:[...], median, cv, noisy}。
 
     emu 可为绝对路径或 run_cwd 下的相对名（如 Path("emu") + run_cwd=emu 构建目录）。
+    reps 批内并行：每 rep 绑 eval.rep_cores 中一个独立物理核（缺省退回 eval.core
+    单核串行语义）；批次间串行，CV 超标时按 max_reps 上限加测新批次。
     """
     ev = EVAL_CFG
     golden = ev["golden"]
     tol = ev.get("golden_tol", {"instrCnt": 0, "cycleCnt": 0})
+    cores = [str(c) for c in (ev.get("rep_cores") or [ev["core"]])]
     reps: list[dict] = []
     status = "ok"
     target_reps = ev["reps"]
     cwd = run_cwd or run_dir
     if not emu.is_absolute():
         emu = (cwd / emu).resolve()  # execvp 不搜 cwd，相对名必须解析成绝对路径
-    while True:
-        i = len(reps) + 1
-        if not no_other_emu():
+    while len(reps) < target_reps:
+        batch = _run_rep_batch(emu, cwd, run_dir, len(reps) + 1,
+                               min(target_reps - len(reps), len(cores)), cores)
+        reps.extend(batch)
+        if any(r.get("interference") for r in batch):
             return {"status": "interference", "reps": reps,
                     "error": "检测到其他 emu 进程，计时前中止（干扰守卫）"}
-        load = loadavg()
-        log = run_dir / f"rep{i}.log"
-        rc, dur = sh(["taskset", "-c", str(ev["core"]), str(emu),
-                      "-i", str(REPO / PATHS["coremark_bin"]),
-                      "--diff", str(REPO / PATHS["nemu_so"]),
-                      "-b", "0", "-e", "0", "-C", str(ev["cycles"])],
-                     log, timeout=ev["rep_timeout_sec"], cwd=cwd)
-        parsed = parse_run_log(log)
-        rep = {"rep": i, "rc": rc, "wall_s": round(dur, 1), "loadavg_before": load,
-               **parsed}
-        instr, cyc = parsed["instrCnt"], parsed["cycleCnt"]
-        rep["difftest_ok"] = (
-            rc == 0 and instr is not None and cyc is not None
-            and abs(instr - golden["instrCnt"]) <= tol["instrCnt"]
-            and abs(cyc - golden["cycleCnt"]) <= tol["cycleCnt"])
-        reps.append(rep)
-        if rc == 124:
+        if any(r["rc"] == 124 for r in batch):
             status = "timeout"
             break
-        if not rep["difftest_ok"]:
+        for r in batch:
+            instr, cyc = r["instrCnt"], r["cycleCnt"]
+            r["difftest_ok"] = (
+                r["rc"] == 0 and instr is not None and cyc is not None
+                and abs(instr - golden["instrCnt"]) <= tol["instrCnt"]
+                and abs(cyc - golden["cycleCnt"]) <= tol["cycleCnt"])
+        if any(not r["difftest_ok"] for r in batch):
             status = "difftest_fail"
             break
-        if len(reps) >= target_reps:
-            times = [r["host_ms"] for r in reps if r["host_ms"] is not None]
-            if len(times) != len(reps):
-                status = "parse_fail"
-                break
-            cv = statistics.stdev(times) / statistics.mean(times) if len(times) > 1 else 0.0
-            if cv <= ev["cv_max"] or len(reps) >= ev["max_reps"]:
-                break
-            target_reps = min(len(reps) + 1, ev["max_reps"])  # 超噪声带则加测
+        times = [r["host_ms"] for r in reps if r["host_ms"] is not None]
+        if len(times) != len(reps):
+            status = "parse_fail"
+            break
+        cv = statistics.stdev(times) / statistics.mean(times) if len(times) > 1 else 0.0
+        if cv <= ev["cv_max"] or len(reps) >= ev["max_reps"]:
+            break
+        target_reps = min(len(reps) + 1, ev["max_reps"])  # 超噪声带则加测
     times = [r["host_ms"] for r in reps if r["host_ms"] is not None]
     out = {"status": status, "reps": reps}
-    if times and all(r["difftest_ok"] for r in reps):
+    if times and all(r.get("difftest_ok") for r in reps):
         med = statistics.median(times)
         cv = statistics.stdev(times) / statistics.mean(times) if len(times) > 1 else 0.0
         out.update({"host_ms": {"reps": times, "median": med, "cv": round(cv, 4)},
@@ -224,7 +273,10 @@ def evaluate_candidate(worktree: Path, eval_id: str, emit_args_override: list[st
 
     # 1. wolvrix 构建
     cmake_args = ["-S", str(worktree), "-B", str(wbuild),
-                  "-DCMAKE_BUILD_TYPE=Release", "-G", "Unix Makefiles"]
+                  "-DCMAKE_BUILD_TYPE=Release", "-G", "Unix Makefiles",
+                  # 与顶层 Makefile 口径一致：固定 clang/clang++（经 PATH 解析），
+                  # 不落入系统默认 gcc，保证候选间工具链可比。
+                  "-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++"]
     if shutil.which("ccache"):
         cmake_args += ["-DCMAKE_CXX_COMPILER_LAUNCHER=ccache", "-DCMAKE_C_COMPILER_LAUNCHER=ccache"]
     rc, dur = sh(["cmake", *cmake_args], evdir / "cmake.log", timeout=phase_timeout(),
@@ -257,7 +309,7 @@ def evaluate_candidate(worktree: Path, eval_id: str, emit_args_override: list[st
     # 3. emit
     emit_args = emit_args_override if emit_args_override is not None else EVAL_CFG["emit_args"]
     rc, dur = sh([str(wbuild / "bin" / "grhsim-am-lower-json"),
-                  str(REPO / EXEC_JSON), "SimTop", "--schedule",
+                  str(REPO / DESIGN_JSON), "SimTop",
                   "--emit", str(emit_dir), *emit_args],
                  evdir / "emit.log", timeout=phase_timeout(),
                  env_extra={"WOLVRIX_GRHSIM_AM_BLOCK_ATOM_JSONL": str(evdir / "block_atom.jsonl")})

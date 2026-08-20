@@ -705,3 +705,59 @@
 - **方法论刻度（后续 run 继承）**：同夜漂移 <1%、跨日 ~2.6% > 协议 CV；跨日
   名义差 <3% 的裁决存疑；弱正旋钮旧读数不可继承（基线依赖反转）；同日安慰剂/
   锚点常态化。编译杠杆（init 消零/rodata/dead-wide）compile_s ~1200s→~600s。
+
+## brief.md 变更记录：r002 纪律调整（2026-08-20，用户指示）
+
+- **变更面纪律改写（brief.md「优化哲学」）**：GRH IR 冻结不变；grhsim AM 与
+  调度/分区/布局算法层均由「灵活调整」升级为「**可激进改动**」（允许推翻既有
+  形态另起炉灶）；新增「改进尽可能显式化」（激进重构也须落为可命名、可开关、
+  可归因的显式 pass/算法阶段）与「**突破性、原创性导向**」（不以 ~1% 级旋钮
+  微调占用正式评估预算）。
+- **路线调整（同次指示）**：gsim 基线改用 **master**（本机已建
+  `build/xs/gsim/gsim-compile/emu`，50k coremark difftest 通过，
+  73584/49998）；AM 路线改为 **wolvrix 自解析 SV**（`make
+  xs_wolf_grhsim_am_emit`，不再依赖 gsim 导出的 exec-GRH），本机首跑
+  difftest 通过（73580/49996，Host 402.7s，本机首个参考点）。
+- **本机环境修复**：重建 `build/dependency/root`（bison/flex/libfl/gmp/zstd/
+  zlib deb 解包）；wolvrix/build 重 configure（旧缓存无 grhsim-am-lower-json
+  target）；Makefile 目标需先 `source env.sh`。
+- **编译并核放宽（2026-08-20，用户指示）**：`config.json eval.vm_build_jobs`
+  16 → **128**（本机 384 核 / 1.5TB RAM）；wolvrix 构建本就不设限
+  （`-j os.cpu_count()`）。只影响编译墙钟，计时 reps 仍串行绑核
+  （core=12）不受影响。
+
+## r002 run-init：新机器 restart + clang 工具链 + rep 绑核并行协议（2026-08-20，action A0034）
+
+- **restart 落地（用户确认）**：y0 = r001 best `9c0a89db`（用户已并入其主线分支
+  `grh/tes-grhsim-am`，r001 的 tes/* 分支由用户自行清理）；C/L/K = **2/8/2**
+  （N=32，按 r001 summary 建议）。输入切换为 wolvrix 自解析 post-stats JSON
+  （sha256 `cbd78c0b…3246`，r002 起正式取代 gsim 导出 exec-GRH）。
+- **新机器（AMD EPYC 9654，2×96C/384T，1.5TB）**：绝对时延全面上移，r001 绝对
+  读数自此仅作历史——AM y0 本机 **619.019s**（旧机 273.1s）；gsim 本机
+  **46.792s**（旧机 24.7s）。起跑差距 11.06x → **13.23x**：AM 侧对新机器
+  （单核性能/内存子系统）比 gsim 更敏感。
+- **工具链 clang 固化（用户指示）**：clang 21.1.8（PATH 经 `~/.bashrc`）。
+  evaluator 的 wolvrix cmake 本就固定 clang/clang++；difftest Makefile 在 PATH
+  有 clang 时自动选 clang++——r002 起全链路（wolvrix 构建 + emu 构建）均为
+  clang -O3。gsim emu 与 post-stats JSON 已先于本 action 在本机重建（见前条
+  「r002 纪律调整」）。
+- **协议变更：rep 绑核并行（用户指示，2026-08-20）**：3 rep 由逐 rep 串行改为
+  批内并行，各绑一个独立物理核（config `eval.rep_cores` = 12/13/14，同属
+  socket 0、非 SMT 兄弟）；干扰守卫改为每批次起跑前检查；评估间仍全局 LOCK
+  严格串行。protocol.md / RULES.md / config.json 已同步。
+  - 刻度：并行批对内存敏感负载有均匀抬升——AM 同代码单跑 539.2s（首跑串行
+    rep1，协议切换中止现场）vs 批内 619.0s（**+14.8%**）；gsim 单跑 39.6s
+    （e99901）vs 批内 46.8s（**+18.1%**）。两侧同协议测量，比值裁决不受影响；
+    批内 CV 极紧（~0.0%）。
+  - 墙钟收益：rep 阶段 ~3x 提速（AM 每 eval 省 ~20min）。
+  - 配置漂移勘误：r002 manifest 冻结的 eval 段无 `rep_cores`（init-run 先于
+    协议变更数小时），以 config.json 现值为准，特此登记。
+- **基线登记**：AM e00001 = **619.019s**（compile_s 622.3s = cmake/cache 命中
+  + ctest 221s + emit 63.5s + emu_build 增量 334.4s；17/17 ctest、3 rep
+  difftest 全过 73580/49996）；gsim e00002 = **46.792s**（73584/49998）。
+  e00001 首跑因协议切换主动中止（留下 539.2s 单跑对照），同 eval-id 重跑覆盖，
+  result.json 为并行协议版本。
+- **起点判断**：13.23x 起跑差距大于 r001（11.06x）；y0 已含 r001 全部代码级
+  winner，t1 常量族四旋钮叠加是两轨迹共同的近期组合材料；本机 compile_s
+  ~622s ≪ 2400s 预算（注：本次 wolvrix 构建为 cache 命中，冷 wbuild 候选会
+  更高，r001 口径下仍裕量充足）。
