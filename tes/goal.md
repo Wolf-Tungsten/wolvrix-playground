@@ -45,3 +45,6 @@
 - 不 push、不删分支/worktree、不改 manifest 里 pin 的只读仓库，除非用户当场确认。
 - ledger.jsonl 只追加；action 笔记只追加；manifest/proposal 不修改。
 - 一个 goal 只推进一个 action。
+- 后台进程归零：收口（步骤 6 提交）前必须停掉本会话起的所有后台进程与监视脚本
+  （如频率 watcher、`while true` 轮询、`&`/nohup 任务）。非交互会话会等后台任务
+  结束才退出，遗留此类进程会挂死 tesloop。

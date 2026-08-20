@@ -131,9 +131,11 @@
     }
   ],
   "current_step": null,
-  "round_summaries_done": [],
+  "round_summaries_done": [
+    1
+  ],
   "counters": {
-    "actions": 3,
+    "actions": 4,
     "evals": 6
   },
   "best_overall": {
@@ -162,6 +164,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0036_step_t1s01_t1链迁移与常量内联重实现_20260820.md",
       "ts": "2026-08-20T18:50:58+08:00"
+    },
+    {
+      "n": 4,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0037_round-summary_第1轮跨轨迹小结_20260820.md",
+      "ts": "2026-08-20T19:21:57+08:00"
     }
   ]
 }

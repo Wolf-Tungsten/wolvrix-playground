@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`，t0/s01、t1/s01 完成） | t1/s01 winner e00006（`--inline-scalar-constants` 重实现入 t1/main；同频机制中性）；刻画 ×1.3-1.4 双态环境混杂（频率已证伪，嫌疑 THP/NUMA），现协议只可分辨 ≥30% 效应，协议升级提请用户裁决；下一步 t0/s02 |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`，第 1 轮齐平） | round-1 小结（A0037）：best e00003 362.869s（同窗参照 -19.86%，vs 基线 ratio 待重锚）；调度点一阶 -16.4%、分区/调度轴重开；常量/状态瘦身族新图关闭；现协议只可分辨 ≥30% 效应，协议升级待用户裁决；下一步 t0/s02 |
 
 ## 共享件
 
