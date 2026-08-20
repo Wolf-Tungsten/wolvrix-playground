@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- r002 第 3 轮 round-summary（2026-08-21，[A0043](actions/A0043_round-summary_第3轮跨轨迹小结_20260821.md)）：
+  两轨迹各完成 s03。本轮最重要裁决：**ledger best e00007（261.543s）被三重证据
+  overturn 为双态快态抽签**（安慰剂回读 363.444s = 261.543×1.389 精确落带），
+  t0 tip 真值 ≈363s；**t1 winner e00013 task-body-outline 同态 -10.91% 确认**
+  （375.670s vs 安慰剂 421.673s，b116236 TU text -75%）。收敛：同窗安慰剂席位
+  常态化（本轮 2/4 席、产出两个最重要裁决）、守卫池机制轴收敛为代码瘦身单轴
+  （t0 门控证伪 → t1 瘦身确认闭环）。关闭清单扩大：守卫门控（整块/run 级）与
+  commit 省指令类关闭，候选空间向 compute 相（67% tick 未触探）集中。
+  基线重锚仍待用户裁决。evals 14/32
 - t1/s03（2026-08-21，[A0042](actions/A0042_step_t1s03_task体outline与安慰剂锚定_20260821.md)）：
   **winner e00013 = 375.670s**（`--task-body-outline`：无参 fwrite 冷体共享
   outline + DPI String 免 per-site 拷贝，b9a888c，off 逐字节等价，已入 t1/main）；
