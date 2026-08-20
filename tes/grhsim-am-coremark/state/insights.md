@@ -865,3 +865,27 @@
   产物 evals/e0000{7,8}/freq_trace.txt）；emu_build 双侧 1512.9s 持平
   （compile_s ~1860s，预算余量 ~540s，扩张型候选需盯）。
 - evals 8/32；t0 best 261.543s；下一 action = t1/s02（轨迹独立）。
+
+## r002/t1/s02 二级活动摘要扫描与同窗安慰剂（2026-08-21，action A0039）
+
+- **t1 自有 recon 落地（recon-t1s02）**：config 调度 + 3 旋钮插桩单跑 610.992s
+  （金标过）。画像：rounds 恒定 2.00/eval；compute 70.3%/commit 29.7%；**43 个
+  每 eval 触发的 commit 巨块独占 29.0%**（b119387：8,464 atoms、398k
+  ticks/exec，内部 = 宽站 detect + 窄站 wrNext_ 混合的寄存器堆写口阵列）；
+  **b116236 单块 12.63%**（24,324 atoms、~48 cycles/atom，同一 4096-bit 宽值
+  的逐 bit extract_word 锥，前端/i-cache 绑定）；top-41 块 = 50%。扫描骨架：
+  30,324 byte-chunk prologue/round 无条件执行，compute 相墙钟与块体 tick 折时
+  缺口 ~50%（chunk 直线码推算仅 ~4s，主体未归因：i-cache 流式/分支行为/插桩）。
+  教训：块级 dump 需运行时同设 `EMU_RUNTIME_PROFILE=1` + `EMU_AM_BLOCK_EXECS`。
+- **机械 winner（e00009，已入 t1/main）**：`--activity-summary-scan`（9d464f3）
+  ——二级活动摘要位图镜像 activeWords_（每处全局激活同址 OR 摘要 bit，扫描按
+  摘要探针跳过静默 word，drain 自清，off 逐字节等价，含语义 harness 单测与文档）。
+  414.867s（CV 0.0%，门全过，compile_s 693.3s，emu_build 339.3s 无膨胀）；
+  2,076 探针 + 576,615 镜像站点。**机制量级不可裁**：同窗安慰剂 e00010
+  （t1 tip 原样）574.637s 锚定本窗=慢态（与 e00006 同频慢态 564.8s +1.7% 一致），
+  c1 同窗名义 -27.8%，但双态翻转（c1 抽快态/c2 抽慢态）可吸收全部分差；
+  c1 读数低于快态带下沿 ~425s → 机制方向为正、量级 2%~28% 不可裁。
+  t1/s03 首务 = 同态锚点（安慰剂或同批重测）把 c1 钉进单一态带。
+- **安慰剂席位纪律再验证**：无 c2 时 c1 会被误记为 -6.5%（对 e00006 ledger
+  快窗）或 -26.6%（对同频慢态），两种误读均被 c2 的「本窗=慢态」锚定排除。
+- evals 10/32；下一 action 按轮转为 t0/s03（轨迹独立）。

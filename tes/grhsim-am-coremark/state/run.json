@@ -122,11 +122,11 @@
     {
       "id": "t1",
       "branch": "tes/r002/t1/main",
-      "tip": "c8b4a2ce4977eb6d4fd8051b3d8feb1afd7a32a9",
-      "steps_completed": 1,
+      "tip": "9d464f35c924b49fb47969d547d7351f13ab953b",
+      "steps_completed": 2,
       "best": {
-        "eval_id": "e00006",
-        "score": -443899
+        "eval_id": "e00009",
+        "score": -414867
       }
     }
   ],
@@ -135,8 +135,8 @@
     1
   ],
   "counters": {
-    "actions": 5,
-    "evals": 8
+    "actions": 6,
+    "evals": 10
   },
   "best_overall": {
     "eval_id": "e00007",
@@ -145,7 +145,8 @@
   },
   "phi_selection_counts": {
     "e00001": 2,
-    "e00003": 1
+    "e00003": 1,
+    "e00006": 1
   },
   "history": [
     {
@@ -177,6 +178,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0038_step_t0s02_宽站detect快速路径与守卫变量聚簇_20260820.md",
       "ts": "2026-08-20T22:04:09+08:00"
+    },
+    {
+      "n": 6,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0039_step_t1s02_二级活动摘要扫描与同窗安慰剂_20260821.md",
+      "ts": "2026-08-21T00:26:45+08:00"
     }
   ]
 }
