@@ -134,10 +134,11 @@
   "round_summaries_done": [
     1,
     2,
-    3
+    3,
+    4
   ],
   "counters": {
-    "actions": 12,
+    "actions": 13,
     "evals": 18
   },
   "best_overall": {
@@ -226,6 +227,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0045_step_t1s04_gsim-aligned调度点迁移与安慰剂锚点_20260821.md",
       "ts": "2026-08-21T06:51:54+08:00"
+    },
+    {
+      "n": 13,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0046_round-summary_第4轮跨轨迹小结_20260821.md",
+      "ts": "2026-08-21T06:57:35+08:00"
     }
   ]
 }

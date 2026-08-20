@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-21T06:51:54+08:00
+> 生成于 2026-08-21T06:57:35+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r002**（active）· C=2 L=8 K=2 · evals 18/32 · actions 12 · 下一步 `round-summary`：第 4 轮（全部 2 条轨迹各完成 1 步）已齐平，做跨轨迹小结
+run **r002**（active）· C=2 L=8 K=2 · evals 18/32 · actions 13 · 下一步 `step`：推进轨迹 t0 到第 5 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -92,5 +92,5 @@ run **r002**（active）· C=2 L=8 K=2 · evals 18/32 · actions 12 · 下一步
 | e00017 | candidate | t1/s04c1 | 369.0s | 7.89x | ok | 调度点单变量：摘除 config 调度点全参数回落 CLI 默认 gsim-aligned 点（15… |
 | e00018 | candidate | t1/s04c2 | 403.0s | 8.61x | ok | 同窗安慰剂锚点：t1 tip b9a888c 原样重测、emit_args 与 e00013 相同（… |
 
-最近 actions：A0008 step；A0009 step；A0010 round-summary；A0011 step；A0012 step
+最近 actions：A0009 step；A0010 round-summary；A0011 step；A0012 step；A0013 round-summary
 
