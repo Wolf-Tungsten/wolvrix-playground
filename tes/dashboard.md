@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-21T00:26:45+08:00
+> 生成于 2026-08-21T00:33:49+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r002**（active）· C=2 L=8 K=2 · evals 10/32 · actions 6 · 下一步 `round-summary`：第 2 轮（全部 2 条轨迹各完成 1 步）已齐平，做跨轨迹小结
+run **r002**（active）· C=2 L=8 K=2 · evals 10/32 · actions 7 · 下一步 `step`：推进轨迹 t0 到第 3 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -84,5 +84,5 @@ run **r002**（active）· C=2 L=8 K=2 · evals 10/32 · actions 6 · 下一步 
 | e00009 | candidate | t1/s02c1 | 414.9s | 8.87x | ok | 二级活动摘要扫描(摘要位图镜像 activeWords_、每处全局激活同址镜像、扫描按摘要 bit … |
 | e00010 | candidate | t1/s02c2 | 574.6s | 12.28x | ok | 同窗安慰剂锚点(机制多样性妥协,先例 A0031/e00048):t1 tip c8b4a2c 原样… |
 
-最近 actions：A0002 step；A0003 step；A0004 round-summary；A0005 step；A0006 step
+最近 actions：A0003 step；A0004 round-summary；A0005 step；A0006 step；A0007 round-summary
 

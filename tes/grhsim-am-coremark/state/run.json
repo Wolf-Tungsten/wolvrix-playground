@@ -132,10 +132,11 @@
   ],
   "current_step": null,
   "round_summaries_done": [
-    1
+    1,
+    2
   ],
   "counters": {
-    "actions": 6,
+    "actions": 7,
     "evals": 10
   },
   "best_overall": {
@@ -184,6 +185,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0039_step_t1s02_二级活动摘要扫描与同窗安慰剂_20260821.md",
       "ts": "2026-08-21T00:26:45+08:00"
+    },
+    {
+      "n": 7,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0040_round-summary_第2轮跨轨迹小结_20260821.md",
+      "ts": "2026-08-21T00:33:49+08:00"
     }
   ]
 }

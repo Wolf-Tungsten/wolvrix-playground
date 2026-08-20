@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 2/8、t1 2/8） | t1/s02（A0039）：recon 驱动，winner e00009 **414.867s**（`--activity-summary-scan` 二级活动摘要扫描，已入 t1/main）；机制量级不可裁（同窗安慰剂 e00010=574.637s 锚定慢态，名义 -27.8% 但双态可吸收，方向为正），t1/s03 需同态锚定；下一步 round-summary（第 2 轮） |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 2/8、t1 2/8） | 第 2 轮 round-summary（A0040）：round best e00007 **261.543s**（t0 宽站 detect 快速路径，机制经同窗逻辑控制确认）；t1 winner e00009 方向为正但量级不可裁（待同态锚定）；recon 驱动收敛为标准前置，守卫池布局路线关闭；下一步 t0/s03 |
 
 ## 共享件
 
