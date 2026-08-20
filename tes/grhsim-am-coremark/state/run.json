@@ -122,16 +122,19 @@
     {
       "id": "t1",
       "branch": "tes/r002/t1/main",
-      "tip": "9c0a89db94a3c3e303c2b9daefc2a79fb609fbce",
-      "steps_completed": 0,
-      "best": null
+      "tip": "c8b4a2ce4977eb6d4fd8051b3d8feb1afd7a32a9",
+      "steps_completed": 1,
+      "best": {
+        "eval_id": "e00006",
+        "score": -443899
+      }
     }
   ],
   "current_step": null,
   "round_summaries_done": [],
   "counters": {
-    "actions": 2,
-    "evals": 4
+    "actions": 3,
+    "evals": 6
   },
   "best_overall": {
     "eval_id": "e00003",
@@ -139,7 +142,7 @@
     "commit": "e8ba991d60fa5283256eb56a0b0e57d64e3d43eb"
   },
   "phi_selection_counts": {
-    "e00001": 1
+    "e00001": 2
   },
   "history": [
     {
@@ -153,6 +156,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0035_step_t0s01_机制链迁移与死宽态消除_20260820.md",
       "ts": "2026-08-20T15:11:52+08:00"
+    },
+    {
+      "n": 3,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0036_step_t1s01_t1链迁移与常量内联重实现_20260820.md",
+      "ts": "2026-08-20T18:50:58+08:00"
     }
   ]
 }
