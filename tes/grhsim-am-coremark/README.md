@@ -6,6 +6,14 @@
 
 ## 当前状态速览
 
+- t1/s03（2026-08-21，[A0042](actions/A0042_step_t1s03_task体outline与安慰剂锚定_20260821.md)）：
+  **winner e00013 = 375.670s**（`--task-body-outline`：无参 fwrite 冷体共享
+  outline + DPI String 免 per-site 拷贝，b9a888c，off 逐字节等价，已入 t1/main）；
+  同窗安慰剂 e00014（t1 tip 原样）421.673s 锚定本窗=快态 → **同态 -10.91% 确认**
+  （越 5% 假设门，双态 ×1.3-1.4 方向相反无法吸收）。静态实证：b116236 TU .o
+  text 3.56MB→0.89MB（-75%），task_write_const 5,937 站，DPI String 拷贝
+  6,412→0。**t1 tip 快态带锚定 414.867/421.673s**（e00009 量级维持不可裁）。
+  t1 有效 emit_args 追加 task-body-outline。evals 14/32
 - 当前 run：**r002 进行中**（C=2, L=8, K=2，N=32；base/y0 = r001 best
   `9c0a89db`；2026-08-20 init-run，见 [A0034](actions/A0034_run-init_r002新机器clang与并行rep基线_20260820.md)）
 - 基线（2026-08-20，新机器 + clang 21.1.8 + rep 绑核并行协议，3-rep 中位）：

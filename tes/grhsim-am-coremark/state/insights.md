@@ -937,3 +937,24 @@
 - **构建墙钟双态分裂观察**：e00011 emu_build 341.9s vs e00012 1512.7s（近同
   体量 4.4x），与 A0038（1513s）/A0039（340s）分裂一致；compile_s 余量评估
   取保守侧。evals 12/32；下一 action 按轮转为 t1/s03。
+
+## r002/t1/s03 task 体 outline 确认与同态锚定（2026-08-21，action A0042）
+
+- **确认（e00013，winner，已入 t1/main）**：`--task-body-outline`（b9a888c）
+  ——无参 fwrite 冷体坍缩为共享 `task_write_const` helper（5,937 站）、DPI
+  String 输入免 per-site `std::string` 拷贝（6,412→0），off 逐字节等价，
+  含 host 变体单测与文档。Host 中位 **375.670s**（CV 0.07%，17/17 ctest、
+  3 rep difftest 全过 73580/49996，compile_s 702.1s），对同窗安慰剂 e00014
+  （421.673s，CV 0.0%）**同态 -10.91%** 确认，越 5% 假设门；双态 ×1.3-1.4
+  方向相反无法吸收。静态实证：b116236 所在 TU .o text **3.56MB→0.89MB
+  （-75%，4.0x）**，全模型 blocks text 仅 -2.6%——收益集中在单块，与池分布
+  一致。机制 = A0041 关闭守卫门控轴后预言的「atom 代码瘦身」在 t1 内嵌守卫
+  池（b116236 持全模型 87.8% TaskFormatter 站）上的确认。fwrite outline 与
+  DPI 免拷贝同旋钮未分离归因。
+- **安慰剂锚定达成 s03 首务**：e00014 把 t1 tip 钉进快态带
+  **414.867/421.673s 双样本**；e00009（activity-summary-scan）量级维持
+  不可裁（s02 窗态翻转可吸收其名义 -27.8%），其地位由 e00013 同窗对照
+  间接巩固（c1 读数低于全部 tip 快态读数）。t1 后续裁决只信同窗锚点。
+- t1 best 375.670s（vs 基线 ratio 仍因基线慢态污染不可裁）；evals 14/32；
+  t1 emit_args 链追加 task-body-outline。t0/t1 各 3/8 齐平，下一 action =
+  第 3 轮 round-summary。

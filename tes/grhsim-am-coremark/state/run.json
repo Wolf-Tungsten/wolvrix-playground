@@ -122,11 +122,11 @@
     {
       "id": "t1",
       "branch": "tes/r002/t1/main",
-      "tip": "9d464f35c924b49fb47969d547d7351f13ab953b",
-      "steps_completed": 2,
+      "tip": "b9a888c0f428831a534ca4074fccdb5fcb9a8aac",
+      "steps_completed": 3,
       "best": {
-        "eval_id": "e00009",
-        "score": -414867
+        "eval_id": "e00013",
+        "score": -375670
       }
     }
   ],
@@ -136,8 +136,8 @@
     2
   ],
   "counters": {
-    "actions": 8,
-    "evals": 12
+    "actions": 9,
+    "evals": 14
   },
   "best_overall": {
     "eval_id": "e00007",
@@ -145,10 +145,11 @@
     "commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb"
   },
   "phi_selection_counts": {
-    "e00001": 3,
+    "e00001": 4,
     "e00003": 1,
     "e00006": 1,
-    "e00007": 1
+    "e00007": 1,
+    "e00009": 1
   },
   "history": [
     {
@@ -198,6 +199,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0041_step_t0s03_守卫run门控与安慰剂锚点_20260821.md",
       "ts": "2026-08-21T03:15:31+08:00"
+    },
+    {
+      "n": 9,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0042_step_t1s03_task体outline与安慰剂锚定_20260821.md",
+      "ts": "2026-08-21T04:19:21+08:00"
     }
   ]
 }
