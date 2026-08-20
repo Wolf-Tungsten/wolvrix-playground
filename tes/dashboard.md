@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-21T00:33:49+08:00
+> 生成于 2026-08-21T03:15:31+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r002**（active）· C=2 L=8 K=2 · evals 10/32 · actions 7 · 下一步 `step`：推进轨迹 t0 到第 3 步（round-robin 最少步数优先）
+run **r002**（active）· C=2 L=8 K=2 · evals 12/32 · actions 8 · 下一步 `step`：推进轨迹 t1 到第 3 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -18,7 +18,7 @@ run **r002**（active）· C=2 L=8 K=2 · evals 10/32 · actions 7 · 下一步 
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
-| t0 | `tes/r002/t0/main` | 2/8 | e00007 | 261.5s |
+| t0 | `tes/r002/t0/main` | 3/8 | e00007 | 261.5s |
 | t1 | `tes/r002/t1/main` | 2/8 | e00009 | 414.9s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
@@ -83,6 +83,8 @@ run **r002**（active）· C=2 L=8 K=2 · evals 10/32 · actions 7 · 下一步 
 | e00008 | candidate | t0/s02c2 | 358.5s | 7.66x | ok | 守卫双块（b90656/90657，各 ~7000 atom 的 system.task 条件评估，… |
 | e00009 | candidate | t1/s02c1 | 414.9s | 8.87x | ok | 二级活动摘要扫描(摘要位图镜像 activeWords_、每处全局激活同址镜像、扫描按摘要 bit … |
 | e00010 | candidate | t1/s02c2 | 574.6s | 12.28x | ok | 同窗安慰剂锚点(机制多样性妥协,先例 A0031/e00048):t1 tip c8b4a2c 原样… |
+| e00011 | candidate | t0/s03c1 | 370.5s | 7.92x | ok | 守卫池 9.3%（b90656/90657，65.3G ticks，每 eval 触发的 ~7000… |
+| e00012 | candidate | t0/s03c2 | 363.4s | 7.77x | ok | 安慰剂锚点：t0 tip（e00007 代码 + 同 10 旋钮）原样重测，把 ledger bes… |
 
-最近 actions：A0003 step；A0004 round-summary；A0005 step；A0006 step；A0007 round-summary
+最近 actions：A0004 round-summary；A0005 step；A0006 step；A0007 round-summary；A0008 step
 

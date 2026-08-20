@@ -911,3 +911,29 @@
 - **同窗对照是双态环境下的唯一裁决器**：批内 CV≈0 无整批污染检出能力；
   逻辑控制（c1/c2 同窗差远超机制池占比即排除机器态）与安慰剂锚定本轮各
   验证一次。计时窗 freq trace 只读采样（A0038 落地）继续作为标配。
+
+## r002/t0/s03 守卫 run 门控证伪与 e00007 归因 overturn（2026-08-21，action A0041）
+
+- **e00007 归因 overturn（三重证据）**：recon-t0s03（t0 tip + 10 旋钮插桩，
+  金标过）块 tick 703.7G 与 e00003 等价物 696.3G 持平（b93159 412k cyc/exec
+  不变、插桩 Host 395.5 vs 391.6s）；同窗安慰剂 e00012 回读 **363.444s =
+  261.543×1.389 精确落双态带**。`wide-detect-fast-path` 机制亚分辨中性：
+  宽站 detect 成本由数据侧 miss 主导（~49 TSC tick/atom），省指令无效。
+  **t0 tip 真值 ≈363s（常态窗）**；ledger best 261.543s 为快态抽签读数，
+  此后不作比较基准。教训：双态 ×1.39 是对整个运行时的乘子，可完美伪装成
+  大机制收益；A0038 式「池大小」逻辑控制对此型混杂无效；>15% 名义单步
+  收益必须同窗锚点 corroborate。
+- **证伪（e00011）**：`--guard-run-event-gating`（723c94e，run 级推广 r001
+  f45f75d；engagement runs=5 atoms=9007，命中 b90656/90657）370.498s，
+  同窗较安慰剂 **+1.94%**——守卫块激活与门开 round 重合（每 eval ~1 次
+  exec），无空闲重估可跳。**守卫池门控轴（整块/run 级）关闭**；残余解释 =
+  必要激活轮内 i-cache 流式，只剩 atom 代码瘦身一路。commit 相「省指令」轴
+  同步关闭（fast path 中性 + miss 主导互证）。
+- **新图守卫块结构事实**：b90656/90657 混合 Pending 模式 sd_read DPI
+  （pendingHostEvents_ 锁存跨 eval）+ 检测器 + act.b 激活，整块门控永不合格；
+  `changedResults_[0]` = clock posedge 检测结果。commit b93131 族（28×~12k
+  atom）= 动态索引位 RMW 阵列（每 atom 重算 index_words），与 b93159 静态
+  窄站阵列（共享单 enable）结构不同。
+- **构建墙钟双态分裂观察**：e00011 emu_build 341.9s vs e00012 1512.7s（近同
+  体量 4.4x），与 A0038（1513s）/A0039（340s）分裂一致；compile_s 余量评估
+  取保守侧。evals 12/32；下一 action 按轮转为 t1/s03。

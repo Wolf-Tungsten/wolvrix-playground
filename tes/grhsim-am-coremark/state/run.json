@@ -112,8 +112,8 @@
     {
       "id": "t0",
       "branch": "tes/r002/t0/main",
-      "tip": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
-      "steps_completed": 2,
+      "tip": "48916f2d0f9e4b7c05bc6b3a6aeb0473ba90bd8b",
+      "steps_completed": 3,
       "best": {
         "eval_id": "e00007",
         "score": -261543
@@ -136,8 +136,8 @@
     2
   ],
   "counters": {
-    "actions": 7,
-    "evals": 10
+    "actions": 8,
+    "evals": 12
   },
   "best_overall": {
     "eval_id": "e00007",
@@ -145,9 +145,10 @@
     "commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb"
   },
   "phi_selection_counts": {
-    "e00001": 2,
+    "e00001": 3,
     "e00003": 1,
-    "e00006": 1
+    "e00006": 1,
+    "e00007": 1
   },
   "history": [
     {
@@ -191,6 +192,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0040_round-summary_第2轮跨轨迹小结_20260821.md",
       "ts": "2026-08-21T00:33:49+08:00"
+    },
+    {
+      "n": 8,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0041_step_t0s03_守卫run门控与安慰剂锚点_20260821.md",
+      "ts": "2026-08-21T03:15:31+08:00"
     }
   ]
 }
