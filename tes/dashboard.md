@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-21T06:08:08+08:00
+> 生成于 2026-08-21T06:51:54+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r002**（active）· C=2 L=8 K=2 · evals 16/32 · actions 11 · 下一步 `step`：推进轨迹 t1 到第 4 步（round-robin 最少步数优先）
+run **r002**（active）· C=2 L=8 K=2 · evals 18/32 · actions 12 · 下一步 `round-summary`：第 4 轮（全部 2 条轨迹各完成 1 步）已齐平，做跨轨迹小结
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -19,7 +19,7 @@ run **r002**（active）· C=2 L=8 K=2 · evals 16/32 · actions 11 · 下一步
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
 | t0 | `tes/r002/t0/main` | 4/8 | e00007 | 261.5s |
-| t1 | `tes/r002/t1/main` | 3/8 | e00013 | 375.7s |
+| t1 | `tes/r002/t1/main` | 4/8 | e00017 | 369.0s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
 |---|---|---|---|---|---|---|
@@ -89,6 +89,8 @@ run **r002**（active）· C=2 L=8 K=2 · evals 16/32 · actions 11 · 下一步
 | e00014 | candidate | t1/s03c2 | 421.7s | 9.01x | ok | 同窗安慰剂锚点(机制多样性妥协,先例 A0031/e00048、A0041/e00012):t1 t… |
 | e00015 | candidate | t0/s04c1 | 339.7s | 7.26x | ok | 守卫块 b90656/90657（9.3% 块周期，per-atom ~50cyc 前端流式嫌疑）每… |
 | e00016 | candidate | t0/s04c2 | 361.1s | 7.72x | ok | 安慰剂锚点：t0 tip（48916f2 + 同 10 旋钮）原样重测，为 c1（sys-task-… |
+| e00017 | candidate | t1/s04c1 | 369.0s | 7.89x | ok | 调度点单变量：摘除 config 调度点全参数回落 CLI 默认 gsim-aligned 点（15… |
+| e00018 | candidate | t1/s04c2 | 403.0s | 8.61x | ok | 同窗安慰剂锚点：t1 tip b9a888c 原样重测、emit_args 与 e00013 相同（… |
 
-最近 actions：A0007 round-summary；A0008 step；A0009 step；A0010 round-summary；A0011 step
+最近 actions：A0008 step；A0009 step；A0010 round-summary；A0011 step；A0012 step
 

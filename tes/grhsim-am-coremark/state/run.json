@@ -122,11 +122,11 @@
     {
       "id": "t1",
       "branch": "tes/r002/t1/main",
-      "tip": "b9a888c0f428831a534ca4074fccdb5fcb9a8aac",
-      "steps_completed": 3,
+      "tip": "520b01784da374a7e9b51ad6a3edc77856b49f31",
+      "steps_completed": 4,
       "best": {
-        "eval_id": "e00013",
-        "score": -375670
+        "eval_id": "e00017",
+        "score": -368963
       }
     }
   ],
@@ -137,8 +137,8 @@
     3
   ],
   "counters": {
-    "actions": 11,
-    "evals": 16
+    "actions": 12,
+    "evals": 18
   },
   "best_overall": {
     "eval_id": "e00007",
@@ -148,10 +148,11 @@
   "phi_selection_counts": {
     "e00001": 5,
     "e00003": 1,
-    "e00006": 1,
+    "e00006": 2,
     "e00007": 2,
     "e00009": 1,
-    "e00012": 1
+    "e00012": 1,
+    "e00013": 1
   },
   "history": [
     {
@@ -219,6 +220,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0044_step_t0s04_sys-task-body-outline与安慰剂锚点_20260821.md",
       "ts": "2026-08-21T06:08:08+08:00"
+    },
+    {
+      "n": 12,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0045_step_t1s04_gsim-aligned调度点迁移与安慰剂锚点_20260821.md",
+      "ts": "2026-08-21T06:51:54+08:00"
     }
   ]
 }

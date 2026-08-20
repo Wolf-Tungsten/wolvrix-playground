@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- t1/s04（2026-08-21，[A0045](actions/A0045_step_t1s04_gsim-aligned调度点迁移与安慰剂锚点_20260821.md)）：
+  **winner e00017 = 368.963s**（调度点单变量：回落 CLI 默认 gsim-aligned 点，
+  t1 旋钮链不变，520b017 旋钮类空 commit，已入 t1/main）；同窗安慰剂 e00018
+  （t1 tip 原样 + config 调度点）402.978s → **同态 -8.44% 确认**（越 6% 假设门）。
+  静态实证：blocks .o text -4.3%。调度点一阶效应跨轨迹收敛（t0 -16.4% × t1
+  -8.44%），两轨迹自此同调度点基。**t1 有效 emit_args = CLI 默认调度点 + 5 旋钮**
+  （resize-elision/inline-scalar-helpers/inline-scalar-constants/
+  activity-summary-scan/task-body-outline）；t1 tip 真值 ≈369s（本窗）。
+  evals 18/32，t0/t1 各 4/8 齐平，下一步 = 第 4 轮 round-summary。
 - t0/s04（2026-08-21，[A0044](actions/A0044_step_t0s04_sys-task-body-outline与安慰剂锚点_20260821.md)）：
   **winner e00015 = 339.654s**（`--sys-task-body-outline`：全部 7,235 个非 final
   fwrite 站体重活抽为 noinline 成员函数，e43ff4d，off 逐字节等价，已入 t0/main）；

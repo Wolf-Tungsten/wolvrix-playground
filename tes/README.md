@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 4/8、t1 3/8） | t0/s04（A0044）：**sys-task-body-outline 同窗确认 -5.91%**（339.654s vs 安慰剂 361.053s，7,235 个 fwrite 体全 outline，守卫池瘦身在 t0 闭环）；t0 tip 真值 339.7s（常态窗）；evals 16/32，下一步 t1/s04 |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 4/8、t1 4/8） | t1/s04（A0045）：**gsim-aligned 调度点迁移同窗确认 -8.44%**（368.963s vs 安慰剂 402.978s），调度点一阶效应跨轨迹收敛，两轨迹同调度点基；t1 有效 emit_args = CLI 默认调度点 + 5 旋钮；evals 18/32，下一步第 4 轮 round-summary |
 
 ## 共享件
 

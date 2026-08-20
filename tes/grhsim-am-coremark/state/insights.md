@@ -1006,3 +1006,22 @@
   9.5% 块周期但多为 1-8 word 窄拷贝，非主要矛盾。
 - 真值口径更新：**t0 tip ≈339.7s（常态窗）**；t0 有效 emit_args = 10 旋钮 +
   sys-task-body-outline。evals 16/32；下一 action 按轮转为 t1/s04。
+
+## r002/t1/s04 gsim-aligned 调度点迁移同窗确认 -8.44%（2026-08-21，action A0045）
+
+- **确认（e00017，winner，已入 t1/main）**：调度点单变量——摘除 config 调度点
+  全参数回落 CLI 默认 gsim-aligned 点（15 atoms/block、dpCoarsen 7000/0、
+  mergeWhen off），t1 旋钮链（resize-elision/inline-scalar-helpers/
+  inline-scalar-constants/activity-summary-scan/task-body-outline）不变
+  （--allow-empty 旋钮类 commit 520b017）。Host 中位 **368.963s**（CV 0.0%，
+  17/17 ctest、3 rep difftest 全过，compile_s ~700s），同窗安慰剂 e00018
+  （t1 tip 原样 + e00013 全参数）**402.978s** → **-8.44%**，越 6% 假设门。
+  静态实证：blocks .o text 94.0MB vs 98.2MB（-4.3%），源 811MB vs 840MB。
+- **调度点一阶效应跨轨迹收敛**：t0 单变量 -16.4%（A0035）× t1 携带图 -8.44%
+  互证，调度/块组织轴是 r002 新输入图最稳定一阶变量；两轨迹自此同调度点基。
+  t1 5 旋钮与调度点正交性高于 t0 9 旋钮链（后者多为适配胶族被调度吸收）。
+- **t1 有效 emit_args = CLI 默认调度点 + 5 旋钮**（不传调度参数）；t1 tip 真值
+  口径 ≈369s（本窗）。vs 基线 ratio 仍不可裁。
+- evals 18/32；t0/t1 各 4/8 齐平，下一 action = 第 4 轮 round-summary。
+  t1 后续：旧 recon 基于 config 调度点已变形，建议新 recon 重画像后再触
+  compute 相残余缺口与 commit 相 b119387 数据侧。
