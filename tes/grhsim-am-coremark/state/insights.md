@@ -837,3 +837,31 @@
   跨窗口读数；批内 CV≈0 不具备整批污染检出能力。
 - 协议升级（rep 期机器态记录 / 跨窗口双批或同窗参照归一 / 基线重锚）仍待
   用户裁决；C/L/K 不变，evals 6/32。
+
+## r002/t0/s02 recon 驱动双候选：宽站 detect 快速路径大胜、守卫聚簇证伪（2026-08-20，action A0038）
+
+- **离线 recon 落地（recon-t0s02）**：复用 e00003 wbuild + `--runtime-profile`
+  重 emit（gsim-aligned + 9 旋钮），emu_build 1531s、插桩单跑 391.6s（金标过）。
+  新图画像：eval 100,102 次、**rounds 恒定 2.00/eval**（changed marks 恰 2/eval
+  = clock prev 检测器自更新驱动 round 2）；compute 67.6% / commit **32.4%**；
+  top-56 块 = 50% cycles。**commit 池集中**：43 个每 eval 触发的 commit 巨块独占
+  **31.7%**（b93159：8,464 atoms、870 窄站 + 1,313 宽站、5.91%、411k cyc/exec）；
+  **守卫池**：b90656/90657（各 ~7,000 atom system.task 条件评估）合计 **9.2%**、
+  per-atom ~50cyc。round-2 动态面 ≈ ~50k 桶 11.6%（~200k 桶仅 1 块）——
+  「消 round/下降沿」类机制上界 ≈ 扫描余量，不候选。
+- **确认且超假设（e00007，winner，已入 t0/main）**：`--wide-detect-fast-path`
+  （ecb4c3f）——assign_words_detect 同宽无符号扩展站点（全部 4,103 站点）改
+  memcmp 答 idle + memcpy 退化 + 末词掩码纪律；反汇编实证通用循环未被向量化
+  （每词 ~12-15 标量指令）。Host **261.543s**（CV 0.0%，门全过，compile_s
+  1863.9s），较 t0 tip 名义 **-27.9%**。同窗逻辑控制：c1/c2 同窗差 27.1%，若归
+  因机器态翻转则 c2（9.2% 池）也须 -25%，物理不可能——机制成立，非抽签。
+  观测超先验（-15~20%），溢出部分待同 tip 重测锚定。
+- **证伪（e00008）**：`--guard-operand-cluster`（d9f56be）聚簇 6,574 个守卫
+  enable 变量到连续声明区，358.456s 亚分辨持平——守卫块 per-atom ~50cyc
+  **不是散射数据 miss 主导**；残余嫌疑 = 巨函数体的 i-cache/分支前端成本。
+  守卫池只剩「事件槽整块门控」（e00014 机制在新图 9.2% 集中池上重估）与
+  瘦身两路；布局路线对守卫关闭。
+- **测量纪律**：两候选计时窗 freq trace 全程 3.70GHz 恒定（自终止只读采样，
+  产物 evals/e0000{7,8}/freq_trace.txt）；emu_build 双侧 1512.9s 持平
+  （compile_s ~1860s，预算余量 ~540s，扩张型候选需盯）。
+- evals 8/32；t0 best 261.543s；下一 action = t1/s02（轨迹独立）。

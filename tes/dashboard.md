@@ -2,23 +2,23 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-20T19:21:57+08:00
+> 生成于 2026-08-20T22:04:09+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r002**（active）· C=2 L=8 K=2 · evals 6/32 · actions 4 · 下一步 `step`：推进轨迹 t0 到第 2 步（round-robin 最少步数优先）
+run **r002**（active）· C=2 L=8 K=2 · evals 8/32 · actions 5 · 下一步 `step`：推进轨迹 t1 到第 2 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
 | gsim（target） | e00002 | 46.8s | 1.00x |
 | am（y0 基线） | e00001 | 619.0s | 13.23x |
-| **当前 best** | e00003 | **362.9s** | **7.75x** |
+| **当前 best** | e00007 | **261.5s** | **5.59x** |
 
-基线→target 进度：`█████████░░░░░░░░░░░` 44.8%（619.0s → 目标 46.8s，当前差距 7.75x）
+基线→target 进度：`████████████░░░░░░░░` 62.5%（619.0s → 目标 46.8s，当前差距 5.59x）
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
-| t0 | `tes/r002/t0/main` | 1/8 | e00003 | 362.9s |
+| t0 | `tes/r002/t0/main` | 2/8 | e00007 | 261.5s |
 | t1 | `tes/r002/t1/main` | 1/8 | e00006 | 443.9s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
@@ -79,6 +79,8 @@ run **r002**（active）· C=2 L=8 K=2 · evals 6/32 · actions 4 · 下一步 `
 | e00004 | candidate | t0/s01c2 | 452.8s | 9.68x | ok | 新输入图宽池死变量占比与 r001 旧图相当（r001：-65.66% words），重实现 dea… |
 | e00005 | candidate | t1/s01c1 | 607.8s | 12.99x | ok | r001 t1 winner 链幸存旋钮（resize-elision + inline-scala… |
 | e00006 | candidate | t1/s01c2 | 443.9s | 9.49x | ok | inline-scalar-constants（只读窄标量常量读取发射为掩码字面量，r001 e00… |
+| e00007 | candidate | t0/s02c1 | 261.5s | 5.59x | ok | commit 相 32.4% 集中于每 eval 触发的宽站巨块（43 块独占 31.7% 块周期）… |
+| e00008 | candidate | t0/s02c2 | 358.5s | 7.66x | ok | 守卫双块（b90656/90657，各 ~7000 atom 的 system.task 条件评估，… |
 
-最近 actions：A0001 run-init；A0002 step；A0003 step；A0004 round-summary
+最近 actions：A0001 run-init；A0002 step；A0003 step；A0004 round-summary；A0005 step
 

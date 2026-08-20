@@ -112,11 +112,11 @@
     {
       "id": "t0",
       "branch": "tes/r002/t0/main",
-      "tip": "e8ba991d60fa5283256eb56a0b0e57d64e3d43eb",
-      "steps_completed": 1,
+      "tip": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
+      "steps_completed": 2,
       "best": {
-        "eval_id": "e00003",
-        "score": -362869
+        "eval_id": "e00007",
+        "score": -261543
       }
     },
     {
@@ -135,16 +135,17 @@
     1
   ],
   "counters": {
-    "actions": 4,
-    "evals": 6
+    "actions": 5,
+    "evals": 8
   },
   "best_overall": {
-    "eval_id": "e00003",
-    "score": -362869,
-    "commit": "e8ba991d60fa5283256eb56a0b0e57d64e3d43eb"
+    "eval_id": "e00007",
+    "score": -261543,
+    "commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb"
   },
   "phi_selection_counts": {
-    "e00001": 2
+    "e00001": 2,
+    "e00003": 1
   },
   "history": [
     {
@@ -170,6 +171,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0037_round-summary_第1轮跨轨迹小结_20260820.md",
       "ts": "2026-08-20T19:21:57+08:00"
+    },
+    {
+      "n": 5,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0038_step_t0s02_宽站detect快速路径与守卫变量聚簇_20260820.md",
+      "ts": "2026-08-20T22:04:09+08:00"
     }
   ]
 }

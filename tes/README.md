@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`，第 1 轮齐平） | round-1 小结（A0037）：best e00003 362.869s（同窗参照 -19.86%，vs 基线 ratio 待重锚）；调度点一阶 -16.4%、分区/调度轴重开；常量/状态瘦身族新图关闭；现协议只可分辨 ≥30% 效应，协议升级待用户裁决；下一步 t0/s02 |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 2/8、t1 1/8） | t0/s02（A0038）：recon 驱动双候选，winner e00007 **261.543s**（`--wide-detect-fast-path`，commit 宽站 memcmp/memcpy 快速路径，名义 -27.9%，同窗逻辑控制排除机器态抽签）；c2 守卫聚簇亚分辨证伪（9.2% 池非 miss 主导）；vs 基线 ratio 仍待重锚；下一步 t1/s02 |
 
 ## 共享件
 
