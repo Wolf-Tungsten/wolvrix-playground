@@ -12,7 +12,7 @@
 [submodule "testcase/xiangshan"]
 	path = testcase/xiangshan
 	url = https://github.com/OpenXiangShan/XiangShan.git
-	branch = dev-wolvrix
+	branch = grh/tes-grhsim-am
 
 [submodule "reference/gsim"]
 	path = reference/gsim
