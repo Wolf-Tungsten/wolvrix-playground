@@ -1048,3 +1048,28 @@
   commit 相 b119387（寄存器堆写口阵列 29%）。两侧省指令轴均已关闭，共同开放
   方向 = 数据侧机制与 compute 相本体；两轨迹均需先跑新 recon 再设计候选
   （t0 recon-t0s04 刷新 outline 后池地图；t1 旧 recon 基于 config 调度点已变形）。
+
+## r002/t0/s05 wide-mux-chain-fuse 同窗 -2.19%（2026-08-21，action A0047）
+
+- **方向确认、量级未越门（e00019，winner，已入 t0/main）**：`--wide-mux-chain-fuse`
+  （61b5fd6，默认 off 逐字节等价，emitter 侧计划 + 单测 + 文档）——broadcast(64 位
+  源)→mux(elemWidth==64) 跨 atom 严格相邻链融合为单 pass
+  `array_mux_bcast_chain64_words`，基座单用 broadcast 折叠、中间 352-word 数组全部
+  不物化。Host 中位 **335.129s**（CV 0.0%，17/17 ctest、3 rep difftest 全过，
+  compile_s 979.8s），同窗安慰剂 e00020 **342.632s** → **-2.19%**（假设门 ≥3%、
+  证伪线 <1.5%，落中间带）。engagement chains=156 levels=247 blocks=74；22528 宽
+  链全融合（bcast 106→3、mux 117→18）；.o 总字节持平——纯访存流收益。捕获率约
+  池的 46%（池 4.74%），未越门嫌疑：融合后每 word 仍逐层重放选择（~70-90 ALU
+  ops/word），中间数组区原本 L2 驻留。待 recon-t0s05 验证 b69159 族残余 cyc/exec。
+- **测量学新证据：同代码跨窗漂移 ±5% 级**——e43ff4d 原样三读数 339.654（s04 c1
+  窗）/361.053（s04 安慰剂同窗）/342.632（s05 安慰剂窗）：双态 ×1.39 之外存在
+  连续漂移分量。同窗锚点是唯一裁决基准的纪律进一步巩固；t0 tip 真值口径改为
+  「本窗锚点 342.632s、tip 本窗 335.129s」，跨窗历史读数仅作参照。
+- **recon 操作教训**：插桩单跑需同时设 `EMU_RUNTIME_PROFILE=1`（difftest emu.cpp
+  读取，启用 profile）与 `EMU_AM_BLOCK_EXECS=<path>`（生成代码读取，落盘
+  block_execs）；缺前者则插桩编译进二进制但不计数。
+- **recon-t0s04（outline 后池地图）**：总 tick 703.7G→655.1G（-6.9%）；守卫池
+  65.3G/9.28%→38.3G/5.84%（outline 插桩侧独立确认，-41%）；commit 33.8%（b93159
+  40.5G 居首）/ compute 长尾 52.8% / 守卫残余 5.84%；b69159 族 15.4G 持平。
+- t0 有效 emit_args = 11 旋钮 + `--wide-mux-chain-fuse`（+sys-task-body-outline
+  等全链须显式携带）。evals 20/32；下一 action 按轮转为 t1/s05。

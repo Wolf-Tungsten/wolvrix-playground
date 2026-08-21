@@ -112,8 +112,8 @@
     {
       "id": "t0",
       "branch": "tes/r002/t0/main",
-      "tip": "e43ff4d04b7a8e053ed3038d5348052ea19e9396",
-      "steps_completed": 4,
+      "tip": "61b5fd6850426cea5c9ff5b5a075083560ccb002",
+      "steps_completed": 5,
       "best": {
         "eval_id": "e00007",
         "score": -261543
@@ -138,8 +138,8 @@
     4
   ],
   "counters": {
-    "actions": 13,
-    "evals": 18
+    "actions": 14,
+    "evals": 20
   },
   "best_overall": {
     "eval_id": "e00007",
@@ -148,12 +148,13 @@
   },
   "phi_selection_counts": {
     "e00001": 5,
-    "e00003": 1,
+    "e00003": 2,
     "e00006": 2,
     "e00007": 2,
     "e00009": 1,
     "e00012": 1,
-    "e00013": 1
+    "e00013": 1,
+    "e00015": 1
   },
   "history": [
     {
@@ -233,6 +234,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0046_round-summary_第4轮跨轨迹小结_20260821.md",
       "ts": "2026-08-21T06:57:35+08:00"
+    },
+    {
+      "n": 14,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0047_step_t0s05_宽广播mux链融合与安慰剂锚点_20260821.md",
+      "ts": "2026-08-21T08:57:58+08:00"
     }
   ]
 }

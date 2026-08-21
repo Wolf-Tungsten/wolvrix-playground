@@ -6,6 +6,18 @@
 
 ## 当前状态速览
 
+- t0/s05（2026-08-21，[A0047](actions/A0047_step_t0s05_宽广播mux链融合与安慰剂锚点_20260821.md)）：
+  **winner e00019 = 335.129s**（`--wide-mux-chain-fuse`：broadcast(64 位源)→
+  mux(elemWidth==64) 跨 atom 严格相邻链融合为单 pass helper，基座折叠、中间
+  352-word 数组不物化，61b5fd6，off 逐字节等价，已入 t0/main）；同窗安慰剂
+  e00020（t0 tip 原样）342.632s → **同态 -2.19%**（方向确认，未越 3% 假设门、
+  过 1.5% 证伪线）。静态实证：engagement chains=156 levels=247 blocks=74，
+  22528 宽链全融合（bcast 106→3、mux 117→18），.o 总字节持平（纯访存流收益）。
+  **测量学新证据：同代码跨窗漂移 ±5% 级（342.632 vs 上窗同代码 361.053/
+  339.654），超出双态 ×1.39 框架，机器态含连续漂移分量**。recon-t0s04（outline
+  后池地图）：总 tick -6.9%，守卫池 9.28%→5.84%（outline 插桩侧确认），commit
+  33.8% / compute 长尾 52.8%。本窗锚点 342.632s，t0 tip 本窗 335.129s。
+  t0 有效 emit_args = 11 旋钮 + wide-mux-chain-fuse。evals 20/32
 - r002 第 4 轮 round-summary（2026-08-21，[A0046](actions/A0046_round-summary_第4轮跨轨迹小结_20260821.md)）：
   两轨迹各完成 s04，双双同窗确认越门：**t0 e00015 sys-task-body-outline 同态
   -5.91%**（339.654s vs 安慰剂 361.053s）、**t1 e00017 gsim-aligned 调度点迁移
