@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- t1/s06（2026-08-21，[A0051](actions/A0051_step_t1s06_宽链融合跨轨迹迁移与安慰剂锚点_20260821.md)）：
+  **winner e00025 = 364.464s**（`--wide-mux-chain-fuse` 跨轨迹迁移：t0 A0047
+  同态 -2.19% 机制 cherry-pick 到 t1 链，4471846，冲突解决后 diff 与原 patch
+  同形 +854/-4，已入 t1/main）；同窗安慰剂 e00026（t1 tip 原样 + 5 旋钮）
+  **368.763s** → **-1.17% 确认**（越 1.0% 假设门，量级 = 池 2.25% × t0 捕获率
+  ~46% 外推精确命中）。engagement chains=156/levels=247/blocks=74 与 t0 逐数
+  一致，emit 源持平（-2.2KB）= 纯访存流收益。**首个可定量跨轨迹迁移机制族**
+  （收益/池比 ~46% 两轨迹一致）；b69159 族链轴 t1 侧关闭。测量学：同代码跨窗
+  漂移 +2.6% 反转样本（359.269→368.763s）。t1 有效 emit_args = CLI 默认调度点
+  + 5 旋钮 + wide-mux-chain-fuse。evals 26/32（余 6 vs 剩余 10 席）
 - t0/s06（2026-08-21，[A0050](actions/A0050_step_t0s06_commit行RMW合并与安慰剂锚点_20260821.md)）：
   **c1 `--commit-row-merge` 证伪**（96429a6：commit Block 同 key 严格相邻
   MemoryWrite(Cond)Mask run 融合为单次索引+单 load+单 store，runs=120/

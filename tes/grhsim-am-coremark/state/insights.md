@@ -1145,3 +1145,24 @@
   evals 24/32（余 8 vs 剩余 10 席，末段需单候选 step）。
 - 弃选记录：replicate-1bit→掩码 emit 规则被微基准证伪（clang -O2 已把 ≤54 级
   concat 链折叠为 test+cmove 5 指令），未占用评估预算。
+
+## r002/t1/s06 wide-mux-chain-fuse 跨轨迹迁移同窗 -1.17% 确认（2026-08-21，action A0051）
+
+- **确认（e00025，winner，已入 t1/main）**：t0 A0047 机制（61b5fd6）cherry-pick
+  迁移到 t1 链（`4471846`，9 处冲突手工解决、剔除 t0 独有 wideDetectFastPath/
+  sysTaskBodyOutline 伴生代码，解后 diff 与原 patch 精确同形 +854/-4）。Host
+  中位 **364.464s**（CV 0.0%，17/17 ctest、3 rep difftest 全过，compile_s
+  686.7s），同窗安慰剂 e00026（t1 tip 原样 + 5 旋钮）**368.763s** → **-1.17%**，
+  越 1.0% 假设门（池 2.25% × t0 捕获率 ~46% 外推 ≈1.0%，量级精确命中）。
+  engagement 与 t0 逐数一致（chains=156/levels=247/blocks=74），emit 源总量
+  持平（-2.2KB）——纯访存流收益形态复现。
+- **首个可定量跨轨迹迁移的机制族**：宽链融合收益/池比两轨迹一致（~46% 捕获
+  率），效应量可按池占比外推；b69159 族链轴在 t1 侧同步关闭（残余为 ALU 重放
+  非访存）。与 commit 相省指令类连续证伪对照，进一步印证「数据侧流量消除有效、
+  省指令/分支结构无效」判据。
+- **测量学**：同代码跨窗漂移样本 +1（t1 tip：s05 窗 359.269s → s06 窗
+  368.763s，+2.6%，方向反转）——±5% 级连续漂移第五样本点。t1 tip 真值口径 =
+  本窗锚点 **368.763s**（e00026）、含 fuse tip 本窗 **364.464s**（e00025）。
+- t1 tip = `4471846`，t1 有效 emit_args = CLI 默认调度点 + 5 旋钮 +
+  `--wide-mux-chain-fuse`。evals 26/32（余 6 vs 剩余 10 席，末段单候选定局）；
+  下一 action 按轮转为第 6 轮 round-summary。

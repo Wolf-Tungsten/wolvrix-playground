@@ -122,8 +122,8 @@
     {
       "id": "t1",
       "branch": "tes/r002/t1/main",
-      "tip": "f167ae7a17090afcce9af24974a8cce5926e742b",
-      "steps_completed": 5,
+      "tip": "44718468cd7af1f305e8e01835a562fd7cea6274",
+      "steps_completed": 6,
       "best": {
         "eval_id": "e00022",
         "score": -359269
@@ -139,8 +139,8 @@
     5
   ],
   "counters": {
-    "actions": 17,
-    "evals": 24
+    "actions": 18,
+    "evals": 26
   },
   "best_overall": {
     "eval_id": "e00007",
@@ -150,14 +150,15 @@
   "phi_selection_counts": {
     "e00001": 7,
     "e00003": 2,
-    "e00006": 2,
+    "e00006": 3,
     "e00007": 3,
     "e00009": 2,
     "e00012": 1,
-    "e00013": 1,
+    "e00013": 2,
     "e00015": 1,
     "e00017": 1,
-    "e00019": 1
+    "e00019": 1,
+    "e00022": 1
   },
   "history": [
     {
@@ -261,6 +262,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0050_step_t0s06_commit行RMW合并与安慰剂锚点_20260821.md",
       "ts": "2026-08-21T12:42:52+08:00"
+    },
+    {
+      "n": 18,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0051_step_t1s06_宽链融合跨轨迹迁移与安慰剂锚点_20260821.md",
+      "ts": "2026-08-21T13:39:52+08:00"
     }
   ]
 }

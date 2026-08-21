@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 6/8、t1 5/8） | t0/s06（A0050）：`--commit-row-merge` 静态成立动态 **+3.25% 证伪**（commit 相省往返/省指令类连续两次为负，行合并类并入关闭清单）；recon-t0s05：b69159 族 -84% 链轴关闭，t0 侧定量 dispatch 骨架无名池 ~95s/26%；winner = 安慰剂锚点 e00024（**327.602s** = t0 历史最快、快窗）；evals 24/32，下一步 t1/s06 |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 6/8、t1 6/8） | t1/s06（A0051）：`--wide-mux-chain-fuse` 跨轨迹迁移同窗 **-1.17% 确认**（364.464s vs 安慰剂 368.763s，越 1.0% 门；收益/池比 ~46% 与 t0 一致 = 首个可定量迁移机制族；b69159 族链轴 t1 侧关闭）；winner e00025 已入 t1/main，t1 emit_args = 默认调度点 + 5 旋钮 + fuse；evals 26/32，下一步第 6 轮 round-summary |
 
 ## 共享件
 
