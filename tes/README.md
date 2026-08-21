@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 5/8、t1 5/8） | r002 第 5 轮 round-summary（A0049）：t0 wide-mux-chain-fuse 同窗 -2.19%（方向确认中间带，宽数组流扫族首个正收益）；t1 commit-write-branchless +1.71% **证伪**（commit 相省指令/分支结构类跨轨迹整体关闭、数据侧 miss 主导互证）；同代码跨窗漂移 ±5% 级连续分量，跨窗读数一律不裁；t1 发现最大无名池 = compute 墙钟/tick 缺口 ~104s（26%）；t0 tip 本窗 335.129s、t1 tip 本窗 359.269s；evals 22/32，下一步 t0/s06 |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 6/8、t1 5/8） | t0/s06（A0050）：`--commit-row-merge` 静态成立动态 **+3.25% 证伪**（commit 相省往返/省指令类连续两次为负，行合并类并入关闭清单）；recon-t0s05：b69159 族 -84% 链轴关闭，t0 侧定量 dispatch 骨架无名池 ~95s/26%；winner = 安慰剂锚点 e00024（**327.602s** = t0 历史最快、快窗）；evals 24/32，下一步 t1/s06 |
 
 ## 共享件
 

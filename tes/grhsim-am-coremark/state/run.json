@@ -112,8 +112,8 @@
     {
       "id": "t0",
       "branch": "tes/r002/t0/main",
-      "tip": "61b5fd6850426cea5c9ff5b5a075083560ccb002",
-      "steps_completed": 5,
+      "tip": "ab20b29bb5e5a2ba9d20c124ab1a88d6e85b7b0f",
+      "steps_completed": 6,
       "best": {
         "eval_id": "e00007",
         "score": -261543
@@ -139,8 +139,8 @@
     5
   ],
   "counters": {
-    "actions": 16,
-    "evals": 22
+    "actions": 17,
+    "evals": 24
   },
   "best_overall": {
     "eval_id": "e00007",
@@ -148,15 +148,16 @@
     "commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb"
   },
   "phi_selection_counts": {
-    "e00001": 6,
+    "e00001": 7,
     "e00003": 2,
     "e00006": 2,
-    "e00007": 2,
+    "e00007": 3,
     "e00009": 2,
     "e00012": 1,
     "e00013": 1,
     "e00015": 1,
-    "e00017": 1
+    "e00017": 1,
+    "e00019": 1
   },
   "history": [
     {
@@ -254,6 +255,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0049_round-summary_第5轮跨轨迹小结_20260821.md",
       "ts": "2026-08-21T10:22:28+08:00"
+    },
+    {
+      "n": 17,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0050_step_t0s06_commit行RMW合并与安慰剂锚点_20260821.md",
+      "ts": "2026-08-21T12:42:52+08:00"
     }
   ]
 }

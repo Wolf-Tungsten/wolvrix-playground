@@ -6,6 +6,19 @@
 
 ## 当前状态速览
 
+- t0/s06（2026-08-21，[A0050](actions/A0050_step_t0s06_commit行RMW合并与安慰剂锚点_20260821.md)）：
+  **c1 `--commit-row-merge` 证伪**（96429a6：commit Block 同 key 严格相邻
+  MemoryWrite(Cond)Mask run 融合为单次索引+单 load+单 store，runs=120/
+  events=3084/blocks=35，off 260 文件 cmp 全等 + oracle 等价单测）——
+  e00023 = 338.247s，同窗安慰剂 e00024（t0 tip 原样 + 12 旋钮）**327.602s**
+  → **+3.25% 回退**（`cur` 串行链替换可流水 STLF 行往返，关键路径变长）。
+  **commit 相省往返/省指令类连续两次静态成立动态为负，行合并类并入关闭
+  清单**。winner = e00024（安慰剂空 commit ab20b29，t0/main 内容不变）。
+  recon-t0s05：总 tick -2.20%（与 e00019 -2.19% 互证），**b69159 族
+  15.4G→2.5G（-84%）链轴关闭**；t0 侧首次定量 dispatch 骨架无名池
+  ~95s/26%（compute 墙钟 269.3s vs tick 折时 174.5s，与 t1 同族）。
+  真值口径：t0 tip 本窗 **327.602s**（t0 历史最快、快窗）。evals 24/32
+  （余 8 vs 剩余 10 席，末段需单候选）
 - r002 第 5 轮 round-summary（2026-08-21，[A0049](actions/A0049_round-summary_第5轮跨轨迹小结_20260821.md)）：
   两轨迹各完成 s05。**t0 winner e00019 wide-mux-chain-fuse 同窗 -2.19%**（335.129s
   vs 安慰剂 342.632s，方向确认、量级落中间带，宽数组流扫族在 r002 首个正收益，

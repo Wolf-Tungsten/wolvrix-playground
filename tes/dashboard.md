@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-21T10:22:28+08:00
+> 生成于 2026-08-21T12:42:52+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r002**（active）· C=2 L=8 K=2 · evals 22/32 · actions 16 · 下一步 `step`：推进轨迹 t0 到第 6 步（round-robin 最少步数优先）
+run **r002**（active）· C=2 L=8 K=2 · evals 24/32 · actions 17 · 下一步 `step`：推进轨迹 t1 到第 6 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -18,7 +18,7 @@ run **r002**（active）· C=2 L=8 K=2 · evals 22/32 · actions 16 · 下一步
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
-| t0 | `tes/r002/t0/main` | 5/8 | e00007 | 261.5s |
+| t0 | `tes/r002/t0/main` | 6/8 | e00007 | 261.5s |
 | t1 | `tes/r002/t1/main` | 5/8 | e00022 | 359.3s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
@@ -95,6 +95,8 @@ run **r002**（active）· C=2 L=8 K=2 · evals 22/32 · actions 16 · 下一步
 | e00020 | candidate | t0/s05c2 | 342.6s | 7.32x | ok | 安慰剂锚点（无机制假设）：t0 tip e43ff4d 原样重测，同 11 旋钮，为 c1 提供同窗… |
 | e00021 | candidate | t1/s05c1 | 365.4s | 7.81x | ok | commit-write-branchless：b93159 族 43 commit 块（31.1%… |
 | e00022 | candidate | t1/s05c2 | 359.3s | 7.68x | ok | 同窗安慰剂锚点：t1 tip 520b017 原样重测（CLI 默认调度点 + 5 旋钮），为 c1… |
+| e00023 | candidate | t0/s06c1 | 338.2s | 7.23x | ok | b93131 族 CommitEvent 动态索引位 RMW（同 index/行基址/word、逐位… |
+| e00024 | candidate | t0/s06c2 | 327.6s | 7.00x | ok | 安慰剂锚点（无机制假设）：t0 tip 61b5fd6 原样 + 同 12 旋钮重测，为 c1（co… |
 
-最近 actions：A0012 step；A0013 round-summary；A0014 step；A0015 step；A0016 round-summary
+最近 actions：A0013 round-summary；A0014 step；A0015 step；A0016 round-summary；A0017 step
 
