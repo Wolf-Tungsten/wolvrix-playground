@@ -1190,3 +1190,31 @@
   时按 recon/池证据裁定，另一轨迹 s08 无评估空转。锚点席位四轮证据确立，不砍。
 - **待用户**：基线重锚仍悬置（A0036 起）；run-summary 的 vs 基线 ratio 将以
   「不可裁」表述，除非追加预算重锚。
+
+## r002/t0/s07 scan-branch-hints 同窗确认 -11.41%（2026-08-21，action A0053）
+
+- **确认（e00027，winner，已入 t0/main）**：`--scan-branch-hints`（b9a671a，
+  默认 off 逐字节等价，emitter 单测 + 文档）——compute/commit 扫描函数每 byte
+  序言测试与逐块活动位测试加 `__builtin_expect(..., 0)`，clang 块重排把冷块体
+  移出 fall-through 检查链。Host 中位 **301.081s**（CV 0.0%，17/17 ctest、
+  3 rep difftest 全过，compile_s 980.1s），同窗安慰剂 e00028（t0 tip 原样 +
+  12 旋钮）**339.849s** → **-11.41%**，越 4% 假设门近 3 倍；c1 读数低于 t0
+  全部历史读数（含快窗 327.602s），双态/漂移无法吸收。**r002 单步最大确认收益**。
+- **dispatch 骨架无名池归因落槌（recon-t0s06，perf 32k 样本 @ 生产 emu）**：
+  eval_scan_* 自时间 50.38% / block_chunk 28.57% / helper 18.28% /
+  eval_commit 0.94% / **eval() 自身 ≈0%**。激活簿记在块 rdtsc 窗内、
+  has_active_blocks 范围检查可忽略——无名池 = **eval_scan_* 内跳过链**（扣块体
+  ≈75-80s = Host 22-24%，rdtsc 侧 70-75s 互证），病因 = 每块位测试与 ~945B
+  块体交错的大步长取指流（反汇编 `test;je +0x4a9` 佐证 ~14cyc/站）。
+- **捕获 ~50%**：-11.41% = 38.77s ≈ 池 75-80s 的一半（紧凑链消远跳取指主项，
+  残余 = 活跃 byte 冷区位测试 + 块体本体）。「数据侧/前端流式主导、省指令无效」
+  判据的正向逆用例证：不省指令（.o text -0.15% 持平）、只改取指流形态即赢。
+- **静态实证**：off 260 文件 cmp 全等；提示总数 105,479（runtime.cpp 零）；
+  objdump 确认 fall-through ~13B/站紧凑链 + 冷区分层外置；构建墙钟中性
+  （emu_build 624.1 vs 624.2s）。
+- **测量学**：跨窗漂移样本 +1（t0 tip：327.602→339.849s，+3.7% 慢向，第六
+  样本点）；锚点席位连续第五轮产出唯一裁决基准。t0 tip = `b9a671a`，t0 有效
+  emit_args = 12 旋钮 + `--scan-branch-hints`；真值口径 = 本窗锚点 339.849s、
+  含 hints tip 本窗 301.081s。evals 28/32（余 4）；下一 action 按轮转为
+  t1/s07，scan-branch-hints 跨轨迹迁移（t1 骨架池 ~104s × ~50% ≈ 5-7% 外推）
+  为自然首选；s08 归属由 t1/s07 收口裁定。

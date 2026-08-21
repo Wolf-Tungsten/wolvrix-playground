@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 6/8、t1 6/8） | 第 6 轮 round-summary（A0052）：t0 commit-row-merge +3.25% 证伪（commit 相省指令/省往返类三次证伪整体关闭）、t1 宽链融合迁移 -1.17% 确认（首个可定量跨轨迹迁移机制族，链轴双侧关闭）；下一阶同向 = dispatch 骨架无名池（t0 ~95s/t1 ~104s，26%，归因 recon 先行）；末段座位裁决：余 6 evals vs 8 席，s08 只一条轨迹完整 step；真值口径 t0 tip 327.602s / t1 364.464s；evals 26/32，下一步 t0/s07 |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 7/8、t1 6/8） | t0/s07（A0053）：**scan-branch-hints 同窗 -11.41% 确认（301.081s vs 安慰剂 339.849s，r002 单步最大收益）**——recon-t0s06 归因落槌：dispatch 骨架 = eval_scan_* 跳过链 75-80s/22-24%（大步长取指流），`__builtin_expect` 冷块外置捕获 ~50%；t0 tip = `b9a671a`，emit_args = 12 旋钮 + scan-branch-hints；evals 28/32，下一步 t1/s07（首选该机制跨轨迹迁移，外推 5-7%） |
 
 ## 共享件
 

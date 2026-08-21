@@ -112,8 +112,8 @@
     {
       "id": "t0",
       "branch": "tes/r002/t0/main",
-      "tip": "ab20b29bb5e5a2ba9d20c124ab1a88d6e85b7b0f",
-      "steps_completed": 6,
+      "tip": "b9a671a12b937b92f10d5f4aef739481ecef015b",
+      "steps_completed": 7,
       "best": {
         "eval_id": "e00007",
         "score": -261543
@@ -140,8 +140,8 @@
     6
   ],
   "counters": {
-    "actions": 19,
-    "evals": 26
+    "actions": 20,
+    "evals": 28
   },
   "best_overall": {
     "eval_id": "e00007",
@@ -150,16 +150,17 @@
   },
   "phi_selection_counts": {
     "e00001": 7,
-    "e00003": 2,
+    "e00003": 3,
     "e00006": 3,
     "e00007": 3,
     "e00009": 2,
     "e00012": 1,
     "e00013": 2,
-    "e00015": 1,
+    "e00015": 2,
     "e00017": 1,
     "e00019": 1,
-    "e00022": 1
+    "e00022": 1,
+    "e00024": 1
   },
   "history": [
     {
@@ -275,6 +276,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0052_round-summary_第6轮跨轨迹小结_20260821.md",
       "ts": "2026-08-21T13:47:57+08:00"
+    },
+    {
+      "n": 20,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0053_step_t0s07_scan分支提示与安慰剂锚点_20260821.md",
+      "ts": "2026-08-21T15:16:44+08:00"
     }
   ]
 }

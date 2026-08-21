@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-21T13:47:57+08:00
+> 生成于 2026-08-21T15:16:44+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r002**（active）· C=2 L=8 K=2 · evals 26/32 · actions 19 · 下一步 `step`：推进轨迹 t0 到第 7 步（round-robin 最少步数优先）
+run **r002**（active）· C=2 L=8 K=2 · evals 28/32 · actions 20 · 下一步 `step`：推进轨迹 t1 到第 7 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -18,7 +18,7 @@ run **r002**（active）· C=2 L=8 K=2 · evals 26/32 · actions 19 · 下一步
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
-| t0 | `tes/r002/t0/main` | 6/8 | e00007 | 261.5s |
+| t0 | `tes/r002/t0/main` | 7/8 | e00007 | 261.5s |
 | t1 | `tes/r002/t1/main` | 6/8 | e00022 | 359.3s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
@@ -99,6 +99,8 @@ run **r002**（active）· C=2 L=8 K=2 · evals 26/32 · actions 19 · 下一步
 | e00024 | candidate | t0/s06c2 | 327.6s | 7.00x | ok | 安慰剂锚点（无机制假设）：t0 tip 61b5fd6 原样 + 同 12 旋钮重测，为 c1（co… |
 | e00025 | candidate | t1/s06c1 | 364.5s | 7.79x | ok | wide-mux-chain-fuse 跨轨迹迁移（t0 A0047 -2.19% 机制移植到 t1… |
 | e00026 | candidate | t1/s06c2 | 368.8s | 7.88x | ok | 同窗安慰剂锚点：t1 tip f167ae7 原样重测（CLI 默认调度点 + 5 旋钮），为 c1… |
+| e00027 | candidate | t0/s07c1 | 301.1s | 6.43x | ok | 每 round 全模型扫描 93,199 个 compute 块活动位测试与其后 ~945B 块体交… |
+| e00028 | candidate | t0/s07c2 | 339.8s | 7.26x | ok | 同窗安慰剂锚点（连续第五轮锚点席位）：t0 tip ab20b29 原样重测、emit_args 与… |
 
-最近 actions：A0015 step；A0016 round-summary；A0017 step；A0018 step；A0019 round-summary
+最近 actions：A0016 round-summary；A0017 step；A0018 step；A0019 round-summary；A0020 step
 

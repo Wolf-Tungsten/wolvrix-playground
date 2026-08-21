@@ -6,6 +6,20 @@
 
 ## 当前状态速览
 
+- t0/s07（2026-08-21，[A0053](actions/A0053_step_t0s07_scan分支提示与安慰剂锚点_20260821.md)）：
+  **winner e00027 = 301.081s（`--scan-branch-hints`，r002 单步最大确认收益）**——
+  先按 A0052 纪律做归因 recon（recon-t0s06，生产 emu perf 32k 样本）：dispatch
+  骨架无名池 = **eval_scan_* 内跳过链 ≈75-80s/Host 22-24%**（eval() 自身 ≈0、
+  激活簿记在块 tick 窗内、commit 骨架 ≈1s，三嫌疑两清），病因 = 每块位测试与
+  ~945B 块体交错的大步长取指流。c1 给 byte 序言与逐块位测试加
+  `__builtin_expect(..., 0)`（b9a671a，off 260 文件 cmp 全等 + 剥壳归一化 +
+  harness oracle，objdump 实证 fall-through ~13B/站紧凑链 + 冷区分层外置，.o
+  text -0.15% 持平）；同窗安慰剂 e00028（t0 tip 原样 + 12 旋钮）**339.849s** →
+  **-11.41% 确认**（越 4% 门近 3 倍，c1 低于 t0 全部历史读数，双态/漂移无法
+  吸收；捕获 ≈ 池的 50%）。「前端流式主导、省指令无效」判据的正向逆用例证。
+  t0 有效 emit_args = 12 旋钮 + scan-branch-hints；真值口径 = 本窗锚点
+  339.849s、含 hints tip 本窗 301.081s。evals 28/32（余 4）；**t1/s07 首选
+  scan-branch-hints 跨轨迹迁移（t1 骨架池 ~104s × ~50% ≈ 5-7% 外推）**
 - r002 第 6 轮 round-summary（2026-08-21，[A0052](actions/A0052_round-summary_第6轮跨轨迹小结_20260821.md)）：
   两轨迹各完成 s06。**t0 c1 `--commit-row-merge` 同窗 +3.25% 决定性证伪**（静态
   确切成立但串行 `cur` 链替换可流水 STLF 行往返；winner = 安慰剂锚点 e00024
