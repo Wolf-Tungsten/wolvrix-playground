@@ -36,17 +36,18 @@ cd build/tes/grhsim-am-coremark/src/base-<run> && for m in external/slang extern
 done && cd "$OLDPWD"
 python3 tes/grhsim-am-coremark/evaluator.py run \
   --worktree build/tes/grhsim-am-coremark/src/base-<run> \
-  --eval-id e00001 --compile-budget-sec 5400
+  --eval-id <run.json 中为 am 预留的 eval-id> --compile-budget-sec 5400
 ```
 
 - 冷 ccache 首次全量构建慢，AM 基线允许一次性放宽编译预算到 90min；实测
   `compile_s` 记进 insights.md，之后所有候选一律按 40min 预算执行。
-- 评估产物在 `build/tes/grhsim-am-coremark/evals/e00001/`（result.json + 各阶段日志）。
+- 评估产物在 `build/tes/grhsim-am-coremark/evals/<eval-id>/`（result.json + 各阶段日志）。
 
 gsim 基线（target，现成二进制的协议化计时）：
 
 ```bash
-python3 tes/grhsim-am-coremark/evaluator.py gsim --eval-id e00002
+python3 tes/grhsim-am-coremark/evaluator.py gsim \
+  --eval-id <run.json 中为 gsim 预留的 eval-id>
 ```
 
 - 依赖 `build/xs/gsim/gsim-compile/emu`（config `paths.gsim_emu`，gsim master 基线）。不存在则停止并报告用户
@@ -76,8 +77,7 @@ python3 tes/grhsim-am-coremark/evaluator.py run --worktree <worktree> --eval-id 
 
 - `result.json.status`: ok / build_fail / ctest_fail / emit_fail / difftest_fail /
   timeout / compile_timeout / parse_fail / interference（外部干扰，排除后重跑）；
-  `noisy=true` 表示所选簇 CV 仍超标，`raw_noisy=true` 表示全部 reps 混合口径超标。
-- `compile_s`：编译流程累计墙钟（预算 2400s）；`host_ms.median`：用于 score 的
-  中位（双簇时为快簇中位，否则为全体中位，`score = -median`）。原始全体口径见
-  `host_ms.raw_median/raw_cv`，簇判定见 `host_ms.bimodal/cluster_gap_ratio/clusters`。
+  `noisy=true` 表示固定 3 rep 的 CV 超标。
+- `compile_s`：编译流程累计墙钟（预算 2400s）；`host_ms.median`：固定 3 rep 中位
+  （`score = -median`）。
 - 逐阶段日志与 rep 日志都在 `build/tes/grhsim-am-coremark/evals/<eval_id>/`。

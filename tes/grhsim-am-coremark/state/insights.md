@@ -1370,3 +1370,40 @@
 - 下一次获准实际开始时的唯一入口：`python3 tes/tools/tesctl.py init-run
   --run-id r003 --base-commit 79719b2d95b91da141c01c74814da25292c1170d --C 2 --L 8 --K 2`，
   随后在同一个 run-init action 内完成输入指纹回填、AM/gsim 双基线、记录与收口。
+
+## r003 错误启动清理与 y0 勘误（2026-08-22，尚未 init-run）
+
+- 上一节准备方案由用户撤销：错误 r003 启动现场已清理，`state/run.json` 恢复为
+  completed r002；r003 manifest、ledger 条目、action、目标仓库分支/worktree 与
+  错误双基线产物均不保留。
+- 用户最终指定 r002 台账最低点 **e00007 = 261.543s** 为 r003 y0。完整解 = commit
+  `ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb` + 10 个 emit 开关；该 commit 已从
+  `9c0a89db` fast-forward 合入 `grh/tes-grhsim-am`。调度器要求 restart 使用
+  run-qualified `--base-eval r002/e00007`，防止只继承 commit 而丢失参数表型。
+- r003 固定 **C=2/L=8/K=2（N=32）**。K=2 两席均用于 Φ 所选节点邻域内的实质
+  机制候选，不设安慰剂；每个候选须给出“来源节点 → TES 反馈/病灶 → 局部改动 →
+  可证伪预期”的连续链，避免无依据跳跃。
+- TES 外历史失败只作先验，不进入 rejected/failed 集合，也不直接关闭方向；旧实现
+  不充分、输入变化或机制补足均可在 TES 内重新评估。
+- 测量固定 **3 rep**，核 12/13/14 单批并行，不扩增到 5 rep。eval-id 改为任务级
+  单调序列；r001/r002 最大编号 e00050，r003 双基线预留 e00051/e00052，候选从
+  e00053 继续。
+- 下一次启动入口：`python3 tes/tools/tesctl.py init-run --run-id r003
+  --base-eval r002/e00007 --C 2 --L 8 --K 2`；随后在同一个 run-init action 内完成
+  输入指纹、AM/gsim 双基线、记录与收口。
+
+## r003 正式启动（2026-08-22，action A0059 run-init）
+
+- r003 已从用户指定的完整解 `r002/e00007` 正式启动：commit
+  `ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb` + 10 个 emit 开关；C=2/L=8/K=2，
+  固定 3 rep，K 两席均为实质候选。输入图 SHA-256 仍为
+  `cbd78c0b127dfb3bbbb005d06594242846a9d1cf35944de0720d7cf3031b3246`。
+- AM e00051 = **363.995s**（363998/363995/363995ms，CV 0，17/17 ctest、3 rep
+  difftest 73580/49996 全过）；gsim e00052 = **45.864s**
+  （45866/45864/45863ms，CV 0，3 rep difftest 73584/49998 全过）。r003 起跑差距
+  = **7.936x**。
+- e00051 比历史 e00007 的 261.543s 慢 39.17%，但与 r002/e00012 的同解慢态锚
+  363.444s 仅差 +0.15%。这不改变用户指定的 y0 解身份；它证明 261.543s 不可作为
+  r003 的基线时间，后续收益必须相对 e00051 的冻结口径解释。
+- eval-id 已按任务级序列接续：双基线 e00051/e00052，下一候选从 e00053 开始。
+  下一 action = r003/t0/s01；必须等下一次 goal 执行，不在本 run-init action 偷跑。

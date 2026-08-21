@@ -1,8 +1,6 @@
 {
-  "schema": 1,
   "run_id": "r003",
   "task": "grhsim-am-coremark",
-  "status": "active",
   "created_at": "2026-08-22T00:44:47+08:00",
   "config": {
     "search": {
@@ -81,6 +79,7 @@
       }
     }
   },
+  "budget_N": 32,
   "pins": {
     "target_repo": "wolvrix",
     "target_base_commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
@@ -123,86 +122,22 @@
       "testcase/xiangshan": "8d96f2b3f1cd80cb10c785de37e8641d2aeeec5b"
     },
     "inputs": [
-      {
-        "name": "post_stats_json",
-        "path": "build/xs/grhsim-am/wolvrix_xs_post_stats.json",
-        "note": "wolvrix 自解析 XiangShan SV 的归一化 GRH（post-stats JSON，全部候选共享的固定输入图；r002 起取代 gsim 导出的 exec-GRH）；run-init 时 sha256 写入 manifest；重新生成走 make xs_wolf_grhsim_am_emit",
-        "sha256": "cbd78c0b127dfb3bbbb005d06594242846a9d1cf35944de0720d7cf3031b3246"
-      }
+    {
+      "name": "post_stats_json",
+      "path": "build/xs/grhsim-am/wolvrix_xs_post_stats.json",
+      "note": "wolvrix 自解析 XiangShan SV 的归一化 GRH（post-stats JSON，全部候选共享的固定输入图；r002 起取代 gsim 导出的 exec-GRH）；run-init 时 sha256 写入 manifest；重新生成走 make xs_wolf_grhsim_am_emit",
+      "sha256": "cbd78c0b127dfb3bbbb005d06594242846a9d1cf35944de0720d7cf3031b3246"
+    }
     ]
-  },
-  "baseline_sides": [
-    "am",
-    "gsim"
-  ],
-  "baseline_eval_ids": {
-    "am": "e00051",
-    "gsim": "e00052"
   },
   "eval_sequence": {
     "start": 51,
     "next": 53
   },
-  "baselines": {
-    "am": {
-      "eval_id": "e00051",
-      "status": "ok",
-      "host_ms_median": 363995,
-      "score": -363995
-    },
-    "gsim": {
-      "eval_id": "e00052",
-      "status": "ok",
-      "host_ms_median": 45864,
-      "score": -45864
-    }
+  "baseline_eval_ids": {
+    "am": "e00051",
+    "gsim": "e00052"
   },
-  "trajectories": [
-    {
-      "id": "t0",
-      "branch": "tes/r003/t0/main",
-      "tip": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
-      "steps_completed": 0,
-      "best": null
-    },
-    {
-      "id": "t1",
-      "branch": "tes/r003/t1/main",
-      "tip": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
-      "steps_completed": 0,
-      "best": null
-    }
-  ],
-  "current_step": null,
-  "round_summaries_done": [],
-  "counters": {
-    "actions": 1,
-    "evals": 2
-  },
-  "best_overall": {
-    "eval_id": "e00051",
-    "score": -363995,
-    "commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
-    "emit_args": [
-      "--branchy-mux",
-      "--resize-elision",
-      "--init-zero-elision",
-      "--source-part-activity-guard",
-      "--source-word-activity-guard",
-      "--wide-storage-first-touch",
-      "--concat-insert-inline",
-      "--inline-scalar-helpers",
-      "--concat-insert-unroll",
-      "--wide-detect-fast-path"
-    ]
-  },
-  "phi_selection_counts": {},
-  "history": [
-    {
-      "n": 1,
-      "type": "run-init",
-      "note": "tes/grhsim-am-coremark/actions/A0059_run-init_r003_e00007精确解与双基线_20260822.md",
-      "ts": "2026-08-22T01:35:05+08:00"
-    }
-  ]
+  "baselines": {},
+  "notes": []
 }

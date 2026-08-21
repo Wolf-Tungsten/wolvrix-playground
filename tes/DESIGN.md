@@ -32,11 +32,13 @@ SimpleTES 把「评估驱动的发现循环」组织为设计元组 **(C, L, K, 
 | 指令 x0 | `tes/grhsim-am-coremark/brief.md`（目标、硬约束、已知机制背景），run 期间冻结 |
 | 目标 | `ratio = am_median / gsim_median ≤ 1.0`（基线于 run-init 同协议实测冻结） |
 | LLM G | 推进 tes 的 goal 会话本身（按 proposal 设计 K 个候选并实施） |
-| 初始解 y0 | run 起点 commit（r001 = `grh/dev-grhsim-topo-partition` tip，即 NO0018 收口态） |
+| 初始解 y0 | run 起点的完整解快照：目标 commit + emit 参数；restart 另记录来源 run/eval |
 
 候选生成时「K 个候选互不相同」指**机制层面不同**（不同的病灶假设/不同的变换手段/
 代码修改 vs 纯 emit 旋钮组合均可），不是同一修改的参数微调——这才对应论文里 K 抵抗
-生成噪声的本意。
+生成噪声的本意。K 是对**同一个 Φ proposal 邻域**的局部采样，不是 K 次无关方向跳转；
+每个候选都应说明它从哪个被选节点、哪条反馈和哪项可观测病灶继续精修。缺少这条证据链的
+大跨度换向应留给另一条轨迹，或在当前方向被 TES 评估证伪后由 Φ 选择新的历史节点。
 
 ## 3. 串行等价论证（为什么串行不损失论文语义）
 
@@ -112,6 +114,9 @@ playground 仓库：不开分支，tes/ 的每次状态推进在当期分支（`
   连续性要求，是对论文 Φ 的唯一增补）。
 - proposal 另含：已否决变体清单（本轨迹评估成功但未中选者，避免原样重试）、失败模式
   摘要（build/emit/difftest/timeout 各自的假设与日志指针）、评估协议与 emit 旋钮基线。
+- rejected / failed 集合只由本 TES 台账中的实际评估构成。TES 外文档中的旧实验可以作为
+  先验与实现线索，但不自动获得负节点、关闭方向或禁止重试的地位；新实现、新输入或更完整
+  的机制假设均可在 TES 内重新检验。
 - proposal 快照存 `tes/<task>/proposals/`，候选分支与 proposal 的父子边记进 ledger
   （`proposal_nodes`），供 RPUCG 的 Ch(i) 传播使用。
 
@@ -119,6 +124,7 @@ playground 仓库：不开分支，tes/ 的每次状态推进在当期分支（`
 
 C=3, L=8, K=2 → N=48 次评估，串行约 32 机时。理由：本问题为增量工程精修主导
 （论文建议 L 重），单次评估 ~35-50min 决定了 K 必须小；C=3 提供方向多样性下限。
+K 个席位全部用于可竞争的局部候选，原样重测或安慰剂不属于候选采样。
 参数在 `tes/<task>/config.json` 改，run-init 冻结进 manifest，run 期间不可变（改动即新 run）。
 （预算口径：N 只计搜索评估；run-init 的基线测量额外计入 evals 计数。）
 

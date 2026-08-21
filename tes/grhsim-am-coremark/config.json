@@ -25,7 +25,7 @@
   "C": 2,
   "L": 8,
   "K": 2,
-  "note": "N = C*L*K 次评估查询。r003 沿用 r002 收口建议的 C=2/L=8/K=2（N=32）：一轨推进 compute 长尾本体，一轨做迁移验证与 commit 数据侧；K=2 保留一席同窗安慰剂锚点。"
+  "note": "N = C*L*K 次评估查询。r003 沿用 C=2/L=8/K=2（N=32）；每个 step 的两个席位都用于从 Φ 选中节点出发的实质机制候选，不固定设置安慰剂。"
  },
  "phi": {
   "gamma": 0.9,
@@ -37,11 +37,8 @@
   "note": "RPUCG 参数。cross_trajectory=false 保持轨迹独立（串行等价于论文并行语义）；跨轨迹学习只经 restart 发生。"
  },
  "eval": {
-  "reps": 5,
-  "max_reps": 5,
+  "reps": 3,
   "cv_max": 0.05,
-  "cluster_gap_ratio": 1.12,
-  "cluster_min_reps": 2,
   "core": 12,
   "rep_cores": [12, 13, 14],
   "cycles": 50000,
@@ -54,34 +51,20 @@
    "cycleCnt": 49998
   },
   "emit_args": [
-   "--blocks-per-source",
-   "2048",
-   "--max-source-bytes",
-   "4194304",
-   "--max-atoms-per-block",
-   "9",
-   "--tree-atom-fold-max-instr",
-   "2",
-   "--dp-segment-penalty",
-   "0",
-   "--dp-coarsen-atom-budget",
-   "0",
-   "--dp-coarsen-instr-budget",
-   "32768",
-   "--merge-when-min-group",
-   "5",
-   "--dp-refinement-rounds",
-   "0",
-   "--fanout-absorb-max-instructions",
-   "0",
-   "--fanout-absorb-budget-mult",
-   "1.0",
-   "--fanout-absorb-max-consumers",
-   "256"
+   "--branchy-mux",
+   "--resize-elision",
+   "--init-zero-elision",
+   "--source-part-activity-guard",
+   "--source-word-activity-guard",
+   "--wide-storage-first-touch",
+   "--concat-insert-inline",
+   "--inline-scalar-helpers",
+   "--concat-insert-unroll",
+   "--wide-detect-fast-path"
   ],
   "vm_build_jobs": 128,
   "compile_budget_sec": 2400,
-  "note": "计时与计数分离：正式 reps 不开任何 profile/插桩。r003 起固定 5 rep；rep_cores = reps 批内并行绑的独立物理核（12/13/14 同属 socket 0、非 SMT 兄弟），5 rep 分 3+2 两批执行，批次间串行。排序后若最大相邻比值 >= cluster_gap_ratio 且两侧各至少 cluster_min_reps 个样本，则识别为快/慢双簇，score 取快簇中位；同时保留 raw median/CV 与两簇明细。1.12 高于 r002 已见连续漂移约 6%，又能检出 e00032 的 1.165 断点。difftest 逐位一致（golden 计数）是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout（不进入计时）；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。",
+  "note": "计时与计数分离：正式计时固定 3 rep，不因 CV 扩增；rep_cores 12/13/14 为同 socket、非 SMT 兄弟的独立物理核，单批并行。emit_args 是 r002 台账最低点 e00007 的完整 10 开关表型。difftest 逐位一致是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。",
   "golden_tol": {
    "instrCnt": 16,
    "cycleCnt": 8,
@@ -90,7 +73,25 @@
  },
  "restart": {
   "max": 2,
-  "auto": false
+  "auto": false,
+  "prepared_solution": {
+   "source_run": "r002",
+   "source_eval": "e00007",
+   "commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
+   "emit_args": [
+    "--branchy-mux",
+    "--resize-elision",
+    "--init-zero-elision",
+    "--source-part-activity-guard",
+    "--source-word-activity-guard",
+    "--wide-storage-first-touch",
+    "--concat-insert-inline",
+    "--inline-scalar-helpers",
+    "--concat-insert-unroll",
+    "--wide-detect-fast-path"
+   ],
+   "note": "用户指定 r002/e00007（261.543s）为 r003 y0；代码已 fast-forward 合入 grh/tes-grhsim-am。"
+  }
  },
  "retention": {
   "keep_loser_branches": true,

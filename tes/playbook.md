@@ -12,8 +12,10 @@
 对应 `next` = `run-init`（无活跃 run）或 `baseline`（结构已建、基线未测完）。
 一个 run-init action 覆盖整个初始化 + 全部基线测量。
 
-1. 初始化结构（用户在 goal 上下文给了 C/L/K 时用 `--C/--L/--K` 覆盖；restart 时加
-   `--base-commit <上一 run 最佳 commit>`）：
+1. 初始化结构（用户在 goal 上下文给了 C/L/K 时用 `--C/--L/--K` 覆盖；restart 时用
+   `--base-eval <上一 run>/<最佳 eval>` 同时冻结最佳代码快照与参数表型。可选的
+   `--base-commit <最佳 commit>` 只作匹配断言，若与该 eval 的台账 commit 不同会被
+   拒绝）：
    `python3 tes/tools/tesctl.py init-run`
    它会：冻结配置到 `tes/<task>/runs/<run>/manifest.json`、在**目标仓库**
    （config `repos.target`）建分支 `tes/<run>/base` 与 `tes/<run>/t0..t(C-1)/main`、
@@ -21,9 +23,10 @@
 2. 输入指纹：对 manifest `pins.inputs` 的每一项跑 `sha256sum`，把值回填到 manifest
    与 `tes/<task>/state/run.json` 的对应 `pins.inputs[].sha256`
    （这是唯一允许手改 run.json 的场景）。
-3. 按**任务 playbook** 的基线流程，对 config `baseline_sides` 的每一侧各测一次并登记：
+3. 按**任务 playbook** 的基线流程，使用 init-run 输出及 run.json
+   `baseline_eval_ids` 中预留的编号，对 config `baseline_sides` 的每一侧各测一次并登记：
    `python3 tes/tools/tesctl.py record-baseline --side <side> --result <result.json 路径> --insight "<一句话>"`
-   基线 eval-id 从 e00001 起顺序分配。
+   eval-id 在任务范围内跨 run 单调续接，不复用旧编号。
 4. 在 `tes/<task>/state/insights.md` 追加：各侧基线数值、与既有记录的对照、起点判断。
 5. 按 goal.md 固定流程第 3-7 步收口。
 
@@ -36,7 +39,8 @@
    `tes/<run>/<t>/sNN-c{1..K}`、目标仓库 worktree `build/tes/<task>/src/e*-*c{1..K}`。
 2. 通读 proposal（Φ 选中的历史节点、否决清单、失败摘要）与
    `tes/<task>/state/insights.md`。
-3. 设计 **K 个机制互异**的候选，每个先写下可证伪的一句话假设。
+3. 设计 **K 个机制互异且都具有实质性能假设**的候选。每个先写下来源 Φ 节点、反馈/
+   病灶、局部改动和可证伪预期；不得用原样重测或安慰剂占用候选席位。
 4. 对每个候选（严格串行、一次一个）：
    a. 在其 worktree 实施（旋钮类候选不改代码，把旋钮记进假设）。
    b. 提交到候选分支：`git -C <worktree> add -A && git -C <worktree> commit -m "tes(<run>/<t>/sNN): c<k> <假设>"`。

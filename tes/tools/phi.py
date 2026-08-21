@@ -227,10 +227,13 @@ def main() -> int:
             lines.append(f"- {e['eval_id']} s{e.get('step')}c{e.get('candidate')}: **{e['status']}** — {e.get('hypothesis')}"
                          f"（日志见 `{e.get('result_json')}`）")
     lines.append("\n## 本 step 任务\n")
-    lines.append(f"设计并实现 **{K} 个互不相同的候选**（机制层面不同，不是同一想法的参数微调；"
-                 "任务支持的可调旋钮见上方任务指令）。每个候选：在各自 worktree 实施 → 提交到各自"
-                 "候选分支 → 任务 evaluator 串行评估 → `tesctl.py record-eval` 登记。"
-                 "全部完成后 `tesctl.py finish-step` 裁决。")
+    lines.append(f"设计并实现 **{K} 个互不相同且都有实质性能假设的候选**。K 是从上述 Φ 节点"
+                 "出发的局部采样，不是无关方向跳转；每个候选必须写明“来源节点 → 已观测反馈/病灶 → "
+                 "本次局部改动 → 可证伪预期”。机制应互异，不得用原样重测、空提交安慰剂或固定对照"
+                 "占用席位。TES 外文档中的旧失败只作先验，不得直接视为负方向；若新实现能补足旧方案，"
+                 "可以在此重新检验。每个候选在各自 worktree 实施 → 提交到各自候选分支 → 任务 "
+                 "evaluator 串行评估 → `tesctl.py record-eval` 登记。全部完成后 "
+                 "`tesctl.py finish-step` 裁决。")
     lines.append("\n## Φ 选择调试表（RPUCG）\n")
     lines.append("| node | score | U | ρ | n | RPUCG | selected |")
     lines.append("|---|---|---|---|---|---|---|")

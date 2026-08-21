@@ -25,8 +25,11 @@ state/run.json + state/ledger.jsonl + runs/。本工具只读取/推进状态，
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
+import re
+import shlex
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -37,6 +40,7 @@ TES = REPO / "tes"
 BUILD_TES = REPO / "build" / "tes"
 
 TASK_DIR: Path | None = None  # main() 解析 --task 后设置
+EVAL_ID_RE = re.compile(r"^e(\d+)$")
 
 
 def now_iso() -> str:
@@ -175,6 +179,75 @@ def iter_ledger():
                 yield json.loads(line)
 
 
+def next_task_eval_number(entries=None) -> int:
+    """Return the next task-wide eval number, preserving IDs across restarts."""
+    source = iter_ledger() if entries is None else entries
+    used = []
+    for entry in source:
+        match = EVAL_ID_RE.fullmatch(str(entry.get("eval_id", "")))
+        if match:
+            used.append(int(match.group(1)))
+    return max(used, default=0) + 1
+
+
+def resolve_base_eval(spec: str) -> dict:
+    """Resolve RUN/EVAL to a committed successful solution and its emit arguments."""
+    try:
+        source_run, eval_id = spec.rsplit("/", 1)
+    except ValueError as exc:
+        raise ValueError("--base-eval 必须使用 <run>/<eval-id>，例如 r002/e00007") from exc
+    if not source_run or EVAL_ID_RE.fullmatch(eval_id) is None:
+        raise ValueError("--base-eval 必须使用 <run>/<eval-id>，例如 r002/e00007")
+
+    entries = list(iter_ledger())
+    matches = [
+        e for e in entries
+        if e.get("run") == source_run and e.get("eval_id") == eval_id
+        and e.get("kind") != "commit-marker"
+    ]
+    if len(matches) != 1:
+        raise ValueError(f"台账中无法唯一定位 base eval {spec}")
+    entry = matches[0]
+    committed = entry.get("committed") is True or any(
+        e.get("kind") == "commit-marker" and e.get("run") == source_run
+        and e.get("eval_id") == eval_id and e.get("committed") is True
+        for e in entries
+    )
+    if entry.get("status") != "ok" or not committed:
+        raise ValueError(f"base eval {spec} 必须是已提交的成功候选")
+    entry_commit = entry.get("commit")
+    if not isinstance(entry_commit, str) or not entry_commit:
+        raise ValueError(f"base eval {spec} 缺少可复现的 commit")
+
+    result = None
+    if entry.get("result_json"):
+        result_path = REPO / entry["result_json"]
+        if result_path.exists():
+            result = load_json(result_path)
+    result_emit_args = result.get("emit_args") if result is not None else None
+
+    prepared = load_config().get("restart", {}).get("prepared_solution", {})
+    prepared_matches = (prepared.get("source_run") == source_run
+                        and prepared.get("source_eval") == eval_id)
+    if prepared_matches:
+        if prepared.get("commit") != entry_commit:
+            raise ValueError(f"prepared_solution 与台账中的 {spec} commit 不一致")
+        if result is not None and prepared.get("emit_args") != result_emit_args:
+            raise ValueError(f"prepared_solution 与结果文件中的 {spec} emit_args 不一致")
+        emit_args = prepared.get("emit_args")
+    else:
+        emit_args = result_emit_args if result is not None else entry.get("emit_args")
+    if not isinstance(emit_args, list):
+        raise ValueError(f"base eval {spec} 缺少可复现的 emit_args")
+    return {
+        "run": source_run,
+        "eval_id": eval_id,
+        "commit": entry_commit,
+        "emit_args": list(emit_args),
+        "result_json": entry.get("result_json"),
+    }
+
+
 # ---------------------------------------------------------------------------
 # next / status / tasks
 # ---------------------------------------------------------------------------
@@ -256,7 +329,9 @@ def cmd_status(_args) -> int:
         if b:
             print(f"baseline {name}: {b.get('host_ms_median')} ms (median, eval {b.get('eval_id')})")
         else:
-            print(f"baseline {name}: 未测量")
+            expected = (run.get("baseline_eval_ids") or {}).get(name)
+            suffix = f"（预留 {expected}）" if expected else ""
+            print(f"baseline {name}: 未测量{suffix}")
     bo = run.get("best_overall") or {}
     if bo.get("score") is not None:
         print(f"best_overall: {bo['score']} ({bo.get('eval_id')}, {bo.get('commit','')[:12]})")
@@ -289,10 +364,11 @@ def cmd_next(args) -> int:
 # ---------------------------------------------------------------------------
 
 def cmd_init_run(args) -> int:
+    previous = None
     if run_json_path().exists():
-        old = load_run()
-        if old["status"] == "active" and not args.force:
-            print(f"[FAIL] 已有活跃 run {old['run_id']}；先 close-run 或用 --force", file=sys.stderr)
+        previous = load_run()
+        if previous["status"] == "active" and not args.force:
+            print(f"[FAIL] 已有活跃 run {previous['run_id']}；先 close-run 或用 --force", file=sys.stderr)
             return 1
 
     cfg = load_config()
@@ -302,17 +378,53 @@ def cmd_init_run(args) -> int:
         existing = sorted(p.name for p in runs_root.glob("r*") if p.is_dir())
         n = max([int(x[1:]) for x in existing], default=0) + 1
         run_id = f"r{n:03d}"
-    run_dir = runs_root / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
+
+    is_restart = (previous is not None and previous["status"] == "completed"
+                  and previous["run_id"] != run_id)
+    if is_restart and args.base_eval is None and args.base_emit_args is None:
+        print("[FAIL] restart 必须用 --base-eval <run>/<eval-id> 或 --base-emit-args "
+              "显式冻结完整 y0；只有 --base-commit 会丢失参数表型", file=sys.stderr)
+        return 1
+
+    source_eval = None
+    if args.base_eval is not None:
+        try:
+            source_eval = resolve_base_eval(args.base_eval)
+        except ValueError as exc:
+            print(f"[FAIL] {exc}", file=sys.stderr)
+            return 1
+    if source_eval is not None and args.base_emit_args is not None:
+        print("[FAIL] --base-eval 与 --base-emit-args 不能同时使用", file=sys.stderr)
+        return 1
 
     search = dict(cfg["search"]); search.pop("note", None)
     for k in ("C", "L", "K"):
         if getattr(args, k) is not None:
             search[k] = getattr(args, k)
-    frozen = {"search": search, "phi": cfg["phi"], "eval": cfg["eval"], "restart": cfg["restart"]}
+    frozen = {
+        "search": search,
+        "phi": copy.deepcopy(cfg["phi"]),
+        "eval": copy.deepcopy(cfg["eval"]),
+        "restart": copy.deepcopy(cfg["restart"]),
+    }
+    if source_eval is not None:
+        frozen["eval"]["emit_args"] = source_eval["emit_args"]
+    elif args.base_emit_args is not None:
+        frozen["eval"]["emit_args"] = shlex.split(args.base_emit_args)
 
     # pin 现场：目标仓库基线 commit + config 声明的只读引用仓库
-    target_base = args.base_commit or git_target("rev-parse", "HEAD")
+    target_base_ref = args.base_commit or (source_eval or {}).get("commit") or "HEAD"
+    target_base = git_target("rev-parse", f"{target_base_ref}^{{commit}}")
+    if source_eval is not None and args.base_commit is not None:
+        source_commit = git_target("rev-parse", f"{source_eval['commit']}^{{commit}}")
+        if target_base != source_commit:
+            print(f"[FAIL] --base-commit {target_base[:12]} 与 --base-eval "
+                  f"{args.base_eval} 的 commit {source_commit[:12]} 不一致", file=sys.stderr)
+            return 1
+
+    run_dir = runs_root / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+
     pin_commits = {}
     for repo in cfg["repos"].get("pin", []):
         pin_commits[repo] = subprocess.run(
@@ -335,6 +447,16 @@ def cmd_init_run(args) -> int:
         trajectories.append({"id": tid, "branch": br, "tip": target_base,
                              "steps_completed": 0, "best": None})
 
+    baseline_sides = list(cfg.get("baseline_sides", ["base"]))
+    eval_start = next_task_eval_number()
+    baseline_eval_ids = {
+        side: f"e{eval_start + index:05d}" for index, side in enumerate(baseline_sides)
+    }
+    base_solution = {
+        "commit": target_base,
+        "emit_args": list(frozen["eval"].get("emit_args", [])),
+        "source_eval": source_eval,
+    }
     manifest = {
         "run_id": run_id,
         "task": task_name(),
@@ -345,10 +467,16 @@ def cmd_init_run(args) -> int:
             "target_repo": cfg["repos"]["target"],
             "target_base_commit": target_base,
             "target_base_branch": base_branch,
+            "target_base_solution": base_solution,
             "repos": pin_commits,
             # run-init action 里对每个 input 补测 sha256 后回填
             "inputs": [dict(i) for i in cfg.get("inputs", [])],
         },
+        "eval_sequence": {
+            "start": eval_start,
+            "next": eval_start + len(baseline_sides),
+        },
+        "baseline_eval_ids": baseline_eval_ids,
         "baselines": {},
         "notes": [],
     }
@@ -362,8 +490,10 @@ def cmd_init_run(args) -> int:
         "created_at": now_iso(),
         "config": frozen,
         "pins": manifest["pins"],
-        "baseline_sides": list(cfg.get("baseline_sides", ["base"])),
-        "baselines": {s: None for s in cfg.get("baseline_sides", ["base"])},
+        "baseline_sides": baseline_sides,
+        "baseline_eval_ids": baseline_eval_ids,
+        "eval_sequence": manifest["eval_sequence"],
+        "baselines": {s: None for s in baseline_sides},
         "trajectories": trajectories,
         "current_step": None,
         "round_summaries_done": [],
@@ -375,6 +505,10 @@ def cmd_init_run(args) -> int:
     save_run(run)
     print(f"[OK] [{task_name()}] run {run_id} 已初始化：base={target_base[:12]} 分支 {base_branch} + "
           f"{search['C']} 条轨迹；N={manifest['budget_N']}")
+    if source_eval is not None:
+        print(f"  y0 来源: {source_eval['run']}/{source_eval['eval_id']}，"
+              f"冻结 {len(base_solution['emit_args'])} 个 emit 参数")
+    print("  基线 eval: " + ", ".join(f"{side}={eid}" for side, eid in baseline_eval_ids.items()))
     print("下一步：按 playbook 完成 run-init action（输入指纹 + 基线测量 + record-baseline）")
     _refresh_dashboard()
     return 0
@@ -387,6 +521,17 @@ def cmd_record_baseline(args) -> int:
         return 1
     result = load_json(REPO / args.result)
     side = args.side
+    if side not in run.get("baselines", {}):
+        print(f"[FAIL] 未知 baseline side: {side}", file=sys.stderr)
+        return 1
+    if run["baselines"][side] is not None:
+        print(f"[FAIL] baseline {side} 已登记", file=sys.stderr)
+        return 1
+    expected = (run.get("baseline_eval_ids") or {}).get(side)
+    if expected is not None and result.get("eval_id") != expected:
+        print(f"[FAIL] baseline {side} 必须使用已预留的 {expected}，"
+              f"结果却是 {result.get('eval_id')}", file=sys.stderr)
+        return 1
     primary = load_config().get("primary_baseline")
     entry = {
         "eval_id": result["eval_id"], "run": run["run_id"], "trajectory": None,
@@ -394,6 +539,7 @@ def cmd_record_baseline(args) -> int:
         "commit": run["pins"]["target_base_commit"] if side == primary else None,
         "proposal_nodes": [], "status": result["status"],
         "score": result.get("score"), "host_ms": result.get("host_ms"),
+        "emit_args": result.get("emit_args"),
         "hypothesis": f"{side} baseline", "insight": args.insight or "",
         "committed": True, "ts": now_iso(), "kind": f"baseline-{side}",
         "result_json": args.result,
@@ -405,7 +551,8 @@ def cmd_record_baseline(args) -> int:
     run["counters"]["evals"] += 1
     if side == primary and result["status"] == "ok":
         run["best_overall"] = {"eval_id": result["eval_id"], "score": result["score"],
-                               "commit": run["pins"]["target_base_commit"]}
+                               "commit": run["pins"]["target_base_commit"],
+                               "emit_args": result.get("emit_args")}
     save_run(run)
     print(f"[OK] {side} 基线已登记: {result.get('score')} (eval {result['eval_id']})")
     _refresh_dashboard()
@@ -417,6 +564,10 @@ def cmd_record_baseline(args) -> int:
 # ---------------------------------------------------------------------------
 
 def next_eval_ids(run: dict, k: int) -> list[str]:
+    sequence = run.get("eval_sequence")
+    if sequence is not None:
+        base = sequence["next"]
+        return [f"e{base + i:05d}" for i in range(k)]
     base = run["counters"]["evals"]
     return [f"e{base + i + 1:05d}" for i in range(k)]
 
@@ -449,6 +600,8 @@ def cmd_begin_step(args) -> int:
 
     run["current_step"] = {"trajectory": tid, "step": step, "proposal": proposal_rel,
                            "candidates": candidates, "started_at": now_iso()}
+    if run.get("eval_sequence") is not None:
+        run["eval_sequence"]["next"] += K
     save_run(run)
 
     # 生成 Φ proposal（选历史节点 + 组装上下文）
@@ -497,6 +650,7 @@ def cmd_record_eval(args) -> int:
         "step": cs["step"], "candidate": cand["k"], "branch": cand["branch"], "commit": commit,
         "proposal_nodes": cs.get("proposal_nodes", []),
         "status": result["status"], "score": result.get("score"), "host_ms": result.get("host_ms"),
+        "emit_args": result.get("emit_args"),
         "hypothesis": args.hypothesis, "insight": args.insight or "",
         "committed": False, "ts": now_iso(), "kind": "candidate",
         "result_json": args.result,
@@ -508,7 +662,8 @@ def cmd_record_eval(args) -> int:
     if result["status"] == "ok" and result.get("score") is not None:
         bo = run.get("best_overall")
         if bo is None or result["score"] > bo["score"]:
-            run["best_overall"] = {"eval_id": result["eval_id"], "score": result["score"], "commit": commit}
+            run["best_overall"] = {"eval_id": result["eval_id"], "score": result["score"],
+                                   "commit": commit, "emit_args": result.get("emit_args")}
     save_run(run)
     print(f"[OK] 评估已登记: {result['eval_id']} status={result['status']} score={result.get('score')}")
     remaining = [c["k"] for c in cs["candidates"] if c["status"] != "done"]
@@ -751,6 +906,8 @@ def main() -> int:
 
     p = sub.add_parser("init-run")
     p.add_argument("--run-id"); p.add_argument("--base-commit")
+    p.add_argument("--base-eval", help="restart 参数表型来源，格式 <run>/<eval-id>")
+    p.add_argument("--base-emit-args", help="无来源 eval 时显式指定完整 y0 emit 参数")
     p.add_argument("--C", type=int); p.add_argument("--L", type=int); p.add_argument("--K", type=int)
     p.add_argument("--force", action="store_true")
 

@@ -10,12 +10,13 @@
 `python3 tes/tools/tesctl.py next` 得到唯一 action，按 [playbook.md](playbook.md)
 执行到底后停止。系统无状态：所有进度在任务目录的文件里。
 
-**无人值守模式**：`tmux new -s tesloop 'tes/tools/tesloop.sh [task]'`（task 缺省
-grhsim-am-coremark；全机器同时只允许一个 tesloop 实例）。tesloop 每轮起一个
-全新的 `kimi -p` 会话（等价手动 /new + /goal，每个 action 独立上下文），run 收口
+**无人值守模式**：Kimi 使用 `tmux new -s tesloop 'tes/tools/tesloop.sh [task]'`，
+Codex 使用 `tmux new -s tesloop-codex 'tes/tools/tesloop-codex.sh [task]'`（task 缺省
+grhsim-am-coremark；两个脚本共用锁，全机器同时只允许一个 tesloop 实例）。tesloop
+每轮起一个全新的非交互会话（每个 action 独立上下文），run 收口
 （run-summary 完成）后自动停止，等用户裁决 restart。中断（网络/断电/手动停止）后
 重跑同一命令即从状态机断点续跑：step 内已评估的候选由 ledger 锚定，以 step-resume
-续跑剩余候选，不重跑已完成者。日志在 `build/logs/tesloop/`。kimi 会话失败默认重试
+续跑剩余候选，不重跑已完成者。日志在 `build/logs/tesloop/`。会话失败默认重试
 3 次（间隔 300s，`TESLOOP_RETRIES`/`TESLOOP_RETRY_DELAY` 可调），连续失败则停止待
 人工检查。断电重启后 tesloop 不会自动拉起，需人工重跑（或自行配 systemd/@reboot）。
 
@@ -30,14 +31,15 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 已收口，restart 待用户裁决**（C=2 L=8 K=2，N=32 走满；y0 = r001 best `9c0a89db`） | r002 run-summary（A0058）：真值 best t0 tip **295.042s**（快态簇锚）/ 301.081s（同窗确认 -11.41%），t1 322.762s；对 gsim ≈6.3-6.4x 未达成；确认机制族 = scan-branch-hints × task outline × 调度点 × 宽链融合 × concat 内联迁移（迁移三连中）；commit 相省指令/门控类整体关闭；建议 restart（y0 = t0 tip `79719b2d`，restart.max 已消耗需放宽），详见 [runs/r002/summary.md](grhsim-am-coremark/runs/r002/summary.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，run-init 已完成**（C=2 L=8 K=2） | y0 = r002/e00007 完整解（`ecb4c3f3` + 10 开关）；AM e00051 **363.995s**、gsim e00052 **45.864s**，起跑 7.936x；固定 3 rep、无安慰剂席位，next = t0/s01（e00053/e00054），详见 [A0059](grhsim-am-coremark/actions/A0059_run-init_r003_e00007精确解与双基线_20260822.md) |
 
 ## 共享件
 
 - `goal.md` — /goal 入口文件（固定流程 + 纪律）
 - `playbook.md` — 各 action 类型的操作步骤
 - `tools/tesctl.py` — 调度器/状态机（`--task` 指定任务，单任务自动解析）
-- `tools/tesloop.sh` — 无人值守循环驱动（断点续跑，用法见上「驱动方式」）
+- `tools/tesloop.sh` / `tools/tesloop-codex.sh` — Kimi / Codex 无人值守循环驱动
+  （断点续跑，用法见上「驱动方式」）
 - `tools/phi.py` — Φ / RPUCG 提案构造
 - `DESIGN.md` / `RULES.md` — 设计与纪律（任务无关部分）
 
