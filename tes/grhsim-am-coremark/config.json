@@ -22,10 +22,10 @@
  "primary_baseline": "am",
  "baseline_note": "am = 目标仓库基线的全流水线评估（evaluator.py run）；gsim = 对现存 emu 的协议化计时（evaluator.py gsim），作为要超越的 target。",
  "search": {
-  "C": 3,
+  "C": 2,
   "L": 8,
   "K": 2,
-  "note": "N = C*L*K 次评估查询。本问题属增量工程精修型（论文建议 L 重、K 适中）；单次评估 ~35-50min 串行，默认 N=48。"
+  "note": "N = C*L*K 次评估查询。r003 沿用 r002 收口建议的 C=2/L=8/K=2（N=32）：一轨推进 compute 长尾本体，一轨做迁移验证与 commit 数据侧；K=2 保留一席同窗安慰剂锚点。"
  },
  "phi": {
   "gamma": 0.9,
@@ -37,9 +37,11 @@
   "note": "RPUCG 参数。cross_trajectory=false 保持轨迹独立（串行等价于论文并行语义）；跨轨迹学习只经 restart 发生。"
  },
  "eval": {
-  "reps": 3,
+  "reps": 5,
   "max_reps": 5,
   "cv_max": 0.05,
+  "cluster_gap_ratio": 1.12,
+  "cluster_min_reps": 2,
   "core": 12,
   "rep_cores": [12, 13, 14],
   "cycles": 50000,
@@ -79,7 +81,7 @@
   ],
   "vm_build_jobs": 128,
   "compile_budget_sec": 2400,
-  "note": "计时与计数分离：正式 reps 不开任何 profile/插桩。rep_cores = reps 批内并行绑的独立物理核（2026-08-20 起，用户指示：384 核机器上 rep 绑核并行替代串行；12/13/14 同属 socket 0、非 SMT 兄弟；缺省退回 core 单核串行语义）。difftest 逐位一致（golden 计数）是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout（不进入计时）；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。",
+  "note": "计时与计数分离：正式 reps 不开任何 profile/插桩。r003 起固定 5 rep；rep_cores = reps 批内并行绑的独立物理核（12/13/14 同属 socket 0、非 SMT 兄弟），5 rep 分 3+2 两批执行，批次间串行。排序后若最大相邻比值 >= cluster_gap_ratio 且两侧各至少 cluster_min_reps 个样本，则识别为快/慢双簇，score 取快簇中位；同时保留 raw median/CV 与两簇明细。1.12 高于 r002 已见连续漂移约 6%，又能检出 e00032 的 1.165 断点。difftest 逐位一致（golden 计数）是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout（不进入计时）；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。",
   "golden_tol": {
    "instrCnt": 16,
    "cycleCnt": 8,
@@ -87,7 +89,7 @@
   }
  },
  "restart": {
-  "max": 1,
+  "max": 2,
   "auto": false
  },
  "retention": {

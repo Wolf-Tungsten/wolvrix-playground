@@ -93,6 +93,69 @@ def no_other_emu() -> bool:
     return r.returncode != 0
 
 
+def _median(values: list[int]) -> int | float:
+    value = statistics.median(values)
+    return int(value) if float(value).is_integer() else value
+
+
+def _cv(values: list[int]) -> float:
+    return statistics.stdev(values) / statistics.mean(values) if len(values) > 1 else 0.0
+
+
+def summarize_host_times(times: list[int], gap_ratio: float,
+                         min_cluster_reps: int) -> dict:
+    """Summarize rep times, separating the known fast/slow process modes when present."""
+    if not times:
+        raise ValueError("times must not be empty")
+    if gap_ratio <= 1.0:
+        raise ValueError("gap_ratio must be greater than 1")
+    if min_cluster_reps < 1:
+        raise ValueError("min_cluster_reps must be positive")
+
+    ordered = sorted(times)
+    raw_median = _median(ordered)
+    raw_cv = _cv(ordered)
+    splits = []
+    for split in range(min_cluster_reps, len(ordered) - min_cluster_reps + 1):
+        ratio = ordered[split] / ordered[split - 1]
+        if ratio >= gap_ratio:
+            splits.append((ratio, split))
+
+    def cluster(name: str, values: list[int]) -> dict:
+        return {
+            "name": name,
+            "count": len(values),
+            "reps": values,
+            "median": _median(values),
+            "cv": round(_cv(values), 4),
+        }
+
+    if splits:
+        observed_gap, split = max(splits)
+        clusters = [cluster("fast", ordered[:split]), cluster("slow", ordered[split:])]
+        selected = clusters[0]
+        selection = "fast_cluster"
+        bimodal = True
+    else:
+        observed_gap = None
+        clusters = [cluster("all", ordered)]
+        selected = clusters[0]
+        selection = "all_reps"
+        bimodal = False
+
+    return {
+        "reps": times,
+        "median": selected["median"],
+        "cv": selected["cv"],
+        "raw_median": raw_median,
+        "raw_cv": round(raw_cv, 4),
+        "bimodal": bimodal,
+        "selection": selection,
+        "cluster_gap_ratio": round(observed_gap, 4) if observed_gap is not None else None,
+        "clusters": clusters,
+    }
+
+
 def _run_rep_batch(emu: Path, cwd: Path, run_dir: Path,
                    start_idx: int, count: int, cores: list[str]) -> list[dict]:
     """并行起跑 count 个 rep（各绑 rep_cores 中不同物理核），全部结束后按 rep 序返回。
@@ -148,11 +211,12 @@ def _run_rep_batch(emu: Path, cwd: Path, run_dir: Path,
 
 
 def run_reps(emu: Path, run_dir: Path, run_cwd: Path | None = None) -> dict:
-    """协议化计时 reps。返回 {status, reps:[...], median, cv, noisy}。
+    """协议化计时 reps。返回状态、原始 reps 与簇感知 Host 时间摘要。
 
     emu 可为绝对路径或 run_cwd 下的相对名（如 Path("emu") + run_cwd=emu 构建目录）。
     reps 批内并行：每 rep 绑 eval.rep_cores 中一个独立物理核（缺省退回 eval.core
-    单核串行语义）；批次间串行，CV 超标时按 max_reps 上限加测新批次。
+    单核串行语义）；批次间串行。若 reps 小于 max_reps，CV 超标时继续加测。
+    完成后按配置的相邻比值与最小簇大小检测快/慢双簇，双簇时 score 取快簇中位。
     """
     ev = EVAL_CFG
     golden = ev["golden"]
@@ -187,17 +251,25 @@ def run_reps(emu: Path, run_dir: Path, run_cwd: Path | None = None) -> dict:
         if len(times) != len(reps):
             status = "parse_fail"
             break
-        cv = statistics.stdev(times) / statistics.mean(times) if len(times) > 1 else 0.0
+        if len(reps) < target_reps:
+            continue
+        cv = _cv(times)
         if cv <= ev["cv_max"] or len(reps) >= ev["max_reps"]:
             break
         target_reps = min(len(reps) + 1, ev["max_reps"])  # 超噪声带则加测
     times = [r["host_ms"] for r in reps if r["host_ms"] is not None]
     out = {"status": status, "reps": reps}
     if times and all(r.get("difftest_ok") for r in reps):
-        med = statistics.median(times)
-        cv = statistics.stdev(times) / statistics.mean(times) if len(times) > 1 else 0.0
-        out.update({"host_ms": {"reps": times, "median": med, "cv": round(cv, 4)},
-                    "noisy": cv > ev["cv_max"], "score": -med})
+        host = summarize_host_times(
+            times,
+            ev.get("cluster_gap_ratio", float("inf")),
+            ev.get("cluster_min_reps", 2),
+        )
+        out.update({"host_ms": host,
+                    "bimodal": host["bimodal"],
+                    "raw_noisy": host["raw_cv"] > ev["cv_max"],
+                    "noisy": host["cv"] > ev["cv_max"],
+                    "score": -host["median"]})
     return out
 
 

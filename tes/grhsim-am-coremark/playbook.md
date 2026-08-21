@@ -75,6 +75,9 @@ python3 tes/grhsim-am-coremark/evaluator.py run --worktree <worktree> --eval-id 
 ## 结果解读速查
 
 - `result.json.status`: ok / build_fail / ctest_fail / emit_fail / difftest_fail /
-  timeout / compile_timeout / noisy(ok 但 CV 超标) / interference（外部干扰，排除后重跑）
-- `compile_s`：编译流程累计墙钟（预算 2400s）；`host_ms.median`：计时中位（score = -中位）。
+  timeout / compile_timeout / parse_fail / interference（外部干扰，排除后重跑）；
+  `noisy=true` 表示所选簇 CV 仍超标，`raw_noisy=true` 表示全部 reps 混合口径超标。
+- `compile_s`：编译流程累计墙钟（预算 2400s）；`host_ms.median`：用于 score 的
+  中位（双簇时为快簇中位，否则为全体中位，`score = -median`）。原始全体口径见
+  `host_ms.raw_median/raw_cv`，簇判定见 `host_ms.bimodal/cluster_gap_ratio/clusters`。
 - 逐阶段日志与 rep 日志都在 `build/tes/grhsim-am-coremark/evals/<eval_id>/`。

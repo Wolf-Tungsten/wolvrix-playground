@@ -1345,3 +1345,28 @@
   提请用户待决：rep 级簇分组裁决入 evaluator；基线重锚。
 - restart 建议：y0 = t0 tip `79719b2d95b91da141c01c74814da25292c1170d`；
   C/L/K 维持 2/8/2；config restart.max=1 已消耗，r003 需用户放宽。
+
+## r003 restart 启动前准备（2026-08-21，尚未 init-run）
+
+- 用户授权完成 r003 启动前准备，但明确要求本次不实际开始。边界实证：未调用
+  `tesctl init-run`，无 `runs/r003/`、无 `tes/r003/*` 分支、无 base worktree，
+  `state/run.json` 仍是 completed r002，`tesctl next` 仍为 `run-closed`。
+- restart 配置已按 A0058 建议准备：`restart.max` 1→2，默认搜索 C/L/K 从 3/8/2
+  调整为 **2/8/2（N=32）**；两轨分工保持「compute 长尾本体」与「迁移验证 +
+  commit 数据侧」，K=2 的另一席继续作为同窗安慰剂锚点。
+- r003 测量协议已在 run 外升级：固定 **5 rep**，沿用物理核 12/13/14 分 3+2
+  两批；排序后最大相邻比值 >=1.12 且两侧各 >=2 rep 时识别快/慢双簇，score
+  取快簇中位，同时记录 raw median/CV、断点与两簇明细。阈值 1.12 高于 r002
+  连续漂移上界约 6%，且可检出 e00032 排序样本的 343664/295042 = 1.165 断点。
+  e00032 离线回放：旧跨簇 median 343.664s → 快簇 [295.038, 295.042] 中位
+  **295.040s**；singleton 异常值因最小簇 2 不会被误认成模式。纯离线单测覆盖
+  双簇、单簇、singleton、最大断点与固定 5 rep 的 3+2 批控制流。
+- 基线重锚不在准备阶段偷跑：下次真正执行 run-init action 时，用相同新协议重新测
+  AM y0 与 gsim target，避免复用 r002 晨间慢态污染的 619.019/46.792s。
+- 启动锚点预检：wolvrix commit 与 `tes/r002/t0/main` 均指向
+  `79719b2d95b91da141c01c74814da25292c1170d`；post-stats 输入仍为
+  `cbd78c0b127dfb3bbbb005d06594242846a9d1cf35944de0720d7cf3031b3246`；
+  `reference/gsim` / `testcase/xiangshan` pin 可读，gsim emu 存在且可执行。
+- 下一次获准实际开始时的唯一入口：`python3 tes/tools/tesctl.py init-run
+  --run-id r003 --base-commit 79719b2d95b91da141c01c74814da25292c1170d --C 2 --L 8 --K 2`，
+  随后在同一个 run-init action 内完成输入指纹回填、AM/gsim 双基线、记录与收口。

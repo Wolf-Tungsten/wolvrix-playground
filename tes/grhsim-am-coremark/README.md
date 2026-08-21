@@ -1,11 +1,19 @@
 # 任务 grhsim-am-coremark
 
 **目标**：grhsim-am emu 仿真 xiangshan coremark 50k（`-C 50000`）的 Host wall time
-（3-rep 中位、绑核、串行）≤ gsim 同等负载同协议测量值。任务指令见 [brief.md](brief.md)
+（固定 5 rep、快慢簇感知中位、绑核、评估间串行）≤ gsim 同等负载同协议测量值。任务指令见 [brief.md](brief.md)
 （x0，run 期间冻结），参数见 [config.json](config.json)。
 
 ## 当前状态速览
 
+- **r003 restart 准备完成但未启动**（2026-08-21）：用户授权完成启动前准备，未调用
+  `init-run`、未建 r003 分支/worktree、未跑基线。默认已设为建议值 C=2/L=8/K=2
+  （N=32），restart.max 1→2；y0 `79719b2d`、输入 sha256 `cbd78c0b…3246`、只读 pin
+  与 gsim emu 均已预检可达。r003 起采用固定 5 rep（3+2 批）和快/慢双簇裁决：
+  最大相邻比值 >=1.12 且两侧各 >=2 rep 时 score 取快簇中位，并保留 raw 与两簇
+  明细；e00032 历史样本离线回放从伪 343.664s 正确选到快簇 295.040s。启动时仍须
+  按 run-init action 对 AM y0 与 gsim **重新测量双基线**。当前状态机保持
+  `run-closed`
 - **r002 已收口**（2026-08-21，[A0058](actions/A0058_run-summary_r002收口与restart建议_20260821.md)，
   详见 [runs/r002/summary.md](runs/r002/summary.md)）：C=2/L=8/K=2，16/16 步走满，
   候选 32/32 恰好耗尽、全 ok。真值 best：t0 tip **295.042s**（快态簇锚）/
@@ -192,7 +200,7 @@
   t1 有效 emit_args 追加 task-body-outline。evals 14/32
 - 当前 run：**r002 已收口**（2026-08-21，A0058；C=2, L=8, K=2，N=32；base/y0 = r001 best
   `9c0a89db`；总结见 [runs/r002/summary.md](runs/r002/summary.md)）。无活跃 run，
-  restart 待用户裁决
+  r003 已完成启动前准备但按用户要求尚未启动
 - 基线（2026-08-20，新机器 + clang 21.1.8 + rep 绑核并行协议，3-rep 中位）：
   AM y0 = **619.0s**（e00001，CV ~0.0%）；gsim target = **46.8s**（e00002，
   CV ~0.0%）；**起跑差距 13.23x**。**⚠ 基线完整性红旗（A0035）**：e00001/e00002
