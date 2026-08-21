@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 5/8、t1 5/8） | t1/s05（A0048）：commit-write-branchless 同窗 +1.71% **证伪**（分支消除+向量化成立但恒写 dirty 流量为负，commit 写点分支结构轴关闭、数据侧 miss 主导跨轨迹互证）；recon-t1s05 新调度点池地图（commit 31.8%、b93159 族 31.1%、compute 墙钟缺口 ~104s）；t1 tip 本窗 359.269s；evals 22/32，下一步第 5 轮 round-summary |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 5/8、t1 5/8） | r002 第 5 轮 round-summary（A0049）：t0 wide-mux-chain-fuse 同窗 -2.19%（方向确认中间带，宽数组流扫族首个正收益）；t1 commit-write-branchless +1.71% **证伪**（commit 相省指令/分支结构类跨轨迹整体关闭、数据侧 miss 主导互证）；同代码跨窗漂移 ±5% 级连续分量，跨窗读数一律不裁；t1 发现最大无名池 = compute 墙钟/tick 缺口 ~104s（26%）；t0 tip 本窗 335.129s、t1 tip 本窗 359.269s；evals 22/32，下一步 t0/s06 |
 
 ## 共享件
 

@@ -6,6 +6,17 @@
 
 ## 当前状态速览
 
+- r002 第 5 轮 round-summary（2026-08-21，[A0049](actions/A0049_round-summary_第5轮跨轨迹小结_20260821.md)）：
+  两轨迹各完成 s05。**t0 winner e00019 wide-mux-chain-fuse 同窗 -2.19%**（335.129s
+  vs 安慰剂 342.632s，方向确认、量级落中间带，宽数组流扫族在 r002 首个正收益，
+  已入 t0/main）；**t1 c1 commit-write-branchless 同窗 +1.71% 证伪**（静态形态
+  成立但恒写 dirty 流量为负，误预测非 b93159 族主导），winner = 安慰剂锚点
+  e00022（t1/main 内容不变）。收敛：**commit 相省指令/分支结构类跨轨迹整体关闭**
+  （与 t0 A0041 数据侧 miss 主导互证），残余开放方向 = 数据侧机制 + compute 相
+  本体 + t1 新发现的最大无名池（compute 墙钟/tick 缺口 ~104s/26%）。测量学：
+  同代码跨窗漂移升格 ±5% 级连续分量，任意跨窗读数一律不裁。真值口径：t0 tip
+  本窗 335.129s、t1 tip 本窗 359.269s；vs 基线 ratio 仍不可裁。evals 22/32
+  （余 10 vs 剩余 12 候选席，末段或需单候选）
 - t1/s05（2026-08-21，[A0048](actions/A0048_step_t1s05_commit写点无分支化证伪与安慰剂锚点_20260821.md)）：
   **c1 `--commit-write-branchless` 证伪**（01078eb：ST00013 写点检测内层分支改
   条件移动 + flag OR 累积，off 259 文件 cmp 全等，on 全量转换 141,169 站、

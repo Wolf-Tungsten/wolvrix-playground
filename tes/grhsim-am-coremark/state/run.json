@@ -135,10 +135,11 @@
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
   "counters": {
-    "actions": 15,
+    "actions": 16,
     "evals": 22
   },
   "best_overall": {
@@ -247,6 +248,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0048_step_t1s05_commit写点无分支化证伪与安慰剂锚点_20260821.md",
       "ts": "2026-08-21T10:17:36+08:00"
+    },
+    {
+      "n": 16,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0049_round-summary_第5轮跨轨迹小结_20260821.md",
+      "ts": "2026-08-21T10:22:28+08:00"
     }
   ]
 }
