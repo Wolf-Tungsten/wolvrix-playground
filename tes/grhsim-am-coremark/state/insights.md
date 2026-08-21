@@ -1218,3 +1218,25 @@
   含 hints tip 本窗 301.081s。evals 28/32（余 4）；下一 action 按轮转为
   t1/s07，scan-branch-hints 跨轨迹迁移（t1 骨架池 ~104s × ~50% ≈ 5-7% 外推）
   为自然首选；s08 归属由 t1/s07 收口裁定。
+
+## r002/t1/s07 scan-branch-hints 跨轨迹迁移同窗确认 -5.69%（2026-08-21，action A0054）
+
+- **确认（e00029，winner，已入 t1/main）**：t0 A0053 机制（b9a671a）cherry-pick
+  迁移到 t1 链（`74b6d1e`，2 处冲突手工解决、剔除 t0 独有 sysTaskOutline 伴生
+  代码，解后 diff 与原 patch 同形 +261/-19）。Host 中位 **322.762s**（CV 0.0%，
+  17/17 ctest、3 rep difftest 全过，compile_s 690.4s），同窗安慰剂 e00030
+  （t1 tip 原样 + 6 旋钮）**342.230s** → **-5.69%**，越 4% 假设门、落 5-7%
+  外推区间。静态：提示 105,485 处（t0 105,479 逐数互证扫描链同构），runtime.cpp
+  零。捕获 ~23%（t1 池被 activity-summary-scan 预压，较 t0 ~50% 薄）。
+- **跨轨迹迁移二连中**：宽链融合（池比外推）× scan-branch-hints（捕获率外推
+  区间命中）——「数据侧/前端流式主导、省指令无效」判据正向逆用第二次成立；
+  dispatch 骨架跳过链亚池两轨迹各兑现约半，骨架轴接近关闭，s08 开放方向回到
+  compute 长尾本体与 commit 相纯数据侧（布局/预取，受 194MB 流扫带宽约束）。
+- **测量学**：同代码跨窗漂移样本 +1（第七点：t1 tip `4471846` 原样 s06 窗
+  364.464s → s07 窗 342.230s，-6.1% 快向，本窗为 t1 历史最快窗）。t1 真值
+  口径 = 本窗锚点 **342.230s**（e00030）、含 hints tip 本窗 **322.762s**
+  （e00029，t1 全部历史最低读数）。
+- t1 tip = `74b6d1e`，t1 有效 emit_args = CLI 默认调度点 + 5 旋钮 +
+  `--wide-mux-chain-fuse` + `--scan-branch-hints`。evals 30/32（余 2 = 恰好
+  一条轨迹的完整 s08：机制 + 锚点）；t0/t1 各 7/8 齐平，下一 action = 第 7 轮
+  round-summary，由它裁定 s08 归属。

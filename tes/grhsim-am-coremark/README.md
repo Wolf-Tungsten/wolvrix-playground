@@ -6,6 +6,18 @@
 
 ## 当前状态速览
 
+- t1/s07（2026-08-21，[A0054](actions/A0054_step_t1s07_scan分支提示跨轨迹迁移与安慰剂锚点_20260821.md)）：
+  **winner e00029 = 322.762s（`--scan-branch-hints` 跨轨迹迁移，t1 历史最低）**——
+  t0 A0053 同态 -11.41% 机制 cherry-pick 到 t1 链（74b6d1e，2 处冲突手工解决、
+  剔除 t0 独有 sysTaskOutline 伴生代码，diff 与原 patch 同形 +261/-19）；同窗
+  安慰剂 e00030（t1 tip 原样 + 6 旋钮）**342.230s** → **-5.69% 确认**（越 4%
+  假设门，落 5-7% 外推区间；提示 105,485 处与 t0 105,479 逐数互证扫描链同构）。
+  捕获 ~23%（t1 池含 activity-summary-scan 已压部分，较 t0 ~50% 薄）。跨轨迹
+  迁移二连中，「前端流式主导、省指令无效」判据正向逆用第二次成立。t1 有效
+  emit_args = CLI 默认调度点 + 5 旋钮 + wide-mux-chain-fuse + scan-branch-hints；
+  真值口径 = 本窗锚点 342.230s、含 hints tip 本窗 322.762s。测量学：跨窗漂移
+  样本第七点（t1 tip 原样 364.464→342.230s，-6.1% 快向）。evals 30/32（余 2 =
+  恰好一条轨迹的完整 s08）；下一 action = 第 7 轮 round-summary，裁定 s08 归属
 - t0/s07（2026-08-21，[A0053](actions/A0053_step_t0s07_scan分支提示与安慰剂锚点_20260821.md)）：
   **winner e00027 = 301.081s（`--scan-branch-hints`，r002 单步最大确认收益）**——
   先按 A0052 纪律做归因 recon（recon-t0s06，生产 emu perf 32k 样本）：dispatch

@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 7/8、t1 6/8） | t0/s07（A0053）：**scan-branch-hints 同窗 -11.41% 确认（301.081s vs 安慰剂 339.849s，r002 单步最大收益）**——recon-t0s06 归因落槌：dispatch 骨架 = eval_scan_* 跳过链 75-80s/22-24%（大步长取指流），`__builtin_expect` 冷块外置捕获 ~50%；t0 tip = `b9a671a`，emit_args = 12 旋钮 + scan-branch-hints；evals 28/32，下一步 t1/s07（首选该机制跨轨迹迁移，外推 5-7%） |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 7/8、t1 7/8） | t1/s07（A0054）：**scan-branch-hints 跨轨迹迁移同窗 -5.69% 确认（322.762s vs 安慰剂 342.230s，t1 历史最低，落 5-7% 外推区间）**——跨轨迹迁移二连中，「前端流式主导、省指令无效」判据正向逆用第二次成立；t1 tip = `74b6d1e`，emit_args = CLI 默认调度点 + 5 旋钮 + wide-mux-chain-fuse + scan-branch-hints；evals 30/32（余 2 = 一条轨迹的完整 s08），下一步第 7 轮 round-summary 裁定 s08 归属 |
 
 ## 共享件
 
