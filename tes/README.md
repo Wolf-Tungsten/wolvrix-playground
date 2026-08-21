@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 7/8、t1 7/8） | t1/s07（A0054）：**scan-branch-hints 跨轨迹迁移同窗 -5.69% 确认（322.762s vs 安慰剂 342.230s，t1 历史最低，落 5-7% 外推区间）**——跨轨迹迁移二连中，「前端流式主导、省指令无效」判据正向逆用第二次成立；t1 tip = `74b6d1e`，emit_args = CLI 默认调度点 + 5 旋钮 + wide-mux-chain-fuse + scan-branch-hints；evals 30/32（余 2 = 一条轨迹的完整 s08），下一步第 7 轮 round-summary 裁定 s08 归属 |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 7/8、t1 7/8） | 第 7 轮 round-summary（A0055）：**scan-branch-hints 双双同窗确认（t0 -11.41% → 301.081s × t1 迁移 -5.69% → 322.762s，双双历史最低）**——骨架跳过链亚池两轨迹兑现约半、骨架轴接近关闭；跨轨迹迁移二连中，「前端流式主导、省指令无效」判据正向逆用第二次成立；evals 30/32，s08 归属裁定给 t1（recon 先行，t0 空转） |
 
 ## 共享件
 
