@@ -136,10 +136,11 @@
     2,
     3,
     4,
-    5
+    5,
+    6
   ],
   "counters": {
-    "actions": 18,
+    "actions": 19,
     "evals": 26
   },
   "best_overall": {
@@ -268,6 +269,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0051_step_t1s06_宽链融合跨轨迹迁移与安慰剂锚点_20260821.md",
       "ts": "2026-08-21T13:39:52+08:00"
+    },
+    {
+      "n": 19,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0052_round-summary_第6轮跨轨迹小结_20260821.md",
+      "ts": "2026-08-21T13:47:57+08:00"
     }
   ]
 }

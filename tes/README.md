@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 6/8、t1 6/8） | t1/s06（A0051）：`--wide-mux-chain-fuse` 跨轨迹迁移同窗 **-1.17% 确认**（364.464s vs 安慰剂 368.763s，越 1.0% 门；收益/池比 ~46% 与 t0 一致 = 首个可定量迁移机制族；b69159 族链轴 t1 侧关闭）；winner e00025 已入 t1/main，t1 emit_args = 默认调度点 + 5 旋钮 + fuse；evals 26/32，下一步第 6 轮 round-summary |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 6/8、t1 6/8） | 第 6 轮 round-summary（A0052）：t0 commit-row-merge +3.25% 证伪（commit 相省指令/省往返类三次证伪整体关闭）、t1 宽链融合迁移 -1.17% 确认（首个可定量跨轨迹迁移机制族，链轴双侧关闭）；下一阶同向 = dispatch 骨架无名池（t0 ~95s/t1 ~104s，26%，归因 recon 先行）；末段座位裁决：余 6 evals vs 8 席，s08 只一条轨迹完整 step；真值口径 t0 tip 327.602s / t1 364.464s；evals 26/32，下一步 t0/s07 |
 
 ## 共享件
 
