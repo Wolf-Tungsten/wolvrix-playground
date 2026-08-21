@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 8/8、t1 7/8） | t0/s08（A0056）：c1 memory-fill-enable-gate 证伪（+9.1% 回退，不携带）；**批内首次直接检出 per-process 双态抽签**（安慰剂同批 295.0/389.2/295.0s，混合 median 反转机械 winner）；dispatch 骨架轴 annotate 直接证据关闭；t0 tip 快态锚 295.042s（历史最快）；evals 32/32（候选口径余 2），下一 action = t1/s08（recon 先行） |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 两轨迹收官**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 8/8、t1 8/8） | t1/s08（A0057）：c1 concat-insert-inline 跨轨迹迁移同窗确认 **-6.26%**（338.367s vs 安慰剂 361.025s；engagement 276,059→15,326 站，.o -8.4%）；recon-t1s07：helper 首位易主 insert_words 11.61%，dispatch 骨架轴 t1 侧 annotate 关闭；跨轨迹迁移三连中；evals 32/32 用完，下一 action = 第 8 轮 round-summary → run-summary |
 
 ## 共享件
 

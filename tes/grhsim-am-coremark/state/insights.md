@@ -1295,3 +1295,30 @@
 - t0 tip 真值口径 = 快态锚 **295.042s**（e00032 rep1/3，t0 历史最快）；t0 走完
   8/8，best 仍 e00007（抽签读数地位）。evals 32/32（含基线口径；候选 30/32，
   余 2 = t1/s08）；下一 action = t1/s08（A0055 裁定，recon 先行）。
+
+## r002/t1/s08 concat 插入内联跨轨迹迁移同窗确认 -6.26%（2026-08-21，action A0057）
+
+- **确认（e00033，winner，已入 t1/main）**：`--concat-insert-inline`（旋钮类
+  --allow-empty d153d13）——t0 链 r001 起携带的 splice 内联机制首次迁入 t1 链：
+  单字退化 concat/replicate/window-chain splice 从 outlined insert_words 动态
+  循环调用改内联单语句。Host 中位 **338.367s**（CV 0.91%，17/17 ctest、3 rep
+  difftest 全过，compile_s 799.9s），同窗安慰剂 e00034（t1 tip 原样 + 7 旋钮）
+  **361.025s** → **-6.26%**，越 4% 假设门（c1 最差 rep 对锚仍 -4.8%）。
+  engagement：insert_words 静态站点 276,059→15,326（-94.4%，残余为跨 word/
+  动态 lsb 站）；.o 总量 115.3→105.6MB（-8.4%）；emu_build 364.2s 无膨胀。
+- **跨轨迹迁移三连中**：宽链融合 × scan-branch-hints × concat-insert-inline
+  ——「不省指令、改数据/取指流形态」判据第三次正向逆用；t1 链与 t0 链在
+  splice 内联轴对齐（t1 有效 emit_args = CLI 默认调度点 + 5 旋钮 + fuse +
+  hints + concat-insert-inline，8 项）。
+- **recon-t1s07（hinted 生产 emu perf，45,319 样本，慢态窗 457.710s，金标过）**：
+  eval_scan_* 44.35% / block_chunk 29.12% / helper 23.88% / eval_commit 1.03%。
+  **dispatch 骨架轴 t1 侧 annotate 直接证据关闭**（eval_scan 热点全在内联块体
+  ALU，跳过链 ~0%，同 recon-t0s07）。**helper 首位易主 insert_words 11.61%**
+  （≈53s 慢态窗，annotate 成本摊在动态 helper 全身）——本步 c1 的池证据；
+  inline 后 slice_words_detect 3.61% 将升 helper 首位。
+- **测量学**：跨窗漂移样本 +1（第八点：t1 锚 342.230→361.025s，+5.5% 慢向）；
+  本窗两候选批内 CV≈0 无混杂。t1 真值口径 = 本窗锚点 **361.025s**（e00034）、
+  含 inline tip 本窗 **338.367s**（e00033）。
+- t1 走完 8/8；evals 候选口径 32/32 全部用完。r003 候选材料：残余 15,326 跨
+  word splice 站的 `--concat-insert-unroll` 单变量复测（t1 未携带，r001 弱正
+  未确认）。下一 action = 第 8 轮 round-summary → run-summary。

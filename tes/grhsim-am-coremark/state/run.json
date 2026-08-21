@@ -122,8 +122,8 @@
     {
       "id": "t1",
       "branch": "tes/r002/t1/main",
-      "tip": "74b6d1ed98d88197756e5a6eadea0c3211d240ea",
-      "steps_completed": 7,
+      "tip": "d153d13b7710f6037ccdbffd218fc3cbd607ab66",
+      "steps_completed": 8,
       "best": {
         "eval_id": "e00029",
         "score": -322762
@@ -141,8 +141,8 @@
     7
   ],
   "counters": {
-    "actions": 23,
-    "evals": 32
+    "actions": 24,
+    "evals": 34
   },
   "best_overall": {
     "eval_id": "e00007",
@@ -152,18 +152,19 @@
   "phi_selection_counts": {
     "e00001": 9,
     "e00003": 3,
-    "e00006": 3,
+    "e00006": 4,
     "e00007": 4,
     "e00009": 3,
     "e00012": 1,
-    "e00013": 2,
+    "e00013": 3,
     "e00015": 2,
     "e00017": 2,
     "e00019": 2,
-    "e00022": 1,
+    "e00022": 2,
     "e00024": 1,
     "e00025": 1,
-    "e00027": 1
+    "e00027": 1,
+    "e00029": 1
   },
   "history": [
     {
@@ -303,6 +304,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0056_step_t0s08_MemoryFill使能门控与批内双态检出_20260821.md",
       "ts": "2026-08-21T18:18:19+08:00"
+    },
+    {
+      "n": 24,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0057_step_t1s08_concat插入内联跨轨迹迁移与安慰剂锚点_20260821.md",
+      "ts": "2026-08-21T19:22:04+08:00"
     }
   ]
 }

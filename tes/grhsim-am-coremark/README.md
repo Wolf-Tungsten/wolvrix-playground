@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- t1/s08（2026-08-21，[A0057](actions/A0057_step_t1s08_concat插入内联跨轨迹迁移与安慰剂锚点_20260821.md)）：
+  **c1 concat-insert-inline 跨轨迹迁移确认 -6.26%**（t0 链 r001 起携带、首次迁入
+  t1：单字退化 splice 从 outlined insert_words 动态循环改内联单语句；338.367s vs
+  同窗安慰剂 361.025s，越 4% 假设门；engagement 站点 276,059→15,326，.o -8.4%，
+  emu_build 无膨胀）；**recon-t1s07 刷新 t1 池地图**（hinted emu perf 45,319 样本：
+  helper 首位易主 insert_words 11.61%；eval_scan annotate 证实跳过链 ~0%，dispatch
+  骨架轴 t1 侧直接证据关闭）；跨轨迹迁移三连中。**t1 走完 8/8，r002 两轨迹收官**，
+  evals 候选口径 32/32 用完；t1 真值口径 = 本窗 338.367s（锚 361.025s）。下一
+  action = 第 8 轮 round-summary → run-summary
 - t0/s08（2026-08-21，[A0056](actions/A0056_step_t0s08_MemoryFill使能门控与批内双态检出_20260821.md)）：
   **c1 memory-fill-enable-gate 证伪**（mem.fill 折入 cond 门控逐元素 detect 扫描，
   engagement 191 站/41,748 元素，off 逐字节等价实证；321.922s vs 同窗安慰剂快态簇
