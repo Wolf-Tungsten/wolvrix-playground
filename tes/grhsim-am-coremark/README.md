@@ -6,6 +6,18 @@
 
 ## 当前状态速览
 
+- t0/s08（2026-08-21，[A0056](actions/A0056_step_t0s08_MemoryFill使能门控与批内双态检出_20260821.md)）：
+  **c1 memory-fill-enable-gate 证伪**（mem.fill 折入 cond 门控逐元素 detect 扫描，
+  engagement 191 站/41,748 元素，off 逐字节等价实证；321.922s vs 同窗安慰剂快态簇
+  295.042s = **+9.1% 回退**，commit 相「条件门控省流量」首试即败、不携带）；
+  **测量学突破：批内首次直接检出 per-process 双态抽签**（安慰剂同批 3 rep
+  295.0/389.2/295.0s，CV 12.35% 触发 5 rep，混合 median 343.664s 为 artifact 且
+  反转了机械 winner——finish-step 按记分板合入 c1，内容无害：旋钮默认 off 逐字节
+  等价）；**dispatch 骨架轴以 annotate 直接证据关闭**（recon-t0s07 hinted emu perf：
+  eval_scan_* 46.61% 自时间全为内联块体、跳过链 ~0%）。t0 tip 真值口径 = 快态锚
+  **295.042s**（历史最快）；t0 走完 8/8。evals 32/32（候选口径 30/32，余 2 =
+  t1/s08）；下一 action = t1/s08（A0055 裁定，recon 先行）。协议升级提请：rep 级
+  按快/慢簇分组裁决，弃用跨簇 median
 - r002 第 7 轮 round-summary（2026-08-21，[A0055](actions/A0055_round-summary_第7轮跨轨迹小结_20260821.md)）：
   两轨迹各完成 s07，**scan-branch-hints 双双同窗确认——t0 -11.41%**（301.081s
   vs 安慰剂 339.849s，捕获 ≈ 骨架池 75-80s 的 ~50%，r002 单步最大确认收益）

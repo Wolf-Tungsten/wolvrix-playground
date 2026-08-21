@@ -112,8 +112,8 @@
     {
       "id": "t0",
       "branch": "tes/r002/t0/main",
-      "tip": "b9a671a12b937b92f10d5f4aef739481ecef015b",
-      "steps_completed": 7,
+      "tip": "79719b2d95b91da141c01c74814da25292c1170d",
+      "steps_completed": 8,
       "best": {
         "eval_id": "e00007",
         "score": -261543
@@ -141,8 +141,8 @@
     7
   ],
   "counters": {
-    "actions": 22,
-    "evals": 30
+    "actions": 23,
+    "evals": 32
   },
   "best_overall": {
     "eval_id": "e00007",
@@ -150,19 +150,20 @@
     "commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb"
   },
   "phi_selection_counts": {
-    "e00001": 8,
+    "e00001": 9,
     "e00003": 3,
     "e00006": 3,
-    "e00007": 3,
+    "e00007": 4,
     "e00009": 3,
     "e00012": 1,
     "e00013": 2,
     "e00015": 2,
     "e00017": 2,
-    "e00019": 1,
+    "e00019": 2,
     "e00022": 1,
     "e00024": 1,
-    "e00025": 1
+    "e00025": 1,
+    "e00027": 1
   },
   "history": [
     {
@@ -296,6 +297,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0055_round-summary_第7轮跨轨迹小结_20260821.md",
       "ts": "2026-08-21T16:07:13+08:00"
+    },
+    {
+      "n": 23,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0056_step_t0s08_MemoryFill使能门控与批内双态检出_20260821.md",
+      "ts": "2026-08-21T18:18:19+08:00"
     }
   ]
 }
