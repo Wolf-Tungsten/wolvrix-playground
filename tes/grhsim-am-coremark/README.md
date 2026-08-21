@@ -6,6 +6,17 @@
 
 ## 当前状态速览
 
+- t1/s05（2026-08-21，[A0048](actions/A0048_step_t1s05_commit写点无分支化证伪与安慰剂锚点_20260821.md)）：
+  **c1 `--commit-write-branchless` 证伪**（01078eb：ST00013 写点检测内层分支改
+  条件移动 + flag OR 累积，off 259 文件 cmp 全等，on 全量转换 141,169 站、
+  反汇编证实分支消除+SSE 向量化成立）——e00021 = 365.427s，同窗安慰剂 e00022
+  （t1 tip 原样 + 5 旋钮）**359.269s** → **+1.71% 回退**（分支消除带来恒写
+  dirty 流量，误预测非该族主导成本）。**commit 写点分支结构轴关闭**，与 t0
+  A0041 互证 commit 相数据侧 miss 主导。winner = e00022（安慰剂空 commit
+  f167ae7，t1/main 内容不变）。recon-t1s05（新调度点首池地图）：总 702.1G
+  tick，commit 31.8%（b93159 族 43 块 31.1%、b93159 45cyc/atom）/ compute
+  68.2%，**compute 墙钟/tick 缺口 ~104s（26%）为最大无名池**。t1 tip 真值
+  本窗 359.269s。evals 22/32
 - t0/s05（2026-08-21，[A0047](actions/A0047_step_t0s05_宽广播mux链融合与安慰剂锚点_20260821.md)）：
   **winner e00019 = 335.129s**（`--wide-mux-chain-fuse`：broadcast(64 位源)→
   mux(elemWidth==64) 跨 atom 严格相邻链融合为单 pass helper，基座折叠、中间

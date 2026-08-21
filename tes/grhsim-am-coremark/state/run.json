@@ -122,11 +122,11 @@
     {
       "id": "t1",
       "branch": "tes/r002/t1/main",
-      "tip": "520b01784da374a7e9b51ad6a3edc77856b49f31",
-      "steps_completed": 4,
+      "tip": "f167ae7a17090afcce9af24974a8cce5926e742b",
+      "steps_completed": 5,
       "best": {
-        "eval_id": "e00017",
-        "score": -368963
+        "eval_id": "e00022",
+        "score": -359269
       }
     }
   ],
@@ -138,8 +138,8 @@
     4
   ],
   "counters": {
-    "actions": 14,
-    "evals": 20
+    "actions": 15,
+    "evals": 22
   },
   "best_overall": {
     "eval_id": "e00007",
@@ -147,14 +147,15 @@
     "commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb"
   },
   "phi_selection_counts": {
-    "e00001": 5,
+    "e00001": 6,
     "e00003": 2,
     "e00006": 2,
     "e00007": 2,
-    "e00009": 1,
+    "e00009": 2,
     "e00012": 1,
     "e00013": 1,
-    "e00015": 1
+    "e00015": 1,
+    "e00017": 1
   },
   "history": [
     {
@@ -240,6 +241,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0047_step_t0s05_宽广播mux链融合与安慰剂锚点_20260821.md",
       "ts": "2026-08-21T08:57:58+08:00"
+    },
+    {
+      "n": 15,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0048_step_t1s05_commit写点无分支化证伪与安慰剂锚点_20260821.md",
+      "ts": "2026-08-21T10:17:36+08:00"
     }
   ]
 }

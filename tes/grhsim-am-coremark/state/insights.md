@@ -1073,3 +1073,30 @@
   40.5G 居首）/ compute 长尾 52.8% / 守卫残余 5.84%；b69159 族 15.4G 持平。
 - t0 有效 emit_args = 11 旋钮 + `--wide-mux-chain-fuse`（+sys-task-body-outline
   等全链须显式携带）。evals 20/32；下一 action 按轮转为 t1/s05。
+
+## r002/t1/s05 commit 写点无分支化证伪与新调度点池地图（2026-08-21，action A0048）
+
+- **证伪（e00021）**：`--commit-write-branchless`（01078eb，ST00013 写点检测
+  内层分支改条件移动 + flag OR 累积，off 259 文件 cmp 全等，含单测与文档）
+  365.427s，同窗安慰剂 e00022（t1 tip 520b017 原样 + 5 旋钮）**359.269s**
+  → **+1.71% 回退**。静态形态确切成立（`if (wrNext_` 141,169→0，b93159
+  chunk 反汇编由 mov+and+cmp+jne 跳远冷路径变为 movdqu+pand SSE 向量化
+  直线码）但运行时为负：**内层分支误预测不是 b93159 族主导成本**，恒写使
+  未变更槽 cache line 无条件 dirty（commit 相每 eval ~1.4MB 目的流写回流量
+  增加）。**commit 写点检测分支结构轴关闭**；与 t0 A0041「数据侧 miss 主导、
+  省指令无效」互证并外推到窄站写口阵列——commit 相省指令/分支结构类整体
+  关闭，残余开放方向只剩纯数据侧（且受 194MB 流扫带宽约束）。
+- **recon-t1s05（CLI 默认调度点首池地图，插桩 Host 399.554s，金标过）**：
+  总 702.1G tick；rounds 恒定 2.00/eval 第三次互证。commit 31.8%（43 个
+  per-eval commit 块 31.1%；b93159 5.47%、383k cyc/exec ≈ 45cyc/atom，源/目
+  变量连续声明 = unit-stride 流）/ compute 68.2%（守卫整块残余 3.75%、
+  b93085 2.0%、b83835 1.3%、b69159 族 2.25%、长尾 52.4%）。**compute 相
+  墙钟/tick 缺口 ~104s（墙钟 303.9s vs tick 折时 199.4s，26%）= t1 最大
+  无名池**（扫描/激活簿记/调派胶，activity-summary-scan 携带下仍存）——
+  需归因 recon 分解后再候选，不宜盲试。
+- **测量学**：同代码跨窗漂移样本 +1（520b017+5 旋钮：s04 窗 368.963s vs
+  s05 窗 359.269s，-2.6%）；本窗为 t1 最快窗口。t1 tip 真值口径 = 本窗
+  锚点 **359.269s**（e00022）。
+- t1 tip = `f167ae7`（内容 = 520b017），t1 有效 emit_args = CLI 默认调度点
+  + 5 旋钮（commit-write-branchless 不携带）。evals 22/32；t0/t1 各 5/8
+  齐平，下一 action = 第 5 轮 round-summary。

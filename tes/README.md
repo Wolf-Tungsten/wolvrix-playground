@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 5/8、t1 4/8） | t0/s05（A0047）：wide-mux-chain-fuse 同窗 -2.19%（方向确认、未越 3% 门）；recon-t0s04 池地图刷新（守卫池 9.3→5.8%）；同代码跨窗漂移 ±5% 级新证据（机器态含连续漂移分量）；t0 tip 本窗 335.129s；evals 20/32，下一步 t1/s05 |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 进行中**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 5/8、t1 5/8） | t1/s05（A0048）：commit-write-branchless 同窗 +1.71% **证伪**（分支消除+向量化成立但恒写 dirty 流量为负，commit 写点分支结构轴关闭、数据侧 miss 主导跨轨迹互证）；recon-t1s05 新调度点池地图（commit 31.8%、b93159 族 31.1%、compute 墙钟缺口 ~104s）；t1 tip 本窗 359.269s；evals 22/32，下一步第 5 轮 round-summary |
 
 ## 共享件
 
