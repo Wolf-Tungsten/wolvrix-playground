@@ -1322,3 +1322,26 @@
 - t1 走完 8/8；evals 候选口径 32/32 全部用完。r003 候选材料：残余 15,326 跨
   word splice 站的 `--concat-insert-unroll` 单变量复测（t1 未携带，r001 弱正
   未确认）。下一 action = 第 8 轮 round-summary → run-summary。
+
+## r002 收口（2026-08-21，action A0058 run-summary）
+
+- run 总账：C=2/L=8/K=2，16/16 步走满，候选 evals 32/32 恰好耗尽（总 34 含
+  基线）；32 候选全 ok，零 compile_timeout/difftest_fail。真值 best：t0 tip
+  **295.042s**（快态簇锚）/ 301.081s（e00027 同窗确认）；t1 **322.762s**
+  （e00029）。对 gsim ≈6.3-6.4x，目标未达成；基线慢态污染（e00001/e00002）
+  致 vs 基线 ratio 全 run 不可裁，重锚待用户。
+- 机制族遗产（restart y0 材料）：scan-branch-hints（t0 -11.41% × t1 -5.69%）、
+  task body outline 族（t1 -10.91% × t0 -5.91%）、gsim-aligned 调度点
+  （-16.4% × -8.44%）、wide-mux-chain-fuse（-2.19% × -1.17%）、
+  concat-insert-inline 迁移（-6.26%）。跨轨迹迁移三连中，捕获率 ~46% 双侧
+  一致，可作 r003 外推先验。
+- 关闭清单新增：commit 相省指令/省往返/门控类整体（branchless +1.71%、
+  row-merge +3.25%、fill-enable-gate +9.1%，数据侧 miss 主导）；守卫门控
+  （整块/run 级）；守卫布局；死宽态（新图池 0.46%）。残余开放池 = compute
+  长尾本体 ~52%（双侧）+ commit 相纯数据侧。
+- 测量学遗产：双态抽签批内直接检出先例（同批 rep 295.0/389.2/295.0s → 混合
+  median 是 artifact，可反转机械 winner）；跨窗连续漂移 ±5%（八点样本）；
+  跨窗读数一律不裁、同窗安慰剂锚点是唯一裁决基准（连续六轮 2/4 席）。
+  提请用户待决：rep 级簇分组裁决入 evaluator；基线重锚。
+- restart 建议：y0 = t0 tip `79719b2d95b91da141c01c74814da25292c1170d`；
+  C/L/K 维持 2/8/2；config restart.max=1 已消耗，r003 需用户放宽。

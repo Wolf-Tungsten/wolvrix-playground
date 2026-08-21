@@ -6,6 +6,17 @@
 
 ## 当前状态速览
 
+- **r002 已收口**（2026-08-21，[A0058](actions/A0058_run-summary_r002收口与restart建议_20260821.md)，
+  详见 [runs/r002/summary.md](runs/r002/summary.md)）：C=2/L=8/K=2，16/16 步走满，
+  候选 32/32 恰好耗尽、全 ok。真值 best：t0 tip **295.042s**（快态簇锚）/
+  301.081s（e00027 同窗确认 -11.41%）；t1 **322.762s**（e00029）；对 gsim
+  ≈6.3-6.4x，目标未达成。ledger best e00007（261.543s）已 overturn（双态
+  快态抽签）。确认机制族：scan-branch-hints × task body outline 族 ×
+  gsim-aligned 调度点 × wide-mux-chain-fuse × concat-insert-inline 迁移
+  （跨轨迹迁移三连中，捕获率 ~46% 双侧一致）；commit 相省指令/省往返/门控类
+  整体关闭；残余开放池 = compute 长尾 ~52% + commit 数据侧。**裁决：建议
+  restart**（y0 = t0 tip `79719b2d`，C/L/K 维持 2/8/2；restart.max=1 已消耗，
+  r003 需用户放宽预算并先定基线重锚与 rep 级簇分组裁决）
 - t1/s08（2026-08-21，[A0057](actions/A0057_step_t1s08_concat插入内联跨轨迹迁移与安慰剂锚点_20260821.md)）：
   **c1 concat-insert-inline 跨轨迹迁移确认 -6.26%**（t0 链 r001 起携带、首次迁入
   t1：单字退化 splice 从 outlined insert_words 动态循环改内联单语句；338.367s vs
@@ -179,8 +190,9 @@
   text 3.56MB→0.89MB（-75%），task_write_const 5,937 站，DPI String 拷贝
   6,412→0。**t1 tip 快态带锚定 414.867/421.673s**（e00009 量级维持不可裁）。
   t1 有效 emit_args 追加 task-body-outline。evals 14/32
-- 当前 run：**r002 进行中**（C=2, L=8, K=2，N=32；base/y0 = r001 best
-  `9c0a89db`；2026-08-20 init-run，见 [A0034](actions/A0034_run-init_r002新机器clang与并行rep基线_20260820.md)）
+- 当前 run：**r002 已收口**（2026-08-21，A0058；C=2, L=8, K=2，N=32；base/y0 = r001 best
+  `9c0a89db`；总结见 [runs/r002/summary.md](runs/r002/summary.md)）。无活跃 run，
+  restart 待用户裁决
 - 基线（2026-08-20，新机器 + clang 21.1.8 + rep 绑核并行协议，3-rep 中位）：
   AM y0 = **619.0s**（e00001，CV ~0.0%）；gsim target = **46.8s**（e00002，
   CV ~0.0%）；**起跑差距 13.23x**。**⚠ 基线完整性红旗（A0035）**：e00001/e00002

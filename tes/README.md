@@ -30,7 +30,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 两轨迹收官**（C=2 L=8 K=2，N=32；y0 = r001 best `9c0a89db`；t0 8/8、t1 8/8） | t1/s08（A0057）：c1 concat-insert-inline 跨轨迹迁移同窗确认 **-6.26%**（338.367s vs 安慰剂 361.025s；engagement 276,059→15,326 站，.o -8.4%）；recon-t1s07：helper 首位易主 insert_words 11.61%，dispatch 骨架轴 t1 侧 annotate 关闭；跨轨迹迁移三连中；evals 32/32 用完，下一 action = 第 8 轮 round-summary → run-summary |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r002 已收口，restart 待用户裁决**（C=2 L=8 K=2，N=32 走满；y0 = r001 best `9c0a89db`） | r002 run-summary（A0058）：真值 best t0 tip **295.042s**（快态簇锚）/ 301.081s（同窗确认 -11.41%），t1 322.762s；对 gsim ≈6.3-6.4x 未达成；确认机制族 = scan-branch-hints × task outline × 调度点 × 宽链融合 × concat 内联迁移（迁移三连中）；commit 相省指令/门控类整体关闭；建议 restart（y0 = t0 tip `79719b2d`，restart.max 已消耗需放宽），详见 [runs/r002/summary.md](grhsim-am-coremark/runs/r002/summary.md) |
 
 ## 共享件
 

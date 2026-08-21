@@ -2,7 +2,7 @@
   "schema": 1,
   "run_id": "r002",
   "task": "grhsim-am-coremark",
-  "status": "active",
+  "status": "completed",
   "created_at": "2026-08-20T11:14:45+08:00",
   "config": {
     "search": {
@@ -141,7 +141,7 @@
     7
   ],
   "counters": {
-    "actions": 24,
+    "actions": 25,
     "evals": 34
   },
   "best_overall": {
@@ -310,6 +310,13 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0057_step_t1s08_concat插入内联跨轨迹迁移与安慰剂锚点_20260821.md",
       "ts": "2026-08-21T19:22:04+08:00"
+    },
+    {
+      "n": 25,
+      "type": "run-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0058_run-summary_r002收口与restart建议_20260821.md",
+      "ts": "2026-08-21T19:35:10+08:00"
     }
-  ]
+  ],
+  "closed_at": "2026-08-21T19:35:10+08:00"
 }
