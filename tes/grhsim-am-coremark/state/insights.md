@@ -1458,3 +1458,20 @@
 - r003 目前 evals 6/32、t0/t1 各 1/8，AM/gsim ledger 比 5.276x 仍远离目标且
   仅作看板值。机制方向无需用户调整，下一状态机 action 为 `r003/t0/s02`；本轮
   汇总不改变跨轨迹独立纪律。
+
+## r003/t1/s02 宽 mux 链 helper 双精修（2026-08-22，action A0064）
+
+- `e00056` 生产形态定量：156 条融合链的长度分布为 151x1、1x4、4x23。c1
+  `wideMuxChainPriorityResolve` 只改 5 条多级链，以高优先级 selector mask +
+  unresolved 位枚举替代逐 lane 重放；e00059 = **257.235s**（CV 0），较 e00056
+  名义 **+6.32%**，17/17 ctest 与 3-rep difftest 全过，compile_s=2002.4s。
+  它未给出正收益证据：减少 selector 工作被 ctz 位枚举、控制依赖与分散 store
+  抵消；跨窗口读数不把全部回退强归因于机制。
+- c2 `wideMuxChainSingleLevelTile` 精确命中 151 条单级链，以每 64 lane 一次 selector
+  load + bulk base copy/fill + set-bit 覆写替代 pointer arrays/level loop；e00060 =
+  **358.271s**（CV 0），同样全门通过，compile_s=1983.2s。`e00060/e00059=1.393x`
+  落已知 per-process 快慢态带，raw score 机械落败但不能隔离 tile 机制，也没有正收益证据。
+- `finish-step` 按分数将 e00059 (`d28a44f`) 机械合入 t1/main；新开关默认 off，代码
+  合入本身可回撤。t1 best 仍为 e00056 241.956s，全局 best 仍为 e00057 229.429s。
+  宽链 helper 微结构下一次重开前，必须先量化多级链动态 block execs、selector 密度
+  与生产二进制形态；静态 chain/level 数不足以支撑原样变体。

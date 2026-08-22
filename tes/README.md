@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 2/8、t1 1/8**（C=2 L=8 K=2） | t0/s02 已完成：e00057 `--scan-branch-hints` **229.429s** 胜 e00058 `--sys-task-body-compact` **252.374s**，两项全门通过并已合入 t0/main；当前 next = `r003/t1/s02`，详见 [A0063](grhsim-am-coremark/actions/A0063_step_t0s02_扫描提示与task体压缩_20260822.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 2/8、t1 2/8**（C=2 L=8 K=2） | t1/s02 已完成：e00059 多级链 priority-mask **257.235s** 机械胜 e00060 单级链 tile/scatter **358.271s**，两项全门通过，winner 已入 t1/main；`e00060/e00059=1.393x` 落已知快慢态带，机制幅度不可裁，t1 best 仍为 e00056。当前 next = 第 2 轮 `round-summary`，详见 [A0064](grhsim-am-coremark/actions/A0064_step_t1s02_宽mux链优先解析与单层tile快路_20260822.md) |
 
 ## 共享件
 

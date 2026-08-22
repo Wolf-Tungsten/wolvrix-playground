@@ -141,7 +141,7 @@
   },
   "eval_sequence": {
     "start": 51,
-    "next": 59
+    "next": 61
   },
   "baselines": {
     "am": {
@@ -171,8 +171,8 @@
     {
       "id": "t1",
       "branch": "tes/r003/t1/main",
-      "tip": "014c3aefa3b4a7ab801afede8cb19111880f90a2",
-      "steps_completed": 1,
+      "tip": "d28a44fcff6fc94ad3f352776c8b77a7dcf08cc8",
+      "steps_completed": 2,
       "best": {
         "eval_id": "e00056",
         "score": -241956
@@ -184,8 +184,8 @@
     1
   ],
   "counters": {
-    "actions": 5,
-    "evals": 8
+    "actions": 6,
+    "evals": 10
   },
   "best_overall": {
     "eval_id": "e00057",
@@ -208,7 +208,8 @@
   },
   "phi_selection_counts": {
     "e00051": 2,
-    "e00054": 1
+    "e00054": 1,
+    "e00056": 1
   },
   "history": [
     {
@@ -240,6 +241,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0063_step_t0s02_扫描提示与task体压缩_20260822.md",
       "ts": "2026-08-22T11:38:30+08:00"
+    },
+    {
+      "n": 6,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0064_step_t1s02_宽mux链优先解析与单层tile快路_20260822.md",
+      "ts": "2026-08-22T13:24:06+08:00"
     }
   ]
 }

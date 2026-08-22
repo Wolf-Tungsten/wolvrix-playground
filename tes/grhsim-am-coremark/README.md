@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r003/t1/s02 已完成**（2026-08-22，[A0064](actions/A0064_step_t1s02_宽mux链优先解析与单层tile快路_20260822.md)）：
+  c1 多级链 priority-mask e00059 = **257.235s**，c2 单级链 tile/scatter e00060 =
+  **358.271s**；两项均通过 17/17 ctest、3 rep difftest 与 2400s 编译门。生产形态
+  为 151x1、1x4、4x23 条链，c2 精确命中 151 个单级调用。`e00060/e00059=1.393x`
+  落已知快慢态带，故 c2 raw score 机械落败但纯机制幅度不可裁；c1 较 Φ 节点 e00056
+  名义 +6.32%，也未产生正收益证据。机械 winner `d28a44f` 已入 t1/main，但 t1 best
+  仍为 e00056 241.956s，全局 best 仍为 e00057 229.429s。当前 t0 2/8、t1 2/8、
+  TES eval 计数 10/32；下一 action = 第 2 轮 `round-summary`。
+
 - **r003/t0/s02 已完成**（2026-08-22，[A0063](actions/A0063_step_t0s02_扫描提示与task体压缩_20260822.md)）：
   c1 `--scan-branch-hints` e00057 = **229.429s**，c2
   `--sys-task-body-compact` e00058 = **252.374s**；两项均通过 17/17 ctest 与
