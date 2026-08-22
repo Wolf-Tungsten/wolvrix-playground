@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r003/t1/s01 已完成**（2026-08-22，[A0061](actions/A0061_step_t1s01_活动摘要与宽mux链融合_20260822.md)）：
+  两个实质候选均全门通过。c1 `--activity-summary-scan` e00055 = **270.003s**
+  （CV=0，名义 -25.82%，生产模型 `activitySummary_` 静态引用 512,153 处）；c2
+  `--wide-mux-chain-fuse` e00056 = **241.956s**（CV=0.41%，名义 -33.53%，
+  engagement 156 chains/247 levels/74 blocks），机械 winner `014c3ae` 已入
+  t1/main，当前 AM/gsim ledger 比为 **5.276x**。但 e00051/e00055=1.348x 落历史
+  快慢态带，c2/c1 的 -10.39% 也跨窗口且大于 r002 同窗机制量级；分数与 winner
+  有效，纯因果幅度保留。当前 t0 1/8、t1 1/8、TES eval 计数 6/32（含双基线）；
+  next = 第 1 轮 `round-summary`。
 - **r003/t0/s01 已完成**（2026-08-22，[A0060](actions/A0060_step_t0s01_scan提示与冷体outline_20260822.md)）：
   两个实质候选均全门通过。c1 `--scan-branch-hints` e00053 = **334.687s**
   （CV=0，较 e00051 名义 -8.05%）；c2 `--sys-task-body-outline` e00054 =

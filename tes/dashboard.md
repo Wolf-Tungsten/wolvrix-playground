@@ -2,24 +2,24 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-22T08:18:59+08:00
+> 生成于 2026-08-22T10:03:18+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 4/32 · actions 2 · 下一步 `step`：推进轨迹 t1 到第 1 步（round-robin 最少步数优先）
+run **r003**（active）· C=2 L=8 K=2 · evals 6/32 · actions 3 · 下一步 `round-summary`：第 1 轮（全部 2 条轨迹各完成 1 步）已齐平，做跨轨迹小结
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
 | gsim（target） | e00052 | 45.9s | 1.00x |
 | am（y0 基线） | e00051 | 364.0s | 7.94x |
-| **当前 best** | e00054 | **247.6s** | **5.40x** |
+| **当前 best** | e00056 | **242.0s** | **5.28x** |
 
-基线→target 进度：`███████░░░░░░░░░░░░░` 36.6%（364.0s → 目标 45.9s，当前差距 5.40x）
+基线→target 进度：`████████░░░░░░░░░░░░` 38.4%（364.0s → 目标 45.9s，当前差距 5.28x）
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
 | t0 | `tes/r003/t0/main` | 1/8 | e00054 | 247.6s |
-| t1 | `tes/r003/t1/main` | 0/8 | - | - |
+| t1 | `tes/r003/t1/main` | 1/8 | e00056 | 242.0s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
 |---|---|---|---|---|---|---|
@@ -111,6 +111,8 @@ run **r003**（active）· C=2 L=8 K=2 · evals 4/32 · actions 2 · 下一步 `
 | e00052 | baseline-gsim | - | 45.9s | 1.00x | ok | gsim baseline |
 | e00053 | candidate | t0/s01c1 | 334.7s | 7.30x | ok | e00051 -> 同输入 recon 显示每轮约 93199 个 Block 的稀疏活动测试与约 … |
 | e00054 | candidate | t0/s01c2 | 247.6s | 5.40x | ok | e00051 -> 同输入 recon 显示 b90656/b90657 守卫池约占 9.3% 块周… |
+| e00055 | candidate | t1/s01c1 | 270.0s | 5.89x | ok | e00051 -> r002 frozen-input recon found 30324 byte… |
+| e00056 | candidate | t1/s01c2 | 242.0s | 5.28x | ok | e00051 -> r002 frozen-input recon measured the 225… |
 
-最近 actions：A0001 run-init；A0002 step
+最近 actions：A0001 run-init；A0002 step；A0003 step
 

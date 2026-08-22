@@ -1423,3 +1423,19 @@
   outline 基座叠加 scan hints 的正交性；不得用原样重测占候选席位。
 - t0 完成 1/8，TES eval 计数 4/32（含双基线）；下一 action = t1/s01，严格保持
   `cross_trajectory=false`，不向 t1 proposal 注入本 step 结果。
+
+## r003/t1/s01 活动摘要与宽 mux 链融合（2026-08-22，action A0061）
+
+- **机械 winner（e00056，已入 t1/main）**：`--wide-mux-chain-fuse`，commit
+  `014c3ae`，Host 241.956s（CV 0.41%），较 e00051 名义 -33.53%；17/17 ctest、
+  3 rep difftest 全过，compile_s 1986.6s。engagement = 156 chains / 247 levels /
+  74 blocks，与 r002 两轨迹逐数一致；r002 同窗 -2.19%/-1.17% 仍是机制量级口径。
+- `--activity-summary-scan` e00055 同样全门通过，270.003s（CV 0，名义 -25.82%），
+  compile_s 1984.5s；生产模型中 `activitySummary_` 静态引用 512,153 处。由于
+  e00051/e00055=1.348x 落历史快慢态带，且基座已有 source-word guard，当前读数
+  不能隔离摘要纯收益，机械落败也不构成机制证伪。
+- c2/c1 名义 -10.39% 仍跨窗口，明显大于 wide-mux 的 r002 同窗机制量级；winner
+  与分数有效，纯因果强弱不可裁。两候选 compile_s 均约 1985s，只余约 17% 编译门
+  空间，后续生成代码扩张须同时证明覆盖与编译余量。
+- t1 完成 1/8，TES eval 计数 6/32（含双基线）；两轨迹第 1 轮齐平，下一 action =
+  round-summary，本 step 不提前做跨轨迹比较。
