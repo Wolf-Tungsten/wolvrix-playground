@@ -1494,3 +1494,21 @@
 - 批内 CV=0 再次不能排除整批快慢态；亚 10% 新机制继续要求同窗/同态证据。
   当前 t0/t1 各 2/8、evals 10/32、ledger best/gsim = **5.002x**。无需用户调整
   C/L/K；本轮小结不改变 run 内跨轨迹独立纪律。
+
+## r003/t0/s03 活跃 byte ctz 与 task cold 段均无正收益（2026-08-22，action A0066）
+
+- **机械 winner、机制证伪（e00061）**：`--scan-active-byte-ctz` 在 e00057 的
+  outline + scan-hints 基座上，将活跃 byte 内逐 bit 线性测试替换为
+  `ctz + switch`。功能门全过，Host **251.746s**（CV 0，compile_s 1068.4s），
+  较 e00057 名义 +9.73%。生产形态为 11,887 个 ctz 派发点 / 93,599 个 case，
+  最终 ELF `.text` **+2.48%**、`.rodata` **+7.67%**；控制依赖、jump table 与
+  工作集增长未胜过 branch-hinted 线性测试。该原样形态关闭，e00057 扫描形态保留。
+- **冷段落地但无正证据（e00062）**：7,235 个 outlined helper 全部加 `cold`，
+  `runtime.o` 形成约 6.11MB `.text.unlikely`，最终 ELF `.text` **-2.66%**；说明
+  section 分离真实发生。Host **300.215s**（CV 0，compile_s 1070.5s），较 e00057
+  名义 +30.85%，未达收益门。`e00062/e00057=1.308x` 接近快慢态带，纯回退幅度
+  不可裁，但“继续缩已 outline 冷体即可改善热路径”没有证据；与 e00058 compact
+  负结果合并，task body 纯布局/体积精修暂关闭。
+- `finish-step` 按 score 将 e00061 (`3706873`) 机械合入 t0/main；t0 与全局历史
+  best 仍为 e00057 **229.429s**。t0 3/8、t1 2/8、evals 12/32。下一 action 为
+  t1/s03；本结论不跨轨迹回流 proposal。

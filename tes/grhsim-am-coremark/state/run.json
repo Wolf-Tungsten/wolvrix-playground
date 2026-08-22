@@ -141,7 +141,7 @@
   },
   "eval_sequence": {
     "start": 51,
-    "next": 61
+    "next": 63
   },
   "baselines": {
     "am": {
@@ -161,8 +161,8 @@
     {
       "id": "t0",
       "branch": "tes/r003/t0/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 2,
+      "tip": "3706873e47337f37ec093ec3561cc272d11b7c61",
+      "steps_completed": 3,
       "best": {
         "eval_id": "e00057",
         "score": -229429
@@ -185,8 +185,8 @@
     2
   ],
   "counters": {
-    "actions": 7,
-    "evals": 10
+    "actions": 8,
+    "evals": 12
   },
   "best_overall": {
     "eval_id": "e00057",
@@ -208,9 +208,10 @@
     ]
   },
   "phi_selection_counts": {
-    "e00051": 2,
+    "e00051": 3,
     "e00054": 1,
-    "e00056": 1
+    "e00056": 1,
+    "e00057": 1
   },
   "history": [
     {
@@ -254,6 +255,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0065_round-summary_第2轮跨轨迹小结_20260822.md",
       "ts": "2026-08-22T13:34:14+08:00"
+    },
+    {
+      "n": 8,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0066_step_t0s03_ctz稀疏派发与task冷段布局_20260822.md",
+      "ts": "2026-08-22T14:51:03+08:00"
     }
   ]
 }

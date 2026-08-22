@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r003/t0/s03 已完成**（2026-08-22，[A0066](actions/A0066_step_t0s03_ctz稀疏派发与task冷段布局_20260822.md)）：
+  c1 `--scan-active-byte-ctz` e00061 = **251.746s**（较 e00057 名义 +9.73%，
+  ELF `.text` +2.48% / `.rodata` +7.67%），c2 `--sys-task-body-cold` e00062 =
+  **300.215s**（名义 +30.85%；7,235 个 cold helper 落地、ELF `.text` -2.66%，
+  但 e00062/e00057=1.308x 接近已知快慢态带）。两项均通过 17/17 ctest、3 rep
+  difftest 与编译门，均未给出正收益；机械 winner e00061 已入 t0/main，但 t0/
+  全局 best 仍为 e00057 229.429s。当前 t0 3/8、t1 2/8、evals 12/32；下一
+  action = `r003/t1/s03`，本 action 不启动它。
+
 - **r003 第 2 轮 round-summary 已完成**（2026-08-22，[A0065](actions/A0065_round-summary_第2轮跨轨迹小结_20260822.md)）：
   t0/s02 winner e00057 `--scan-branch-hints` = **229.429s**（较 e00054 名义
   -7.32%，刷新全局 best）；t1/s02 winner e00059
