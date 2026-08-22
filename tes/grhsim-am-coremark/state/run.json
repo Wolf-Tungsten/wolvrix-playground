@@ -141,7 +141,7 @@
   },
   "eval_sequence": {
     "start": 51,
-    "next": 75
+    "next": 77
   },
   "baselines": {
     "am": {
@@ -171,8 +171,8 @@
     {
       "id": "t1",
       "branch": "tes/r003/t1/main",
-      "tip": "2ac108f2e6ae98528749ff5a38fadfe8669e0467",
-      "steps_completed": 5,
+      "tip": "be544f9bb1bdc6f99b77b4d8f58a33f1f687e397",
+      "steps_completed": 6,
       "best": {
         "eval_id": "e00056",
         "score": -241956
@@ -188,8 +188,8 @@
     5
   ],
   "counters": {
-    "actions": 17,
-    "evals": 24
+    "actions": 18,
+    "evals": 26
   },
   "best_overall": {
     "eval_id": "e00057",
@@ -213,13 +213,14 @@
   "phi_selection_counts": {
     "e00051": 6,
     "e00054": 2,
-    "e00056": 3,
+    "e00056": 4,
     "e00057": 3,
     "e00059": 2,
     "e00061": 2,
     "e00064": 1,
     "e00065": 2,
-    "e00067": 1
+    "e00067": 1,
+    "e00071": 1
   },
   "history": [
     {
@@ -323,6 +324,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0075_step_t0s06_候选表型漏传与无效测量_20260823.md",
       "ts": "2026-08-23T01:37:27+08:00"
+    },
+    {
+      "n": 18,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0076_step_t1s06_mask缓存与单级direct_20260823.md",
+      "ts": "2026-08-23T03:07:57+08:00"
     }
   ]
 }

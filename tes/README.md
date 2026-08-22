@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 active，t0 6/8、t1 5/8**（C=2 L=8 K=2） | t0/s06 两次评估均漏传候选 emit_args，370.611s/346.687s 只属于基础表型，已追加勘误且不得作机制证据；状态机消耗该步，历史 best 仍为 e00057 **229.429s**。下一 action 为 t1/s06，详见 [A0075](grhsim-am-coremark/actions/A0075_step_t0s06_候选表型漏传与无效测量_20260823.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 active，t0 6/8、t1 6/8**（C=2 L=8 K=2） | t1/s06 的 mask/value 缓存 e00075 **363.823s**、单级 direct helper e00076 **354.543s** 均慢于父节点 e00071；c2 机械入主线但两机制均关闭，历史 best 仍为 e00057 **229.429s**。下一 action 为第 6 轮 `round-summary`，详见 [A0076](grhsim-am-coremark/actions/A0076_step_t1s06_mask缓存与单级direct_20260823.md) |
 
 ## 共享件
 

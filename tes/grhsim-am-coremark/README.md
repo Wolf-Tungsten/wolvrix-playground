@@ -6,6 +6,14 @@
 
 ## 当前状态速览
 
+- **r003/t1/s06 已完成，两项 helper 微结构精修均慢于父节点**（2026-08-23，[A0076](actions/A0076_step_t1s06_mask缓存与单级direct_20260823.md)）：
+  c1 e00075 紧凑缓存 active-tile 非零 mask/tval，Host **363.823s**（CV 0，
+  compile_s 1982.6s），较 e00071 回退 7.03%；c2 e00076 为 151 条单级链使用 direct
+  helper，Host **354.543s**（CV 0，compile_s 1995.9s），较 e00071 回退 4.31%。
+  两项均通过 17/17 ctest、3 rep difftest，完整 11 开关表型已审计；c2 机械胜出并入
+  t1/main，但两种机制均证伪。当前 t0/t1 各 6/8、evals 26/32，历史 best 仍为
+  e00057 **229.429s**；下一 action = 第 6 轮 `round-summary`，本 action 不启动它。
+
 - **r003/t0/s06 已消耗，但两候选因 emit_args 漏传判为无效测量**（2026-08-23，[A0075](actions/A0075_step_t0s06_候选表型漏传与无效测量_20260823.md)）：
   e00073/e00074 均过 17/17 ctest、3 rep difftest 与编译门，原始 Host 为
   **370.611s / 346.687s**；收口审计发现两份 result 都只有基础 10 开关，未启用

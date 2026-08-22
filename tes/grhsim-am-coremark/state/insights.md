@@ -1660,3 +1660,16 @@
   `emit_args` + 本候选开关。正式评估后、`record-eval` 前逐项核对 result emit_args；
   “commit 含实现”不能替代“生产表型已启用”。未来重开两个机制须使用新 step/eval，
   不得引用 e00073/e00074 分数。
+
+## r003/t1/s06 mask 缓存与单级 direct 均证伪（2026-08-23，action A0076）
+
+- c1/e00075 将 active-tile union 中的非零 mask/tval 紧凑缓存到两个 64 项栈数组，
+  Host **363.823s**（CV 0，compile_s 1982.6s），较父节点 e00071 回退 7.03%。
+  每调用 1 KiB 栈框与缓存写流未胜过二次 pointer-array 读取，当前形态关闭。
+- c2/e00076 为 151 条单级融合链直接传 sel/tval，保留逐 word branchless blend，
+  Host **354.543s**（CV 0，compile_s 1995.9s），较 e00071 回退 4.31%。它机械胜
+  e00075 2.55% 并入 t1/main，但两者 loadavg 5.88/2.53 不同，不能把差值作纯机制
+  收益；结合 e00060，单级 helper 微结构路线关闭。
+- 两候选均通过 17/17 ctest、3 rep difftest，且完整 11 开关表型已审计。wide-mux
+  下一次精修须先有单/多级动态调用权重与 active-tile 非零层分布，不再以静态链数或
+  避免少量 pointer reload 作为收益代理。
