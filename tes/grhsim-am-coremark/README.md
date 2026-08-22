@@ -6,6 +6,14 @@
 
 ## 当前状态速览
 
+- **r003 第 7 轮 round-summary 已完成**（2026-08-23，[A0080](actions/A0080_round-summary_第7轮跨轨迹小结_20260823.md)）：
+  本轮四个候选均用完整表型通过 17/17 ctest、3 rep difftest 与编译门，但无新增
+  正向性能证据。t0/e00077-e00078 均错过预注册收益门；t1/e00079-e00080
+  分别较有效父节点 e00071 回退 5.87%/1.56%。控制流和 wide-mux 精修重开前均须
+  先补动态权重，不再用静态站点/共享度作收益代理；另以 correction 明确 e00075/
+  e00076 实际未启用候选机制。当前 t0/t1 各 7/8、evals 30/32，历史 best 仍为
+  e00057 **229.429s**；下一 action = `r003/t0/s08 step`（K=2），本 action 未启动它。
+
 - **r003/t1/s07 已完成，selector 摘要复用与幂等写抑制均证伪**（2026-08-23，[A0079](actions/A0079_step_t1s07_selector摘要复用与幂等写抑制_20260823.md)）：
   e00079 round-local selector summary reuse = **359.866s**（CV 0，compile_s
   1990.6s），e00080 idempotent store suppression = **345.215s**（CV 0，compile_s

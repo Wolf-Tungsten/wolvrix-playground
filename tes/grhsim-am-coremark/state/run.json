@@ -186,10 +186,11 @@
     3,
     4,
     5,
-    6
+    6,
+    7
   ],
   "counters": {
-    "actions": 21,
+    "actions": 22,
     "evals": 30
   },
   "best_overall": {
@@ -351,6 +352,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0079_step_t1s07_selector摘要复用与幂等写抑制_20260823.md",
       "ts": "2026-08-23T05:42:25+08:00"
+    },
+    {
+      "n": 22,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0080_round-summary_第7轮跨轨迹小结_20260823.md",
+      "ts": "2026-08-23T05:46:44+08:00"
     }
   ]
 }

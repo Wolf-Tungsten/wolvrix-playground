@@ -1716,3 +1716,17 @@
 - 两项均用完整 13 开关表型，通过 17/17 ctest、3 rep difftest 与编译门。wide-mux
   再开前必须先量化 target 词实际变化率或 helper 动态 Host 权重，不再用静态 selector
   共享度、base lane 比例或 helper ABI 作为收益代理。
+
+## r003 第 7 轮跨轨迹小结（2026-08-23，action A0080）
+
+- 本轮四个候选全部通过功能门和编译门，但没有新增正向性能证据。t0/e00077-e00078
+  均错过预注册收益门；t1/e00079-e00080 分别较有效父节点 e00071 回退 5.87%/1.56%。
+  e00078/e00080 只是同 step raw-score winner，不是机制收益。
+- 控制流与 wide-mux 两侧共同收敛到同一实验判据：静态站点数、selector 共享度、
+  base lane 比例和少量 helper ABI 都不能作为收益代理。重开前必须量化首活跃 bit/
+  实际跳过测试、fwrite fire/参数准备、target 词变化率或 helper 动态 Host 占比。
+- `corr-e00075-e00076-phenotype` 已使 A0076/A0077 对 mask cache 和 single-level
+  direct 的性能证伪失效：两次评估缺少 `--wide-mux-chain-fuse`，机制实际未启用。
+  原记录按 append-only 规则保留，后续以 correction 与 A0079/A0080 勘误为准。
+- 当前 t0/t1 各 7/8、evals 30/32，历史 best 仍为 e00057 229.429s，约为 gsim
+  基线的 5.002x。C/L/K 在 run 内不调整；第 7 轮跨轨迹结论不回流 r003 proposal。
