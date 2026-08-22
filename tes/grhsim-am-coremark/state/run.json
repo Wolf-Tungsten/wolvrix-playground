@@ -141,7 +141,7 @@
   },
   "eval_sequence": {
     "start": 51,
-    "next": 57
+    "next": 59
   },
   "baselines": {
     "am": {
@@ -161,11 +161,11 @@
     {
       "id": "t0",
       "branch": "tes/r003/t0/main",
-      "tip": "b1f2c8dcd21f17fc654c3838869efd3180acfb5b",
-      "steps_completed": 1,
+      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
+      "steps_completed": 2,
       "best": {
-        "eval_id": "e00054",
-        "score": -247560
+        "eval_id": "e00057",
+        "score": -229429
       }
     },
     {
@@ -184,13 +184,13 @@
     1
   ],
   "counters": {
-    "actions": 4,
-    "evals": 6
+    "actions": 5,
+    "evals": 8
   },
   "best_overall": {
-    "eval_id": "e00056",
-    "score": -241956,
-    "commit": "014c3aefa3b4a7ab801afede8cb19111880f90a2",
+    "eval_id": "e00057",
+    "score": -229429,
+    "commit": "1563c3d837fcfe9db28fc36901531a70b59fd790",
     "emit_args": [
       "--branchy-mux",
       "--resize-elision",
@@ -202,11 +202,13 @@
       "--inline-scalar-helpers",
       "--concat-insert-unroll",
       "--wide-detect-fast-path",
-      "--wide-mux-chain-fuse"
+      "--sys-task-body-outline",
+      "--scan-branch-hints"
     ]
   },
   "phi_selection_counts": {
-    "e00051": 2
+    "e00051": 2,
+    "e00054": 1
   },
   "history": [
     {
@@ -232,6 +234,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0062_round-summary_第1轮跨轨迹小结_20260822.md",
       "ts": "2026-08-22T10:15:41+08:00"
+    },
+    {
+      "n": 5,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0063_step_t0s02_扫描提示与task体压缩_20260822.md",
+      "ts": "2026-08-22T11:38:30+08:00"
     }
   ]
 }

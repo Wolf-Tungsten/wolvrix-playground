@@ -6,14 +6,22 @@
 
 ## 当前状态速览
 
+- **r003/t0/s02 已完成**（2026-08-22，[A0063](actions/A0063_step_t0s02_扫描提示与task体压缩_20260822.md)）：
+  c1 `--scan-branch-hints` e00057 = **229.429s**，c2
+  `--sys-task-body-compact` e00058 = **252.374s**；两项均通过 17/17 ctest 与
+  3 rep difftest，机械 winner `1563c3d` 已入 `t0/main`。相对 Φ 基座 e00054，c1
+  名义 -7.32%，c2 +1.94%（c2 比 c1 慢 10.00%）；跨评估机器态仍要求保守归因，
+  task-body-compact 压缩方向暂关闭。当前 t0 2/8、t1 1/8、TES eval 计数 8/32，
+  `best_overall` = e00057，AM/gsim ledger 比约 **5.004x**；下一 action = `r003/t1/s02`。
+
 - **r003 第 1 轮 round-summary 已完成**（2026-08-22，[A0062](actions/A0062_round-summary_第1轮跨轨迹小结_20260822.md)）：
   t0/s01 winner e00054 `--sys-task-body-outline` = **247.560s**，t1/s01 winner
   e00056 `--wide-mux-chain-fuse` = **241.956s**；四个候选均通过 17/17 ctest 与
   3 rep difftest。两条轨迹的机械 winner 均有效，但候选跨窗口，1.348x/1.352x
   落入已知快慢态带，名义 -31.99%/-33.53% 不作纯机制幅度；r002 同窗证据仍是
   task-outline 约 -5.91%、wide-mux 约 -2.19%/-1.17% 的因果口径。当前
-  `best_overall` = e00056，AM/gsim ledger 比 **5.276x**；下一 action =
-  `r003/t0/s02`，本 round-summary 不启动下一步。
+  当时 `best_overall` = e00056，AM/gsim ledger 比 **5.276x**；该 round-summary
+  不启动下一步。
 
 - **r003/t1/s01 已完成**（2026-08-22，[A0061](actions/A0061_step_t1s01_活动摘要与宽mux链融合_20260822.md)）：
   两个实质候选均全门通过。c1 `--activity-summary-scan` e00055 = **270.003s**

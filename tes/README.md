@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 1/8、t1 1/8**（C=2 L=8 K=2） | 第 1 轮 round-summary 已完成：t0 e00054 **247.560s**、t1 e00056 **241.956s** 均为机械 winner；跨窗口快慢态使名义幅度不可全归因，r002 同窗证据保留 task-outline/wide-mux 的小幅正收益；next = `r003/t0/s02`，详见 [A0062](grhsim-am-coremark/actions/A0062_round-summary_第1轮跨轨迹小结_20260822.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 2/8、t1 1/8**（C=2 L=8 K=2） | t0/s02 已完成：e00057 `--scan-branch-hints` **229.429s** 胜 e00058 `--sys-task-body-compact` **252.374s**，两项全门通过并已合入 t0/main；当前 next = `r003/t1/s02`，详见 [A0063](grhsim-am-coremark/actions/A0063_step_t0s02_扫描提示与task体压缩_20260822.md) |
 
 ## 共享件
 
