@@ -183,10 +183,11 @@
   "round_summaries_done": [
     1,
     2,
-    3
+    3,
+    4
   ],
   "counters": {
-    "actions": 12,
+    "actions": 13,
     "evals": 18
   },
   "best_overall": {
@@ -289,6 +290,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0070_step_t1s04_活跃tile稀疏与固定层专化_20260822.md",
       "ts": "2026-08-22T20:56:43+08:00"
+    },
+    {
+      "n": 13,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0071_round-summary_第4轮跨轨迹小结_20260822.md",
+      "ts": "2026-08-22T21:10:15+08:00"
     }
   ]
 }

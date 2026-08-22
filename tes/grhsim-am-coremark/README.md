@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r003 第 4 轮 round-summary 已完成**（2026-08-22，[A0071](actions/A0071_round-summary_第4轮跨轨迹小结_20260822.md)）：
+  t0/s04 机械 winner e00065 `--scan-active-byte-tree` = **409.869s**（CV 0，
+  loadavg≈50 慢窗），相对 e00061 无正收益证据；e00066 nibble = **412.826s** 且
+  CV 14% noisy，两种 active-byte 控制精修均关闭。t1/s04 winner e00067
+  `--wide-mux-chain-active-tile-sparse` = **382.171s**（CV 0，compile_s 2136.2s），
+  较 e00064 名义 -6.73% 并越 3% 门，但 loadavg 12.30 vs 50.18，暂定正向；e00068
+  static-levels = **427.066s**，在相近高负载窗回退 4.23%，关闭。两轨迹各 4/8，
+  evals 18/32，`best_overall` 仍为 e00057 **229.429s**；下一 action = `r003/t0/s05`，
+  本小结不启动它。
+
 - **r003/t1/s04 已完成**（2026-08-22，[A0070](actions/A0070_step_t1s04_活跃tile稀疏与固定层专化_20260822.md)）：
   c1 `--wide-mux-chain-active-tile-sparse` e00067 = **382.171s**（CV 0，compile_s
   2136.2s），较 e00064 名义 -6.73% 并越 3% 门，但起跑 loadavg 12.30 vs 50.18，
