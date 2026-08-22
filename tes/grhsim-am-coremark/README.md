@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r003 第 3 轮 round-summary 已完成**（2026-08-22，[A0068](actions/A0068_round-summary_第3轮跨轨迹小结_20260822.md)）：
+  t0/s03 winner e00061 `--scan-active-byte-ctz` = **251.746s**（较 e00057 名义
+  +9.73%，机械入主线但机制证伪）；t1/s03 winner e00064
+  `--wide-mux-chain-zero-tile-bypass` = **409.731s**（高负载窗较 noisy e00063
+  快 17.31%，机械入主线但绝对收益未确认）。全局枚举/散写与 task 冷体纯布局
+  精修关闭，只保留“局部 tile 门控 + 连续 base 流”作待动态计数量化方向。t0/t1
+  历史 best 仍为 e00057 **229.429s** / e00056 **241.956s**，evals 14/32，
+  best/gsim 看板比 **5.002x**；下一 action = `r003/t0/s04`，本小结不启动它。
+
 - **r003/t1/s03 已完成**（2026-08-22，[A0067](actions/A0067_step_t1s03_mux稀疏覆盖与零tile旁路_20260822.md)）：
   recon 定量 23-level 链 selector 机会密度仅 **0.0188%**、99.57% lane 取 base。
   c1 sparse-overlay e00063 = **495.496s**（CV 8.73% noisy、loadavg 49.50），c2

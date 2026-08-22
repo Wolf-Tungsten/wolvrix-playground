@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 3/8、t1 3/8**（C=2 L=8 K=2） | t1/s03 zero-tile-bypass e00064 **409.731s** 在高负载窗口机械胜出 sparse-overlay e00063 **495.496s noisy**；历史 best 仍为 e00057 **229.429s**。next = 第 3 轮 `round-summary`，详见 [A0067](grhsim-am-coremark/actions/A0067_step_t1s03_mux稀疏覆盖与零tile旁路_20260822.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 3/8、t1 3/8**（C=2 L=8 K=2） | 第 3 轮小结：t0 ctz 稀疏派发证伪；t1 zero-tile-bypass 仅在高负载窗机械胜出，历史 best 仍为 e00057 **229.429s**。next = `r003/t0/s04`，详见 [A0068](grhsim-am-coremark/actions/A0068_round-summary_第3轮跨轨迹小结_20260822.md) |
 
 ## 共享件
 

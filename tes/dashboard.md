@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-22T16:57:19+08:00
+> 生成于 2026-08-22T17:06:01+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 14/32 · actions 9 · 下一步 `round-summary`：第 3 轮（全部 2 条轨迹各完成 1 步）已齐平，做跨轨迹小结
+run **r003**（active）· C=2 L=8 K=2 · evals 14/32 · actions 10 · 下一步 `step`：推进轨迹 t0 到第 4 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -122,5 +122,5 @@ run **r003**（active）· C=2 L=8 K=2 · evals 14/32 · actions 9 · 下一步 
 | e00063 | candidate | t1/s03c1 | 495.5s | 10.80x | ok | e00059 -> recon 显示 23-level 链 99.57% lane 取 base，而… |
 | e00064 | candidate | t1/s03c2 | 409.7s | 8.93x | ok | e00056/e00059 -> recon 显示 23-level selector 机会密度仅0… |
 
-最近 actions：A0005 step；A0006 step；A0007 round-summary；A0008 step；A0009 step
+最近 actions：A0006 step；A0007 round-summary；A0008 step；A0009 step；A0010 round-summary
 

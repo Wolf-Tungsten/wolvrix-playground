@@ -1529,3 +1529,22 @@
   7.1% 编译预算。wide-mux 后续只在 c2 上先补 zero/active tile 动态计数，保持公共
   helper 与代码体量；priority-resolve/sparse-overlay 不原样重测。宿主 loadavg
   49-50 升格为本 action 测量红旗，下一 round-summary 需统一解释。
+
+## r003 第 3 轮跨轨迹小结（2026-08-22，action A0068）
+
+- 两轨迹各完成 s03，四候选均全门通过。t0 winner e00061
+  `scan-active-byte-ctz` = **251.746s**（较 e00057 名义 +9.73%，机械入主线但
+  机制证伪）；t1 winner e00064 `wide-mux-chain-zero-tile-bypass` =
+  **409.731s**（高负载窗较 e00063 快 17.31%，机械入主线但绝对收益未确认）。
+  t0/t1 历史 best 仍为 e00057 229.429s / e00056 241.956s。
+- 稀疏控制的共同判据收紧：为 93,599 个 Block 建 `ctz + switch` 使 ELF `.text`
+  +2.48%、`.rodata` +7.67%，未胜过 branch-hinted 线性测试；全局 sparse overlay
+  也无正收益。只保留“零 tile 局部门控 + 连续 base 流”作待动态计数量化的方向，
+  关闭全局枚举/散写原样实现。
+- task cold 属性虽使 7,235 个 helper 形成约 6.11MB `.text.unlikely`、最终
+  `.text` -2.66%，运行仍无正收益；结合 compact 负结果，保留 task-body outline
+  主机制，关闭已移出冷体的纯布局/体积精修。
+- e00063 起跑 loadavg 49.50 且 CV 8.73% noisy，e00064 loadavg 50.18；本轮 wide-mux
+  只确认机械排名，不把慢窗绝对值或 17.31% 升级为机制量级。继续冻结 3-rep 协议，
+  不补测、不扩增。当前 evals 14/32、best/gsim = **5.002x**；无需用户调整 C/L/K，
+  round-summary 结论不回流当前 run 的 proposal。
