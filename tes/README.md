@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 4/8、t1 4/8**（C=2 L=8 K=2） | 第 4 轮小结完成：t0 direct-tree e00065 = **409.869s** 慢窗无正证据；t1 active-tile sparse e00067 = **382.171s**，名义越 3% 门但跨负载窗暂定正向；static-levels e00068 回退 4.23% 并关闭。历史 best 仍为 e00057 **229.429s**。next = `r003/t0/s05`，详见 [A0071](grhsim-am-coremark/actions/A0071_round-summary_第4轮跨轨迹小结_20260822.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 5/8、t1 4/8**（C=2 L=8 K=2） | t0/s05 两候选均在 ctest 门失败：prefix-skip e00069 与 task-fire-hints e00070 各 16/17 通过，均未计时；归类为回归契约失败、机制未测。无 winner，历史 best 仍为 e00057 **229.429s**。next = `r003/t1/s05`，详见 [A0072](grhsim-am-coremark/actions/A0072_step_t0s05_前缀跳过与task触发提示回归门失败_20260822.md) |
 
 ## 共享件
 

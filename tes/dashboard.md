@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-22T21:10:15+08:00
+> 生成于 2026-08-22T22:33:37+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 18/32 · actions 13 · 下一步 `step`：推进轨迹 t0 到第 5 步（round-robin 最少步数优先）
+run **r003**（active）· C=2 L=8 K=2 · evals 20/32 · actions 14 · 下一步 `step`：推进轨迹 t1 到第 5 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -18,7 +18,7 @@ run **r003**（active）· C=2 L=8 K=2 · evals 18/32 · actions 13 · 下一步
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
-| t0 | `tes/r003/t0/main` | 4/8 | e00057 | 229.4s |
+| t0 | `tes/r003/t0/main` | 5/8 | e00057 | 229.4s |
 | t1 | `tes/r003/t1/main` | 4/8 | e00056 | 242.0s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
@@ -126,6 +126,8 @@ run **r003**（active）· C=2 L=8 K=2 · evals 18/32 · actions 13 · 下一步
 | corr-e00065-e00066 | correction | - | - | - | correction | 勘误：e00065/e00066 登记 insight 的 compile_s 手误 |
 | e00067 | candidate | t1/s04c1 | 382.2s | 8.33x | ok | e00064 -> recon showed only 0.0188% selector oppor… |
 | e00068 | candidate | t1/s04c2 | 427.1s | 9.31x | ok | e00064 -> zero-tile helper still receives dynamic … |
+| e00069 | candidate | t0/s05c1 | - | - | ctest_fail | Phi e00061/e00065 -> per-set-bit ctz dispatch lost… |
+| e00070 | candidate | t0/s05c2 | - | - | ctest_fail | Phi e00054 -> 7235 outlined fwrite bodies are rare… |
 
-最近 actions：A0009 step；A0010 round-summary；A0011 step；A0012 step；A0013 round-summary
+最近 actions：A0010 round-summary；A0011 step；A0012 step；A0013 round-summary；A0014 step
 

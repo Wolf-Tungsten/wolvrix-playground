@@ -6,6 +6,14 @@
 
 ## 当前状态速览
 
+- **r003/t0/s05 已完成但两候选均败于回归门**（2026-08-22，[A0072](actions/A0072_step_t0s05_前缀跳过与task触发提示回归门失败_20260822.md)）：
+  c1 `scan-active-byte-prefix` e00069 与 c2 `sys-task-fire-hints` e00070 均为
+  `ctest_fail`，各 16/17 grhsim tests 通过，分别因新增 prefix 文本断言和既有
+  sys-task scaffolding 文本断言不匹配而失败；`compile_s=316.3/309.5s`，均未进入
+  emit/emu/计时。两机制归类为“回归契约失败、未测”，不是性能证伪；无 winner，
+  t0 主线不移动。当前 t0 5/8、t1 4/8、evals 20/32，历史 best 仍为 e00057
+  **229.429s**；下一 action = `r003/t1/s05`，本 action 不启动它。
+
 - **r003 第 4 轮 round-summary 已完成**（2026-08-22，[A0071](actions/A0071_round-summary_第4轮跨轨迹小结_20260822.md)）：
   t0/s04 机械 winner e00065 `--scan-active-byte-tree` = **409.869s**（CV 0，
   loadavg≈50 慢窗），相对 e00061 无正收益证据；e00066 nibble = **412.826s** 且

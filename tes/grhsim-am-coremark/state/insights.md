@@ -1603,3 +1603,18 @@
 - r003 当前 t0/t1 各 4/8、evals 18/32，`best_overall` 仍为 e00057 229.429s，
   看板 best/gsim 约 5.002x。下一步维持 C/L/K 与轨迹独立；若再开 scanner 或
   wide-mux 邻域，先做非计时动态计数和同态锚点。跨轨迹结论不回流当前 run proposal。
+
+## r003/t0/s05 前缀跳过与 task 触发提示均败于回归门（2026-08-22，action A0072）
+
+- e00069 `scan-active-byte-prefix` 与 e00070 `sys-task-fire-hints` 均为
+  `ctest_fail`，各自 16/17 grhsim tests 通过、`grhsim-am-cpp-emitter` 失败，未进入
+  全模型 emit/emu/计时；`compile_s=316.3/309.5s`。功能门否决且非 interference，
+  不修后覆盖、不重跑，t0 s05 无 winner、主线不移动。
+- 两项生成形态都实际落地，失败点是候选自带文本断言：e00069 fixture 期待
+  `UINT8_C(0x02)` 而 emitter 既有格式为 `UINT8_C(0x2)`；e00070 fixture 仍匹配
+  未包 hint 的 `if (!onceCompleted...)`。因此只能归类为**回归契约失败、机制未测**，
+  不能把 prefix-skip 或 outlined fire hint 记为性能负方向。
+- 候选开发纪律升级：新增 emit 控制流规则在正式 evaluator 前必须用结构化不变量覆盖
+  生成形态，避免把字面格式当语义；纠正版若未来重开，必须先过完整 17/17 且使用新
+  commit，不能原样重放失败候选。当前 t0 5/8、t1 4/8、evals 20/32，历史 best
+  仍为 e00057 229.429s；下一 action = `r003/t1/s05`。
