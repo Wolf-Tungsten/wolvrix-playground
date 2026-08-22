@@ -6,6 +6,14 @@
 
 ## 当前状态速览
 
+- **r003 第 5 轮 round-summary 已完成**（2026-08-23，[A0074](actions/A0074_round-summary_第5轮跨轨迹小结_20260823.md)）：
+  t0/s05 的 `scan-active-byte-prefix` 与 `sys-task-fire-hints` 均因
+  `grhsim-am-cpp-emitter` 回归断言失败（16/17 grhsim tests）被功能门否决，未产生
+  性能分数；t1/s05 的 nonzero-level bitmap e00071 **339.910s** 胜 priority
+  lane resolve e00072 **356.780s**，紧邻低负载窗口 c1 快 4.73%，已入 t1/main，
+  但跨窗幅度仅记正向证据。当前 t0/t1 各 5/8、evals 22/32，历史 best 仍为 e00057
+  **229.429s**；下一 action 由 `tesctl` 状态机给出。
+
 - **r003/t1/s05 已完成，非零 level 压缩胜出**（2026-08-22，[A0073](actions/A0073_step_t1s05_非零level压缩与优先级去重_20260822.md)）：
   c1 e00071 在 active-tile union 时形成 <=64 层 nonzero bitmap，只重访实际非零层，
   Host **339.910s**（CV 0.02%，compile_s 1876.0s）；c2 e00072 逆序 priority resolve

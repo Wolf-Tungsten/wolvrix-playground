@@ -184,10 +184,11 @@
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
   "counters": {
-    "actions": 15,
+    "actions": 16,
     "evals": 22
   },
   "best_overall": {
@@ -310,6 +311,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0073_step_t1s05_非零level压缩与优先级去重_20260822.md",
       "ts": "2026-08-22T23:58:14+08:00"
+    },
+    {
+      "n": 16,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0074_round-summary_第5轮跨轨迹小结_20260823.md",
+      "ts": "2026-08-23T00:04:04+08:00"
     }
   ]
 }

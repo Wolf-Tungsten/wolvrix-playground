@@ -1633,3 +1633,16 @@
   更有杠杆。后续先计数 active tile 非零 level 分布/重叠率，不原样重测两候选。
 - t1 完成 5/8，历史 t1/global best 仍为 e00056 241.956s / e00057 229.429s；
   evals 22/32，下一 action 为第 5 轮 round-summary。
+
+## r003 第 5 轮跨轨迹小结（2026-08-23，action A0074）
+
+- t0/s05 的两个控制流候选均在 `grhsim-am-cpp-emitter` 回归断言处失败（16/17
+  grhsim tests），没有 emit/emu/计时结果；应归类为生成契约失败、机制未测。后续
+  emitter 控制流改动先覆盖结构化生成不变量，纠正版使用新提交，不原样重放。
+- t1 的 active-tile sparse 继续细化为 union 时生成 <=64 层 nonzero bitmap：
+  e00071 **339.910s** 胜 e00072 priority lane resolve 的 **356.780s**（紧邻低负载
+  窗口快 4.73%）。这加强了“减少实际非零 level 重访”优于“去重重叠 lane 写”的
+  方向判断，但因 e00071/e00072 与 e00067 起跑负载不同，跨窗幅度只记正向证据。
+- 可复用判据：局部门控、连续 base 流和稀疏 level 重访是当前唯一仍有正向信号的
+  wide-mux 形态；控制派发微优化、固定层 helper 展开和纯布局精修继续关闭。下一轮
+  先做 active-tile 非零 level 分布/重叠率的非计时统计，再决定候选。

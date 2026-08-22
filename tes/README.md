@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 active，t0 5/8、t1 5/8**（C=2 L=8 K=2） | t1/s05 两候选全门通过：nonzero-level bitmap e00071 **339.910s** 胜出并入主线，priority lane resolve e00072 **356.780s**；紧邻低负载窗口 c1 快 4.73%。历史 best 仍为 e00057 **229.429s**。next = 第 5 轮 `round-summary`，详见 [A0073](grhsim-am-coremark/actions/A0073_step_t1s05_非零level压缩与优先级去重_20260822.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 active，t0 5/8、t1 5/8**（C=2 L=8 K=2） | 第 5 轮小结已完成：t0/s05 两候选均在 emitter 回归门失败；t1/s05 nonzero-level bitmap e00071 **339.910s** 入主线，胜 e00072 **356.780s**；历史 best e00057 **229.429s**。下一 action 由状态机给出，详见 [A0074](grhsim-am-coremark/actions/A0074_round-summary_第5轮跨轨迹小结_20260823.md) |
 
 ## 共享件
 
