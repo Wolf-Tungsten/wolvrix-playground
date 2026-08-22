@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 active，t0 6/8、t1 6/8**（C=2 L=8 K=2） | 第 6 轮无新有效正向证据：t0/s06 因候选表型漏传而无效，t1/s06 两个 helper 精修均慢于父节点；表型审计升级为硬前置，wide-mux 重开须先有动态权重。历史 best 仍为 e00057 **229.429s**，下一 action = `r003/t0/s07 step`，详见 [A0077](grhsim-am-coremark/actions/A0077_round-summary_第6轮跨轨迹小结_20260823.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 active，t0 7/8、t1 6/8**（C=2 L=8 K=2） | t0/s07 已用完整父表型实测 prefix-skip 与 outlined fire-hint：e00077 **312.027s**、e00078 **299.715s**，均全门通过；c2 机械入主线但两项均未达到收益门，历史跨窗幅度落已知快慢态带。best 仍为 e00057 **229.429s**，下一 action = `r003/t1/s07 step`，详见 [A0078](grhsim-am-coremark/actions/A0078_step_t0s07_前缀跳过与task触发提示实测_20260823.md) |
 
 ## 共享件
 

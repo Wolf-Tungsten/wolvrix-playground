@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-23T03:13:02+08:00
+> 生成于 2026-08-23T04:09:18+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 26/32 · actions 19 · 下一步 `step`：推进轨迹 t0 到第 7 步（round-robin 最少步数优先）
+run **r003**（active）· C=2 L=8 K=2 · evals 28/32 · actions 20 · 下一步 `step`：推进轨迹 t1 到第 7 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -18,7 +18,7 @@ run **r003**（active）· C=2 L=8 K=2 · evals 26/32 · actions 19 · 下一步
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
-| t0 | `tes/r003/t0/main` | 6/8 | e00057 | 229.4s |
+| t0 | `tes/r003/t0/main` | 7/8 | e00057 | 229.4s |
 | t1 | `tes/r003/t1/main` | 6/8 | e00056 | 242.0s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
@@ -135,6 +135,8 @@ run **r003**（active）· C=2 L=8 K=2 · evals 26/32 · actions 19 · 下一步
 | corr-e00073-e00074-phenotype | correction | t0/s06c0 | - | - | correction | 勘误：e00073/e00074 正式评估遗漏候选专属 emit_args，两个机制均未在生产模型启… |
 | e00075 | candidate | t1/s06c1 | 363.8s | 7.93x | ok | e00071 -> active-tile sparse union already loads e… |
 | e00076 | candidate | t1/s06c2 | 354.5s | 7.73x | ok | e00056/e00071 -> 151 of 156 fused chains are singl… |
+| e00077 | candidate | t0/s07c1 | 312.0s | 6.80x | ok | Phi e00057/e00073 -> e00057 proved branch-hinted s… |
+| e00078 | candidate | t0/s07c2 | 299.7s | 6.53x | ok | Phi e00054/e00074 -> sys-task-body-outline removes… |
 
-最近 actions：A0015 step；A0016 round-summary；A0017 step；A0018 step；A0019 round-summary
+最近 actions：A0016 round-summary；A0017 step；A0018 step；A0019 round-summary；A0020 step
 

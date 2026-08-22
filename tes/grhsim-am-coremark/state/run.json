@@ -141,7 +141,7 @@
   },
   "eval_sequence": {
     "start": 51,
-    "next": 77
+    "next": 79
   },
   "baselines": {
     "am": {
@@ -161,8 +161,8 @@
     {
       "id": "t0",
       "branch": "tes/r003/t0/main",
-      "tip": "46cdaebf127573b71b86b42bd5e515a16aaa997c",
-      "steps_completed": 6,
+      "tip": "7204ecd29d51ce19e582f2c0c04560720d4455ba",
+      "steps_completed": 7,
       "best": {
         "eval_id": "e00057",
         "score": -229429
@@ -189,8 +189,8 @@
     6
   ],
   "counters": {
-    "actions": 19,
-    "evals": 26
+    "actions": 20,
+    "evals": 28
   },
   "best_overall": {
     "eval_id": "e00057",
@@ -212,16 +212,17 @@
     ]
   },
   "phi_selection_counts": {
-    "e00051": 6,
+    "e00051": 7,
     "e00054": 2,
     "e00056": 4,
-    "e00057": 3,
+    "e00057": 4,
     "e00059": 2,
     "e00061": 2,
     "e00064": 1,
     "e00065": 2,
     "e00067": 1,
-    "e00071": 1
+    "e00071": 1,
+    "e00074": 1
   },
   "history": [
     {
@@ -337,6 +338,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0077_round-summary_第6轮跨轨迹小结_20260823.md",
       "ts": "2026-08-23T03:13:02+08:00"
+    },
+    {
+      "n": 20,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0078_step_t0s07_前缀跳过与task触发提示实测_20260823.md",
+      "ts": "2026-08-23T04:09:18+08:00"
     }
   ]
 }
