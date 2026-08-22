@@ -1407,3 +1407,19 @@
   r003 的基线时间，后续收益必须相对 e00051 的冻结口径解释。
 - eval-id 已按任务级序列接续：双基线 e00051/e00052，下一候选从 e00053 开始。
   下一 action = r003/t0/s01；必须等下一次 goal 执行，不在本 run-init action 偷跑。
+
+## r003/t0/s01 scan 分支提示与 system-task 冷体 outline（2026-08-22，action A0060）
+
+- **机械 winner（e00054，已入 t0/main）**：`--sys-task-body-outline`，commit
+  `b1f2c8d`，Host 247.560s（CV=0），较 e00051 名义 -31.99%；17/17 ctest 与
+  3 rep difftest 全过，compile_s 1067.7s。`--scan-branch-hints` e00053 同样全门
+  通过，334.687s（CV=0），较 e00051 名义 -8.05%，compile_s 1978.0s。
+- **因果量级保留**：c1/c2 = 1.352x，落在 r002 已检出的 per-process 快慢态
+  1.3-1.4x 带内；两候选跨窗口，批内 CV=0 不能排除整批同态抽签。因此 ledger
+  与 finish-step 的 c2 winner 有效，但 c2 的 -31.99% 不能全归因于 outline，
+  也不能据此断言 outline 比 scan hints 强 26.03%。
+- 两机制均有 r002 同输入同窗先验（scan hints -11.41%、sys-task outline -5.91%），
+  本次确认代码、开关和功能语义可迁移。t0 后续若 Φ 选中相关邻域，可检验
+  outline 基座叠加 scan hints 的正交性；不得用原样重测占候选席位。
+- t0 完成 1/8，TES eval 计数 4/32（含双基线）；下一 action = t1/s01，严格保持
+  `cross_trajectory=false`，不向 t1 proposal 注入本 step 结果。

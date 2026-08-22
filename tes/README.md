@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，run-init 已完成**（C=2 L=8 K=2） | y0 = r002/e00007 完整解（`ecb4c3f3` + 10 开关）；AM e00051 **363.995s**、gsim e00052 **45.864s**，起跑 7.936x；固定 3 rep、无安慰剂席位，next = t0/s01（e00053/e00054），详见 [A0059](grhsim-am-coremark/actions/A0059_run-init_r003_e00007精确解与双基线_20260822.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 1/8、t1 0/8**（C=2 L=8 K=2） | t0/s01 两候选全门过：scan hints e00053 **334.687s**；task outline e00054 **247.560s** 为机械 winner、当前 ledger 5.398x，但 c1/c2=1.352x 落历史快慢态带，量级归因保留；next = t1/s01，详见 [A0060](grhsim-am-coremark/actions/A0060_step_t0s01_scan提示与冷体outline_20260822.md) |
 
 ## 共享件
 

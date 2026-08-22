@@ -141,7 +141,7 @@
   },
   "eval_sequence": {
     "start": 51,
-    "next": 53
+    "next": 55
   },
   "baselines": {
     "am": {
@@ -161,9 +161,12 @@
     {
       "id": "t0",
       "branch": "tes/r003/t0/main",
-      "tip": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
-      "steps_completed": 0,
-      "best": null
+      "tip": "b1f2c8dcd21f17fc654c3838869efd3180acfb5b",
+      "steps_completed": 1,
+      "best": {
+        "eval_id": "e00054",
+        "score": -247560
+      }
     },
     {
       "id": "t1",
@@ -176,13 +179,13 @@
   "current_step": null,
   "round_summaries_done": [],
   "counters": {
-    "actions": 1,
-    "evals": 2
+    "actions": 2,
+    "evals": 4
   },
   "best_overall": {
-    "eval_id": "e00051",
-    "score": -363995,
-    "commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
+    "eval_id": "e00054",
+    "score": -247560,
+    "commit": "b1f2c8dcd21f17fc654c3838869efd3180acfb5b",
     "emit_args": [
       "--branchy-mux",
       "--resize-elision",
@@ -193,16 +196,25 @@
       "--concat-insert-inline",
       "--inline-scalar-helpers",
       "--concat-insert-unroll",
-      "--wide-detect-fast-path"
+      "--wide-detect-fast-path",
+      "--sys-task-body-outline"
     ]
   },
-  "phi_selection_counts": {},
+  "phi_selection_counts": {
+    "e00051": 1
+  },
   "history": [
     {
       "n": 1,
       "type": "run-init",
       "note": "tes/grhsim-am-coremark/actions/A0059_run-init_r003_e00007精确解与双基线_20260822.md",
       "ts": "2026-08-22T01:35:05+08:00"
+    },
+    {
+      "n": 2,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0060_step_t0s01_scan提示与冷体outline_20260822.md",
+      "ts": "2026-08-22T08:18:59+08:00"
     }
   ]
 }
