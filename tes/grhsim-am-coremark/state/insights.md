@@ -1567,3 +1567,20 @@
   t1 3/8、evals 16/32，下一 action 为 t1/s04。
 - 勘误：e00065/e00066 首次 record-eval insight 的 compile_s 误写为
   1248.2/1192.8s；ledger 已追加 correction，正确值为 1255.3/1200.8s。
+
+## r003/t1/s04 active tile 稀疏覆盖与固定层专化（2026-08-22，action A0070）
+
+- **机械 winner、暂定正向（e00067）**：`--wide-mux-chain-active-tile-sparse` 在
+  zero-tile 门控内先连续落 base，再按 level 只 scatter selector 置位 lane；生产精确
+  命中 1x L4 + 4x L23 多级调用。Host **382.171s**（CV 0，compile_s 2136.2s），
+  较 e00064 名义 -6.73%、越 3% 门；但起跑 loadavg 12.30 vs e00064 50.18，跨窗
+  幅度不可作已确认因果。winner `1951404` 已入 t1/main，后续确认条件是动态
+  zero/active tile 分解或低负载同窗证据，不原样重测。
+- **固定层专化证伪（e00068）**：按实际 L4/L23 生成两个共享 helper，五个调用点均
+  命中，数据流不变；Host **427.066s**（CV 0，compile_s 2049.4s），在与 e00064
+  相近的高负载起点下回退 4.23%。clang 将 helper 从动态版 0x4de B 展开为
+  0xc03 + 0x264f B，最终 ELF `.text` +11,624 B；循环控制收益未胜过前端/I-cache
+  压力，原样方向关闭。
+- 两候选 17/17 ctest、全部 difftest 与编译门均过。t1 best 仍为 e00056
+  241.956s，全局 best 仍为 e00057 229.429s；t0/t1 各 4/8、evals 18/32，下一
+  action 为第 4 轮 round-summary。

@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-22T18:52:29+08:00
+> 生成于 2026-08-22T20:56:43+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 16/32 · actions 11 · 下一步 `step`：推进轨迹 t1 到第 4 步（round-robin 最少步数优先）
+run **r003**（active）· C=2 L=8 K=2 · evals 18/32 · actions 12 · 下一步 `round-summary`：第 4 轮（全部 2 条轨迹各完成 1 步）已齐平，做跨轨迹小结
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -19,7 +19,7 @@ run **r003**（active）· C=2 L=8 K=2 · evals 16/32 · actions 11 · 下一步
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
 | t0 | `tes/r003/t0/main` | 4/8 | e00057 | 229.4s |
-| t1 | `tes/r003/t1/main` | 3/8 | e00056 | 242.0s |
+| t1 | `tes/r003/t1/main` | 4/8 | e00056 | 242.0s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
 |---|---|---|---|---|---|---|
@@ -124,6 +124,8 @@ run **r003**（active）· C=2 L=8 K=2 · evals 16/32 · actions 11 · 下一步
 | e00065 | candidate | t0/s04c1 | 409.9s | 8.94x | ok | Phi e00061 -> ctz 已减少活跃 byte 测试，但 93,599 个 switch … |
 | e00066 | candidate | t0/s04c2 | 412.8s | 9.00x | ok | Phi e00057/e00061 -> branch-hinted线性扫描优于ctz+switch… |
 | corr-e00065-e00066 | correction | - | - | - | correction | 勘误：e00065/e00066 登记 insight 的 compile_s 手误 |
+| e00067 | candidate | t1/s04c1 | 382.2s | 8.33x | ok | e00064 -> recon showed only 0.0188% selector oppor… |
+| e00068 | candidate | t1/s04c2 | 427.1s | 9.31x | ok | e00064 -> zero-tile helper still receives dynamic … |
 
-最近 actions：A0007 round-summary；A0008 step；A0009 step；A0010 round-summary；A0011 step
+最近 actions：A0008 step；A0009 step；A0010 round-summary；A0011 step；A0012 step
 

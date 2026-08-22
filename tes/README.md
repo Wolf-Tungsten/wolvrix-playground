@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 4/8、t1 3/8**（C=2 L=8 K=2） | t0/s04 direct-tree 与 nibble-guard 均在 loadavg≈50 慢窗无正收益证据；机械 winner e00065 入主线，历史 best 仍为 e00057 **229.429s**。next = `r003/t1/s04`，详见 [A0069](grhsim-am-coremark/actions/A0069_step_t0s04_ctz直接树与nibble分层守卫_20260822.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 4/8、t1 4/8**（C=2 L=8 K=2） | t1/s04 active-tile sparse e00067 = **382.171s**，名义越 3% 门但跨负载窗仅暂定正向；固定层专化 e00068 回退 4.23% 并关闭。机械 winner e00067 入主线，历史 best 仍为 e00057 **229.429s**。next = 第 4 轮 `round-summary`，详见 [A0070](grhsim-am-coremark/actions/A0070_step_t1s04_活跃tile稀疏与固定层专化_20260822.md) |
 
 ## 共享件
 

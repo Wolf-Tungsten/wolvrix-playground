@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r003/t1/s04 已完成**（2026-08-22，[A0070](actions/A0070_step_t1s04_活跃tile稀疏与固定层专化_20260822.md)）：
+  c1 `--wide-mux-chain-active-tile-sparse` e00067 = **382.171s**（CV 0，compile_s
+  2136.2s），较 e00064 名义 -6.73% 并越 3% 门，但起跑 loadavg 12.30 vs 50.18，
+  仅记暂定正向；c2 `--wide-mux-chain-static-levels` e00068 = **427.066s**（CV 0，
+  compile_s 2049.4s），在相近高负载起点下较 e00064 回退 4.23%，且 L4/L23 helper
+  机器码展开 10.3x，原样方向关闭。两项均通过 17/17 ctest、3 rep difftest 与编译门；
+  机械 winner e00067 已入 t1/main，t1/global best 仍为 e00056 **241.956s** / e00057
+  **229.429s**。当前 t0/t1 各 4/8、evals 18/32；下一 action = 第 4 轮
+  `round-summary`，本 action 不启动它。
+
 - **r003/t0/s04 已完成**（2026-08-22，[A0069](actions/A0069_step_t0s04_ctz直接树与nibble分层守卫_20260822.md)）：
   c1 `--scan-active-byte-tree` e00065 = **409.869s**（CV 0），c2
   `--scan-active-byte-nibble` e00066 = **412.826s**（CV 14% noisy，第三 rep

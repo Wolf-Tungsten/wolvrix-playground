@@ -141,7 +141,7 @@
   },
   "eval_sequence": {
     "start": 51,
-    "next": 67
+    "next": 69
   },
   "baselines": {
     "am": {
@@ -171,8 +171,8 @@
     {
       "id": "t1",
       "branch": "tes/r003/t1/main",
-      "tip": "0f3fd046eb683dd7ae53ef98c8afa70fd25f66e1",
-      "steps_completed": 3,
+      "tip": "1951404270cc663c219f368b7db0370609bd34ab",
+      "steps_completed": 4,
       "best": {
         "eval_id": "e00056",
         "score": -241956
@@ -186,8 +186,8 @@
     3
   ],
   "counters": {
-    "actions": 11,
-    "evals": 16
+    "actions": 12,
+    "evals": 18
   },
   "best_overall": {
     "eval_id": "e00057",
@@ -211,10 +211,11 @@
   "phi_selection_counts": {
     "e00051": 4,
     "e00054": 1,
-    "e00056": 2,
+    "e00056": 3,
     "e00057": 2,
     "e00059": 1,
-    "e00061": 1
+    "e00061": 1,
+    "e00064": 1
   },
   "history": [
     {
@@ -282,6 +283,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0069_step_t0s04_ctz直接树与nibble分层守卫_20260822.md",
       "ts": "2026-08-22T18:52:29+08:00"
+    },
+    {
+      "n": 12,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0070_step_t1s04_活跃tile稀疏与固定层专化_20260822.md",
+      "ts": "2026-08-22T20:56:43+08:00"
     }
   ]
 }
