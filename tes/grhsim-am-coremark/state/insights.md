@@ -1475,3 +1475,22 @@
   合入本身可回撤。t1 best 仍为 e00056 241.956s，全局 best 仍为 e00057 229.429s。
   宽链 helper 微结构下一次重开前，必须先量化多级链动态 block execs、selector 密度
   与生产二进制形态；静态 chain/level 数不足以支撑原样变体。
+
+## r003 第 2 轮跨轨迹小结（2026-08-22，action A0065）
+
+- 两轨迹各完成 s02，四候选均全门通过。t0 winner e00057
+  `scan-branch-hints` = **229.429s**（较 e00054 名义 -7.32%，已刷新全局 best）；
+  t1 winner e00059 `wide-mux-chain-priority-resolve` = **257.235s**（较 e00056
+  名义 +6.32%，机械入主线但 t1 best 仍为 e00056 241.956s）。
+- scan hints 的证据链继续收敛：r002 在 t0/t1 同窗分别确认 -11.41%/-5.69%，
+  r003 在 outline 基座上再得名义 -7.32%；动态已定位的 dispatch 跳过链与前端
+  取指流仍是可复用的正向机制族，但本轮跨窗口幅度不升级为新的因果量级。
+- `sys-task-body-compact` e00058 较 outline 基座名义 +1.94%，未改善约 823 MB
+  生成 C++ 或 compile_s；共享冷体调用/参数物化抵消体积缩减，当前形态暂关闭。
+- 宽 mux helper 两个微结构均无正收益证据：priority-mask 仅命中 5 条多级链且
+  名义回退；single-level tile 精确命中 151 条链，但 e00060/e00059 = **1.393x**
+  落快慢态带。重开前必须先有动态 block execs、selector 密度和生产二进制形态，
+  不再仅凭静态 chain/level 数设计变体。
+- 批内 CV=0 再次不能排除整批快慢态；亚 10% 新机制继续要求同窗/同态证据。
+  当前 t0/t1 各 2/8、evals 10/32、ledger best/gsim = **5.002x**。无需用户调整
+  C/L/K；本轮小结不改变 run 内跨轨迹独立纪律。

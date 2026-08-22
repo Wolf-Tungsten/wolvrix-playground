@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-22T13:24:06+08:00
+> 生成于 2026-08-22T13:34:14+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 10/32 · actions 6 · 下一步 `round-summary`：第 2 轮（全部 2 条轨迹各完成 1 步）已齐平，做跨轨迹小结
+run **r003**（active）· C=2 L=8 K=2 · evals 10/32 · actions 7 · 下一步 `step`：推进轨迹 t0 到第 3 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -118,5 +118,5 @@ run **r003**（active）· C=2 L=8 K=2 · evals 10/32 · actions 6 · 下一步 
 | e00059 | candidate | t1/s02c1 | 257.2s | 5.61x | ok | e00056 -> four 23-level and one 4-level fused chai… |
 | e00060 | candidate | t1/s02c2 | 358.3s | 7.81x | ok | e00056 -> 151 of 156 fused chains are single-level… |
 
-最近 actions：A0002 step；A0003 step；A0004 round-summary；A0005 step；A0006 step
+最近 actions：A0003 step；A0004 round-summary；A0005 step；A0006 step；A0007 round-summary
 

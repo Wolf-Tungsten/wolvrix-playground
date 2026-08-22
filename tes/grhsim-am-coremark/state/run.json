@@ -181,10 +181,11 @@
   ],
   "current_step": null,
   "round_summaries_done": [
-    1
+    1,
+    2
   ],
   "counters": {
-    "actions": 6,
+    "actions": 7,
     "evals": 10
   },
   "best_overall": {
@@ -247,6 +248,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0064_step_t1s02_宽mux链优先解析与单层tile快路_20260822.md",
       "ts": "2026-08-22T13:24:06+08:00"
+    },
+    {
+      "n": 7,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0065_round-summary_第2轮跨轨迹小结_20260822.md",
+      "ts": "2026-08-22T13:34:14+08:00"
     }
   ]
 }

@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r003 第 2 轮 round-summary 已完成**（2026-08-22，[A0065](actions/A0065_round-summary_第2轮跨轨迹小结_20260822.md)）：
+  t0/s02 winner e00057 `--scan-branch-hints` = **229.429s**（较 e00054 名义
+  -7.32%，刷新全局 best）；t1/s02 winner e00059
+  `--wide-mux-chain-priority-resolve` = **257.235s**（较 e00056 名义 +6.32%，
+  机械入主线但 t1 best 仍为 e00056 241.956s）。scan hints 结合 r002 同窗证据
+  继续收敛为正向前端流机制；task-body compact 与两种 wide-mux helper 精修均无
+  新正收益，后者须先补动态权重/二进制证据再重开。当前 t0/t1 各 2/8、evals
+  10/32，best/gsim 看板比 **5.002x**；下一 action = `r003/t0/s03`，本小结不启动它。
+
 - **r003/t1/s02 已完成**（2026-08-22，[A0064](actions/A0064_step_t1s02_宽mux链优先解析与单层tile快路_20260822.md)）：
   c1 多级链 priority-mask e00059 = **257.235s**，c2 单级链 tile/scatter e00060 =
   **358.271s**；两项均通过 17/17 ctest、3 rep difftest 与 2400s 编译门。生产形态
