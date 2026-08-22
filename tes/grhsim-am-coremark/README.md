@@ -6,6 +6,14 @@
 
 ## 当前状态速览
 
+- **r003/t0/s06 已消耗，但两候选因 emit_args 漏传判为无效测量**（2026-08-23，[A0075](actions/A0075_step_t0s06_候选表型漏传与无效测量_20260823.md)）：
+  e00073/e00074 均过 17/17 ctest、3 rep difftest 与编译门，原始 Host 为
+  **370.611s / 346.687s**；收口审计发现两份 result 都只有基础 10 开关，未启用
+  `scan-active-byte-prefix` 或 `sys-task-fire-hints`，故分数不得作为机制证据。状态机已
+  按 raw score 将默认-off 的 e00074 提交机械入 t0/main，t0 计为 6/8、evals 24/32，
+  但历史 best 仍为 e00057 **229.429s**。ledger 已追加 correction；下一 action =
+  `r003/t1/s06`，本 action 不启动它。
+
 - **r003 第 5 轮 round-summary 已完成**（2026-08-23，[A0074](actions/A0074_round-summary_第5轮跨轨迹小结_20260823.md)）：
   t0/s05 的 `scan-active-byte-prefix` 与 `sys-task-fire-hints` 均因
   `grhsim-am-cpp-emitter` 回归断言失败（16/17 grhsim tests）被功能门否决，未产生

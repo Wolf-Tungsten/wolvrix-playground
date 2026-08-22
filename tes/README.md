@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 active，t0 5/8、t1 5/8**（C=2 L=8 K=2） | 第 5 轮小结已完成：t0/s05 两候选均在 emitter 回归门失败；t1/s05 nonzero-level bitmap e00071 **339.910s** 入主线，胜 e00072 **356.780s**；历史 best e00057 **229.429s**。下一 action 由状态机给出，详见 [A0074](grhsim-am-coremark/actions/A0074_round-summary_第5轮跨轨迹小结_20260823.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 active，t0 6/8、t1 5/8**（C=2 L=8 K=2） | t0/s06 两次评估均漏传候选 emit_args，370.611s/346.687s 只属于基础表型，已追加勘误且不得作机制证据；状态机消耗该步，历史 best 仍为 e00057 **229.429s**。下一 action 为 t1/s06，详见 [A0075](grhsim-am-coremark/actions/A0075_step_t0s06_候选表型漏传与无效测量_20260823.md) |
 
 ## 共享件
 

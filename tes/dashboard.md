@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-23T00:04:04+08:00
+> 生成于 2026-08-23T01:37:27+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 22/32 · actions 16 · 下一步 `step`：推进轨迹 t0 到第 6 步（round-robin 最少步数优先）
+run **r003**（active）· C=2 L=8 K=2 · evals 24/32 · actions 17 · 下一步 `step`：推进轨迹 t1 到第 6 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -18,7 +18,7 @@ run **r003**（active）· C=2 L=8 K=2 · evals 22/32 · actions 16 · 下一步
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
-| t0 | `tes/r003/t0/main` | 5/8 | e00057 | 229.4s |
+| t0 | `tes/r003/t0/main` | 6/8 | e00057 | 229.4s |
 | t1 | `tes/r003/t1/main` | 5/8 | e00056 | 242.0s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
@@ -130,6 +130,9 @@ run **r003**（active）· C=2 L=8 K=2 · evals 22/32 · actions 16 · 下一步
 | e00070 | candidate | t0/s05c2 | - | - | ctest_fail | Phi e00054 -> 7235 outlined fwrite bodies are rare… |
 | e00071 | candidate | t1/s05c1 | 339.9s | 7.41x | ok | e00067 -> active-tile sparse helper rescans all 4/… |
 | e00072 | candidate | t1/s05c2 | 356.8s | 7.78x | ok | e00067/e00059 -> active-tile sparse writes a lane … |
+| e00073 | candidate | t0/s06c1 | 370.6s | 8.08x | ok | Phi e00057/e00065 -> direct-tree active-byte dispa… |
+| e00074 | candidate | t0/s06c2 | 346.7s | 7.56x | ok | Phi e00054/e00065 -> 7235 outlined fwrite bodies a… |
+| corr-e00073-e00074-phenotype | correction | t0/s06c0 | - | - | correction | 勘误：e00073/e00074 正式评估遗漏候选专属 emit_args，两个机制均未在生产模型启… |
 
-最近 actions：A0012 step；A0013 round-summary；A0014 step；A0015 step；A0016 round-summary
+最近 actions：A0013 round-summary；A0014 step；A0015 step；A0016 round-summary；A0017 step
 

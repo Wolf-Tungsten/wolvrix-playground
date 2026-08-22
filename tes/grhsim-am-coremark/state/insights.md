@@ -1646,3 +1646,17 @@
 - 可复用判据：局部门控、连续 base 流和稀疏 level 重访是当前唯一仍有正向信号的
   wide-mux 形态；控制派发微优化、固定层 helper 展开和纯布局精修继续关闭。下一轮
   先做 active-tile 非零 level 分布/重叠率的非计时统计，再决定候选。
+
+## r003/t0/s06 表型漏传勘误（2026-08-23，action A0075）
+
+- e00073/e00074 虽均通过 17/17 ctest、3 rep difftest 和编译门，但两份
+  `result.json.emit_args` 都只有冻结的基础 10 开关；prefix-skip 与 outlined fire
+  hint 均未在生产模型启用。370.611s / 346.687s 是相同基础表型的重复读数，不能作为
+  两机制的正负证据或相互排名。
+- `finish-step` 已按 raw score 将 e00074 机械入 t0/main 并消耗 s06；提交中的规则默认
+  off，历史 best e00057 229.429s 不变。ledger 以 correction 追加勘误，不修改原始
+  ok/commit-marker，也不手改 run.json。
+- **候选表型审计升级为硬前置**：代码类 default-off 属性也必须显式传完整父节点
+  `emit_args` + 本候选开关。正式评估后、`record-eval` 前逐项核对 result emit_args；
+  “commit 含实现”不能替代“生产表型已启用”。未来重开两个机制须使用新 step/eval，
+  不得引用 e00073/e00074 分数。

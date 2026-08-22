@@ -141,7 +141,7 @@
   },
   "eval_sequence": {
     "start": 51,
-    "next": 73
+    "next": 75
   },
   "baselines": {
     "am": {
@@ -161,8 +161,8 @@
     {
       "id": "t0",
       "branch": "tes/r003/t0/main",
-      "tip": "aff7f7c257aee41e8905b5298c3ee7f2fac35cad",
-      "steps_completed": 5,
+      "tip": "46cdaebf127573b71b86b42bd5e515a16aaa997c",
+      "steps_completed": 6,
       "best": {
         "eval_id": "e00057",
         "score": -229429
@@ -188,8 +188,8 @@
     5
   ],
   "counters": {
-    "actions": 16,
-    "evals": 22
+    "actions": 17,
+    "evals": 24
   },
   "best_overall": {
     "eval_id": "e00057",
@@ -211,14 +211,14 @@
     ]
   },
   "phi_selection_counts": {
-    "e00051": 5,
+    "e00051": 6,
     "e00054": 2,
     "e00056": 3,
-    "e00057": 2,
+    "e00057": 3,
     "e00059": 2,
     "e00061": 2,
     "e00064": 1,
-    "e00065": 1,
+    "e00065": 2,
     "e00067": 1
   },
   "history": [
@@ -317,6 +317,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0074_round-summary_第5轮跨轨迹小结_20260823.md",
       "ts": "2026-08-23T00:04:04+08:00"
+    },
+    {
+      "n": 17,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0075_step_t0s06_候选表型漏传与无效测量_20260823.md",
+      "ts": "2026-08-23T01:37:27+08:00"
     }
   ]
 }
