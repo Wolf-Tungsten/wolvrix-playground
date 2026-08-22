@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-22T14:51:03+08:00
+> 生成于 2026-08-22T16:57:19+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 12/32 · actions 8 · 下一步 `step`：推进轨迹 t1 到第 3 步（round-robin 最少步数优先）
+run **r003**（active）· C=2 L=8 K=2 · evals 14/32 · actions 9 · 下一步 `round-summary`：第 3 轮（全部 2 条轨迹各完成 1 步）已齐平，做跨轨迹小结
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -19,7 +19,7 @@ run **r003**（active）· C=2 L=8 K=2 · evals 12/32 · actions 8 · 下一步 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
 | t0 | `tes/r003/t0/main` | 3/8 | e00057 | 229.4s |
-| t1 | `tes/r003/t1/main` | 2/8 | e00056 | 242.0s |
+| t1 | `tes/r003/t1/main` | 3/8 | e00056 | 242.0s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
 |---|---|---|---|---|---|---|
@@ -119,6 +119,8 @@ run **r003**（active）· C=2 L=8 K=2 · evals 12/32 · actions 8 · 下一步 
 | e00060 | candidate | t1/s02c2 | 358.3s | 7.81x | ok | e00056 -> 151 of 156 fused chains are single-level… |
 | e00061 | candidate | t0/s03c1 | 251.7s | 5.49x | ok | Phi e00057 -> scanBranchHints 已捕获约一半 75-80s 扫描骨架、残… |
 | e00062 | candidate | t0/s03c2 | 300.2s | 6.55x | ok | Phi e00057 -> 7,235 个 outlined fwrite body 极少 fire… |
+| e00063 | candidate | t1/s03c1 | 495.5s | 10.80x | ok | e00059 -> recon 显示 23-level 链 99.57% lane 取 base，而… |
+| e00064 | candidate | t1/s03c2 | 409.7s | 8.93x | ok | e00056/e00059 -> recon 显示 23-level selector 机会密度仅0… |
 
-最近 actions：A0004 round-summary；A0005 step；A0006 step；A0007 round-summary；A0008 step
+最近 actions：A0005 step；A0006 step；A0007 round-summary；A0008 step；A0009 step
 

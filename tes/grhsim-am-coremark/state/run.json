@@ -141,7 +141,7 @@
   },
   "eval_sequence": {
     "start": 51,
-    "next": 63
+    "next": 65
   },
   "baselines": {
     "am": {
@@ -171,8 +171,8 @@
     {
       "id": "t1",
       "branch": "tes/r003/t1/main",
-      "tip": "d28a44fcff6fc94ad3f352776c8b77a7dcf08cc8",
-      "steps_completed": 2,
+      "tip": "0f3fd046eb683dd7ae53ef98c8afa70fd25f66e1",
+      "steps_completed": 3,
       "best": {
         "eval_id": "e00056",
         "score": -241956
@@ -185,8 +185,8 @@
     2
   ],
   "counters": {
-    "actions": 8,
-    "evals": 12
+    "actions": 9,
+    "evals": 14
   },
   "best_overall": {
     "eval_id": "e00057",
@@ -210,8 +210,9 @@
   "phi_selection_counts": {
     "e00051": 3,
     "e00054": 1,
-    "e00056": 1,
-    "e00057": 1
+    "e00056": 2,
+    "e00057": 1,
+    "e00059": 1
   },
   "history": [
     {
@@ -261,6 +262,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0066_step_t0s03_ctz稀疏派发与task冷段布局_20260822.md",
       "ts": "2026-08-22T14:51:03+08:00"
+    },
+    {
+      "n": 9,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0067_step_t1s03_mux稀疏覆盖与零tile旁路_20260822.md",
+      "ts": "2026-08-22T16:57:19+08:00"
     }
   ]
 }

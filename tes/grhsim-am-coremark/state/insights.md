@@ -1512,3 +1512,20 @@
 - `finish-step` 按 score 将 e00061 (`3706873`) 机械合入 t0/main；t0 与全局历史
   best 仍为 e00057 **229.429s**。t0 3/8、t1 2/8、evals 12/32。下一 action 为
   t1/s03；本结论不跨轨迹回流 proposal。
+
+## r003/t1/s03 宽 mux selector 稀疏性与零 tile 旁路（2026-08-22，action A0067）
+
+- 非计时 recon 定量 23-level 链：199,996 次调用 / 70,398,592 个输出 lane，全部
+  selector 机会中仅 304,596 个置位（0.0188%），99.57% lane 最终取 base，且无
+  tile 被 selector 全覆盖；e00059 对 unresolved base 逐位 ctz 的主要浪费由此坐实。
+- c1 `wide-mux-chain-sparse-overlay` 先连续初始化 base、再只 scatter 置位 selector，
+  语义与 5 条多级链覆盖成立；e00063 = 495.496s，但起跑 loadavg 49.50、CV 8.73%
+  标 noisy，较 e00059 的名义回退不能作纯机制幅度，本窗无正收益证据。
+- **机械 winner c2/e00064** `wide-mux-chain-zero-tile-bypass`：零 selector tile 直接
+  连续复制/填充 base，非零 tile 保留 branchless replay；409.731s（CV 0、loadavg
+  50.18），同高负载窗口较 c1 中位快 17.31%，5 个多级调用精确命中，已入 t1/main。
+  但较历史 e00059 仍名义慢 59.28%，所以 t1 best 保持 e00056 241.956s。
+- 两候选 17/17 ctest、全部 difftest 与编译门均过；c2 compile_s 2229.3s，仅余
+  7.1% 编译预算。wide-mux 后续只在 c2 上先补 zero/active tile 动态计数，保持公共
+  helper 与代码体量；priority-resolve/sparse-overlay 不原样重测。宿主 loadavg
+  49-50 升格为本 action 测量红旗，下一 round-summary 需统一解释。

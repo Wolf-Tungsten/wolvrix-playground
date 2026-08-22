@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r003/t1/s03 已完成**（2026-08-22，[A0067](actions/A0067_step_t1s03_mux稀疏覆盖与零tile旁路_20260822.md)）：
+  recon 定量 23-level 链 selector 机会密度仅 **0.0188%**、99.57% lane 取 base。
+  c1 sparse-overlay e00063 = **495.496s**（CV 8.73% noisy、loadavg 49.50），c2
+  zero-tile-bypass e00064 = **409.731s**（CV 0、loadavg 50.18）；两项均通过
+  17/17 ctest、3 rep difftest 与编译门，c2 同高负载窗口快 17.31% 成为机械 winner
+  并入 t1/main。绝对值受高负载慢窗混杂，t1 best 仍为 e00056 241.956s，全局 best
+  仍为 e00057 229.429s。当前 t0/t1 各 3/8、evals 14/32；下一 action = 第 3 轮
+  `round-summary`，本 action 不启动它。
+
 - **r003/t0/s03 已完成**（2026-08-22，[A0066](actions/A0066_step_t0s03_ctz稀疏派发与task冷段布局_20260822.md)）：
   c1 `--scan-active-byte-ctz` e00061 = **251.746s**（较 e00057 名义 +9.73%，
   ELF `.text` +2.48% / `.rodata` +7.67%），c2 `--sys-task-body-cold` e00062 =
