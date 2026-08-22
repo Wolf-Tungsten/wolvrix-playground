@@ -180,9 +180,11 @@
     }
   ],
   "current_step": null,
-  "round_summaries_done": [],
+  "round_summaries_done": [
+    1
+  ],
   "counters": {
-    "actions": 3,
+    "actions": 4,
     "evals": 6
   },
   "best_overall": {
@@ -224,6 +226,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0061_step_t1s01_活动摘要与宽mux链融合_20260822.md",
       "ts": "2026-08-22T10:03:18+08:00"
+    },
+    {
+      "n": 4,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0062_round-summary_第1轮跨轨迹小结_20260822.md",
+      "ts": "2026-08-22T10:15:41+08:00"
     }
   ]
 }

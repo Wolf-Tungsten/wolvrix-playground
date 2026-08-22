@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-22T10:03:18+08:00
+> 生成于 2026-08-22T10:15:41+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 6/32 · actions 3 · 下一步 `round-summary`：第 1 轮（全部 2 条轨迹各完成 1 步）已齐平，做跨轨迹小结
+run **r003**（active）· C=2 L=8 K=2 · evals 6/32 · actions 4 · 下一步 `step`：推进轨迹 t0 到第 2 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -114,5 +114,5 @@ run **r003**（active）· C=2 L=8 K=2 · evals 6/32 · actions 3 · 下一步 `
 | e00055 | candidate | t1/s01c1 | 270.0s | 5.89x | ok | e00051 -> r002 frozen-input recon found 30324 byte… |
 | e00056 | candidate | t1/s01c2 | 242.0s | 5.28x | ok | e00051 -> r002 frozen-input recon measured the 225… |
 
-最近 actions：A0001 run-init；A0002 step；A0003 step
+最近 actions：A0001 run-init；A0002 step；A0003 step；A0004 round-summary
 

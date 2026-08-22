@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 1/8、t1 1/8**（C=2 L=8 K=2） | t1/s01 两候选全门过：activity summary e00055 **270.003s**；wide mux fuse e00056 **241.956s** 为机械 winner、当前 ledger 5.276x；跨窗口机器态使名义幅度不可全归因，r002 同窗证据仅支持 wide mux 小幅正收益；next = 第 1 轮 round-summary，详见 [A0061](grhsim-am-coremark/actions/A0061_step_t1s01_活动摘要与宽mux链融合_20260822.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 1/8、t1 1/8**（C=2 L=8 K=2） | 第 1 轮 round-summary 已完成：t0 e00054 **247.560s**、t1 e00056 **241.956s** 均为机械 winner；跨窗口快慢态使名义幅度不可全归因，r002 同窗证据保留 task-outline/wide-mux 的小幅正收益；next = `r003/t0/s02`，详见 [A0062](grhsim-am-coremark/actions/A0062_round-summary_第1轮跨轨迹小结_20260822.md) |
 
 ## 共享件
 

@@ -1439,3 +1439,22 @@
   空间，后续生成代码扩张须同时证明覆盖与编译余量。
 - t1 完成 1/8，TES eval 计数 6/32（含双基线）；两轨迹第 1 轮齐平，下一 action =
   round-summary，本 step 不提前做跨轨迹比较。
+
+## r003 第 1 轮跨轨迹小结（2026-08-22，action A0062）
+
+- 两条轨迹各完成 s01，四个候选均 `status=ok` 且功能门全过。t0 winner
+  e00054 `sys-task-body-outline` = **247.560s**，t1 winner e00056
+  `wide-mux-chain-fuse` = **241.956s**；机械 winner 已分别进入 t0/t1 主线。
+- 本轮收敛到同一筛选判据：改生成代码的取指/访存形态比省指令、门控更有希望。
+  t0 的 system-task 冷体 outline 与 t1 的宽 mux 中间态消除命中不同池，不能把
+  winner 的绝对排名当作机制强弱；两项均有 r002 同窗正向先验，可继续作为局部组合
+  的开放方向。
+- 测量学结论再次加固：e00051/e00055 = **1.348x**、e00053/e00054 = **1.352x**
+  均落在历史 per-process 快慢态 1.3-1.4x 带内。跨窗口 -31.99%/-33.53% 和
+  e00056/e00055 -10.39% 不可直接归因；后续仍以同窗锚点为唯一亚 10% 裁决口径。
+- activity-summary 与既有 source-word guard 可能覆盖，重探前先补 open/skip 动态
+  计数；wide-mux engagement 已逐数复现（156 chains/247 levels/74 blocks）。两项
+  候选 compile_s 约 1985s，只剩约 17% 编译预算，后续生成代码扩张需受控。
+- r003 目前 evals 6/32、t0/t1 各 1/8，AM/gsim ledger 比 5.276x 仍远离目标且
+  仅作看板值。机制方向无需用户调整，下一状态机 action 为 `r003/t0/s02`；本轮
+  汇总不改变跨轨迹独立纪律。
