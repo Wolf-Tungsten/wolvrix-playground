@@ -185,10 +185,11 @@
     2,
     3,
     4,
-    5
+    5,
+    6
   ],
   "counters": {
-    "actions": 18,
+    "actions": 19,
     "evals": 26
   },
   "best_overall": {
@@ -330,6 +331,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0076_step_t1s06_mask缓存与单级direct_20260823.md",
       "ts": "2026-08-23T03:07:57+08:00"
+    },
+    {
+      "n": 19,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0077_round-summary_第6轮跨轨迹小结_20260823.md",
+      "ts": "2026-08-23T03:13:02+08:00"
     }
   ]
 }
