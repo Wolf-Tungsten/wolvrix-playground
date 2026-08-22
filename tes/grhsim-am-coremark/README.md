@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r003/t0/s04 已完成**（2026-08-22，[A0069](actions/A0069_step_t0s04_ctz直接树与nibble分层守卫_20260822.md)）：
+  c1 `--scan-active-byte-tree` e00065 = **409.869s**（CV 0），c2
+  `--scan-active-byte-nibble` e00066 = **412.826s**（CV 14% noisy，第三 rep
+  521.718s）；两项均通过 17/17 ctest、3 rep difftest 与编译门。两候选起跑
+  loadavg≈50，均落约 410s 慢窗，相对低负载 e00061 的 63% 名义回退不可作纯机制
+  幅度；c1/c2 仅差 0.72%，机械 winner e00065 已入 t0/main，但因果排名不可裁。
+  direct-tree 去掉 jump-table rodata 却增加 text；nibble 守卫缩小 text 仍无正收益
+  证据。t0/global best 保持 e00057 **229.429s**，当前 t0 4/8、t1 3/8、evals
+  16/32；下一 action = `r003/t1/s04`，本 action 不启动它。
+
 - **r003 第 3 轮 round-summary 已完成**（2026-08-22，[A0068](actions/A0068_round-summary_第3轮跨轨迹小结_20260822.md)）：
   t0/s03 winner e00061 `--scan-active-byte-ctz` = **251.746s**（较 e00057 名义
   +9.73%，机械入主线但机制证伪）；t1/s03 winner e00064

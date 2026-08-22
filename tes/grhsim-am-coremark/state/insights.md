@@ -1548,3 +1548,22 @@
   只确认机械排名，不把慢窗绝对值或 17.31% 升级为机制量级。继续冻结 3-rep 协议，
   不补测、不扩增。当前 evals 14/32、best/gsim = **5.002x**；无需用户调整 C/L/K，
   round-summary 结论不回流当前 run 的 proposal。
+
+## r003/t0/s04 ctz 直接树与 nibble 分层守卫（2026-08-22，action A0069）
+
+- c1 `scan-active-byte-tree` 用三层直接条件树替换 e00061 的 ctz switch/jump table；
+  生产命中 11,888 个派发点，ELF `.rodata` 较 e00061 -7.14%，但 `.text` +0.54%。
+  e00065 = **409.869s**（CV 0，loadavg 50.13），全门通过、compile_s 1255.3s；
+  本慢窗无正收益证据，机械 winner 已入 t0/main。
+- c2 `scan-active-byte-nibble` 在 hinted 线性测试外增加低/高 4-bit 守卫，命中
+  11,624/11,633 个组；ELF `.text` 较 e00061 -2.23%、仅比 e00057 +0.20%。
+  e00066 = **412.826s**（412826/412825/521718ms，CV 14% noisy，loadavg 49.99），
+  全门通过、compile_s 1200.8s；固定 3 rep 协议不扩增、不重跑。
+- 两候选相对低负载 e00061 名义回退 62.81%/63.99%，但均落在与 e00064 相同的
+  loadavg≈50、Host≈410s 慢窗，不能作为纯机制幅度。c1/c2 仅差 0.72% 且 c2 noisy，
+  因果排名不可裁；两项均未达到预注册收益门。
+- 扫描残余的 ctz-switch、direct-tree、nibble-guard 原样形态均关闭；保留 e00057
+  branch-hinted 线性扫描。t0/global best 仍为 e00057 229.429s；当前 t0 4/8、
+  t1 3/8、evals 16/32，下一 action 为 t1/s04。
+- 勘误：e00065/e00066 首次 record-eval insight 的 compile_s 误写为
+  1248.2/1192.8s；ledger 已追加 correction，正确值为 1255.3/1200.8s。

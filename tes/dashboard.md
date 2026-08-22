@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-22T17:06:01+08:00
+> 生成于 2026-08-22T18:52:29+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 14/32 · actions 10 · 下一步 `step`：推进轨迹 t0 到第 4 步（round-robin 最少步数优先）
+run **r003**（active）· C=2 L=8 K=2 · evals 16/32 · actions 11 · 下一步 `step`：推进轨迹 t1 到第 4 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -18,7 +18,7 @@ run **r003**（active）· C=2 L=8 K=2 · evals 14/32 · actions 10 · 下一步
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
-| t0 | `tes/r003/t0/main` | 3/8 | e00057 | 229.4s |
+| t0 | `tes/r003/t0/main` | 4/8 | e00057 | 229.4s |
 | t1 | `tes/r003/t1/main` | 3/8 | e00056 | 242.0s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
@@ -121,6 +121,9 @@ run **r003**（active）· C=2 L=8 K=2 · evals 14/32 · actions 10 · 下一步
 | e00062 | candidate | t0/s03c2 | 300.2s | 6.55x | ok | Phi e00057 -> 7,235 个 outlined fwrite body 极少 fire… |
 | e00063 | candidate | t1/s03c1 | 495.5s | 10.80x | ok | e00059 -> recon 显示 23-level 链 99.57% lane 取 base，而… |
 | e00064 | candidate | t1/s03c2 | 409.7s | 8.93x | ok | e00056/e00059 -> recon 显示 23-level selector 机会密度仅0… |
+| e00065 | candidate | t0/s04c1 | 409.9s | 8.94x | ok | Phi e00061 -> ctz 已减少活跃 byte 测试，但 93,599 个 switch … |
+| e00066 | candidate | t0/s04c2 | 412.8s | 9.00x | ok | Phi e00057/e00061 -> branch-hinted线性扫描优于ctz+switch… |
+| corr-e00065-e00066 | correction | - | - | - | correction | 勘误：e00065/e00066 登记 insight 的 compile_s 手误 |
 
-最近 actions：A0006 step；A0007 round-summary；A0008 step；A0009 step；A0010 round-summary
+最近 actions：A0007 round-summary；A0008 step；A0009 step；A0010 round-summary；A0011 step
 

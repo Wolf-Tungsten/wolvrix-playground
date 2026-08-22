@@ -141,7 +141,7 @@
   },
   "eval_sequence": {
     "start": 51,
-    "next": 65
+    "next": 67
   },
   "baselines": {
     "am": {
@@ -161,8 +161,8 @@
     {
       "id": "t0",
       "branch": "tes/r003/t0/main",
-      "tip": "3706873e47337f37ec093ec3561cc272d11b7c61",
-      "steps_completed": 3,
+      "tip": "aff7f7c257aee41e8905b5298c3ee7f2fac35cad",
+      "steps_completed": 4,
       "best": {
         "eval_id": "e00057",
         "score": -229429
@@ -186,8 +186,8 @@
     3
   ],
   "counters": {
-    "actions": 10,
-    "evals": 14
+    "actions": 11,
+    "evals": 16
   },
   "best_overall": {
     "eval_id": "e00057",
@@ -209,11 +209,12 @@
     ]
   },
   "phi_selection_counts": {
-    "e00051": 3,
+    "e00051": 4,
     "e00054": 1,
     "e00056": 2,
-    "e00057": 1,
-    "e00059": 1
+    "e00057": 2,
+    "e00059": 1,
+    "e00061": 1
   },
   "history": [
     {
@@ -275,6 +276,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0068_round-summary_第3轮跨轨迹小结_20260822.md",
       "ts": "2026-08-22T17:06:01+08:00"
+    },
+    {
+      "n": 11,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0069_step_t0s04_ctz直接树与nibble分层守卫_20260822.md",
+      "ts": "2026-08-22T18:52:29+08:00"
     }
   ]
 }
