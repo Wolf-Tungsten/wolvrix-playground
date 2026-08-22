@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-22T22:33:37+08:00
+> 生成于 2026-08-22T23:58:14+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 20/32 · actions 14 · 下一步 `step`：推进轨迹 t1 到第 5 步（round-robin 最少步数优先）
+run **r003**（active）· C=2 L=8 K=2 · evals 22/32 · actions 15 · 下一步 `round-summary`：第 5 轮（全部 2 条轨迹各完成 1 步）已齐平，做跨轨迹小结
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -19,7 +19,7 @@ run **r003**（active）· C=2 L=8 K=2 · evals 20/32 · actions 14 · 下一步
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
 | t0 | `tes/r003/t0/main` | 5/8 | e00057 | 229.4s |
-| t1 | `tes/r003/t1/main` | 4/8 | e00056 | 242.0s |
+| t1 | `tes/r003/t1/main` | 5/8 | e00056 | 242.0s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
 |---|---|---|---|---|---|---|
@@ -128,6 +128,8 @@ run **r003**（active）· C=2 L=8 K=2 · evals 20/32 · actions 14 · 下一步
 | e00068 | candidate | t1/s04c2 | 427.1s | 9.31x | ok | e00064 -> zero-tile helper still receives dynamic … |
 | e00069 | candidate | t0/s05c1 | - | - | ctest_fail | Phi e00061/e00065 -> per-set-bit ctz dispatch lost… |
 | e00070 | candidate | t0/s05c2 | - | - | ctest_fail | Phi e00054 -> 7235 outlined fwrite bodies are rare… |
+| e00071 | candidate | t1/s05c1 | 339.9s | 7.41x | ok | e00067 -> active-tile sparse helper rescans all 4/… |
+| e00072 | candidate | t1/s05c2 | 356.8s | 7.78x | ok | e00067/e00059 -> active-tile sparse writes a lane … |
 
-最近 actions：A0010 round-summary；A0011 step；A0012 step；A0013 round-summary；A0014 step
+最近 actions：A0011 step；A0012 step；A0013 round-summary；A0014 step；A0015 step
 

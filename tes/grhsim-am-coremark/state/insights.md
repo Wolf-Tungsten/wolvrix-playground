@@ -1618,3 +1618,18 @@
   生成形态，避免把字面格式当语义；纠正版若未来重开，必须先过完整 17/17 且使用新
   commit，不能原样重放失败候选。当前 t0 5/8、t1 4/8、evals 20/32，历史 best
   仍为 e00057 229.429s；下一 action = `r003/t1/s05`。
+
+## r003/t1/s05 非零 level 压缩与优先级去重（2026-08-22，action A0073）
+
+- **机械 winner、局部正向（e00071）**：active-tile sparse 的首遍 union 同时形成
+  <=64 层 nonzero bitmap，active tile 只重访实际非零 level；Host **339.910s**
+  （CV 0.02%，compile_s 1876.0s），较 e00067 名义 -11.06%，全门通过并入 t1/main。
+- c2/e00072 从高优先级逆序解析并用 resolved mask 保证重叠 selector lane 最多写一次，
+  Host **356.780s**（CV 0，compile_s 1870.1s），较 e00067 名义 -6.64%，同样全门
+  通过。两项都越预注册门，但相对 e00067 的幅度受起跑 loadavg 12.30 vs 本轮
+  1.92/2.47 混杂，只记正向证据，不升级为纯机制量级。
+- e00071/e00072 是紧邻低负载窗口，c1 比 c2 快 **4.73%**；结合 selector 总机会密度
+  仅 0.0188%，证据支持“压缩非零 level 二次遍历”比“消除跨 level 重叠 lane 写”
+  更有杠杆。后续先计数 active tile 非零 level 分布/重叠率，不原样重测两候选。
+- t1 完成 5/8，历史 t1/global best 仍为 e00056 241.956s / e00057 229.429s；
+  evals 22/32，下一 action 为第 5 轮 round-summary。

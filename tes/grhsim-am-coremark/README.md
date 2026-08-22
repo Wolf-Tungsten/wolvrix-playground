@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r003/t1/s05 已完成，非零 level 压缩胜出**（2026-08-22，[A0073](actions/A0073_step_t1s05_非零level压缩与优先级去重_20260822.md)）：
+  c1 e00071 在 active-tile union 时形成 <=64 层 nonzero bitmap，只重访实际非零层，
+  Host **339.910s**（CV 0.02%，compile_s 1876.0s）；c2 e00072 逆序 priority resolve
+  去除重叠 lane 写，Host **356.780s**（CV 0，compile_s 1870.1s）。二者均通过
+  17/17 ctest、3 rep difftest 和编译门，较 e00067 名义 -11.06%/-6.64%；e00067
+  与本轮起跑 loadavg 不同，跨窗幅度仅记正向。紧邻低负载窗口 c1 比 c2 快 4.73%，
+  winner `2ac108f` 已入 t1/main。当前 t0/t1 各 5/8、evals 22/32，历史 best 仍为
+  e00057 **229.429s**；下一 action = 第 5 轮 `round-summary`，本 action 不启动它。
+
 - **r003/t0/s05 已完成但两候选均败于回归门**（2026-08-22，[A0072](actions/A0072_step_t0s05_前缀跳过与task触发提示回归门失败_20260822.md)）：
   c1 `scan-active-byte-prefix` e00069 与 c2 `sys-task-fire-hints` e00070 均为
   `ctest_fail`，各 16/17 grhsim tests 通过，分别因新增 prefix 文本断言和既有

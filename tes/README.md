@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 ≤ gsim 同等负载 | **r003 active，t0 5/8、t1 4/8**（C=2 L=8 K=2） | t0/s05 两候选均在 ctest 门失败：prefix-skip e00069 与 task-fire-hints e00070 各 16/17 通过，均未计时；归类为回归契约失败、机制未测。无 winner，历史 best 仍为 e00057 **229.429s**。next = `r003/t1/s05`，详见 [A0072](grhsim-am-coremark/actions/A0072_step_t0s05_前缀跳过与task触发提示回归门失败_20260822.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 active，t0 5/8、t1 5/8**（C=2 L=8 K=2） | t1/s05 两候选全门通过：nonzero-level bitmap e00071 **339.910s** 胜出并入主线，priority lane resolve e00072 **356.780s**；紧邻低负载窗口 c1 快 4.73%。历史 best 仍为 e00057 **229.429s**。next = 第 5 轮 `round-summary`，详见 [A0073](grhsim-am-coremark/actions/A0073_step_t1s05_非零level压缩与优先级去重_20260822.md) |
 
 ## 共享件
 

@@ -141,7 +141,7 @@
   },
   "eval_sequence": {
     "start": 51,
-    "next": 71
+    "next": 73
   },
   "baselines": {
     "am": {
@@ -171,8 +171,8 @@
     {
       "id": "t1",
       "branch": "tes/r003/t1/main",
-      "tip": "1951404270cc663c219f368b7db0370609bd34ab",
-      "steps_completed": 4,
+      "tip": "2ac108f2e6ae98528749ff5a38fadfe8669e0467",
+      "steps_completed": 5,
       "best": {
         "eval_id": "e00056",
         "score": -241956
@@ -187,8 +187,8 @@
     4
   ],
   "counters": {
-    "actions": 14,
-    "evals": 20
+    "actions": 15,
+    "evals": 22
   },
   "best_overall": {
     "eval_id": "e00057",
@@ -210,14 +210,15 @@
     ]
   },
   "phi_selection_counts": {
-    "e00051": 4,
+    "e00051": 5,
     "e00054": 2,
     "e00056": 3,
     "e00057": 2,
-    "e00059": 1,
+    "e00059": 2,
     "e00061": 2,
     "e00064": 1,
-    "e00065": 1
+    "e00065": 1,
+    "e00067": 1
   },
   "history": [
     {
@@ -303,6 +304,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0072_step_t0s05_前缀跳过与task触发提示回归门失败_20260822.md",
       "ts": "2026-08-22T22:33:37+08:00"
+    },
+    {
+      "n": 15,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0073_step_t1s05_非零level压缩与优先级去重_20260822.md",
+      "ts": "2026-08-22T23:58:14+08:00"
     }
   ]
 }
