@@ -1698,3 +1698,21 @@
   历史跨窗回退不可全归因于机制，c1/c2 排名也不是纯因果对照。可复用结论仅是两项
   当前均无正向证据；继续精修前必须先量化首活跃 bit/跳过测试数和 fwrite fire/参数
   准备动态权重，不再用静态站点数作收益代理。
+
+## r003/t1/s07 selector 摘要复用与幂等写抑制（2026-08-23，action A0079）
+
+- **A0076 表型勘误**：e00075/e00076 的 11 项 `emit_args` 缺少 active-tile sparse
+  的硬依赖 `--wide-mux-chain-fuse`；emitter 实际未启用两个 wide-mux 候选机制。
+  363.823s/354.543s 只是基础 10 开关重复计时，不得证伪 mask cache 或 single-level
+  direct；原条目保持不改，以 ledger correction 与本节追加修正。
+- e00079 round-local selector summary reuse = **359.866s**（CV 0，compile_s
+  1990.6s），较完整 13 开关父节点 e00071 回退 **5.87%**。四条 23-level 生产调用
+  确实共享 selector，仍不足以支付 vector 摘要维护、跨 tile 预扫描与 member 访问；
+  重复 `23 x 6` mask 扫描不是一阶成本，当前共享摘要形态关闭。
+- e00080 idempotent store suppression = **345.215s**（CV 0，compile_s 1983.1s），
+  较 e00071 回退 **1.56%**；它同窗比 e00079 快 4.07% 并机械入 t1/main，但仍无
+  父节点收益。99.57% lane 最终取 base 不等于目标词已稳定为 base，逐 lane compare/
+  branch 未被省下的 store 抵消，当前形态关闭。
+- 两项均用完整 13 开关表型，通过 17/17 ctest、3 rep difftest 与编译门。wide-mux
+  再开前必须先量化 target 词实际变化率或 helper 动态 Host 权重，不再用静态 selector
+  共享度、base lane 比例或 helper ABI 作为收益代理。

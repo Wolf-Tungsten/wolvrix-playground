@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r003/t1/s07 已完成，selector 摘要复用与幂等写抑制均证伪**（2026-08-23，[A0079](actions/A0079_step_t1s07_selector摘要复用与幂等写抑制_20260823.md)）：
+  e00079 round-local selector summary reuse = **359.866s**（CV 0，compile_s
+  1990.6s），e00080 idempotent store suppression = **345.215s**（CV 0，compile_s
+  1983.1s）；两项均使用完整 13 开关父表型并通过 17/17 ctest、3 rep difftest，
+  相对有效父节点 e00071 分别回退 5.87%/1.56%。c2 同窗快 4.07% 并机械入 t1/main，
+  但两机制均无正收益。另勘误 e00075/e00076 缺少 `--wide-mux-chain-fuse`，实际未启用
+  active-tile 候选，原性能结论作废。当前 t0/t1 各 7/8、evals 30/32，历史 best
+  仍为 e00057 **229.429s**；下一 action = 第 7 轮 `round-summary`，本 action 未启动它。
+
 - **r003/t0/s07 已完成，纠正表型后两项机制仍无正向证据**（2026-08-23，[A0078](actions/A0078_step_t0s07_前缀跳过与task触发提示实测_20260823.md)）：
   e00077 `scan-active-byte-prefix` = **312.027s**（CV 0，compile_s 1063.3s），
   e00078 `sys-task-fire-hints` = **299.715s**（CV 0，compile_s 1069.3s）；两项均以

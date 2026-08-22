@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 active，t0 7/8、t1 6/8**（C=2 L=8 K=2） | t0/s07 已用完整父表型实测 prefix-skip 与 outlined fire-hint：e00077 **312.027s**、e00078 **299.715s**，均全门通过；c2 机械入主线但两项均未达到收益门，历史跨窗幅度落已知快慢态带。best 仍为 e00057 **229.429s**，下一 action = `r003/t1/s07 step`，详见 [A0078](grhsim-am-coremark/actions/A0078_step_t0s07_前缀跳过与task触发提示实测_20260823.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 active，t0/t1 各 7/8**（C=2 L=8 K=2） | t1/s07 的 selector 摘要复用 e00079 **359.866s**、幂等写抑制 e00080 **345.215s** 均用完整 13 开关表型全门通过，但较 e00071 回退 5.87%/1.56%；c2 机械入主线，两机制均证伪。并勘误 e00075/e00076 因漏传 fuse 实际未启用机制。best 仍为 e00057 **229.429s**，下一 action = 第 7 轮 `round-summary`，详见 [A0079](grhsim-am-coremark/actions/A0079_step_t1s07_selector摘要复用与幂等写抑制_20260823.md) |
 
 ## 共享件
 
