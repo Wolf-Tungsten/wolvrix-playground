@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 active，t0/t1 各 7/8**（C=2 L=8 K=2） | 第 7 轮四候选均以完整表型全门通过但无新增正向证据；t0 两项错过收益门，t1 两项较 e00071 回退 5.87%/1.56%。静态站点/共享度代理方向关闭，重开须先有动态权重；best 仍为 e00057 **229.429s**。下一 action = `r003/t0/s08 step`（K=2），详见 [A0080](grhsim-am-coremark/actions/A0080_round-summary_第7轮跨轨迹小结_20260823.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 active，t0 8/8、t1 7/8**（C=2 L=8 K=2） | t0/s08：e00081 task 延迟取参因候选测试断言失败被 ctest 门拒绝；e00082 byte 中性提示 **327.672s** 全门通过但较 e00078 名义回退 9.33%，无正向证据并机械入主线。best 仍为 e00057 **229.429s**；下一 action = `r003/t1/s08 step`（K=2），详见 [A0081](grhsim-am-coremark/actions/A0081_step_t0s08_task延迟取参与byte中性提示_20260823.md) |
 
 ## 共享件
 

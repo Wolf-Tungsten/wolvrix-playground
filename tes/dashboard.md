@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-23T05:46:44+08:00
+> 生成于 2026-08-23T06:33:07+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 30/32 · actions 22 · 下一步 `step`：推进轨迹 t0 到第 8 步（round-robin 最少步数优先）
+run **r003**（active）· C=2 L=8 K=2 · evals 32/32 · actions 23 · 下一步 `step`：推进轨迹 t1 到第 8 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -18,7 +18,7 @@ run **r003**（active）· C=2 L=8 K=2 · evals 30/32 · actions 22 · 下一步
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
-| t0 | `tes/r003/t0/main` | 7/8 | e00057 | 229.4s |
+| t0 | `tes/r003/t0/main` | 8/8 | e00057 | 229.4s |
 | t1 | `tes/r003/t1/main` | 7/8 | e00056 | 242.0s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
@@ -140,6 +140,8 @@ run **r003**（active）· C=2 L=8 K=2 · evals 30/32 · actions 22 · 下一步
 | e00079 | candidate | t1/s07c1 | 359.9s | 7.85x | ok | Phi e00067/e00071 -> four production 23-level chai… |
 | e00080 | candidate | t1/s07c2 | 345.2s | 7.53x | ok | Phi e00051/e00067/e00071 -> active-tile sparse sti… |
 | corr-e00075-e00076-phenotype | correction | t1/s06c0 | - | - | correction | 勘误：e00075/e00076 缺少 wideMuxChainActiveTileSparse 的… |
+| e00081 | candidate | t0/s08c1 | - | - | ctest_fail | Phi e00054/e00078 -> outlined fwrite still materia… |
+| e00082 | candidate | t0/s08c2 | 327.7s | 7.14x | ok | Phi e00057/e00061/e00078 -> source-word activity g… |
 
-最近 actions：A0018 step；A0019 round-summary；A0020 step；A0021 step；A0022 round-summary
+最近 actions：A0019 round-summary；A0020 step；A0021 step；A0022 round-summary；A0023 step
 

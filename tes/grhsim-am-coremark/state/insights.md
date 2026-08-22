@@ -1730,3 +1730,20 @@
   原记录按 append-only 规则保留，后续以 correction 与 A0079/A0080 勘误为准。
 - 当前 t0/t1 各 7/8、evals 30/32，历史 best 仍为 e00057 229.429s，约为 gsim
   基线的 5.002x。C/L/K 在 run 内不调整；第 7 轮跨轨迹结论不回流 r003 proposal。
+
+## r003/t0/s08 task 延迟取参与 byte 中性提示（2026-08-23，action A0081）
+
+- e00081 `sys-task-lazy-member-args` 在 ctest 门失败（16/17，compile_s 383.7s），
+  未进入生产 emit/计时。生成 fixture 确已把持久 handle/arguments 移入零参数冷 helper，
+  但候选测试错误假定一个参数仍是 block-local；实现与局部性分类测试契约未闭合，不能
+  取得性能证据，也不以同 eval-id 修复重跑。
+- e00082 `scan-byte-neutral-hints` 用完整 14 开关表型全门通过：**327.672s**
+  （CV 0，compile_s 1220.3s，3 rep 73580/49996），较 e00078 名义回退 9.33%。
+  起跑 loadavg 50.77 vs e00078 的 5.30 使幅度受跨窗机器态混杂，但候选未达到
+  -1.5% 收益门，故只有“无正向证据”的稳健结论。
+- source-word guard 证明 word 中至少一位活跃，不证明每个 byte 的分支概率应中性；
+  e00057 的 byte + Block 两级 cold hint 仍保留。拆层重开前须量化 active word 内
+  非零 byte 分布并做同窗锚定；task 延迟取参重开前须用同时含持久/真实局部参数的
+  最小 fixture 固化分类契约。
+- e00082 是唯一 ok 而机械入 t0/main；新规则默认 off，合入不改变默认表型。t0 已
+  完成 8/8，历史 t0/global best 仍为 e00057 229.429s。

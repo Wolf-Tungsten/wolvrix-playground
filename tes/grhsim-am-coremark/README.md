@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r003/t0/s08 已完成，task 延迟取参败于回归门，byte 中性提示无正向证据**
+  （2026-08-23，[A0081](actions/A0081_step_t0s08_task延迟取参与byte中性提示_20260823.md)）：
+  e00081 `sys-task-lazy-member-args` 为 `ctest_fail`（16/17，compile_s 383.7s），
+  因候选局部性 scaffolding 断言错误而未进入计时；e00082
+  `scan-byte-neutral-hints` = **327.672s**（CV 0，compile_s 1220.3s），完整 14
+  开关表型通过 17/17 ctest 与 3 rep difftest，但较 e00078 名义回退 9.33%，且
+  loadavg 50.77 存在跨窗混杂，仅可判无正向证据。e00082 作为唯一 ok 机械入
+  t0/main；t0 8/8、t1 7/8，历史 best 仍为 e00057 **229.429s**。下一 action =
+  `r003/t1/s08 step`（K=2），本 action 未启动它。
+
 - **r003 第 7 轮 round-summary 已完成**（2026-08-23，[A0080](actions/A0080_round-summary_第7轮跨轨迹小结_20260823.md)）：
   本轮四个候选均用完整表型通过 17/17 ctest、3 rep difftest 与编译门，但无新增
   正向性能证据。t0/e00077-e00078 均错过预注册收益门；t1/e00079-e00080
