@@ -630,6 +630,19 @@ def cmd_begin_step(args) -> int:
     return 0
 
 
+def audit_phenotype(declared: dict | None, frozen: list[str], actual: list[str] | None) -> str | None:
+    """候选表型审计：声明（候选 worktree 根的 tes-candidate.json）是意图的唯一来源，
+    评估实际使用的 emit_args 必须与声明推导一致（r003 corr-e00073/74/75/76 漏传教训）。"""
+    if declared is None:
+        return "候选缺少 tes-candidate.json（表型声明是硬前置，r003 表型漏传教训）"
+    remove = set(declared.get("emit_args_remove") or [])
+    expected = [a for a in frozen if a not in remove]
+    expected += list(declared.get("emit_args_add") or [])
+    if expected != list(actual or []):
+        return f"表型不符：声明推导 {expected}，实际 {actual}"
+    return None
+
+
 def cmd_record_eval(args) -> int:
     run = load_run()
     if run is None or run.get("current_step") is None:
@@ -643,6 +656,20 @@ def cmd_record_eval(args) -> int:
         return 1
     if cand["status"] == "done":
         print(f"[FAIL] eval {result['eval_id']} 已登记过", file=sys.stderr)
+        return 1
+    # 表型审计门（硬前置）：声明与实际 emit_args 不符则拒绝登记
+    cand_decl_path = REPO / cand["worktree"] / "tes-candidate.json"
+    declared = None
+    if cand_decl_path.exists():
+        try:
+            declared = json.loads(cand_decl_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            print(f"[FAIL] {cand_decl_path} 不是合法 JSON: {exc}", file=sys.stderr)
+            return 1
+    err = audit_phenotype(declared, run["config"]["eval"].get("emit_args", []),
+                          result.get("emit_args"))
+    if err:
+        print(f"[FAIL] 表型审计拒绝登记 {result['eval_id']}: {err}", file=sys.stderr)
         return 1
     commit = git_target("rev-parse", cand["branch"]) if git_target_ok("rev-parse", "--verify", cand["branch"]) else None
     entry = {
