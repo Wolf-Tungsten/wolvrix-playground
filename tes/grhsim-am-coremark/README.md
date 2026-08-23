@@ -1,10 +1,18 @@
 # 任务 grhsim-am-coremark
 
 **目标**：grhsim-am emu 仿真 xiangshan coremark 50k（`-C 50000`）的 Host wall time
-（固定 3 rep 中位、绑核、评估间串行）≤ gsim 同等负载同协议测量值。任务指令见 [brief.md](brief.md)
+（串行 3 rep 起步、绑核、快簇中位、评估间串行）≤ gsim 同等负载同协议测量值。任务指令见 [brief.md](brief.md)
 （x0，run 期间冻结），参数见 [config.json](config.json)。
 
 ## 当前状态速览
+
+- **r004 run-init 前置阻塞，尚未初始化**（2026-08-23，
+  [A0084](actions/A0084_run-init_r004正式gsim前置缺失_20260823.md)）：迁移后的正式
+  gsim target `build/xs/gsim/gsim-compile/emu` 缺失。现存 `gsim-flat` 已核实为
+  `--flatten-nodes --supernode-max-size=16` 的图结构实验版，历史实测比未打平正式
+  基线慢 3.6%，不能替代或软链。故未执行 `init-run`、评估或 `action-done`，台账仍为
+  r003 关闭态；待用户在 TES 外恢复正式 emu 后，以 r003/e00057、C=6/L=4/K=2 和
+  新 post-stats SHA `c82ed454...b70c7` 重新执行完整串行双基线 run-init。
 
 - **r003 已收口，当前不建议 restart**（2026-08-23，[A0083](actions/A0083_run-summary_r003收口与停止restart_20260823.md)，
   详见 [runs/r003/summary.md](runs/r003/summary.md)）：C=2/L=8/K=2，16/16 步、候选

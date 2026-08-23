@@ -6,10 +6,10 @@ append-only 精神，差异：tes/ 是机器可读的执行状态 + 人读的分
 
 ## 1. 测量纪律（硬约束，由 evaluate.py 强制执行的部分不赘述）
 
-- 评估严格串行：`build/tes/LOCK` 全局 flock（跨任务也只允许一个评估）；每个计时
-  批次起跑前检查无其他 `emu` 进程，有则中止（批内并行 rep 是本评估自身负载）。
-- 计时 reps（r004 起为簇结构自适应）：`taskset` 绑核（每 rep 一个独立物理核、批内
-  并行，核清单由任务 config 指定）；初始 rep 数在 run-init 时冻结（`eval.reps`），
+- 评估严格串行：`build/tes/LOCK` 全局 flock（跨任务也只允许一个评估）；每个 rep
+  起跑前检查无其他 `emu` 进程，有则中止。
+- 计时 reps（r004 起为簇结构自适应）：逐次串行，每 rep 用 `taskset` 按序
+  绑定任务 config 指定的物理核；初始 rep 数在 run-init 时冻结（`eval.reps`），
   检出双峰（`eval.cluster_ratio` 倍率缝隙）才自动加跑至 ≤ `eval.reps_max`；
   **score = 快簇中位**，弃用跨簇 median（r002 双态教训：跨簇 median 是 artifact
   且可反转 winner）。超过任务噪声阈值（CV 超标或 degraded）则标 `noisy`（分数可用

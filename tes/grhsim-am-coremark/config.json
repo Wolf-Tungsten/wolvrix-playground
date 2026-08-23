@@ -67,7 +67,7 @@
   ],
   "vm_build_jobs": 128,
   "compile_budget_sec": 2400,
-  "note": "计时协议 r004 起为簇结构自适应：先 3 rep（批内并行绑 rep_cores），检出双峰（相邻倍率 > cluster_ratio）自动加跑至 ≤ reps_max；score/median = 快簇中位，弃用跨簇 median；degraded（全 singleton）或 CV>cv_max 标 noisy；每 rep 1Hz 只读采样 smaps_rollup/numa_maps 协变量。整批慢态嫌疑用 evaluator.py retime --eval-id 只补计时（不占预算）。finish-step 按 adjudicate_noise 噪声带分类 outcome=win/neutral/loss，best 只在真实进步时更新。difftest 逐位一致是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。",
+  "note": "计时协议 r004 起为簇结构自适应：先 3 rep（逐次串行，按序轮转绑定 rep_cores），检出双峰（相邻倍率 > cluster_ratio）自动加跑至 ≤ reps_max；score/median = 快簇中位，弃用跨簇 median；degraded（全 singleton）或 CV>cv_max 标 noisy；每 rep 1Hz 只读采样 smaps_rollup/numa_maps 协变量。整批慢态嫌疑用 evaluator.py retime --eval-id 只补计时（不占预算）。finish-step 按 adjudicate_noise 噪声带分类 outcome=win/neutral/loss，best 只在真实进步时更新。difftest 逐位一致是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。",
   "golden_tol": {
    "instrCnt": 16,
    "cycleCnt": 8,

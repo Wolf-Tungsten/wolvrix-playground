@@ -14,11 +14,9 @@ evaluator = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(evaluator)
 
 
-def fake_reps(start, count, times):
-    # times 是本批次自己的列表（批内下标从零起）；start 是全局 rep 序号
-    return [{"rep": i, "core": 12, "rc": 0, "host_ms": times[i - start],
-             "instrCnt": 73584, "cycleCnt": 49998}
-            for i in range(start, start + count)]
+def fake_rep(rep_idx, core, host_ms):
+    return {"rep": rep_idx, "core": core, "rc": 0, "host_ms": host_ms,
+            "instrCnt": 73584, "cycleCnt": 49998}
 
 
 class ClusterRepsTest(unittest.TestCase):
@@ -54,32 +52,40 @@ class AdjudicateRepsTest(unittest.TestCase):
 
 
 class AdaptiveRepProtocolTest(unittest.TestCase):
-    def run_with(self, batches_times):
+    def run_with(self, rep_times):
         calls = []
 
-        def fake_batch(_emu, _cwd, _run_dir, start_idx, count, _cores):
-            calls.append(count)
-            return fake_reps(start_idx, count, batches_times[len(calls) - 1])
+        def fake_one(_emu, _cwd, _run_dir, rep_idx, core):
+            calls.append((rep_idx, core))
+            return fake_rep(rep_idx, core, rep_times[len(calls) - 1])
 
-        with mock.patch.object(evaluator, "_run_rep_batch", side_effect=fake_batch):
+        with mock.patch.object(evaluator, "_run_one_rep", side_effect=fake_one):
             with mock.patch.dict(evaluator.EVAL_CFG, {}, clear=False):
                 return evaluator.run_reps(Path("/fake/emu"), Path("/fake/run")), calls
 
     def test_unimodal_stops_at_three(self):
-        result, calls = self.run_with([[250000, 251000, 252000]])
-        self.assertEqual([3], calls)
+        result, calls = self.run_with([250000, 251000, 252000])
+        self.assertEqual([(1, "12"), (2, "13"), (3, "14")], calls)
         self.assertEqual("unimodal", result["host_ms"]["state"])
         self.assertEqual(251000, result["host_ms"]["median"])
         self.assertFalse(result["noisy"])
 
+    def test_adapts_only_after_initial_three_complete(self):
+        # 前两次相差 20%，第三次填平倍率缝隙；不应提前扩样。
+        result, calls = self.run_with([250000, 300000, 275000])
+        self.assertEqual([(1, "12"), (2, "13"), (3, "14")], calls)
+        self.assertEqual("unimodal", result["host_ms"]["state"])
+        self.assertEqual(275000, result["host_ms"]["median"])
+
     def test_bimodal_extends_to_reps_max(self):
-        # 双峰在加跑后不会消失（同一进程放置抽签），一路扩到缺省 reps_max=9
-        result, calls = self.run_with([[295000, 389000, 295000]] * 4)
-        self.assertEqual([3, 3, 3], calls)
+        # 双峰在加跑后不会消失，逐次扩到缺省 reps_max=9。
+        times = [295000, 389000, 295000] * 3
+        result, calls = self.run_with(times)
+        self.assertEqual(list(range(1, 10)), [rep_idx for rep_idx, _core in calls])
+        self.assertEqual(["12", "13", "14"] * 3, [core for _rep_idx, core in calls])
         self.assertEqual(len(result["reps"]), 9)
         self.assertEqual("bimodal", result["host_ms"]["state"])
         self.assertEqual(295000, result["host_ms"]["median"])
-
 
 class RetimeTest(unittest.TestCase):
     def test_retime_appends_and_supersedes(self):

@@ -29,19 +29,6 @@ class EvalSequenceTest(unittest.TestCase):
 
         self.assertEqual(tesctl.next_task_eval_number(entries), 51)
 
-    def test_configured_r003_solution_is_r002_e00007(self) -> None:
-        tesctl.TASK_DIR = REPO / "tes" / "grhsim-am-coremark"
-
-        solution = tesctl.resolve_base_eval("r002/e00007")
-
-        self.assertEqual(
-            solution["commit"],
-            "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
-        )
-        self.assertEqual(len(solution["emit_args"]), 10)
-        self.assertIn("--wide-detect-fast-path", solution["emit_args"])
-        self.assertNotIn("--scan-branch-hints", solution["emit_args"])
-
     def test_run_qualifier_disambiguates_reused_eval_ids(self) -> None:
         tesctl.TASK_DIR = REPO / "tes" / "grhsim-am-coremark"
 

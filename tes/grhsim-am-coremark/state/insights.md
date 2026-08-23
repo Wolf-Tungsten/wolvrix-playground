@@ -1819,3 +1819,25 @@
 - **结构**：r004 = C=6/L=4/K=2（N=48），y0=r003/e00057；restart.max 放宽至 3
   （用户批准 2026-08-23）。安慰剂席位退役，测量校准走协议动作。
 - **停止规则**：r004 前 2 轮（24 候选）零确认收益（同窗/同簇口径）即停止搜索。
+
+## 计时 rep 恢复串行（2026-08-23，用户指示）
+
+- `grhsim-am-coremark` 的单步评价恢复为 rep 逐次串行：先按
+  `rep_cores` 顺序绑核跑 3 次，取快簇中位；检出双峰时仍按每组
+  3 次串行追加，最多 9 次。全局 LOCK、每 rep 起跑前 emu 干扰守卫、
+  difftest 金标门和簇裁决口径不变。
+- 原因：并行 rep 会相互争用宿主资源，使绝对 Host 时间比单 rep 系统性偏高；
+  串行执行使每个样本表示独占负载，并保留跨核抽样。历史 proposal、manifest
+  和 ledger 保留当时协议的快照语义，不回写。
+
+## r004 run-init 前置阻塞（2026-08-23，A0084）
+
+- 迁移后 config 指定的正式 gsim target
+  `build/xs/gsim/gsim-compile/emu` 缺失；任务 playbook 规定 TES 不自行构建，
+  因而 r004 未初始化、未产生 eval、未写 ledger。
+- `build/xs/gsim-flat/gsim-compile/emu` 不是可替代副本：历史构建明确带
+  `--flatten-nodes --supernode-max-size=16`，相对未打平正式基线性能慢 3.6%。
+  功能等价不能推出 target 性能等价，禁止用改路径或软链绕过。
+- 本次迁移后的 post-stats 输入 SHA-256 为
+  `c82ed4542f58ba60b1d7b38c57a877ad7cc81898a5df019d72d7e885588b70c7`；
+  正式 emu 恢复后，r004 run-init 应冻结这个新指纹并按串行 rep 协议重测双基线。

@@ -14,7 +14,7 @@
 
 1. **功能门**：difftest 逐位一致——每 rep 进程退出码 0 且 `instrCnt = 73,580`、`cycleCnt = 49,996`（coremark-2-iteration 50k 窗金标）。
 2. **回归门**：`ctest -R grhsim` 全绿（emit-cost 系列确立的 17 项）。
-3. **测量纪律**：固定 3 rep 在三个独立物理核上单批并行、评估之间严格串行、无构建等
+3. **测量纪律**：固定 3 rep 逐次串行，按序绑定三个独立物理核；评估之间严格串行，无构建等
    并发负载；计数/计时分离（正式计时不开 `EMU_RUNTIME_PROFILE` /
    `EMU_AM_BLOCK_EXECS` 等插桩）。
 4. **编译预算**：从 cmake 到 emu 二进制就绪的累计墙钟 ≤ **40 min**，超预算即判 `compile_timeout` 失败，不进入计时——生成代码体积/单 TU 复杂度也是成本（NO0007 曾单 TU >40min），病态膨胀的候选没有资格谈运行时。

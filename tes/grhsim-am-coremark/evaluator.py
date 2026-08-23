@@ -3,7 +3,7 @@
 
   wolvrix 构建（Release + ccache）→ ctest -R grhsim 回归门 → emit（固定 post-stats
   GRH 输入，wolvrix 自解析 XiangShan SV 的归一化产物）→ difftest emu 构建
-  → 绑核并行计时 reps（每 rep 独立物理核，difftest 金标门 + CV 检查）
+  → 绑核串行计时 reps（每 rep 独立物理核，difftest 金标门 + CV 检查）
 
 输出 build/tes/evals/<eval_id>/result.json，并把机器可读摘要打到 stdout。
 整个过程持 flock(build/tes/LOCK) —— 任何时刻只允许一个评估在跑（串行纪律的硬保证）。
@@ -169,74 +169,57 @@ def _sample_proc_state(pid: int, stop: threading.Event, out: dict) -> None:
     out.update({"anon_hugepages_kb_max": huge_max, "numa_pages": pages, "samples": samples})
 
 
-def _run_rep_batch(emu: Path, cwd: Path, run_dir: Path,
-                   start_idx: int, count: int, cores: list[str]) -> list[dict]:
-    """并行起跑 count 个 rep（各绑 rep_cores 中不同物理核），全部结束后按 rep 序返回。
+def _run_one_rep(emu: Path, cwd: Path, run_dir: Path,
+                 rep_idx: int, core: str) -> dict:
+    """起跑一个 rep，结束后返回原始结果。
 
-    干扰守卫在批次起跑前检查一次（批内 emu 是本评估自己的并行 rep）。
-    每 rep 独立 rep 超时（kill 进程组记 rc=124）。返回未经金标判定的原始结果。
+    干扰守卫在每个 rep 起跑前检查；rep 超时时 kill 进程组并记 rc=124。
     """
     import signal
     ev = EVAL_CFG
     timeout = ev["rep_timeout_sec"]
     if not no_other_emu():
-        return [{"rep": start_idx, "rc": None, "interference": True,
-                 "error": "检测到其他 emu 进程，计时前中止（干扰守卫）"}]
+        return {"rep": rep_idx, "rc": None, "interference": True,
+                "error": "检测到其他 emu 进程，计时前中止（干扰守卫）"}
     load = loadavg()
-    procs = []
-    for j in range(count):
-        i = start_idx + j
-        core = cores[j % len(cores)]
-        log = run_dir / f"rep{i}.log"
-        cmd = ["taskset", "-c", str(core), str(emu),
-               "-i", str(REPO / PATHS["coremark_bin"]),
-               "--diff", str(REPO / PATHS["nemu_so"]),
-               "-b", "0", "-e", "0", "-C", str(ev["cycles"])]
-        lf = open(log, "ab")
+    log = run_dir / f"rep{rep_idx}.log"
+    cmd = ["taskset", "-c", core, str(emu),
+           "-i", str(REPO / PATHS["coremark_bin"]),
+           "--diff", str(REPO / PATHS["nemu_so"]),
+           "-b", "0", "-e", "0", "-C", str(ev["cycles"])]
+    with open(log, "ab") as lf:
         lf.write(f"\n===== [{now_iso()}] {' '.join(str(c) for c in cmd)} =====\n".encode())
         lf.flush()
-        p = subprocess.Popen(cmd, cwd=cwd, env=dict(os.environ), stdout=lf,
-                             stderr=subprocess.STDOUT, start_new_session=True)
-        pr = {"rep": i, "core": core, "popen": p, "log": log, "lf": lf,
-              "t0": time.monotonic(), "rc": None, "proc_state": {},
-              "sampler_stop": threading.Event()}
-        # 1Hz 只读协变量采样（THP/NUMA 页放置），与计时纪律兼容
-        threading.Thread(target=_sample_proc_state,
-                         args=(p.pid, pr["sampler_stop"], pr["proc_state"]),
-                         daemon=True).start()
-        procs.append(pr)
-    pending = list(procs)
-    while pending:
-        for pr in list(pending):
-            rc = pr["popen"].poll()
-            if rc is None and time.monotonic() - pr["t0"] > timeout:
-                os.killpg(pr["popen"].pid, signal.SIGKILL)
-                pr["popen"].wait()
-                pr["rc"] = 124
-            elif rc is not None:
-                pr["rc"] = rc
-            if pr["rc"] is not None:
-                pr["sampler_stop"].set()
-                pr["wall_s"] = round(time.monotonic() - pr["t0"], 1)
-                pr["lf"].close()
-                pending.remove(pr)
-        if pending:
-            time.sleep(1)
-    out = []
-    for pr in procs:
-        parsed = parse_run_log(pr["log"])
-        out.append({"rep": pr["rep"], "core": pr["core"], "rc": pr["rc"],
-                    "wall_s": pr["wall_s"], "loadavg_before": load,
-                    "proc_state": pr["proc_state"], **parsed})
-    return out
+        process = subprocess.Popen(cmd, cwd=cwd, env=dict(os.environ), stdout=lf,
+                                   stderr=subprocess.STDOUT, start_new_session=True)
+        proc_state: dict = {}
+        sampler_stop = threading.Event()
+        sampler = threading.Thread(target=_sample_proc_state,
+                                   args=(process.pid, sampler_stop, proc_state), daemon=True)
+        sampler.start()
+        started = time.monotonic()
+        rc = None
+        while rc is None:
+            rc = process.poll()
+            if rc is None and time.monotonic() - started > timeout:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait()
+                rc = 124
+            elif rc is None:
+                time.sleep(1)
+        sampler_stop.set()
+        sampler.join(timeout=2)
+        wall_s = round(time.monotonic() - started, 1)
+    return {"rep": rep_idx, "core": core, "rc": rc, "wall_s": wall_s,
+            "loadavg_before": load, "proc_state": proc_state, **parse_run_log(log)}
 
 
 def run_reps(emu: Path, run_dir: Path, run_cwd: Path | None = None) -> dict:
     """协议化计时 reps，返回状态、原始 reps 与裁决后的 Host 时间中位。
 
     emu 可为绝对路径或 run_cwd 下的相对名（如 Path("emu") + run_cwd=emu 构建目录）。
-    reps 批内并行：每 rep 绑 eval.rep_cores 中一个独立物理核（缺省退回 eval.core
-    单核串行语义）；批次间串行。初始 rep 数由 run manifest 冻结（eval.reps）；
+    reps 逐次串行：每 rep 按序轮转绑定 eval.rep_cores 中的物理核
+    （缺省退回 eval.core）。初始 rep 数由 run manifest 冻结（eval.reps）；
     r004 起为簇结构自适应：检出双峰（cluster_ratio 倍率缝隙）才加跑至 ≤ reps_max，
     不因 CV 扩增。score/median = 快簇中位（弃用跨簇 median）。
     """
@@ -253,31 +236,31 @@ def run_reps(emu: Path, run_dir: Path, run_cwd: Path | None = None) -> dict:
     if not emu.is_absolute():
         emu = (cwd / emu).resolve()  # execvp 不搜 cwd，相对名必须解析成绝对路径
     while len(reps) < target_reps:
-        batch = _run_rep_batch(emu, cwd, run_dir, len(reps) + 1,
-                               min(target_reps - len(reps), len(cores)), cores)
-        reps.extend(batch)
-        if any(r.get("interference") for r in batch):
+        core = cores[len(reps) % len(cores)]
+        rep = _run_one_rep(emu, cwd, run_dir, len(reps) + 1, core)
+        reps.append(rep)
+        if rep.get("interference"):
             return {"status": "interference", "reps": reps,
                     "error": "检测到其他 emu 进程，计时前中止（干扰守卫）"}
-        if any(r["rc"] == 124 for r in batch):
+        if rep["rc"] == 124:
             status = "timeout"
             break
-        for r in batch:
-            instr, cyc = r["instrCnt"], r["cycleCnt"]
-            r["difftest_ok"] = (
-                r["rc"] == 0 and instr is not None and cyc is not None
-                and abs(instr - golden["instrCnt"]) <= tol["instrCnt"]
-                and abs(cyc - golden["cycleCnt"]) <= tol["cycleCnt"])
-        if any(not r["difftest_ok"] for r in batch):
+        instr, cyc = rep["instrCnt"], rep["cycleCnt"]
+        rep["difftest_ok"] = (
+            rep["rc"] == 0 and instr is not None and cyc is not None
+            and abs(instr - golden["instrCnt"]) <= tol["instrCnt"]
+            and abs(cyc - golden["cycleCnt"]) <= tol["cycleCnt"])
+        if not rep["difftest_ok"]:
             status = "difftest_fail"
             break
         times = [r["host_ms"] for r in reps if r["host_ms"] is not None]
         if len(times) != len(reps):
             status = "parse_fail"
             break
-        # 簇结构自适应：检出分裂且未达上限才加跑；单簇即收口
-        if len(cluster_reps(times, ratio)) > 1 and len(reps) < reps_max:
-            target_reps = min(len(reps) + len(cores), reps_max)
+        # 完成当前目标次数后再裁决；检出分裂则串行追加一组。
+        if (len(reps) == target_reps and len(cluster_reps(times, ratio)) > 1
+                and len(reps) < reps_max):
+            target_reps = min(target_reps + len(cores), reps_max)
     times = [r["host_ms"] for r in reps if r["host_ms"] is not None]
     out = {"status": status, "reps": reps}
     if times and all(r.get("difftest_ok") for r in reps):

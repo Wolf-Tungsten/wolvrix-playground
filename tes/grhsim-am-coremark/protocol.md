@@ -5,10 +5,11 @@ run 期间不修改，修改应在 insights.md 追加记录。
 
 - 负载：`coremark-2-iteration.bin`，`-C 50000`（50k 周期窗），difftest 参考
   `riscv64-nemu-interpreter-so`。
-- 计时：**簇结构自适应协议（r004 起）**。先 3 rep（每 rep `taskset` 绑一个独立物理核、
-  单批并行，见 config `eval.rep_cores`）；检出双峰（排序相邻倍率 > `cluster_ratio`=1.15）
+- 计时：**簇结构自适应协议（r004 起）**。先 3 rep（逐次串行，每 rep
+  `taskset` 按序轮转绑定 config `eval.rep_cores` 中的物理核）；检出双峰
+  （排序相邻倍率 > `cluster_ratio`=1.15）
   自动加跑至 ≤ `reps_max`=9；**score = 快簇中位**，弃用跨簇 median。每 rep 1Hz 只读
-  采样 smaps_rollup/numa_maps 协变量。评估之间严格串行无干扰（全局 LOCK + 批次起跑前
+  采样 smaps_rollup/numa_maps 协变量。评估之间严格串行无干扰（全局 LOCK + 每 rep 起跑前
   emu 进程守卫），正式计时不开 emu 内插桩。CV>5% 或 degraded（全 singleton）标
   `noisy`。整批慢态嫌疑时用 `evaluator.py retime --eval-id` 只补计时（不重建、不占预算）。
 - 功能门：每 rep 退出码 0、nemu 在线逐指令核对无 mismatch，且 instrCnt/cycleCnt 落在
