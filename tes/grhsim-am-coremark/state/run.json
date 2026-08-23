@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 91
+    "next": 93
   },
   "baselines": {
     "am": {
@@ -196,11 +196,14 @@
     {
       "id": "t2",
       "branch": "tes/r004/t2/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
+      "tip": "83c9e18b5ac6ca3b31f188132af72d4019798557",
+      "steps_completed": 1,
+      "best": {
+        "eval_id": "e00092",
+        "score": -188662
+      },
       "last_recon_step": 0,
-      "tip_eval_id": null
+      "tip_eval_id": "e00092"
     },
     {
       "id": "t3",
@@ -233,13 +236,13 @@
   "current_step": null,
   "round_summaries_done": [],
   "counters": {
-    "actions": 6,
-    "evals": 6
+    "actions": 7,
+    "evals": 8
   },
   "best_overall": {
-    "eval_id": "e00088",
-    "score": -189829,
-    "commit": "7083852385c374c56aa53842c976f2f48571e0f7",
+    "eval_id": "e00092",
+    "score": -188662,
+    "commit": "83c9e18b5ac6ca3b31f188132af72d4019798557",
     "emit_args": [
       "--branchy-mux",
       "--resize-elision",
@@ -253,11 +256,11 @@
       "--wide-detect-fast-path",
       "--sys-task-body-outline",
       "--scan-branch-hints",
-      "--inline-unsigned-div64"
+      "--host-call-predicate-run"
     ]
   },
   "phi_selection_counts": {
-    "e00085": 2
+    "e00085": 3
   },
   "history": [
     {
@@ -295,6 +298,12 @@
       "type": "recon",
       "note": "tes/grhsim-am-coremark/actions/A0090_recon_r004t2s00_e00085动态热点画像_20260823.md",
       "ts": "2026-08-23T20:46:42+08:00"
+    },
+    {
+      "n": 7,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0091_step_r004t2s01_scratch后延与host谓词run_20260823.md",
+      "ts": "2026-08-23T22:59:16+08:00"
     }
   ]
 }

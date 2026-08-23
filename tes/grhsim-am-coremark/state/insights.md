@@ -1870,3 +1870,19 @@
   编译门（640.8/643.5s）。t0 后续应先 recon e00088，检查 b93085 cycles 是否随
   helper 边界消除而下降；没有新的动态分解前不继续 task 条件顺序或 division helper
   微结构精修。当前 best/gsim = **8.355x**，下一 action 为 t1/e00085 recon。
+
+## r004/t2/s01 commit scratch 后延与 host-call predicate run（2026-08-23，action A0091）
+
+- 本 action 从 `step-resume` 接续，只补 pending c2；c1/e00091 未重跑。e00091 将
+  b93159/b93141 前缀 chunk 裁到只接收活跃 `byteFlags`，并把 2,742/4,227 个 scratch
+  flag 清零移入事件门：**189.045s**，较 e00085 名义 -2.25%。e00092 将相邻完全
+  同谓词的 outlined host call 融合为单一分支，生产形成 6,314 个 run、覆盖 12,827
+  个成员：**188.662s**，名义 -2.45%、同窗较 c1 -0.20%。
+- 两项均通过 17/17 ctest、三次 `73580/49996` difftest 与编译门，单簇且非 noisy。
+  两者整体 Host 的预注册 1% 门均通过，但都处于 r004 的 3% 确认带内；c1 的 commit
+  双峰 -15% 与 c2 的 task 双峰 -20% 尚无 post-change recon，不能宣称确认收益或
+  用 0.20% raw 差值区分机制。
+- `finish-step` 按 raw score 将 e00092 入 `tes/r004/t2/main`，outcome=`initial`；
+  best_overall=e00092 **188.662s**，AM/gsim **8.304x**，预算 8/48。t2 再到期时先
+  recon b90656/b90657 是否降权；在动态降幅确认前，不把 e00092 当 migration source。
+- 下一 action 为 `t3/e00085 recon`；本 action 只预告，不启动。

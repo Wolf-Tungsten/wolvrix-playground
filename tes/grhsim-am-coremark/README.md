@@ -6,6 +6,17 @@
 
 ## 当前状态速览
 
+- **r004/t2/s01 已完成，host 谓词 run 按 raw score 成为 t2 initial 节点**
+  （2026-08-23，[A0091](actions/A0091_step_r004t2s01_scratch后延与host谓词run_20260823.md)）：
+  e00091 commit scratch 后延 = **189.045s**（较 e00085 名义 -2.25%），e00092
+  exact-predicate host-call run = **188.662s**（名义 -2.45%，同窗较 c1 -0.20%）。
+  两项均以完整 13 开关表型通过 17/17 ctest、3 rep `73580/49996` difftest，单簇且
+  非 noisy；生产分别命中 b93159/b93141 的事件门内 2,742/4,227 个 scratch flag，
+  以及 6,314 个 predicate run / 12,827 个 host-call 成员。两项整体 Host 的 1% 门
+  均通过，但都未越 3% 确认门，且 15%/20% 热点池预期尚无 post-change recon；
+  e00092 仅以 outcome=`initial` 入 t2/main。当前 best_overall=e00092，预算 8/48，
+  AM/gsim **8.304x**；下一 action = `t3/e00085 recon`，本 action 未启动它。
+
 - **r004/t2/s00 recon 已完成，事件前 scratch 清零成为新的可证伪病灶**
   （2026-08-23，[A0090](actions/A0090_recon_r004t2s00_e00085动态热点画像_20260823.md)）：非计时
   runtime-profile 以生产 12 开关表型重 emit，`73580/49996` 金标精确通过；
