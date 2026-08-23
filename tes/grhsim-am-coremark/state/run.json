@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 95
+    "next": 97
   },
   "baselines": {
     "am": {
@@ -221,7 +221,7 @@
       "id": "t4",
       "branch": "tes/r004/t4/main",
       "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
+      "steps_completed": 1,
       "best": null,
       "last_recon_step": 0,
       "tip_eval_id": null
@@ -239,8 +239,8 @@
   "current_step": null,
   "round_summaries_done": [],
   "counters": {
-    "actions": 10,
-    "evals": 10
+    "actions": 11,
+    "evals": 12
   },
   "best_overall": {
     "eval_id": "e00093",
@@ -263,7 +263,7 @@
     ]
   },
   "phi_selection_counts": {
-    "e00085": 4
+    "e00085": 5
   },
   "history": [
     {
@@ -325,6 +325,12 @@
       "type": "recon",
       "note": "tes/grhsim-am-coremark/actions/A0094_recon_r004t4s00_e00085动态热点画像_20260824.md",
       "ts": "2026-08-24T01:49:54+08:00"
+    },
+    {
+      "n": 11,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0095_step_r004t4s01_scratch后延与谓词run回归门失败_20260824.md",
+      "ts": "2026-08-24T02:27:52+08:00"
     }
   ]
 }

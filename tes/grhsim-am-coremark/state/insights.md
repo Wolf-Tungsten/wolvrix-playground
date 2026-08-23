@@ -1904,3 +1904,13 @@
   热点，再决定推广幂次深度或组合宽链，不能只按静态命中数外推。
 - 当前 best_overall=e00093 **172.530s**，AM/gsim **7.594x**，预算 10/48；下一
   action 为 `t4/e00085 recon`，本 action 未启动。
+
+## r004/t4/s01 两项候选均由 fixture 误报阻断（2026-08-24，action A0095）
+
+- e00095/e00096 均为 `ctest_fail`（16/17），未进入生产 emit、difftest 或 Host
+  计时，故 commit scratch 后延与 host predicate run 在 t4 轨迹均是**未测**，不得
+  记为性能证伪。c1 生成物已有门内 `wrChgblk` reset，但 fixture 错要不存在的
+  `detGrpblk`；c2 的 stock/outline/run 输出逐字节相同（1 boot/15 data），fixture
+  错把 data 数写死为 9。
+- evaluator 的请求表型现于任何 build/ctest 早退前写入 `result.json`，使失败候选也能
+  通过 `tes-candidate.json` 表型审计并登记；构建、功能门和计时协议未改变。

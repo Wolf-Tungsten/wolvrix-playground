@@ -322,6 +322,11 @@ def evaluate_candidate(worktree: Path, eval_id: str, emit_args_override: list[st
     result: dict = {"eval_id": eval_id, "worktree": str(worktree), "started_at": now_iso(),
                     "status": "ok", "logs": logs,
                     "compile_budget_sec": compile_budget_sec}
+    # The requested phenotype is fixed before any build gate. Preserve it on
+    # early build/ctest failures so record-eval can audit and register failed
+    # candidates under the same declaration contract as timed candidates.
+    emit_args = emit_args_override if emit_args_override is not None else EVAL_CFG["emit_args"]
+    result["emit_args"] = emit_args
 
     commit = subprocess.run(["git", "-C", str(worktree), "rev-parse", "HEAD"],
                             capture_output=True, text=True)
@@ -383,14 +388,12 @@ def evaluate_candidate(worktree: Path, eval_id: str, emit_args_override: list[st
             return result
 
     # 3. emit
-    emit_args = emit_args_override if emit_args_override is not None else EVAL_CFG["emit_args"]
     rc, dur = sh([str(wbuild / "bin" / "grhsim-am-lower-json"),
                   str(REPO / DESIGN_JSON), "SimTop",
                   "--emit", str(emit_dir), *emit_args],
                  evdir / "emit.log", timeout=phase_timeout(),
                  env_extra={"WOLVRIX_GRHSIM_AM_BLOCK_ATOM_JSONL": str(evdir / "block_atom.jsonl")})
     result["timings"]["emit_s"] = round(dur, 1)
-    result["emit_args"] = emit_args
     if rc != 0 or not (emit_dir / "Makefile").exists():
         if check_budget("emit", rc):
             return result

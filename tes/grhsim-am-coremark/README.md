@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t4/s01 两候选均在回归门失败，机制未测，轨迹原地消耗一步**
+  （2026-08-24，[A0095](actions/A0095_step_r004t4s01_scratch后延与谓词run回归门失败_20260824.md)）：
+  e00095 commit scratch 后延和 e00096 outlined host predicate run 均为
+  `ctest_fail`（16/17，`compile_s=164.5/239.0s`），未进入生产 emit、difftest 或
+  Host 计时。失败后生成物取证显示 c1 的 reset 已位于事件门内、c2 的三模型输出
+  完全相同；两者均因候选 fixture 期望错误而误报，因此只判**未测**，不作性能证伪。
+  t4 tip 仍为 e00085，预算 **12/48**，全局 best 仍为 e00093 **172.530s**；下一
+  action = `t5/e00085 recon`，本 action 未启动它。
+
 - **r004/t4/s00 recon 已完成，commit scratch 前置清零与 task 谓词 run 成为可证伪池**
   （2026-08-24，[A0094](actions/A0094_recon_r004t4s00_e00085动态热点画像_20260824.md)）：
   非计时 runtime-profile 以 e00085 的生产 12 开关表型重 emit，`73580/49996`
