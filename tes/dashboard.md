@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-23T15:58:29+08:00
+> 生成于 2026-08-23T16:42:43+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 2/48 · actions 1 · 下一步 `recon`：轨迹 t0 recon 证据到期（staleness≥2），先对 tip（eval e00085）做非计时 profiling 再出 step
+run **r004**（active）· C=6 L=4 K=2 · evals 2/48 · actions 2 · 下一步 `step`：推进轨迹 t0 到第 1 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -150,6 +150,7 @@ run **r004**（active）· C=6 L=4 K=2 · evals 2/48 · actions 1 · 下一步 `
 | e00084 | candidate | t1/s08c2 | 378.1s | 16.64x | - | ok | Phi e00080/e00071 -> e00080 idempotent suppression… |
 | e00085 | baseline-am | - | 193.4s | 8.51x | unimodal | ok | am baseline |
 | e00086 | baseline-gsim | - | 22.7s | 1.00x | unimodal | ok | gsim baseline |
+| e00085 | recon | - | - | - | - | - |  |
 
-最近 actions：A0001 run-init
+最近 actions：A0001 run-init；A0002 recon
 

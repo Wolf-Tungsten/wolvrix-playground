@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：run-init 完成** | 正式未打平 gsim emu 已恢复；串行 3 rep 重锚为 AM e00085 **193.403s**、gsim e00086 **22.720s**，均过 difftest，当前差距 **8.512x**。r004=C6/L4/K2，下一 action 为 t0 recon，见 [A0085](grhsim-am-coremark/actions/A0085_run-init_r004正式gsim恢复与双基线_20260823.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0 recon 完成** | e00085 非计时画像金标通过：compute/commit = **73.4435%/26.5324%**，top-50 覆盖 **39.784%**；commit 主峰 b93159/b93141 占 **8.620%**，task 守卫 b90656/b90657 占 **4.683%**。预算仍 2/48，下一 action 为 t0/s01 step（K=2），见 [A0086](grhsim-am-coremark/actions/A0086_recon_r004t0s00_e00085动态热点画像_20260823.md) |
 
 ## 共享件
 
