@@ -49,9 +49,11 @@ def trajectory_nodes(run_id: str, tid: str):
     """重建轨迹的已提交集合 S 与附属列表。
 
     S = 本 run 的 am 基线（root y0）+ 本轨迹所有被 commit-marker 标记的 winner。
-    返回 (S, rejected, failed)：rejected=评估成功但未中选的候选，failed=失败候选。
+    返回 (S, rejected, failed, outcomes)：rejected=评估成功但未中选的候选，failed=失败候选；
+    outcomes = {eval_id: win/neutral/loss/initial}（来自 commit-marker，供 neutral 降权）。
     """
     committed_ids = set()
+    outcomes: dict[str, str] = {}
     entries = []
     for e in iter_ledger():
         if e.get("run") != run_id:
@@ -59,6 +61,8 @@ def trajectory_nodes(run_id: str, tid: str):
         if e.get("kind") == "commit-marker":
             if e.get("trajectory") == tid:
                 committed_ids.add(e["eval_id"])
+                if e.get("outcome"):
+                    outcomes[e["eval_id"]] = e["outcome"]
             continue
         entries.append(e)
     S, rejected, failed = [], [], []
@@ -74,13 +78,31 @@ def trajectory_nodes(run_id: str, tid: str):
             rejected.append(e)
         else:
             failed.append(e)
-    return S, rejected, failed
+    return S, rejected, failed, outcomes
+
+
+def effective_scores(S: list[dict], outcomes: dict[str, str]) -> dict[str, float]:
+    """归一化输入分：neutral 节点取前驱已提交节点的有效分（历史地位=父，防 artifact 峰值）。"""
+    chain = sorted((e for e in S if e.get("kind") == "candidate"),
+                   key=lambda e: (e.get("step") or 0, e["eval_id"]))
+    eff: dict[str, float] = {}
+    prev: dict | None = None
+    for e in chain:
+        if outcomes.get(e["eval_id"]) == "neutral" and prev is not None:
+            eff[e["eval_id"]] = eff.get(prev["eval_id"], prev["score"])
+        else:
+            eff[e["eval_id"]] = e["score"]
+        prev = e
+    for e in S:
+        eff.setdefault(e["eval_id"], e["score"])  # root baseline 等
+    return eff
 
 
 def rpucg_select(S: list[dict], counts: dict[str, int], gamma: float, lam: float,
-                 max_nodes: int) -> tuple[list[str], list[dict]]:
+                 max_nodes: int, eff_scores: dict[str, float] | None = None) -> tuple[list[str], list[dict]]:
     """图版 PUCT：U_i = max(rn_i, gamma * max_child U)，归一化分数；探索项 λρ√(1+|S|)/(1+n)。
 
+    归一化输入用 eff_scores（neutral 节点已被降权为前驱分）；缺省退回原始 score。
     返回选中的 eval_id 列表与调试表。
     """
     if not S:
@@ -92,11 +114,10 @@ def rpucg_select(S: list[dict], counts: dict[str, int], gamma: float, lam: float
             if p in children:
                 children[p].append(e["eval_id"])
 
-    scores = [e["score"] for e in S]
+    scores_map = eff_scores or {e["eval_id"]: e["score"] for e in S}
+    scores = list(scores_map.values())
     lo, hi = min(scores), max(scores)
-    norm = {}
-    for e in S:
-        norm[e["eval_id"]] = 1.0 if hi == lo else (e["score"] - lo) / (hi - lo)
+    norm = {nid: (1.0 if hi == lo else (s - lo) / (hi - lo)) for nid, s in scores_map.items()}
 
     # U 反向传播（图为 DAG：父节点一定先于子节点产生）
     U: dict[str, float] = {}
@@ -114,11 +135,11 @@ def rpucg_select(S: list[dict], counts: dict[str, int], gamma: float, lam: float
     for e in S:
         u_of(e["eval_id"])
 
-    order = sorted(S, key=lambda e: e["score"])
+    order = sorted(scores_map, key=lambda nid: scores_map[nid])
     rho = {}
-    n = len(S)
-    for i, e in enumerate(order):
-        rho[e["eval_id"]] = 1.0 if n == 1 else i / (n - 1)
+    n = len(order)
+    for i, nid in enumerate(order):
+        rho[nid] = 1.0 if n == 1 else i / (n - 1)
 
     table = []
     for e in S:
@@ -161,10 +182,11 @@ def main() -> int:
     K = cfg["search"]["K"]
     tid = args.trajectory
 
-    S, rejected, failed = trajectory_nodes(run_id, tid)
+    S, rejected, failed, outcomes = trajectory_nodes(run_id, tid)
     counts = run.get("phi_selection_counts", {})
     selected, table = rpucg_select(S, counts, phi_cfg["gamma"], phi_cfg["lambda"],
-                                   phi_cfg["max_nodes"])
+                                   phi_cfg["max_nodes"],
+                                   eff_scores=effective_scores(S, outcomes))
 
     # 轨迹主线 tip（最近提交节点）强制纳入，保证精修连续性
     tip = max(S, key=lambda e: (e.get("step") or 0, e["eval_id"])) if S else None
@@ -226,6 +248,17 @@ def main() -> int:
         for e in failed[-8:]:
             lines.append(f"- {e['eval_id']} s{e.get('step')}c{e.get('candidate')}: **{e['status']}** — {e.get('hypothesis')}"
                          f"（日志见 `{e.get('result_json')}`）")
+    lines.append("\n## 本轨迹 recon 证据（动态病灶数据）\n")
+    recon_reports = [e for e in iter_ledger()
+                     if e.get("run") == run_id and e.get("kind") == "recon"
+                     and e.get("trajectory") == tid]
+    if recon_reports:
+        latest = recon_reports[-1]
+        lines.append(f"- 最新 recon: `{latest.get('report')}`（基于 eval {latest.get('eval_id')}）")
+        lines.append("- **硬要求**：每个候选的病灶证据必须引用 recon 报告中的动态权重"
+                     "（块 execs/cycles 分布）；静态计数只作辅证。无新鲜 recon 的假设不得占用席位。")
+    else:
+        lines.append("-（尚无 recon 报告；状态机应先出 recon action，若先见到本 proposal 说明流程有误）")
     lines.append("\n## 本 step 任务\n")
     lines.append(f"设计并实现 **{K} 个互不相同且都有实质性能假设的候选**。K 是从上述 Φ 节点"
                  "出发的局部采样，不是无关方向跳转；每个候选必须写明“来源节点 → 已观测反馈/病灶 → "
