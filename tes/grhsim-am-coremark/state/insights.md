@@ -1747,3 +1747,17 @@
   最小 fixture 固化分类契约。
 - e00082 是唯一 ok 而机械入 t0/main；新规则默认 off，合入不改变默认表型。t0 已
   完成 8/8，历史 t0/global best 仍为 e00057 229.429s。
+
+## r003/t1/s08 mask 缓存与 direct 写回（2026-08-23，action A0082）
+
+- e00083 首次以完整 13 开关生产表型真实启用 active-tile mask/value 紧凑缓存：
+  **419.534s**（CV 0，compile_s 2063.6s，loadavg 50.53），全门通过且生成缓存命中；
+  较 e00080 名义回退 21.53%。约 1 KiB 栈框和 union 缓存写流没有正向证据，当前
+  mask/value 缓存形态关闭；A0076 对 e00075 的旧结论仍以“机制未启用”勘误为准。
+- e00084 恢复连续 base copy/fill 与直接 sparse store，移除 e00080 的逐 lane target
+  load/compare/branch：**378.064s**（CV 0，compile_s 2164.5s，loadavg 11.58），
+  全门通过并机械入 t1/main。它较 e00083 名义快 9.89%，但 loadavg 不同；较低负载
+  e00080 仍慢 9.52%，所以只确认 raw winner，不确认父节点收益。
+- wide-mux 微结构已收敛：栈缓存、target 幂等比较、静态 selector 共享度和 base lane
+  比例都不足以预测收益；再开前必须有 helper 动态 Host 权重或 target 实际变化率证据。
+  t0/t1 均完成 8/8，历史 best 仍为 e00057 229.429s，下一 action 为 run-summary。

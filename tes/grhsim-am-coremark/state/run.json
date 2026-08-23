@@ -141,7 +141,7 @@
   },
   "eval_sequence": {
     "start": 51,
-    "next": 83
+    "next": 85
   },
   "baselines": {
     "am": {
@@ -171,8 +171,8 @@
     {
       "id": "t1",
       "branch": "tes/r003/t1/main",
-      "tip": "1eab372db3859cd66d9ba20f4bf1ad2bda360417",
-      "steps_completed": 7,
+      "tip": "64b2b930e0af64bd5a937bc5c5c871b350753fbc",
+      "steps_completed": 8,
       "best": {
         "eval_id": "e00056",
         "score": -241956
@@ -190,8 +190,8 @@
     7
   ],
   "counters": {
-    "actions": 23,
-    "evals": 32
+    "actions": 24,
+    "evals": 34
   },
   "best_overall": {
     "eval_id": "e00057",
@@ -215,17 +215,18 @@
   "phi_selection_counts": {
     "e00051": 8,
     "e00054": 3,
-    "e00056": 4,
+    "e00056": 5,
     "e00057": 4,
     "e00059": 3,
     "e00061": 3,
     "e00064": 1,
     "e00065": 2,
     "e00067": 2,
-    "e00071": 1,
+    "e00071": 2,
     "e00074": 1,
     "e00076": 1,
-    "e00078": 1
+    "e00078": 1,
+    "e00080": 1
   },
   "history": [
     {
@@ -365,6 +366,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0081_step_t0s08_task延迟取参与byte中性提示_20260823.md",
       "ts": "2026-08-23T06:33:07+08:00"
+    },
+    {
+      "n": 24,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0082_step_t1s08_mask缓存与direct写回_20260823.md",
+      "ts": "2026-08-23T08:08:13+08:00"
     }
   ]
 }

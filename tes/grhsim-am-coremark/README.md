@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r003/t1/s08 已完成，mask 缓存无正向证据，direct 写回机械胜出**
+  （2026-08-23，[A0082](actions/A0082_step_t1s08_mask缓存与direct写回_20260823.md)）：
+  e00083 紧凑缓存 active-tile mask/value = **419.534s**（CV 0，compile_s 2063.6s，
+  loadavg 50.53）；e00084 移除幂等 target compare、恢复连续 copy/fill 与直接 sparse
+  store = **378.064s**（CV 0，compile_s 2164.5s，loadavg 11.58）。两项均用完整 13
+  开关表型通过 17/17 ctest 与 3 rep difftest，c2 raw-score winner 入 t1/main；因机器态
+  不同且 c2 仍较低负载 e00080 名义慢 9.52%，不确认父节点收益。t0/t1 均 8/8，历史
+  best 仍为 e00057 **229.429s**；下一 action = `run-summary`，本 action 未启动它。
+
 - **r003/t0/s08 已完成，task 延迟取参败于回归门，byte 中性提示无正向证据**
   （2026-08-23，[A0081](actions/A0081_step_t0s08_task延迟取参与byte中性提示_20260823.md)）：
   e00081 `sys-task-lazy-member-args` 为 `ctest_fail`（16/17，compile_s 383.7s），

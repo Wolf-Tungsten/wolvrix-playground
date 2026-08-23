@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-23T06:33:07+08:00
+> 生成于 2026-08-23T08:08:13+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 32/32 · actions 23 · 下一步 `step`：推进轨迹 t1 到第 8 步（round-robin 最少步数优先）
+run **r003**（active）· C=2 L=8 K=2 · evals 34/32 · actions 24 · 下一步 `run-summary`：全部 2 条轨迹已达 L=8 步，写 run 总结并裁决是否 restart
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -19,7 +19,7 @@ run **r003**（active）· C=2 L=8 K=2 · evals 32/32 · actions 23 · 下一步
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
 | t0 | `tes/r003/t0/main` | 8/8 | e00057 | 229.4s |
-| t1 | `tes/r003/t1/main` | 7/8 | e00056 | 242.0s |
+| t1 | `tes/r003/t1/main` | 8/8 | e00056 | 242.0s |
 
 | eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |
 |---|---|---|---|---|---|---|
@@ -142,6 +142,8 @@ run **r003**（active）· C=2 L=8 K=2 · evals 32/32 · actions 23 · 下一步
 | corr-e00075-e00076-phenotype | correction | t1/s06c0 | - | - | correction | 勘误：e00075/e00076 缺少 wideMuxChainActiveTileSparse 的… |
 | e00081 | candidate | t0/s08c1 | - | - | ctest_fail | Phi e00054/e00078 -> outlined fwrite still materia… |
 | e00082 | candidate | t0/s08c2 | 327.7s | 7.14x | ok | Phi e00057/e00061/e00078 -> source-word activity g… |
+| e00083 | candidate | t1/s08c1 | 419.5s | 9.15x | ok | Phi e00080/e00071 -> active-tile sparse scans each… |
+| e00084 | candidate | t1/s08c2 | 378.1s | 8.24x | ok | Phi e00080/e00071 -> e00080 idempotent suppression… |
 
-最近 actions：A0019 round-summary；A0020 step；A0021 step；A0022 round-summary；A0023 step
+最近 actions：A0020 step；A0021 step；A0022 round-summary；A0023 step；A0024 step
 
