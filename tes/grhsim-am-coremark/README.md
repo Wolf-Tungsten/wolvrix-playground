@@ -6,6 +6,17 @@
 
 ## 当前状态速览
 
+- **r004/t3/s02 已完成，宽 mux 链与幂次索引组合越过确认带并刷新全局 best**
+  （2026-08-24，[A0102](actions/A0102_step_r004t3s02_pack融合失败与宽mux组合确认_20260824.md)）：
+  e00105 尝试把六个 512-read 热块的 scalar read-to-concat 融为 packed gather，但候选
+  fixture 把 MemoryRead 放入 EntryBlock，`ctest_fail`（16/17），生产 emit/difftest/
+  Host 均未到达，机制性能未测。e00106 在 e00093 幂次索引基座上组合 e00094 的
+  4 链/92-step `--array-broadcast-mux-chain-fuse`，Host **166.947s**（较父 e00093
+  改善 **3.24%**，CV 1.12%），以完整 14 开关表型通过 17/17 ctest 与三次
+  `73580/49996` difftest，单簇且非 noisy；outcome=`win` 入 t3/main 并刷新全局
+  best。预算 **22/48**，冻结 AM/gsim = **7.348x**；下一 action = `r004/t4/s02
+  step`（K=2），本 action 未启动它。
+
 - **r004/t2/s02 已完成，幂次索引迁移再次刷新全局 best**
   （2026-08-24，[A0101](actions/A0101_step_r004t2s02_scratch组合与幂次索引迁移_20260824.md)）：
   e00103 在 predicate-run tip 上叠加 commit scratch 后延 = **188.847s**（较 e00092

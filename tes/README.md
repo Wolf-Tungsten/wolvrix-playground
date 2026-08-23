@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t2 完成 s02** | e00104 将 e00093 幂次 memory-read 索引专化迁移到 e00092 predicate-run tip，Host **169.577s**（较父改善 10.11%），以 outcome=`win` 入 t2/main 并刷新全局 best；scratch 后延组合 e00103 **188.847s**（较父回退 0.10%）持平。预算 20/48，冻结 AM/gsim = **7.464x**；下一 action 为 `t3/s02 step`，见 [A0101](grhsim-am-coremark/actions/A0101_step_r004t2s02_scratch组合与幂次索引迁移_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t3 完成 s02** | e00106 在 e00093 幂次索引基座上组合 4 链/92-step 宽 mux 链融合，Host **166.947s**（较父改善 3.24%），以 outcome=`win` 入 t3/main 并刷新全局 best；packed gather e00105 因 fixture 的 EntryBlock 合法性 `ctest_fail`，性能未测。预算 22/48，冻结 AM/gsim = **7.348x**；下一 action 为 `t4/s02 step`，见 [A0102](grhsim-am-coremark/actions/A0102_step_r004t3s02_pack融合失败与宽mux组合确认_20260824.md) |
 
 ## 共享件
 

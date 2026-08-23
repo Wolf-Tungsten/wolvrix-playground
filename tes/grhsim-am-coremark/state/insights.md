@@ -1940,3 +1940,18 @@
   但均缺 post-change 池级证据；round 2 先按各轨迹独立 recon 验证，不直接跨轨迹迁移。
   Concat 位置装配仍未决：一个实现弱正、另一个因位序错误功能失败，重开须先补非对称
   多 operand 位序测试。
+
+## r004/t3/s02 幂次索引与宽 mux 链组合（2026-08-24，action A0102）
+
+- **同轨迹正交机制可加确认（e00106）**：在 e00093 幂次 memory-read 索引基座上组合
+  e00094 的 4 条/92-step 宽 broadcast-to-mux 链融合，Host **166.947s**，较父节点
+  **-3.24%**（CV 1.12%、单簇、非 noisy），越过 r004 3% 裁决带；17/17 ctest 与
+  三次 `73580/49996` difftest 全过。宽链池在 e00085 recon 中占 **1.567%**，组合
+  增量大于旧插桩权重，再次说明 recon 权重用于定位而非严格 Amdahl 上界；池级 70%
+  降幅仍须 post-change recon 验证。
+- **pack gather 性能未测（e00105）**：六个 512-read 块的 512 scalar -> 1024-bit
+  Concat 融合候选因新 fixture 把 MemoryRead 放入 EntryBlock，语义 validator 在 ctest
+  以 16/17 拒绝，生产 emit/difftest/Host 均未到达。重开前必须修正 fixture 并证明
+  生产命中；不得把本次 `ctest_fail` 当作机制性能证伪。
+- 新 best_overall=e00106 **166.947s**，相对 r004 AM y0 改善 **13.68%**，冻结
+  AM/gsim = **7.348x**；预算 22/48。

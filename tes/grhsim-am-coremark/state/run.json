@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 105
+    "next": 107
   },
   "baselines": {
     "am": {
@@ -208,14 +208,14 @@
     {
       "id": "t3",
       "branch": "tes/r004/t3/main",
-      "tip": "3abdf544eb6e015b5446ee3da0f8f5393cbabdc0",
-      "steps_completed": 1,
+      "tip": "8c4585f674389d2e569762c202fb02f90aa193ec",
+      "steps_completed": 2,
       "best": {
-        "eval_id": "e00093",
-        "score": -172530
+        "eval_id": "e00106",
+        "score": -166947
       },
       "last_recon_step": 0,
-      "tip_eval_id": "e00093"
+      "tip_eval_id": "e00106"
     },
     {
       "id": "t4",
@@ -244,13 +244,13 @@
     1
   ],
   "counters": {
-    "actions": 17,
-    "evals": 20
+    "actions": 18,
+    "evals": 22
   },
   "best_overall": {
-    "eval_id": "e00104",
-    "score": -169577,
-    "commit": "3f37f45837c0ba5efa0b5fde6dc6776e16788f62",
+    "eval_id": "e00106",
+    "score": -166947,
+    "commit": "8c4585f674389d2e569762c202fb02f90aa193ec",
     "emit_args": [
       "--branchy-mux",
       "--resize-elision",
@@ -264,15 +264,16 @@
       "--wide-detect-fast-path",
       "--sys-task-body-outline",
       "--scan-branch-hints",
-      "--host-call-predicate-run",
-      "--memory-read-pow2-index"
+      "--memory-read-pow2-index",
+      "--array-broadcast-mux-chain-fuse"
     ]
   },
   "phi_selection_counts": {
     "e00085": 6,
     "e00088": 1,
     "e00089": 1,
-    "e00092": 1
+    "e00092": 1,
+    "e00093": 1
   },
   "history": [
     {
@@ -376,6 +377,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0101_step_r004t2s02_scratch组合与幂次索引迁移_20260824.md",
       "ts": "2026-08-24T07:03:20+08:00"
+    },
+    {
+      "n": 18,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0102_step_r004t3s02_pack融合失败与宽mux组合确认_20260824.md",
+      "ts": "2026-08-24T07:46:47+08:00"
     }
   ]
 }

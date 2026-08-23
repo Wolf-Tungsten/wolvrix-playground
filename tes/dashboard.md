@@ -2,26 +2,26 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-24T07:03:20+08:00
+> 生成于 2026-08-24T07:46:47+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 20/48 · actions 17 · 下一步 `step`：推进轨迹 t3 到第 2 步（round-robin 最少步数优先）
+run **r004**（active）· C=6 L=4 K=2 · evals 22/48 · actions 18 · 下一步 `step`：推进轨迹 t4 到第 2 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
 | gsim（target） | e00086 | 22.7s | 1.00x |
 | am（y0 基线） | e00085 | 193.4s | 8.51x |
-| **当前 best** | e00104 | **169.6s** | **7.46x** |
+| **当前 best** | e00106 | **166.9s** | **7.35x** |
 
-基线→target 进度：`███░░░░░░░░░░░░░░░░░` 14.0%（193.4s → 目标 22.7s，当前差距 7.46x）
+基线→target 进度：`███░░░░░░░░░░░░░░░░░` 15.5%（193.4s → 目标 22.7s，当前差距 7.35x）
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
 | t0 | `tes/r004/t0/main` | 2/4 | e00100 | 172.8s |
 | t1 | `tes/r004/t1/main` | 2/4 | e00102 | 171.2s |
 | t2 | `tes/r004/t2/main` | 2/4 | e00104 | 169.6s |
-| t3 | `tes/r004/t3/main` | 1/4 | e00093 | 172.5s |
+| t3 | `tes/r004/t3/main` | 2/4 | e00106 | 166.9s |
 | t4 | `tes/r004/t4/main` | 1/4 | - | - |
 | t5 | `tes/r004/t5/main` | 1/4 | e00097 | 191.1s |
 
@@ -174,6 +174,8 @@ run **r004**（active）· C=6 L=4 K=2 · evals 20/48 · actions 17 · 下一步
 | e00102 | candidate | t1/s02c2 | 171.2s | 7.54x | unimodal | ok | Migrating confirmed e00093 power-of-two memory-rea… |
 | e00103 | candidate | t2/s02c1 | 188.8s | 8.31x | unimodal | ok | Starting from e00092, exact-predicate host-call ru… |
 | e00104 | candidate | t2/s02c2 | 169.6s | 7.46x | unimodal | ok | Migrating confirmed e00093 power-of-two memory-rea… |
+| e00105 | candidate | t3/s02c1 | - | - | - | ctest_fail | Starting from e00093, six 512-read blocks still ca… |
+| e00106 | candidate | t3/s02c2 | 166.9s | 7.35x | unimodal | ok | Starting from e00093, e00085 recon assigns 1.567% … |
 
-最近 actions：A0013 step；A0014 round-summary；A0015 step；A0016 step；A0017 step
+最近 actions：A0014 round-summary；A0015 step；A0016 step；A0017 step；A0018 step
 
