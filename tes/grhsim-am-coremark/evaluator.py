@@ -23,6 +23,7 @@ import shutil
 import statistics
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -114,6 +115,60 @@ def _cv(values: list[int]) -> float:
     return statistics.stdev(values) / statistics.mean(values) if len(values) > 1 else 0.0
 
 
+def cluster_reps(times_ms: list[float], ratio: float) -> list[list[int]]:
+    """一维倍率缝隙聚簇：排序后相邻比值 > ratio 处切分；返回按簇中位升序的簇。"""
+    order = sorted(range(len(times_ms)), key=lambda i: times_ms[i])
+    clusters: list[list[int]] = [[order[0]]]
+    for prev, cur in zip(order, order[1:]):
+        if times_ms[cur] > times_ms[prev] * ratio:
+            clusters.append([])
+        clusters[-1].append(cur)
+    clusters.sort(key=lambda c: statistics.median(times_ms[i] for i in c))
+    return [sorted(c) for c in clusters]  # 簇内按下标排序，result.json 可读性
+
+
+def adjudicate_reps(times_ms: list[float], ratio: float) -> dict:
+    """快簇（首个 ≥2 成员的簇）中位为裁决 median；全 singleton 退化取最快簇。
+
+    state: unimodal（单簇）/ bimodal（多簇且有 ≥2 成员簇）/ degraded（全 singleton）。
+    """
+    clusters = cluster_reps(times_ms, ratio)
+    fast = next((c for c in clusters if len(c) >= 2), None)
+    if fast is None:
+        state = "degraded"
+        fast = clusters[0]
+    elif len(clusters) == 1:
+        state = "unimodal"
+    else:
+        state = "bimodal"
+    return {"state": state, "clusters": clusters, "fast_cluster": fast,
+            "median": statistics.median(times_ms[i] for i in fast),
+            "median_all": statistics.median(times_ms)}
+
+
+def _sample_proc_state(pid: int, stop: threading.Event, out: dict) -> None:
+    """1Hz 只读采样 rep 进程的 THP/NUMA 协变量（与计时纪律兼容的先例：r002 监视模式）。"""
+    huge_max = 0
+    pages: dict[str, int] = {}
+    samples = 0
+    while not stop.is_set():
+        try:
+            rollup = Path(f"/proc/{pid}/smaps_rollup").read_text(encoding="utf-8")
+            m = re.search(r"AnonHugePages:\s+(\d+)\s+kB", rollup)
+            if m:
+                huge_max = max(huge_max, int(m.group(1)))
+            numa = Path(f"/proc/{pid}/numa_maps").read_text(encoding="utf-8")
+            cur: dict[str, int] = {}
+            for n, p in re.findall(r"\bN(\d+)=(\d+)", numa):
+                cur[f"N{n}"] = cur.get(f"N{n}", 0) + int(p)
+            pages = cur
+            samples += 1
+        except (OSError, ValueError):
+            break  # 进程已退出
+        stop.wait(1.0)
+    out.update({"anon_hugepages_kb_max": huge_max, "numa_pages": pages, "samples": samples})
+
+
 def _run_rep_batch(emu: Path, cwd: Path, run_dir: Path,
                    start_idx: int, count: int, cores: list[str]) -> list[dict]:
     """并行起跑 count 个 rep（各绑 rep_cores 中不同物理核），全部结束后按 rep 序返回。
@@ -142,8 +197,14 @@ def _run_rep_batch(emu: Path, cwd: Path, run_dir: Path,
         lf.flush()
         p = subprocess.Popen(cmd, cwd=cwd, env=dict(os.environ), stdout=lf,
                              stderr=subprocess.STDOUT, start_new_session=True)
-        procs.append({"rep": i, "core": core, "popen": p, "log": log, "lf": lf,
-                      "t0": time.monotonic(), "rc": None})
+        pr = {"rep": i, "core": core, "popen": p, "log": log, "lf": lf,
+              "t0": time.monotonic(), "rc": None, "proc_state": {},
+              "sampler_stop": threading.Event()}
+        # 1Hz 只读协变量采样（THP/NUMA 页放置），与计时纪律兼容
+        threading.Thread(target=_sample_proc_state,
+                         args=(p.pid, pr["sampler_stop"], pr["proc_state"]),
+                         daemon=True).start()
+        procs.append(pr)
     pending = list(procs)
     while pending:
         for pr in list(pending):
@@ -155,6 +216,7 @@ def _run_rep_batch(emu: Path, cwd: Path, run_dir: Path,
             elif rc is not None:
                 pr["rc"] = rc
             if pr["rc"] is not None:
+                pr["sampler_stop"].set()
                 pr["wall_s"] = round(time.monotonic() - pr["t0"], 1)
                 pr["lf"].close()
                 pending.remove(pr)
@@ -164,21 +226,26 @@ def _run_rep_batch(emu: Path, cwd: Path, run_dir: Path,
     for pr in procs:
         parsed = parse_run_log(pr["log"])
         out.append({"rep": pr["rep"], "core": pr["core"], "rc": pr["rc"],
-                    "wall_s": pr["wall_s"], "loadavg_before": load, **parsed})
+                    "wall_s": pr["wall_s"], "loadavg_before": load,
+                    "proc_state": pr["proc_state"], **parsed})
     return out
 
 
 def run_reps(emu: Path, run_dir: Path, run_cwd: Path | None = None) -> dict:
-    """协议化计时固定 reps，返回状态、原始 reps 与 Host 时间中位。
+    """协议化计时 reps，返回状态、原始 reps 与裁决后的 Host 时间中位。
 
     emu 可为绝对路径或 run_cwd 下的相对名（如 Path("emu") + run_cwd=emu 构建目录）。
     reps 批内并行：每 rep 绑 eval.rep_cores 中一个独立物理核（缺省退回 eval.core
-    单核串行语义）；批次间串行。rep 数由 run manifest 冻结，不因 CV 自适应扩增。
+    单核串行语义）；批次间串行。初始 rep 数由 run manifest 冻结（eval.reps）；
+    r004 起为簇结构自适应：检出双峰（cluster_ratio 倍率缝隙）才加跑至 ≤ reps_max，
+    不因 CV 扩增。score/median = 快簇中位（弃用跨簇 median）。
     """
     ev = EVAL_CFG
     golden = ev["golden"]
     tol = ev.get("golden_tol", {"instrCnt": 0, "cycleCnt": 0})
     cores = [str(c) for c in (ev.get("rep_cores") or [ev["core"]])]
+    ratio = float(ev.get("cluster_ratio", 1.15))
+    reps_max = int(ev.get("reps_max", 9))
     reps: list[dict] = []
     status = "ok"
     target_reps = ev["reps"]
@@ -208,13 +275,22 @@ def run_reps(emu: Path, run_dir: Path, run_cwd: Path | None = None) -> dict:
         if len(times) != len(reps):
             status = "parse_fail"
             break
+        # 簇结构自适应：检出分裂且未达上限才加跑；单簇即收口
+        if len(cluster_reps(times, ratio)) > 1 and len(reps) < reps_max:
+            target_reps = min(len(reps) + len(cores), reps_max)
     times = [r["host_ms"] for r in reps if r["host_ms"] is not None]
     out = {"status": status, "reps": reps}
     if times and all(r.get("difftest_ok") for r in reps):
-        median = _median(times)
+        adj = adjudicate_reps(times, ratio)
+        median = _median([times[i] for i in adj["fast_cluster"]])
         cv = _cv(times)
-        out.update({"host_ms": {"reps": times, "median": median, "cv": round(cv, 4)},
-                    "noisy": cv > ev["cv_max"], "score": -median})
+        out.update({"host_ms": {"reps": times, "median": median,
+                                "median_all": _median(times), "cv": round(cv, 4),
+                                "clusters": adj["clusters"],
+                                "fast_cluster": adj["fast_cluster"],
+                                "state": adj["state"]},
+                    "noisy": cv > ev["cv_max"] or adj["state"] == "degraded",
+                    "score": -median})
     return out
 
 
