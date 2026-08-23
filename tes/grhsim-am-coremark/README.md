@@ -1,10 +1,18 @@
 # 任务 grhsim-am-coremark
 
 **目标**：grhsim-am emu 仿真 xiangshan coremark 50k（`-C 50000`）的 Host wall time
-（固定 3 rep 中位、绑核、评估间串行）≤ gsim 同等负载同协议测量值。任务指令见 [brief.md](brief.md)
+（初始 3 rep、双峰时自适应至 9 rep、快簇中位、绑核、评估间串行）≤ gsim 同等负载同协议测量值。任务指令见 [brief.md](brief.md)
 （x0，run 期间冻结），参数见 [config.json](config.json)。
 
 ## 当前状态速览
+
+- **r004 已启动，e00057 起点与双基线重锚完成**（2026-08-23，
+  [A0084](actions/A0084_run-init_r004起点与聚簇基线_20260823.md)）：y0 = r003/e00057
+  `1563c3d`，完整 12 开关表型；该 commit 已 fast-forward 合入 wolvrix
+  `grh/tes-grhsim-am`，r004 base 与 t0..t5/main 均从同一点出发。C=6/L=4/K=2，
+  N=48；AM e00085 = **348.716s**（unimodal，CV 0.89%，17/17 ctest + 3 rep
+  difftest 全过），gsim e00086 = **50.275s**（unimodal，CV 0.47%，3 rep difftest
+  全过），起跑差距 **6.936x**。下一 action = t0/e00085 `recon`，本 action 未启动它。
 
 - **r003 已收口，当前不建议 restart**（2026-08-23，[A0083](actions/A0083_run-summary_r003收口与停止restart_20260823.md)，
   详见 [runs/r003/summary.md](runs/r003/summary.md)）：C=2/L=8/K=2，16/16 步、候选
