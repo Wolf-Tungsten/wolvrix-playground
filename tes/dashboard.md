@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-23T08:08:13+08:00
+> 生成于 2026-08-23T08:14:29+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r003**（active）· C=2 L=8 K=2 · evals 34/32 · actions 24 · 下一步 `run-summary`：全部 2 条轨迹已达 L=8 步，写 run 总结并裁决是否 restart
+run **r003**（completed）· C=2 L=8 K=2 · evals 34/32 · actions 25 · 下一步 `run-closed`：r003 已收口；可开新 run（restart）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -145,5 +145,5 @@ run **r003**（active）· C=2 L=8 K=2 · evals 34/32 · actions 24 · 下一步
 | e00083 | candidate | t1/s08c1 | 419.5s | 9.15x | ok | Phi e00080/e00071 -> active-tile sparse scans each… |
 | e00084 | candidate | t1/s08c2 | 378.1s | 8.24x | ok | Phi e00080/e00071 -> e00080 idempotent suppression… |
 
-最近 actions：A0020 step；A0021 step；A0022 round-summary；A0023 step；A0024 step
+最近 actions：A0021 step；A0022 round-summary；A0023 step；A0024 step；A0025 run-summary
 

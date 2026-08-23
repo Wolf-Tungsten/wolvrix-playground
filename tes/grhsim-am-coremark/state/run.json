@@ -2,7 +2,7 @@
   "schema": 1,
   "run_id": "r003",
   "task": "grhsim-am-coremark",
-  "status": "active",
+  "status": "completed",
   "created_at": "2026-08-22T00:44:47+08:00",
   "config": {
     "search": {
@@ -190,7 +190,7 @@
     7
   ],
   "counters": {
-    "actions": 24,
+    "actions": 25,
     "evals": 34
   },
   "best_overall": {
@@ -372,6 +372,13 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0082_step_t1s08_mask缓存与direct写回_20260823.md",
       "ts": "2026-08-23T08:08:13+08:00"
+    },
+    {
+      "n": 25,
+      "type": "run-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0083_run-summary_r003收口与停止restart_20260823.md",
+      "ts": "2026-08-23T08:14:29+08:00"
     }
-  ]
+  ],
+  "closed_at": "2026-08-23T08:14:29+08:00"
 }

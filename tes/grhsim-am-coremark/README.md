@@ -6,6 +6,14 @@
 
 ## 当前状态速览
 
+- **r003 已收口，当前不建议 restart**（2026-08-23，[A0083](actions/A0083_run-summary_r003收口与停止restart_20260823.md)，
+  详见 [runs/r003/summary.md](runs/r003/summary.md)）：C=2/L=8/K=2，16/16 步、候选
+  32/32 走满（29 ok、3 ctest_fail；另 4 个 ok 经勘误为表型无效）。best_overall =
+  t0/e00057 **229.429s**（commit `1563c3d`），较 AM y0 363.995s 名义 -36.97%，
+  但仍为 gsim 45.864s 的 **5.002x**，目标未达成；t1 best e00056 = 241.956s。
+  两个 best 都在前两轮产生，后六轮没有刷新。`restart.max=2` 已耗尽，且进程快慢态
+  尚未解决；若用户另行扩预算并先修测量协议，预备 y0=r003/e00057，建议 C/L/K=2/4/2。
+
 - **r003/t1/s08 已完成，mask 缓存无正向证据，direct 写回机械胜出**
   （2026-08-23，[A0082](actions/A0082_step_t1s08_mask缓存与direct写回_20260823.md)）：
   e00083 紧凑缓存 active-tile mask/value = **419.534s**（CV 0，compile_s 2063.6s，

@@ -1761,3 +1761,23 @@
 - wide-mux 微结构已收敛：栈缓存、target 幂等比较、静态 selector 共享度和 base lane
   比例都不足以预测收益；再开前必须有 helper 动态 Host 权重或 target 实际变化率证据。
   t0/t1 均完成 8/8，历史 best 仍为 e00057 229.429s，下一 action 为 run-summary。
+
+## r003 run-summary（2026-08-23，action A0083）
+
+- r003 以 C=2/L=8/K=2 走满 16/16 步、32 个候选 eval（总 34，含双基线）。29 个
+  候选 ok、3 个 ctest_fail；全部 ok 过 17/17 ctest、3 rep difftest 与编译门，
+  e00063/e00066 noisy。e00073-e00076 中 4 个 ok 结果因候选开关/硬依赖漏传，按
+  append-only correction 仅作无效机制测量。
+- best_overall = t0/e00057 **229.429s**（commit `1563c3d837fc`），相对 AM y0
+  363.995s 名义 -36.97%，但仍为 gsim 45.864s 的 **5.002x**；t1 best e00056
+  241.956s。目标未达成，且两个 best 都在前两轮产生，后六轮无新增 best。
+- restart 可继承材料只保留 t0 的 task-body outline + scan hints 与 t1 的
+  wide-mux-chain-fuse；active-tile + nonzero-level 只记方向性正证据。scanner 派发、
+  task 冷体精修、wide-mux cache/summary/store 微结构在没有动态 Host 权重、非零层
+  分布或 target 变化率前不再重开。
+- 进程快慢态约 1.3-1.4x、跨批 loadavg 差异与 noisy 样本继续证明 CV=0 不足以支持
+  跨窗因果比较。229.429s/5.002x 是 ledger/看板口径，不宣称纯机制累计收益。
+- **裁决：当前不建议 restart。** `restart.max=2` 已耗尽且 `auto=false`，搜索收益明显
+  衰减；收口后停止。若用户另行扩预算并先修复 rep 级分簇/同窗锚定，预备 y0 为
+  r003/e00057 `1563c3d...`，建议 C/L/K=2/4/2（N=16），候选须由非计时动态 profiling
+  驱动。
