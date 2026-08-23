@@ -2,24 +2,24 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-24T05:02:29+08:00
+> 生成于 2026-08-24T05:54:00+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 16/48 · actions 15 · 下一步 `step`：推进轨迹 t1 到第 2 步（round-robin 最少步数优先）
+run **r004**（active）· C=6 L=4 K=2 · evals 18/48 · actions 16 · 下一步 `step`：推进轨迹 t2 到第 2 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
 | gsim（target） | e00086 | 22.7s | 1.00x |
 | am（y0 基线） | e00085 | 193.4s | 8.51x |
-| **当前 best** | e00093 | **172.5s** | **7.59x** |
+| **当前 best** | e00102 | **171.2s** | **7.54x** |
 
-基线→target 进度：`██░░░░░░░░░░░░░░░░░░` 12.2%（193.4s → 目标 22.7s，当前差距 7.59x）
+基线→target 进度：`███░░░░░░░░░░░░░░░░░` 13.0%（193.4s → 目标 22.7s，当前差距 7.54x）
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
 | t0 | `tes/r004/t0/main` | 2/4 | e00100 | 172.8s |
-| t1 | `tes/r004/t1/main` | 1/4 | e00089 | 190.8s |
+| t1 | `tes/r004/t1/main` | 2/4 | e00102 | 171.2s |
 | t2 | `tes/r004/t2/main` | 1/4 | e00092 | 188.7s |
 | t3 | `tes/r004/t3/main` | 1/4 | e00093 | 172.5s |
 | t4 | `tes/r004/t4/main` | 1/4 | - | - |
@@ -170,6 +170,8 @@ run **r004**（active）· C=6 L=4 K=2 · evals 16/48 · actions 15 · 下一步
 | e00098 | candidate | t5/s01c2 | - | - | - | difftest_fail | e00085 recon 中 b83835/b93085 合计占 2.325% 块周期且生成代码含密… |
 | e00099 | candidate | t0/s02c1 | 194.2s | 8.55x | unimodal | ok | The e00088 division specialization plus event-firs… |
 | e00100 | candidate | t0/s02c2 | 172.8s | 7.61x | unimodal | ok | Migrating confirmed e00093 power-of-two memory-rea… |
+| e00101 | candidate | t1/s02c1 | 189.6s | 8.35x | unimodal | ok | Starting from e00089, whose adjacent host-call gua… |
+| e00102 | candidate | t1/s02c2 | 171.2s | 7.54x | unimodal | ok | Migrating confirmed e00093 power-of-two memory-rea… |
 
-最近 actions：A0011 step；A0012 recon；A0013 step；A0014 round-summary；A0015 step
+最近 actions：A0012 recon；A0013 step；A0014 round-summary；A0015 step；A0016 step
 

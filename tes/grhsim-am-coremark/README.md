@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r004/t1/s02 已完成，幂次索引迁移刷新全局 best**
+  （2026-08-24，[A0100](actions/A0100_step_r004t1s02_guard跨gap与幂次索引迁移_20260824.md)）：
+  e00101 将 host-call guard cache 扩到跨不写 guard/event 的安全 gap，Host
+  **189.609s**（较 e00089 改善 0.64%，CV 1.04%），未达 0.75% 预期；e00102 迁移
+  e00093 的 `--memory-read-pow2-index` = **171.233s**（较 e00089 改善 **10.27%**，
+  CV 0.69%），两项均通过 17/17 ctest 与三次 `73580/49996` difftest，单簇且非 noisy。
+  e00102 以 `migration_source=e00093`、outcome=`win` 入 t1/main 并刷新全局 best；较
+  e00093 的 0.75% 增量仍低于 3% 分辨带。预算 **18/48**，冻结 AM/gsim 口径
+  **7.537x**；下一 action = `r004/t2/s02 step`（K=2），本 action 未启动它。
+
 - **r004/t0/s02 已完成，e00093 幂次索引机制成功迁移到 t0**
   （2026-08-24，[A0099](actions/A0099_step_r004t0s02_event组合与幂次索引迁移_20260824.md)）：
   e00099 在 unsigned-64 Div tip 上叠加 event-first = **194.205s**（较 e00088
