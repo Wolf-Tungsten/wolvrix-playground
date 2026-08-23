@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active**（C=6 L=4 K=2，evals 2/48） | y0=r003/e00057 `1563c3d` 已合入 wolvrix `grh/tes-grhsim-am`；AM e00085 **348.716s**、gsim e00086 **50.275s**，均单簇且全门通过，起跑差距 **6.936x**。下一 action：t0/e00085 recon，详见 [A0084](grhsim-am-coremark/actions/A0084_run-init_r004起点与聚簇基线_20260823.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r003 已收口，当前不建议 restart**（C=2 L=8 K=2，N=32 走满） | best = t0/e00057 **229.429s**（较 AM y0 名义 -36.97%），仍为 gsim 的 **5.002x**；t1 best 241.956s。best 均出现在前两轮，后六轮无刷新；`restart.max=2` 已耗尽且快慢态未解决。若另行扩预算，预备 y0=e00057、建议 C/L/K=2/4/2，详见 [r003 summary](grhsim-am-coremark/runs/r003/summary.md) |
 
 ## 共享件
 

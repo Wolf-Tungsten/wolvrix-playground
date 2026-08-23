@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "run_id": "r004",
+  "run_id": "r003",
   "task": "grhsim-am-coremark",
-  "status": "active",
-  "created_at": "2026-08-23T10:51:30+08:00",
+  "status": "completed",
+  "created_at": "2026-08-22T00:44:47+08:00",
   "config": {
     "search": {
-      "C": 6,
-      "L": 4,
+      "C": 2,
+      "L": 8,
       "K": 2
     },
     "phi": {
@@ -21,9 +21,6 @@
     },
     "eval": {
       "reps": 3,
-      "reps_max": 9,
-      "cluster_ratio": 1.15,
-      "adjudicate_noise": 0.03,
       "cv_max": 0.05,
       "core": 12,
       "rep_cores": [
@@ -50,13 +47,11 @@
         "--concat-insert-inline",
         "--inline-scalar-helpers",
         "--concat-insert-unroll",
-        "--wide-detect-fast-path",
-        "--sys-task-body-outline",
-        "--scan-branch-hints"
+        "--wide-detect-fast-path"
       ],
       "vm_build_jobs": 128,
       "compile_budget_sec": 2400,
-      "note": "计时协议 r004 起为簇结构自适应：先 3 rep（批内并行绑 rep_cores），检出双峰（相邻倍率 > cluster_ratio）自动加跑至 ≤ reps_max；score/median = 快簇中位，弃用跨簇 median；degraded（全 singleton）或 CV>cv_max 标 noisy；每 rep 1Hz 只读采样 smaps_rollup/numa_maps 协变量。整批慢态嫌疑用 evaluator.py retime --eval-id 只补计时（不占预算）。finish-step 按 adjudicate_noise 噪声带分类 outcome=win/neutral/loss，best 只在真实进步时更新。difftest 逐位一致是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。",
+      "note": "计时与计数分离：正式计时固定 3 rep，不因 CV 扩增；rep_cores 12/13/14 为同 socket、非 SMT 兄弟的独立物理核，单批并行。emit_args 是 r002 台账最低点 e00007 的完整 10 开关表型。difftest 逐位一致是所有分数的前置门。compile_budget_sec=从 cmake 到 emu 二进制就绪的累计墙钟预算（40min），超预算判 compile_timeout；run-init 的 AM 基线因冷 ccache 可用 --compile-budget-sec 放宽一次。",
       "golden_tol": {
         "instrCnt": 16,
         "cycleCnt": 8,
@@ -64,12 +59,12 @@
       }
     },
     "restart": {
-      "max": 3,
+      "max": 2,
       "auto": false,
       "prepared_solution": {
-        "source_run": "r003",
-        "source_eval": "e00057",
-        "commit": "1563c3d837fcfe9db28fc36901531a70b59fd790",
+        "source_run": "r002",
+        "source_eval": "e00007",
+        "commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
         "emit_args": [
           "--branchy-mux",
           "--resize-elision",
@@ -80,20 +75,18 @@
           "--concat-insert-inline",
           "--inline-scalar-helpers",
           "--concat-insert-unroll",
-          "--wide-detect-fast-path",
-          "--sys-task-body-outline",
-          "--scan-branch-hints"
+          "--wide-detect-fast-path"
         ],
-        "note": "r004 y0 = r003/e00057（t0 best 229.429s，用户已批准 restart.max 放宽至 3）；emit_args 与 e00057 result.json 实测一致（resolve_base_eval 有一致性断言）"
+        "note": "用户指定 r002/e00007（261.543s）为 r003 y0；代码已 fast-forward 合入 grh/tes-grhsim-am。"
       }
     }
   },
   "pins": {
     "target_repo": "wolvrix",
-    "target_base_commit": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-    "target_base_branch": "tes/r004/base",
+    "target_base_commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
+    "target_base_branch": "tes/r003/base",
     "target_base_solution": {
-      "commit": "1563c3d837fcfe9db28fc36901531a70b59fd790",
+      "commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
       "emit_args": [
         "--branchy-mux",
         "--resize-elision",
@@ -104,14 +97,12 @@
         "--concat-insert-inline",
         "--inline-scalar-helpers",
         "--concat-insert-unroll",
-        "--wide-detect-fast-path",
-        "--sys-task-body-outline",
-        "--scan-branch-hints"
+        "--wide-detect-fast-path"
       ],
       "source_eval": {
-        "run": "r003",
-        "eval_id": "e00057",
-        "commit": "1563c3d837fcfe9db28fc36901531a70b59fd790",
+        "run": "r002",
+        "eval_id": "e00007",
+        "commit": "ecb4c3f3c6b26cd0aed3491a1a9444959a4a73fb",
         "emit_args": [
           "--branchy-mux",
           "--resize-elision",
@@ -122,11 +113,9 @@
           "--concat-insert-inline",
           "--inline-scalar-helpers",
           "--concat-insert-unroll",
-          "--wide-detect-fast-path",
-          "--sys-task-body-outline",
-          "--scan-branch-hints"
+          "--wide-detect-fast-path"
         ],
-        "result_json": "build/tes/grhsim-am-coremark/evals/e00057/result.json"
+        "result_json": "build/tes/grhsim-am-coremark/evals/e00007/result.json"
       }
     },
     "repos": {
@@ -137,8 +126,8 @@
       {
         "name": "post_stats_json",
         "path": "build/xs/grhsim-am/wolvrix_xs_post_stats.json",
-        "sha256": "cbd78c0b127dfb3bbbb005d06594242846a9d1cf35944de0720d7cf3031b3246",
-        "note": "wolvrix 自解析 XiangShan SV 的归一化 GRH（post-stats JSON，全部候选共享的固定输入图；r002 起取代 gsim 导出的 exec-GRH）；run-init 时 sha256 写入 manifest；重新生成走 make xs_wolf_grhsim_am_emit"
+        "note": "wolvrix 自解析 XiangShan SV 的归一化 GRH（post-stats JSON，全部候选共享的固定输入图；r002 起取代 gsim 导出的 exec-GRH）；run-init 时 sha256 写入 manifest；重新生成走 make xs_wolf_grhsim_am_emit",
+        "sha256": "cbd78c0b127dfb3bbbb005d06594242846a9d1cf35944de0720d7cf3031b3246"
       }
     ]
   },
@@ -147,92 +136,66 @@
     "gsim"
   ],
   "baseline_eval_ids": {
-    "am": "e00085",
-    "gsim": "e00086"
+    "am": "e00051",
+    "gsim": "e00052"
   },
   "eval_sequence": {
-    "start": 85,
-    "next": 87
+    "start": 51,
+    "next": 85
   },
   "baselines": {
     "am": {
-      "eval_id": "e00085",
+      "eval_id": "e00051",
       "status": "ok",
-      "host_ms_median": 348716,
-      "score": -348716
+      "host_ms_median": 363995,
+      "score": -363995
     },
     "gsim": {
-      "eval_id": "e00086",
+      "eval_id": "e00052",
       "status": "ok",
-      "host_ms_median": 50275,
-      "score": -50275
+      "host_ms_median": 45864,
+      "score": -45864
     }
   },
   "trajectories": [
     {
       "id": "t0",
-      "branch": "tes/r004/t0/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
-      "last_recon_step": null,
-      "tip_eval_id": null
+      "branch": "tes/r003/t0/main",
+      "tip": "2b6356c8a3bb578ff4f997b62b11d5e5c74e7cfb",
+      "steps_completed": 8,
+      "best": {
+        "eval_id": "e00057",
+        "score": -229429
+      }
     },
     {
       "id": "t1",
-      "branch": "tes/r004/t1/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
-      "last_recon_step": null,
-      "tip_eval_id": null
-    },
-    {
-      "id": "t2",
-      "branch": "tes/r004/t2/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
-      "last_recon_step": null,
-      "tip_eval_id": null
-    },
-    {
-      "id": "t3",
-      "branch": "tes/r004/t3/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
-      "last_recon_step": null,
-      "tip_eval_id": null
-    },
-    {
-      "id": "t4",
-      "branch": "tes/r004/t4/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
-      "last_recon_step": null,
-      "tip_eval_id": null
-    },
-    {
-      "id": "t5",
-      "branch": "tes/r004/t5/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
-      "last_recon_step": null,
-      "tip_eval_id": null
+      "branch": "tes/r003/t1/main",
+      "tip": "64b2b930e0af64bd5a937bc5c5c871b350753fbc",
+      "steps_completed": 8,
+      "best": {
+        "eval_id": "e00056",
+        "score": -241956
+      }
     }
   ],
   "current_step": null,
-  "round_summaries_done": [],
+  "round_summaries_done": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
   "counters": {
-    "actions": 1,
-    "evals": 2
+    "actions": 25,
+    "evals": 34
   },
   "best_overall": {
-    "eval_id": "e00085",
-    "score": -348716,
+    "eval_id": "e00057",
+    "score": -229429,
     "commit": "1563c3d837fcfe9db28fc36901531a70b59fd790",
     "emit_args": [
       "--branchy-mux",
@@ -249,13 +212,173 @@
       "--scan-branch-hints"
     ]
   },
-  "phi_selection_counts": {},
+  "phi_selection_counts": {
+    "e00051": 8,
+    "e00054": 3,
+    "e00056": 5,
+    "e00057": 4,
+    "e00059": 3,
+    "e00061": 3,
+    "e00064": 1,
+    "e00065": 2,
+    "e00067": 2,
+    "e00071": 2,
+    "e00074": 1,
+    "e00076": 1,
+    "e00078": 1,
+    "e00080": 1
+  },
   "history": [
     {
       "n": 1,
       "type": "run-init",
-      "note": "tes/grhsim-am-coremark/actions/A0084_run-init_r004起点与聚簇基线_20260823.md",
-      "ts": "2026-08-23T11:28:08+08:00"
+      "note": "tes/grhsim-am-coremark/actions/A0059_run-init_r003_e00007精确解与双基线_20260822.md",
+      "ts": "2026-08-22T01:35:05+08:00"
+    },
+    {
+      "n": 2,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0060_step_t0s01_scan提示与冷体outline_20260822.md",
+      "ts": "2026-08-22T08:18:59+08:00"
+    },
+    {
+      "n": 3,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0061_step_t1s01_活动摘要与宽mux链融合_20260822.md",
+      "ts": "2026-08-22T10:03:18+08:00"
+    },
+    {
+      "n": 4,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0062_round-summary_第1轮跨轨迹小结_20260822.md",
+      "ts": "2026-08-22T10:15:41+08:00"
+    },
+    {
+      "n": 5,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0063_step_t0s02_扫描提示与task体压缩_20260822.md",
+      "ts": "2026-08-22T11:38:30+08:00"
+    },
+    {
+      "n": 6,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0064_step_t1s02_宽mux链优先解析与单层tile快路_20260822.md",
+      "ts": "2026-08-22T13:24:06+08:00"
+    },
+    {
+      "n": 7,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0065_round-summary_第2轮跨轨迹小结_20260822.md",
+      "ts": "2026-08-22T13:34:14+08:00"
+    },
+    {
+      "n": 8,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0066_step_t0s03_ctz稀疏派发与task冷段布局_20260822.md",
+      "ts": "2026-08-22T14:51:03+08:00"
+    },
+    {
+      "n": 9,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0067_step_t1s03_mux稀疏覆盖与零tile旁路_20260822.md",
+      "ts": "2026-08-22T16:57:19+08:00"
+    },
+    {
+      "n": 10,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0068_round-summary_第3轮跨轨迹小结_20260822.md",
+      "ts": "2026-08-22T17:06:01+08:00"
+    },
+    {
+      "n": 11,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0069_step_t0s04_ctz直接树与nibble分层守卫_20260822.md",
+      "ts": "2026-08-22T18:52:29+08:00"
+    },
+    {
+      "n": 12,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0070_step_t1s04_活跃tile稀疏与固定层专化_20260822.md",
+      "ts": "2026-08-22T20:56:43+08:00"
+    },
+    {
+      "n": 13,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0071_round-summary_第4轮跨轨迹小结_20260822.md",
+      "ts": "2026-08-22T21:10:15+08:00"
+    },
+    {
+      "n": 14,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0072_step_t0s05_前缀跳过与task触发提示回归门失败_20260822.md",
+      "ts": "2026-08-22T22:33:37+08:00"
+    },
+    {
+      "n": 15,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0073_step_t1s05_非零level压缩与优先级去重_20260822.md",
+      "ts": "2026-08-22T23:58:14+08:00"
+    },
+    {
+      "n": 16,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0074_round-summary_第5轮跨轨迹小结_20260823.md",
+      "ts": "2026-08-23T00:04:04+08:00"
+    },
+    {
+      "n": 17,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0075_step_t0s06_候选表型漏传与无效测量_20260823.md",
+      "ts": "2026-08-23T01:37:27+08:00"
+    },
+    {
+      "n": 18,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0076_step_t1s06_mask缓存与单级direct_20260823.md",
+      "ts": "2026-08-23T03:07:57+08:00"
+    },
+    {
+      "n": 19,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0077_round-summary_第6轮跨轨迹小结_20260823.md",
+      "ts": "2026-08-23T03:13:02+08:00"
+    },
+    {
+      "n": 20,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0078_step_t0s07_前缀跳过与task触发提示实测_20260823.md",
+      "ts": "2026-08-23T04:09:18+08:00"
+    },
+    {
+      "n": 21,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0079_step_t1s07_selector摘要复用与幂等写抑制_20260823.md",
+      "ts": "2026-08-23T05:42:25+08:00"
+    },
+    {
+      "n": 22,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0080_round-summary_第7轮跨轨迹小结_20260823.md",
+      "ts": "2026-08-23T05:46:44+08:00"
+    },
+    {
+      "n": 23,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0081_step_t0s08_task延迟取参与byte中性提示_20260823.md",
+      "ts": "2026-08-23T06:33:07+08:00"
+    },
+    {
+      "n": 24,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0082_step_t1s08_mask缓存与direct写回_20260823.md",
+      "ts": "2026-08-23T08:08:13+08:00"
+    },
+    {
+      "n": 25,
+      "type": "run-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0083_run-summary_r003收口与停止restart_20260823.md",
+      "ts": "2026-08-23T08:14:29+08:00"
     }
-  ]
+  ],
+  "closed_at": "2026-08-23T08:14:29+08:00"
 }
