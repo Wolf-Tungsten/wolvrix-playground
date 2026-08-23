@@ -187,7 +187,7 @@
       "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
       "steps_completed": 0,
       "best": null,
-      "last_recon_step": null,
+      "last_recon_step": 0,
       "tip_eval_id": null
     },
     {
@@ -230,7 +230,7 @@
   "current_step": null,
   "round_summaries_done": [],
   "counters": {
-    "actions": 3,
+    "actions": 4,
     "evals": 4
   },
   "best_overall": {
@@ -274,6 +274,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0087_step_r004t0s01_event优先与unsigned_div64_20260823.md",
       "ts": "2026-08-23T18:20:36+08:00"
+    },
+    {
+      "n": 4,
+      "type": "recon",
+      "note": "tes/grhsim-am-coremark/actions/A0088_recon_r004t1s00_e00085动态热点画像_20260823.md",
+      "ts": "2026-08-23T18:45:59+08:00"
     }
   ]
 }

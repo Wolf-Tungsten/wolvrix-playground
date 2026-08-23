@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0 s01 完成** | e00087 event-first = **191.726s**，e00088 native unsigned-div64 = **189.829s**；两项全门通过但相对 e00085 仅名义 -0.87%/-1.85%，均未越 3% 门。e00088 以 outcome=`initial` 入 t0/main，当前 4/48、AM/gsim **8.355x**；下一 action 为 t1/e00085 recon，见 [A0087](grhsim-am-coremark/actions/A0087_step_r004t0s01_event优先与unsigned_div64_20260823.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0 s01、t1 recon 完成** | t1/e00085 非计时画像通过 `73580/49996` difftest：compute/commit = **73.1976%/26.7794%**，top-50 = **39.714%**，commit/task 双峰 = **8.495%/4.629%**；预算仍为 4/48，下一 action 为 t1/s01 step（K=2），见 [A0088](grhsim-am-coremark/actions/A0088_recon_r004t1s00_e00085动态热点画像_20260823.md) |
 
 ## 共享件
 
