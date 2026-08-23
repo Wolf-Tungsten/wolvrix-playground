@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0/t1/t2 s01，t3 recon 完成** | t3/e00085 非计时画像通过 `73580/49996` 金标；compute/commit = **72.9089%/27.0666%**，六个 512 路幂次深度索引块合计 **3.140%**，22,528-bit mux 流扫族合计 **1.567%**。预算仍为 8/48，下一 action 为 t3/s01 step，见 [A0092](grhsim-am-coremark/actions/A0092_recon_r004t3s00_e00085动态热点画像_20260823.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0/t1/t2/t3 s01 完成** | t3/e00093 幂次深度 memory-read 索引专化以 **172.530s** 刷新全局 best（较 e00085 -10.79%）；e00094 宽 mux 链融合为 187.491s。两项全门通过，预算 10/48，AM/gsim **7.594x**；下一 action 为 t4/e00085 recon，见 [A0093](grhsim-am-coremark/actions/A0093_step_r004t3s01_幂次索引与宽mux链融合_20260824.md) |
 
 ## 共享件
 

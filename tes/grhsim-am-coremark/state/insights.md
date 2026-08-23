@@ -1886,3 +1886,21 @@
   best_overall=e00092 **188.662s**，AM/gsim **8.304x**，预算 8/48。t2 再到期时先
   recon b90656/b90657 是否降权；在动态降幅确认前，不把 e00092 当 migration source。
 - 下一 action 为 `t3/e00085 recon`；本 action 只预告，不启动。
+
+## r004/t3/s01 幂次索引与宽 mux 链融合（2026-08-24，action A0093）
+
+- e00093 将索引位宽精确覆盖 2 的幂深度的 memory read 专化为窄标量提取和掩码，
+  生产六个 512-depth 热块的 3,072 个站点全部命中且无残留 `index_words`；Host
+  **172.530s**，较 e00085 名义 -10.79%，17/17 ctest 与三次 `73580/49996`
+  difftest 全过，单簇 CV 0.97%、非 noisy。它显著越过预注册 0.75% Host 门和 3%
+  确认带，以 outcome=`initial` 入 t3/main 并刷新全局 best。
+- e00094 精确融合相邻、sole-use、同块且至少 16 级的 64-bit lane
+  `ArrayBroadcast -> ArrayMux` 链，生产命中 b69157/b69158/b69159 的 4 链/92 steps；
+  Host **187.491s**，较 e00085 名义 -3.06%，同样全门通过、单簇 CV 0.97%。该机制
+  有正向 Host 证据，但较 e00093 慢 8.67%，本 step 不合入主线。
+- 两项的预注册池级降幅（memory-read -25%、宽链 -70%）都尚未由 post-change recon
+  验证。尤其 e00093 的 10.79% Host 改善超过旧画像中 3.140% 的池权重，表明插桩
+  cycles 占比是病灶定位信号而非严格收益上界；下次 t3 recon 应量化池权重变化与替代
+  热点，再决定推广幂次深度或组合宽链，不能只按静态命中数外推。
+- 当前 best_overall=e00093 **172.530s**，AM/gsim **7.594x**，预算 10/48；下一
+  action 为 `t4/e00085 recon`，本 action 未启动。

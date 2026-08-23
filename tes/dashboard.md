@@ -2,26 +2,26 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-23T23:27:12+08:00
+> 生成于 2026-08-24T01:25:05+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 8/48 · actions 8 · 下一步 `step`：推进轨迹 t3 到第 1 步（round-robin 最少步数优先）
+run **r004**（active）· C=6 L=4 K=2 · evals 10/48 · actions 9 · 下一步 `recon`：轨迹 t4 recon 证据到期（staleness≥2），先对 tip（eval e00085）做非计时 profiling 再出 step
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
 | gsim（target） | e00086 | 22.7s | 1.00x |
 | am（y0 基线） | e00085 | 193.4s | 8.51x |
-| **当前 best** | e00092 | **188.7s** | **8.30x** |
+| **当前 best** | e00093 | **172.5s** | **7.59x** |
 
-基线→target 进度：`█░░░░░░░░░░░░░░░░░░░` 2.8%（193.4s → 目标 22.7s，当前差距 8.30x）
+基线→target 进度：`██░░░░░░░░░░░░░░░░░░` 12.2%（193.4s → 目标 22.7s，当前差距 7.59x）
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
 | t0 | `tes/r004/t0/main` | 1/4 | e00088 | 189.8s |
 | t1 | `tes/r004/t1/main` | 1/4 | e00089 | 190.8s |
 | t2 | `tes/r004/t2/main` | 1/4 | e00092 | 188.7s |
-| t3 | `tes/r004/t3/main` | 0/4 | - | - |
+| t3 | `tes/r004/t3/main` | 1/4 | e00093 | 172.5s |
 | t4 | `tes/r004/t4/main` | 0/4 | - | - |
 | t5 | `tes/r004/t5/main` | 0/4 | - | - |
 
@@ -160,6 +160,8 @@ run **r004**（active）· C=6 L=4 K=2 · evals 8/48 · actions 8 · 下一步 `
 | e00091 | candidate | t2/s01c1 | 189.0s | 8.32x | unimodal | ok | e00085 recon shows commit blocks 93159/93141 consu… |
 | e00092 | candidate | t2/s01c2 | 188.7s | 8.30x | unimodal | ok | e00085 recon shows b90656/b90657 account for 4.574… |
 | e00085 | recon | - | - | - | - | - |  |
+| e00093 | candidate | t3/s01c1 | 172.5s | 7.59x | unimodal | ok | e00085 recon 的六个 512-depth memory-read 块占总块 cycles… |
+| e00094 | candidate | t3/s01c2 | 187.5s | 8.25x | unimodal | ok | e00085 recon shows b69157/b69158/b69159 execute 14… |
 
-最近 actions：A0004 recon；A0005 step；A0006 recon；A0007 step；A0008 recon
+最近 actions：A0005 step；A0006 recon；A0007 step；A0008 recon；A0009 step
 

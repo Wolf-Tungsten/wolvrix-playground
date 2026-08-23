@@ -6,6 +6,17 @@
 
 ## 当前状态速览
 
+- **r004/t3/s01 已完成，幂次深度 memory-read 索引专化刷新全局 best**
+  （2026-08-24，[A0093](actions/A0093_step_r004t3s01_幂次索引与宽mux链融合_20260824.md)）：
+  e00093 `--memory-read-pow2-index` = **172.530s**（较 e00085 名义 -10.79%），
+  e00094 `--array-broadcast-mux-chain-fuse` = **187.491s**（名义 -3.06%，较 c1
+  慢 8.67%）。两项均以完整 13 开关表型通过 17/17 ctest、3 rep
+  `73580/49996` difftest，单簇且非 noisy；生产分别专化六块的 3,072 个
+  `index_words` 站点，以及融合 b69157/b69158/b69159 的 4 链/92 steps。两个 Host
+  门均通过，但 25%/70% 热点池降幅仍待 post-change recon。e00093 以
+  outcome=`initial` 入 t3/main 并成为 best_overall；预算 10/48，AM/gsim
+  **7.594x**。下一 action = `t4/e00085 recon`，本 action 未启动它。
+
 - **r004/t3/s00 recon 已完成，幂次深度索引与宽 mux 流扫成为可证伪池**
   （2026-08-23，[A0092](actions/A0092_recon_r004t3s00_e00085动态热点画像_20260823.md)）：
   非计时 runtime-profile 以 e00085 的生产 12 开关表型重 emit，`73580/49996`
