@@ -941,8 +941,8 @@ def _render_task_section(name: str) -> list[str]:
 
     entries = [e for e in iter_ledger() if e.get("kind") != "commit-marker"]
     if entries:
-        lines.append("| eval | 类别 | 位置 | Host 中位 | vs target | 状态 | 假设 |")
-        lines.append("|---|---|---|---|---|---|---|")
+        lines.append("| eval | 类别 | 位置 | Host 中位 | vs target | 簇 | 状态 | 假设 |")
+        lines.append("|---|---|---|---|---|---|---|---|")
         for e in entries:
             ms = (e.get("host_ms") or {}).get("median")
             pos = "-" if e.get("trajectory") is None else (
@@ -950,8 +950,9 @@ def _render_task_section(name: str) -> list[str]:
             hyp = (e.get("hypothesis") or "").replace("|", "\\|")
             if len(hyp) > 50:
                 hyp = hyp[:50] + "…"
+            cluster_state = (e.get("host_ms") or {}).get("state") or "-"
             lines.append(f"| {e['eval_id']} | {e.get('kind', '-')} | {pos} | {_fmt_s(ms)} | "
-                         f"{_fmt_ratio(ms, target_ms)} | {e.get('status', '-')} | {hyp} |")
+                         f"{_fmt_ratio(ms, target_ms)} | {cluster_state} | {e.get('status', '-')} | {hyp} |")
         lines.append("")
 
     hist = run.get("history", [])[-5:]
