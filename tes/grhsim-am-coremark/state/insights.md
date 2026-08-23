@@ -1800,3 +1800,22 @@
   聚簇裁决（快簇中位）只能挡批内分裂，跨窗口径一律靠同窗比较 + retime + 重锚。
 - 流程含义：r004 run-init 双基线重锚是硬前置；任何跨窗百分比在 action 笔记里
   不得直接相减（维持 r002/r003 纪律）。
+
+## r004 协议升级落地清单（2026-08-23，r004-overhaul）
+
+设计 `tes/DESIGN-r004-overhaul.md`，计划 `tes/PLAN-r004-overhaul.md`。
+
+- **测量**：evaluator 聚簇裁决（快簇中位取代跨簇 median，落地 A0056 提请）+
+  簇结构自适应 rep（双峰检出才加跑至 ≤9）+ 每 rep 1Hz 只读协变量采样 +
+  `retime` 只补计时子命令。**r002 悬置的 rep 级簇分组裁决与基线重锚至此关闭**
+  （重锚由 r004 run-init 执行 + round 2 round-summary retime 中段复核）。
+- **调度**：recon 成为正式 action（staleness≥2 门，不占预算）；winner 按
+  adjudicate_noise=3% 噪声带分类 outcome=win/neutral/loss/initial（best 只在真实
+  进步更新，取代手记"机械 winner †"）；迁移席位合法化（step≥2、每 step 1 席、
+  --migration-source 登记，RULES §4 修订）；候选表型审计门（tes-candidate.json
+  硬前置，record-eval 不符拒登记）。
+- **Φ**：neutral 节点以前驱分数参与归一化（防 artifact 峰值）；proposal 新增
+  recon 证据段与动态权重硬要求。
+- **结构**：r004 = C=6/L=4/K=2（N=48），y0=r003/e00057；restart.max 放宽至 3
+  （用户批准 2026-08-23）。安慰剂席位退役，测量校准走协议动作。
+- **停止规则**：r004 前 2 轮（24 候选）零确认收益（同窗/同簇口径）即停止搜索。

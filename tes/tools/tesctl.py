@@ -945,7 +945,7 @@ def _render_task_section(name: str) -> list[str]:
         lines.append("|---|---|---|---|---|---|---|---|")
         for e in entries:
             ms = (e.get("host_ms") or {}).get("median")
-            pos = "-" if e.get("trajectory") is None else (
+            pos = "-" if e.get("trajectory") is None or e.get("candidate") is None else (
                 f"{e['trajectory']}/s{e['step']:02d}c{e['candidate']}")
             hyp = (e.get("hypothesis") or "").replace("|", "\\|")
             if len(hyp) > 50:

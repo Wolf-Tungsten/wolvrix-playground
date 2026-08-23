@@ -78,9 +78,11 @@
 对应 `next` = `recon`（轨迹 recon 证据到期时先于 step 出）。不占评估预算。
 
 1. `python3 tes/<task>/recon.py --eval-id <action 给出的 eval> --out build/tes/<task>/recon/<run>-<t>-sNN`
-   ——对 tip winner（或 AM 基线）的既有 emu_build 做非计时 profiling
-   （`EMU_RUNTIME_PROFILE=1` 阶段分解 + `EMU_AM_BLOCK_EXECS` 全量块计数）；
-   可选 `--perf` 追加 perf record 采样。
+   ——默认做块级 profiling：生产 emu 编译期关闭了 runtimeProfile（emit 旋钮
+   `--runtime-profile` default off），故用该 eval 的 wbuild 里同 commit 的
+   lower-json 以「生产 emit_args + --runtime-profile」重 emit 并构建 recon emu，
+   再跑 `EMU_RUNTIME_PROFILE=1` + `EMU_AM_BLOCK_EXECS`（difftest 金标照旧校验）；
+   可选 `--perf` 改为不重构建、直接对生产 emu 做 perf record 采样（宿主热点视角）。
 2. 读 report.md 提炼动态热点（top 块 cycles 分布、compute/commit 分解），写 action 笔记。
 3. `python3 tes/tools/tesctl.py record-recon --trajectory <t> --eval-id <eval> --report <report.md 路径>`，
    按 goal.md 收口。

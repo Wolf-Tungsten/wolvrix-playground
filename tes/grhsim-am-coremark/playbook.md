@@ -103,6 +103,9 @@ python3 tes/grhsim-am-coremark/evaluator.py run --worktree <worktree> --eval-id 
   retime --eval-id <eNNNNN>` 只补计时（不重建、不占预算），旧裁决保留在
   `retimes`/`host_ms_superseded`。
 - recon（非计时 profiling，不占预算）：`python3 tes/grhsim-am-coremark/recon.py
-  --eval-id <eNNNNN> --out build/tes/grhsim-am-coremark/recon/<run>-<t>-sNN [--perf]`，
-  产出 report.md（阶段分解 + top-50 块 cycles 表）/ block_execs.txt / profile.log。
+  --eval-id <eNNNNN> --out build/tes/grhsim-am-coremark/recon/<run>-<t>-sNN [--perf]`。
+  默认以「生产 emit_args + --runtime-profile」重 emit 并构建 recon emu（块级
+  execs/cycles + [am-profile] 阶段分解，difftest 金标照旧）；`--perf` 不重构建、
+  直接对生产 emu 做 perf record（宿主热点）。产出 report.md / block_execs.txt /
+  profile.log（--perf 为 perf.txt）。
 - 逐阶段日志与 rep 日志都在 `build/tes/grhsim-am-coremark/evals/<eval_id>/`。
