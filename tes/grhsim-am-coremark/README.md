@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r004/t2/s02 已完成，幂次索引迁移再次刷新全局 best**
+  （2026-08-24，[A0101](actions/A0101_step_r004t2s02_scratch组合与幂次索引迁移_20260824.md)）：
+  e00103 在 predicate-run tip 上叠加 commit scratch 后延 = **188.847s**（较 e00092
+  回退 0.10%，CV 1.15%），两个弱正机制组合持平；e00104 迁移 e00093 的
+  `--memory-read-pow2-index` = **169.577s**（较 e00092 改善 **10.11%**，CV 0.51%）。
+  两项均以完整 14 开关表型通过 17/17 ctest 与三次 `73580/49996` difftest，单簇且
+  非 noisy；e00104 以 `migration_source=e00093`、outcome=`win` 入 t2/main 并刷新
+  全局 best。其较 e00093 的 1.71% 增量仍低于 3% 分辨带。预算 **20/48**，冻结
+  AM/gsim 口径 **7.464x**；下一 action = `r004/t3/s02 step`（K=2），本 action 未启动它。
+
 - **r004/t1/s02 已完成，幂次索引迁移刷新全局 best**
   （2026-08-24，[A0100](actions/A0100_step_r004t1s02_guard跨gap与幂次索引迁移_20260824.md)）：
   e00101 将 host-call guard cache 扩到跨不写 guard/event 的安全 gap，Host
