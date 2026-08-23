@@ -54,6 +54,12 @@ SimpleTES 把「评估驱动的发现循环」组织为设计元组 **(C, L, K, 
 串行反而带来两个实务收益：任何时刻只有一个构建/测量负载（可复现）；goal 粒度天然
 对齐 action 粒度（无状态工作流）。
 
+**修订（r004 起）**：轨迹独立限于 round 1 与 Φ 的 proposal 构造。round ≥ 2 开放
+显式迁移席位（每 step 至多 1 席引用他轨迹已确认机制，ledger 记 `migration_source`）——
+r002 的「跨轨迹迁移三连中」证明这是最高产的收益通道之一，原 §4 的全隔离文本与执行
+已脱节；显式化使之可审计，同时保留 round 1 的纯独立探索（论文 C 对抗早期方向锁定的
+本义）。迁移材料由 goal 会话从 insights.md 引用，不经 Φ。
+
 ## 4. 无状态工作流与 action 模型
 
 系统本身不持有内存：全部状态在任务目录下——`tes/<task>/state/run.json` +
@@ -110,10 +116,14 @@ playground 仓库：不开分支，tes/ 的每次状态推进在当期分支（`
 - S = 本轨迹的 root（am 基线）+ 各 step 的 winner（ledger 里 commit-marker 标记）。
 - 分数先做 min-max 归一化再算 U 传播（论文公式里 U 与探索项量纲需一致；归一化是
   本系统的落地选择）。ρ = 分数名次分位；n_i = 被选中次数（run.json 持久化）。
+- **neutral 降权（r004 起）**：finish-step 按 `eval.adjudicate_noise` 噪声带把 winner
+  分类为 win/neutral/loss/initial 记入 commit-marker；Φ 归一化时 neutral 节点以其前驱
+  已提交节点的分数参与（历史地位=父），防止 artifact 分数制造人工峰值污染 U 传播。
 - 贪心选 max_nodes=4 个节点并排除一跳邻居；**轨迹主线 tip 强制纳入**（工程精修
   连续性要求，是对论文 Φ 的唯一增补）。
 - proposal 另含：已否决变体清单（本轨迹评估成功但未中选者，避免原样重试）、失败模式
-  摘要（build/emit/difftest/timeout 各自的假设与日志指针）、评估协议与 emit 旋钮基线。
+  摘要（build/emit/difftest/timeout 各自的假设与日志指针）、本轨迹最新 recon 报告路径
+  与动态证据硬要求、评估协议与 emit 旋钮基线。
 - rejected / failed 集合只由本 TES 台账中的实际评估构成。TES 外文档中的旧实验可以作为
   先验与实现线索，但不自动获得负节点、关闭方向或禁止重试的地位；新实现、新输入或更完整
   的机制假设均可在 TES 内重新检验。
@@ -122,11 +132,13 @@ playground 仓库：不开分支，tes/ 的每次状态推进在当期分支（`
 
 ## 7. 默认参数与预算
 
-C=3, L=8, K=2 → N=48 次评估，串行约 32 机时。理由：本问题为增量工程精修主导
-（论文建议 L 重），单次评估 ~35-50min 决定了 K 必须小；C=3 提供方向多样性下限。
-K 个席位全部用于可竞争的局部候选，原样重测或安慰剂不属于候选采样。
+C=6, L=4, K=2 → N=48 次评估（r004 起）。理由的修订：r001-r003 三个 run 的台账证据
+显示 L 方向收益集中于每 run 前 2 步（SimpleTES 论文 Fig.2 的 L 饱和在本问题复现），
+库存收割完后继续加深不产生新 best；按论文对 L 饱和的标准解法把预算从 L 挪到 C
+（加宽对抗盆地锁定）。单次评估 ~35-50min 决定 K 必须小；K=2 两席全为机制候选
+（安慰剂席位退役，测量校准走协议动作）。recon action 不占 N。
 参数在 `tes/<task>/config.json` 改，run-init 冻结进 manifest，run 期间不可变（改动即新 run）。
-（预算口径：N 只计搜索评估；run-init 的基线测量额外计入 evals 计数。）
+（预算口径：N 只计搜索评估；run-init 的基线测量与中段重锚 retime 额外计入 evals 计数。）
 
 ## 8. 与既有纪律的关系
 

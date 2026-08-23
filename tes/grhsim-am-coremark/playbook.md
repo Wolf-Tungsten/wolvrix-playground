@@ -59,6 +59,23 @@ python3 tes/grhsim-am-coremark/evaluator.py gsim \
 显式 grhsim AM pass；emit 规则变更须随候选同步文档。proposal 与 action 笔记中
 应说明候选落在哪个面（pass / 旋钮 / emit 规则），便于归因。
 
+**表型声明（硬前置，r004 起）**：每个候选 commit 必须随附 worktree 根
+`tes-candidate.json`：
+
+```json
+{
+  "hypothesis": "一句话假设",
+  "emit_args_add": ["--my-new-knob"],
+  "emit_args_remove": []
+}
+```
+
+- `emit_args_add`/`emit_args_remove` 相对 run 冻结表型（config `eval.emit_args` 经
+  init-run 冻结）求差集；无表型变更的纯代码候选提交 `{}` 或只含 hypothesis。
+- 代码内新增 default-off 开关的候选：开关必须列入 `emit_args_add`，否则该机制不在
+  生产表型中激活（r003 corr-e00073/74/75/76 的漏传即此场景，四个候选被判无效测量）。
+- `record-eval` 断言「声明推导的 emit_args == 评估实际 emit_args」，不符拒绝登记。
+
 ## 候选评估命令（step action 用）
 
 ```bash
@@ -77,7 +94,15 @@ python3 tes/grhsim-am-coremark/evaluator.py run --worktree <worktree> --eval-id 
 
 - `result.json.status`: ok / build_fail / ctest_fail / emit_fail / difftest_fail /
   timeout / compile_timeout / parse_fail / interference（外部干扰，排除后重跑）；
-  `noisy=true` 表示固定 3 rep 的 CV 超标。
-- `compile_s`：编译流程累计墙钟（预算 2400s）；`host_ms.median`：固定 3 rep 中位
-  （`score = -median`）。
+  `noisy=true` 表示固定批的 CV 超标或簇裁决 degraded。
+- `compile_s`：编译流程累计墙钟（预算 2400s）；`host_ms.median`：**快簇中位**
+  （`score = -median`）；`host_ms.median_all`：全 rep 跨簇中位（旧口径，仅对照）；
+  `host_ms.state`：unimodal / bimodal / degraded；`host_ms.clusters`/`fast_cluster`：
+  rep 下标的簇归属。每 rep 附 `proc_state`（AnonHugePages/NUMA 页分布采样）。
+- 整批慢态嫌疑（state=degraded 或水位与历史快带不符）：`python3 tes/grhsim-am-coremark/evaluator.py
+  retime --eval-id <eNNNNN>` 只补计时（不重建、不占预算），旧裁决保留在
+  `retimes`/`host_ms_superseded`。
+- recon（非计时 profiling，不占预算）：`python3 tes/grhsim-am-coremark/recon.py
+  --eval-id <eNNNNN> --out build/tes/grhsim-am-coremark/recon/<run>-<t>-sNN [--perf]`，
+  产出 report.md（阶段分解 + top-50 块 cycles 表）/ block_execs.txt / profile.log。
 - 逐阶段日志与 rep 日志都在 `build/tes/grhsim-am-coremark/evals/<eval_id>/`。
