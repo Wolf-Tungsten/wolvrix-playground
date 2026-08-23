@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 89
+    "next": 91
   },
   "baselines": {
     "am": {
@@ -184,11 +184,14 @@
     {
       "id": "t1",
       "branch": "tes/r004/t1/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
+      "tip": "784a466adeec65698cdaeab5f3d32f50b38d6781",
+      "steps_completed": 1,
+      "best": {
+        "eval_id": "e00089",
+        "score": -190827
+      },
       "last_recon_step": 0,
-      "tip_eval_id": null
+      "tip_eval_id": "e00089"
     },
     {
       "id": "t2",
@@ -230,8 +233,8 @@
   "current_step": null,
   "round_summaries_done": [],
   "counters": {
-    "actions": 4,
-    "evals": 4
+    "actions": 5,
+    "evals": 6
   },
   "best_overall": {
     "eval_id": "e00088",
@@ -254,7 +257,7 @@
     ]
   },
   "phi_selection_counts": {
-    "e00085": 1
+    "e00085": 2
   },
   "history": [
     {
@@ -280,6 +283,12 @@
       "type": "recon",
       "note": "tes/grhsim-am-coremark/actions/A0088_recon_r004t1s00_e00085动态热点画像_20260823.md",
       "ts": "2026-08-23T18:45:59+08:00"
+    },
+    {
+      "n": 5,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0089_step_r004t1s01_guard缓存与concat位置装配_20260823.md",
+      "ts": "2026-08-23T20:15:38+08:00"
     }
   ]
 }

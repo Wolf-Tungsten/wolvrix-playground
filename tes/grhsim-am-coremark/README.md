@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r004/t1/s01 已完成，host-call guard 缓存按 raw score 成为 t1 initial 节点**
+  （2026-08-23，[A0089](actions/A0089_step_r004t1s01_guard缓存与concat位置装配_20260823.md)）：
+  e00089 guard cache = **190.827s**（较 e00085 名义 -1.33%），e00090 scalar Concat
+  position pack = **191.508s**（名义 -0.98%，同窗较 c1 慢 0.36%）。两项均以完整
+  13 开关表型通过 17/17 ctest、3 rep `73580/49996` difftest，单簇且非 noisy；生产
+  分别命中 6,314 个共享 guard 组和 213,894 个 scalar Concat（699,997 operand
+  terms）。两者都未越 3% 确认门，e00089 仅按 raw score 以 outcome=`initial` 入
+  t1/main；当前 6/48，t1 AM/gsim **8.399x**，全局 best 仍为 t0/e00088 **8.355x**。
+  下一 action 预计为 `t2/e00085 recon`，本 action 未启动它。
+
 - **r004/t1/s00 recon 已完成，e00085 的第二条初始轨迹动态证据已刷新**（2026-08-23，
   [A0088](actions/A0088_recon_r004t1s00_e00085动态热点画像_20260823.md)）：非计时
   runtime-profile 以生产 12 开关表型重 emit，`73580/49996` 金标精确通过；阶段分解为
