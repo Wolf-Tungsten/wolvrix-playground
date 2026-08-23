@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：第 1 轮 round-summary 已完成** | 六轨迹 s01 中只有 t3/e00093 **172.530s**（较冻结 AM -10.79%）明确越过 3% 确认带；中段重锚 AM/e00085 **194.922s**（+0.79%）、gsim/e00086 **23.780s**（+4.67%），冻结/重锚 target 口径分别为 **7.594x/7.255x**。预算 14/48；下一 action 为 `t0/s02 step`，见 [A0098](grhsim-am-coremark/actions/A0098_round-summary_r004第1轮跨轨迹与基线重锚_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0 完成 s02** | e00100 将 e00093 幂次 memory-read 索引专化迁移到 e00088 tip，Host **172.832s**（较父 -8.95%），以 outcome=`win` 入 t0/main；event-first + division 组合 e00099 **194.205s**（较父 +2.30%）否决。全局 best 仍为 e00093 **172.530s**，预算 16/48；下一 action 为 `t1/s02 step`，见 [A0099](grhsim-am-coremark/actions/A0099_step_r004t0s02_event组合与幂次索引迁移_20260824.md) |
 
 ## 共享件
 

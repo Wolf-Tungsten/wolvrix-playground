@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 99
+    "next": 101
   },
   "baselines": {
     "am": {
@@ -172,14 +172,14 @@
     {
       "id": "t0",
       "branch": "tes/r004/t0/main",
-      "tip": "7083852385c374c56aa53842c976f2f48571e0f7",
-      "steps_completed": 1,
+      "tip": "8cb0b6ee1bfeab1f86ce69a4e870d9f0214a883a",
+      "steps_completed": 2,
       "best": {
-        "eval_id": "e00088",
-        "score": -189829
+        "eval_id": "e00100",
+        "score": -172832
       },
       "last_recon_step": 0,
-      "tip_eval_id": "e00088"
+      "tip_eval_id": "e00100"
     },
     {
       "id": "t1",
@@ -244,8 +244,8 @@
     1
   ],
   "counters": {
-    "actions": 14,
-    "evals": 14
+    "actions": 15,
+    "evals": 16
   },
   "best_overall": {
     "eval_id": "e00093",
@@ -268,7 +268,8 @@
     ]
   },
   "phi_selection_counts": {
-    "e00085": 6
+    "e00085": 6,
+    "e00088": 1
   },
   "history": [
     {
@@ -354,6 +355,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0098_round-summary_r004第1轮跨轨迹与基线重锚_20260824.md",
       "ts": "2026-08-24T04:07:45+08:00"
+    },
+    {
+      "n": 15,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0099_step_r004t0s02_event组合与幂次索引迁移_20260824.md",
+      "ts": "2026-08-24T05:02:29+08:00"
     }
   ]
 }
