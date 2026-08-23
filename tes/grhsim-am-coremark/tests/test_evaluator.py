@@ -86,7 +86,7 @@ class RetimeTest(unittest.TestCase):
         import json
         import tempfile
         with tempfile.TemporaryDirectory() as td:
-            evdir = Path(td) / "e99999"
+            evdir = Path(td) / "evals" / "e99999"  # retime_eval 定位 BUILD_TASK/evals/<id>
             (evdir / "emu_build" / "grhsim-compile").mkdir(parents=True)
             (evdir / "emu_build" / "grhsim-compile" / "emu").write_text("#!/bin/sh\n")
             (evdir / "result.json").write_text(json.dumps({
