@@ -459,6 +459,45 @@ def evaluate_gsim(eval_id: str) -> dict:
     return result
 
 
+def retime_eval(eval_id: str) -> int:
+    """复用既有 emu 只补计时（不重建、不占预算）：result.json 追加 retimes 段并刷新顶层裁决。
+
+    整批慢态嫌疑（spec §1.3）或中段基线重锚（round-summary 协议动作）时使用；
+    旧裁决保留在 host_ms_superseded / retimes 历史中，rep 日志 append 式叠加。
+    """
+    evdir = BUILD_TASK / "evals" / eval_id
+    rj = evdir / "result.json"
+    if not rj.exists():
+        print(f"[FAIL] {rj} 不存在", file=sys.stderr)
+        return 1
+    result = json.loads(rj.read_text(encoding="utf-8"))
+    emu_build = evdir / "emu_build"
+    if result.get("mode") == "gsim-baseline":
+        emu = (REPO / result["emu"]).resolve()
+        reps = run_reps(emu, evdir / "run", run_cwd=emu.parent)
+    elif (emu_build / "emu").exists():
+        reps = run_reps(Path("emu"), evdir / "run", run_cwd=emu_build)
+    elif (emu_build / "grhsim-compile" / "emu").exists():
+        reps = run_reps(emu_build / "grhsim-compile" / "emu", evdir / "run")
+    else:
+        print(f"[FAIL] {eval_id} 无可复用 emu（未构建或已清理）", file=sys.stderr)
+        return 1
+    if reps.get("status") != "ok" or "host_ms" not in reps:
+        print(f"[FAIL] retime 未得到有效计时: {reps.get('status')}", file=sys.stderr)
+        return 1
+    result.setdefault("retimes", []).append({"started_at": now_iso(),
+                                             "host_ms": reps["host_ms"],
+                                             "score": reps.get("score")})
+    if "host_ms" in result:
+        result["host_ms_superseded"] = result["host_ms"]
+    result["host_ms"] = reps["host_ms"]
+    result["score"] = reps.get("score")
+    rj.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"[OK] {eval_id} retime: median {reps['host_ms']['median']} ms"
+          f"（state={reps['host_ms']['state']}）")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -471,6 +510,8 @@ def main() -> int:
                    help="覆盖 config 的编译流程总预算（秒）；超预算判 compile_timeout")
     p = sub.add_parser("gsim")
     p.add_argument("--eval-id", required=True)
+    p = sub.add_parser("retime", help="复用既有 emu 重跑计时协议（不重建、不占预算）")
+    p.add_argument("--eval-id", required=True)
     args = ap.parse_args()
 
     lock = BUILD_ROOT / "LOCK"  # 全局锁：测量干扰是机器级的，跨任务也只允许一个评估
@@ -481,6 +522,9 @@ def main() -> int:
         except BlockingIOError:
             print("[FAIL] 另一个 TES 评估正在运行（LOCK 持有中）。串行纪律：稍后再试。", file=sys.stderr)
             return 2
+
+        if args.cmd == "retime":
+            return retime_eval(args.eval_id)  # 自写 result.json，不走下方公共写盘路径
 
         if args.cmd == "run":
             wt = Path(args.worktree)

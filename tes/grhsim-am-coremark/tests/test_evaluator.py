@@ -81,5 +81,31 @@ class AdaptiveRepProtocolTest(unittest.TestCase):
         self.assertEqual(295000, result["host_ms"]["median"])
 
 
+class RetimeTest(unittest.TestCase):
+    def test_retime_appends_and_supersedes(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            evdir = Path(td) / "e99999"
+            (evdir / "emu_build" / "grhsim-compile").mkdir(parents=True)
+            (evdir / "emu_build" / "grhsim-compile" / "emu").write_text("#!/bin/sh\n")
+            (evdir / "result.json").write_text(json.dumps({
+                "eval_id": "e99999", "status": "ok",
+                "host_ms": {"median": 389000}, "score": -389000}))
+            fake = {"status": "ok", "reps": [],
+                    "host_ms": {"median": 295000, "median_all": 295000,
+                                "clusters": [[0]], "fast_cluster": [0],
+                                "state": "unimodal", "reps": [295000], "cv": 0.0},
+                    "score": -295000}
+            with mock.patch.object(evaluator, "run_reps", return_value=fake), \
+                 mock.patch.object(evaluator, "BUILD_TASK", Path(td)):
+                rc = evaluator.retime_eval("e99999")
+            self.assertEqual(0, rc)
+            saved = json.loads((evdir / "result.json").read_text())
+            self.assertEqual(-295000, saved["score"])
+            self.assertEqual({"median": 389000}, saved["host_ms_superseded"])
+            self.assertEqual(1, len(saved["retimes"]))
+
+
 if __name__ == "__main__":
     unittest.main()
