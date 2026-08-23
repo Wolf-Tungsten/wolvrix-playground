@@ -6,6 +6,18 @@
 
 ## 当前状态速览
 
+- **r004 第 1 轮 round-summary 已完成，e00093 是唯一确认的一阶 winner**
+  （2026-08-24，[A0098](actions/A0098_round-summary_r004第1轮跨轨迹与基线重锚_20260824.md)）：
+  六轨迹 s01 winner 为 t0/e00088 **189.829s**、t1/e00089 **190.827s**、
+  t2/e00092 **188.662s**、t3/e00093 **172.530s**、t4 无 winner、t5/e00097
+  **191.116s**。只有 e00093 幂次 memory-read 索引专化较冻结 AM 基线改善
+  **10.79%**、明确越过 3% 确认带；host-call 谓词共享与 commit scratch 后延仅为
+  1.18%-2.45% 弱正信号，先等各 tip 的 post-change recon。中段 retime 得
+  AM/e00085 **194.922s**（+0.79%）、gsim/e00086 **23.780s**（+4.67%）；gsim
+  漂移超过 3%，冻结裁决口径 e00093/gsim 仍为 **7.594x**，重锚诊断口径为
+  **7.255x**。预算 **14/48**，下一 action = `r004/t0/s02 step`（K=2），本 action
+  未启动它。
+
 - **r004/t5/s01 已完成，commit scratch 清零后延成为 t5 initial 节点**
   （2026-08-24，[A0097](actions/A0097_step_r004t5s01_commit清零后延与concat语义失败_20260824.md)）：
   e00097 `--commit-scratch-after-gate` = **191.116s**（较 e00085 改善 1.18%，CV

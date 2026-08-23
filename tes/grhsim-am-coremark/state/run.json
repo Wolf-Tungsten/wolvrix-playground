@@ -240,9 +240,11 @@
     }
   ],
   "current_step": null,
-  "round_summaries_done": [],
+  "round_summaries_done": [
+    1
+  ],
   "counters": {
-    "actions": 13,
+    "actions": 14,
     "evals": 14
   },
   "best_overall": {
@@ -346,6 +348,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0097_step_r004t5s01_commit清零后延与concat语义失败_20260824.md",
       "ts": "2026-08-24T03:51:32+08:00"
+    },
+    {
+      "n": 14,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0098_round-summary_r004第1轮跨轨迹与基线重锚_20260824.md",
+      "ts": "2026-08-24T04:07:45+08:00"
     }
   ]
 }
