@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t3/s00 recon 已完成，幂次深度索引与宽 mux 流扫成为可证伪池**
+  （2026-08-23，[A0092](actions/A0092_recon_r004t3s00_e00085动态热点画像_20260823.md)）：
+  非计时 runtime-profile 以 e00085 的生产 12 开关表型重 emit，`73580/49996`
+  金标精确通过；compute/commit = **72.9089%/27.0666%**，top-50 = **40.155%**。
+  b93159/b93141 commit 主峰合计 **8.517%**；六个 512 路、9-bit `index_words`
+  compute 块合计 **3.140%**，b69157/b69158/b69159 的 22,528-bit broadcast-to-mux
+  流扫合计 **1.567%**。画像不占评估预算，当前仍为 8/48；下一 action =
+  `r004/t3/s01 step`（K=2），本 action 未启动它。
+
 - **r004/t2/s01 已完成，host 谓词 run 按 raw score 成为 t2 initial 节点**
   （2026-08-23，[A0091](actions/A0091_step_r004t2s01_scratch后延与host谓词run_20260823.md)）：
   e00091 commit scratch 后延 = **189.045s**（较 e00085 名义 -2.25%），e00092

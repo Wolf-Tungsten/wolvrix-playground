@@ -211,7 +211,7 @@
       "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
       "steps_completed": 0,
       "best": null,
-      "last_recon_step": null,
+      "last_recon_step": 0,
       "tip_eval_id": null
     },
     {
@@ -236,7 +236,7 @@
   "current_step": null,
   "round_summaries_done": [],
   "counters": {
-    "actions": 7,
+    "actions": 8,
     "evals": 8
   },
   "best_overall": {
@@ -304,6 +304,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0091_step_r004t2s01_scratch后延与host谓词run_20260823.md",
       "ts": "2026-08-23T22:59:16+08:00"
+    },
+    {
+      "n": 8,
+      "type": "recon",
+      "note": "tes/grhsim-am-coremark/actions/A0092_recon_r004t3s00_e00085动态热点画像_20260823.md",
+      "ts": "2026-08-23T23:27:12+08:00"
     }
   ]
 }
