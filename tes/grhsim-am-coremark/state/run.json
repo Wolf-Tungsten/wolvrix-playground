@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 87
+    "next": 89
   },
   "baselines": {
     "am": {
@@ -172,11 +172,14 @@
     {
       "id": "t0",
       "branch": "tes/r004/t0/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
+      "tip": "7083852385c374c56aa53842c976f2f48571e0f7",
+      "steps_completed": 1,
+      "best": {
+        "eval_id": "e00088",
+        "score": -189829
+      },
       "last_recon_step": 0,
-      "tip_eval_id": null
+      "tip_eval_id": "e00088"
     },
     {
       "id": "t1",
@@ -227,13 +230,13 @@
   "current_step": null,
   "round_summaries_done": [],
   "counters": {
-    "actions": 2,
-    "evals": 2
+    "actions": 3,
+    "evals": 4
   },
   "best_overall": {
-    "eval_id": "e00085",
-    "score": -193403,
-    "commit": "1563c3d837fcfe9db28fc36901531a70b59fd790",
+    "eval_id": "e00088",
+    "score": -189829,
+    "commit": "7083852385c374c56aa53842c976f2f48571e0f7",
     "emit_args": [
       "--branchy-mux",
       "--resize-elision",
@@ -246,10 +249,13 @@
       "--concat-insert-unroll",
       "--wide-detect-fast-path",
       "--sys-task-body-outline",
-      "--scan-branch-hints"
+      "--scan-branch-hints",
+      "--inline-unsigned-div64"
     ]
   },
-  "phi_selection_counts": {},
+  "phi_selection_counts": {
+    "e00085": 1
+  },
   "history": [
     {
       "n": 1,
@@ -262,6 +268,12 @@
       "type": "recon",
       "note": "tes/grhsim-am-coremark/actions/A0086_recon_r004t0s00_e00085动态热点画像_20260823.md",
       "ts": "2026-08-23T16:42:43+08:00"
+    },
+    {
+      "n": 3,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0087_step_r004t0s01_event优先与unsigned_div64_20260823.md",
+      "ts": "2026-08-23T18:20:36+08:00"
     }
   ]
 }

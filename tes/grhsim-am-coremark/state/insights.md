@@ -1855,3 +1855,18 @@
   三次 difftest 全过（AM `73580/49996`，gsim `73584/49998`）。
 - 本机同协议 AM/gsim = **8.512x**。迁移前 r003 的 5.002x 只保留历史快照语义，
   不与本次跨机器/跨窗口重锚直接相减；后续候选以 e00085/e00086 为唯一 r004 基准。
+
+## r004/t0/s01 event 优先与 unsigned-div64（2026-08-23，A0087）
+
+- e00087 对 b90656/b90657（recon 合计 **4.683%** cycles）的非 final system-task
+  触发条件做 event/pending-first 短路，生产命中 7,236 个守卫；Host **191.726s**，
+  较 e00085 名义 -0.87%。全门通过、单簇且非 noisy，但未越 3% 门。单纯重排纯读取
+  谓词不是已确认收益；再开 task 守卫前先量化 event/fire 命中率或参数准备动态成本。
+- e00088 将 b93085 中全部 **1,252** 个 64-bit unsigned Div 改为单次 RHS 加载、零除
+  保护的原生 `/`，signed/窄宽度/Mod 保持 helper；Host **189.829s**，较 e00085
+  名义 -1.85%、同窗较 e00087 -0.99%。它是 raw winner 并以 outcome=`initial` 入
+  t0/main，但仍在 3% noise 带内，只记小幅正向信号，不宣称确认收益。
+- 两项均用完整 13 开关表型通过 17/17 ctest、3 rep `73580/49996` difftest 和 2400s
+  编译门（640.8/643.5s）。t0 后续应先 recon e00088，检查 b93085 cycles 是否随
+  helper 边界消除而下降；没有新的动态分解前不继续 task 条件顺序或 division helper
+  微结构精修。当前 best/gsim = **8.355x**，下一 action 为 t1/e00085 recon。

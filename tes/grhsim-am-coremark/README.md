@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t0/s01 已完成，unsigned-64 Div 原生化成为首个 initial 节点**（2026-08-23，
+  [A0087](actions/A0087_step_r004t0s01_event优先与unsigned_div64_20260823.md)）：
+  e00087 event/pending 优先短路 = **191.726s**（较 e00085 名义 -0.87%），e00088
+  guarded native unsigned-64 Div = **189.829s**（名义 -1.85%，同窗较 c1 -0.99%）。
+  两项均以完整 13 开关表型通过 17/17 ctest、3 rep `73580/49996` difftest，单簇且
+  非 noisy；生产分别命中 7,236 个 task event 守卫和 b93085 内 1,252 个 unsigned-64
+  Div。两者都未越 3% 确认门，e00088 仅按 raw score 以 outcome=`initial` 入 t0/main；
+  当前 4/48、AM/gsim **8.355x**。下一 action = `t1/e00085 recon`，本 action 未启动它。
+
 - **r004/t0/s00 recon 已完成，e00085 的动态热点权重已刷新**（2026-08-23，
   [A0086](actions/A0086_recon_r004t0s00_e00085动态热点画像_20260823.md)）：非计时
   runtime-profile 以生产 12 开关表型重 emit，`73580/49996` 金标精确通过；阶段分解为

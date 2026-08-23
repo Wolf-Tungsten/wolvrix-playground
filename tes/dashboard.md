@@ -2,23 +2,23 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-23T16:42:43+08:00
+> 生成于 2026-08-23T18:20:36+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 2/48 · actions 2 · 下一步 `step`：推进轨迹 t0 到第 1 步（round-robin 最少步数优先）
+run **r004**（active）· C=6 L=4 K=2 · evals 4/48 · actions 3 · 下一步 `recon`：轨迹 t1 recon 证据到期（staleness≥2），先对 tip（eval e00085）做非计时 profiling 再出 step
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
 | gsim（target） | e00086 | 22.7s | 1.00x |
 | am（y0 基线） | e00085 | 193.4s | 8.51x |
-| **当前 best** | e00085 | **193.4s** | **8.51x** |
+| **当前 best** | e00088 | **189.8s** | **8.36x** |
 
-基线→target 进度：`░░░░░░░░░░░░░░░░░░░░` 0.0%（193.4s → 目标 22.7s，当前差距 8.51x）
+基线→target 进度：`░░░░░░░░░░░░░░░░░░░░` 2.1%（193.4s → 目标 22.7s，当前差距 8.36x）
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
-| t0 | `tes/r004/t0/main` | 0/4 | - | - |
+| t0 | `tes/r004/t0/main` | 1/4 | e00088 | 189.8s |
 | t1 | `tes/r004/t1/main` | 0/4 | - | - |
 | t2 | `tes/r004/t2/main` | 0/4 | - | - |
 | t3 | `tes/r004/t3/main` | 0/4 | - | - |
@@ -151,6 +151,8 @@ run **r004**（active）· C=6 L=4 K=2 · evals 2/48 · actions 2 · 下一步 `
 | e00085 | baseline-am | - | 193.4s | 8.51x | unimodal | ok | am baseline |
 | e00086 | baseline-gsim | - | 22.7s | 1.00x | unimodal | ok | gsim baseline |
 | e00085 | recon | - | - | - | - | - |  |
+| e00087 | candidate | t0/s01c1 | 191.7s | 8.44x | unimodal | ok | Testing sparse system-task events before fire will… |
+| e00088 | candidate | t0/s01c2 | 189.8s | 8.36x | unimodal | ok | Inlining guarded unsigned 64-bit division will rem… |
 
-最近 actions：A0001 run-init；A0002 recon
+最近 actions：A0001 run-init；A0002 recon；A0003 step
 
