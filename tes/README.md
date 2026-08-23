@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 run-init 前置阻塞，尚未初始化** | 正式 target `build/xs/gsim/gsim-compile/emu` 在迁移后缺失；现存 `gsim-flat` 是 `--flatten-nodes` 实验版，不能替代。状态机保持 r003 已关闭，0 个新 eval；待 TES 外恢复正式 emu 后，以 r003/e00057、C=6/L=4/K=2 和新输入 SHA 重跑串行双基线，见 [A0084](grhsim-am-coremark/actions/A0084_run-init_r004正式gsim前置缺失_20260823.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：run-init 完成** | 正式未打平 gsim emu 已恢复；串行 3 rep 重锚为 AM e00085 **193.403s**、gsim e00086 **22.720s**，均过 difftest，当前差距 **8.512x**。r004=C6/L4/K2，下一 action 为 t0 recon，见 [A0085](grhsim-am-coremark/actions/A0085_run-init_r004正式gsim恢复与双基线_20260823.md) |
 
 ## 共享件
 

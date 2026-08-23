@@ -1,8 +1,6 @@
 {
-  "schema": 1,
   "run_id": "r004",
   "task": "grhsim-am-coremark",
-  "status": "active",
   "created_at": "2026-08-23T15:27:04+08:00",
   "config": {
     "search": {
@@ -88,6 +86,7 @@
       }
     }
   },
+  "budget_N": 48,
   "pins": {
     "target_repo": "wolvrix",
     "target_base_commit": "1563c3d837fcfe9db28fc36901531a70b59fd790",
@@ -142,120 +141,14 @@
       }
     ]
   },
-  "baseline_sides": [
-    "am",
-    "gsim"
-  ],
-  "baseline_eval_ids": {
-    "am": "e00085",
-    "gsim": "e00086"
-  },
   "eval_sequence": {
     "start": 85,
     "next": 87
   },
-  "baselines": {
-    "am": {
-      "eval_id": "e00085",
-      "status": "ok",
-      "host_ms_median": 193403,
-      "score": -193403
-    },
-    "gsim": {
-      "eval_id": "e00086",
-      "status": "ok",
-      "host_ms_median": 22720,
-      "score": -22720
-    }
+  "baseline_eval_ids": {
+    "am": "e00085",
+    "gsim": "e00086"
   },
-  "trajectories": [
-    {
-      "id": "t0",
-      "branch": "tes/r004/t0/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
-      "last_recon_step": null,
-      "tip_eval_id": null
-    },
-    {
-      "id": "t1",
-      "branch": "tes/r004/t1/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
-      "last_recon_step": null,
-      "tip_eval_id": null
-    },
-    {
-      "id": "t2",
-      "branch": "tes/r004/t2/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
-      "last_recon_step": null,
-      "tip_eval_id": null
-    },
-    {
-      "id": "t3",
-      "branch": "tes/r004/t3/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
-      "last_recon_step": null,
-      "tip_eval_id": null
-    },
-    {
-      "id": "t4",
-      "branch": "tes/r004/t4/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
-      "last_recon_step": null,
-      "tip_eval_id": null
-    },
-    {
-      "id": "t5",
-      "branch": "tes/r004/t5/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
-      "last_recon_step": null,
-      "tip_eval_id": null
-    }
-  ],
-  "current_step": null,
-  "round_summaries_done": [],
-  "counters": {
-    "actions": 1,
-    "evals": 2
-  },
-  "best_overall": {
-    "eval_id": "e00085",
-    "score": -193403,
-    "commit": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-    "emit_args": [
-      "--branchy-mux",
-      "--resize-elision",
-      "--init-zero-elision",
-      "--source-part-activity-guard",
-      "--source-word-activity-guard",
-      "--wide-storage-first-touch",
-      "--concat-insert-inline",
-      "--inline-scalar-helpers",
-      "--concat-insert-unroll",
-      "--wide-detect-fast-path",
-      "--sys-task-body-outline",
-      "--scan-branch-hints"
-    ]
-  },
-  "phi_selection_counts": {},
-  "history": [
-    {
-      "n": 1,
-      "type": "run-init",
-      "note": "tes/grhsim-am-coremark/actions/A0085_run-init_r004正式gsim恢复与双基线_20260823.md",
-      "ts": "2026-08-23T15:58:29+08:00"
-    }
-  ]
+  "baselines": {},
+  "notes": []
 }

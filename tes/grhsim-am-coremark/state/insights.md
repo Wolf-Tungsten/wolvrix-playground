@@ -1841,3 +1841,17 @@
 - 本次迁移后的 post-stats 输入 SHA-256 为
   `c82ed4542f58ba60b1d7b38c57a877ad7cc81898a5df019d72d7e885588b70c7`；
   正式 emu 恢复后，r004 run-init 应冻结这个新指纹并按串行 rep 协议重测双基线。
+
+## r004 正式 gsim 恢复与双基线（2026-08-23，A0085）
+
+- 标准生产 emu 已恢复到 `build/xs/gsim/gsim-compile/emu`：
+  `--supernode-max-size=15`、无 `--flatten-nodes`、84,643 supernodes / 645,854
+  DAG edges，SHA-256 `73e62bd16590a3dfb2a7d6dbe711be8843383f9fdfa28f8b20603996542a4418`。
+  迁移后的 `zstd.h` 搜索路径问题用仓库本地 dependency root 续编解决；A0084 阻塞关闭。
+- r004 以 r003/e00057（`1563c3d8`，完整 12 开关）为 y0，C=6/L=4/K=2；冻结新
+  post-stats SHA `c82ed4542...b70c7`。AM e00085 串行三次为
+  193.403/188.958/194.839s，中位 **193.403s**、CV 1.59%；gsim e00086 为
+  22.720/22.608/23.100s，中位 **22.720s**、CV 1.13%。两侧均单簇、非 noisy，
+  三次 difftest 全过（AM `73580/49996`，gsim `73584/49998`）。
+- 本机同协议 AM/gsim = **8.512x**。迁移前 r003 的 5.002x 只保留历史快照语义，
+  不与本次跨机器/跨窗口重锚直接相减；后续候选以 e00085/e00086 为唯一 r004 基准。
