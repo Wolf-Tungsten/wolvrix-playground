@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t2/s00 recon 已完成，事件前 scratch 清零成为新的可证伪病灶**
+  （2026-08-23，[A0090](actions/A0090_recon_r004t2s00_e00085动态热点画像_20260823.md)）：非计时
+  runtime-profile 以生产 12 开关表型重 emit，`73580/49996` 金标精确通过；
+  compute/commit = **72.8696%/27.1071%**，top-50 = **39.947%**。b93159/b93141
+  commit 主峰合计 **8.599%**，它们在事件前缀前无条件清零 2,742/4,227 个
+  watch/detector 槽；事件后延迟初始化与 chunk 参数活性裁剪成为下步首选。
+  画像不占评估预算，当前仍为 6/48；下一 action = `r004/t2/s01 step`（K=2），
+  本 action 未启动它。
+
 - **r004/t1/s01 已完成，host-call guard 缓存按 raw score 成为 t1 initial 节点**
   （2026-08-23，[A0089](actions/A0089_step_r004t1s01_guard缓存与concat位置装配_20260823.md)）：
   e00089 guard cache = **190.827s**（较 e00085 名义 -1.33%），e00090 scalar Concat

@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-23T20:15:38+08:00
+> 生成于 2026-08-23T20:46:42+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 6/48 · actions 5 · 下一步 `recon`：轨迹 t2 recon 证据到期（staleness≥2），先对 tip（eval e00085）做非计时 profiling 再出 step
+run **r004**（active）· C=6 L=4 K=2 · evals 6/48 · actions 6 · 下一步 `step`：推进轨迹 t2 到第 1 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -156,6 +156,7 @@ run **r004**（active）· C=6 L=4 K=2 · evals 6/48 · actions 5 · 下一步 `
 | e00085 | recon | - | - | - | - | - |  |
 | e00089 | candidate | t1/s01c1 | 190.8s | 8.40x | unimodal | ok | e00085 的 b90656/b90657 合计占动态块 cycles 4.629%，相邻 fwr… |
 | e00090 | candidate | t1/s01c2 | 191.5s | 8.43x | unimodal | ok | e00085 的 b83835/b93085 合计占动态块 cycles 2.354%，其中密集 s… |
+| e00085 | recon | - | - | - | - | - |  |
 
-最近 actions：A0001 run-init；A0002 recon；A0003 step；A0004 recon；A0005 step
+最近 actions：A0002 recon；A0003 step；A0004 recon；A0005 step；A0006 recon
 

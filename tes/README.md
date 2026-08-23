@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0/t1 s01 完成** | t1/e00089 guard cache = **190.827s**，e00090 scalar Concat position pack = **191.508s**；两项全门通过但均未越 3% 门，e00089 以 outcome=`initial` 入 t1/main。当前 6/48，t1 AM/gsim **8.399x**，全局 best 仍为 t0/e00088 **8.355x**；下一 action 预计为 t2/e00085 recon，见 [A0089](grhsim-am-coremark/actions/A0089_step_r004t1s01_guard缓存与concat位置装配_20260823.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0/t1 s01、t2 recon 完成** | t2/e00085 非计时画像通过 `73580/49996` difftest：compute/commit = **72.8696%/27.1071%**，top-50 = **39.947%**，commit/task 双峰 = **8.599%/4.574%**；事件前无条件 scratch 清零成为新病灶。预算仍为 6/48，下一 action 为 t2/s01 step（K=2），见 [A0090](grhsim-am-coremark/actions/A0090_recon_r004t2s00_e00085动态热点画像_20260823.md) |
 
 ## 共享件
 
