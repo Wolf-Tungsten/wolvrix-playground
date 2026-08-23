@@ -1914,3 +1914,14 @@
   错把 data 数写死为 9。
 - evaluator 的请求表型现于任何 build/ctest 早退前写入 `result.json`，使失败候选也能
   通过 `tes-candidate.json` 表型审计并登记；构建、功能门和计时协议未改变。
+
+## r004/t5/s00 动态热点画像（2026-08-24，action A0096）
+
+- e00085 的 t5 独立 runtime-profile 通过 `73580/49996` 金标；compute/commit 为
+  **73.1234%/26.8525%**，top-50 占总块 cycles **39.978%**。b93159/b93141 commit
+  双峰合计 **8.421%**，b90656/b90657 system-task compute 双峰合计 **4.693%**，
+  b83835/b93085 合计 **2.325%**。
+- commit block 仅占执行次数约 2.57%，阶段墙钟却占 26.85%，平均单次约为 compute
+  block 的 13.92x；scratch 生命周期后延与共享 fire 谓词 run 是下一步两个机制互异、
+  可按池级 cycles 降幅证伪的方向。top-50 外仍有 60.022% 长尾，静态命中数不得替代
+  动态 engagement。

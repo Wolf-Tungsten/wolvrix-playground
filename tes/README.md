@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0-t4 s01 完成，t5 待 recon** | t4/s01 的 e00095/e00096 均在 16/17 ctest 回归门失败，未进入生产 emit/计时；生成物表明是候选 fixture 期望错误，两个机制均判未测而非性能证伪。预算 12/48，全局 best 仍为 e00093 **172.530s**；下一 action 为 t5/e00085 recon，见 [A0095](grhsim-am-coremark/actions/A0095_step_r004t4s01_scratch后延与谓词run回归门失败_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0-t4 s01 完成，t5 recon 完成** | t5/e00085 非计时画像通过 `73580/49996` 金标；compute/commit = **73.1234%/26.8525%**，top-50 = **39.978%**，commit 双峰 b93159/b93141 合计 **8.421%**。预算仍为 12/48；下一 action 为 t5/s01 step，见 [A0096](grhsim-am-coremark/actions/A0096_recon_r004t5s00_e00085动态热点画像_20260824.md) |
 
 ## 共享件
 

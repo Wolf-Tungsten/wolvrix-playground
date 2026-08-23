@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-24T02:27:52+08:00
+> 生成于 2026-08-24T02:49:03+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 12/48 · actions 11 · 下一步 `recon`：轨迹 t5 recon 证据到期（staleness≥2），先对 tip（eval e00085）做非计时 profiling 再出 step
+run **r004**（active）· C=6 L=4 K=2 · evals 12/48 · actions 12 · 下一步 `step`：推进轨迹 t5 到第 1 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -165,6 +165,7 @@ run **r004**（active）· C=6 L=4 K=2 · evals 12/48 · actions 11 · 下一步
 | e00085 | recon | - | - | - | - | - |  |
 | e00095 | candidate | t4/s01c1 | - | - | - | ctest_fail | Defer chunked commit scratch clearing until the ev… |
 | e00096 | candidate | t4/s01c2 | - | - | - | ctest_fail | Merge adjacent outlined fwrite calls with identica… |
+| e00085 | recon | - | - | - | - | - |  |
 
-最近 actions：A0007 step；A0008 recon；A0009 step；A0010 recon；A0011 step
+最近 actions：A0008 recon；A0009 step；A0010 recon；A0011 step；A0012 recon
 
