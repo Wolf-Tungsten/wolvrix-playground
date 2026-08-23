@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t4/s00 recon 已完成，commit scratch 前置清零与 task 谓词 run 成为可证伪池**
+  （2026-08-24，[A0094](actions/A0094_recon_r004t4s00_e00085动态热点画像_20260824.md)）：
+  非计时 runtime-profile 以 e00085 的生产 12 开关表型重 emit，`73580/49996`
+  金标精确通过；compute/commit = **73.1236%/26.8536%**，top-50 =
+  **40.195%**。b93159/b93141 commit 主峰合计 **8.646%**，事件边沿求值前
+  每次清零 2,742/4,227 个 scratch flag；b90656/b90657 system-task compute
+  双峰合计 **4.923%**。画像不占评估预算，当前仍为 10/48；下一 action =
+  `r004/t4/s01 step`（K=2），本 action 未启动它。
+
 - **r004/t3/s01 已完成，幂次深度 memory-read 索引专化刷新全局 best**
   （2026-08-24，[A0093](actions/A0093_step_r004t3s01_幂次索引与宽mux链融合_20260824.md)）：
   e00093 `--memory-read-pow2-index` = **172.530s**（较 e00085 名义 -10.79%），

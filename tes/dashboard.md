@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-24T01:25:05+08:00
+> 生成于 2026-08-24T01:49:54+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 10/48 · actions 9 · 下一步 `recon`：轨迹 t4 recon 证据到期（staleness≥2），先对 tip（eval e00085）做非计时 profiling 再出 step
+run **r004**（active）· C=6 L=4 K=2 · evals 10/48 · actions 10 · 下一步 `step`：推进轨迹 t4 到第 1 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -162,6 +162,7 @@ run **r004**（active）· C=6 L=4 K=2 · evals 10/48 · actions 9 · 下一步 
 | e00085 | recon | - | - | - | - | - |  |
 | e00093 | candidate | t3/s01c1 | 172.5s | 7.59x | unimodal | ok | e00085 recon 的六个 512-depth memory-read 块占总块 cycles… |
 | e00094 | candidate | t3/s01c2 | 187.5s | 8.25x | unimodal | ok | e00085 recon shows b69157/b69158/b69159 execute 14… |
+| e00085 | recon | - | - | - | - | - |  |
 
-最近 actions：A0005 step；A0006 recon；A0007 step；A0008 recon；A0009 step
+最近 actions：A0006 recon；A0007 step；A0008 recon；A0009 step；A0010 recon
 
