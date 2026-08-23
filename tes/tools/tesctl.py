@@ -252,6 +252,14 @@ def resolve_base_eval(spec: str) -> dict:
 # next / status / tasks
 # ---------------------------------------------------------------------------
 
+RECON_STALENESS = 2  # spec §4：距上次 recon ≥2 步即到期
+
+
+def recon_due(t: dict) -> bool:
+    last = t.get("last_recon_step")
+    return last is None or t["steps_completed"] - last >= RECON_STALENESS
+
+
 def compute_next_action(run: dict | None) -> dict:
     """纯函数：由 run 状态确定下一个 action。调度 = 逐轮 round-robin。
 
@@ -292,6 +300,11 @@ def compute_next_action(run: dict | None) -> dict:
                 "reason": f"第 {m} 轮（全部 {C} 条轨迹各完成 1 步）已齐平，做跨轨迹小结"}
 
     t = min(trajs, key=lambda t: (t["steps_completed"], t["id"]))
+    if recon_due(t):
+        eval_id = t.get("tip_eval_id") or (run["baselines"].get("am") or {}).get("eval_id")
+        return {"type": "recon", "trajectory": t["id"], "eval_id": eval_id,
+                "reason": f"轨迹 {t['id']} recon 证据到期（staleness≥{RECON_STALENESS}），"
+                          f"先对 tip（eval {eval_id}）做非计时 profiling 再出 step"}
     return {"type": "step", "trajectory": t["id"], "step": t["steps_completed"] + 1,
             "K": K,
             "reason": f"推进轨迹 {t['id']} 到第 {t['steps_completed'] + 1} 步（round-robin 最少步数优先）"}
@@ -445,7 +458,8 @@ def cmd_init_run(args) -> int:
         if not git_target_ok("rev-parse", "--verify", br):
             git_target("branch", br, base_branch)
         trajectories.append({"id": tid, "branch": br, "tip": target_base,
-                             "steps_completed": 0, "best": None})
+                             "steps_completed": 0, "best": None,
+                             "last_recon_step": None, "tip_eval_id": None})
 
     baseline_sides = list(cfg.get("baseline_sides", ["base"]))
     eval_start = next_task_eval_number()
@@ -643,6 +657,27 @@ def audit_phenotype(declared: dict | None, frozen: list[str], actual: list[str] 
     return None
 
 
+def classify_outcome(winner_score: float, parent_score: float | None, noise: float) -> str:
+    """winner 相对父 tip 的裁决分类（score 越高越好；|Δ| 落入噪声带为 neutral）。"""
+    if parent_score is None:
+        return "initial"
+    delta = (winner_score - parent_score) / abs(parent_score)
+    if delta > noise:
+        return "win"
+    if delta < -noise:
+        return "loss"
+    return "neutral"
+
+
+def validate_migration(step: int, already_has_migration: bool) -> str | None:
+    """迁移席位：round 1 保持纯独立探索（spec §3）；每 step 至多 1 席。"""
+    if step < 2:
+        return "round 1 为纯独立探索，迁移候选从 step 2 起开放"
+    if already_has_migration:
+        return "本 step 已有 1 席迁移候选，其余席位须为本轨迹邻域机制"
+    return None
+
+
 def cmd_record_eval(args) -> int:
     run = load_run()
     if run is None or run.get("current_step") is None:
@@ -671,13 +706,23 @@ def cmd_record_eval(args) -> int:
     if err:
         print(f"[FAIL] 表型审计拒绝登记 {result['eval_id']}: {err}", file=sys.stderr)
         return 1
+    # 迁移席位校验（round 1 纯独立；每 step 至多 1 席）
+    if args.migration_source:
+        already = any(e.get("migration_source")
+                      for e in iter_ledger()
+                      if e.get("run") == run["run_id"] and e.get("trajectory") == cs["trajectory"]
+                      and e.get("step") == cs["step"] and e.get("kind") == "candidate")
+        err = validate_migration(cs["step"], already)
+        if err:
+            print(f"[FAIL] 迁移席位校验: {err}", file=sys.stderr)
+            return 1
     commit = git_target("rev-parse", cand["branch"]) if git_target_ok("rev-parse", "--verify", cand["branch"]) else None
     entry = {
         "eval_id": result["eval_id"], "run": run["run_id"], "trajectory": cs["trajectory"],
         "step": cs["step"], "candidate": cand["k"], "branch": cand["branch"], "commit": commit,
         "proposal_nodes": cs.get("proposal_nodes", []),
         "status": result["status"], "score": result.get("score"), "host_ms": result.get("host_ms"),
-        "emit_args": result.get("emit_args"),
+        "emit_args": result.get("emit_args"), "migration_source": args.migration_source,
         "hypothesis": args.hypothesis, "insight": args.insight or "",
         "committed": False, "ts": now_iso(), "kind": "candidate",
         "result_json": args.result,
@@ -695,6 +740,26 @@ def cmd_record_eval(args) -> int:
     print(f"[OK] 评估已登记: {result['eval_id']} status={result['status']} score={result.get('score')}")
     remaining = [c["k"] for c in cs["candidates"] if c["status"] != "done"]
     print(f"当前 step 剩余候选: {remaining if remaining else '无（可 finish-step）'}")
+    _refresh_dashboard()
+    return 0
+
+
+def cmd_record_recon(args) -> int:
+    """登记一次 recon（非计时 profiling，正式协议 action，不占 eval 预算）。"""
+    run = load_run()
+    if run is None or run["status"] != "active":
+        print("[FAIL] 无活跃 run", file=sys.stderr)
+        return 1
+    t = next((x for x in run["trajectories"] if x["id"] == args.trajectory), None)
+    if t is None:
+        print(f"[FAIL] 未知轨迹 {args.trajectory}", file=sys.stderr)
+        return 1
+    t["last_recon_step"] = t["steps_completed"]
+    append_ledger({"kind": "recon", "run": run["run_id"], "trajectory": args.trajectory,
+                   "step": t["steps_completed"], "eval_id": args.eval_id,
+                   "report": args.report, "ts": now_iso()})
+    save_run(run)
+    print(f"[OK] recon 已登记: {args.trajectory} @ step {t['steps_completed']}（不占 eval 预算）")
     _refresh_dashboard()
     return 0
 
@@ -721,13 +786,25 @@ def cmd_finish_step(args) -> int:
     winner = None
     if ok:
         winner = max(ok, key=lambda e: e["score"])
+        noise = float(run["config"]["eval"].get("adjudicate_noise", 0.03))
+        parent_eval = t.get("tip_eval_id")
+        parent = None
+        if parent_eval:
+            parent = next((e for e in iter_ledger()
+                           if e.get("run") == run["run_id"] and e.get("eval_id") == parent_eval
+                           and e.get("kind") != "commit-marker"), None)
+        outcome = classify_outcome(winner["score"], parent.get("score") if parent else None, noise)
         # winner 合入轨迹主线（移动分支指针 = fast-forward；主线分支从不被 checkout）
         git_target("branch", "-f", t["branch"], winner["branch"])
         t["tip"] = winner["commit"]
-        if t.get("best") is None or winner["score"] > t["best"]["score"]:
+        t["tip_eval_id"] = winner["eval_id"]
+        # best 只在真实进步时更新（initial=轨迹首个 winner）；neutral/loss 合入但不刷 best
+        if outcome in ("win", "initial") and (t.get("best") is None or winner["score"] > t["best"]["score"]):
             t["best"] = {"eval_id": winner["eval_id"], "score": winner["score"]}
-        # 标记 ledger 中 winner 为 committed
-        _mark_committed(run["run_id"], tid, cs["step"], winner["eval_id"])
+        # 标记 ledger 中 winner 为 committed（附 outcome 供 Φ 降权与分析）
+        _mark_committed(run["run_id"], tid, cs["step"], winner["eval_id"],
+                        outcome=outcome, parent_eval_id=parent_eval)
+        print(f"  outcome={outcome}（noise 带 ±{noise:.0%}，父 {parent_eval}）")
 
     t["steps_completed"] += 1
     run["current_step"] = None
@@ -743,10 +820,12 @@ def cmd_finish_step(args) -> int:
     return 0
 
 
-def _mark_committed(run_id: str, tid: str, step: int, eval_id: str) -> None:
+def _mark_committed(run_id: str, tid: str, step: int, eval_id: str,
+                    outcome: str, parent_eval_id: str | None) -> None:
     """ledger 是 append-only；commit 标记通过追加一条补丁记录实现。"""
     append_ledger({"kind": "commit-marker", "run": run_id, "trajectory": tid,
-                   "step": step, "eval_id": eval_id, "committed": True, "ts": now_iso()})
+                   "step": step, "eval_id": eval_id, "committed": True,
+                   "outcome": outcome, "parent_eval_id": parent_eval_id, "ts": now_iso()})
 
 
 def cmd_round_summary_done(args) -> int:
@@ -949,6 +1028,13 @@ def main() -> int:
     p.add_argument("--result", required=True)
     p.add_argument("--hypothesis", required=True)
     p.add_argument("--insight")
+    p.add_argument("--migration-source",
+                   help="迁移席位：来源他轨迹的已确认 eval（step≥2 且每 step 至多 1 席）")
+
+    p = sub.add_parser("record-recon")
+    p.add_argument("--trajectory", required=True)
+    p.add_argument("--eval-id", required=True, help="被 profile 的 eval（tip winner 或 AM 基线）")
+    p.add_argument("--report", required=True, help="recon 报告的 repo 相对路径")
 
     sub.add_parser("finish-step")
 
@@ -968,6 +1054,7 @@ def main() -> int:
         "dashboard": cmd_dashboard,
         "init-run": cmd_init_run, "record-baseline": cmd_record_baseline,
         "begin-step": cmd_begin_step, "record-eval": cmd_record_eval,
+        "record-recon": cmd_record_recon,
         "finish-step": cmd_finish_step, "round-summary-done": cmd_round_summary_done,
         "close-run": cmd_close_run, "action-done": cmd_action_done,
     }[args.cmd](args)
