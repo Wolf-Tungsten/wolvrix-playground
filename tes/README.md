@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0-t4 s01 完成，t5 recon 完成** | t5/e00085 非计时画像通过 `73580/49996` 金标；compute/commit = **73.1234%/26.8525%**，top-50 = **39.978%**，commit 双峰 b93159/b93141 合计 **8.421%**。预算仍为 12/48；下一 action 为 t5/s01 step，见 [A0096](grhsim-am-coremark/actions/A0096_recon_r004t5s00_e00085动态热点画像_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：第 1 轮六轨迹 s01 齐平** | t5/e00097 commit scratch 清零后延 = **191.116s**，较 e00085 改善 1.18%、全门通过并以 initial 入主线；e00098 Concat 位置装配为 `difftest_fail`。预算 14/48，全局 best 仍为 e00093 **172.530s**；下一 action 为第 1 轮 round-summary，见 [A0097](grhsim-am-coremark/actions/A0097_step_r004t5s01_commit清零后延与concat语义失败_20260824.md) |
 
 ## 共享件
 

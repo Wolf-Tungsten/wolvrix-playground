@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r004/t5/s01 已完成，commit scratch 清零后延成为 t5 initial 节点**
+  （2026-08-24，[A0097](actions/A0097_step_r004t5s01_commit清零后延与concat语义失败_20260824.md)）：
+  e00097 `--commit-scratch-after-gate` = **191.116s**（较 e00085 改善 1.18%，CV
+  1.27%，单簇、非 noisy），完整 13 项表型通过 17/17 ctest 与三次
+  `73580/49996` difftest；达到 1% Host 下限但未越 3% 确认带。e00098
+  `--concat-position-pack` 通过构建与 ctest，却在 guest cycle 2 触发 OldestArbiter
+  one-hot 断言，`difftest_fail`、无分数。e00097 以 outcome=`initial` 入 t5/main；
+  预算 **14/48**，全局 best 仍为 t3/e00093 **172.530s**。下一 action = 第 1 轮
+  `round-summary`，本 action 未启动它。
+
 - **r004/t5/s00 recon 已完成，e00085 的第六条初始轨迹动态证据已刷新**
   （2026-08-24，[A0096](actions/A0096_recon_r004t5s00_e00085动态热点画像_20260824.md)）：
   非计时 runtime-profile 以生产 12 开关表型重 emit，`73580/49996` 金标精确通过；

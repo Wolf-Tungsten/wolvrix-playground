@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 97
+    "next": 99
   },
   "baselines": {
     "am": {
@@ -229,18 +229,21 @@
     {
       "id": "t5",
       "branch": "tes/r004/t5/main",
-      "tip": "1563c3d837fcfe9db28fc36901531a70b59fd790",
-      "steps_completed": 0,
-      "best": null,
+      "tip": "64f6a5fd7216c41f8d6552d914a71ca46f93cc56",
+      "steps_completed": 1,
+      "best": {
+        "eval_id": "e00097",
+        "score": -191116
+      },
       "last_recon_step": 0,
-      "tip_eval_id": null
+      "tip_eval_id": "e00097"
     }
   ],
   "current_step": null,
   "round_summaries_done": [],
   "counters": {
-    "actions": 12,
-    "evals": 12
+    "actions": 13,
+    "evals": 14
   },
   "best_overall": {
     "eval_id": "e00093",
@@ -263,7 +266,7 @@
     ]
   },
   "phi_selection_counts": {
-    "e00085": 5
+    "e00085": 6
   },
   "history": [
     {
@@ -337,6 +340,12 @@
       "type": "recon",
       "note": "tes/grhsim-am-coremark/actions/A0096_recon_r004t5s00_e00085动态热点画像_20260824.md",
       "ts": "2026-08-24T02:49:03+08:00"
+    },
+    {
+      "n": 13,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0097_step_r004t5s01_commit清零后延与concat语义失败_20260824.md",
+      "ts": "2026-08-24T03:51:32+08:00"
     }
   ]
 }
