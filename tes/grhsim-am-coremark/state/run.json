@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 121
+    "next": 123
   },
   "baselines": {
     "am": {
@@ -232,14 +232,14 @@
     {
       "id": "t5",
       "branch": "tes/r004/t5/main",
-      "tip": "e908a7ed44deb33e98dc3626b11b2c187b8a7a43",
-      "steps_completed": 2,
+      "tip": "80c4657cdcdceb851ce1bf0959911171618620a1",
+      "steps_completed": 3,
       "best": {
         "eval_id": "e00110",
         "score": -173058
       },
       "last_recon_step": 2,
-      "tip_eval_id": "e00110"
+      "tip_eval_id": "e00121"
     }
   ],
   "current_step": null,
@@ -248,8 +248,8 @@
     2
   ],
   "counters": {
-    "actions": 32,
-    "evals": 36
+    "actions": 33,
+    "evals": 38
   },
   "best_overall": {
     "eval_id": "e00113",
@@ -274,7 +274,7 @@
     ]
   },
   "phi_selection_counts": {
-    "e00085": 11,
+    "e00085": 12,
     "e00088": 1,
     "e00089": 1,
     "e00092": 1,
@@ -284,7 +284,8 @@
     "e00102": 1,
     "e00104": 1,
     "e00106": 1,
-    "e00108": 1
+    "e00108": 1,
+    "e00110": 1
   },
   "history": [
     {
@@ -478,6 +479,12 @@
       "type": "recon",
       "note": "tes/grhsim-am-coremark/actions/A0116_recon_r004t5s02_e00110幂次索引后动态热点画像_20260824.md",
       "ts": "2026-08-24T17:28:45+08:00"
+    },
+    {
+      "n": 33,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0117_step_r004t5s03_宽mux迁移与host共事件弱正_20260824.md",
+      "ts": "2026-08-24T18:59:06+08:00"
     }
   ]
 }

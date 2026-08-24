@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r004/t5/s03 已完成，宽 mux 迁移接近确认带，host 共事件长 run 弱正**
+  （2026-08-24，[A0117](actions/A0117_step_r004t5s03_宽mux迁移与host共事件弱正_20260824.md)）：
+  e00121 将 e00106 的宽 mux 链融合迁移到 e00110，生产命中 4 chains/92 steps，Host
+  **168.198s**（较父改善 **2.81%**，CV 0.25%）；e00122 将 79 个同事件长 run 的
+  **12,607** 个 host call 提升为一次外层 event 门控，Host **170.708s**（改善
+  **1.36%**，CV 1.29%）。两项均通过 17/17 ctest 与三次 `73580/49996` difftest，
+  单簇非 noisy；e00121 以 `migration_source=e00106`、outcome=`neutral` 快移到
+  t5/main，但 t5 统计 best 仍为 e00110。预算 **38/48**，全局 best 保持 e00113
+  **166.014s**；下一 action = 第 3 轮 `round-summary`，本 action 未启动它。
+
 - **r004/t5/s02 post-change recon 已完成，幂次索引动态闭环，scratch 后延未降低 commit 双峰**
   （2026-08-24，[A0116](actions/A0116_recon_r004t5s02_e00110幂次索引后动态热点画像_20260824.md)）：
   e00110 的非计时 profile 通过 `73580/49996` 金标；compute/commit =

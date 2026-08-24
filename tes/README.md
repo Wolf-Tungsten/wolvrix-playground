@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t5/s02 recon 完成** | e00110 动态画像确认六个幂次 memory-read 块 cycles **-94.04%** 至 0.199% 权重；commit 双峰绝对量反升 0.76%、权重 **9.285%**，scratch 后延未达到池级预期。预算 **36/48**；下一 action 为 t5/s03 step，见 [A0116](grhsim-am-coremark/actions/A0116_recon_r004t5s02_e00110幂次索引后动态热点画像_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：六轨迹 s03 齐平** | t5/e00121 宽 mux 迁移 = **168.198s**（较父 -2.81%，4 chains/92 steps），e00122 host 共事件 run = **170.708s**（-1.36%，79 runs/12,607 calls）；均全门通过，e00121 outcome=`neutral`。预算 **38/48**；下一 action 为第 3 轮 round-summary，见 [A0117](grhsim-am-coremark/actions/A0117_step_r004t5s03_宽mux迁移与host共事件弱正_20260824.md) |
 
 ## 共享件
 

@@ -2051,3 +2051,20 @@
 - c1 首次评估漏传 default-off 候选开关，190.309s 被表型审计拒绝且未登记；同一
   e00119 以完整 14 项表型重跑后才形成上述有效结果。预算 **36/48**，全局 best 仍为
   e00113 **166.014s**；下一 action 为 t5/e00110 post-change recon。
+
+## r004/t5/s03 宽 mux 迁移与 host 共事件 run（2026-08-24，action A0117）
+
+- e00121 将 e00106 已确认的宽 ArrayBroadcast-to-ArrayMux 链融合迁移到 e00110，
+  生产命中 **4 chains / 92 steps**，Host **168.198s**（较父改善 **2.81%**，CV
+  0.25%、单簇非 noisy）；达到 1% 下限但略低于 3% 确认带，以
+  `migration_source=e00106`、outcome=`neutral` 快移到 t5/main，统计 best 仍保留
+  e00110。
+- e00122 新增 host-call common-event run：对同 chunk 至少 16 个共享单一 Immediate
+  event 的连续 SystemTask/DPI 调用提升一次外层门控，生产覆盖 **79 runs / 12,607
+  calls**；Host **170.708s**（较父改善 **1.36%**，CV 1.29%），只记弱正。高静态
+  覆盖未转化为一阶收益，说明 b90656 enable 计算与 event 为真时的逐站分支仍承重；
+  无 post-change recon 前不能宣称 b90657 达到 20% 池级降幅。
+- c1 首次漏传三个增量开关得到无效 190.546s，未登记；c2 三次 fixture/planner 修正
+  都在 ctest 门停止。最终两候选均以完整 15 项表型通过 17/17 ctest 和三次 difftest。
+  预算 **38/48**，全局 best 仍为 e00113 **166.014s**；下一 action 为第 3 轮
+  round-summary。
