@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 113
+    "next": 115
   },
   "baselines": {
     "am": {
@@ -184,14 +184,14 @@
     {
       "id": "t1",
       "branch": "tes/r004/t1/main",
-      "tip": "da88c2a4c45abd329b02aeb23ced5bb93aea572f",
-      "steps_completed": 2,
+      "tip": "2768258e7ab08b65b45f25a7cff2e28fb127e694",
+      "steps_completed": 3,
       "best": {
-        "eval_id": "e00102",
-        "score": -171233
+        "eval_id": "e00113",
+        "score": -166014
       },
       "last_recon_step": 2,
-      "tip_eval_id": "e00102"
+      "tip_eval_id": "e00113"
     },
     {
       "id": "t2",
@@ -248,13 +248,13 @@
     2
   ],
   "counters": {
-    "actions": 24,
-    "evals": 28
+    "actions": 25,
+    "evals": 30
   },
   "best_overall": {
-    "eval_id": "e00106",
-    "score": -166947,
-    "commit": "8c4585f674389d2e569762c202fb02f90aa193ec",
+    "eval_id": "e00113",
+    "score": -166014,
+    "commit": "2768258e7ab08b65b45f25a7cff2e28fb127e694",
     "emit_args": [
       "--branchy-mux",
       "--resize-elision",
@@ -268,18 +268,20 @@
       "--wide-detect-fast-path",
       "--sys-task-body-outline",
       "--scan-branch-hints",
+      "--host-call-guard-cache",
       "--memory-read-pow2-index",
       "--array-broadcast-mux-chain-fuse"
     ]
   },
   "phi_selection_counts": {
-    "e00085": 8,
+    "e00085": 9,
     "e00088": 1,
     "e00089": 1,
     "e00092": 1,
     "e00093": 1,
     "e00097": 1,
-    "e00100": 1
+    "e00100": 1,
+    "e00102": 1
   },
   "history": [
     {
@@ -425,6 +427,12 @@
       "type": "recon",
       "note": "tes/grhsim-am-coremark/actions/A0108_recon_r004t1s02_e00102幂次索引后动态热点画像_20260824.md",
       "ts": "2026-08-24T11:15:00+08:00"
+    },
+    {
+      "n": 25,
+      "type": "step-resume",
+      "note": "tes/grhsim-am-coremark/actions/A0109_step-resume_r004t1s03_宽mux迁移确认与commit夹具失败_20260824.md",
+      "ts": "2026-08-24T12:41:33+08:00"
     }
   ]
 }

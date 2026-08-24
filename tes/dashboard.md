@@ -2,24 +2,24 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-24T11:15:00+08:00
+> 生成于 2026-08-24T12:41:33+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 28/48 · actions 24 · 下一步 `step`：推进轨迹 t1 到第 3 步（round-robin 最少步数优先）
+run **r004**（active）· C=6 L=4 K=2 · evals 30/48 · actions 25 · 下一步 `recon`：轨迹 t2 recon 证据到期（staleness≥2），先对 tip（eval e00104）做非计时 profiling 再出 step
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
 | gsim（target） | e00086 | 22.7s | 1.00x |
 | am（y0 基线） | e00085 | 193.4s | 8.51x |
-| **当前 best** | e00106 | **166.9s** | **7.35x** |
+| **当前 best** | e00113 | **166.0s** | **7.31x** |
 
-基线→target 进度：`███░░░░░░░░░░░░░░░░░` 15.5%（193.4s → 目标 22.7s，当前差距 7.35x）
+基线→target 进度：`███░░░░░░░░░░░░░░░░░` 16.0%（193.4s → 目标 22.7s，当前差距 7.31x）
 
 | 轨迹 | 分支 | 步数 | best eval | best Host |
 |---|---|---|---|---|
 | t0 | `tes/r004/t0/main` | 3/4 | e00100 | 172.8s |
-| t1 | `tes/r004/t1/main` | 2/4 | e00102 | 171.2s |
+| t1 | `tes/r004/t1/main` | 3/4 | e00113 | 166.0s |
 | t2 | `tes/r004/t2/main` | 2/4 | e00104 | 169.6s |
 | t3 | `tes/r004/t3/main` | 2/4 | e00106 | 166.9s |
 | t4 | `tes/r004/t4/main` | 2/4 | e00108 | 189.3s |
@@ -184,6 +184,8 @@ run **r004**（active）· C=6 L=4 K=2 · evals 28/48 · actions 24 · 下一步
 | e00111 | candidate | t0/s03c1 | 170.6s | 7.51x | unimodal | ok | Migrating e00106's confirmed wide ArrayBroadcast-t… |
 | e00112 | candidate | t0/s03c2 | 174.3s | 7.67x | unimodal | ok | On e00100, b93159 and b93141 execute about 100k ti… |
 | e00102 | recon | - | - | - | - | - |  |
+| e00113 | candidate | t1/s03c1 | 166.0s | 7.31x | unimodal | ok | From e00102, post-change recon shows b69157/b69158… |
+| e00114 | candidate | t1/s03c2 | - | - | - | ctest_fail | From e00102, post-change recon shows b93159/b93141… |
 
-最近 actions：A0020 step；A0021 round-summary；A0022 recon；A0023 step；A0024 recon
+最近 actions：A0021 round-summary；A0022 recon；A0023 step；A0024 recon；A0025 step-resume
 

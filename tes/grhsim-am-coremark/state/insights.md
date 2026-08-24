@@ -2010,3 +2010,15 @@
   预期减半；commit 双峰的主要成本不在当前 chunk 调用边界，6000 粒度轴关闭。
 - 预算增至 **28/48**；全局 best 仍为 e00106 **166.947s**。下一 action 为
   t1/e00102 post-change recon，用新动态权重驱动 t1/s03。
+
+## r004/t1/s03 宽 mux 迁移确认与 commit 夹具失败（2026-08-24，action A0109）
+
+- e00113 将 e00106 已确认的 4-chain/92-step 宽 ArrayBroadcast-to-ArrayMux 链融合
+  迁移到 e00102，Host **166.014s**，较父改善 **3.05%**，CV 1.43%、单簇非 noisy；
+  17/17 ctest 与三次 `73580/49996` difftest 全过。`migration_source=e00106`、
+  outcome=`win`，确认宽 mux 中间宽值物化与幂次 memory-read 索引机械可加。
+- e00114 的 commit scratch 后移清零候选在 ctest 以 16/17 停止：fixture 错误要求当前
+  模型不存在的 `detGrpblk_3` reset，未进入生产 emit/difftest/Host。该方向仍属性能
+  未测，不得把本次夹具失败记为机制证伪；重开须先修正断言并证明生产命中。
+- 新 best_overall=e00113 **166.014s**，相对冻结 AM/e00085 改善 **14.16%**，冻结
+  gsim 口径 **7.307x**；预算 **30/48**。下一 action 为 t2/e00104 recon。

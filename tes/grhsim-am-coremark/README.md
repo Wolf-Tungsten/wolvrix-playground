@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r004/t1/s03 已完成，宽 mux 迁移越过确认带并刷新全局 best，commit scratch 候选被夹具误断**
+  （2026-08-24，[A0109](actions/A0109_step-resume_r004t1s03_宽mux迁移确认与commit夹具失败_20260824.md)）：
+  e00113 将 e00106 已确认的 `--array-broadcast-mux-chain-fuse` 迁移到 e00102，生产
+  命中 4 chains/92 steps，Host **166.014s**（较父改善 **3.05%**，CV 1.43%，单簇、
+  非 noisy），通过 17/17 ctest 与三次 `73580/49996` difftest；以
+  `migration_source=e00106`、outcome=`win` 入 t1/main 并刷新全局 best。e00114
+  `--commit-scratch-lazy-init` 因 fixture 错要不存在的 `detGrpblk_3` reset 而
+  `ctest_fail`（16/17），未进入生产性能测量，机制不作性能证伪。预算 **30/48**，
+  冻结 gsim 口径 **7.307x**；下一 action = `t2/e00104 recon`，本 action 未启动它。
+
 - **r004/t1/s02 post-change recon 已完成，幂次索引动态闭环在 t1 复现，guard-cache 未形成池级收益**
   （2026-08-24，[A0108](actions/A0108_recon_r004t1s02_e00102幂次索引后动态热点画像_20260824.md)）：
   e00102 的非计时 profile 通过 `73580/49996` 金标；compute/commit =
