@@ -1967,3 +1967,17 @@
 - e00108 仅比 e00107 快 **0.31%**，raw winner 不代表机制优劣；commit 双峰 8.646%
   与 system-task 双峰 4.923% 的预注册池级降幅尚待 post-change recon。e00108 以
   outcome=`initial` 入 t4/main；全局 best 仍为 e00106 **166.947s**，预算 24/48。
+
+## r004/t5/s02 Concat 位序修正与幂次索引迁移（2026-08-24，action A0104）
+
+- e00109 将本轨迹 e00098 的 scalar Concat 直接装配从错误的低位累计改为按剩余总宽
+  高位到低位放置，并新增 8/16/32-bit 非对称生成模型运行测试；17/17 ctest 与三次
+  difftest 恢复，Host **189.753s**，较 e00097 改善 **0.71%**。功能修正确认，性能
+  只达 0.5% 下限且未越 3% 带，不能宣称机制收益确认。
+- e00110 以本 step 唯一迁移席把 e00093 幂次 memory-read 索引专化叠加到 e00097 的
+  commit scratch 后延父节点，Host **173.058s**，较父改善 **9.45%**，CV 0.54%、
+  单簇非 noisy；`migration_source=e00093`、outcome=`win`。这是继 t0/t1/t2 后又一条
+  跨轨迹一阶复现，确认幂次索引是当前最稳定的可迁移机制。
+- t5 best 的冻结 gsim 口径为 **7.617x**，仍比全局 best e00106 慢 **3.66%**；差异与
+  e00106 额外组合宽 mux 链一致，但尚无 t5 post-change recon，不从整体 Host 反推池级
+  降幅。预算 26/48；下一 action 为第 2 轮 round-summary。

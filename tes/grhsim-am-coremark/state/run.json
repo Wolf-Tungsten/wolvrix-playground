@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 109
+    "next": 111
   },
   "baselines": {
     "am": {
@@ -232,14 +232,14 @@
     {
       "id": "t5",
       "branch": "tes/r004/t5/main",
-      "tip": "64f6a5fd7216c41f8d6552d914a71ca46f93cc56",
-      "steps_completed": 1,
+      "tip": "e908a7ed44deb33e98dc3626b11b2c187b8a7a43",
+      "steps_completed": 2,
       "best": {
-        "eval_id": "e00097",
-        "score": -191116
+        "eval_id": "e00110",
+        "score": -173058
       },
       "last_recon_step": 0,
-      "tip_eval_id": "e00097"
+      "tip_eval_id": "e00110"
     }
   ],
   "current_step": null,
@@ -247,8 +247,8 @@
     1
   ],
   "counters": {
-    "actions": 19,
-    "evals": 24
+    "actions": 20,
+    "evals": 26
   },
   "best_overall": {
     "eval_id": "e00106",
@@ -276,7 +276,8 @@
     "e00088": 1,
     "e00089": 1,
     "e00092": 1,
-    "e00093": 1
+    "e00093": 1,
+    "e00097": 1
   },
   "history": [
     {
@@ -392,6 +393,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0103_step_r004t4s02_修正fixture完成双机制测量_20260824.md",
       "ts": "2026-08-24T08:34:53+08:00"
+    },
+    {
+      "n": 20,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0104_step_r004t5s02_concat位序修正与幂次索引迁移_20260824.md",
+      "ts": "2026-08-24T09:27:11+08:00"
     }
   ]
 }

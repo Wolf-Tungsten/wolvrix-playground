@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t5/s02 已完成，Concat 位序修正通过功能门，幂次索引迁移取得一阶收益**
+  （2026-08-24，[A0104](actions/A0104_step_r004t5s02_concat位序修正与幂次索引迁移_20260824.md)）：
+  e00109 修正 e00098 的高低位装配错误后 Host **189.753s**（较父 e00097 改善 0.71%，
+  CV 0.76%），达到 0.5% 下限但未越 3% 确认带；e00110 以唯一迁移席叠加 e00093 的
+  `--memory-read-pow2-index`，Host **173.058s**（较父改善 9.45%，CV 0.54%）。两项均
+  通过 17/17 ctest 与三次 difftest，单簇且非 noisy；e00110 以
+  `migration_source=e00093`、outcome=`win` 入 t5/main。预算 **26/48**，全局 best
+  仍为 e00106 **166.947s**；下一 action = 第 2 轮 `round-summary`，本 action 未启动它。
+
 - **r004/t4/s02 已完成，修正 fixture 后两项弱正机制均完成正式测量**
   （2026-08-24，[A0103](actions/A0103_step_r004t4s02_修正fixture完成双机制测量_20260824.md)）：
   e00107 `--commit-scratch-lazy-init` = **189.851s**（较 e00085 改善 1.84%，CV

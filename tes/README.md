@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t4 完成 s02** | 修正 s01 的 fixture 误报后，e00107 commit scratch 后延 = **189.851s**（较 e00085 -1.84%），e00108 host predicate run = **189.263s**（-2.14%）；两项全门通过但均未越 3% 确认带，e00108 以 outcome=`initial` 入 t4/main。预算 24/48，全局 best 仍为 e00106 **166.947s**；下一 action 为 `t5/s02 step`，见 [A0103](grhsim-am-coremark/actions/A0103_step_r004t4s02_修正fixture完成双机制测量_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：第 2 轮六轨迹齐平** | t5/s02 中 e00109 修正 Concat 位序后 = **189.753s**（较父 -0.71%，弱正），e00110 迁移 e00093 幂次索引 = **173.058s**（较父 -9.45%）；两项全门通过，e00110 以 `migration_source=e00093`、outcome=`win` 入 t5/main。预算 26/48，全局 best 仍为 e00106 **166.947s**；下一 action 为第 2 轮 `round-summary`，见 [A0104](grhsim-am-coremark/actions/A0104_step_r004t5s02_concat位序修正与幂次索引迁移_20260824.md) |
 
 ## 共享件
 
