@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 119
+    "next": 121
   },
   "baselines": {
     "am": {
@@ -220,14 +220,14 @@
     {
       "id": "t4",
       "branch": "tes/r004/t4/main",
-      "tip": "d3d418133d1cfc8ca28abd2ccae77947c52568c8",
-      "steps_completed": 2,
+      "tip": "099335af01bb15c678d3dbacb5e2cb8b7865d7c7",
+      "steps_completed": 3,
       "best": {
-        "eval_id": "e00108",
-        "score": -189263
+        "eval_id": "e00119",
+        "score": -173624
       },
       "last_recon_step": 2,
-      "tip_eval_id": "e00108"
+      "tip_eval_id": "e00119"
     },
     {
       "id": "t5",
@@ -248,8 +248,8 @@
     2
   ],
   "counters": {
-    "actions": 30,
-    "evals": 34
+    "actions": 31,
+    "evals": 36
   },
   "best_overall": {
     "eval_id": "e00113",
@@ -283,7 +283,8 @@
     "e00100": 1,
     "e00102": 1,
     "e00104": 1,
-    "e00106": 1
+    "e00106": 1,
+    "e00108": 1
   },
   "history": [
     {
@@ -465,6 +466,12 @@
       "type": "recon",
       "note": "tes/grhsim-am-coremark/actions/A0114_recon_r004t4s02_e00108谓词run后动态热点画像_20260824.md",
       "ts": "2026-08-24T15:55:33+08:00"
+    },
+    {
+      "n": 31,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0115_step_r004t4s03_幂次索引迁移与窄replicate乘法证伪_20260824.md",
+      "ts": "2026-08-24T17:09:31+08:00"
     }
   ]
 }

@@ -2037,3 +2037,17 @@
 - e00118 仅因两候选 raw score 较高而以 outcome=`neutral` 入 t3/main；t3 best 仍为
   e00106 **166.947s**，全局 best 仍为 e00113 **166.014s**。预算 **34/48**；下一
   action 为 `t4/e00108 recon`。
+
+## r004/t4/s03 幂次索引迁移与窄 Replicate 乘法（2026-08-24，action A0115）
+
+- e00119 将 e00093 的幂次 memory-read 索引专化迁移到 e00108 predicate-run tip，
+  Host **173.624s**，较父改善 **8.26%**，CV 1.30%、单簇非 noisy；17/17 ctest 与
+  三次 difftest 全过。`migration_source=e00093`、outcome=`win`，确认幂次索引与
+  predicate-run 可加，t4/main 推进到 e00119。
+- e00120 将 b83835 的 192 个 <=64-bit Replicate 站点全部从串行 `concat_value`
+  链改为编译期扩散常数乘法，旧链命中数降为 0，但 Host **191.047s**，较父回退
+  **0.94%**；功能门全过且单簇非 noisy。窄 Replicate 装配不是 2.239% 混合池的一阶
+  成本，`--replicate-multiply` 轴关闭。
+- c1 首次评估漏传 default-off 候选开关，190.309s 被表型审计拒绝且未登记；同一
+  e00119 以完整 14 项表型重跑后才形成上述有效结果。预算 **36/48**，全局 best 仍为
+  e00113 **166.014s**；下一 action 为 t5/e00110 post-change recon。

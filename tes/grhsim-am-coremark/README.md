@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r004/t4/s03 已完成，幂次索引迁移确认可加，窄 Replicate 乘法证伪**
+  （2026-08-24，[A0115](actions/A0115_step_r004t4s03_幂次索引迁移与窄replicate乘法证伪_20260824.md)）：
+  e00119 将 e00093 的 `--memory-read-pow2-index` 迁移到 e00108 predicate-run tip，
+  Host **173.624s**（较父改善 **8.26%**，CV 1.30%）；e00120 把 b83835 的 192 个
+  窄 Replicate 站点改为常数乘法后 Host **191.047s**（回退 **0.94%**，CV 1.12%）。
+  两项均通过 17/17 ctest 与三次 `73580/49996` difftest，单簇非 noisy；e00119 以
+  `migration_source=e00093`、outcome=`win` 入 t4/main，e00120 机制证伪。预算
+  **36/48**，全局 best 仍为 e00113 **166.014s**；下一 action = `t5/e00110 recon`，
+  本 action 未启动它。
+
 - **r004/t4/s02 post-change recon 已完成，谓词 run 未达到池级降幅预期**
   （2026-08-24，[A0114](actions/A0114_recon_r004t4s02_e00108谓词run后动态热点画像_20260824.md)）：
   e00108 的非计时 profile 通过 `73580/49996` 金标；compute/commit =
