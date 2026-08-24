@@ -1955,3 +1955,15 @@
   生产命中；不得把本次 `ctest_fail` 当作机制性能证伪。
 - 新 best_overall=e00106 **166.947s**，相对 r004 AM y0 改善 **13.68%**，冻结
   AM/gsim = **7.348x**；预算 22/48。
+
+## r004/t4/s02 修正 fixture 后完成双机制测量（2026-08-24，action A0103）
+
+- **s01 回归误报关闭**：e00107/e00108 分别删除不存在 detector-group 的错误断言、
+  将 byte-identical 三模型的 data 行数期望从 9 修正为 15；两项均通过 17/17 ctest、
+  三次 `73580/49996` difftest 和编译门，证明 s01 失败来自 fixture 而非生成语义。
+- commit scratch 事件门后清零 e00107 = **189.851s**（较 e00085 -1.84%，CV 0.86%）；
+  outlined fwrite 同谓词分支合并 e00108 = **189.263s**（-2.14%，CV 1.47%）。两项都
+  达到预注册 1% Host 下限但未越 3% 确认带，只记弱正，不能宣称确认。
+- e00108 仅比 e00107 快 **0.31%**，raw winner 不代表机制优劣；commit 双峰 8.646%
+  与 system-task 双峰 4.923% 的预注册池级降幅尚待 post-change recon。e00108 以
+  outcome=`initial` 入 t4/main；全局 best 仍为 e00106 **166.947s**，预算 24/48。

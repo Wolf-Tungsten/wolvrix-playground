@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t3 完成 s02** | e00106 在 e00093 幂次索引基座上组合 4 链/92-step 宽 mux 链融合，Host **166.947s**（较父改善 3.24%），以 outcome=`win` 入 t3/main 并刷新全局 best；packed gather e00105 因 fixture 的 EntryBlock 合法性 `ctest_fail`，性能未测。预算 22/48，冻结 AM/gsim = **7.348x**；下一 action 为 `t4/s02 step`，见 [A0102](grhsim-am-coremark/actions/A0102_step_r004t3s02_pack融合失败与宽mux组合确认_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t4 完成 s02** | 修正 s01 的 fixture 误报后，e00107 commit scratch 后延 = **189.851s**（较 e00085 -1.84%），e00108 host predicate run = **189.263s**（-2.14%）；两项全门通过但均未越 3% 确认带，e00108 以 outcome=`initial` 入 t4/main。预算 24/48，全局 best 仍为 e00106 **166.947s**；下一 action 为 `t5/s02 step`，见 [A0103](grhsim-am-coremark/actions/A0103_step_r004t4s02_修正fixture完成双机制测量_20260824.md) |
 
 ## 共享件
 

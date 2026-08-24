@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r004/t4/s02 已完成，修正 fixture 后两项弱正机制均完成正式测量**
+  （2026-08-24，[A0103](actions/A0103_step_r004t4s02_修正fixture完成双机制测量_20260824.md)）：
+  e00107 `--commit-scratch-lazy-init` = **189.851s**（较 e00085 改善 1.84%，CV
+  0.86%），e00108 `--sys-task-predicate-run` = **189.263s**（改善 2.14%，CV
+  1.47%）；两项均通过 17/17 ctest、三次 `73580/49996` difftest，单簇且非 noisy，
+  关闭 s01 的 fixture 误报。两项达到各自 1% Host 下限但都未越 3% 确认带，且 c2
+  只比 c1 快 0.31%；e00108 仅按 raw score 以 outcome=`initial` 入 t4/main，不能据此
+  判断机制优劣。预算 **24/48**，全局 best 仍为 e00106 **166.947s**；下一 action =
+  `r004/t5/s02 step`（K=2），本 action 未启动它。
+
 - **r004/t3/s02 已完成，宽 mux 链与幂次索引组合越过确认带并刷新全局 best**
   （2026-08-24，[A0102](actions/A0102_step_r004t3s02_pack融合失败与宽mux组合确认_20260824.md)）：
   e00105 尝试把六个 512-read 热块的 scalar read-to-concat 融为 packed gather，但候选
