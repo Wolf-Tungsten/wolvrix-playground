@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t3/s04 已完成，commit atom 拆分回退，source 分片弱正收口**
+  （2026-08-25，[A0122](actions/A0122_step_r004t3s04_commit分片结构回退与弱正_20260825.md)）：
+  e00129 将 commit atom 上限从 4096 降至 2048，Host **169.531s**（较父 e00118
+  回退 1.55%，CV 1.59%）；e00130 将 commit source 分片从 512KiB 降至 256KiB，
+  Host **168.759s**（较父改善 1.10%，CV 0.98%）。两项均通过 17/17 ctest、三次
+  `73580/49996` difftest，单簇非 noisy；e00130 仅按 raw score 以 outcome=`neutral`
+  合入 t3/main，t3 确认 best 仍为 e00106。预算 **46/48**；下一 action =
+  `r004/t4/s04 step`（K=2），未启动。
+
 - **r004/t2/s04 已完成，state-write 与 host-call 操作数局部化均回退**
   （2026-08-24，[A0121](actions/A0121_step_r004t2s04_state写与host调用局部化回退_20260824.md)）：
   e00127 仅保留 state target 持久化、将同块 write data/mask/address 临时量交回局部

@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 129
+    "next": 131
   },
   "baselines": {
     "am": {
@@ -208,14 +208,14 @@
     {
       "id": "t3",
       "branch": "tes/r004/t3/main",
-      "tip": "487700bb3b778dd20785ec6321dba70ce8322add",
-      "steps_completed": 3,
+      "tip": "98595d58dbb932565dd870b6ea293d47745b3afa",
+      "steps_completed": 4,
       "best": {
         "eval_id": "e00106",
         "score": -166947
       },
       "last_recon_step": 2,
-      "tip_eval_id": "e00118"
+      "tip_eval_id": "e00130"
     },
     {
       "id": "t4",
@@ -249,8 +249,8 @@
     3
   ],
   "counters": {
-    "actions": 37,
-    "evals": 44
+    "actions": 38,
+    "evals": 46
   },
   "best_overall": {
     "eval_id": "e00125",
@@ -280,7 +280,7 @@
     "e00088": 2,
     "e00089": 2,
     "e00092": 2,
-    "e00093": 1,
+    "e00093": 2,
     "e00097": 1,
     "e00100": 1,
     "e00102": 1,
@@ -290,7 +290,8 @@
     "e00110": 1,
     "e00111": 1,
     "e00113": 1,
-    "e00115": 1
+    "e00115": 1,
+    "e00118": 1
   },
   "history": [
     {
@@ -514,6 +515,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0121_step_r004t2s04_state写与host调用局部化回退_20260824.md",
       "ts": "2026-08-24T22:26:50+08:00"
+    },
+    {
+      "n": 38,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0122_step_r004t3s04_commit分片结构回退与弱正_20260825.md",
+      "ts": "2026-08-25T00:25:27+08:00"
     }
   ]
 }

@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0/t1/t2 已完成 4/4** | e00127 state-write operand locality **168.106s**（较父回退 0.93%），e00128 host-call operand locality **167.795s**（回退 0.74%、outcome=neutral）；t2 确认 best 仍为 e00104。预算 **44/48**；详情见 [A0121](grhsim-am-coremark/actions/A0121_step_r004t2s04_state写与host调用局部化回退_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0/t1/t2/t3 已完成 4/4** | e00129 commit atom split **169.531s**（较父回退 1.55%），e00130 commit source split **168.759s**（改善 1.10%、outcome=neutral）；t3 确认 best 仍为 e00106。预算 **46/48**；下一步 t4/s04，详情见 [A0122](grhsim-am-coremark/actions/A0122_step_r004t3s04_commit分片结构回退与弱正_20260825.md) |
 
 ## 共享件
 
