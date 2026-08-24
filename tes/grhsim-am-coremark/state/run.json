@@ -202,7 +202,7 @@
         "eval_id": "e00104",
         "score": -169577
       },
-      "last_recon_step": 0,
+      "last_recon_step": 2,
       "tip_eval_id": "e00104"
     },
     {
@@ -248,7 +248,7 @@
     2
   ],
   "counters": {
-    "actions": 25,
+    "actions": 26,
     "evals": 30
   },
   "best_overall": {
@@ -433,6 +433,12 @@
       "type": "step-resume",
       "note": "tes/grhsim-am-coremark/actions/A0109_step-resume_r004t1s03_宽mux迁移确认与commit夹具失败_20260824.md",
       "ts": "2026-08-24T12:41:33+08:00"
+    },
+    {
+      "n": 26,
+      "type": "recon",
+      "note": "tes/grhsim-am-coremark/actions/A0110_recon_r004t2s02_e00104幂次索引后动态热点画像_20260824.md",
+      "ts": "2026-08-24T13:00:18+08:00"
     }
   ]
 }

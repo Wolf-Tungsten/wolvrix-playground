@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-24T12:41:33+08:00
+> 生成于 2026-08-24T13:00:18+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 30/48 · actions 25 · 下一步 `recon`：轨迹 t2 recon 证据到期（staleness≥2），先对 tip（eval e00104）做非计时 profiling 再出 step
+run **r004**（active）· C=6 L=4 K=2 · evals 30/48 · actions 26 · 下一步 `step`：推进轨迹 t2 到第 3 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -186,6 +186,7 @@ run **r004**（active）· C=6 L=4 K=2 · evals 30/48 · actions 25 · 下一步
 | e00102 | recon | - | - | - | - | - |  |
 | e00113 | candidate | t1/s03c1 | 166.0s | 7.31x | unimodal | ok | From e00102, post-change recon shows b69157/b69158… |
 | e00114 | candidate | t1/s03c2 | - | - | - | ctest_fail | From e00102, post-change recon shows b93159/b93141… |
+| e00104 | recon | - | - | - | - | - |  |
 
-最近 actions：A0021 round-summary；A0022 recon；A0023 step；A0024 recon；A0025 step-resume
+最近 actions：A0022 recon；A0023 step；A0024 recon；A0025 step-resume；A0026 recon
 

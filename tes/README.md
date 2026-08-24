@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t1/s03 完成** | e00113 迁移宽 mux 链融合后 Host **166.014s**，较 e00102 改善 **3.05%**，17/17 ctest 与三次 difftest 全过，outcome=`win` 并刷新全局 best；e00114 因 fixture 误断 `ctest_fail`、性能未测。预算 30/48；下一 action 为 `t2/e00104 recon`，见 [A0109](grhsim-am-coremark/actions/A0109_step-resume_r004t1s03_宽mux迁移确认与commit夹具失败_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t2/s02 recon 完成** | e00104 非计时 profile 通过 `73580/49996` 金标；六个幂次 memory-read 块 cycles **-93.45%**，动态权重降至 0.214%，完成 t2 机制闭环；commit 主峰升至 9.261%，宽 mux 池为 1.710%。预算仍为 30/48；下一 action 为 `r004/t2/s03 step`，见 [A0110](grhsim-am-coremark/actions/A0110_recon_r004t2s02_e00104幂次索引后动态热点画像_20260824.md) |
 
 ## 共享件
 

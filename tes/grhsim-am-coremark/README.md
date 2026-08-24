@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r004/t2/s02 post-change recon 已完成，幂次索引动态闭环在 t2 复现，commit 成为 9.261% 主峰**
+  （2026-08-24，[A0110](actions/A0110_recon_r004t2s02_e00104幂次索引后动态热点画像_20260824.md)）：
+  e00104 的非计时 profile 通过 `73580/49996` 金标；compute/commit =
+  **71.3300%/28.6435%**，总 block cycles 较 t2/s00 e00085 下降 **8.74%**。
+  六个 512-depth memory-read 块在执行次数不变时由 26.496B 降至 1.735B cycles
+  （**-93.45%**），动态权重由 2.987% 降至 0.214%；b90656/b90657 system-task
+  双峰仅降 5.24%，不能独立确认 predicate-run 收益。剩余主峰为 b93159/b93141
+  commit 池 **9.261%**，宽 mux 池 **1.710%**。预算仍为 **30/48**；下一 action =
+  `r004/t2/s03 step`（K=2），本 action 未启动它。
+
 - **r004/t1/s03 已完成，宽 mux 迁移越过确认带并刷新全局 best，commit scratch 候选被夹具误断**
   （2026-08-24，[A0109](actions/A0109_step-resume_r004t1s03_宽mux迁移确认与commit夹具失败_20260824.md)）：
   e00113 将 e00106 已确认的 `--array-broadcast-mux-chain-fuse` 迁移到 e00102，生产
