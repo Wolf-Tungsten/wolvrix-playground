@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：第 2 轮小结完成** | 幂次索引在 t0/t1/t2/t5 较父节点稳定改善 8.95%-10.27%，跨五轨迹收敛；e00106 宽 mux 组合较 e00093 再改善 **3.24%**，为唯一确认二阶增量。round 2 重锚 AM/e00085 **194.019s**（相对冻结 +0.32%）、gsim/e00086 **24.226s**（+6.63%，持续漂移），冻结口径不变。预算 26/48；下一 action 为 `t0/e00100 recon`，见 [A0105](grhsim-am-coremark/actions/A0105_round-summary_r004第2轮跨轨迹与基线重锚_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0/s02 recon 完成** | e00100 post-change profile 通过金标；六个 512-depth memory-read 热块在执行次数不变时由 27.064B 降至 1.492B cycles（**-94.49%**），动态权重由 3.087% 降至 0.182%，完成幂次索引机制闭环。剩余 b93159/b93141 commit 主峰占 **9.076%**。预算仍为 26/48；下一 action 为 `t0/s03 step`，见 [A0106](grhsim-am-coremark/actions/A0106_recon_r004t0s02_e00100幂次索引后动态热点画像_20260824.md) |
 
 ## 共享件
 

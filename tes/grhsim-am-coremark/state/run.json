@@ -178,7 +178,7 @@
         "eval_id": "e00100",
         "score": -172832
       },
-      "last_recon_step": 0,
+      "last_recon_step": 2,
       "tip_eval_id": "e00100"
     },
     {
@@ -248,7 +248,7 @@
     2
   ],
   "counters": {
-    "actions": 21,
+    "actions": 22,
     "evals": 26
   },
   "best_overall": {
@@ -406,6 +406,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0105_round-summary_r004第2轮跨轨迹与基线重锚_20260824.md",
       "ts": "2026-08-24T09:44:00+08:00"
+    },
+    {
+      "n": 22,
+      "type": "recon",
+      "note": "tes/grhsim-am-coremark/actions/A0106_recon_r004t0s02_e00100幂次索引后动态热点画像_20260824.md",
+      "ts": "2026-08-24T10:03:59+08:00"
     }
   ]
 }
