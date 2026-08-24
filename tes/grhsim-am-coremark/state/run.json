@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 125
+    "next": 127
   },
   "baselines": {
     "am": {
@@ -184,14 +184,14 @@
     {
       "id": "t1",
       "branch": "tes/r004/t1/main",
-      "tip": "2768258e7ab08b65b45f25a7cff2e28fb127e694",
-      "steps_completed": 3,
+      "tip": "2420901f8343cfc5c407af92d7f0ec5a97cd5566",
+      "steps_completed": 4,
       "best": {
         "eval_id": "e00113",
         "score": -166014
       },
       "last_recon_step": 2,
-      "tip_eval_id": "e00113"
+      "tip_eval_id": "e00125"
     },
     {
       "id": "t2",
@@ -249,13 +249,13 @@
     3
   ],
   "counters": {
-    "actions": 35,
-    "evals": 40
+    "actions": 36,
+    "evals": 42
   },
   "best_overall": {
-    "eval_id": "e00113",
-    "score": -166014,
-    "commit": "2768258e7ab08b65b45f25a7cff2e28fb127e694",
+    "eval_id": "e00125",
+    "score": -164729,
+    "commit": "2420901f8343cfc5c407af92d7f0ec5a97cd5566",
     "emit_args": [
       "--branchy-mux",
       "--resize-elision",
@@ -271,13 +271,14 @@
       "--scan-branch-hints",
       "--host-call-guard-cache",
       "--memory-read-pow2-index",
-      "--array-broadcast-mux-chain-fuse"
+      "--array-broadcast-mux-chain-fuse",
+      "--commit-scratch-lazy-init"
     ]
   },
   "phi_selection_counts": {
     "e00085": 12,
     "e00088": 2,
-    "e00089": 1,
+    "e00089": 2,
     "e00092": 1,
     "e00093": 1,
     "e00097": 1,
@@ -287,7 +288,8 @@
     "e00106": 1,
     "e00108": 1,
     "e00110": 1,
-    "e00111": 1
+    "e00111": 1,
+    "e00113": 1
   },
   "history": [
     {
@@ -499,6 +501,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0119_step_r004t0s04_短链融合证伪与幂次除数弱正_20260824.md",
       "ts": "2026-08-24T20:17:00+08:00"
+    },
+    {
+      "n": 36,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0120_step_r004t1s04_commit清零后延弱正与Concat平衡树回退_20260824.md",
+      "ts": "2026-08-24T21:17:00+08:00"
     }
   ]
 }

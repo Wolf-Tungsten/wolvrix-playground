@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t1/s04 已完成，commit scratch 清零后延弱正，Concat 平衡树回退**
+  （2026-08-24，[A0120](actions/A0120_step_r004t1s04_commit清零后延弱正与Concat平衡树回退_20260824.md)）：
+  e00125 修正 e00114 fixture 后把 chunked commit scratch 清零移入事件门，Host
+  **164.729s**（较父改善 0.77%，CV 0.99%）；e00126 将 699,997 个最终位置 Concat
+  term 组织为单一平衡 OR 表达式，Host **168.646s**（较父回退 1.59%，CV 1.17%）。
+  两项最终均通过 17/17 ctest、三次 `73580/49996` difftest，单簇非 noisy；e00125
+  以 outcome=`neutral` 入 t1/main 并刷新 raw best_overall，但 t1 确认 best 仍为
+  e00113。预算 **42/48**；下一 action = `r004/t2/s04 step`（K=2），未启动。
+
 - **r004/t0/s04 已完成，短 wide-mux 链扩张证伪，幂次除数快路弱正收口 t0**
   （2026-08-24，[A0119](actions/A0119_step_r004t0s04_短链融合证伪与幂次除数弱正_20260824.md)）：
   e00123 把 wide mux 融合门槛从 16 降到 4，生产仅由 4 chains/92 steps 增至

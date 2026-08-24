@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0 已完成 4/4** | e00124 幂次除数快路 **169.236s**，较父改善 0.78%、outcome=neutral；短 wide-mux 链扩张证伪。全局 best 仍为 t1/e00113 **166.014s**，预算 **40/48**；详情见 [A0119](grhsim-am-coremark/actions/A0119_step_r004t0s04_短链融合证伪与幂次除数弱正_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0/t1 已完成 4/4** | e00125 commit scratch 清零后延 **164.729s**，较父改善 0.77%、outcome=neutral，刷新 raw best_overall；Concat 平衡树回退 1.59%。预算 **42/48**；详情见 [A0120](grhsim-am-coremark/actions/A0120_step_r004t1s04_commit清零后延弱正与Concat平衡树回退_20260824.md) |
 
 ## 共享件
 
