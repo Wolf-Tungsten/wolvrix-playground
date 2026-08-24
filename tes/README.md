@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t4/s03 完成** | e00119 幂次索引迁移较 e00108 改善 **8.26%** 至 **173.624s**，win 入 t4/main；窄 Replicate 乘法回退 **0.94%**。预算 **36/48**；下一 action 为 t5/e00110 recon，见 [A0115](grhsim-am-coremark/actions/A0115_step_r004t4s03_幂次索引迁移与窄replicate乘法证伪_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t5/s02 recon 完成** | e00110 动态画像确认六个幂次 memory-read 块 cycles **-94.04%** 至 0.199% 权重；commit 双峰绝对量反升 0.76%、权重 **9.285%**，scratch 后延未达到池级预期。预算 **36/48**；下一 action 为 t5/s03 step，见 [A0116](grhsim-am-coremark/actions/A0116_recon_r004t5s02_e00110幂次索引后动态热点画像_20260824.md) |
 
 ## 共享件
 

@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r004/t5/s02 post-change recon 已完成，幂次索引动态闭环，scratch 后延未降低 commit 双峰**
+  （2026-08-24，[A0116](actions/A0116_recon_r004t5s02_e00110幂次索引后动态热点画像_20260824.md)）：
+  e00110 的非计时 profile 通过 `73580/49996` 金标；compute/commit =
+  **71.4775%/28.4978%**，总 block cycles 较 t5/s00 e00085 下降 **8.63%**。
+  六个 512-depth memory-read 块在执行次数不变时从 27.002B 降至 1.608B cycles
+  （**-94.04%**），权重由 3.052% 降至 0.199%，确认幂次索引迁移的动态闭环；
+  b93159/b93141 commit 双峰绝对 cycles 反升 0.76%、权重升至 **9.285%**，未达到
+  scratch-after-gate 预注册的 15% 池级降幅。预算仍为 **36/48**，全局 best 为
+  e00113 **166.014s**；下一 action = `r004/t5/s03 step`（K=2），本 action 未启动它。
+
 - **r004/t4/s03 已完成，幂次索引迁移确认可加，窄 Replicate 乘法证伪**
   （2026-08-24，[A0115](actions/A0115_step_r004t4s03_幂次索引迁移与窄replicate乘法证伪_20260824.md)）：
   e00119 将 e00093 的 `--memory-read-pow2-index` 迁移到 e00108 predicate-run tip，

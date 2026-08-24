@@ -238,7 +238,7 @@
         "eval_id": "e00110",
         "score": -173058
       },
-      "last_recon_step": 0,
+      "last_recon_step": 2,
       "tip_eval_id": "e00110"
     }
   ],
@@ -248,7 +248,7 @@
     2
   ],
   "counters": {
-    "actions": 31,
+    "actions": 32,
     "evals": 36
   },
   "best_overall": {
@@ -472,6 +472,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0115_step_r004t4s03_幂次索引迁移与窄replicate乘法证伪_20260824.md",
       "ts": "2026-08-24T17:09:31+08:00"
+    },
+    {
+      "n": 32,
+      "type": "recon",
+      "note": "tes/grhsim-am-coremark/actions/A0116_recon_r004t5s02_e00110幂次索引后动态热点画像_20260824.md",
+      "ts": "2026-08-24T17:28:45+08:00"
     }
   ]
 }
