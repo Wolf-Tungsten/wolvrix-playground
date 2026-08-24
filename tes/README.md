@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：第 3 轮小结已完成** | 全局 best 为 t1/e00113 **166.014s**；t4/e00119 确认 pow2-index 与 predicate-run 可加，t0/t2/t5 宽 mux 迁移仅弱正，t3 commit/host 谓词方向未形成收益。预算 **38/48**；round-summary 详情见 [A0118](grhsim-am-coremark/actions/A0118_round-summary_r004第3轮跨轨迹小结_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0 已完成 4/4** | e00124 幂次除数快路 **169.236s**，较父改善 0.78%、outcome=neutral；短 wide-mux 链扩张证伪。全局 best 仍为 t1/e00113 **166.014s**，预算 **40/48**；详情见 [A0119](grhsim-am-coremark/actions/A0119_step_r004t0s04_短链融合证伪与幂次除数弱正_20260824.md) |
 
 ## 共享件
 

@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t0/s04 已完成，短 wide-mux 链扩张证伪，幂次除数快路弱正收口 t0**
+  （2026-08-24，[A0119](actions/A0119_step_r004t0s04_短链融合证伪与幂次除数弱正_20260824.md)）：
+  e00123 把 wide mux 融合门槛从 16 降到 4，生产仅由 4 chains/92 steps 增至
+  5/96，Host **170.697s**（较父回退 0.08%）；e00124 为 1,252 个 unsigned-div64
+  站增加运行时幂次除数 shift 快路，Host **169.236s**（较父改善 0.78%）。两项均
+  通过 17/17 ctest、三次 `73580/49996` difftest，单簇非 noisy；e00124 以
+  outcome=`neutral` 入 t0/main，t0 统计 best 仍为 e00100。预算 **40/48**，全局
+  best 仍为 e00113 **166.014s**；下一 action = `r004/t1/s04 step`（K=2），未启动。
+
 - **r004 第 3 轮 round-summary 已完成，宽 mux 仅在 guard-cache 基座越确认带，pow2-index 与 predicate-run 可加**
   （2026-08-24，[A0118](actions/A0118_round-summary_r004第3轮跨轨迹小结_20260824.md)）：六条轨迹 s03
   winner 为 t0/e00111 **170.564s**、t1/e00113 **166.014s**、t2/e00115 **166.561s**、

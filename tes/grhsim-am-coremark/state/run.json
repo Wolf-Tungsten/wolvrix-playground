@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 123
+    "next": 125
   },
   "baselines": {
     "am": {
@@ -172,14 +172,14 @@
     {
       "id": "t0",
       "branch": "tes/r004/t0/main",
-      "tip": "611784ba1adeeda8f458cedb385ceca3b42d23b1",
-      "steps_completed": 3,
+      "tip": "3cfb6c18b1d6fc6db4162bc6471864688be6007b",
+      "steps_completed": 4,
       "best": {
         "eval_id": "e00100",
         "score": -172832
       },
       "last_recon_step": 2,
-      "tip_eval_id": "e00111"
+      "tip_eval_id": "e00124"
     },
     {
       "id": "t1",
@@ -249,8 +249,8 @@
     3
   ],
   "counters": {
-    "actions": 34,
-    "evals": 38
+    "actions": 35,
+    "evals": 40
   },
   "best_overall": {
     "eval_id": "e00113",
@@ -276,7 +276,7 @@
   },
   "phi_selection_counts": {
     "e00085": 12,
-    "e00088": 1,
+    "e00088": 2,
     "e00089": 1,
     "e00092": 1,
     "e00093": 1,
@@ -286,7 +286,8 @@
     "e00104": 1,
     "e00106": 1,
     "e00108": 1,
-    "e00110": 1
+    "e00110": 1,
+    "e00111": 1
   },
   "history": [
     {
@@ -492,6 +493,12 @@
       "type": "round-summary",
       "note": "tes/grhsim-am-coremark/actions/A0118_round-summary_r004第3轮跨轨迹小结_20260824.md",
       "ts": "2026-08-24T19:05:41+08:00"
+    },
+    {
+      "n": 35,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0119_step_r004t0s04_短链融合证伪与幂次除数弱正_20260824.md",
+      "ts": "2026-08-24T20:17:00+08:00"
     }
   ]
 }

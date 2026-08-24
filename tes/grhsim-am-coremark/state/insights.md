@@ -2090,3 +2090,17 @@
 - 第 3 轮无额外基线 retime；round-summary 完成后继续按状态机推进剩余 10 个 eval
   席位，若再无新的确认收益，在 run-summary 请求用户决定是否转向更大粒度的 commit
   内锥/调度改写。
+## r004/t0/s04 短 wide-mux 链与幂次除数快路（2026-08-24，action A0119）
+
+- **短链扩张证伪（e00123）**：把精确 64-bit lane wide mux-chain 融合门槛从 16
+  降到 4，只令生产覆盖从 4 chains/92 steps 增至 **5/96**；Host 170.697s，较父
+  e00111 回退 0.08%。top-50 外 58.091% 长尾不能代替同构 engagement；新增一条
+  4-step 链没有收益上限，短链门槛轴关闭。
+- **幂次除数快路弱正（e00124，t0 raw tip）**：1,252 个 unsigned-div64 站在 RHS
+  为 2 的幂时改走 `countr_zero` + shift，一般除数仍用原生 `/`，零除仍为 0；Host
+  **169.236s**，较 e00111 改善 **0.78%**，达到 0.5% 下限但在 3% 确认带内。
+  生产 engagement 成立，b93085 的 1.431% 动态池降幅未测，跨轨迹复用前需新证据。
+- 表型纪律补充：代码候选若继承父节点 default-off emit 开关，正式 evaluator 仍须显式
+  传完整 `--emit-args`；e00123 首次漏传只得到冻结 12 开关且 chains=0，未登记并以同
+  eval-id 校正。`tes-candidate.json` 审计能阻止错误表型进入 ledger，但不能替代运行前
+  参数核对。
