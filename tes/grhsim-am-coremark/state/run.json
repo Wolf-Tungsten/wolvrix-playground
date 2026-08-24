@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 133
+    "next": 135
   },
   "baselines": {
     "am": {
@@ -232,14 +232,14 @@
     {
       "id": "t5",
       "branch": "tes/r004/t5/main",
-      "tip": "80c4657cdcdceb851ce1bf0959911171618620a1",
-      "steps_completed": 3,
+      "tip": "d9143d1c3f0ce28c4095a7ac8797f17f7129f624",
+      "steps_completed": 4,
       "best": {
         "eval_id": "e00110",
         "score": -173058
       },
       "last_recon_step": 2,
-      "tip_eval_id": "e00121"
+      "tip_eval_id": "e00133"
     }
   ],
   "current_step": null,
@@ -249,8 +249,8 @@
     3
   ],
   "counters": {
-    "actions": 39,
-    "evals": 48
+    "actions": 40,
+    "evals": 50
   },
   "best_overall": {
     "eval_id": "e00125",
@@ -281,7 +281,7 @@
     "e00089": 2,
     "e00092": 2,
     "e00093": 2,
-    "e00097": 1,
+    "e00097": 3,
     "e00100": 1,
     "e00102": 1,
     "e00104": 1,
@@ -292,7 +292,8 @@
     "e00113": 1,
     "e00115": 1,
     "e00118": 1,
-    "e00119": 1
+    "e00119": 1,
+    "e00121": 2
   },
   "history": [
     {
@@ -528,6 +529,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0123_step_r004t4s04_宽mux确认与commit清零弱正_20260825.md",
       "ts": "2026-08-25T01:15:55+08:00"
+    },
+    {
+      "n": 40,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0124_step_r004t5s04_commit分片与lazy开关失败_20260825.md",
+      "ts": "2026-08-25T01:47:08+08:00"
     }
   ]
 }

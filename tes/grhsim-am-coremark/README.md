@@ -6,6 +6,13 @@
 
 ## 当前状态速览
 
+- **r004/t5/s04 已完成，commit source 分片仅极弱正，lazy scratch 开关在当前基座不可用**
+  （2026-08-25，[A0124](actions/A0124_step_r004t5s04_commit分片与lazy开关失败_20260825.md)）：
+  e00133 将 commit source 分片降至 256KiB，Host **167.917s**（较父改善 0.17%，CV
+  0.94%），17/17 ctest 与三次 difftest 全过，按 `neutral` 合入 t5/main；e00134 在
+  ctest 全过后因 `--commit-scratch-lazy-init` 不存在于当前 t5 主线而 emit_fail，未进入
+  性能测量。t5 已完成 4/4，下一 action = `run-summary`，本 action 未启动。
+
 - **r004/t4/s04 已完成，宽 mux 迁移越过确认带，lazy commit scratch 仅弱正**
   （2026-08-25，[A0123](actions/A0123_step_r004t4s04_宽mux确认与commit清零弱正_20260825.md)）：
   e00131 把 e00106 已确认的 4-chain/92-step 宽 mux 融合迁移到 e00119，Host

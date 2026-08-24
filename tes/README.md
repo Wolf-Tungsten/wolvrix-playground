@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0/t1/t2/t3/t4 已完成 4/4** | e00131 宽 mux 迁移 **166.837s**（较父改善 3.91%、outcome=win），e00132 lazy commit scratch **172.265s**（改善 0.78%）；t4 确认 best 更新为 e00131。预算 **48/48**；下一步 t5/s04，详情见 [A0123](grhsim-am-coremark/actions/A0123_step_r004t4s04_宽mux确认与commit清零弱正_20260825.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0/t1/t2/t3/t4/t5 已完成 4/4** | e00133 commit source 分片 **167.917s**（较父改善 0.17%、outcome=neutral），e00134 lazy scratch 因 CLI 缺失 emit_fail；t5 已收口，下一步 run-summary，详情见 [A0124](grhsim-am-coremark/actions/A0124_step_r004t5s04_commit分片与lazy开关失败_20260825.md) |
 
 ## 共享件
 
