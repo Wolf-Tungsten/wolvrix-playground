@@ -2068,3 +2068,25 @@
   都在 ctest 门停止。最终两候选均以完整 15 项表型通过 17/17 ctest 和三次 difftest。
   预算 **38/48**，全局 best 仍为 e00113 **166.014s**；下一 action 为第 3 轮
   round-summary。
+
+## r004 第 3 轮跨轨迹小结（2026-08-24，action A0118）
+
+- s03 的六条轨迹 winner 为 t0/e00111 **170.564s**（-1.31%）、t1/e00113
+  **166.014s**（-3.05%）、t2/e00115 **166.561s**（-1.78%）、t3/e00118
+  **168.540s**（相对 e00106 +0.95%）、t4/e00119 **173.624s**（-8.26%）、
+  t5/e00121 **168.198s**（-2.81%）。全局 best 仍为 e00113，冻结 AM 改善
+  **14.16%**，预算 **38/48**。
+- **宽 mux 的可加性具有基座依赖。** 同一 4-chain/92-step 机制在 guard-cache
+  + pow2-index 基座（e00113）越过 3% 确认带，但在 division、predicate-run、
+  scratch-after-gate 基座只给 1.31%-2.81% 弱正；后续迁移必须以动态池覆盖而非静态
+  命中数作门槛。
+- **pow2-index + predicate-run 已形成第二个可复用组合。** e00119 的 8.26% 干净
+  收益与前轮多轨迹 pow2-index 复现一致；pow2-index 本身不再重复占席，应寻找其
+  消除 index_words 后的替代热点。
+- **commit 双峰仍未被表面改写击穿。** chunk 6000、scratch lazy、64-bit bitpack、
+  异构 shared predicate、common-event run 均未达到预注册池级门槛；bitpack 反而回退
+  5.29%。下一候选应先把 commit 时间拆成清零/scan/call/DPI 动态分量，再设计批量
+  消除，并修正 lazy-scratch 的 fixture 契约后才可重开。
+- 第 3 轮无额外基线 retime；round-summary 完成后继续按状态机推进剩余 10 个 eval
+  席位，若再无新的确认收益，在 run-summary 请求用户决定是否转向更大粒度的 commit
+  内锥/调度改写。

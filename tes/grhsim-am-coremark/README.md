@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004 第 3 轮 round-summary 已完成，宽 mux 仅在 guard-cache 基座越确认带，pow2-index 与 predicate-run 可加**
+  （2026-08-24，[A0118](actions/A0118_round-summary_r004第3轮跨轨迹小结_20260824.md)）：六条轨迹 s03
+  winner 为 t0/e00111 **170.564s**、t1/e00113 **166.014s**、t2/e00115 **166.561s**、
+  t3/e00118 **168.540s**、t4/e00119 **173.624s**、t5/e00121 **168.198s**；其中
+  e00113（宽 mux + guard-cache + pow2-index）唯一越过本轮 3% 确认带，e00119
+  （pow2-index + predicate-run）确认可加，commit 位压缩、异构谓词、common-event
+  与 lazy scratch 均未形成新确认收益。预算 **38/48**，全局 best 保持 e00113；
+  下一 action 由状态机决定，见 A0118 登记后的 next。
+
 - **r004/t5/s03 已完成，宽 mux 迁移接近确认带，host 共事件长 run 弱正**
   （2026-08-24，[A0117](actions/A0117_step_r004t5s03_宽mux迁移与host共事件弱正_20260824.md)）：
   e00121 将 e00106 的宽 mux 链融合迁移到 e00110，生产命中 4 chains/92 steps，Host

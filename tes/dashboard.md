@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-24T18:59:06+08:00
+> 生成于 2026-08-24T19:05:41+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 38/48 · actions 33 · 下一步 `round-summary`：第 3 轮（全部 6 条轨迹各完成 1 步）已齐平，做跨轨迹小结
+run **r004**（active）· C=6 L=4 K=2 · evals 38/48 · actions 34 · 下一步 `step`：推进轨迹 t0 到第 4 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -199,5 +199,5 @@ run **r004**（active）· C=6 L=4 K=2 · evals 38/48 · actions 33 · 下一步
 | e00121 | candidate | t5/s03c1 | 168.2s | 7.40x | unimodal | ok | Migration source e00106: fresh e00110 recon assign… |
 | e00122 | candidate | t5/s03c2 | 170.7s | 7.51x | unimodal | ok | Starting from e00110, fresh recon assigns 4.702% o… |
 
-最近 actions：A0029 step；A0030 recon；A0031 step；A0032 recon；A0033 step
+最近 actions：A0030 recon；A0031 step；A0032 recon；A0033 step；A0034 round-summary
 
