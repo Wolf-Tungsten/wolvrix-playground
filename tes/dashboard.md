@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-24T15:33:36+08:00
+> 生成于 2026-08-24T15:55:33+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 34/48 · actions 29 · 下一步 `recon`：轨迹 t4 recon 证据到期（staleness≥2），先对 tip（eval e00108）做非计时 profiling 再出 step
+run **r004**（active）· C=6 L=4 K=2 · evals 34/48 · actions 30 · 下一步 `step`：推进轨迹 t4 到第 3 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -192,6 +192,7 @@ run **r004**（active）· C=6 L=4 K=2 · evals 34/48 · actions 29 · 下一步
 | e00106 | recon | - | - | - | - | - |  |
 | e00117 | candidate | t3/s03c1 | 175.8s | 7.74x | unimodal | ok | Starting from e00106, its fresh recon assigns 9.34… |
 | e00118 | candidate | t3/s03c2 | 168.5s | 7.42x | unimodal | ok | Starting from e00106, its fresh recon assigns 4.79… |
+| e00108 | recon | - | - | - | - | - |  |
 
-最近 actions：A0025 step-resume；A0026 recon；A0027 step；A0028 recon；A0029 step
+最近 actions：A0026 recon；A0027 step；A0028 recon；A0029 step；A0030 recon
 

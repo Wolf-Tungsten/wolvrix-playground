@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t4/s02 post-change recon 已完成，谓词 run 未达到池级降幅预期**
+  （2026-08-24，[A0114](actions/A0114_recon_r004t4s02_e00108谓词run后动态热点画像_20260824.md)）：
+  e00108 的非计时 profile 通过 `73580/49996` 金标；compute/commit =
+  **73.2073%/26.7695%**，总 block cycles 较 t4/s00 e00085 **+0.15%**、近似持平。
+  b90656/b90657 system-task 双峰在执行次数不变时仅下降 **5.42%** 至 **4.649%**
+  权重，未达到预注册的 20%，不能把正式 Host 2.14% 弱正归因于共享谓词；commit
+  双峰仍占 **8.569%**，六个未专化 memory-read 块占 **3.101%**。预算仍为
+  **34/48**；下一 action = `r004/t4/s03 step`（K=2），本 action 未启动它。
+
 - **r004/t3/s03 已完成，commit 位压缩显著回退，异构 host-call 谓词融合无收益**
   （2026-08-24，[A0113](actions/A0113_step_r004t3s03_commit位图与异构host谓词融合回退_20260824.md)）：
   e00117 将 chunked commit scratch 压成 64-bit words，Host **175.776s**（较父 e00106
