@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004 已收口，raw best e00125 为 164.729s，但仍是 gsim 的 7.250x；当前不建议 restart**
+  （2026-08-25，[A0125](actions/A0125_run-summary_r004收口与停止restart_20260825.md)）：
+  C=6/L=4/K=2 的 48 个候选已全部完成，42 `ok`、6 个功能/表型门失败，所有 Host
+  结果均 unimodal、non-noisy。e00125 较 AM y0 改善 14.83%，但距冻结 gsim 仍差
+  142.009s；确认机制收敛为幂次 memory-read 索引及基座相关的宽 mux 可加组合，
+  commit/host-call 表面微调已饱和。`restart.max=3` 已耗尽且 `auto=false`；run 已
+  completed，无活跃 run。只有用户另行批准预算与更大粒度机制后，后续 goal 才可从
+  r004/e00125 以建议 C=4/L=3/K=2 初始化；本 action 未启动它。
+
 - **r004/t5/s04 已完成，commit source 分片仅极弱正，lazy scratch 开关在当前基座不可用**
   （2026-08-25，[A0124](actions/A0124_step_r004t5s04_commit分片与lazy开关失败_20260825.md)）：
   e00133 将 commit source 分片降至 256KiB，Host **167.917s**（较父改善 0.17%，CV

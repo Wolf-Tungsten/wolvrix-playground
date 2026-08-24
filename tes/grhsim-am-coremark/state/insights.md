@@ -2136,3 +2136,22 @@
 - 两候选均通过 17/17 ctest、三次 difftest 与表型审计；预算 **48/48**，t4 完成
   4/4，t4 确认 best 更新为 e00131 **166.837s**，全局 raw best 仍为 e00125
   **164.729s**。
+
+## r004 run-summary 与 restart 裁决（2026-08-25，action A0125）
+
+- r004 以 C=6/L=4/K=2 走满 48 个候选：42 `ok`、4 `ctest_fail`、1
+  `difftest_fail`、1 `emit_fail`；42 个 Host 结果全部 unimodal、non-noisy。raw
+  best e00125 = **164.729s**，较 AM y0/e00085 193.403s 改善 **14.83%**，但仍为
+  冻结 gsim/e00086 22.720s 的 **7.250x**，目标未达成。
+- 幂次 memory-read 索引在原始轨迹和四次迁移中稳定改善 8.95%-10.27%，recon 确认
+  六个热块 cycles 下降 93.08%-94.67%，作为下一解的已确认底座保留。宽 mux 在
+  e00113/e00131 基座确认 3.05%/3.91% 可加增量，但其他基座仅为弱正，迁移必须
+  继续以完整组合实测裁决。
+- commit/host-call 的清零后延、分片、chunk、bitpack、谓词/event 与 operand locality
+  均未形成稳定确认收益；第四轮除 e00131 外全部为 neutral/失败。重开这些方向前必须
+  先把动态墙钟拆成 commit 清零/scan/call/DPI 和 host-call 参数准备/格式化分量，再做
+  生产者-消费者联合批处理或调度级改写。
+- **当前不建议 restart**：`restart.max=3` 已耗尽且 `auto=false`。若用户另行扩大预算
+  并批准更大粒度机制，候选 y0 为 r004/e00125（commit `2420901f8343`，完整 16 项
+  表型），建议 C=4/L=3/K=2；init-run 之前先对 e00125 做新 recon。本 action 只收口，
+  不启动后续 run。

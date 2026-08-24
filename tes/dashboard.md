@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-25T01:47:08+08:00
+> 生成于 2026-08-25T01:52:13+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 50/48 · actions 40 · 下一步 `run-summary`：全部 6 条轨迹已达 L=4 步，写 run 总结并裁决是否 restart
+run **r004**（completed）· C=6 L=4 K=2 · evals 50/48 · actions 41 · 下一步 `run-closed`：r004 已收口；可开新 run（restart）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -211,5 +211,5 @@ run **r004**（active）· C=6 L=4 K=2 · evals 50/48 · actions 40 · 下一步
 | e00133 | candidate | t5/s04c1 | 167.9s | 7.39x | unimodal | ok | The e00110/e00121 recon leaves the b93159/b93141 c… |
 | e00134 | candidate | t5/s04c2 | - | - | - | emit_fail | The e00097 lazy commit-scratch mechanism showed a … |
 
-最近 actions：A0036 step；A0037 step；A0038 step；A0039 step；A0040 step
+最近 actions：A0037 step；A0038 step；A0039 step；A0040 step；A0041 run-summary
 
