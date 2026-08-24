@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：第 2 轮六轨迹齐平** | t5/s02 中 e00109 修正 Concat 位序后 = **189.753s**（较父 -0.71%，弱正），e00110 迁移 e00093 幂次索引 = **173.058s**（较父 -9.45%）；两项全门通过，e00110 以 `migration_source=e00093`、outcome=`win` 入 t5/main。预算 26/48，全局 best 仍为 e00106 **166.947s**；下一 action 为第 2 轮 `round-summary`，见 [A0104](grhsim-am-coremark/actions/A0104_step_r004t5s02_concat位序修正与幂次索引迁移_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：第 2 轮小结完成** | 幂次索引在 t0/t1/t2/t5 较父节点稳定改善 8.95%-10.27%，跨五轨迹收敛；e00106 宽 mux 组合较 e00093 再改善 **3.24%**，为唯一确认二阶增量。round 2 重锚 AM/e00085 **194.019s**（相对冻结 +0.32%）、gsim/e00086 **24.226s**（+6.63%，持续漂移），冻结口径不变。预算 26/48；下一 action 为 `t0/e00100 recon`，见 [A0105](grhsim-am-coremark/actions/A0105_round-summary_r004第2轮跨轨迹与基线重锚_20260824.md) |
 
 ## 共享件
 

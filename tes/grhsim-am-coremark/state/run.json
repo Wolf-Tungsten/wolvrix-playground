@@ -244,10 +244,11 @@
   ],
   "current_step": null,
   "round_summaries_done": [
-    1
+    1,
+    2
   ],
   "counters": {
-    "actions": 20,
+    "actions": 21,
     "evals": 26
   },
   "best_overall": {
@@ -399,6 +400,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0104_step_r004t5s02_concat位序修正与幂次索引迁移_20260824.md",
       "ts": "2026-08-24T09:27:11+08:00"
+    },
+    {
+      "n": 21,
+      "type": "round-summary",
+      "note": "tes/grhsim-am-coremark/actions/A0105_round-summary_r004第2轮跨轨迹与基线重锚_20260824.md",
+      "ts": "2026-08-24T09:44:00+08:00"
     }
   ]
 }
