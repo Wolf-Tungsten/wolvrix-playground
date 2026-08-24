@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t3/s03 已完成，commit 位压缩显著回退，异构 host-call 谓词融合无收益**
+  （2026-08-24，[A0113](actions/A0113_step_r004t3s03_commit位图与异构host谓词融合回退_20260824.md)）：
+  e00117 将 chunked commit scratch 压成 64-bit words，Host **175.776s**（较父 e00106
+  回退 **5.29%**）；e00118 在 b90656/b90657 生产形成 **6,349** 对共享 guard 的
+  `fwrite + DPI`，Host **168.540s**（回退 **0.95%**）。两项均通过 17/17 ctest、
+  三次 `73580/49996` difftest，单簇非 noisy；e00118 仅按 raw score 以
+  outcome=`neutral` 入 t3/main，t3 best 仍为 e00106，全局 best 仍为 e00113
+  **166.014s**。预算 **34/48**；下一 action = `t4/e00108 recon`，本 action 未启动它。
+
 - **r004/t3/s02 post-change recon 已完成，幂次索引与宽 mux 双机制均形成动态闭环**
   （2026-08-24，[A0112](actions/A0112_recon_r004t3s02_e00106双机制后动态热点画像_20260824.md)）：
   e00106 的非计时 profile 通过 `73580/49996` 金标；compute/commit =

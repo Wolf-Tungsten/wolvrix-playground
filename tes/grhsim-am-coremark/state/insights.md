@@ -2022,3 +2022,18 @@
   未测，不得把本次夹具失败记为机制证伪；重开须先修正断言并证明生产命中。
 - 新 best_overall=e00113 **166.014s**，相对冻结 AM/e00085 改善 **14.16%**，冻结
   gsim 口径 **7.307x**；预算 **30/48**。下一 action 为 t2/e00104 recon。
+
+## r004/t3/s03 commit 位图与异构 host 谓词融合（2026-08-24，action A0113）
+
+- **commit scratch 位压缩显著回退（e00117）**：将 b93159/b93141 的 chunk-shared
+  scalar/array/detector flag 从 byte bool 数组压成 64-bit words 后，Host
+  **175.776s**，较 e00106 回退 **5.29%**；17/17 ctest 与三次 difftest 全过。
+  一次性清零/footprint 节省被逐 flag bit-mask RMW 成本反超；只换容器的位压缩轴关闭，
+  重开必须让生产者和消费者都按 word 批量工作。
+- **异构 host-call 共享谓词证伪（e00118）**：生产 b90656/b90657 形成 **6,349** 对
+  `fwrite + DPI` 单 guard，但 Host **168.540s**，较 e00106 回退 **0.95%**，全门
+  通过且单簇非 noisy。重复 `condition && changedResults_[0]` 不是该 4.795% 池的一阶
+  成本；后续先动态拆分 scan/call/DPI，不再细化 fire guard。
+- e00118 仅因两候选 raw score 较高而以 outcome=`neutral` 入 t3/main；t3 best 仍为
+  e00106 **166.947s**，全局 best 仍为 e00113 **166.014s**。预算 **34/48**；下一
+  action 为 `t4/e00108 recon`。

@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-24T14:31:22+08:00
+> 生成于 2026-08-24T15:33:36+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 32/48 · actions 28 · 下一步 `step`：推进轨迹 t3 到第 3 步（round-robin 最少步数优先）
+run **r004**（active）· C=6 L=4 K=2 · evals 34/48 · actions 29 · 下一步 `recon`：轨迹 t4 recon 证据到期（staleness≥2），先对 tip（eval e00108）做非计时 profiling 再出 step
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -21,7 +21,7 @@ run **r004**（active）· C=6 L=4 K=2 · evals 32/48 · actions 28 · 下一步
 | t0 | `tes/r004/t0/main` | 3/4 | e00100 | 172.8s |
 | t1 | `tes/r004/t1/main` | 3/4 | e00113 | 166.0s |
 | t2 | `tes/r004/t2/main` | 3/4 | e00104 | 169.6s |
-| t3 | `tes/r004/t3/main` | 2/4 | e00106 | 166.9s |
+| t3 | `tes/r004/t3/main` | 3/4 | e00106 | 166.9s |
 | t4 | `tes/r004/t4/main` | 2/4 | e00108 | 189.3s |
 | t5 | `tes/r004/t5/main` | 2/4 | e00110 | 173.1s |
 
@@ -190,6 +190,8 @@ run **r004**（active）· C=6 L=4 K=2 · evals 32/48 · actions 28 · 下一步
 | e00115 | candidate | t2/s03c1 | 166.6s | 7.33x | unimodal | ok | From e00104, recon shows b69157/b69158/b69159 carr… |
 | e00116 | candidate | t2/s03c2 | 170.2s | 7.49x | unimodal | ok | From e00104, recon shows commit blocks 93159/93141… |
 | e00106 | recon | - | - | - | - | - |  |
+| e00117 | candidate | t3/s03c1 | 175.8s | 7.74x | unimodal | ok | Starting from e00106, its fresh recon assigns 9.34… |
+| e00118 | candidate | t3/s03c2 | 168.5s | 7.42x | unimodal | ok | Starting from e00106, its fresh recon assigns 4.79… |
 
-最近 actions：A0024 recon；A0025 step-resume；A0026 recon；A0027 step；A0028 recon
+最近 actions：A0025 step-resume；A0026 recon；A0027 step；A0028 recon；A0029 step
 

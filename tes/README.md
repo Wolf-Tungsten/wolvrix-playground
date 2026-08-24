@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t3/s02 recon 完成** | e00106 双机制 profile 通过 `73580/49996` 金标；memory-read/宽 mux 池分别下降 **94.67%/88.65%**，commit 双峰升至 **9.340%** 替代主峰。预算 **32/48**；下一 action 为 t3/s03 step，见 [A0112](grhsim-am-coremark/actions/A0112_recon_r004t3s02_e00106双机制后动态热点画像_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t3/s03 完成** | commit scratch 位压缩 e00117 回退 **5.29%**；6,349 对异构 host-call 共享 guard 的 e00118 回退 **0.95%**，以 neutral 入 t3/main。预算 **34/48**；下一 action 为 t4/e00108 recon，见 [A0113](grhsim-am-coremark/actions/A0113_step_r004t3s03_commit位图与异构host谓词融合回退_20260824.md) |
 
 ## 共享件
 
