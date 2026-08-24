@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t3/s02 post-change recon 已完成，幂次索引与宽 mux 双机制均形成动态闭环**
+  （2026-08-24，[A0112](actions/A0112_recon_r004t3s02_e00106双机制后动态热点画像_20260824.md)）：
+  e00106 的非计时 profile 通过 `73580/49996` 金标；compute/commit =
+  **71.1635%/28.8104%**，总 block cycles 较 t3/s00 e00085 下降 **9.75%**。
+  六个 memory-read 块在执行次数不变时下降 **94.67%** 至 0.185% 权重，三个宽 mux
+  块下降 **88.65%** 至 0.197%，两个确认机制均完成池级闭环。b93159/b93141 commit
+  双峰仅下降 1.03%，相对权重升至 **9.340%**，成为下一步首要病灶。预算仍为
+  **32/48**；下一 action = `r004/t3/s03 step`（K=2），本 action 未启动它。
+
 - **r004/t2/s03 已完成，宽 mux 迁移为 neutral，commit scratch 后延回退**
   （2026-08-24，[A0111](actions/A0111_step_r004t2s03_宽mux迁移与commit清零后延组合_20260824.md)）：
   e00115 在 e00104 基座上叠加已确认的 `--array-broadcast-mux-chain-fuse`，Host

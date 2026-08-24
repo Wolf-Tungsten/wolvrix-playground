@@ -214,7 +214,7 @@
         "eval_id": "e00106",
         "score": -166947
       },
-      "last_recon_step": 0,
+      "last_recon_step": 2,
       "tip_eval_id": "e00106"
     },
     {
@@ -248,7 +248,7 @@
     2
   ],
   "counters": {
-    "actions": 27,
+    "actions": 28,
     "evals": 32
   },
   "best_overall": {
@@ -446,6 +446,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0111_step_r004t2s03_宽mux迁移与commit清零后延组合_20260824.md",
       "ts": "2026-08-24T14:13:28+08:00"
+    },
+    {
+      "n": 28,
+      "type": "recon",
+      "note": "tes/grhsim-am-coremark/actions/A0112_recon_r004t3s02_e00106双机制后动态热点画像_20260824.md",
+      "ts": "2026-08-24T14:31:22+08:00"
     }
   ]
 }
