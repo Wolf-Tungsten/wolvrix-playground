@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 115
+    "next": 117
   },
   "baselines": {
     "am": {
@@ -196,14 +196,14 @@
     {
       "id": "t2",
       "branch": "tes/r004/t2/main",
-      "tip": "3f37f45837c0ba5efa0b5fde6dc6776e16788f62",
-      "steps_completed": 2,
+      "tip": "837b9dc590833db2686e02f68c202dc1d08e26c5",
+      "steps_completed": 3,
       "best": {
         "eval_id": "e00104",
         "score": -169577
       },
       "last_recon_step": 2,
-      "tip_eval_id": "e00104"
+      "tip_eval_id": "e00115"
     },
     {
       "id": "t3",
@@ -248,8 +248,8 @@
     2
   ],
   "counters": {
-    "actions": 26,
-    "evals": 30
+    "actions": 27,
+    "evals": 32
   },
   "best_overall": {
     "eval_id": "e00113",
@@ -274,14 +274,15 @@
     ]
   },
   "phi_selection_counts": {
-    "e00085": 9,
+    "e00085": 10,
     "e00088": 1,
     "e00089": 1,
     "e00092": 1,
     "e00093": 1,
     "e00097": 1,
     "e00100": 1,
-    "e00102": 1
+    "e00102": 1,
+    "e00104": 1
   },
   "history": [
     {
@@ -439,6 +440,12 @@
       "type": "recon",
       "note": "tes/grhsim-am-coremark/actions/A0110_recon_r004t2s02_e00104幂次索引后动态热点画像_20260824.md",
       "ts": "2026-08-24T13:00:18+08:00"
+    },
+    {
+      "n": 27,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0111_step_r004t2s03_宽mux迁移与commit清零后延组合_20260824.md",
+      "ts": "2026-08-24T14:13:28+08:00"
     }
   ]
 }

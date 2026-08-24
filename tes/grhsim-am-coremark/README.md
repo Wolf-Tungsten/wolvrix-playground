@@ -6,6 +6,14 @@
 
 ## 当前状态速览
 
+- **r004/t2/s03 已完成，宽 mux 迁移为 neutral，commit scratch 后延回退**
+  （2026-08-24，[A0111](actions/A0111_step_r004t2s03_宽mux迁移与commit清零后延组合_20260824.md)）：
+  e00115 在 e00104 基座上叠加已确认的 `--array-broadcast-mux-chain-fuse`，Host
+  **166.561s**（较父改善 1.78%，CV 1.18%，17/17 ctest、三次 `73580/49996`
+  difftest 全过），低于 3% 确认带，neutral 合入 t2/main；e00116 的
+  `--commit-scratch-lazy-init` 为 **170.194s**（较父回退 0.36%，同样全门通过），
+  否决为非加性。预算 **32/48**；下一 action 为全局 best e00106 的 `recon`。
+
 - **r004/t2/s02 post-change recon 已完成，幂次索引动态闭环在 t2 复现，commit 成为 9.261% 主峰**
   （2026-08-24，[A0110](actions/A0110_recon_r004t2s02_e00104幂次索引后动态热点画像_20260824.md)）：
   e00104 的非计时 profile 通过 `73580/49996` 金标；compute/commit =
