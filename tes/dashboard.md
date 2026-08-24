@@ -2,11 +2,11 @@
 
 > 本文件由 `python3 tes/tools/tesctl.py dashboard` 生成；record-baseline / record-eval /
 > finish-step / close-run / action-done 等状态变更后也会自动刷新。**请勿手改。**
-> 生成于 2026-08-24T10:54:50+08:00
+> 生成于 2026-08-24T11:15:00+08:00
 
 ## 任务 `grhsim-am-coremark`
 
-run **r004**（active）· C=6 L=4 K=2 · evals 28/48 · actions 23 · 下一步 `recon`：轨迹 t1 recon 证据到期（staleness≥2），先对 tip（eval e00102）做非计时 profiling 再出 step
+run **r004**（active）· C=6 L=4 K=2 · evals 28/48 · actions 24 · 下一步 `step`：推进轨迹 t1 到第 3 步（round-robin 最少步数优先）
 
 | 基准 | eval | Host 中位 | vs target |
 |---|---|---|---|
@@ -183,6 +183,7 @@ run **r004**（active）· C=6 L=4 K=2 · evals 28/48 · actions 23 · 下一步
 | e00100 | recon | - | - | - | - | - |  |
 | e00111 | candidate | t0/s03c1 | 170.6s | 7.51x | unimodal | ok | Migrating e00106's confirmed wide ArrayBroadcast-t… |
 | e00112 | candidate | t0/s03c2 | 174.3s | 7.67x | unimodal | ok | On e00100, b93159 and b93141 execute about 100k ti… |
+| e00102 | recon | - | - | - | - | - |  |
 
-最近 actions：A0019 step；A0020 step；A0021 round-summary；A0022 recon；A0023 step
+最近 actions：A0020 step；A0021 round-summary；A0022 recon；A0023 step；A0024 recon
 

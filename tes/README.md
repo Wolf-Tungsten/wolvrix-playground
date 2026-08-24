@@ -31,7 +31,7 @@ brief/config/state/actions/proposals/runs 与专属 evaluator.py。
 
 | 任务 | 主题 | 状态 | 最新进展 |
 |---|---|---|---|
-| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t0/s03 完成** | e00111 宽 mux 链融合迁移 = **170.564s**，较 e00100 改善 1.31%，outcome=`neutral`；e00112 commit chunk 粒度 6000 = **174.258s**，回退 0.83%。两项全门通过、单簇非 noisy。预算 28/48；下一 action 为 `t1/e00102 recon`，见 [A0107](grhsim-am-coremark/actions/A0107_step_r004t0s03_宽mux迁移与commit分块回退_20260824.md) |
+| [grhsim-am-coremark](grhsim-am-coremark/README.md) | grhsim-am 仿真 xiangshan coremark 50k 的 Host 时间 <= gsim 同等负载 | **r004 active：t1/s02 recon 完成** | e00102 post-change profile 通过 `73580/49996` 金标；六个 memory-read 热块 cycles **-93.08%**（2.960% -> 0.220%），幂次索引动态闭环复现；system-task 双峰仅 -4.86%，guard-cache 无可分辨池级收益。预算 28/48；下一 action 为 `t1/s03 step`，见 [A0108](grhsim-am-coremark/actions/A0108_recon_r004t1s02_e00102幂次索引后动态热点画像_20260824.md) |
 
 ## 共享件
 

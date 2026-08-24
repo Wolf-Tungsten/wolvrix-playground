@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r004/t1/s02 post-change recon 已完成，幂次索引动态闭环在 t1 复现，guard-cache 未形成池级收益**
+  （2026-08-24，[A0108](actions/A0108_recon_r004t1s02_e00102幂次索引后动态热点画像_20260824.md)）：
+  e00102 的非计时 profile 通过 `73580/49996` 金标；compute/commit =
+  **71.4177%/28.5600%**，总 block cycles 较 t1/s00 e00085 下降 **6.86%**。
+  六个 512-depth memory-read 块在执行次数不变时由 25.787B 降至 1.785B cycles
+  （**-93.08%**），动态权重由 2.960% 降至 0.220%；b90656/b90657 system-task
+  双峰只降 4.86%，不能确认 guard-cache 的正交收益。剩余主峰为 b93159/b93141
+  commit 池 **9.194%**，宽 mux 池 **1.697%**。预算仍为 **28/48**；下一 action =
+  `r004/t1/s03 step`（K=2），本 action 未启动它。
+
 - **r004/t0/s03 已完成，宽 mux 迁移弱正，commit chunk 粒度 6000 回退**
   （2026-08-24，[A0107](actions/A0107_step_r004t0s03_宽mux迁移与commit分块回退_20260824.md)）：
   e00111 以唯一迁移席将 e00106 的 `--array-broadcast-mux-chain-fuse` 叠加到 e00100，

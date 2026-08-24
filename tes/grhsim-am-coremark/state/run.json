@@ -190,7 +190,7 @@
         "eval_id": "e00102",
         "score": -171233
       },
-      "last_recon_step": 0,
+      "last_recon_step": 2,
       "tip_eval_id": "e00102"
     },
     {
@@ -248,7 +248,7 @@
     2
   ],
   "counters": {
-    "actions": 23,
+    "actions": 24,
     "evals": 28
   },
   "best_overall": {
@@ -419,6 +419,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0107_step_r004t0s03_宽mux迁移与commit分块回退_20260824.md",
       "ts": "2026-08-24T10:54:50+08:00"
+    },
+    {
+      "n": 24,
+      "type": "recon",
+      "note": "tes/grhsim-am-coremark/actions/A0108_recon_r004t1s02_e00102幂次索引后动态热点画像_20260824.md",
+      "ts": "2026-08-24T11:15:00+08:00"
     }
   ]
 }
