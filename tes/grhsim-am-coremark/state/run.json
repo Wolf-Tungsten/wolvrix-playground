@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 127
+    "next": 129
   },
   "baselines": {
     "am": {
@@ -196,14 +196,14 @@
     {
       "id": "t2",
       "branch": "tes/r004/t2/main",
-      "tip": "837b9dc590833db2686e02f68c202dc1d08e26c5",
-      "steps_completed": 3,
+      "tip": "03c00989686de4bcb28593887a5bc1399b551c73",
+      "steps_completed": 4,
       "best": {
         "eval_id": "e00104",
         "score": -169577
       },
       "last_recon_step": 2,
-      "tip_eval_id": "e00115"
+      "tip_eval_id": "e00128"
     },
     {
       "id": "t3",
@@ -249,8 +249,8 @@
     3
   ],
   "counters": {
-    "actions": 36,
-    "evals": 42
+    "actions": 37,
+    "evals": 44
   },
   "best_overall": {
     "eval_id": "e00125",
@@ -279,7 +279,7 @@
     "e00085": 12,
     "e00088": 2,
     "e00089": 2,
-    "e00092": 1,
+    "e00092": 2,
     "e00093": 1,
     "e00097": 1,
     "e00100": 1,
@@ -289,7 +289,8 @@
     "e00108": 1,
     "e00110": 1,
     "e00111": 1,
-    "e00113": 1
+    "e00113": 1,
+    "e00115": 1
   },
   "history": [
     {
@@ -507,6 +508,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0120_step_r004t1s04_commit清零后延弱正与Concat平衡树回退_20260824.md",
       "ts": "2026-08-24T21:17:00+08:00"
+    },
+    {
+      "n": 37,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0121_step_r004t2s04_state写与host调用局部化回退_20260824.md",
+      "ts": "2026-08-24T22:26:50+08:00"
     }
   ]
 }

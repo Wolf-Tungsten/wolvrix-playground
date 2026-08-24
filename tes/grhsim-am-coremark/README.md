@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t2/s04 已完成，state-write 与 host-call 操作数局部化均回退**
+  （2026-08-24，[A0121](actions/A0121_step_r004t2s04_state写与host调用局部化回退_20260824.md)）：
+  e00127 仅保留 state target 持久化、将同块 write data/mask/address 临时量交回局部
+  分析，Host **168.106s**（较父回退 0.93%，CV 0.38%）；e00128 局部化非 final
+  SystemTask/DPI 的同块窄参数与结果，Host **167.795s**（较父回退 0.74%，CV
+  1.03%）。两项均通过 17/17 ctest、三次 `73580/49996` difftest，单簇非 noisy；
+  e00128 仅按 raw score 以 outcome=`neutral` 入 t2/main，t2 确认 best 仍为 e00104。
+  预算 **44/48**；下一 action = `r004/t3/s04 step`（K=2），未启动。
+
 - **r004/t1/s04 已完成，commit scratch 清零后延弱正，Concat 平衡树回退**
   （2026-08-24，[A0120](actions/A0120_step_r004t1s04_commit清零后延弱正与Concat平衡树回退_20260824.md)）：
   e00125 修正 e00114 fixture 后把 chunked commit scratch 清零移入事件门，Host

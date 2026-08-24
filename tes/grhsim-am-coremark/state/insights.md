@@ -2104,3 +2104,19 @@
   传完整 `--emit-args`；e00123 首次漏传只得到冻结 12 开关且 chains=0，未登记并以同
   eval-id 校正。`tes-candidate.json` 审计能阻止错误表型进入 ledger，但不能替代运行前
   参数核对。
+
+## r004/t2/s04 state-write 与 host-call 操作数局部化（2026-08-24，action A0121）
+
+- **state-write operand locality 证伪（e00127）**：只强制真实 state target
+  持久化、允许同块 data/condition/mask/address 临时量局部化后 Host **168.106s**，
+  较 e00115 回退 **0.93%**；功能门全过、CV 0.38%。单纯收紧逃逸边界没有击穿
+  b93159/b93141 的 **9.261%** commit 双峰，后续需动态拆分清零/flag/fanout 后做
+  生产者与消费者联合批处理，不再调整局部/成员存储形态。
+- **host-call operand locality 证伪（e00128）**：predicate-run 后 b90656/b90657
+  仍占 **4.749%**，但非 final SystemTask/DPI 的同块窄参数/结果局部化得到
+  **167.795s**，较父回退 **0.74%**；功能门全过、CV 1.03%。host-call 参数持久槽
+  不是一阶成本，后续须拆分 scan/参数准备/格式化/DPI，不再细化 guard/event/逃逸。
+- c1 首次 167.464s 因 `tes-candidate.json` 漏列父节点三项增量开关被表型硬审计
+  拒绝；修正声明后同一 e00127 完整重跑才登记 168.106s。实际表型正确也不能绕过
+  commit 与声明一致性审计。e00128 仅以 raw score outcome=`neutral` 入 t2/main，
+  t2 确认 best 仍为 e00104；预算 **44/48**。
