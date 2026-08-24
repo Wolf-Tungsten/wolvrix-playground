@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 131
+    "next": 133
   },
   "baselines": {
     "am": {
@@ -220,14 +220,14 @@
     {
       "id": "t4",
       "branch": "tes/r004/t4/main",
-      "tip": "099335af01bb15c678d3dbacb5e2cb8b7865d7c7",
-      "steps_completed": 3,
+      "tip": "72405b7320af94a38145f4a042d4a933dc573126",
+      "steps_completed": 4,
       "best": {
-        "eval_id": "e00119",
-        "score": -173624
+        "eval_id": "e00131",
+        "score": -166837
       },
       "last_recon_step": 2,
-      "tip_eval_id": "e00119"
+      "tip_eval_id": "e00131"
     },
     {
       "id": "t5",
@@ -249,8 +249,8 @@
     3
   ],
   "counters": {
-    "actions": 38,
-    "evals": 46
+    "actions": 39,
+    "evals": 48
   },
   "best_overall": {
     "eval_id": "e00125",
@@ -276,7 +276,7 @@
     ]
   },
   "phi_selection_counts": {
-    "e00085": 12,
+    "e00085": 13,
     "e00088": 2,
     "e00089": 2,
     "e00092": 2,
@@ -291,7 +291,8 @@
     "e00111": 1,
     "e00113": 1,
     "e00115": 1,
-    "e00118": 1
+    "e00118": 1,
+    "e00119": 1
   },
   "history": [
     {
@@ -521,6 +522,12 @@
       "type": "step",
       "note": "tes/grhsim-am-coremark/actions/A0122_step_r004t3s04_commit分片结构回退与弱正_20260825.md",
       "ts": "2026-08-25T00:25:27+08:00"
+    },
+    {
+      "n": 39,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0123_step_r004t4s04_宽mux确认与commit清零弱正_20260825.md",
+      "ts": "2026-08-25T01:15:55+08:00"
     }
   ]
 }

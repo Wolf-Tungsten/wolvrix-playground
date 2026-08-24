@@ -6,6 +6,15 @@
 
 ## 当前状态速览
 
+- **r004/t4/s04 已完成，宽 mux 迁移越过确认带，lazy commit scratch 仅弱正**
+  （2026-08-25，[A0123](actions/A0123_step_r004t4s04_宽mux确认与commit清零弱正_20260825.md)）：
+  e00131 把 e00106 已确认的 4-chain/92-step 宽 mux 融合迁移到 e00119，Host
+  **166.837s**（较父改善 **3.91%**，CV 1.39%）；e00132 将本轨迹 e00107 的
+  commit scratch 清零后延机制组合到 e00119，Host **172.265s**（改善 0.78%，CV
+  0.72%）。两项均通过 17/17 ctest、三次 difftest，单簇非 noisy；e00131 以
+  `migration_source=e00106`、outcome=`win` 入 t4/main。预算 **48/48**；下一 action
+  = `r004/t5/s04 step`（K=2），未启动。
+
 - **r004/t3/s04 已完成，commit atom 拆分回退，source 分片弱正收口**
   （2026-08-25，[A0122](actions/A0122_step_r004t3s04_commit分片结构回退与弱正_20260825.md)）：
   e00129 将 commit atom 上限从 4096 降至 2048，Host **169.531s**（较父 e00118
