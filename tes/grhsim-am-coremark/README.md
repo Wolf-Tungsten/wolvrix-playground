@@ -6,6 +6,16 @@
 
 ## 当前状态速览
 
+- **r004/t0/s03 已完成，宽 mux 迁移弱正，commit chunk 粒度 6000 回退**
+  （2026-08-24，[A0107](actions/A0107_step_r004t0s03_宽mux迁移与commit分块回退_20260824.md)）：
+  e00111 以唯一迁移席将 e00106 的 `--array-broadcast-mux-chain-fuse` 叠加到 e00100，
+  生产命中 4 链/92 steps，Host **170.564s**（较父改善 1.31%，CV 0.75%）；e00112
+  将 `--block-chunk-instructions` 从 3000 调到 6000，Host **174.258s**（回退 0.83%，
+  CV 1.53%）。两项均通过 17/17 ctest 与三次 difftest，单簇且非 noisy；e00111
+  以 `migration_source=e00106`、outcome=`neutral` 入 t0/main，t0 统计 best 仍为
+  e00100。预算 **28/48**，全局 best 仍为 e00106 **166.947s**；下一 action =
+  `t1/e00102 recon`，本 action 未启动它。
+
 - **r004/t0/s02 post-change recon 已完成，幂次索引热池动态 cycles 下降 94.49%**
   （2026-08-24，[A0106](actions/A0106_recon_r004t0s02_e00100幂次索引后动态热点画像_20260824.md)）：
   e00100 的非计时 profile 通过 `73580/49996` 金标；compute/commit =

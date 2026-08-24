@@ -152,7 +152,7 @@
   },
   "eval_sequence": {
     "start": 85,
-    "next": 111
+    "next": 113
   },
   "baselines": {
     "am": {
@@ -172,14 +172,14 @@
     {
       "id": "t0",
       "branch": "tes/r004/t0/main",
-      "tip": "8cb0b6ee1bfeab1f86ce69a4e870d9f0214a883a",
-      "steps_completed": 2,
+      "tip": "611784ba1adeeda8f458cedb385ceca3b42d23b1",
+      "steps_completed": 3,
       "best": {
         "eval_id": "e00100",
         "score": -172832
       },
       "last_recon_step": 2,
-      "tip_eval_id": "e00100"
+      "tip_eval_id": "e00111"
     },
     {
       "id": "t1",
@@ -248,8 +248,8 @@
     2
   ],
   "counters": {
-    "actions": 22,
-    "evals": 26
+    "actions": 23,
+    "evals": 28
   },
   "best_overall": {
     "eval_id": "e00106",
@@ -273,12 +273,13 @@
     ]
   },
   "phi_selection_counts": {
-    "e00085": 7,
+    "e00085": 8,
     "e00088": 1,
     "e00089": 1,
     "e00092": 1,
     "e00093": 1,
-    "e00097": 1
+    "e00097": 1,
+    "e00100": 1
   },
   "history": [
     {
@@ -412,6 +413,12 @@
       "type": "recon",
       "note": "tes/grhsim-am-coremark/actions/A0106_recon_r004t0s02_e00100幂次索引后动态热点画像_20260824.md",
       "ts": "2026-08-24T10:03:59+08:00"
+    },
+    {
+      "n": 23,
+      "type": "step",
+      "note": "tes/grhsim-am-coremark/actions/A0107_step_r004t0s03_宽mux迁移与commit分块回退_20260824.md",
+      "ts": "2026-08-24T10:54:50+08:00"
     }
   ]
 }
