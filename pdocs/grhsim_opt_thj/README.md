@@ -256,12 +256,13 @@
 | `TNO0244` | `2026-08-21` | [XiangShan direct Verilator 2/4/8/16-thread scaling on node032 (50k-cycle serial runs)](./TNO0244_xiangshan_verilator_thread_scaling_node032_50k_20260821.md) | 按用户要求无 NUMA 绑定并行编译 `EMU_THREADS=2/4/8/16`（`-j96`、FST on、无 PGO/BOLT），随后在 node032 串行测 50k；external wall 为 `89.18/47.93/28.94/22.46 s`，四次均按 cycle limit 正常 `rc=0`，受 node032 外部负载影响，仅作 raw scaling snapshot。 |
 | `TNO0245` | `2026-08-22` | [XiangShan RepCut partition-count sweep protocol](./TNO0245_xiangshan_repcut_partition_count_sweep_protocol_20260822.md) | 预注册同一 `SimTop` GRH、同一 Wolvrix binary、固定 deterministic-quality/seed 0/epsilon 0.015，仅改变 `k=2/4/8/16/32/64` 的 transform-only 串行 sweep；分离核心复制率、source/final 净变化、权重/op/通信不平衡和 cut/KM1，并在首档后追加保留错误复制率口径的勘误。 |
 | `TNO0246` | `2026-08-22` | [XiangShan RepCut partition-count sweep results](./TNO0246_xiangshan_repcut_partition_count_sweep_results_20260822.md) | 六档 RepCut 与全部结构门禁均 PASS，`k=32` 逐字节复现旧 `.part32`；核心复制率 `0.2771%→9.0366%`、final op 不平衡 `20.307%→657.243%`、KM1 `895,474→23,455,797`，weight 不平衡仍约束在 1.5% 内。仅为静态 transform 结果，不宣称 runtime 最优或仿真正确。 |
+| `TNO0247` | `2026-08-24` | [SimpleTES typed-state budget-512/valid-128 node030 resume launch](./TNO0247_simpletes_typed_state_budget512_valid128_node030_resume_launch_20260824.md) | 上段在 `185 attempts/98 evals/64 valid` 正常结束，best SimTop 50k 为 `43,564.25→41,575.00 ms`（提升 `4.566244%`）；SimpleTES `c8f1da8` 将受控 resume ceiling 扩至 `512`，node030 补齐 `clang-scan-deps-19` 后从最终 checkpoint 精确续跑到累计 `128 valid`，GPT max `4 gen/1 eval` 已运行。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`246`（`TNO0001..TNO0246`）。
+- 当前记录类文档总数：`247`（`TNO0001..TNO0247`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
