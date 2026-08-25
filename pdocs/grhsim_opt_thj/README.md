@@ -251,12 +251,13 @@
 | `TNO0239` | `2026-08-19` | [RepCut thread-scaling build and functional gates](./TNO0239_repcut_thread_scaling_build_and_functional_gates_20260819.md) | 最终口径见第 8 节：冻结 RTL 匹配 `CPU_XIANGSHAN`/79263 generated-src，通用 `CPU_DEMO`/45871 fresh-G 构建排除；匹配 profile 的 native t1 与 partitioned N=1/2/4/8 在 cycle 605 触发 `csr_dbltrp_inMN`，正式矩阵被功能门阻断。 |
 | `TNO0240` | `2026-08-19` | [RepCut thread-scaling performance results and evidence boundary](./TNO0240_repcut_thread_scaling_performance_results_20260819.md) | 最终执行口径见第 7 节：匹配 XiangShan profile 下 `run_xs_repcut` 与 `run_xs_repcut_verilator` 的 N=1/2/4/8 正式矩阵尚未启动，headline 均为 `N/A`；fresh-G 错误 profile 与历史 timing 均不冒充当前矩阵。 |
 | `TNO0241` | `2026-08-20` | [RepCut DPI output schedule root cause](./TNO0241_repcut_dpi_output_schedule_root_cause_20260820.md) | native t1 的 cycle 605 assertion 已由严格单点调度 A/B 完成因果闭环：`void DPI(output)` 被误判为无返回 effect，emitter 拆散 producer/commit，t1 与 partitioned part3 形成 `reader→commit→producer`；仅复刻 t2 顺序即可跑满 C10000。早期 `debug_part` early-publish 被移除且替代 phase 未实现，partitioned 判定为高置信度，代码修复尚未实施。 |
+| `TNO0242` | `2026-08-21` | [XiangShan direct Verilator single-core/single-thread CoreMark 2-iteration walltime](./TNO0242_xiangshan_direct_verilator_single_core_single_thread_coremark2_walltime_20260821.md) | 直接 Verilator 的 guest 单核/host 单线程 plain `-O3`、无 PGO/BOLT、编译含 FST 且运行不落波形；CoreMark 2 iter 功能 PASS，唯一 host walltime `738499 ms`。入场 quiet gate PASS，但运行期 CCD 被外部负载污染（other-15 mean/min `94.209%/82.210%`），故仅作为 node029 单次 raw snapshot，不作正式跨版本比较。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`241`（`TNO0001..TNO0241`）。
+- 当前记录类文档总数：`242`（`TNO0001..TNO0242`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
