@@ -252,12 +252,14 @@
 | `TNO0240` | `2026-08-19` | [RepCut thread-scaling performance results and evidence boundary](./TNO0240_repcut_thread_scaling_performance_results_20260819.md) | 最终执行口径见第 7 节：匹配 XiangShan profile 下 `run_xs_repcut` 与 `run_xs_repcut_verilator` 的 N=1/2/4/8 正式矩阵尚未启动，headline 均为 `N/A`；fresh-G 错误 profile 与历史 timing 均不冒充当前矩阵。 |
 | `TNO0241` | `2026-08-20` | [RepCut DPI output schedule root cause](./TNO0241_repcut_dpi_output_schedule_root_cause_20260820.md) | native t1 的 cycle 605 assertion 已由严格单点调度 A/B 完成因果闭环：`void DPI(output)` 被误判为无返回 effect，emitter 拆散 producer/commit，t1 与 partitioned part3 形成 `reader→commit→producer`；仅复刻 t2 顺序即可跑满 C10000。早期 `debug_part` early-publish 被移除且替代 phase 未实现，partitioned 判定为高置信度，代码修复尚未实施。 |
 | `TNO0242` | `2026-08-21` | [XiangShan direct Verilator single-core/single-thread CoreMark 2-iteration walltime](./TNO0242_xiangshan_direct_verilator_single_core_single_thread_coremark2_walltime_20260821.md) | 直接 Verilator 的 guest 单核/host 单线程 plain `-O3`、无 PGO/BOLT、编译含 FST 且运行不落波形；CoreMark 2 iter 功能 PASS，唯一 host walltime `738499 ms`。入场 quiet gate PASS，但运行期 CCD 被外部负载污染（other-15 mean/min `94.209%/82.210%`），故仅作为 node029 单次 raw snapshot，不作正式跨版本比较。 |
+| `TNO0243` | `2026-08-21` | [XiangShan node032 direct Verilator 50k-cycle diagnostic run](./TNO0243_xiangshan_node032_direct_verilator_50k_cycle_diagnostic_20260821.md) | SSH 到 node032 复用 TNO0242 emu，单核/`EMU_THREADS=1`、运行无波形并加 `-C 50000`；在 `cycles=50000` 以 `EXCEEDING CYCLE/INSTR LIMIT` 停止，`Host time spent=181090 ms`、外层 `3:01.24`，不是完整 CoreMark PASS。 |
+| `TNO0244` | `2026-08-21` | [XiangShan direct Verilator 2/4/8/16-thread scaling on node032 (50k-cycle serial runs)](./TNO0244_xiangshan_verilator_thread_scaling_node032_50k_20260821.md) | 按用户要求无 NUMA 绑定并行编译 `EMU_THREADS=2/4/8/16`（`-j96`、FST on、无 PGO/BOLT），随后在 node032 串行测 50k；external wall 为 `89.18/47.93/28.94/22.46 s`，四次均按 cycle limit 正常 `rc=0`，受 node032 外部负载影响，仅作 raw scaling snapshot。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`242`（`TNO0001..TNO0242`）。
+- 当前记录类文档总数：`244`（`TNO0001..TNO0244`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
