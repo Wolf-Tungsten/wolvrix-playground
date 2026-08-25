@@ -247,12 +247,15 @@
 | `TNO0235` | `2026-08-18` | [SimpleTES typed-state budget-128/valid-64 resume launch](./TNO0235_simpletes_typed_state_budget128_valid64_resume_launch_20260818.md) | 从 `instance-5f0c84e9/db_state_012346` 精确续跑；上一轮 `43 attempts/41 evals/32 valid` 已按单调契约扩展到 `128 generations/64 valid`，gpt-5.6-sol/max、`4 gen/1 eval` 在 node032 已进入调度，尚无本轮新性能结果。 |
 | `TNO0236` | `2026-08-19` | [SimpleTES typed-state budget-256/valid-64 resume launch](./TNO0236_simpletes_typed_state_budget256_valid64_resume_launch_20260819.md) | 从 `db_state_211121` 精确续跑；上一轮 `128 attempts/51 evals/38 valid` 因 provider `429` 有 `74` 次 generation failure，现按单调契约扩展到 `256 attempts`、累计 valid 目标保持 `64`，gpt-5.6-sol/max、`4 gen/1 eval` 已在 node032 进入调度。 |
 | `TNO0237` | `2026-08-19` | [SimpleTES rate-limit and transport-timeout continuation](./TNO0237_simpletes_rate_limit_and_timeout_continuation_20260819.md) | 活跃 run.log 顶层快照为 `74` 次 429、`6` 次 remote compact、`1` 次 transport-backed timeout；SimpleTES `25d6b7a` 将显式 429 和带 reconnect/有效 thread ID 的 timeout 纳入有界 exact-thread `continue`，focused `79/79`、full `265/265` 通过。现有 node032 任务未重启，新规则下次启动或恢复生效。 |
+| `TNO0238` | `2026-08-19` | [RepCut 1/2/4/8 thread-scaling experiment protocol](./TNO0238_repcut_thread_scaling_experiment_protocol_20260819.md) | 预注册同一 RepCut 冻结结果下 native 与 partitioned 两条路径的 1/2/4/8 线程矩阵；固定同 CCD 嵌套物理核、每档 ABBA+BAAB、共 32 个正式样本，并明确相同 `N` 是相同 CPU 预算而非相同 OS 线程组成。 |
+| `TNO0239` | `2026-08-19` | [RepCut thread-scaling build and functional gates](./TNO0239_repcut_thread_scaling_build_and_functional_gates_20260819.md) | 最终口径见第 8 节：冻结 RTL 匹配 `CPU_XIANGSHAN`/79263 generated-src，通用 `CPU_DEMO`/45871 fresh-G 构建排除；匹配 profile 的 native t1 与 partitioned N=1/2/4/8 在 cycle 605 触发 `csr_dbltrp_inMN`，正式矩阵被功能门阻断。 |
+| `TNO0240` | `2026-08-19` | [RepCut thread-scaling performance results and evidence boundary](./TNO0240_repcut_thread_scaling_performance_results_20260819.md) | 最终执行口径见第 7 节：匹配 XiangShan profile 下 `run_xs_repcut` 与 `run_xs_repcut_verilator` 的 N=1/2/4/8 正式矩阵尚未启动，headline 均为 `N/A`；fresh-G 错误 profile 与历史 timing 均不冒充当前矩阵。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`237`（`TNO0001..TNO0237`）。
+- 当前记录类文档总数：`240`（`TNO0001..TNO0240`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
