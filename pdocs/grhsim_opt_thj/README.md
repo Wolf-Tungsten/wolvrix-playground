@@ -257,12 +257,13 @@
 | `TNO0245` | `2026-08-22` | [XiangShan RepCut partition-count sweep protocol](./TNO0245_xiangshan_repcut_partition_count_sweep_protocol_20260822.md) | 预注册同一 `SimTop` GRH、同一 Wolvrix binary、固定 deterministic-quality/seed 0/epsilon 0.015，仅改变 `k=2/4/8/16/32/64` 的 transform-only 串行 sweep；分离核心复制率、source/final 净变化、权重/op/通信不平衡和 cut/KM1，并在首档后追加保留错误复制率口径的勘误。 |
 | `TNO0246` | `2026-08-22` | [XiangShan RepCut partition-count sweep results](./TNO0246_xiangshan_repcut_partition_count_sweep_results_20260822.md) | 六档 RepCut 与全部结构门禁均 PASS，`k=32` 逐字节复现旧 `.part32`；核心复制率 `0.2771%→9.0366%`、final op 不平衡 `20.307%→657.243%`、KM1 `895,474→23,455,797`，weight 不平衡仍约束在 1.5% 内。仅为静态 transform 结果，不宣称 runtime 最优或仿真正确。 |
 | `TNO0247` | `2026-08-24` | [SimpleTES typed-state budget-512/valid-128 node030 resume launch](./TNO0247_simpletes_typed_state_budget512_valid128_node030_resume_launch_20260824.md) | 上段在 `185 attempts/98 evals/64 valid` 正常结束，best SimTop 50k 为 `43,564.25→41,575.00 ms`（提升 `4.566244%`）；SimpleTES `c8f1da8` 将受控 resume ceiling 扩至 `512`，node030 补齐 `clang-scan-deps-19` 后从最终 checkpoint 精确续跑到累计 `128 valid`，GPT max `4 gen/1 eval` 已运行。 |
+| `TNO0248` | `2026-08-25` | [SimpleTES g158 node030 fresh same-CCD retest](./TNO0248_simpletes_g158_node030_fresh_sameccd_retest_20260825.md) | g158 fresh 同 CCD ABBA+BAAB 正式 pooled wall 为 `43,223.00→42,491.25 ms`，减少 `731.75 ms/1.692964%`，order gap `0.084992 pp`；确认方向为正但历史 `4.566244%` 幅度被异常 order 高估，尚未 landing/default。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`247`（`TNO0001..TNO0247`）。
+- 当前记录类文档总数：`248`（`TNO0001..TNO0248`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
