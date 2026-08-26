@@ -261,12 +261,13 @@
 | `TNO0249` | `2026-08-25` | [RepCut DPI effect and atomic emit fix](./TNO0249_repcut_dpi_effect_and_atomic_emit_fix_20260825.md) | 实现 TNO0241 的三层修复：`void DPI(output/inout)` 纳入 effect result/ASC 共置，SV 在同一事件块显式保证 producer 先于状态提交，partitioned runtime 支持 early-effect phase 并严格校验线程数；focused 3/3、CTest 52/53，仅余既有 `transform-comb-lane-pack` 失败，完整 SoC gate 另行归档。 |
 | `TNO0250` | `2026-08-25` | [RepCut v7 DPI fix build and gate](./TNO0250_repcut_dpi_fix_v7_build_and_gate_20260825.md) | post-fix v7 manifest/source/generated identity、partitioned v7 build、C=100/C=10000 八配置 functional gate 与 C=30000 golden 全部闭合；focused 3/3、CTest `52/53`，正式 quiet-CCD 32 样本被共享主机 `hapi/GC/HeapHelper` 外部负载门禁阻断，raw 保留。 |
 | `TNO0251` | `2026-08-25` | [RepCut v7 thread-scaling results and gate boundary](./TNO0251_repcut_v7_thread_scaling_results_and_gate_boundary_20260825.md) | 给出同 manifest canary 的 `run_xs_repcut`/`run_xs_repcut_verilator` C=100/C=10000 1/2/4/8 单样本 snapshot；正式 C=30000 32 样本均值/ABBA/BAAB headline 记为 `N/A — host quiet/foreign gate blocked`，未用污染样本冒充性能结论。 |
+| `TNO0252` | `2026-08-26` | [g158 ranking-policy sensitivity ablation on node031](./TNO0252_g158_policy_sensitivity_ablation_node031_20260826.md) | 优雅停止 node030 的 SimpleTES（151 eval、108/128 valid）；g158 的三个内部排序策略敏感性候选在 node031 共享 control 后并行 fresh build，`29/29` 与 100/10k 功能门禁全部通过，但 24 个 CCD 被外部 gem5/IDE 等负载击穿 strict quiet gate，27 次同 CCD 配对预尝试无 workload 样本，未改默认或生产代码。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`251`（`TNO0001..TNO0251`）。
+- 当前记录类文档总数：`252`（`TNO0001..TNO0252`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
