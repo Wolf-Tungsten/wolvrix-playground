@@ -262,12 +262,13 @@
 | `TNO0250` | `2026-08-25` | [RepCut v7 DPI fix build and gate](./TNO0250_repcut_dpi_fix_v7_build_and_gate_20260825.md) | post-fix v7 manifest/source/generated identity、partitioned v7 build、C=100/C=10000 八配置 functional gate 与 C=30000 golden 全部闭合；focused 3/3、CTest `52/53`，正式 quiet-CCD 32 样本被共享主机 `hapi/GC/HeapHelper` 外部负载门禁阻断，raw 保留。 |
 | `TNO0251` | `2026-08-25` | [RepCut v7 thread-scaling results and gate boundary](./TNO0251_repcut_v7_thread_scaling_results_and_gate_boundary_20260825.md) | 给出同 manifest canary 的 `run_xs_repcut`/`run_xs_repcut_verilator` C=100/C=10000 1/2/4/8 单样本 snapshot；正式 C=30000 32 样本均值/ABBA/BAAB headline 记为 `N/A — host quiet/foreign gate blocked`，未用污染样本冒充性能结论。 |
 | `TNO0252` | `2026-08-26` | [g158 ranking-policy sensitivity ablation on node031](./TNO0252_g158_policy_sensitivity_ablation_node031_20260826.md) | 优雅停止 node030 的 SimpleTES（151 eval、108/128 valid）；g158 的三个内部排序策略敏感性候选在 node031 共享 control 后并行 fresh build，`29/29` 与 100/10k 功能门禁全部通过，但 24 个 CCD 被外部 gem5/IDE 等负载击穿 strict quiet gate，27 次同 CCD 配对预尝试无 workload 样本，未改默认或生产代码。 |
+| `TNO0253` | `2026-08-27` | [g158 ranking-policy sensitivity runtime completion on node032](./TNO0253_g158_policy_sensitivity_runtime_node032_20260827.md) | node029-node032 同款门禁选出 `24/24` CCD 通过的 node032；三臂串行同 CCD ABBA+BAAB 均首轮收敛：demand-only `43,576.75->43,066.00 ms`（`1.172070%`）、signature-only `43,350.25->42,714.75 ms`（`1.465966%`）、full `43,374.75->42,809.00 ms`（`1.304330%`），gap 均 `<0.25 pp`，24 个样本全门禁通过，未 landing/default。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`252`（`TNO0001..TNO0252`）。
+- 当前记录类文档总数：`253`（`TNO0001..TNO0253`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
