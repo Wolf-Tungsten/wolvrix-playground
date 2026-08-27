@@ -21,7 +21,7 @@ def write_stable_header_alias(out_dir: Path) -> None:
     header_candidates = sorted(
         path
         for path in out_dir.glob("grhsim_*.hpp")
-        if path.name != stable_header.name and not path.name.endswith("_runtime.hpp")
+        if path.name != stable_header.name and path.with_suffix(".cpp").is_file()
     )
     if len(header_candidates) != 1:
         return
