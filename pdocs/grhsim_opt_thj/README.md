@@ -266,12 +266,13 @@
 | `TNO0254` | `2026-08-27` | [g158 Wolvrix landing implementation checkpoint](./TNO0254_g158_wolvrix_landing_implementation_checkpoint_20260827.md) | 冻结 g158 的完整排序策略已提交到 Wolvrix 通用 GrhSIM C++ emitter，默认路径无新增选项、无 SimTop/变量名特判；源码 focused 构建与 emitter/调度测试通过。当前 parent executable snapshot 已建立，50k 前后性能回归与 SimpleTES repin 在后续增量记录中闭合。 |
 | `TNO0255` | `2026-08-27` | [g158 fresh build and function regression](./TNO0255_g158_fresh_build_and_function_regression_20260827.md) | 基于同一冻结输入分别构建 baseline/landed immutable 快照；两边 fresh `187/187`、focused `29/29`、C=100/10000 功能门禁全过，生成差异仅为 `state_logic_storage_t` 物理声明顺序。50k walltime 仍待空闲 CCD 的正式增量记录。 |
 | `TNO0256` | `2026-08-27` | [g158 landing native 50k walltime regression](./TNO0256_g158_landing_native_50k_walltime_regression_20260827.md) | node030 同 CCD fixed-ASLR ABBA+BAAB 正式 pooled wall 为 `43,702.00→42,959.00 ms`，减少 `743.00 ms/1.700151%`，order gap `0.232711 pp`；八个样本的功能/NUMA/PMU/连续负载门禁全过，g158 KEEP/default。 |
+| `TNO0257` | `2026-08-27` | [SimpleTES post-g158 GPT max fresh research launch](./TNO0257_simpletes_post_g158_gpt_max_fresh_launch_20260827.md) | node030 在连续 strict whole-CCD 扫描中最空闲；post-g158 空 control 已以 `gpt-5.6-sol/max`、THJ config/auth、`64 proposals/32 valid`、`4 gen/1 eval` fresh 启动为 instance `0c4c9416`，真实 preflight 通过，initial control 正在评估。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`256`（`TNO0001..TNO0256`）。
+- 当前记录类文档总数：`257`（`TNO0001..TNO0257`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
