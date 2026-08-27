@@ -264,12 +264,13 @@
 | `TNO0252` | `2026-08-26` | [g158 ranking-policy sensitivity ablation on node031](./TNO0252_g158_policy_sensitivity_ablation_node031_20260826.md) | 优雅停止 node030 的 SimpleTES（151 eval、108/128 valid）；g158 的三个内部排序策略敏感性候选在 node031 共享 control 后并行 fresh build，`29/29` 与 100/10k 功能门禁全部通过，但 24 个 CCD 被外部 gem5/IDE 等负载击穿 strict quiet gate，27 次同 CCD 配对预尝试无 workload 样本，未改默认或生产代码。 |
 | `TNO0253` | `2026-08-27` | [g158 ranking-policy sensitivity runtime completion on node032](./TNO0253_g158_policy_sensitivity_runtime_node032_20260827.md) | node029-node032 同款门禁选出 `24/24` CCD 通过的 node032；三臂串行同 CCD ABBA+BAAB 均首轮收敛：demand-only `43,576.75->43,066.00 ms`（`1.172070%`）、signature-only `43,350.25->42,714.75 ms`（`1.465966%`）、full `43,374.75->42,809.00 ms`（`1.304330%`），gap 均 `<0.25 pp`，24 个样本全门禁通过，未 landing/default。 |
 | `TNO0254` | `2026-08-27` | [g158 Wolvrix landing implementation checkpoint](./TNO0254_g158_wolvrix_landing_implementation_checkpoint_20260827.md) | 冻结 g158 的完整排序策略已提交到 Wolvrix 通用 GrhSIM C++ emitter，默认路径无新增选项、无 SimTop/变量名特判；源码 focused 构建与 emitter/调度测试通过。当前 parent executable snapshot 已建立，50k 前后性能回归与 SimpleTES repin 在后续增量记录中闭合。 |
+| `TNO0255` | `2026-08-27` | [g158 fresh build and function regression](./TNO0255_g158_fresh_build_and_function_regression_20260827.md) | 基于同一冻结输入分别构建 baseline/landed immutable 快照；两边 fresh `187/187`、focused `29/29`、C=100/10000 功能门禁全过，生成差异仅为 `state_logic_storage_t` 物理声明顺序。50k walltime 仍待空闲 CCD 的正式增量记录。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`254`（`TNO0001..TNO0254`）。
+- 当前记录类文档总数：`255`（`TNO0001..TNO0255`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
