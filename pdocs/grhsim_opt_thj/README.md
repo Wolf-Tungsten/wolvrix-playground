@@ -268,12 +268,13 @@
 | `TNO0256` | `2026-08-27` | [g158 landing native 50k walltime regression](./TNO0256_g158_landing_native_50k_walltime_regression_20260827.md) | node030 同 CCD fixed-ASLR ABBA+BAAB 正式 pooled wall 为 `43,702.00→42,959.00 ms`，减少 `743.00 ms/1.700151%`，order gap `0.232711 pp`；八个样本的功能/NUMA/PMU/连续负载门禁全过，g158 KEEP/default。 |
 | `TNO0257` | `2026-08-27` | [SimpleTES post-g158 GPT max fresh research launch](./TNO0257_simpletes_post_g158_gpt_max_fresh_launch_20260827.md) | node030 在连续 strict whole-CCD 扫描中最空闲；post-g158 空 control 已以 `gpt-5.6-sol/max`、THJ config/auth、`64 proposals/32 valid`、`4 gen/1 eval` fresh 启动为 instance `0c4c9416`，真实 preflight 通过，initial control 正在评估。 |
 | `TNO0258` | `2026-08-27` | [SimpleTES control bias invalidation and mirrored protocol fix](./TNO0258_simpletes_control_bias_invalidation_and_mirrored_protocol_fix_20260827.md) | TNO0257 实例同 ELF initial control 测出 `-1.565726%`，唯一候选双 order gap `0.513323 pp` 且跨 CPU，故整树冻结作废；SimpleTES `e107401` 改为同 CPU 原子 `ABBABAAB`、control self-bias/order-gap `<0.25` 严格门禁、通过后 score 精确归一为 `1.0`，schema-v3 拒绝旧树，full `277/277`。 |
+| `TNO0259` | `2026-08-27` | [SimpleTES corrected fresh restart initial control](./TNO0259_simpletes_corrected_fresh_restart_initial_control_20260827.md) | node032 fresh RTL-to-GrhSIM rebuild 后，前两次八样本组因 order gap `0.431217/0.965376 pp` 作废；第三次同 CCD/CPU 组 raw self-bias `0.012264%`、gap `0.181031 pp` 通过，schema-v3 initial score 精确 `1.000000`，已启动 `4 gen/1 eval`，尚无 candidate 性能结论。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`258`（`TNO0001..TNO0258`）。
+- 当前记录类文档总数：`259`（`TNO0001..TNO0259`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
