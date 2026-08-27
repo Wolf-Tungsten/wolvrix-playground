@@ -115,3 +115,11 @@ SimpleTES/checkpoints/grhsim_simtop_50k/
 `Host time spent` walltime。节点若持续失去空闲 CCD，可以在 node030..node032
 范围内迁移，但不得把受污染样本计为 candidate 性能结果。
 
+## 7. 增量更新：本实例已作废
+
+2026-08-27 后续审计发现 initial empty control 在同一 ELF 上给出了
+`0.9845841078`，唯一候选的 ABBA/BAAB improvement 又相差 `0.513323 pp`，且
+两组重新选择了不同 CPU。实例已于 `19:19:08 +08:00` 按指示终止，最终冻结在
+`db_state_191910`；该树不再 resume、seed 或用于 landing。根因、完整绝对数据、
+schema-v3 修复与有效性边界见
+[TNO0258](./TNO0258_simpletes_control_bias_invalidation_and_mirrored_protocol_fix_20260827.md)。
