@@ -272,12 +272,13 @@
 | `TNO0260` | `2026-08-30` | [SimpleTES g158 mirrored budget-128/valid-64 resume launch](./TNO0260_simpletes_g158_mirrored_budget128_valid64_resume_launch_20260830.md) | 原树以 `44 attempts/35 evals/32 valid` 正常结束，best `44,252.50->43,268.75 ms`（`2.223038%`）；从 final `db_state_223640` 精确恢复，累计预算单调扩到 `128/64`，node031 因缺 clang-scan-deps-19 未创建状态，正式 node030 `4 gen/1 eval` 已运行。 |
 | `TNO0261` | `2026-08-30` | [SimpleTES post-g158 gen38 best node030 可靠性复测](./TNO0261_simpletes_post_g158_gen38_best_node030_retest_20260830.md) | node030 同 CCD schema-v3 正式复测为 `43,504.00->42,959.00 ms`（减少 `545.00 ms/1.252758%`），ABBA/BAAB gap `0.045690 pp`；正收益复现，但历史 `2.223038%` 幅度判为高估。运行中的 `128/64` auto research 未停止或重启。 |
 | `TNO0262` | `2026-08-31` | [SimpleTES schema-v4 single-group stability gates](./TNO0262_simpletes_schema_v4_single_group_stability_gates_20260831.md) | node030 auto research 已优雅停止于 `49/64 valid` 并保存 `db_state_014436`；SimpleTES `48bb78c` 的 schema-v4 在单个同 CPU `ABBABAAB` 组增加 role block shift `<1%`、spread `<2%`、cycles/wall coherence 与 `cycles:u/task-clock` proxy 门禁，历史 `+4.566244%/+2.223038%` 异常组被拒、fresh g158 `+1.692964%` 组全过；full `299/299`，未加入第二独立确认组或重启研究。 |
+| `TNO0263` | `2026-08-31` | [SimpleTES gen38 schema-v4 replay rebase and continuation](./TNO0263_simpletes_gen38_schema_v4_replay_rebase_launch_20260831.md) | 旧 schema-v3 树只读保留；gen38 精确 seed 以 node030 fresh 复测原始 perf 通过 schema-v4 replay，active root 改为 `43,504.00->42,959.00 ms`（`545.00 ms/1.252758%`，score `1.012686515`）。SimpleTES `e79733f` 全套 `303/303` 后在 node030 以剩余 `89 attempts/34 valid`、GPT max、`4 gen/1 eval` 启动 instance `47e6f5d9`。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`262`（`TNO0001..TNO0262`）。
+- 当前记录类文档总数：`263`（`TNO0001..TNO0263`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
