@@ -271,12 +271,13 @@
 | `TNO0259` | `2026-08-27` | [SimpleTES corrected fresh restart initial control](./TNO0259_simpletes_corrected_fresh_restart_initial_control_20260827.md) | node032 fresh RTL-to-GrhSIM rebuild 后，前两次八样本组因 order gap `0.431217/0.965376 pp` 作废；第三次同 CCD/CPU 组 raw self-bias `0.012264%`、gap `0.181031 pp` 通过，schema-v3 initial score 精确 `1.000000`，已启动 `4 gen/1 eval`，尚无 candidate 性能结论。 |
 | `TNO0260` | `2026-08-30` | [SimpleTES g158 mirrored budget-128/valid-64 resume launch](./TNO0260_simpletes_g158_mirrored_budget128_valid64_resume_launch_20260830.md) | 原树以 `44 attempts/35 evals/32 valid` 正常结束，best `44,252.50->43,268.75 ms`（`2.223038%`）；从 final `db_state_223640` 精确恢复，累计预算单调扩到 `128/64`，node031 因缺 clang-scan-deps-19 未创建状态，正式 node030 `4 gen/1 eval` 已运行。 |
 | `TNO0261` | `2026-08-30` | [SimpleTES post-g158 gen38 best node030 可靠性复测](./TNO0261_simpletes_post_g158_gen38_best_node030_retest_20260830.md) | node030 同 CCD schema-v3 正式复测为 `43,504.00->42,959.00 ms`（减少 `545.00 ms/1.252758%`），ABBA/BAAB gap `0.045690 pp`；正收益复现，但历史 `2.223038%` 幅度判为高估。运行中的 `128/64` auto research 未停止或重启。 |
+| `TNO0262` | `2026-08-31` | [SimpleTES schema-v4 single-group stability gates](./TNO0262_simpletes_schema_v4_single_group_stability_gates_20260831.md) | node030 auto research 已优雅停止于 `49/64 valid` 并保存 `db_state_014436`；SimpleTES `48bb78c` 的 schema-v4 在单个同 CPU `ABBABAAB` 组增加 role block shift `<1%`、spread `<2%`、cycles/wall coherence 与 `cycles:u/task-clock` proxy 门禁，历史 `+4.566244%/+2.223038%` 异常组被拒、fresh g158 `+1.692964%` 组全过；full `299/299`，未加入第二独立确认组或重启研究。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`261`（`TNO0001..TNO0261`）。
+- 当前记录类文档总数：`262`（`TNO0001..TNO0262`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
