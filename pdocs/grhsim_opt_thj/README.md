@@ -280,12 +280,13 @@
 | `TNO0268` | `2026-09-02` | [XiangShan RepCut closure-weight runtime build and function gate](./TNO0268_xiangshan_repcut_closure_weight_runtime_build_and_function_gate_20260902.md) | 已追加重要勘误：attempt-2 baseline/candidate 混用 Clang21/19 package object，旧 runtime A/B 全部 INVALID；clean-v4 排除 package cache 后统一 Clang21 fresh build，1,386/1,422 个 partition object 与外层对象身份通过，两个 ELF 的 C=100 AB/BA 功能门闭合。 |
 | `TNO0269` | `2026-09-02` | [XiangShan RepCut closure-weight N=1 per-partition runtime diagnostic](./TNO0269_xiangshan_repcut_closure_weight_n1_partition_runtime_diagnostic_20260902.md) | node033 同 CPU AB/BA diagnostic 中 eval max `-19.796%`、CV `-41.918%`，但 eval sum `+27.335%`、Host mean `+23.631%`；node038 单序同方向但幅度为 max `-33.331%`、sum/Host `+6.942%/+6.199%`。方向为削峰但增加串行工作量，所有 runtime audit 因 foreign ticks 未过 strict，只保留诊断结论；默认不变。 |
 | `TNO0270` | `2026-09-02` | [SimpleTES automatic proof-backed runtime reuse](./TNO0270_simpletes_automatic_proof_backed_runtime_reuse_20260902.md) | retryable runtime infrastructure outcome 在完整 immutable attempt 提交后自动切到 runtime-only evaluator，复用已验证 ELF/image/NEMU，不再重复 clone/build；focused `138/138`、full `322/322`，本阶段未跑 50k，性能结论 N/A。 |
+| `TNO0271` | `2026-09-03` | [SimpleTES gen38 cumulative budget-256/valid-128 resume and prompt bound](./TNO0271_simpletes_gen38_budget256_valid128_resume_and_prompt_bound_20260903.md) | 上段正常达到物理 `34/34 valid`，累计目标现由 `128/64` 翻倍为 `256/128`，对应迁移实例单调扩容 `89/34→217/98`；修复 chain3 将完整 nested metrics 塞入 prompt 导致 `1,093,102>1,048,576` 字符的确定性失败，同组请求降至 `126,088` 字符，full `324/324`。已从未污染的 `db_state_211206` 在 node030 以 GPT max、`4 gen/1 eval` 正式续跑。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`270`（`TNO0001..TNO0270`）。
+- 当前记录类文档总数：`271`（`TNO0001..TNO0271`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
