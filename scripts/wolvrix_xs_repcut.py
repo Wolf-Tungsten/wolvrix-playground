@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 import time
 from pathlib import Path
@@ -23,6 +24,7 @@ def _build_repcut_kwargs(
         "partitioner": REPCUT_PARTITIONER,
         "mtkahypar_preset": REPCUT_MTKAHYPAR_PRESET,
         "mtkahypar_threads": REPCUT_MTKAHYPAR_THREADS,
+        "weight_mode": REPCUT_WEIGHT_MODE,
     }
     if REPCUT_KEEP_INTERMEDIATE_FILES:
         kwargs["keep_intermediate_files"] = True
@@ -38,7 +40,13 @@ REPCUT_IMBALANCE_FACTOR = "0.015"
 REPCUT_PARTITIONER = "mt-kahypar"
 REPCUT_MTKAHYPAR_PRESET = "quality"
 REPCUT_MTKAHYPAR_THREADS = "0"
+REPCUT_WEIGHT_MODE = os.environ.get("XS_REPCUT_WEIGHT_MODE", "baseline")
 REPCUT_KEEP_INTERMEDIATE_FILES = True
+
+if REPCUT_WEIGHT_MODE not in {"baseline", "closure-aware"}:
+    raise RuntimeError(
+        "XS_REPCUT_WEIGHT_MODE must be one of: baseline, closure-aware"
+    )
 
 if len(sys.argv) < 4:
     raise RuntimeError(
@@ -65,7 +73,7 @@ with wolvrix.Session() as sess:
     log(f"read_json done {int((time.perf_counter() - start) * 1000)}ms")
 
     start = time.perf_counter()
-    log(f"pass repcut start path={REPCUT_PATH}")
+    log(f"pass repcut start path={REPCUT_PATH} weight_mode={REPCUT_WEIGHT_MODE}")
     repcut_work_dir.mkdir(parents=True, exist_ok=True)
     repcut_kwargs = _build_repcut_kwargs(repcut_work_dir)
     sess.run_pass("repcut", design="design.main", **repcut_kwargs)
