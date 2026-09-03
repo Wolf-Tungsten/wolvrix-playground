@@ -273,12 +273,19 @@
 | `TNO0261` | `2026-08-30` | [SimpleTES post-g158 gen38 best node030 可靠性复测](./TNO0261_simpletes_post_g158_gen38_best_node030_retest_20260830.md) | node030 同 CCD schema-v3 正式复测为 `43,504.00->42,959.00 ms`（减少 `545.00 ms/1.252758%`），ABBA/BAAB gap `0.045690 pp`；正收益复现，但历史 `2.223038%` 幅度判为高估。运行中的 `128/64` auto research 未停止或重启。 |
 | `TNO0262` | `2026-08-31` | [SimpleTES schema-v4 single-group stability gates](./TNO0262_simpletes_schema_v4_single_group_stability_gates_20260831.md) | node030 auto research 已优雅停止于 `49/64 valid` 并保存 `db_state_014436`；SimpleTES `48bb78c` 的 schema-v4 在单个同 CPU `ABBABAAB` 组增加 role block shift `<1%`、spread `<2%`、cycles/wall coherence 与 `cycles:u/task-clock` proxy 门禁，历史 `+4.566244%/+2.223038%` 异常组被拒、fresh g158 `+1.692964%` 组全过；full `299/299`，未加入第二独立确认组或重启研究。 |
 | `TNO0263` | `2026-08-31` | [SimpleTES gen38 schema-v4 replay rebase and continuation](./TNO0263_simpletes_gen38_schema_v4_replay_rebase_launch_20260831.md) | 旧 schema-v3 树只读保留；gen38 精确 seed 以 node030 fresh 复测原始 perf 通过 schema-v4 replay，active root 改为 `43,504.00->42,959.00 ms`（`545.00 ms/1.252758%`，score `1.012686515`）。SimpleTES `e79733f` 全套 `303/303` 后在 node030 以剩余 `89 attempts/34 valid`、GPT max、`4 gen/1 eval` 启动 instance `47e6f5d9`。 |
+| `TNO0264` | `2026-09-01` | [XiangShan RepCut part3 imbalance root cause](./TNO0264_xiangshan_repcut_part3_imbalance_root_cause_20260901.md) | `k=32` 的 `part_3` final ops 为 `912,331`（均值 `4.688x`），但 solver weight 仅为均值 `1.015x`；`aid=4` giant ASC 自身含 `464,599` comb 和 `26,848` sink，却只以 `22,577` vertex weight 参与平衡。确认应先修 closure/shared-piece 负载口径；已追加 `47.419%` 仅为粗总量对比、不是 exact omitted compute 比例的勘误。 |
+| `TNO0265` | `2026-09-01` | [RepCut closure-aware weight implementation](./TNO0265_repcut_closure_aware_weight_implementation_20260901.md) | 新增默认关闭的 `baseline/closure-aware` 离散模式：守恒 fair-share vertex、compute+communication KM1 edge、exact closure stats 与 bounded whole-ASC refine；baseline 仍默认，focused `5/5`、Python `10/10`、full CTest `52/53`（仅历史 comb-lane-pack）通过，未拆 ASC 或改 state 语义。 |
+| `TNO0266` | `2026-09-01` | [XiangShan RepCut closure-weight K32 static A/B](./TNO0266_xiangshan_repcut_closure_weight_k32_static_ab_20260901.md) | 同 binary K32 A/B 的十项身份 gate 全过；exact/final-op max 分别 `-34.421%/-33.274%` 并达到 giant closure 下界，但 exact/final-op total `+3.012%/+4.480%`、compute/communication KM1 `+60.414%/+56.822%`。保留实验模式、不改默认，进入独立 runtime gate。 |
+| `TNO0267` | `2026-09-01` | [SimpleTES quiet-CCD retry default expansion](./TNO0267_simpletes_quiet_ccd_retry_default_20260901.md) | `GRHSIM_INFRA_RETRIES` 默认由 `2` 提高到 `99`，使一次已构建 evaluator 最多执行 `100` 次严格 runtime 尝试；显式环境值仍覆盖默认。focused `3/3`、full `304/304` 通过；node030 活跃实例显式为 `8`，未热变更或重启。 |
+| `TNO0268` | `2026-09-02` | [XiangShan RepCut closure-weight runtime build and function gate](./TNO0268_xiangshan_repcut_closure_weight_runtime_build_and_function_gate_20260902.md) | 已追加重要勘误：attempt-2 baseline/candidate 混用 Clang21/19 package object，旧 runtime A/B 全部 INVALID；clean-v4 排除 package cache 后统一 Clang21 fresh build，1,386/1,422 个 partition object 与外层对象身份通过，两个 ELF 的 C=100 AB/BA 功能门闭合。 |
+| `TNO0269` | `2026-09-02` | [XiangShan RepCut closure-weight N=1 per-partition runtime diagnostic](./TNO0269_xiangshan_repcut_closure_weight_n1_partition_runtime_diagnostic_20260902.md) | node033 同 CPU AB/BA diagnostic 中 eval max `-19.796%`、CV `-41.918%`，但 eval sum `+27.335%`、Host mean `+23.631%`；node038 单序同方向但幅度为 max `-33.331%`、sum/Host `+6.942%/+6.199%`。方向为削峰但增加串行工作量，所有 runtime audit 因 foreign ticks 未过 strict，只保留诊断结论；默认不变。 |
+| `TNO0270` | `2026-09-02` | [SimpleTES automatic proof-backed runtime reuse](./TNO0270_simpletes_automatic_proof_backed_runtime_reuse_20260902.md) | retryable runtime infrastructure outcome 在完整 immutable attempt 提交后自动切到 runtime-only evaluator，复用已验证 ELF/image/NEMU，不再重复 clone/build；focused `138/138`、full `322/322`，本阶段未跑 50k，性能结论 N/A。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`263`（`TNO0001..TNO0263`）。
+- 当前记录类文档总数：`270`（`TNO0001..TNO0270`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
