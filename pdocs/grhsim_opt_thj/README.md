@@ -281,12 +281,17 @@
 | `TNO0269` | `2026-09-02` | [XiangShan RepCut closure-weight N=1 per-partition runtime diagnostic](./TNO0269_xiangshan_repcut_closure_weight_n1_partition_runtime_diagnostic_20260902.md) | node033 同 CPU AB/BA diagnostic 中 eval max `-19.796%`、CV `-41.918%`，但 eval sum `+27.335%`、Host mean `+23.631%`；node038 单序同方向但幅度为 max `-33.331%`、sum/Host `+6.942%/+6.199%`。方向为削峰但增加串行工作量，所有 runtime audit 因 foreign ticks 未过 strict，只保留诊断结论；默认不变。 |
 | `TNO0270` | `2026-09-02` | [SimpleTES automatic proof-backed runtime reuse](./TNO0270_simpletes_automatic_proof_backed_runtime_reuse_20260902.md) | retryable runtime infrastructure outcome 在完整 immutable attempt 提交后自动切到 runtime-only evaluator，复用已验证 ELF/image/NEMU，不再重复 clone/build；focused `138/138`、full `322/322`，本阶段未跑 50k，性能结论 N/A。 |
 | `TNO0271` | `2026-09-03` | [SimpleTES gen38 cumulative budget-256/valid-128 resume and prompt bound](./TNO0271_simpletes_gen38_budget256_valid128_resume_and_prompt_bound_20260903.md) | 上段正常达到物理 `34/34 valid`，累计目标现由 `128/64` 翻倍为 `256/128`，对应迁移实例单调扩容 `89/34→217/98`；修复 chain3 将完整 nested metrics 塞入 prompt 导致 `1,093,102>1,048,576` 字符的确定性失败，同组请求降至 `126,088` 字符，full `324/324`。已从未污染的 `db_state_211206` 在 node030 以 GPT max、`4 gen/1 eval` 正式续跑。 |
+| `TNO0272` | `2026-09-04` | [XiangShan RepCut closure-weight N=1 node030 CCD80 runtime diagnostic](./TNO0272_xiangshan_repcut_closure_weight_n1_node030_ccd80_runtime_diagnostic_20260904.md) | 原始 AB/BA diagnostic 观察到 Host `+47.367%`、eval sum `+56.329%`、max `-0.671%`；已追加重要勘误：TNO0273 证实两臂 executable page-cache NUMA 驻留不对称，这些数值不得再解释为算法固有代价。 |
+| `TNO0273` | `2026-09-04` | [XiangShan RepCut N=1 frontend NUMA page root cause](./TNO0273_xiangshan_repcut_n1_frontend_numa_page_root_cause_20260904.md) | 运行中 `numa_maps` 确认原始 baseline text 约 `98.95%` 本地、candidate 约 `99.27%` 远端；PMU 将额外 cycles 定位到 frontend latency。两侧逐字节相同 ELF 在 NUMA0 tmpfs 本地化后，total/cycles 只回退 `4.068%/3.956%`，eval sum `+4.428%`、max `-33.810%`；撤销“并行加速无效”判断，正式 page-local AB/BA 与 N>1 gate 待补。 |
+| `TNO0274` | `2026-09-04` | [XiangShan RepCut N=1 page-local runtime protocol fix](./TNO0274_xiangshan_repcut_n1_page_local_runtime_protocol_fix_20260904.md) | 新 v2 runner 为每个 order/arm 在目标 NUMA tmpfs 建立独占 ELF/image/NEMU inode，目标核 copy/SHA；以 maps dev+inode 的 RX VMA 关联 numa_maps，C=10000 至少 3 个有效采样并硬门 resident coverage/local ratio。汇总器隔离 legacy/v2，9 个聚焦测试通过；正式复测见 TNO0275。 |
+| `TNO0275` | `2026-09-04` | [XiangShan RepCut N=1 page-local AB/BA on node033](./TNO0275_xiangshan_repcut_n1_page_local_ab_ba_node033_20260904.md) | node030 CI 风暴后按允许节点轮询，在 node033 CPU64 完成同机 page-local AB/BA；四个 C=10000 ELF/NEMU 均 `remote=0`。pooled Host/instructions/cycles 为 `+5.283%/+5.377%/+5.280%`，IPC/频率不变；eval sum `+5.887%`、max `-32.009%`、CV `-40.245%`，确认真实 trade-off 是增加串行总 work 换削峰。diagnostic 非 strict，N=8/32 未运行；已记录 v2 elapsed 混入 audit 尾巴，N>1 前须修。 |
+| `TNO0276` | `2026-09-05` | [SimpleTES Gen61 best rebuilt-binary formal retest](./TNO0276_simpletes_gen61_best_rebuilt_binary_formal_retest_20260905.md) | 复用同一 Gen61 patch 的独立重建 control/candidate ELF，在 node031 完成 schema-v4 formal `ABBA+BAAB`；pooled wall `43,580.00→41,599.75 ms`，减少 `1,980.25 ms/4.543942%`，score `1.0476024495`，order gap `0.092101 pp`，全部门禁通过。历史 `5.520446%` 保留但 exact ELF 已不可恢复；未改源码或默认。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`271`（`TNO0001..TNO0271`）。
+- 当前记录类文档总数：`276`（`TNO0001..TNO0276`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
