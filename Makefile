@@ -93,6 +93,7 @@ XS_ROOT := $(CURDIR)/testcase/xiangshan
 XS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_emit.py
 XS_WOLVRIX_HIER_JSON_SCRIPT := $(CURDIR)/grh-ir-visualize/tools/export_xiangshan_hier_json.py
 XS_WOLVRIX_GRHSIM_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_grhsim.py
+XS_WOLVRIX_GRHSIM_IR_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_grhsim_ir.py
 XS_WOLVRIX_REPCUT_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_repcut.py
 REF_GSIM_ROOT ?= $(CURDIR)/reference/gsim
 REF_GSIM_BIN ?= $(REF_GSIM_ROOT)/build/gsim/gsim
@@ -135,6 +136,7 @@ XS_REF_BUILD ?= $(XS_WORK_BASE)/ref
 XS_GSIM_BUILD ?= $(XS_WORK_BASE)/gsim
 XS_WOLF_BUILD ?= $(XS_WORK_BASE)/wolf
 XS_GRHSIM_BUILD ?= $(XS_WORK_BASE)/grhsim
+XS_GRHSIM_IR_BUILD ?= $(XS_WORK_BASE)/grhsim-ir
 XS_REPCUT_BUILD ?= $(XS_WORK_BASE)/repcut
 XS_RTL_DIR := $(XS_RTL_BUILD)/rtl
 XS_VSRC_DIR ?= $(XS_ROOT)/difftest/src/test/vsrc/common
@@ -150,6 +152,11 @@ XS_WOLF_GRHSIM_POST_STATS_JSON ?= $(XS_GRHSIM_BUILD)/wolvrix_xs_post_stats.json
 XS_WOLF_GRHSIM_PRE_REG_TO_MEM_JSON ?= $(XS_GRHSIM_BUILD)/wolvrix_xs_pre_reg_to_mem.json
 XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON ?= 0
 XS_WOLF_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON ?= $(if $(filter 1,$(XS_WOLF_GRHSIM_RESUME_FROM_STATS_JSON)),0,$(if $(wildcard $(XS_WOLF_GRHSIM_PRE_REG_TO_MEM_JSON)),1,0))
+XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_flat_grh.json
+XS_WOLF_GRHSIM_IR_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_grhsim_ir.json
+XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_grhsim_ir_roundtrip.json
+XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON ?= 0
+XS_WOLF_GRHSIM_IR_KEEP_ORIGINS ?= 0
 XS_SIM_DEFINES ?= DIFFTEST
 XS_SIM_DEFINES += $(XS_ZERO_INIT_DEFINES)
 XS_ROOT_ABS := $(abspath $(XS_ROOT))
@@ -159,6 +166,7 @@ XS_REF_BUILD_ABS := $(abspath $(XS_REF_BUILD))
 XS_GSIM_BUILD_ABS := $(abspath $(XS_GSIM_BUILD))
 XS_WOLF_BUILD_ABS := $(abspath $(XS_WOLF_BUILD))
 XS_GRHSIM_BUILD_ABS := $(abspath $(XS_GRHSIM_BUILD))
+XS_GRHSIM_IR_BUILD_ABS := $(abspath $(XS_GRHSIM_IR_BUILD))
 XS_RTL_DIR_ABS := $(abspath $(XS_RTL_DIR))
 XS_VSRC_DIR_ABS := $(abspath $(XS_VSRC_DIR))
 XS_WOLF_EMIT_DIR_ABS := $(abspath $(XS_WOLF_EMIT_DIR))
@@ -168,6 +176,9 @@ XS_WOLF_HIER_JSON_ABS := $(abspath $(XS_WOLF_HIER_JSON))
 XS_WOLF_GRHSIM_EMIT_DIR_ABS := $(abspath $(XS_WOLF_GRHSIM_EMIT_DIR))
 XS_WOLF_GRHSIM_POST_STATS_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_POST_STATS_JSON))
 XS_WOLF_GRHSIM_PRE_REG_TO_MEM_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_PRE_REG_TO_MEM_JSON))
+XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON))
+XS_WOLF_GRHSIM_IR_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_IR_JSON))
+XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON))
 XS_SIM_TOP_V := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).$(XS_RTL_SUFFIX)
 XS_SIM_TOP_FIR := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).fir
 XS_WOLF_JSON ?= $(XS_WOLF_EMIT_DIR_ABS)/xs_wolf.json
@@ -226,7 +237,7 @@ HDLBITS_GRHTB_SOURCES := $(wildcard $(HDLBITS_ROOT)/grhtb/grhtb_*.cpp)
 HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS_GRHTB_SOURCES)))))
 
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
-	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
+	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_wolf_grhsim_ir xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
 	xs_no0076_stats clean
 
@@ -554,6 +565,35 @@ xs_wolf_grhsim_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 	} 2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"; \
 	status=$$?; \
 	echo "[EXIT] xs_wolf_grhsim_emit $$status" | tee -a "$(XS_BUILD_LOG_FILE)"; \
+	exit $$status
+
+xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
+	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
+		$(MAKE) --no-print-directory -B xs_rtl; \
+	fi
+	@mkdir -p "$(XS_GRHSIM_IR_BUILD_ABS)" "$(XS_LOG_DIR_ABS)"
+	@$(eval RUN_ID := $(RUN_ID))
+	@$(eval XS_GRHSIM_IR_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_grhsim_ir_$(RUN_ID).log)
+	@$(eval XS_GRHSIM_IR_READ_ARGS_FILE := $(XS_GRHSIM_IR_BUILD_ABS)/wolvrix_read_args.txt)
+	@printf '' > "$(XS_GRHSIM_IR_LOG_FILE)"
+	@printf '' > "$(XS_GRHSIM_IR_READ_ARGS_FILE)"
+	@printf "%s\n" $(XS_WOLF_INCLUDE_FLAGS) $(XS_WOLF_DEFINE_FLAGS) >> "$(XS_GRHSIM_IR_READ_ARGS_FILE)"
+	@echo "[LOG] Capturing GrhSIM IR checkpoint output to: $(XS_GRHSIM_IR_LOG_FILE)"
+	@set -o pipefail; { \
+		echo "[CMD] $(PYTHON) $(XS_WOLVRIX_GRHSIM_IR_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) $(XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON_ABS) $(XS_WOLF_GRHSIM_IR_JSON_ABS) $(XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON_ABS) $(XS_GRHSIM_IR_READ_ARGS_FILE) $(WOLF_LOG)"; \
+		$(PYTHON) $(XS_WOLVRIX_GRHSIM_IR_SCRIPT) \
+			"$(XS_WOLF_FILELIST_ABS)" \
+			"$(XS_SIM_TOP)" \
+			"$(XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON_ABS)" \
+			"$(XS_WOLF_GRHSIM_IR_JSON_ABS)" \
+			"$(XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON_ABS)" \
+			"$(XS_GRHSIM_IR_READ_ARGS_FILE)" \
+			"$(WOLF_LOG)" \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON)),--resume-from-flat-grh,) \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_KEEP_ORIGINS)),--keep-origins,); \
+	} 2>&1 | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
+	status=$$?; \
+	echo "[EXIT] xs_wolf_grhsim_ir $$status" | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
 	exit $$status
 
 run_xs_repcut: py_install
