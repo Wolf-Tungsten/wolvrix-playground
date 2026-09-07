@@ -157,6 +157,8 @@ XS_WOLF_GRHSIM_IR_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_grhsim_ir.json
 XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_grhsim_ir_roundtrip.json
 XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON ?= 0
 XS_WOLF_GRHSIM_IR_KEEP_ORIGINS ?= 0
+XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR ?=
+XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT ?=
 XS_SIM_DEFINES ?= DIFFTEST
 XS_SIM_DEFINES += $(XS_ZERO_INIT_DEFINES)
 XS_ROOT_ABS := $(abspath $(XS_ROOT))
@@ -228,6 +230,7 @@ HDLBITS_OUT_DIR := $(BUILD_DIR)/hdlbits/$(DUT)
 HDLBITS_EMITTED_DUT := $(HDLBITS_OUT_DIR)/dut_$(DUT).v
 HDLBITS_EMITTED_JSON := $(HDLBITS_OUT_DIR)/dut_$(DUT).json
 HDLBITS_GRHSIM_BUILD_DIR := $(BUILD_DIR)/hdlbits-grhsim
+HDLBITS_GRHSIM_BACKEND ?= legacy
 HDLBITS_SIM_BIN_NAME := sim_$(DUT)
 HDLBITS_SIM_BIN := $(HDLBITS_OUT_DIR)/$(HDLBITS_SIM_BIN_NAME)
 HDLBITS_VERILATOR_PREFIX := Vdut_$(DUT)
@@ -283,6 +286,31 @@ clean_fst_roi_discovery:
 
 $(WOLVRIX_APP): build
 
+.PHONY: test_grhsim_cpu_emit
+test_grhsim_cpu_emit:
+	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-cpu-emit-tests -j 2
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache WOLVRIX_CPU_EMIT_TEST_OUTPUT=$(CURDIR)/ptmp/cpu_emit_tests ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-cpu-emit-tests$$' --output-on-failure
+
+.PHONY: test_grhsim_cpu_schedule
+test_grhsim_cpu_schedule:
+	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-cpu-schedule-tests -j 2
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-cpu-schedule-tests$$' --output-on-failure
+
+.PHONY: test_grhsim_cpu_mapping
+test_grhsim_cpu_mapping:
+	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-ir-tests grhsim-cpu-mapping-tests -j 2
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(grhsim-ir-tests|grhsim-cpu-mapping-tests)$$' --output-on-failure
+
+.PHONY: audit_grhsim_cpu_emit
+audit_grhsim_cpu_emit:
+	@test -n "$(GRHSIM_AUDIT_MODEL)" && test -f "$(GRHSIM_AUDIT_MODEL)"
+	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-cpu-emit-tests -j 2
+	$(WOLVRIX_BUILD_DIR)/bin/grhsim-cpu-emit-tests --audit "$(GRHSIM_AUDIT_MODEL)"
+
 .PHONY: py_install
 py_install:
 	@echo "[PY] Installing wolvrix into the current Python environment via scikit-build-core"
@@ -333,6 +361,7 @@ ifneq ($(strip $(DUT)),)
 		PYTHON=$(PYTHON) \
 		BUILD_DIR=$(abspath $(HDLBITS_GRHSIM_BUILD_DIR)) \
 		GRHSIM_SCRIPT=$(HDLBITS_GRHSIM_SCRIPT) \
+		GRHSIM_BACKEND=$(HDLBITS_GRHSIM_BACKEND) \
 		WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM) \
 		WOLVRIX_GRHSIM_PERF=$(WOLVRIX_GRHSIM_PERF)
   else
@@ -344,11 +373,19 @@ else
 endif
 
 run_all_hdlbits_grhsim_tests:
-	@$(MAKE) --no-print-directory py_install
+	@if [ "$(SKIP_PY_INSTALL)" != "1" ]; then $(MAKE) --no-print-directory py_install; fi
 	@for dut in $(HDLBITS_GRHSIM_DUTS); do \
 		echo "==== Running GrhSIM DUT=$$dut ===="; \
 		$(MAKE) --no-print-directory run_hdlbits_grhsim DUT=$$dut SKIP_PY_INSTALL=1 || exit $$?; \
 	done
+
+.PHONY: run_hdlbits_grhsim_ir run_all_hdlbits_grhsim_ir_tests
+run_hdlbits_grhsim_ir run_all_hdlbits_grhsim_ir_tests:
+	@mkdir -p "$(CURDIR)/ptmp"
+	@IR_BUILD_DIR="$$(mktemp -d "$(CURDIR)/ptmp/hdlbits-grhsim-ir-XXXXXX")"; \
+	echo "[IR] HDLBits artifacts: $$IR_BUILD_DIR"; \
+	$(MAKE) --no-print-directory $(if $(filter run_hdlbits_grhsim_ir,$@),run_hdlbits_grhsim,run_all_hdlbits_grhsim_tests) \
+		HDLBITS_GRHSIM_BUILD_DIR="$$IR_BUILD_DIR" HDLBITS_GRHSIM_BACKEND=ir
 
 ifneq ($(strip $(SKIP_WOLF_BUILD)),1)
 RUN_C910_TEST_DEPS := py_install
@@ -580,7 +617,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 	@printf "%s\n" $(XS_WOLF_INCLUDE_FLAGS) $(XS_WOLF_DEFINE_FLAGS) >> "$(XS_GRHSIM_IR_READ_ARGS_FILE)"
 	@echo "[LOG] Capturing GrhSIM IR checkpoint output to: $(XS_GRHSIM_IR_LOG_FILE)"
 	@set -o pipefail; { \
-		echo "[CMD] $(PYTHON) $(XS_WOLVRIX_GRHSIM_IR_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) $(XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON_ABS) $(XS_WOLF_GRHSIM_IR_JSON_ABS) $(XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON_ABS) $(XS_GRHSIM_IR_READ_ARGS_FILE) $(WOLF_LOG)"; \
+		echo "[CMD] $(PYTHON) $(XS_WOLVRIX_GRHSIM_IR_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) $(XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON_ABS) $(XS_WOLF_GRHSIM_IR_JSON_ABS) $(XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON_ABS) $(XS_GRHSIM_IR_READ_ARGS_FILE) $(WOLF_LOG) $(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir $(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),) $(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),)"; \
 		$(PYTHON) $(XS_WOLVRIX_GRHSIM_IR_SCRIPT) \
 			"$(XS_WOLF_FILELIST_ABS)" \
 			"$(XS_SIM_TOP)" \
@@ -590,11 +627,32 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			"$(XS_GRHSIM_IR_READ_ARGS_FILE)" \
 			"$(WOLF_LOG)" \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON)),--resume-from-flat-grh,) \
-			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_KEEP_ORIGINS)),--keep-origins,); \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_KEEP_ORIGINS)),--keep-origins,) \
+			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
+			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",); \
 	} 2>&1 | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
 	status=$$?; \
 	echo "[EXIT] xs_wolf_grhsim_ir $$status" | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
 	exit $$status
+
+
+.PHONY: xs_wolf_grhsim_ir_emu xs_wolf_grhsim_ir_build_emu
+xs_wolf_grhsim_ir_emu: xs_wolf_grhsim_ir
+	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir_build_emu
+
+xs_wolf_grhsim_ir_build_emu:
+	@test -n "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)" && test -f "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)/Makefile" || { echo "[FAIL] Generate the GrhSIM IR C++ model before build-only emu"; exit 1; }
+	@echo "[RUN] Building XiangShan emu with the GrhSIM IR generated model..."
+	@NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
+		BUILD_DIR=$(XS_GRHSIM_IR_BUILD_ABS)/emu \
+		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		NUM_CORES=$(XS_NUM_CORES) \
+		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
+		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
+		VM_BUILD_JOBS=$(if $(VM_BUILD_JOBS),$(VM_BUILD_JOBS),4) \
+		GRHSIM=1 \
+		GRHSIM_MODEL_DIR=$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)) \
+		WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM)
 
 run_xs_repcut: py_install
 	@if [ ! -f "$(XS_WOLF_JSON)" ]; then \
@@ -1025,12 +1083,18 @@ run_xs_wolf_emu:
 			$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$WOLF_WAVEFORM,) \
 			2>&1 | tee "$$WOLF_LOG"
 
+.PHONY: run_xs_wolf_grhsim_ir_emu
+run_xs_wolf_grhsim_ir_emu:
+	@test -x "$(XS_GRHSIM_IR_BUILD_ABS)/emu/emu" || { echo "[FAIL] Build the GrhSIM IR emu before running"; exit 1; }
+	@$(MAKE) --no-print-directory run_xs_wolf_grhsim_emu XS_GRHSIM_BUILD="$(XS_GRHSIM_IR_BUILD_ABS)/emu"
+
 run_xs_wolf_grhsim_emu:
 	@if { [ "$(XS_WAVEFORM)" != "0" ] || [ -n "$(XS_WAVEFORM_PATH)" ]; } && [ "$(WOLVRIX_GRHSIM_WAVEFORM)" != "1" ]; then \
 		echo "[FAIL] xs wolf grhsim: runtime waveform requested, but model was emitted without waveform support; rebuild with WOLVRIX_GRHSIM_WAVEFORM=1"; \
 		exit 1; \
 	fi
-	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
+	@set -o pipefail; \
+	RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
 	LOG_DIR="$(XS_LOG_DIR_ABS)"; \
 	GRHSIM_LOG="$$LOG_DIR/xs_wolf_grhsim_$${RUN_ID}.log"; \
 	GRHSIM_WAVEFORM="$(if $(XS_WAVEFORM_PATH_ABS),$(XS_WAVEFORM_PATH_ABS),$(XS_WAVEFORM_DIR_ABS)/xs_wolf_grhsim_$${RUN_ID}.fst)"; \

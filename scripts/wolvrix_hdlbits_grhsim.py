@@ -6,6 +6,8 @@ from pathlib import Path
 
 import wolvrix
 
+from wolvrix_xs_grhsim_ir import CPU_PIPELINE
+
 
 TOP_NAME = "top_module"
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -37,8 +39,13 @@ def write_stable_header_alias(out_dir: Path) -> None:
     )
 
 
-def run_pipeline(dut_path: Path, out_dir: Path, waveform_mode: str | None, perf_mode: str | None) -> None:
+def run_pipeline(dut_path: Path, out_dir: Path, waveform_mode: str | None, perf_mode: str | None, backend: str = "legacy") -> None:
     json_out = out_dir / f"{dut_path.stem}.json"
+    if backend == "ir":
+        if waveform_mode not in (None, "off") or perf_mode not in (None, "off"):
+            raise ValueError("IR CPU backend does not yet support waveform/perf emission")
+        if any(out_dir.iterdir()):
+            raise ValueError(f"IR CPU output directory must be empty: {out_dir}")
 
     with wolvrix.Session() as sess:
         sess.log_level = "info"
@@ -58,6 +65,21 @@ def run_pipeline(dut_path: Path, out_dir: Path, waveform_mode: str | None, perf_
         sess.run_pass("simplify", design="design.main", semantics="2state")
         sess.run_pass("memory-init-check", design="design.main")
         sess.run_pass("stats", design="design.main")
+        if backend == "ir":
+            sess.store_json(
+                design="design.main", output=str(out_dir.parent / f"{dut_path.stem}_flat.grh.json"), top=[TOP_NAME],
+            )
+            sess.lower_grhsim(
+                design="design.main", out_model="grhsim.main", top=TOP_NAME,
+                logic_domain="2-state", keep_origins=False, consume=True,
+            )
+            sess.run_grhsim_pass("grhsim.verify", model="grhsim.main")
+            for pass_name in CPU_PIPELINE:
+                sess.run_grhsim_pass(pass_name, model="grhsim.main")
+            sess.run_grhsim_pass("cpu.st.emit-cpp", model="grhsim.main", output=str(out_dir))
+            sess.store_grhsim(model="grhsim.main", output=str(json_out))
+            write_stable_header_alias(out_dir)
+            return
         sess.run_pass(
             "activity-schedule",
             design="design.main",
@@ -85,6 +107,7 @@ def main() -> int:
     parser.add_argument("out_dir")
     parser.add_argument("--waveform", choices=["off", "declared-symbols"], default="off")
     parser.add_argument("--perf", choices=["off", "eval"], default="off")
+    parser.add_argument("--backend", choices=["legacy", "ir"], default="legacy")
     args = parser.parse_args()
 
     dut_id = args.dut
@@ -96,7 +119,7 @@ def main() -> int:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     log(f"emit {dut_path} -> {out_dir}")
-    run_pipeline(dut_path, out_dir, args.waveform, args.perf)
+    run_pipeline(dut_path, out_dir, args.waveform, args.perf, args.backend)
     return 0
 
 

@@ -23,6 +23,17 @@ GRH_PIPELINE: list[tuple[str, dict]] = [
     ("memory-init-check", {}),
 ]
 
+CPU_PIPELINE = [
+    "cpu.st.split-phase",
+    "cpu.st.form-event-domains",
+    "cpu.st.build-compute-nodes",
+    "cpu.st.merge-compute-supernodes",
+    "cpu.st.pack-active-words",
+    "cpu.st.pack-emit-functions",
+    "cpu.st.layout-data",
+    "cpu.st.build-schedule",
+]
+
 
 def log(message: str) -> None:
     sys.stderr.write(f"[wolvrix-xs-grhsim-ir] {message}\n")
@@ -59,7 +70,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("log_level", nargs="?", default="info")
     parser.add_argument("--resume-from-flat-grh", action="store_true")
     parser.add_argument("--keep-origins", action="store_true")
-    return parser.parse_args()
+    parser.add_argument("--emit-cpp-dir", type=Path)
+    parser.add_argument("--cpu-target-batch-count", type=int)
+    args = parser.parse_args()
+    if args.cpu_target_batch_count is not None and args.cpu_target_batch_count < 0:
+        parser.error("--cpu-target-batch-count must be nonnegative")
+    return args
 
 
 def read_slang_args(filelist: Path, top: str, read_args_file: Path) -> list[str]:
@@ -82,6 +98,7 @@ def main() -> int:
     grhsim_json = Path(args.grhsim_json).resolve()
     roundtrip_json = Path(args.roundtrip_json).resolve()
     read_args_file = Path(args.read_args_file).resolve()
+    emit_cpp_dir = args.emit_cpp_dir.resolve() if args.emit_cpp_dir else None
 
     for path in (flat_grh_json, grhsim_json, roundtrip_json):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -139,6 +156,23 @@ def main() -> int:
             lambda: session.run_grhsim_pass("grhsim.verify", model="grhsim.main"),
         )
         require_ok(diagnostics, "GrhSIM verify pass")
+        for pass_name in CPU_PIPELINE:
+            pass_options = {}
+            if pass_name == "cpu.st.pack-emit-functions" and args.cpu_target_batch_count is not None:
+                pass_options["target_batch_count"] = args.cpu_target_batch_count
+            diagnostics = timed(
+                f"GrhSIM CPU pass {pass_name}" + (f" {pass_options}" if pass_options else ""),
+                lambda name=pass_name, options=pass_options: session.run_grhsim_pass(name, model="grhsim.main", **options),
+            )
+            require_ok(diagnostics, f"GrhSIM CPU pass {pass_name}")
+        if emit_cpp_dir is not None:
+            diagnostics = timed(
+                f"emit CPU C++ model {emit_cpp_dir}",
+                lambda: session.run_grhsim_pass(
+                    "cpu.st.emit-cpp", model="grhsim.main", output=str(emit_cpp_dir)
+                ),
+            )
+            require_ok(diagnostics, "emit CPU C++ model")
         diagnostics = timed(
             f"store GrhSIM checkpoint {grhsim_json}",
             lambda: session.store_grhsim(model="grhsim.main", output=str(grhsim_json)),

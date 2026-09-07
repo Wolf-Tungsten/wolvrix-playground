@@ -515,7 +515,264 @@
 | `NO0524` | `2026-07-13` | [Event-pure active-id packing audit plan](./NO0524_event_pure_active_id_packing_audit_plan_20260713.md) | 现有 107 pure words/856 nodes 的无约束上界为 181/1,448，但 active ID 绑定 final topo index，不能任意置换。规划先算 run/fragmentation，再只模拟同 DAG level 的合法 stable packing；新增覆盖仍须达到 direct 1%。 |
 | `NO0525` | `2026-07-13` | [Sparse pure-event high-load A/B/A](./NO0525_sparse_pure_event_high_load_aba_20260713.md) | CPU28 fixed-ASLR baseline/hybrid/baseline 三次 50k 均功能正确、PMU 100%；baseline cycle 极差达均值 `27.62%`，cycle 结论作废，但 hybrid host instructions 稳定减少 `1.42%`。正式 quiet gate 仍无有效样本。 |
 | `NO0526` | `2026-07-13` | [Event-pure legal level packing audit](./NO0526_event_pure_legal_level_packing_audit_20260713.md) | final DAG/63,241 active-ID 映射闭环；targeted 同 level+batch whole-word packing 只移动 256 个 compute nodes，将 pure words/samples 从 `107/125` 墏到 `171/244`，新增 `119/6675=1.78%` direct samples，静态 gate 通过但尚未实现 production emitter。 |
+| `NO0527` | `2026-09-05` | [GrhSIM IR CPU phase/domain implementation plan](./NO0527_grhsim_ir_cpu_phase_domain_plan_20260905.md) | M5.0 typed mapping、phase/domain passes、持久化与结构门禁；完整目标仍为新 IR 路线 CoreMark 50k。 |
+| `NO0528` | `2026-09-05` | [GrhSIM IR XiangShan event-domain audit](./NO0528_grhsim_ir_xiangshan_event_domain_audit_20260905.md) | 实测 449 域及 132 个多写口状态，RTL 证实 RTC/JTAG、门控时钟与主时钟下降沿；草案的单 Edge 域假设不成立。 |
+| `NO0529` | `2026-09-05` | [GrhSIM IR CPU phase/domain structural gate](./NO0529_grhsim_ir_cpu_phase_domain_gate_20260905.md) | C++/Python 和真实 Make checkpoint 链路通过，四份 mapped JSON SHA-256 一致；尚无 runtime、10k/50k 或性能验收。 |
+| `NO0530` | `2026-09-06` | [GrhSIM IR CPU compute partition plan](./NO0530_grhsim_ir_cpu_partition_plan_20260906.md) | 实现 boundary node、coarsen/DP、active word/helper 和函数分区，逐层验证及 XiangShan 全图 gate。 |
+| `NO0531` | `2026-09-06` | [GrhSIM IR CPU compute partition gate](./NO0531_grhsim_ir_cpu_partition_gate_20260906.md) | 六个分区 pass 通过真实 XiangShan checkpoint 链路；44,686 compute supernodes、5,586 words、514 函数，四份 JSON hash 一致；layout/schedule/runtime 待实现。 |
+| `NO0532` | `2026-09-06` | [GrhSIM IR CPU data layout plan](./NO0532_grhsim_ir_cpu_layout_plan_20260906.md) | CPU 独立类型、对象/边界 arena、supernode/helper frame、运行态 slots 与布局完整性门禁。 |
+| `NO0533` | `2026-09-06` | [GrhSIM IR CPU data layout gate](./NO0533_grhsim_ir_cpu_layout_gate_20260906.md) | 第七个 pass、类型/生命周期/溢出测试及真实 Make 入口通过；405 CPU types、四份全图 JSON hash 一致，schedule/runtime/50k 待完成。 |
+| `NO0534` | `2026-09-06` | [GrhSIM IR CPU schedule plan](./NO0534_grhsim_ir_cpu_schedule_plan_20260906.md) | 单核 task、稀疏 fanout、精确 E 闭包、每轮源与输入影子；修正派生事件反向边沿采样。 |
+| `NO0535` | `2026-09-06` | [GrhSIM IR CPU schedule gate](./NO0535_grhsim_ir_cpu_schedule_gate_20260906.md) | 八阶段完整映射和真实 Make 入口通过；514 tasks、626,747 E states，四份 JSON hash 一致；trace 对照通过但 emitted runtime/50k 未完成。 |
 
+| `NO0536` | `2026-09-06` | [GrhSIM IR CPU emitter implementation plan](./NO0536_grhsim_ir_cpu_emitter_plan_20260906.md) | 共享既有数值运行库，直接消费新 IR 布局/调度，生成分区函数和轮末状态发布；逐步覆盖实际仿真链路。 |
+| `NO0537` | `2026-09-06` | [GrhSIM IR CPU emitter gate](./NO0537_grhsim_ir_cpu_emitter_gate_20260906.md) | 首版 emitter、双时钟 4,104 样本及 scalar corner CTest 通过；XiangShan emitter 首个门禁确认 4-state/最大 79,263 位宽值尚未覆盖。 |
+| `NO0538` | `2026-09-06` | [GrhSIM IR CPU wide value audit](./NO0538_grhsim_ir_cpu_wide_value_audit_20260906.md) | 实测 204,216 个超宽结果操作、26 类，主要为 slice/bitwise/mux/concat；确认必须实现 words-backed 运算，不能只扩展 memory storage。 |
+| `NO0539` | `2026-09-06` | [GrhSIM IR CPU wide concat gate](./NO0539_grhsim_ir_cpu_wide_concat_gate_20260906.md) | Make 路线越过超宽类型门禁并进入 words-backed 生成；首个失败点为 mixed scalar/wide concat。 |
+| `NO0540` | `2026-09-06` | [GrhSIM IR CPU wide constant gate](./NO0540_grhsim_ir_cpu_wide_constant_gate_20260906.md) | 兼容 XiangShan constant 的 int64/bool 参数，并通过 Makefile 刷新 binding；待继续验证宽常量生成。 |
+| `NO0541` | `2026-09-06` | [GrhSIM IR CPU constant parameter gate](./NO0541_grhsim_ir_cpu_constant_parameter_gate_20260906.md) | 兼容 XiangShan `constValue` 参数名及 string/int64/bool 类型，已通过 Makefile 刷新 binding。 |
+| `NO0542` | `2026-09-06` | [GrhSIM IR CPU system task gate](./NO0542_grhsim_ir_cpu_system_task_gate_20260906.md) | 越过宽 concat/常量门禁，首个失败点为 `core.system.task`；当前仅占位，待实现 fwrite/finish/DPI 副作用。 |
+| `NO0543` | `2026-09-06` | [GrhSIM IR CPU string constant gate](./NO0543_grhsim_ir_cpu_string_constant_gate_20260906.md) | 支持 string constant 和宽 array element word 步长，待 Makefile 重新验证。 |
+| `NO0544` | `2026-09-06` | [GrhSIM IR CPU memory commit gate](./NO0544_grhsim_ir_cpu_memory_commit_gate_20260906.md) | 修正 verifier 对 memory commit 无结果 op 的白名单，已通过 Makefile 刷新 binding。 |
+| `NO0545` | `2026-09-06` | [GrhSIM IR CPU wide slice gate](./NO0545_grhsim_ir_cpu_wide_slice_gate_20260906.md) | 接入 `grhsim_slice_words` 支持宽源固定 slice，已通过 Makefile 刷新 binding。 |
+| `NO0546` | `2026-09-06` | [GrhSIM IR CPU wide out-buffer gate](./NO0546_grhsim_ir_cpu_wide_out_buffer_gate_20260906.md) | 参照 legacy 接入宽按位 out-buffer 生成；Make gate 16 首个失败为 256 位 `sliceArray`。 |
+| `NO0547` | `2026-09-06` | [GrhSIM IR CPU wide shift gate](./NO0547_grhsim_ir_cpu_wide_shift_gate_20260906.md) | 接入宽 `shl/lshr/ashr` out-buffer 生成；Make gate 17 首个失败为 128 位 `shl`。 |
+| `NO0548` | `2026-09-06` | [GrhSIM IR CPU wide shift verify gate](./NO0548_grhsim_ir_cpu_wide_shift_verify_gate_20260906.md) | 补齐宽 shift 的 verifier expression fallback，保持 out-buffer 为性能路径。 |
+| `NO0549` | `2026-09-06` | [GrhSIM IR CPU emitter gate](./NO0549_grhsim_ir_cpu_emitter_gate_20260906.md) | Gate 21b 通过 XiangShan 全图 emitter、checkpoint fresh load 与 round-trip；生成模型编译、独立仿真和 CoreMark 50k 待完成。 |
+| `NO0550` | `2026-09-06` | [GrhSIM IR CPU generated compile gate](./NO0550_grhsim_ir_cpu_generated_compile_gate_20260906.md) | 新增 Makefile 集成编译入口；发现并修正宽 slice 与部分 pointer ABI，生成模型编译仍待继续闭合。 |
+| `NO0551` | `2026-09-06` | [GrhSIM IR CPU concat ABI gate](./NO0551_grhsim_ir_cpu_concat_abi_gate_20260906.md) | Gate 24 暴露 scalar concat 分支误选，已修正 scalar+scalar 与 mixed wide helper 选择；编译待重新验证。 |
+| `NO0552` | `2026-09-06` | [GrhSIM IR CPU concat transition gate](./NO0552_grhsim_ir_cpu_concat_transition_gate_20260906.md) | Gate 25 定位连续 scalar concat 跨 64 位的 materialization 缺口，已新增 scalar-to-wide helper；编译待重新验证。 |
+| `NO0553` | `2026-09-06` | [GrhSIM IR CPU nested concat gate](./NO0553_grhsim_ir_cpu_nested_concat_gate_20260906.md) | Gate 26 定位嵌套 `concat_words` lhs 容器参数错误，已修正为结果 word 数；集成编译待重新验证。 |
+| `NO0554` | `2026-09-06` | [GrhSIM IR CPU string escape gate](./NO0554_grhsim_ir_cpu_string_escape_gate_20260906.md) | Gate 27 发现 string constant 未转义导致 C++ 语法错误，已补齐常见字符转义；编译待重新验证。 |
+| `NO0555` | `2026-09-06` | [GrhSIM IR CPU concat scalar overload gate](./NO0555_grhsim_ir_cpu_concat_scalar_overload_gate_20260906.md) | Gate 28 继续暴露少量 scalar/wide concat 静态类型边界，已增加 scalar lhs 重载；编译待重新验证。 |
+| `NO0556` | `2026-09-06` | [GrhSIM IR CPU array init compile gate](./NO0556_grhsim_ir_cpu_array_init_compile_gate_20260906.md) | 从 gate33 日志定位数组初始化 scalar cast 错误，已先生成合法 aggregate；数组初值完整语义待实现。 |
+| `NO0557` | `2026-09-06` | [GrhSIM IR CPU driver compile bottleneck gate](./NO0557_grhsim_ir_cpu_driver_compile_bottleneck_gate_20260906.md) | 修正主动中断的证据范围；后续 gate39 初始化拆分后 driver object 已生成，gate45 编译到 task_7。 |
+| `NO0558` | `2026-09-06` | [CPU direct concat regression](./NO0558_grhsim_ir_cpu_direct_concat_regression_20260906.md) | concat/窄值指针修复通过 Verilator/UBSan；gate47 越过 task_7 崩溃点，tasks 1-9 编译通过，task_10 暴露宽比较/宽移位量错误。 |
+| `NO0559` | `2026-09-06` | [CPU wide compare and shift](./NO0559_grhsim_ir_cpu_wide_compare_shift_20260906.md) | pointer 宽比较、饱和宽移位量通过 Verilator/UBSan；gate48 编译通过 tasks 1-62，task_63 暴露宽内存寻址及寄存器 mask 合并缺口。 |
+
+| `NO0560` | `2026-09-06` | [CPU wide state writes](./NO0560_grhsim_ir_cpu_wide_state_write_20260906.md) | 宽 masked 写入/寻址/seq event 修复；2,048 样本状态回归通过，gate49 生成往返及 tasks 63/64/73 定向编译通过，完整链接待完成。 |
+
+| `NO0561` | `2026-09-06` | [Full CPU link and startup](./NO0561_grhsim_ir_cpu_full_link_startup_20260906.md) | gate49 完整 O0 模型/emu 链接通过；新增续建/运行入口与 pipefail，启动诊断定位 init 栈压力和 raw frame string 生命周期缺口。 |
+
+| `NO0562` | `2026-09-06` | [CPU startup storage repair](./NO0562_grhsim_ir_cpu_startup_storage_20260906.md) | 修复字符串句柄布局/生命周期和数组初始化大栈临时值；O0 8 MiB 栈、16 MiB 数组及 ASan/UBSan 回归通过，完整模型待验证。 |
+
+| `NO0563` | `2026-09-06` | [Gate50 full-model startup](./NO0563_grhsim_ir_cpu_gate50_startup_20260906.md) | 已追加完整 O0 编译/链接与默认 8 MiB 栈 100-cycle 启动通过；instr=0，DPI/system task 和 50k 功能验证仍未闭合。 |
+
+| `NO0564` | `2026-09-06` | [CPU external-call emission](./NO0564_grhsim_ir_cpu_external_calls_20260906.md) | 接入真实 DPI/system task；384 样本 ASan/UBSan 回归及 terminal 退出码测试通过，保留现有 compute/event 策略，gate51 待验证。 |
+
+| `NO0565` | `2026-09-06` | [CPU call-condition parity](./NO0565_grhsim_ir_cpu_call_condition_20260906.md) | gate51 preflight 暴露过严的 1-bit 条件限制；按 legacy 非零判真修正，32/129-bit 高位条件回归通过，gate52 待验证。 |
+
+| `NO0566` | `2026-09-06` | [CPU DPI declaration boundary](./NO0566_grhsim_ir_cpu_dpi_declaration_boundary_20260906.md) | gate52 生成/round-trip 通过；harness 声明冲突按 legacy 改为 task TU 私有，原生 ABI 位模式回归通过，gate53 待验证。 |
+
+| `NO0567` | `2026-09-06` | [Gate53 actual-call runtime](./NO0567_grhsim_ir_cpu_gate53_calls_runtime_20260906.md) | 已追加完整 O0 编译/链接、实际调用 100-cycle 默认栈启动通过；后续首指令及 legacy 核对见 NO0568。 |
+
+| `NO0568` | `2026-09-07` | [CPU first commit](./NO0568_grhsim_ir_cpu_first_commit_20260907.md) | gate53 1k 默认栈运行退出 0、提交 3 条指令，NEMU 未报错；legacy 同周期进度计数/PC 一致，O0 性能及 10k/50k 仍未闭合。 |
+
+| `NO0569` | `2026-09-07` | [CPU array initialization](./NO0569_grhsim_ir_cpu_array_initialization_20260907.md) | 已追加：const/fill/random/readmem、范围/覆盖预检、fresh-load/宽 readmem 回归通过，legacy 全量发射测试通过。 |
+
+| `NO0570` | `2026-09-07` | [Gate54 array init](./NO0570_grhsim_ir_cpu_gate54_array_init_20260907.md) | 已追加：真实 XiangShan 生成/fresh-load/round-trip 通过，88.4 秒；新目录 driver/init_59 O3 定向编译通过，完整优化链接/运行待验证。 |
+
+| `NO0571` | `2026-09-07` | [Gate54 full O3](./NO0571_grhsim_ir_cpu_gate54_full_o3_20260907.md) | 通过既有 Makefile 启动完整 O3 构建，170 init 已编译，compute task 编译中；未计入运行通过。 |
+
+| `NO0572` | `2026-09-07` | [CPU HDLBits entry](./NO0572_grhsim_ir_cpu_hdlbits_entry_20260907.md) | 新增 IR Makefile 回归入口，001–015 通过；016 揭示 detached GRH value 被误带入 IR，窄范围修复和单元回归通过，继续全量复验。 |
+
+| `NO0573` | `2026-09-07` | [CPU port names](./NO0573_grhsim_ir_cpu_port_names_20260907.md) | 032 的 cpu_overheated 误拒绝已修复；实际成员冲突继续检查，this-> 防止公开端口被局部变量遮蔽，CPU 全套回归通过。 |
+
+| `NO0574` | `2026-09-07` | [CPU bounded functions](./NO0574_grhsim_ir_cpu_bounded_functions_20260907.md) | gate54 两个大 task O3 编译实耗约 563/670 秒；开放既有 target-batch-count 参数，gate55 验证关闭函数上限动态放大。 |
+
+| `NO0575` | `2026-09-07` | [HDLBits library alias](./NO0575_grhsim_ir_cpu_hdlbits_library_alias_20260907.md) | 第三轮 IR 001–118 通过，119 参数化顶层缺静态库别名；生成 Makefile 补 LIB 变量复用现有流程，第四轮全量复验中。 |
+
+| `NO0576` | `2026-09-07` | [IR HDLBits full gate](./NO0576_grhsim_ir_cpu_hdlbits_full_gate_20260907.md) | 162/162 既有 GrhTB 通过；事件域统计 75 input/5 derived/18 general，84 个模型无 commit 域。legacy 001 通过、119 异步复位断言失败单独保留。 |
+
+| `NO0577` | `2026-09-07` | [Gate55 full O3 build](./NO0577_grhsim_ir_cpu_gate55_full_o3_build_20260907.md) | 全模型 6255 对象完成 O3 编译、归档和 emu 链接，退出 0，wall 11:58.60；不以构建通过替代运行验收。 |
+
+| `NO0578` | `2026-09-07` | [Gate55 O3 runtime](./NO0578_grhsim_ir_cpu_gate55_o3_runtime_20260907.md) | 1k 运行退出 0，3 条指令、NEMU 无报告不一致；host 57958 ms，性能明显未达标。DPI 策略保持现状，10k/50k 仍待验证。 |
+
+| `NO0579` | `2026-09-07` | [Gate55 phase profile](./NO0579_grhsim_ir_cpu_gate55_phase_profile_20260907.md) | 1k 临时探针实测 compute 17.9s、commit 34.9s、publish 6.1s，17.5 亿 pending 中约 64.5% 未变化；探针已撤去并恢复 O3 链接。 |
+
+| `NO0580` | `2026-09-07` | [Unchanged state staging](./NO0580_grhsim_ir_cpu_unchanged_state_staging_20260907.md) | 已追加撤回：功能测试通过，但 gate56 1k 实测劣化约 18.2%，运行实现撤回，新增测试保留。 |
+
+| `NO0581` | `2026-09-07` | [Extended multiclock gate](./NO0581_grhsim_ir_cpu_multiclock_extended_gate_20260907.md) | 新增 CDC 10756 样本、双时钟 RAM 9731 样本，CPU/Verilator/独立记分板逐步一致；连同 cpu_chain 共三个多时钟 DUT，旧回归不退。 |
+
+| `NO0582` | `2026-09-07` | [Unchanged state HDLBits gate](./NO0582_grhsim_ir_cpu_unchanged_state_hdlbits_gate_20260907.md) | 安装不变状态入队修复后重新生成并运行，162/162 既有 GrhTB 全部通过；独立新产物保存在 ptmp。 |
+
+| `NO0583` | `2026-09-07` | [Gate56 full O3 build](./NO0583_grhsim_ir_cpu_gate56_full_o3_build_20260907.md) | 6255 个对象完整 O3 编译/链接退出 0，wall 13:48.87；模型库约 229 MiB，运行验收另记录。 |
+
+| `NO0584` | `2026-09-07` | [Unchanged state runtime rejection](./NO0584_grhsim_ir_cpu_unchanged_state_runtime_rejection_20260907.md) | gate56 1k 功能计数一致，但耗时 68502 ms，撤回变慢的入队检查；恢复版全套回归通过，独立 gate55 harness 已链接。 |
+
+| `NO0585` | `2026-09-07` | [History batch design](./NO0585_grhsim_ir_cpu_history_batch_design_20260907.md) | 后续候选：严格限定同域私有 history 的连续批量暂存，保留独立旧值和 publish；尚未实现或证明性能收益。 |
+
+| `NO0586` | `2026-09-07` | [Gate55 10k functional gate](./NO0586_grhsim_ir_cpu_gate55_10k_functional_gate_20260907.md) | IR 10k 实际退出 0，458 条指令、NEMU 未报告不一致；十个进度采样及终态计数与 legacy 完全一致。IR 50k/性能仍未完成。 |
+
+| `NO0587` | `2026-09-07` | [Legacy 50k functional reference](./NO0587_grhsim_legacy_50k_functional_reference_20260907.md) | 既有 legacy 50k 退出 0，73580 条指令，保留每千周期轨迹；仅作功能参考，不计作 IR 或性能门禁通过。 |
+
+| `NO0588` | `2026-09-07` | [History batch implementation](./NO0588_grhsim_ir_cpu_history_batch_implementation_20260907.md) | 同 commit 函数的私有连续 history 批量 shadow 暂存；不同初值/共享/读取/普通写入反例及全套 CPU 回归通过，gate57 完整模型生成中。 |
+
+| `NO0589` | `2026-09-07` | [Gate57 generation](./NO0589_grhsim_ir_cpu_gate57_generation_20260907.md) | fresh-load/round-trip 退出 0，IR 和公开头文件与 gate55 逐字节相同；391659 histories 合为 3240 批，O3 构建及 HDLBits 回归仍在运行，收益未验证。 |
+
+| `NO0590` | `2026-09-07` | [History batch HDLBits gate](./NO0590_grhsim_ir_cpu_history_batch_hdlbits_gate_20260907.md) | history 批量暂存后的全量 Makefile 回归退出 0，162/162 用例通过；全模型 O3 构建及真实运行门禁仍待完成。 |
+
+| `NO0591` | `2026-09-07` | [Gate57 full O3 build](./NO0591_grhsim_ir_cpu_gate57_full_o3_build_20260907.md) | 6255 模型对象及 harness 链接退出 0，wall 11:43.31；默认 IR emu 已是 gate57，尚未验证真实运行和性能。 |
+
+| `NO0592` | `2026-09-07` | [Gate57 1k runtime](./NO0592_grhsim_ir_cpu_gate57_1k_runtime_20260907.md) | 实际 1k 退出 0，3 条指令/PC 与基线一致，40631 ms，较 gate55 短窗口下降约 29.9%；真实 IR 50k 已启动，未计作通过。 |
+
+| `NO0593` | `2026-09-07` | [Gate57 20k checkpoint](./NO0593_grhsim_ir_cpu_gate57_20k_checkpoint_20260907.md) | 同一真实 50k 运行已越过 20k，14121 条指令，前 20 个采样与 legacy 一致；进程仍活跃，不计作终态或 50k 通过。 |
+
+| `NO0594` | `2026-09-07` | [Gate57 50k functional gate](./NO0594_grhsim_ir_cpu_gate57_50k_functional_gate_20260907.md) | 真实 IR 50k 退出 0，73580 条指令、NEMU 无不一致；全部 50 个连续采样及三项终态与 legacy 一致。host 2073729 ms，功能通过但性能仍未达标。 |
+
+| `NO0595` | `2026-09-07` | [Gate57 50k serial performance](./NO0595_grhsim_ir_cpu_gate57_50k_serial_performance_20260907.md) | 串行配套 50k：IR 2073729 ms、legacy 153356 ms，轨迹全同但 IR 耗时 13.52 倍；5% 性能要求明确未通过，下一步需 gate57 新阶段计时。 |
+
+| `NO0596` | `2026-09-07` | [Gate57 phase profile](./NO0596_grhsim_ir_cpu_gate57_phase_profile_20260907.md) | 新 1k 计时：compute 17.98s、commit 21.05s、publish 1.19s；pending 降至 1.60 亿，普通 driver 与二进制已恢复。 |
+
+| `NO0597` | `2026-09-07` | [Private scalar commit design](./NO0597_grhsim_ir_cpu_private_scalar_commit_design_20260907.md) | 唯一写者且无 commit/history 观察者的标量原地更新候选；保留旧值计算、最终 E 比较与 next-arm，多写者/history/宽值/memory 回退，尚无性能结论。 |
+
+| `NO0598` | `2026-09-07` | [Private scalar commit implementation](./NO0598_grhsim_ir_cpu_private_scalar_commit_implementation_20260907.md) | 唯一写者标量直写与 E 归约已实现；全套 CPU 回归 27.84s 通过，4612 次非 E/DPI 旧值观察及多写者/history 回退验证通过，完整模型收益待测。 |
+
+| `NO0599` | `2026-09-07` | [Gate58 generation](./NO0599_grhsim_ir_cpu_gate58_generation_20260907.md) | 生成/fresh-load/round-trip 退出 0，IR 与 gate57 逐字节相同；284775 个标量使用 direct commit，history 覆盖不变，独立 O3 构建与 HDLBits 运行中。 |
+
+| `NO0600` | `2026-09-07` | [Private commit HDLBits gate](./NO0600_grhsim_ir_cpu_private_commit_hdlbits_gate_20260907.md) | direct commit 后完整 Makefile 回归退出 0，162/162 用例通过；独立 gate58 O3 构建仍在进行，真实运行收益待测。 |
+
+| `NO0601` | `2026-09-07` | [Gate58 full O3 build](./NO0601_grhsim_ir_cpu_gate58_full_o3_build_20260907.md) | 6255 个对象及独立 harness 链接退出 0，wall 16:46.94，较 gate57 编译变慢；archive 小幅缩小，运行验证另计。 |
+
+| `NO0602` | `2026-09-07` | [Gate58 1k serial pair](./NO0602_grhsim_ir_cpu_gate58_1k_serial_pair_20260907.md) | gate57/gate58 相邻串行 1k 为 40412/37784 ms，改善约 6.5%，三次短窗口均功能一致；暂留小幅改善候选，独立 10k 已启动，50k 待验证。 |
+
+| `NO0603` | `2026-09-07` | [Gate58 10k functional gate](./NO0603_grhsim_ir_cpu_gate58_10k_functional_gate_20260907.md) | 独立真实 IR 10k 退出 0，458 条指令、NEMU 无不一致，十个连续采样和三项终态与 legacy 一致；358864 ms，新实现 50k/最终性能待验证。 |
+
+| `NO0604` | `2026-09-07` | [Shared-history schedule counterexample and design](./NO0604_grhsim_ir_cpu_shared_history_schedule_design_20260907.md) | 跨域共享 history 在未修改 gate58 时于第 2 个样本失败；设计为冲突域 AlwaysScanCommit，保留逐 op guard/采样和私有 batching，验证中。 |
+
+| `NO0605` | `2026-09-07` | [Shared-history schedule correction gate](./NO0605_grhsim_ir_cpu_shared_history_schedule_gate_20260907.md) | 调度及 CPU 回归通过，4636 次共享 history 求值；完整 gate58 checkpoint 通过新 verifier，schedule 不变，无新完整模型仿真或性能结论。 |
+
+| `NO0606` | `2026-09-07` | [Inactive-edge sampling-only commit design](./NO0606_grhsim_ir_cpu_inactive_edge_sampling_design_20260907.md) | 无可能边沿时仅按原序采样 history，保留 batching；最多 8 个真实 event 项，general/冲突回退域不参与，性能待实测。 |
+
+| `NO0607` | `2026-09-07` | [Inactive-edge sampling-only implementation gate](./NO0607_grhsim_ir_cpu_inactive_edge_sampling_implementation_20260907.md) | 已实现，CPU 回归 28.10s 通过，8/9 项 emission 边界及 general/共享 history 回退检查通过；独立 gate59/HDLBits 进行中。 |
+
+| `NO0608` | `2026-09-07` | [Gate59 generation and source identity](./NO0608_grhsim_ir_cpu_gate59_generation_20260907.md) | 90.843s 生成及 fresh roundtrip 成功；完整 IR 与 gate58 相同，仅 514 个 commit task 源码变化，独立 O3 构建中。 |
+
+| `NO0609` | `2026-09-07` | [Inactive-edge sampling HDLBits gate](./NO0609_grhsim_ir_cpu_inactive_edge_hdlbits_gate_20260907.md) | 当前 schedule/emitter 的新目录 HDLBits 全量退出 0，162/162；gate59 O3 构建仍在进行，性能尚未测量。 |
+
+| `NO0610` | `2026-09-07` | [Gate59 full O3 build](./NO0610_grhsim_ir_cpu_gate59_full_o3_build_20260907.md) | 6255 个模型对象及独立 harness 构建退出 0，16:51.93；archive 182956358 字节，略增，串行 1k A/B 开始。 |
+
+| `NO0611` | `2026-09-07` | [Gate59 1k serial pairs](./NO0611_grhsim_ir_cpu_gate59_1k_serial_pairs_20260907.md) | 正反序串行配对改善 30.1%/30.6%，四次退出 0、终态一致；独立 gate59 10k 启动，50k/最终性能未验证。 |
+
+| `NO0612` | `2026-09-07` | [Gate59 10k functional gate](./NO0612_grhsim_ir_cpu_gate59_10k_functional_gate_20260907.md) | 真实 10k 退出 0，458 条指令，十个有序采样匹配 legacy，host 248674 ms；新 50k 与最终性能仍待验证。 |
+
+| `NO0613` | `2026-09-07` | [Gate59 50k runbook](./NO0613_grhsim_ir_cpu_gate59_50k_runbook_20260907.md) | 固定 gate59 二进制启动真实 50k，逐千周期对照；IR 结束后串行测 legacy，不并行构建/仿真，尚无终态结论。 |
+
+| `NO0614` | `2026-09-07` | [Gate59 20k checkpoint](./NO0614_grhsim_ir_cpu_gate59_20k_checkpoint_20260907.md) | 20k/14121 指令，host 524172 ms；前 20 个采样一致，同一 50k 进程继续运行，不是终态门禁。 |
+
+| `NO0615` | `2026-09-07` | [Gate59 50k functional gate](./NO0615_grhsim_ir_cpu_gate59_50k_functional_gate_20260907.md) | gate59 真实 50k 退出 0，73580 条指令，50 个有序采样及三项终态匹配 legacy；1371764 ms，配套串行 legacy 测量中。 |
+
+| `NO0616` | `2026-09-07` | [Gate59 50k serial performance](./NO0616_grhsim_ir_cpu_gate59_50k_serial_performance_20260907.md) | 新配对两路退出 0、50 个采样及终态一致；IR 1371764 ms / legacy 155030 ms = 8.848378 倍，功能过、5% 性能门禁失败。 |
+
+| `NO0617` | `2026-09-07` | [Gate59 phase profile](./NO0617_grhsim_ir_cpu_gate59_phase_profile_20260907.md) | 新 1k profile：compute 15.42s、commit 10.05s、publish 0.96s；4278 轮不变，commit 主要在高电平，任务级定位及恢复待完成。 |
+
+| `NO0618` | `2026-09-07` | [Gate59 task profile and restored baseline](./NO0618_grhsim_ir_cpu_gate59_task_profile_20260907.md) | 任务级定位完成；普通二进制与实际 50k 备份同指纹。发现 guard 外常量字符串构造，下一候选保持 DPI/event 语义。 |
+
+| `NO0619` | `2026-09-07` | [CPU immutable string use-site implementation](./NO0619_grhsim_ir_cpu_string_use_site_implementation_20260907.md) | 常量在使用点构造，省去 local/boundary 对象及赋值；真实 void/inout 字符串回归和完整 CPU 测试通过（28.26s），XS 性能待测。 |
+
+| `NO0620` | `2026-09-07` | [Gate60 generation and source identity](./NO0620_grhsim_ir_cpu_gate60_generation_20260907.md) | 93.734s 生成/fresh roundtrip 通过，IR/mapping 完全相同；仅 48 个 compute 源码变化，O3 构建与 HDLBits 进行中。 |
+
+| `NO0621` | `2026-09-07` | [CPU string use-site HDLBits gate](./NO0621_grhsim_ir_cpu_string_use_site_hdlbits_20260907.md) | gate60 当前实现 HDLBits 全量退出 0，162/162；独立 O3 构建仍进行中，未并行测性能。 |
+
+| `NO0622` | `2026-09-07` | [Gate60 full O3 build](./NO0622_grhsim_ir_cpu_gate60_full_o3_build_20260907.md) | 6255 对象及 harness 完整构建退出 0，16:44.10；候选独立二进制已核验，开始串行 1k 配对测速。 |
+
+| `NO0623` | `2026-09-07` | [Gate60 1k serial pairs](./NO0623_grhsim_ir_cpu_gate60_1k_serial_pairs_20260907.md) | 正反序配对 26283→21547 / 26187→21899 ms，改善 18.0%/16.4%；四次终态一致，独立 10k 已启动，非 50k 性能证明。 |
+
+| `NO0624` | `2026-09-07` | [Gate60 10k functional gate](./NO0624_grhsim_ir_cpu_gate60_10k_functional_gate_20260907.md) | 独立真实 10k 退出 0，205321 ms/458 指令；十个有序采样及终态一致、NEMU 无不一致，50k 与最终性能门禁仍未完成。 |
+
+| `NO0625` | `2026-09-07` | [Gate60 phase profile and restoration](./NO0625_grhsim_ir_cpu_gate60_phase_profile_20260907.md) | compute 10.83s、commit 9.76s、publish 0.91s；计数与 gate59 相同，撤去探针后恢复至普通验证二进制。 |
+
+| `NO0626` | `2026-09-07` | [CPU history-range edge rejection design](./NO0626_grhsim_ir_cpu_history_scan_design_20260907.md) | 按实际事件分组，只读扫描连续 bool history 字节；保留各自初值/guard/采样和回退，候选性能待测。 |
+
+| `NO0627` | `2026-09-07` | [CPU history-range edge rejection implementation](./NO0627_grhsim_ir_cpu_history_scan_implementation_20260907.md) | 密集 bool history 只读扫描已实现；四种真实运行各 4632 样本及完整 CPU 回归通过（35.15s），XS 性能待测。 |
+
+| `NO0628` | `2026-09-07` | [Gate61 generation and source identity](./NO0628_grhsim_ir_cpu_gate61_generation_20260907.md) | 94.386s 生成/fresh roundtrip 通过，IR/mapping 不变；95 个 commit 文件变化，184371 history 成员/2078 区间，O3 构建进行中。 |
+
+| `NO0629` | `2026-09-07` | [CPU history scan HDLBits gate](./NO0629_grhsim_ir_cpu_history_scan_hdlbits_20260907.md) | 当前候选 HDLBits 全量退出 0，162/162；独立 O3 构建仍在原会话运行，尚未并行测性能。 |
+
+| `NO0630` | `2026-09-07` | [Gate61 full O3 build](./NO0630_grhsim_ir_cpu_gate61_full_o3_build_20260907.md) | 6255 对象及 harness 完整构建退出 0，16:35.72；95 个变化文件入口之后内容相同，开始串行 1k 对比。 |
+
+| `NO0631` | `2026-09-07` | [Gate61 1k serial pairs](./NO0631_grhsim_ir_cpu_gate61_1k_serial_pairs_20260907.md) | 正反序配对 21910→18958 / 21643→19153 ms，改善 13.5%/11.5%；四次终态一致，候选独立 10k 已启动。 |
+
+| `NO0632` | `2026-09-07` | [Gate61 10k functional gate](./NO0632_grhsim_ir_cpu_gate61_10k_functional_gate_20260907.md) | 独立真实 10k 退出 0，178709 ms/458 指令；十个有序采样和终态一致，NEMU 无不一致，最终 50k/性能门禁仍未完成。 |
+
+| `NO0633` | `2026-09-07` | [Gate61 phase profile and restoration](./NO0633_grhsim_ir_cpu_gate61_phase_profile_20260907.md) | compute/commit/publish 10355.885/7313.079/890.905 ms；计数与 gate60 一致，撤去探针并恢复二进制逐字节一致。 |
+
+| `NO0634` | `2026-09-07` | [Wide bitwise true-change activation design](./NO0634_grhsim_ir_cpu_wide_bitwise_activity_design_20260907.md) | 宽位运算逐字原位比较，仅真变化激活；沿用 legacy 指针策略，不改 DPI/event，实际收益待测。 |
+
+| `NO0635` | `2026-09-07` | [Wide bitwise true-change activation implementation](./NO0635_grhsim_ir_cpu_wide_bitwise_activity_implementation_20260907.md) | tracked/local 各 1792 helper case、8192 eval/四次 reset 通过；完整 CPU 回归 37.47s，XS 收益待测。 |
+
+| `NO0636` | `2026-09-07` | [Gate62 generation and source identity](./NO0636_grhsim_ir_cpu_gate62_generation_20260907.md) | 95.817s 生成/fresh roundtrip 通过；IR/mapping 不变，仅 header 和 271 compute task 变化，852 处真变化门控。 |
+
+| `NO0637` | `2026-09-07` | [Wide bitwise true-change HDLBits gate](./NO0637_grhsim_ir_cpu_wide_bitwise_hdlbits_gate_20260907.md) | HDLBits 全量退出 0，162/162；所有会话终态，gate62 待独立 O3 构建与 XS 串行比较，未宣称性能收益。 |
+
+| `NO0638` | `2026-09-07` | [Gate62 full O3 build](./NO0638_grhsim_ir_cpu_gate62_full_o3_build_20260907.md) | 6255 对象和 harness 构建退出 0，16:38.06；独立普通二进制已核对，开始串行 1k 配对。 |
+
+| `NO0639` | `2026-09-07` | [Gate62 1k serial pairs](./NO0639_grhsim_ir_cpu_gate62_1k_serial_pairs_20260907.md) | 18655→18632 / 18951→18880 ms；功能一致，0.12%/0.37% 不足以宣称加速，已启动独立 10k。 |
+
+| `NO0640` | `2026-09-07` | [Gate62 10k functional gate](./NO0640_grhsim_ir_cpu_gate62_10k_functional_gate_20260907.md) | 独立真实 10k 退出 0，175061 ms/458 指令；十个采样及终态一致，NEMU 无不一致。 |
+
+| `NO0641` | `2026-09-07` | [Gate62 50k runbook](./NO0641_grhsim_ir_cpu_gate62_50k_runbook_20260907.md) | 已启动同一普通 O3 候选真实 50k；终态后串行重测 legacy，不缩短窗口、不外推性能。 |
+
+| `NO0642` | `2026-09-07` | [Gate62 20k checkpoint](./NO0642_grhsim_ir_cpu_gate62_20k_checkpoint_20260907.md) | 原 50k 进程到 20k/14121 指令/385179 ms，二十个有序采样匹配；保持原进程继续，不作终态结论。 |
+
+| `NO0643` | `2026-09-07` | [Gate62 50k functional gate](./NO0643_grhsim_ir_cpu_gate62_50k_functional_gate_20260907.md) | 真实 50k 退出 0，73580 指令/1024849 ms；50 个采样和终态一致、NEMU 无不一致，已串行启动 legacy 分母。 |
+
+| `NO0644` | `2026-09-07` | [Gate62 50k serial performance](./NO0644_grhsim_ir_cpu_gate62_50k_serial_performance_20260907.md) | IR/legacy 1024849/155179 ms，6.604302 倍，功能一致但 +5% 门禁失败；保留候选参考，继续成本归因。 |
+
+| `NO0645` | `2026-09-07` | [Gate62 phase/task profile and restoration](./NO0645_grhsim_ir_cpu_gate62_phase_task_profile_20260907.md) | compute/commit/publish 11158.037/7532.509/923.530 ms；热点含稀疏 history，探针撤去且普通二进制逐字节恢复。 |
+
+| `NO0646` | `2026-09-07` | [Private stable-history task skip design](./NO0646_grhsim_ir_cpu_stable_history_skip_design_20260907.md) | 仅全部私有 history 等于当前值时跳过无效果 task；保留原采样、共享历史回退及 DPI/event 策略，收益待测。 |
+
+| `NO0647` | `2026-09-07` | [Private stable-history task skip implementation](./NO0647_grhsim_ir_cpu_stable_history_skip_implementation_20260907.md) | 七种有效路径及 signed 回退各 4632 样本/四次 init 通过，完整 CPU 最终 51.82s；XS 收益待测。 |
+
+| `NO0648` | `2026-09-07` | [Gate63 generation and stable-history coverage](./NO0648_grhsim_ir_cpu_gate63_generation_20260907.md) | 独立生成/fresh roundtrip 94.704s；IR/mapping 不变，130 个 commit 文件仅新增入口检查，覆盖 392009 history；收益待测。 |
+
+| `NO0649` | `2026-09-07` | [Stable-history skip HDLBits gate](./NO0649_grhsim_ir_cpu_stable_history_skip_hdlbits_20260907.md) | 当前候选全量退出 0，001–162 有序全部通过；所有会话终态，gate63 独立 O3/XS 运行待验证。 |
+
+| `NO0650` | `2026-09-07` | [Gate63 full O3 build](./NO0650_grhsim_ir_cpu_gate63_full_o3_build_20260907.md) | 独立 6255 对象及 harness 构建退出 0，16:38.27、exe 163291768 字节；开始普通二进制串行配对。 |
+
+| `NO0651` | `2026-09-07` | [Gate63 1k serial pairs](./NO0651_grhsim_ir_cpu_gate63_1k_serial_pairs_20260907.md) | 四次普通运行退出 0、功能一致；正反序耗时下降 18.456%/19.570%，已启动候选真实 10k，长窗口待验证。 |
+
+| `NO0652` | `2026-09-07` | [Gate63 10k functional gate](./NO0652_grhsim_ir_cpu_gate63_10k_functional_gate_20260907.md) | 实际 10k 退出 0，143683 ms/458 指令；十个采样和终态匹配 gate62，指纹不变，候选 50k/最终性能仍待验证。 |
+
+| `NO0653` | `2026-09-07` | [Gate63 50k runbook](./NO0653_grhsim_ir_cpu_gate63_50k_runbook_20260907.md) | 相同普通 O3 候选已启动真实 50k；不重建、不加探针、不并行仿真，终态后重测 legacy 分母。 |
+
+| `NO0654` | `2026-09-07` | [Gate63 20k checkpoint](./NO0654_grhsim_ir_cpu_gate63_20k_checkpoint_20260907.md) | 原进程到 20k/14121 指令/322929 ms，采样匹配；用户要求本次 IR/legacy 配对测量后暂停并报告速度差距。 |
+
+| `NO0655` | `2026-09-07` | [Gate63 50k functional gate](./NO0655_grhsim_ir_cpu_gate63_50k_functional_gate_20260907.md) | 原 50k 退出 0，879581 ms/73580 指令，50 个采样和终态匹配；仅启动配套串行 legacy，随后按用户要求暂停。 |
+
+| `NO0656` | `2026-09-07` | [Gate63 50k serial performance](./NO0656_grhsim_ir_cpu_gate63_50k_serial_performance_20260907.md) | IR/legacy 879581/154286 ms，5.700977 倍，仍需减少 81.5821%；用户更新要求先报告，再按分区、结构、helper 三方向排查修复。 |
+
+| `NO0657` | `2026-09-07` | [Legacy three-direction audit](./NO0657_grhsim_ir_cpu_legacy_three_direction_audit_20260907.md) | 分块规模相近，compute 函数 5569 对 66；结构差异及 83 处宽运算无条件激活待实测修复。 |
+
+| `NO0658` | `2026-09-07` | [Gate64 packing generation](./NO0658_grhsim_ir_cpu_gate64_packing_generation_20260907.md) | 恢复默认 target_batch_count=64，62 compute/452 commit，语义模型一致；独立 O3 构建中，收益未测。 |
+
+| `NO0659` | `2026-09-07` | [Wide arithmetic and shift activity](./NO0659_grhsim_ir_cpu_wide_arithmetic_shift_activity_20260907.md) | 宽加减/移位改为 pointer/out-buffer 单遍真变化激活；CPU 66.14s、schedule 通过，XS 收益未测。 |
+
+| `NO0660` | `2026-09-07` | [Gate65 generation and HDLBits](./NO0660_grhsim_ir_cpu_gate65_generation_hdlbits_20260907.md) | helper-only XS 生成/roundtrip 152.975s，IR/mapping 一致，83 调用；HDLBits 162/162，尚无 XS 收益。 |
+
+| `NO0661` | `2026-09-07` | [Local activity word design](./NO0661_grhsim_ir_cpu_local_activity_word_design_20260907.md) | 按 legacy 改为局部活动字节，helper 共享引用、同 word 前向激活局部化；独立回归中。 |
+
+| `NO0662` | `2026-09-07` | [Local activity word CPU gate](./NO0662_grhsim_ir_cpu_local_activity_word_gate_20260907.md) | 完整 CPU 72.28s 通过，inline/helper × tracked/local 四变体；计划 gate66 验证两项修复组合，不冒充分项收益。 |
+
+| `NO0663` | `2026-09-07` | [Memory structure audit](./NO0663_grhsim_ir_cpu_memory_structure_audit_20260907.md) | IR 单 cell 写仍整数组暂存/发布，832 数组、最大 1 MiB；legacy 按 row 激活。未混入当前候选，待动态归因与 NBA 设计。 |
+
+| `NO0664` | `2026-09-07` | [Gate66 generation and HDLBits](./NO0664_grhsim_ir_cpu_gate66_generation_hdlbits_20260907.md) | 组合候选生成/roundtrip 208.053s、IR 一致、HDLBits 162/162；全局激活写降至 170 万条，独立 O3 中，收益未测。 |
+
+| `NO0665` | `2026-09-07` | [Gate66 full O3 build](./NO0665_grhsim_ir_cpu_gate66_full_o3_build_20260907.md) | 6255 模型对象及链接通过，23:27.59；启动有构建重叠的 10k 功能检查，不作为性能证据。 |
+
+| `NO0666` | `2026-09-07` | [Gate66 10k functional gate](./NO0666_grhsim_ir_cpu_gate66_10k_functional_gate_20260907.md) | 10k 退出 0，458 指令，十个采样及终态匹配 gate63；有构建重叠，233638 ms 不作性能比较。 |
+
+| `NO0667` | `2026-09-07` | [Stop long builds and isolation correction](./NO0667_grhsim_ir_cpu_stop_long_builds_20260907.md) | 按用户要求停止 gate64 和 21h gate26，宿主机确认无编译残留；更正此前无并行构建断言，历史耗时不作干净环境基准。 |
+
+| `NO0668` | `2026-09-07` | [Compile limits static audit](./NO0668_grhsim_ir_cpu_compile_limits_static_audit_20260907.md) | 停止后仅静态核查：默认 64 将 2048-op 阈值放大到 77832，生成编译规则无超时；未选新限额、未恢复构建。 |
+
+| `NO0669` | `2026-09-07` | [Emit shape repairs](./NO0669_grhsim_ir_cpu_emit_shape_repairs_20260907.md) | 按用户要求修复读取物化、逐值变化发布与整数组暂存；新增内联/helper 内存与快照回归，最终验证及新 50k 串行配对待完成。 |
+
+| `NO0670` | `2026-09-07` | [Gate67 build and 50k start](./NO0670_grhsim_ir_cpu_gate67_build_and_50k_start_20260907.md) | 最终 CPU/schedule、HDLBits 162/162、IR 同一性通过；O3 链接 16:13.07。宿主机无残留构建后启动新 50k，性能待终态。 |
+
+| `NO0671` | `2026-09-07` | [Gate67 50k serial result](./NO0671_grhsim_ir_cpu_gate67_50k_serial_result_20260907.md) | 新串行 50k：IR 659545 ms、legacy 119091 ms，耗时 5.53816 倍；NEMU、50 个采样和终态一致。记录提交检查点，性能差距仍未闭合。 |
 
 ## 编号说明
 

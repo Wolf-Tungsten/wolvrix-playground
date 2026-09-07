@@ -17,12 +17,16 @@
 - Generated outputs land in `wolvrix/build/bin` (wolvrix binaries) and `build/hdlbits` (HDLBits sims); avoid committing these.
 
 ## Build, Test, and Development Commands
-- Configure: `cmake -S wolvrix -B wolvrix/build` (requires CMake 3.20+ and a C++20 compiler).
-- Build: `cmake --build wolvrix/build -j$(nproc)`; builds the core library, CLI, and tests. Python installation is handled via `pip` + `scikit-build-core`.
-- Python package: `python3 -m pip install --no-build-isolation -e wolvrix` (provides importable bindings via scikit-build-core).
-- Tests: `ctest --test-dir wolvrix/build --output-on-failure` after configuring; CTest wraps the per-target executables.
+- **Build/test/install commands must always go through an existing project `Makefile` target. Do not manually compose or invoke `cmake`, `ctest`, `pip`, compiler, linker, or equivalent build commands. If a required workflow has no Makefile target, add the target to the Makefile first, then invoke that target.**
+- Do not copy or manually assemble the underlying `cmake`, `ctest`, `pip`, compiler, or linker commands from the examples or build logs. Find and use the corresponding existing `Makefile` target; when none exists, add one before running the workflow.
+- Keep command logs and temporary workflow artifacts under the repository's `ptmp/` directory; do not write task output to `/tmp` or other paths outside the project.
 - HDLBits flow: `make run_hdlbits_test DUT=001` (or `make run_all_hdlbits_tests`) builds the parser, emits SV/JSON, and runs Verilator; needs Verilator in PATH.
-- Manual run example: `python3 scripts/wolvrix_emit.py` after installing the package into the active environment (configure `WOLVRIX_*` env vars as needed).
+- For Python package setup or script workflows, use the repository's `make py_install` and relevant Makefile target; direct `python3`/`pip` invocation is prohibited for build, test, or install work.
+
+## Helper Implementation Performance
+- Runtime helpers, especially generated C++ helpers for wide values, must follow the established legacy route as the performance reference.
+- Prefer pointer-based, caller-provided output buffers (and local frame/boundary buffers where applicable). Avoid return-by-value `std::array` helpers and avoid creating large temporary wide-value copies in hot paths.
+- Before adding a new helper or changing its ABI, inspect the corresponding legacy implementation and preserve its allocation, aliasing, and data-movement strategy unless a measured reason justifies a deviation.
 
 ## Coding Style & Naming Conventions
 - C++20 code with 4-space indentation and braces on the same line as control statements; keep includes ordered and minimal.
