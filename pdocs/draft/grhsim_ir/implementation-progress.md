@@ -56,7 +56,7 @@ CPU 后端的新阶段进展见文末；下方基础架构表保留原阶段验�
 
 ## CPU 后端增量：2026-09-05
 
-目标继续为 [CPU multiclock/activity 计划](./grhsim-ir-cpu-backend-multiclock-activity-plan-20260905.md)
+目标继续为 [CPU 单线程活动度仿真 Flow](../../../wolvrix/docs/grhsim_ir/flows/cpu-st.md)
 和 `xs_wolf_grhsim_ir` CoreMark 50k 仿真。当前完成了首批代码，尚未形成可执行仿真器。
 
 - 已实现 model-owned `CpuBackendMapping` typed payload、phase/domain 分区及 JSON 持久化。
@@ -829,3 +829,8 @@ instrCnt=73580、cycleCnt=49996、IPC=1.471718、guest=50001。三处结构修�
 验证后已创建子仓库检查点：wolvrix `dda0ce3`（完整 CPU 后端及 emit 修复），
 testcase/hdlbits `e9221bb`（IR backend 入口）。主仓库将同步记录两者版本与 NO0671；
 本轮仅本地提交，不推送。
+
+CPU multiclock/activity 草案已整理到正式文档 `wolvrix/docs/grhsim_ir/flows/cpu-st.md`，
+并加入 flows 索引及 overview/backend/pass 文档入口。流程按当前实现修正：history 每轮 G
+发布、域数量来自实际 IR、多写口与 memWriteSeq 保留；不再沿用“后端尚未实现”和冻结到
+eval 结束的历史假设。旧草案路径仅保留迁移指针，编号实验记录不改写，性能验收仍开放。
