@@ -155,6 +155,8 @@ XS_WOLF_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON ?= $(if $(filter 1,$(XS_WOLF_GRHS
 XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_flat_grh.json
 XS_WOLF_GRHSIM_IR_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_grhsim_ir.json
 XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_grhsim_ir_roundtrip.json
+XS_WOLF_GRHSIM_IR_REG_TO_MEM ?= 1
+XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT ?= $(XS_GRHSIM_IR_BUILD)/reg_to_mem.tsv
 XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON ?= 0
 XS_WOLF_GRHSIM_IR_KEEP_ORIGINS ?= 0
 XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR ?=
@@ -305,6 +307,78 @@ test_grhsim_cpu_mapping:
 	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(grhsim-ir-tests|grhsim-cpu-mapping-tests)$$' --output-on-failure
 
 .PHONY: audit_grhsim_cpu_emit
+.PHONY: test_grhsim_reg_to_mem inspect_grhsim_reg_to_mem
+test_grhsim_reg_to_mem:
+	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-reg-to-mem-tests -j 2
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-reg-to-mem-tests$$' --output-on-failure
+
+inspect_grhsim_reg_to_mem: test_grhsim_reg_to_mem
+	$(WOLVRIX_BUILD_DIR)/bin/grhsim-reg-to-mem-tests --inspect "$(GRHSIM_AUDIT_MODEL)" "$(GRHSIM_AUDIT_PATTERN)"
+
+.PHONY: analyze_grhsim_reg_to_mem
+analyze_grhsim_reg_to_mem: test_grhsim_reg_to_mem
+	$(WOLVRIX_BUILD_DIR)/bin/grhsim-reg-to-mem-tests --analyze "$(GRHSIM_AUDIT_MODEL)" "$(GRHSIM_REG_TO_MEM_REPORT)"
+
+.PHONY: rewrite_grhsim_reg_to_mem
+rewrite_grhsim_reg_to_mem: test_grhsim_reg_to_mem
+	$(WOLVRIX_BUILD_DIR)/bin/grhsim-reg-to-mem-tests --rewrite "$(GRHSIM_AUDIT_MODEL)" "$(GRHSIM_REG_TO_MEM_REPORT)"
+
+.PHONY: summarize_grhsim_reg_to_mem
+summarize_grhsim_reg_to_mem: test_grhsim_reg_to_mem
+	$(WOLVRIX_BUILD_DIR)/bin/grhsim-reg-to-mem-tests --summarize "$(GRHSIM_AUDIT_MODEL)" > "$(GRHSIM_REG_TO_MEM_REPORT)"
+
+.PHONY: test_grhsim_reg_to_mem_generated
+test_grhsim_reg_to_mem_generated: test_grhsim_reg_to_mem
+	$(WOLVRIX_BUILD_DIR)/bin/grhsim-reg-to-mem-tests --emit-checks "$(CURDIR)/ptmp/reg_to_mem/generated_checks"
+	@for shape in writes reads windows shifted_windows edge_window overlap multi_bit_window multi_bit_shift; do \
+		TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp $(MAKE) --no-print-directory -C "$(CURDIR)/ptmp/reg_to_mem/generated_checks/$$shape" \
+		-f "$(WOLVRIX_DIR)/tests/grhsim/data/reg_to_mem_generated.mk" -j 2 check \
+		CXX="$(CXX)" CXXFLAGS='-std=c++20 -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all' || exit $$?; \
+	done
+
+.PHONY: test_grhsim_reg_to_mem_rtl
+test_grhsim_reg_to_mem_rtl:
+	@mkdir -p "$(CURDIR)/ptmp/reg_to_mem"
+	@set -e; rtm_dir=$$(mktemp -d "$(CURDIR)/ptmp/reg_to_mem/rtl.XXXXXX"); \
+	$(PYTHON) scripts/test_grhsim_reg_to_mem_rtl.py "$(WOLVRIX_DIR)/tests/grhsim/data/reg_to_mem_tables.sv" "$$rtm_dir"; \
+	$(MAKE) --no-print-directory -C "$$rtm_dir/model" -j 2 CXX="$(CXX)" CXXFLAGS='-std=c++20 -O1 -fsanitize=undefined -fno-sanitize-recover=all'; \
+	CCACHE_DIR="$(CURDIR)/ptmp/cpu_emit_ccache" $(VERILATOR) --cc --exe --build -j 2 --top-module reg_to_mem_tables --Mdir "$$rtm_dir/verilator" \
+	-Wno-fatal --x-initial 0 --x-assign 0 "$(WOLVRIX_DIR)/tests/grhsim/data/reg_to_mem_tables.sv" \
+	"$(WOLVRIX_DIR)/tests/grhsim/data/reg_to_mem_tables_main.cpp" \
+	-CFLAGS "-std=c++20 -O1 -I$$rtm_dir/model -fsanitize=undefined -fno-sanitize-recover=all" \
+	-LDFLAGS "$$rtm_dir/model/libgrhsim_reg_to_mem_tables.a -fsanitize=undefined"; \
+	"$$rtm_dir/verilator/Vreg_to_mem_tables"
+
+GRHSIM_REG_TO_MEM_BENCH_CPU ?= 2
+GRHSIM_REG_TO_MEM_BENCH_REPETITIONS ?= 2
+GRHSIM_REG_TO_MEM_BENCH_OUTPUT ?= $(CURDIR)/ptmp/reg_to_mem/benchmark
+GRHSIM_REG_TO_MEM_BENCH_ENABLED ?= $(CURDIR)/ptmp/reg_to_mem/xs_final
+GRHSIM_REG_TO_MEM_BENCH_DISABLED ?= $(CURDIR)/ptmp/reg_to_mem/xs_off
+GRHSIM_REG_TO_MEM_BUILD_METRICS ?= $(CURDIR)/ptmp/reg_to_mem/build_metrics
+.PHONY: measure_grhsim_reg_to_mem_build
+measure_grhsim_reg_to_mem_build:
+	@test ! -e "$(GRHSIM_REG_TO_MEM_BUILD_METRICS)" || { echo "[FAIL] build metrics directory already exists"; exit 1; }
+	@mkdir -p "$(GRHSIM_REG_TO_MEM_BUILD_METRICS)"
+	@set -e; for mode in disabled enabled; do \
+		source_dir="$(GRHSIM_REG_TO_MEM_BENCH_DISABLED)/model"; \
+		if [ "$$mode" = enabled ]; then source_dir="$(GRHSIM_REG_TO_MEM_BENCH_ENABLED)/model"; fi; \
+		destination="$(GRHSIM_REG_TO_MEM_BUILD_METRICS)/$$mode"; \
+		mkdir -p "$$destination"; \
+		cp "$$source_dir"/*.cpp "$$source_dir"/*.hpp "$$source_dir/Makefile" "$$destination/"; \
+		echo "[BUILD METRICS] $$mode start"; \
+		/usr/bin/time -v -o "$$destination/time.txt" $(MAKE) --no-print-directory -C "$$destination" -j 4 CXX="$(CXX)" \
+			> "$$destination/build.log" 2>&1; \
+		echo "[BUILD METRICS] $$mode done"; \
+	done
+.PHONY: benchmark_grhsim_reg_to_mem
+benchmark_grhsim_reg_to_mem:
+	@test -x "$(GRHSIM_REG_TO_MEM_BENCH_ENABLED)/emu/emu" && test -x "$(GRHSIM_REG_TO_MEM_BENCH_DISABLED)/emu/emu"
+	$(PYTHON) scripts/benchmark_grhsim_reg_to_mem.py --enabled "$(GRHSIM_REG_TO_MEM_BENCH_ENABLED)" \
+	--disabled "$(GRHSIM_REG_TO_MEM_BENCH_DISABLED)" --output "$(GRHSIM_REG_TO_MEM_BENCH_OUTPUT)" \
+	--cpu "$(GRHSIM_REG_TO_MEM_BENCH_CPU)" --repetitions "$(GRHSIM_REG_TO_MEM_BENCH_REPETITIONS)"
+
 audit_grhsim_cpu_emit:
 	@test -n "$(GRHSIM_AUDIT_MODEL)" && test -f "$(GRHSIM_AUDIT_MODEL)"
 	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
@@ -628,6 +702,8 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			"$(WOLF_LOG)" \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON)),--resume-from-flat-grh,) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_KEEP_ORIGINS)),--keep-origins,) \
+			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_REG_TO_MEM)),--disable-reg-to-mem,) \
+			--reg-to-mem-report "$(XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT)" \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",); \
 	} 2>&1 | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \

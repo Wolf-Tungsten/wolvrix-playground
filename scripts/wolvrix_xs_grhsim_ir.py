@@ -24,6 +24,9 @@ GRH_PIPELINE: list[tuple[str, dict]] = [
 ]
 
 CPU_PIPELINE = [
+    # Recover scalarized table state while the GrhSIM model still exposes
+    # state reads/writes; CPU mapping and scheduling consume the arrays.
+    "grhsim.reg-to-mem",
     "cpu.st.split-phase",
     "cpu.st.form-event-domains",
     "cpu.st.build-compute-nodes",
@@ -72,6 +75,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--keep-origins", action="store_true")
     parser.add_argument("--emit-cpp-dir", type=Path)
     parser.add_argument("--cpu-target-batch-count", type=int)
+    parser.add_argument("--disable-reg-to-mem", action="store_true")
+    parser.add_argument("--reg-to-mem-report", type=Path)
     args = parser.parse_args()
     if args.cpu_target_batch_count is not None and args.cpu_target_batch_count < 0:
         parser.error("--cpu-target-batch-count must be nonnegative")
@@ -157,7 +162,12 @@ def main() -> int:
         )
         require_ok(diagnostics, "GrhSIM verify pass")
         for pass_name in CPU_PIPELINE:
+            if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
+                continue
             pass_options = {}
+            if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_report:
+                args.reg_to_mem_report.parent.mkdir(parents=True, exist_ok=True)
+                pass_options["report"] = str(args.reg_to_mem_report.resolve())
             if pass_name == "cpu.st.pack-emit-functions" and args.cpu_target_batch_count is not None:
                 pass_options["target_batch_count"] = args.cpu_target_batch_count
             diagnostics = timed(
