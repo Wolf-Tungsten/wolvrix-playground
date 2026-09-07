@@ -21,6 +21,7 @@
 - Do not copy or manually assemble the underlying `cmake`, `ctest`, `pip`, compiler, or linker commands from the examples or build logs. Find and use the corresponding existing `Makefile` target; when none exists, add one before running the workflow.
 - Keep command logs and temporary workflow artifacts under the repository's `ptmp/` directory; do not write task output to `/tmp` or other paths outside the project.
 - HDLBits flow: `make run_hdlbits_test DUT=001` (or `make run_all_hdlbits_tests`) builds the parser, emits SV/JSON, and runs Verilator; needs Verilator in PATH.
+- VRT workflow（`vrt/workflow/`，虚拟研究团队调度脚本）自测试：`make run_vrt_selftest` 在 `ptmp/vrt-selftest/` 下用模拟 git 仓库 + mock CLI 验证调度逻辑，可用 `make clean_vrt_selftest` 清理。
 - For Python package setup or script workflows, use the repository's `make py_install` and relevant Makefile target; direct `python3`/`pip` invocation is prohibited for build, test, or install work.
 
 ## Helper Implementation Performance

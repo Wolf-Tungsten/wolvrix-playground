@@ -2,7 +2,8 @@ SHELL := /bin/bash
 REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 FST_ROI_DISCOVERY_GOALS := build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery
-ifneq ($(filter $(FST_ROI_DISCOVERY_GOALS),$(MAKECMDGOALS)),)
+VRT_GOALS := run_vrt_selftest clean_vrt_selftest
+ifneq ($(filter $(FST_ROI_DISCOVERY_GOALS) $(VRT_GOALS),$(MAKECMDGOALS)),)
 SKIP_WOLF_ENV_CHECK := 1
 endif
 
@@ -1231,3 +1232,16 @@ clean:
 	@rm -rf build
 	@rm -rf $(C910_WORK_DIR)
 	@rm -rf $(XS_ROOT)/build
+
+
+# ---- VRT workflow 自测试 ----
+# 在 ptmp/vrt-selftest 下搭建模拟 git 仓库，用 mock CLI 验证调度脚本，不触碰真实仓库
+VRT_SELFTEST_DIR := $(REPO_ROOT)/ptmp/vrt-selftest
+
+run_vrt_selftest:
+	$(PYTHON) $(REPO_ROOT)/vrt/workflow/tests/selftest.py
+
+clean_vrt_selftest:
+	rm -rf $(VRT_SELFTEST_DIR)
+
+.PHONY: run_vrt_selftest clean_vrt_selftest
