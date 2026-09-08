@@ -234,3 +234,73 @@
 |/home/gaoruihao/wksp/wolvrix-playground/wolvrix/external/libfst|wolvrix|2188498e74e044f6e4371eee78051389f4bdd304|2188498e74e044f6e4371eee78051389f4bdd304|6be9d0b10ceb3b5a93083f7bb4df8dca034fa1b6|https://github.com/gtkwave/libfst.git|vrt/grhsim-ir-st-opt/week_1/r_3|
 |/home/gaoruihao/wksp/wolvrix-playground/wolvrix/external/mt-kahypar|wolvrix|d22e61437568c151d1d2e04d2d7eced052c41042|d22e61437568c151d1d2e04d2d7eced052c41042|df54f60228aece8a50f6da48d08a6f4053f69fc4|https://github.com/kahypar/mt-kahypar.git|vrt/grhsim-ir-st-opt/week_1/r_3|
 |/home/gaoruihao/wksp/wolvrix-playground/wolvrix/external/slang|wolvrix|301723fe5993f8b08ddb933de501b17531d875a5|301723fe5993f8b08ddb933de501b17531d875a5|6625689395119f511986d6e8fc82c7abf7f271ad|https://github.com/MikePopoloski/slang|vrt/grhsim-ir-st-opt/week_1/r_3|
+
+## 6. 公共环境补充 B1-c9a4c84b-v2（2026-09-08）
+
+执行编号：`week-1-pi-common-environment-amendment-c9a4c84b`。这是既有第 1 周补充；上文 v1 与完整源码清单原样保留。本节对环境及现场的当前解释优先于历史描述。PI 只作只读核查和档案提交，没有安装、构建、测试、优化、切分支或派子 Agent。**核定允许使用不等于工程验证通过；目前三方向均无有效完整 50k 成绩。**
+
+### 6.1 独立复核与失败历史
+
+唯一档案根仍为 `/home/gaoruihao/wksp/wolvrix-playground/vrt/grhsim-ir-st-opt`。下述证据简称 `E` 为 `/home/gaoruihao/wksp/wolvrix-playground/ptmp/vrt-grhsim-ir-st-opt-c9a4c84b/week_1/evidence/pi-env-v2`；`L` 为 `/home/gaoruihao/wksp/wolvrix-playground/ptmp/vrt-grhsim-ir-st-opt-c9a4c84b/week_1/r_1/ptmp/logs/w1-r1-s1-a-0567b6c-cba9c32`。这些仅是 ptmp 命令证据，正式结论归档于本节及 pi_plan/race。
+
+- 原隔离 TSV 经 `sha256sum` 重核仍为 `6149d82c9e892b1fe92ce0682b5f37cabf5500c51fcbd4f35037d90044a343db`。按其 489 个方向仓库逐项重新执行 `git rev-parse --show-toplevel --absolute-git-dir HEAD HEAD^{tree}`、`git status --porcelain=v1 --untracked-files=all` 和 `git ls-tree -r HEAD`：489 项 HEAD/tree 全匹配，486 个已检出子仓库父 gitlink 全匹配；三个 openc910 缺检出正是 v1 排除项。仅 r_1 入口有 11 个未跟踪 out 文件，其他 488 项 status 为空。见 `E/recursive-before.tsv`（499 物理行，因首项含 11 行 status，不能误计为 499 仓库）、`E/gitlinks-check.log`、`E/roots-before.log`。三方向 CoreMark/NEMU 两个文件的 SHA256 均与 §3 相同。
+- `L/driver.log` 记录三次目标一的顶层退出码均为 2：20:43:01 未满足 env 检查；20:43:24 子 make 找不到 mill（内部 127）；20:44:27–20:44:33 Mill 0.12.15 在 `methodCodeHashSignatures` / `mill.codesig.ExternalSummary` / ASM `ClassReader` 拒绝 `Unsupported class file major version 69`。失败点为 XiangShan Makefile:275 的 sim-verilog；约 6 秒是失败尝试时段，不能计作 F06 完成成绩。目标二/三未执行。
+- `L/target1-mill.stdout.log` 6470 bytes，SHA256 仍为 `7ba0a4f44c8c721d2ee6c019d7f8647f1ae392d9e1d8942fc06f695ce410df6e`；driver 为 `11898c8826a188d0814e5fd3983fe8063961f0071e54f581f8eb73f92fadff99`，target1-rerun 为 `42aa166169e4ba01ebafc6ff0600b2078b50a73148c66afe18a9617e71d8fa3c`，target1.stdout 为 `73ccd76b9d05ae5d0e6f990708a7458e4238c977cd0cc369d4296109123124fd`，simverilog 命令日志为 `5d0e76e15a7193fa3edb3bf31b6c9b0ed21f385ea65693bc7b0926f6be7465e4`。原始失败及局部 Scala 输出保留，禁止当作 v2 A/生成物复用。
+- 只读 ENGINEER 回执 `.runner/c9a4c84b9a384fd1967b6c0a21ad71aa/call-3f97cc898c5b4d49abd5153fdd92fdfb.log` 的 374–395、478–516 行证明 `source ./env.sh` 实际执行了 venv/pip 安装，位置是 r_1/.venv；Mill 和 Coursier 日志引用 `/home/gaoruihao/.cache`。因此“输出仅在方向 ptmp”不成立；source 此文件并非纯环境变量设置，也不满足所有安装经 Makefile 的规则。保留违规/不足事实，后续不得重复该入口。它不取消本次成功 ENGINEER 配额，也不是方向算法的证伪。
+- RA 回执 `call-a834fa3e81c54d43a9c6610d1f85e2c4.log` 1769–1778 行在 r_1 入口执行 `/home/gaoruihao/wksp/mill --version`，返回 Mill 1.1.6 / Azul Java 21.0.10。这不是目标一的工具验证：该 cwd 没有 XiangShan 的 `.mill-version`，bootstrap 默认值为 1.1.6。不能据此给 0.12.15/Java25 或新组合写兼容通过。
+
+### 6.2 Java/Mill 的统一核定与指纹
+
+**v2 唯一允许的下一目标组合：Ubuntu OpenJDK 17.0.20+8-1-24.04-Ubuntu，JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64；Mill JVM distribution 0.12.15，保留目标原有 `-i` 启动方式。** 不修改系统 alternatives，不升级 `.mill-version`、Scala、Chisel、ASM 或测试依赖，不允许 RA 自选 JDK21/25 或 Mill1.x。若该组合实测失败，按 §6.5 返回证据再由 PI 决定；没有自动降级/升级链。
+
+依据：XiangShan `build.mill` 固定 Scala 2.13.17、Chisel 7.3.0、firtool-resolver 2.0.1，未声明目标必须 JDK25；`.mill-version` 固定 0.12.15。`.github/workflows/emu.yml:697–705` 的 Java11 只用于 check-format，不能当成当前 sim-verilog 兼容证据。现场可直接获得完整 JDK17；其只读 `bin/java -version` 返回上述精确版本，旧 JDK25 的同命令返回 25.0.4+7-1-24.04-Ubuntu，均退出 0。选择 JDK17 是保留 Mill/源码并排除 major69 运行库输入的单变量修复假设，不是已验证的最低 JDK 要求，也不证明全部传递依赖或 RTL 能运行。当前尚未确定被 ASM 拒绝的具体 class 文件来源，工程需在仍失败时记录该来源。
+
+|文件/工具|实际路径与版本|SHA256|
+|---|---|---|
+|新 JDK release|`/usr/lib/jvm/java-17-openjdk-amd64/release`，17.0.20+8-1-24.04-Ubuntu|`b8d3277e4f728d8ed638fc8eae2b66c7d10d7b8424985dfb4e5feb688aea66d2`|
+|新 java 可执行文件|`/usr/lib/jvm/java-17-openjdk-amd64/bin/java`|`4976918b29ece3fe634bdbcf1377676e42af429b5311ba234f6f95039117d4d4`|
+|新 JDK modules|`/usr/lib/jvm/java-17-openjdk-amd64/lib/modules`|`499337b57cd61a672db7e1b35a3946bfb99508187367dc886c2bcbf28c65bf3a`|
+|旧 java（仅失败历史）|`/usr/lib/jvm/java-25-openjdk-amd64/bin/java`；`/usr/bin/java` 当前仍指向它|`2a41998843f23adf80ba13b1e2572a55f7a642d630c640ac561b9de8e3b2b660`|
+|旧 JDK release / modules|同上 JDK25 的 `release` / `lib/modules`|`9fe62cced655b2aad1de7185c17398d73dd2f97d413bc04a3d31b76e538ada94` / `324a393b4bc8db45df94b407dc095073dfc4c4c879eb85d428190f8d71db0e76`|
+|Mill bootstrap|`/home/gaoruihao/wksp/mill`，脚本默认 1.1.6，必须显式覆盖版本|`af73fadc1fa005e43962bcd529690f448592f4e0786a90b712ac6509378a9eb2`|
+|核定 Mill distribution|`/home/gaoruihao/.cache/mill/download/0.12.15`，76195001 bytes；内嵌 manifest `Implementation-Version: 0.12.15`|`ea1bba01e220f4ce20bb333247d254a2bf9b86554c10c3d7d7e16641ec0a76d8`|
+|排除的 Mill distribution|`/home/gaoruihao/.cache/mill/download/1.1.6-native-linux-amd64`，审查误启动|`9fea431da78ddf461e66ed328d868843abf02ca02a9fd8adb43d41c095b68c43`|
+|XiangShan 版本/构建脚本|`testcase/xiangshan/.mill-version` / `build.mill`|`3af6849efc098a010a05139a6372213ba350f1d017c8339156eec9d3510226b0` / `27fbb4984fd28042ef3af507ae6fe59a466277d847e51b8bb05e301f430743f0`|
+
+bootstrap 静态检查：显式 `MILL_VERSION` 优先于 cwd 的版本文件；下载根为 `MILL_FINAL_DOWNLOAD_FOLDER` 或 `XDG_CACHE_HOME/mill/download`，临时下载用 `MILL_OUTPUT_DIR`；0.12.15 内嵌 shell 明确以 `$JAVA_HOME/bin/java` 启动，并接受 `JAVA_OPTS`。ENGINEER 应通过 Makefile 在本方向 `ptmp/<environment-version>/<candidate>/<run>/tools` 建立指纹一致的私有工具副本及 PATH 入口，固定 `MILL_VERSION=0.12.15`、JAVA_HOME 和 PATH；可从上述已核定 distribution 单文件取种并前后核 SHA，不能复制用户整个 cache 或任何方向生成物。也可经 Makefile 下载同一版本，但字节必须匹配；不匹配返回 PI。原用户工具仅供只读取证/取种，不作为可写 cache 根。
+
+PI 本次没有执行 mill（包括 --version），避免再次启动 daemon/下载。ENGINEER 须在合法 Makefile 核验入口中以固定版本、私有输出和 `-i --version` 验证实际 Mill/JVM，并记录完整输出/退出码、Java 可执行路径、子 JVM 与 classpath。还须验证 0.12.15 实际尊重 MILL_OUTPUT_DIR、Coursier/Ivy/tmp 路径及 forkEnv；脚本静态支持不能替代真实路径检查。JDK17 整套文件清单、libjvm 和其他运行库指纹须补齐，系统包自动更新导致 hash 变化即停止可比测量并交 PI。
+
+现场另有 Azul JDK21.0.10，路径 `/home/gaoruihao/.cache/coursier/arc/https/cdn.azul.com/zulu/bin/zulu21.48.15-ca-jdk21.0.10-linux_x64.tar.gz/zulu21.48.15-ca-jdk21.0.10-linux_x64`；其 `release` / `bin/java` SHA256 为 `25d55277a25bf0b31aa0c4c14b76ed5db4d066146c7f76500ca771cbe584f840` / `71523c0a4694aaca9001b81fe7ac16975bfe0d67ba31bde01073228d1f374700`。只用于解释 out 的来源，本轮不核定它为目标环境。
+
+### 6.3 Python 与合法环境入口（尚未完成）
+
+基础解释器统一 `/usr/bin/python3.12`，只读 `--version` 为 3.12.3、退出 0，SHA256 `1643dacd9feaedc58f3cc581e4d22577dfe25c09b10282936186ccf0f2e61118`。v1 的“当前未安装”保留为周初状态；本次 r_1/.venv/pyvenv.cfg 与 METADATA、工程回执相互印证：已安装 **pip 24.0、scikit-build-core 1.0.3、packaging 26.3、pathspec 1.1.1**，未发现 wolvrix 安装 metadata；r_2/r_3 尚无该 .venv。这不是合格的按版本/run 隔离环境。
+
+v2 核定上述四个精确版本为三方向一致的新私有 venv 准备输入，不允许不带版本的升级。METADATA SHA256（按上述顺序）为 `90d11f277fd5868da679ee257c97656dde511c8aac7d025231407e6ce90839e2`、`bfd7fef484ff85c723956d256c4f906695879428b4069707e7e101aa5c460fe0`、`70fdb89fc4d4a9a043bf7372b8972bcc883fddff34ab55e9cf80d73875384763`、`68de3f158b6592f086e78754c962092f32a761944ab66a660c0d62ad79c4b69b`。这是已安装 metadata 的身份依据，**不是 wheel hash 或可复现安装锁**。实际 wheel URL/hash、完整传递依赖解析、pip check、scikit-build API 与 wolvrix 编译/import 兼容仍待 ENGINEER 经 Makefile 验证；新增/改变解析版本须交 PI 补清单，不能自由安装后直接排名。
+
+源码 `wolvrix/pyproject.toml` SHA256 `56bd6343d0441834fe96b99ffeec1c8848976d0a0fb5ea20028b062aa02ad0ef`，仅要求 scikit-build-core>=0.7、Python>=3.9；自身不足以固定依赖。入口现有 `make py_install` 使用 `--no-build-isolation`，不创建 venv/安装 backend，默认 skbuild 输出为 wolvrix/build/skbuild。**缺少所需的纯环境准备/核验 Makefile 目标**：下一 ENGINEER 可仅在本方向入口 Makefile（必要时入口环境辅助脚本）补目标，再经目标安装固定依赖、设置私有 build-dir 并调用既有 py_install；不得直接 source 会安装软件的 env.sh，也不得直接 Python/pip/cmake/ctest/compiler 执行安装构建测试。不得伪置 WOLF_ENV_SOURCED 冒充准备完成；Makefile 的 SKIP_WOLF_ENV_CHECK 只可用于已核定准备/核验目标的引导，目标成功后输出无安装副作用的方向私有环境文件供后续加载。包构建仍走 py_install；它本身产生的 native 编译耗时不能借“环境准备”排除于冷编译记录。
+
+### 6.4 真实拓扑、现场保留与隔离规则
+
+race 的“依赖共享只读”应解释并更正为：入口和 wolvrix 是独立 worktree、共享各自 Git object/common-dir；XiangShan、gsim、ready-to-run 及其递归依赖为**各方向独立检出/独立 gitdir、源码只读**，没有把三方向工作目录连接到同一个可变依赖目录。detached 是合法身份，不要求依赖改同名分支。只允许核指纹的只读输入/工具文件共享；Git object 共享不授权构建/cache 共享。
+
+方向 1 现有 r_1/out 含 11 个普通文件、无符号链接，mtime 全在 2026-09-08 20:50:04 +08。`out/mill-daemon/daemonLaunchFingerprint.json` 明确记录 Mill1.1.6、上述 Azul21；`out/mill-launcher/log` 12:50:04Z 启动 PID1605023，吻合 RA 审查 version 命令时段；因此该入口 out 是审查探测产物，不是 20:44 的目标 Mill0.12.15 输出。后者另写 r_1/testcase/xiangshan/out，并引用用户 ~/.cache/mill 与 ~/.cache/coursier。入口 out 自身是本方向本地目录，但 classpath/JDK 指向用户可变共享 cache，不能因其本地位置认定可安全复用。见 `E/out-processes.log` 的逐文件大小、mtime、SHA256 和日志摘录。
+
+PI 检查 `/proc/1605023` 不存在（ls 退出 2），pgrep 精确进程名 java/mill/emu/verilator/firtool 未匹配（退出 1）；未发现目标残留进程。PID/锁文件不是活进程证明；续接前须重新核 PID 启动时间、命令和占用，禁止按旧 PID 直接杀进程。本次原位保留 out、XiangShan/out、r_1/.venv、build/xs、用户缓存和全部日志，不删除、不移动、不加 ignore 制造 clean、不提交。
+
+后续私有根必须为 r_i/ptmp 下的 `environment-version/candidate/run`；TMPDIR/TMP/TEMP、XDG cache/config/data、PIP_CACHE_DIR、COURSIER_CACHE、Ivy、Java tmp/user-home、Mill 输出/download、venv、skbuild、RTL/filelist/difftest generated-src、IR/model/emu/log 全部映射进去。不重设 shell HOME/用户全局配置；用工具专用选项控制 Java user.home、java.io.tmpdir、ivy.home，核实际写入路径。旧用户缓存不能作为“只读源码依赖”混用。下载/网络失败也是实际阻塞，应报告 URL/版本/hash/退出码，不能借用其他方向已构建产物。
+
+具体已知路径缺口：仅设置 XS_GRHSIM_IR_BUILD 不会重定向 XS_RTL_BUILD、XS_WOLF_FILELIST；XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR 默认空，若不设置则目标二必失败。difftest `src/main/scala/common/FileControl.scala:25` 硬编码 NOOP_HOME/build/generated-src，不能仅改消费者 XS_DIFFTEST_GEN_DIR 而使生成位置失配。允许 ENGINEER 用入口编排保留旧忽略目录后建立指向本方向新 ptmp/run 的输出链接，或者采用已有合法输出参数；先记录旧路径/指纹、确保无进程和无跟踪源码，再操作。不可改变 XiangShan/difftest 源码或 NOOP_HOME 的源码身份；若无法在此范围隔离，带原始错误返回 PI，不随意改依赖。此输出映射和 Makefile 修改尚未实施/验证。
+
+### 6.5 影响范围、公共修复和验证门槛
+
+本节适用于 **RA1、RA2、RA3 的全部 A/B**。多仓库源码 SHA/tree/gitlink、输入镜像、F01–F08、50,000 周期、1000 周期采样、CPU2/powersave（本次复核仍 powersave、siblings=2,18）、EMU_THREADS=0、其余 §4 参数、三原方向和排名门槛均不变；改变的是 JDK、工具启动的明确固定和环境/输出隔离规范。旧失败只保留阻塞历史；任何基点/工具/参数/测量设施变化后，全部受影响 A/B 必须补齐同口径冷编译、至少各三次完整 50k 和正确性证据，无法补齐不可排名。
+
+公共源码修复当前只核定“入口 Makefile/环境辅助入口的版本固定、准备/核验、输出隔离”，不含任何优化或冻结/测试/依赖源码变更。由下一 ENGINEER 实施独立公共修复提交，与方向 1 宽值优化分开；RA 审查后交 PM 派 PI 冻结精确入口 SHA/patch hash、工具/wheel/锁指纹并追加公共版本及三方向适用关系。核定前只可按本规范进行环境解除阻塞及目标尝试，不可作为已冻结可比候选；RA2/3 不自行 cherry-pick/copy RA1 代码。公共补丁经 PI 明确公布共同基线后，由后续 ENGINEER 在各自原起点应用同一核定补丁并独立生成，不能夹带 RA1 技术方案。档案提交不进入方向代码起点。
+
+ENGINEER 验证目标是：私有 Make 环境准备/工具探测 → 立即接回 `make xs_wolf_grhsim_ir` → `make xs_wolf_grhsim_ir_build_emu` → `make run_xs_wolf_grhsim_ir_emu`。版本探测通过只解决 launcher 身份；完整 sim-verilog 才验证 Java/Mill 对该目标的适用性；全链成功才有单次目标证据。若同一 major69 仍出现，先核子 JVM/残留旧 classpath/被拒 class 的来源；若变成依赖下载、Scala、firtool、Python 或 native 错误，报告具体新阻塞及下一命令，禁止把未到达的优化实验判为无效。详细交接见 pi_plan 追加段。
+
+本次只读定位曾遇到不存在的 `testcase/xiangshan/build.sc`（实际是 build.mill，rg 退出 2）、`L/rerun.log`（实际 target1-rerun.stdout.log，cat 退出 1）、difftest/build.mill 及外部 chisel .github/workflows（rg 退出 2）；随后读取实际文件。`unzip -p` 读取 Mill manifest 有“572 extra bytes”提示并退出 1，内容可读；这是带 shell 前缀的发行文件，非兼容实验失败。本次没有目标失败命令或新工程配额；所有工程失败命令/退出码以 §6.1 原日志为准。未知项如上明确保留，不宣称环境已可用。
+
+本次只读证据文件固定 SHA256：`E/roots-before.log`=`c64c4ff73ff16f0237ec93e335e8c7f73358f910fe71b5c9cdee640823732493`；`E/recursive-before.tsv`=`7c3977cf27e941a55075315dea716742dc12cffc66f2141d5f88e373db33c342`；`E/gitlinks-check.log`=`a08f34b55d7632caea72e5ef545297022a08b1fc7d90ac0a9abdb34175835d6d`；`E/fingerprints.log`=`59fbf2728fd0f85c1c2e9e4af66330e4bf8869f3954375d44977897ae70f9331`；`E/out-processes.log`=`e0440e37d044a2fedfcef97ca12790119fb6dcfb19c742af1ee959b3ae0e7d8d`。这些日志不随档案提交，关键事实和指纹已在本节持久记录。

@@ -72,3 +72,85 @@ VRT_SUCCESS_CRITERIA: 本 PI_PLAN 固定三方向假设、完整目标命令、�
 VRT_TARGET_PATH: 三个方向均已从 B1 共同起点隔离；下一步首个 ENGINEER 必须在各自私有 worktree 运行 F05 完整流程至真实完成或最早阻塞
 VRT_TASK_KIND: target
 VRT_NEXT_TARGET: 在 r_1/r_2/r_3 分别以独立 XS_GRHSIM_IR_BUILD 和日志目录执行 F05 命令；若失败，按原始退出码和日志转为 blocker 后回到同一命令
+
+## 第 1 周环境补充与 RA/ENGINEER 交接（B1-c9a4c84b-v2）
+
+执行编号 `week-1-pi-common-environment-amendment-c9a4c84b`，2026-09-08。本段追加于既有周规划，原三方向、原始需求、F01–F08、编译 <1800s、F07 的 1%/5% 门槛和最终选择规则全部保留。环境及历史状态按 [baseline.md §6](baseline.md#6-公共环境补充-b1-c9a4c84b-v22026-09-08)、[race.md 当前补充](race.md) 更新。当前仍没有有效 A 或优化候选的完整 50k 成绩，不能提前选优或结束本周。
+
+### 配额与审查纠正
+
+只读 state.json 确认唯一成功 ENGINEER 是 `week-1-ra-1-step-1-eng-c9a4c84b`，returned/exit_code=0。因此 **RA1=1/6、剩余5；RA2=0/6；RA3=0/6**。成功返回和技术通过分开计数，首轮目标退出2也占用此次工程机会。RA 审查末尾“0/6 已成功工程调用中的技术候选”混淆配额与成绩，现明确纠正；下一 RA 应在自己的 step_1_review.md 追加勘误，保留原文，不修改 .runner。本次 PI 不计工程配额。
+
+本 PI 读取时 pending 已是本次 PI task，running 仅本次 PI；派发说明中的 pending=null/running PM 是派发前快照，不能照抄成当前状态。没有未知 ENGINEER 调用需要重放。RA1 首次真实目标尝试要求已履行，RA2/3 首 ENGINEER 仍必须运行完整目标链至完成或最早实际阻塞，不能仅引用 RA1 失败结束调用。
+
+审查还应追加事实：RA 20:50 的 version 探测启动的是 Mill1.1.6/Azul21 并产生入口 out；目标 20:44 使用 Mill0.12.15/Java25；首轮 source env.sh 安装依赖未经过 Makefile，使用了 r_1/.venv、XiangShan/out 及用户共享 cache。因此原 F02 的全通过仅可保留为“源码起点匹配”，环境/产物隔离尚未通过；F08 本步报告存在不等于最终6/6交付通过。没有源码 diff 不等于包含未跟踪/忽略产物的现场 clean。
+
+### 下一 RA1 第 2 步任务书的必需内容
+
+由后续 RA 写唯一档案目录中的 `week_1/ra_1/steps/step_2_task.md`，PI 本次不代写任务书、不执行工程。任务类型 blocker，直接解除 F02/F03/F05 的 Java/Mill 与环境入口阻塞，成功后立即返回完整目标；不得借公共修复加入其他两个方向或宽值优化实现。
+
+1. 输入必须列 requirements、v2 全节、原三方向/F01–F08、race、step_1 task/result/review、两个指定回执和 `L` 五份原始日志、隔离 TSV 原 hash；技术 cwd 固定 r_1，起点仍入口 `0567b6c7d0261ddd1834daffa8f15327c7f5810a` / wolvrix `cba9c32240f3cd06c5b675968b56046e5b76f818`，依赖逐项同 v1。档案主检出从 `12ed381becc6fbafebe4a52a71e57301ac28e090` 仅推进本次三文档提交；不得合入 r_1 作为新代码起点。
+2. 采用唯一核定 Java17.0.20 Ubuntu + Mill0.12.15 JVM / `-i` 组合，Java25、Mill1.x、自动获取的 Azul21 均排除。将 baseline 中路径/hash/精确 Python 四版本写进任务；区分“PI 核定允许”与“工程已验证”。禁止凭 --version 成功认定 RTL 生成可用。
+3. 开工按 HEAD/tree/gitdir/父 gitlink/status 和忽略输出检查；保留 r_1/out、testcase/xiangshan/out、.venv、build/xs 及原日志。私有新根用 `r_1/ptmp/B1-c9a4c84b-v2/<candidate-sha>/<unique-run>`。不要清理旧现场或复用其中 classes、模型、emu、锁或 cache。记录旧 PID1605023 无进程的当前复核，若 PID 已被复用按真实命令/启动时间判断，不能直接 kill。
+4. 所有安装/构建/测试通过 Makefile。现有 py_install 只能安装 wolvrix，缺 venv/固定 backend/工具验证入口；ENGINEER 可在 r_1 入口 Makefile 先补目标及必要入口辅助脚本，至少覆盖 `vrt_common_env_prepare`、`vrt_common_env_verify`（此处为建议的待实现接口，当前不存在，RA 应核对最终名称后给出命令）。前者创建新私有 venv、固定依赖/工具、输出无安装副作用的 env 文件；后者记录版本、hash、完整 Python 依赖/安装检查及路径隔离。只能引导这些目标跳过旧 env 检查，不允许跳过依赖成功检查。source 原 env.sh 会直接安装，不能重复；不得直接 Python/pip/cmake/ctest/compiler 作为替代命令。
+5. 公共 Makefile 修复独立提交和记录 patch hash，限定 baseline §6.3–6.5 的环境/路径编排；方向技术代码和测试/依赖源码不改。修复后同调用继续执行原目标链，不等待优化、不止步于版本探测。工程结果交 RA 独立审查，再交 PM/PI 冻结公共修复 commit、工具/wheel 完整指纹及三方向采用方式；冻结前实验是目标推进证据，不能标作最终可比成绩。其他方向不得自行抄取尚未核定的 r_1 修改。
+
+### 工程命令和隔离核验要求
+
+下一 RA 必须给可执行命令（包括真实 run id、环境目标最终接口、完整日志/退出码捕获）；下面是经当前 Makefile 静态核对的交接骨架，不表示 PI 已执行或新目标已存在。RA 应在派发中要求 ENGINEER 先实现缺失目标，再调用。不能只给调查列表。
+
+```bash
+cd /home/gaoruihao/wksp/wolvrix-playground/ptmp/vrt-grhsim-ir-st-opt-c9a4c84b/week_1/r_1
+VRT_RUN=w1-r1-s2-a-0567b6c-cba9c32-v2-01
+VRT_RUN_ROOT="$PWD/ptmp/B1-c9a4c84b-v2/0567b6c-cba9c32/$VRT_RUN"
+# 若目录已有，保留并选择新 run id；不能覆盖。以下两个新目标须先实施。
+make -j1 vrt_common_env_prepare SKIP_WOLF_ENV_CHECK=1 VRT_ENV_ROOT="$VRT_RUN_ROOT"
+make -j1 vrt_common_env_verify SKIP_WOLF_ENV_CHECK=1 VRT_ENV_ROOT="$VRT_RUN_ROOT"
+# 仅加载上述成功目标生成、经检查无安装副作用的环境文件。
+source "$VRT_RUN_ROOT/env.sh"
+```
+
+环境文件应固定 JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64、MILL_VERSION=0.12.15，PATH 先取该 JDK/bin 和指纹核定的私有 mill 入口，再取 venv/LLVM22.1.2。显式隔离 MILL_OUTPUT_DIR、MILL_FINAL_DOWNLOAD_FOLDER、XDG_CACHE_HOME/CONFIG_HOME/DATA_HOME、COURSIER_CACHE、Ivy、TMPDIR/TMP/TEMP、PIP_CACHE_DIR、Java user.home/java.io.tmpdir 等，不改 HOME。JAVA_OPTS/继承的 JAVA_TOOL_OPTIONS、JDK_JAVA_OPTIONS、CLASSPATH、PYTHONPATH、PIP 配置须核查并排除未记录注入；记录允许值，不输出凭证。工程验证须用实际写入位置/子 JVM 证据证明设置生效；不支持的变量不能默认为已隔离。
+
+输出映射须覆盖 RTL、filelist、emit C++、emu、skbuild 和 difftest generated-src。尤其原任务未设 XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR，会导致 build_emu 的 Makefile guard 失败；本次明确要求设置它，是把原完整链具体化，不改变研究算法/参数。generated-src 生产者硬编码 NOOP_HOME/build/generated-src，必须由入口编排按 baseline §6.4 保留旧输出后建立本 run 的物理映射；不能只改消费路径或修改测试 Scala。输出链接只能指向本方向 ptmp/run；每次切换先核无进程、保存前一指向/指纹。
+
+在新环境准备成功、依赖 wheel 下载耗时单列后，以新空源码编译输出开始 F06；py_install 的 native 编译必须纳入编译证据，不能预热后伪报冷编译。实际完整三目标使用同一参数集合，静态骨架如下（RA 须补上逐命令 tee/PIPESTATUS、计时、生成物/进程记录；前一失败时不执行后一）：
+
+```bash
+VRT_ARGS=(
+  "RUN_ID=$VRT_RUN" "PYTHON=$VRT_RUN_ROOT/venv/bin/python"
+  "PIP_CONFIG_SETTINGS=--config-settings=build-dir=$VRT_RUN_ROOT/skbuild --config-settings=cmake.build-type=Release"
+  "BUILD_DIR=$VRT_RUN_ROOT/build" "WOLVRIX_BUILD_DIR=$VRT_RUN_ROOT/wolvrix-build"
+  "XS_WORK_BASE=$VRT_RUN_ROOT/xs" "XS_RTL_BUILD=$VRT_RUN_ROOT/xs/rtl"
+  "XS_WOLF_FILELIST=$VRT_RUN_ROOT/xs/filelist/xs_wolf.f"
+  "XS_DIFFTEST_GEN_DIR=$VRT_RUN_ROOT/xs/generated-src"
+  "XS_GRHSIM_IR_BUILD=$VRT_RUN_ROOT/grhsim-ir"
+  "XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR=$VRT_RUN_ROOT/grhsim-ir/model"
+  "XS_LOG_DIR=$VRT_RUN_ROOT/logs"
+  CC=/home/gaoruihao/wksp/LLVM-22.1.2-Linux-X64/bin/clang
+  CXX=/home/gaoruihao/wksp/LLVM-22.1.2-Linux-X64/bin/clang++
+  CCACHE_DISABLE=1 VM_BUILD_JOBS=8 XS_VM_BUILD_JOBS=8
+  GRHSIM_MODEL_BUILD_JOBS=8 CMAKE_BUILD_PARALLEL_LEVEL=8
+  XS_SIM_MAX_CYCLE=50000 XS_PROGRESS_EVERY_CYCLES=1000
+  XS_NUM_CORES=1 XS_EMU_THREADS=1 EMU_THREADS=0
+  XS_SIM_TOP=SimTop XS_ZERO_INIT=0 XS_SIM_DEFINES=DIFFTEST
+  XS_SIM_VFLAGS=+define+DIFFTEST XS_WITH_CHISELDB=0 XS_WITH_CONSTANTIN=0
+  XS_WOLF_GRHSIM_IR_REG_TO_MEM=1 XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON=0
+  XS_WOLF_GRHSIM_IR_KEEP_ORIGINS=0 XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT=64
+  XS_WAVEFORM=0 XS_WAVEFORM_PATH= XS_COMMIT_TRACE=0 XS_RAM_TRACE=0
+  WOLVRIX_GRHSIM_WAVEFORM=0 WOLVRIX_GRHSIM_PERF=0
+)
+make -j1 xs_wolf_grhsim_ir "${VRT_ARGS[@]}"
+make -j1 xs_wolf_grhsim_ir_build_emu "${VRT_ARGS[@]}"
+taskset -c 2 make -j1 run_xs_wolf_grhsim_ir_emu "${VRT_ARGS[@]}"
+```
+
+仍须保持 §4 其余固定值（two-state、Release、模型/emu -O3、无 PGO/LTO、seed=0、reset_cycles=50、phase timing 关闭）。CPU2 governor powersave、sibling18 无研究负载；不能将上述 taskset 代替运行线程/affinity 证明。首次成功仅建立单次 A；最终每方向候选仍须完整回归、A/B 各至少三次交错 50k、所有采样/终态/NEMU 对拍、Host time spent 中位数和 F06 冷编译 <1800s。改变任何起点/环境口径后全部受影响 A/B 重测，无法补齐不可排名。
+
+### 返回目标、失败策略与剩余流程
+
+工程回报须列：每条真实完整命令及 cwd/时间/整数退出码，非空 stdout/stderr 和原始日志绝对路径，版本与输入/工具/wheel/RTL/filelist/IR/model/emu 指纹，编译起止与环境安装分段时间，CPU/进程/线程证据，全部仓库前后 HEAD/tree/gitlink/status、未跟踪/忽略产物及公共补丁提交。成功到 50k 后记录每1000周期有序采样、终点 PC/trap/instruction/state、cycle limit/退出状态及 difftest；失败则明确最后完成阶段、最早新故障、残留进程、保留目录、进一步假设和重接同一目标命令。
+
+若仍 major69：核实际 launcher/fork JVM 与 class 来源，检查是否落回 Java25 或旧 cache；在既定组合内纠正路径后重新尝试。若依赖要求更高 JVM 或 0.12.15 本身不支持所需能力：保留最小原始报错、源码/依赖版本依据和可比较方案交 PI，不升级 Mill/JDK/ASM。若转为下载/Scala/firtool/Python/native/运行错误：这表示阻塞位置变化，RA 基于新故障给下一具体修复；未测不是证伪。单纯版本检查/缓存盘点不能替代目标尝试。
+
+各方向必须用满6次成功 ENGINEER，并逐次独立 RA 审查；done/no_value 不提前终止。连续两步无目标推进、无阻塞缩小、无独立新证据，则 RA 重核现场、定位故障并改变策略。全部配额、审查与周报齐备后 PI 才按 F01–F08 选择至多一个方向，精确列多仓库候选交 PM 派 Agent 集成/复验；无合格方向不集成、不拼接技术方案，三个方向成果保留。本次仅完成公共口径交接。
