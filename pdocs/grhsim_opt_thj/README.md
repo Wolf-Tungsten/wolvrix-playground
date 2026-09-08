@@ -286,12 +286,24 @@
 | `TNO0274` | `2026-09-04` | [XiangShan RepCut N=1 page-local runtime protocol fix](./TNO0274_xiangshan_repcut_n1_page_local_runtime_protocol_fix_20260904.md) | 新 v2 runner 为每个 order/arm 在目标 NUMA tmpfs 建立独占 ELF/image/NEMU inode，目标核 copy/SHA；以 maps dev+inode 的 RX VMA 关联 numa_maps，C=10000 至少 3 个有效采样并硬门 resident coverage/local ratio。汇总器隔离 legacy/v2，9 个聚焦测试通过；正式复测见 TNO0275。 |
 | `TNO0275` | `2026-09-04` | [XiangShan RepCut N=1 page-local AB/BA on node033](./TNO0275_xiangshan_repcut_n1_page_local_ab_ba_node033_20260904.md) | node030 CI 风暴后按允许节点轮询，在 node033 CPU64 完成同机 page-local AB/BA；四个 C=10000 ELF/NEMU 均 `remote=0`。pooled Host/instructions/cycles 为 `+5.283%/+5.377%/+5.280%`，IPC/频率不变；eval sum `+5.887%`、max `-32.009%`、CV `-40.245%`，确认真实 trade-off 是增加串行总 work 换削峰。diagnostic 非 strict，N=8/32 未运行；已记录 v2 elapsed 混入 audit 尾巴，N>1 前须修。 |
 | `TNO0276` | `2026-09-05` | [SimpleTES Gen61 best rebuilt-binary formal retest](./TNO0276_simpletes_gen61_best_rebuilt_binary_formal_retest_20260905.md) | 复用同一 Gen61 patch 的独立重建 control/candidate ELF，在 node031 完成 schema-v4 formal `ABBA+BAAB`；pooled wall `43,580.00→41,599.75 ms`，减少 `1,980.25 ms/4.543942%`，score `1.0476024495`，order gap `0.092101 pp`，全部门禁通过。历史 `5.520446%` 保留但 exact ELF 已不可恢复；未改源码或默认。 |
+| `TNO0277` | `2026-09-07` | [XiangShan RepCut N=8/N=32 page-local comparison protocol](./TNO0277_xiangshan_repcut_n8_n32_page_local_protocol_20260907.md) | 固定 clean-v4/K32/C10000，计划同 NUMA 新旧 AB/BA；修正 workload/audit 计时边界，明确 global_update 含拷贝与同步、per-part sum 不等于并行 wall。N32 审计更新见 TNO0278，已追加完成状态，结果见 TNO0279。 |
+| `TNO0278` | `2026-09-07` | [XiangShan RepCut parallel CPU audit and balanced capture protocol](./TNO0278_xiangshan_repcut_parallel_cpu_audit_capture_protocol_20260907.md) | N32 首轮 proc-stat total 与 wall 不闭合，target busy 门有方向性筛选风险；保留拒绝记录，v5 增加十字段/读取窗口证据并修正 worker 采样错位。新增固定 AB/BA capture，性能每臂只启动一次、不按残差重抽，结果明确非正式 clean。 |
+| `TNO0279` | `2026-09-07` | [XiangShan RepCut N=8/N=32 communication runtime diagnostic](./TNO0279_xiangshan_repcut_n8_n32_communication_runtime_diagnostic_20260907.md) | node030 page-local 新旧 AB/BA：N8 Host `16.8625->15.5945 s`，update 基本持平；N32 balanced capture Host `14.0425->10.5835 s`（-24.632%），eval/update phase `-30.440%/-13.315%`，update 占比升到 34.219%。页面/worker 通过，保留 CPU accounting 失败与 diagnostic 限制，不改默认。 |
+| `TNO0280` | `2026-09-07` | [XiangShan RepCut N=K=32 four-stage experiment plan](./TNO0280_xiangshan_repcut_nk32_four_stage_experiment_plan_20260907.md) | 用户授权依次实测调度/host、CCD 映射、接收方更新、通信后处理；固定 N=K=32，以 clean-v4 closure-aware 为起点，事前固定阶段选择规则，不拆 ASC、不改默认。已追加状态：准备/完整模型复现通过，40 次 admission 全拒绝、0 launch，四项实测未完成，见 TNO0286..0288。 |
+| `TNO0281` | `2026-09-07` | [XiangShan RepCut N=K=32 scheduler build gate](./TNO0281_xiangshan_repcut_nk32_scheduler_build_gate_20260907.md) | common-only no-op 重建逐字节复现 frozen ELF；保留 1422 模型对象、ABI 与原编译选项，实验 legacy/pipeline-workers/pipeline-host 构建与 mock 通过，等待真实功能/性能 gate。 |
+| `TNO0282` | `2026-09-07` | [XiangShan RepCut N=K=32 measurement protocol gate](./TNO0282_xiangshan_repcut_nk32_measurement_protocol_gate_20260907.md) | 显式 A/B 与实际编译源身份、Host lane/辅助线程分类，保留固定 balanced capture/页面门；新 runner 冻结、35 项测试通过。 |
+| `TNO0283` | `2026-09-07` | [XiangShan RepCut N=K=32 CCD mapping structural gate](./TNO0283_xiangshan_repcut_nk32_ccd_mapping_structural_gate_20260907.md) | 由已校验生成代码重建 5137 个实际拷贝端点；固定四 CCD 容量，跨 CCD payload 286194->192598 bytes/update，-32.704%，仅静态候选，等待运行。 |
+| `TNO0284` | `2026-09-07` | [XiangShan RepCut N=K=32 pull update build gate](./TNO0284_xiangshan_repcut_nk32_pull_update_build_gate_20260907.md) | 保持全部拷贝语句/顶层输出，接收方重分组 exact-once/宽度门与 14 tests 通过；独立 common/update 重建通过，静态单 owner 最大负载上升，待实测。 |
+| `TNO0285` | `2026-09-07` | [XiangShan RepCut N=K=32 communication refinement tool gate](./TNO0285_xiangshan_repcut_nk32_communication_refinement_tool_gate_20260907.md) | 隔离单 TU 库支持 frozen assignment 导入/CSR导出，7 集成测试通过；通信校准 12 tests、whole-ASC 后处理 14 tests，明确 words64/packing 转移限制。完整 control 导出进行中，尚无校准候选或收益结论。 |
+| `TNO0286` | `2026-09-07` | [XiangShan RepCut N=K=32 resource blocker](./TNO0286_xiangshan_repcut_nk32_resource_blocker_20260907.md) | 全部允许节点双 NUMA 轮询；4 次 pair 尝试共 40 次 admission 拒绝、实际 launch=0。短扫曾通过但启动门未通过，没有 BA/性能 summary，不放宽门槛或改默认。 |
+| `TNO0287` | `2026-09-07` | [XiangShan RepCut N=K=32 full control reproduction](./TNO0287_xiangshan_repcut_nk32_full_control_reproduction_20260907.md) | 完整冻结 assignment 导入/重建成功；70 package 源文件、33 flat-SV逐字节复现，38 独立审计通过，双实现重算 exact load/KM1 一致；不是新划分性能结果。 |
+| `TNO0288` | `2026-09-07` | [XiangShan RepCut N=K=32 full build entry gate](./TNO0288_xiangshan_repcut_nk32_full_build_entry_gate_20260907.md) | 新 assignment 全 32 模型独立构建入口 13 tests 与真实 package dry-run 通过；toolchain 字典/源身份/原wrapper flags 对齐。未执行新模型 make，四项实测仍被资源阻断。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`276`（`TNO0001..TNO0276`）。
+- 当前记录类文档总数：`288`（`TNO0001..TNO0288`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
