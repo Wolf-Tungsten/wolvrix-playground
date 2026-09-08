@@ -22,3 +22,15 @@ VRT_EVIDENCE_CHECK:
 VRT_NEXT_STEP: 下一 ENGINEER 调用（剩余 5/6）只处理该具体阻塞并接回完整链：在方向 1 worktree 通过项目 Makefile/环境入口核对 XiangShan `.mill-version`=0.12.15 所需 Java/Mill/ASM 兼容组合，优先选择已存在且兼容的 JDK/Mill 启动方式，记录 `java -version`、`mill --version` 和工具路径指纹；不得改 baseline、依赖或测试源码。修复后使用新的 run_id 后缀，按任务书原样串行执行 `xs_wolf_grhsim_ir` → `xs_wolf_grhsim_ir_build_emu` → `run_xs_wolf_grhsim_ir_emu`（CPU2、powersave、50,000 周期、每1000采样、EMU_THREADS=0），保留每条命令完整 stdout/stderr、退出码、生成物哈希和残留进程检查。若环境无法在本调用安全固定，记录失败现场并交 PM/PI 统一环境修复；不要把本次阻塞当作方向 no_value。
 
 按 race_contract，本方向仍为独立候选状态“尚无候选（0/6 已成功工程调用中的技术候选）”；本审查不计工程配额，不能改变共同基线或其他方向状态。未完成实验仅表示证据未闭合，连续无推进规则尚未触发。
+
+## PI v2 勘误（执行编号 week-1-ra-1-plan-step-2-env-v2-c9a4c84b）
+
+以下勘误保留本审查原文及其历史判断，以 PI 公共环境补充 B1-c9a4c84b-v2（档案提交 `719fc9a655034dd104eda63218703e451f8e42bf`）和实际只读证据为准：
+
+- RA1 本周工程调用配额是 **1/6，剩余 5 次**。唯一计费任务是 `week-1-ra-1-step-1-eng-c9a4c84b`，returned/exit_code=0；同一任务内部三次失败尝试不重复计费。原文“0/6 已成功工程调用中的技术候选”把技术候选数和调用用量混淆，不能作为配额结论。
+- F02 应收窄为“共同源码起点匹配，但可变环境/产物隔离未通过”。入口仍有 `?? out/`；首轮使用了 `testcase/xiangshan/out`、`r_1/.venv` 和用户共享 Mill/Coursier cache，不能称为按 run 隔离或 clean。证据为 `/home/gaoruihao/wksp/wolvrix-playground/ptmp/vrt-grhsim-ir-st-opt-c9a4c84b/week_1/evidence/pi-env-v2/{roots-before.log,recursive-before.tsv,gitlinks-check.log,fingerprints.log,out-processes.log}`，以及隔离 TSV SHA256 `6149d82c9e892b1fe92ce0682b5f37cabf5500c51fcbd4f35037d90044a343db`。
+- F08 仅表示本步结果/审查报告和日志已存在，不代表最终 6/6 工程调用、逐步审查、完整目标和周末验收已经通过。
+- 目标首轮实际尝试的是 Mill 0.12.15 / Java 25，因 ASM 报 `Unsupported class file major version 69` 退出 2；RA 的 version 探测另行误启动 Mill 1.1.6 / Azul Java 21，并产生入口 `out/`。两类产物和日志不得混同，也不能把 version 探测当作目标兼容性证明。
+- `source ./env.sh` 实际安装了依赖且未经过 Makefile；因此用户共享 cache 与 `r_1/.venv` 都不是合格的按 run 隔离环境。后续不得再次 source 该旧安装入口或重复有副作用探测。
+
+本勘误不改变原始目标、RA1 的通用宽值与边界缓冲 emitter/runtime 方向，也不宣称环境或目标已验证。下一步只解除 F02/F03/F05 阻塞；修复成功后立即回到完整 50k 链。
