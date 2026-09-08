@@ -6,8 +6,10 @@
 # 额外的测试控制变量（由测试驱动设置）：
 #   MOCK_DIR               mock 的状态目录（用于 fail-once 标记，必须位于仓库外）
 #   MOCK_MAX_STEP          RA_REVIEW 在 step < MOCK_MAX_STEP 时给 continue，否则 done（默认 2）
+#   MOCK_VERDICT           固定审查标签，覆盖 MOCK_MAX_STEP（测试提前结论不停止）
 #   MOCK_FAIL_ONCE_ACTION  指定动作首次执行时以退出码 1 失败（不产生提交），用于测试重试
 #   MOCK_DOUBLE_COMMIT     =1 时 ENG_EXEC 在 ra=1 step=1 产生两次提交，用于测试兜底合并
+#   MOCK_BAD_CONTRACT      首次 ENG_EXEC 写 not_run，测试契约重试
 set -euo pipefail
 
 MOCK_DIR="${MOCK_DIR:?需要 MOCK_DIR}"
@@ -67,6 +69,11 @@ RA_PLAN_STEP)
     cat > "${ra_dir}/steps/step_${VRT_STEP_INDEX}_task.md" <<EOF
 # 第 ${VRT_STEP_INDEX} 步任务书（RA ${VRT_RA_INDEX}）
 目标：mock 任务 ${VRT_STEP_INDEX}
+VRT_PRIMARY_GOAL: mock 原始目标
+VRT_SUCCESS_CRITERIA: mock 证明或证伪标准
+VRT_TARGET_PATH: mock 目标测试路径
+VRT_TASK_KIND: target
+VRT_NEXT_TARGET: mock 下一步目标命令
 EOF
     commit
     ;;
@@ -87,8 +94,27 @@ ENG_EXEC)
     mkdir -p "${ra_dir}/steps"
     cat > "${ra_dir}/steps/step_${VRT_STEP_INDEX}_result.md" <<EOF
 # 第 ${VRT_STEP_INDEX} 步工作成果（RA ${VRT_RA_INDEX}）
+VRT_PRIMARY_PROGRESS: mock 主目标进展
+VRT_EVIDENCE: mock 目标证据
+VRT_REMAINING_GAP: mock 尚缺目标测试
+VRT_TARGET_RUN: attempted
+VRT_TARGET_COMMAND: make mock-target
+VRT_TARGET_EXIT: 0
+VRT_TARGET_LOG: ptmp/mock-target-${VRT_RA_INDEX}-${VRT_STEP_INDEX}.log
 做了什么：mock；关键数据：mock；结论：mock；遗留问题：无
 EOF
+    mkdir -p ptmp
+    echo "mock target run" > "ptmp/mock-target-${VRT_RA_INDEX}-${VRT_STEP_INDEX}.log"
+    sed -i 's/^VRT_PRIMARY_PROGRESS:.*/VRT_PRIMARY_PROGRESS: advanced/' "${ra_dir}/steps/step_${VRT_STEP_INDEX}_result.md"
+    if [ "${MOCK_BAD_CONTRACT:-0}" = "1" ] && [ ! -f "${MOCK_DIR}/bad_contract" ]; then
+        touch "${MOCK_DIR}/bad_contract"
+        sed -i 's/^VRT_TARGET_RUN:.*/VRT_TARGET_RUN: not_run/' "${ra_dir}/steps/step_${VRT_STEP_INDEX}_result.md"
+    elif [ "${MOCK_BAD_CONTRACT:-0}" = "1" ]; then
+        case "$*" in
+            *"首轮缺少完整目标流程"*) echo "[mock] 收到具体契约失败原因" ;;
+            *) echo "[mock] 未收到契约失败原因"; exit 1 ;;
+        esac
+    fi
     commit
     if [ "${MOCK_DOUBLE_COMMIT:-0}" = "1" ] && [ "${VRT_RA_INDEX}" = "1" ] && [ "${VRT_STEP_INDEX}" = "1" ]; then
         echo "补充一行（第二次提交）" >> "${ra_dir}/steps/step_${VRT_STEP_INDEX}_result.md"
@@ -105,10 +131,18 @@ RA_REVIEW)
     else
         verdict="done"
     fi
+    verdict="${MOCK_VERDICT:-$verdict}"
     cat > "${ra_dir}/steps/step_${VRT_STEP_INDEX}_review.md" <<EOF
 VRT_VERDICT: ${verdict}
 
 审查依据：mock。对下一步的建议：mock。
+VRT_PRIMARY_PROGRESS: advanced
+VRT_EVIDENCE_CHECK: mock
+VRT_NEXT_STEP: mock 补齐目标证据
+VRT_TARGET_RUN: attempted
+VRT_TARGET_COMMAND: make mock-target
+VRT_TARGET_EXIT: 0
+VRT_TARGET_LOG: ptmp/mock-target-${VRT_RA_INDEX}-${VRT_STEP_INDEX}.log
 EOF
     commit
     ;;
