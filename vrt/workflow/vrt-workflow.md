@@ -123,6 +123,7 @@ LLM Code Agent 每次以非交互批处理方式启动，用 goal 模式原子�
 具有 TUI 交互能力，可调用 kimi 或 codex CLI 作为 LLM Agent。每次启动预期完成一个具体研究任务"一周"的工作。
 
 **启动检测**：
+0. 任务活跃性：任务是否活跃由当前分支上是否存在 `vrt/<job>/job.json` 决定。**删除任务目录并提交即视为删除任务**，之后可用同名任务名重新开始；同名新建时若仍存在该任务的历史分支，脚本报错并提示手动删除（`git branch -D ...`，脚本不做删除）；base 历史中残留的旧 progress 提交无法也不必删除——脚本以最近一次 `init job` 提交为纪元，锚点搜索自动忽略旧纪元的状态；
 1. 当前位于 git 仓库内；继续已有任务时，当前分支必须是 `job.json` 记录的 base 分支或本任务的 RA 分支（周内中断恢复时脚本可能停在 RA 分支上），不符则报错退出；
 2. 中断检测（见第 7 节）：发现工作区残留或悬挂提交时，打印恢复命令并退出，由用户执行后重新启动。
 
@@ -180,7 +181,7 @@ vrt(<job>): week <N> progress <STATE> seq <S>
 
 **中断检测与恢复**：中断大概率发生在 CLI 运行期间——工作进行了一半，尚未产生任何提交。注意周内各阶段的 progress 提交分散在 base 与各 r_<i> 分支上（例如 PI_FINAL 在 base 上中断时，base 本地的 progress.json 并不反映 RA 阶段的进展），因此检测不能只看当前分支：
 
-1. **全局锚点**：在当前分支与该任务全部 RA 分支（`vrt/<job>/**`）的历史中查找 progress 提交，取 (week, seq) 最大者作为全局最新状态，恢复时从该提交中用 `git show <commit>:<progress.json 路径>` 读取状态；
+1. **全局锚点**：在当前分支与该任务全部 RA 分支（`vrt/<job>/**`）的历史中查找 progress 提交，取最近一次 `init job` 提交（纪元）之后 (week, seq) 最大者作为全局最新状态，恢复时从该提交中用 `git show <commit>:<progress.json 路径>` 读取状态；
 2. **逐分支悬挂检查**：每个相关分支的 tip 必须等于其历史中 (week, seq) 最大的 progress 提交；否则该分支存在悬挂提交——可能是中断残留，也可能是用户的人工提交，脚本列出这些提交由用户判断（人工有效则继续启动；中断残留则提示 `git reset --hard <该分支锚点提交>`）；
 3. **工作区有未提交改动** → 上次中断发生在 CLI 运行期间（最常见）：工作进行了一半，尚未提交。脏检查只看顶层仓库（`git status` 会汇总子模块变更行，不递归检查子模块）。脚本提示用户用 `git status` 检查，确认是中断残留后执行 `git reset --hard HEAD`（如有未跟踪残留再 `git clean -fd`），随后重跑被中断的动作；涉及子模块的残留还需 `git submodule update --checkout --force` 把子模块恢复到 gitlink 记录的状态（子模块内的未跟踪残留用 `git submodule foreach git clean -fd`）；
 4. **不存在任何 progress 提交** → 全新开始。

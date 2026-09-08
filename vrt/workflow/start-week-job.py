@@ -130,13 +130,14 @@ def progress_msg(job: str, week: int, state: str, seq: int) -> str:
 def scan_progress_commits(repo: Path, job: str, refs: list[str]) -> list[dict]:
     """在指定 refs 的历史中查找该任务的全部 progress 提交。"""
     pattern = progress_re(job)
-    out = git_out(repo, "log", "--format=%H%x1f%s", *refs)
+    out = git_out(repo, "log", "--format=%H%x1f%ct%x1f%s", *refs)
     found = []
     seen = set()
     for line in out.splitlines():
-        if "\x1f" not in line:
+        parts = line.split("\x1f")
+        if len(parts) != 3:
             continue
-        commit, subject = line.split("\x1f", 1)
+        commit, ct, subject = parts
         m = pattern.match(subject)
         if m and commit not in seen:
             seen.add(commit)
@@ -145,28 +146,62 @@ def scan_progress_commits(repo: Path, job: str, refs: list[str]) -> list[dict]:
                 "week": int(m.group(1)),
                 "state": m.group(2),
                 "seq": int(m.group(3)),
+                "ct": int(ct),
             })
     return found
 
 
-def latest_progress_commit(repo: Path, job: str, refs: list[str]) -> dict | None:
-    """(week, seq) 最大者即全局最新状态。"""
-    found = scan_progress_commits(repo, job, refs)
+def init_commit_re(job: str) -> re.Pattern:
+    """任务初始化提交即"纪元"标记：同名任务删除后重建时，
+
+    旧纪元的 progress 提交必须被忽略（用户删除任务目录重建后，
+    base 历史中仍残留旧 progress 提交，且分支删除后无法清除）。
+    """
+    return re.compile(rf"^vrt\({re.escape(job)}\): init job$")
+
+
+def latest_init_commit(repo: Path, job: str, refs: list[str]) -> str | None:
+    pattern = init_commit_re(job)
+    out = git_out(repo, "log", "--format=%H%x1f%s", *refs)
+    for line in out.splitlines():
+        if "\x1f" not in line:
+            continue
+        commit, subject = line.split("\x1f", 1)
+        if pattern.match(subject):
+            return commit  # git log 按时间倒序，第一个即最新
+    return None
+
+
+def _filter_epoch(repo: Path, found: list[dict],
+                  epoch: str | None) -> list[dict]:
+    """只保留纪元（init 提交）之后的 progress 提交。"""
+    if epoch is None:
+        return found
+    return [c for c in found
+            if git(repo, "merge-base", "--is-ancestor", epoch, c["commit"],
+                   check=False).returncode == 0]
+
+
+def latest_progress_commit(repo: Path, job: str, refs: list[str],
+                           epoch: str | None = None) -> dict | None:
+    """(week, seq, 提交时间) 最大者即全局最新状态。"""
+    found = _filter_epoch(repo, scan_progress_commits(repo, job, refs), epoch)
     if not found:
         return None
-    return max(found, key=lambda c: (c["week"], c["seq"]))
+    return max(found, key=lambda c: (c["week"], c["seq"], c["ct"]))
 
 
-def branch_last_progress(repo: Path, job: str, ref: str) -> dict | None:
+def branch_last_progress(repo: Path, job: str, ref: str,
+                         epoch: str | None = None) -> dict | None:
     """单个分支历史中最近的 progress 提交。
 
     分支可能因合并包含其他分支的 progress 提交，不能依赖 git log 顺序，
-    统一按 (week, seq) 取最大。
+    统一按 (week, seq, 提交时间) 取最大。
     """
-    found = scan_progress_commits(repo, job, [ref])
+    found = _filter_epoch(repo, scan_progress_commits(repo, job, [ref]), epoch)
     if not found:
         return None
-    return max(found, key=lambda c: (c["week"], c["seq"]))
+    return max(found, key=lambda c: (c["week"], c["seq"], c["ct"]))
 
 
 # ---------------------------------------------------------------------------
@@ -588,7 +623,8 @@ def detect_interruption(repo: Path, job: str, args: argparse.Namespace,
     发现异常时打印恢复建议并以退出码 2 退出。
     """
     refs = ["HEAD"] + job_branches(repo, job)
-    anchor = latest_progress_commit(repo, job, refs)
+    epoch = latest_init_commit(repo, job, refs)
+    anchor = latest_progress_commit(repo, job, refs, epoch)
     dirty = worktree_dirty(repo)
 
     if anchor is None:
@@ -606,7 +642,7 @@ def detect_interruption(repo: Path, job: str, args: argparse.Namespace,
     # 否则存在悬挂提交（中断残留，或用户的人工提交）。
     dangling: dict[str, str] = {}
     for ref in {current_branch(repo), *job_branches(repo, job)}:
-        b_anchor = branch_last_progress(repo, job, ref)
+        b_anchor = branch_last_progress(repo, job, ref, epoch)
         if b_anchor is None:
             continue
         tip = rev_parse(repo, ref)
@@ -627,14 +663,14 @@ def detect_interruption(repo: Path, job: str, args: argparse.Namespace,
         print("  git submodule update --checkout --force   # 子模块恢复到 gitlink 记录的状态")
         print("  git clean -fd   # 如有未跟踪的残留文件（子模块内：git submodule foreach git clean -fd）")
     for ref, extra in dangling.items():
-        b_anchor = branch_last_progress(repo, job, ref)
+        b_anchor = branch_last_progress(repo, job, ref, epoch)
         print(f"\n[分支 {ref} 在其最近 progress 提交之后还有提交]：")
         print(extra)
     if dangling and not dirty:
         print("\n以上是中断残留还是人工有效提交？")
         print("若是中断残留，请逐分支执行恢复（脚本不自动回退）：")
         for ref in dangling:
-            b_anchor = branch_last_progress(repo, job, ref)
+            b_anchor = branch_last_progress(repo, job, ref, epoch)
             print(f"  git checkout {ref} && git reset --hard {b_anchor['commit']}")
         if args.trust_head_commits:
             print("（--trust-head-commits 已指定，视为人工有效提交，继续启动）")
@@ -889,15 +925,35 @@ def main() -> int:
         args.cli = "kimi"
 
     job_json_path = repo / job_dir_rel(job) / "job.json"
-    if args.new_job and job_json_path.is_file():
+    # 任务是否活跃由 job.json 是否存在于当前分支决定：用户删除任务目录并提交，
+    # 即视为删除任务，可同名重新开始；旧的 progress 提交成为惰性历史
+    #（锚点搜索以最近一次 init job 提交为纪元，自动忽略旧纪元）。
+    job_active = job_json_path.is_file()
+    if args.new_job and job_active:
         print(f"错误：任务 {job} 已存在，请用 --job 继续。", file=sys.stderr)
         return 1
-    if args.job and not job_json_path.is_file():
-        print(f"错误：任务 {job} 不存在（无 job.json）。", file=sys.stderr)
+    if args.job and not job_active:
+        print(f"错误：任务 {job} 不存在（当前分支无 vrt/{job}/job.json）。", file=sys.stderr)
+        print("如果你是想删除该任务并重新开始：除删除目录并提交外，"
+              "还需删除其历史分支（脚本不做删除）：", file=sys.stderr)
+        for b in job_branches(repo, job):
+            print(f"  git branch -D {b}", file=sys.stderr)
         return 1
     is_new_job = bool(args.new_job)
 
     if is_new_job:
+        stale_branches = job_branches(repo, job)
+        if stale_branches:
+            print(f"错误：存在同名任务的历史分支（脚本不会删除分支），请先手动删除：",
+                  file=sys.stderr)
+            for b in stale_branches:
+                print(f"  git branch -D {b}", file=sys.stderr)
+            return 1
+        stale = latest_progress_commit(repo, job, ["HEAD"])
+        if stale:
+            print(f"提示：base 历史中发现同名任务的旧 progress 提交（{stale['commit'][:8]}，"
+                  f"week {stale['week']}），已无法删除也无妨——将作为惰性历史忽略，"
+                  "本次全新开始。")
         base_branch = current_branch(repo)
     else:
         base_branch = json.loads(job_json_path.read_text(encoding="utf-8"))["base_branch"]
@@ -908,8 +964,17 @@ def main() -> int:
                   "也不是本任务的 RA 分支。", file=sys.stderr)
             return 1
 
-    anchor = detect_interruption(repo, job, args,
-                                 ask_yes_no if not args.yes else (lambda q: False))
+    if job_active:
+        anchor = detect_interruption(repo, job, args,
+                                     ask_yes_no if not args.yes else (lambda q: False))
+    else:
+        # 全新任务：不做中断恢复检测，但要求工作区干净
+        dirty = worktree_dirty(repo)
+        if dirty:
+            print("检测到工作区有未提交改动，请先处理：")
+            print("\n".join(dirty[:10]))
+            sys.exit(2)
+        anchor = None
 
     ensure_git_identity(repo)
     if is_new_job:

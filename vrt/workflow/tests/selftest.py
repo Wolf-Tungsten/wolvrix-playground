@@ -269,6 +269,37 @@ def s9_submodule() -> None:
           "S9 PI_FINAL 后子模块工作区与 gitlink 一致")
 
 
+def s10_delete_and_restart() -> None:
+    """复现真实事故：用户删除任务目录并提交（分支未删），期望重新开始。"""
+    print("[S10] 删除任务目录后同名重启")
+    repo = setup_sandbox("s10")
+    run_script(repo, ["--new", "demo", "--requirements", "测试需求",
+                      "--cli", "kimi", "--r", "2", "--w", "1",
+                      "--max-actions", "4"])  # 进行到 RA_REVIEW(1,1)，分支已建
+
+    # 用户删除任务目录并提交（分支还在）
+    git(repo, "checkout", "main")
+    git(repo, "rm", "-rq", "vrt/demo")
+    git(repo, "commit", "-q", "-m", "remove vrt work")
+
+    # 分支未删：必须报错并提示删除，而不是从历史恢复
+    out = run_script(repo, ["--new", "demo", "--requirements", "测试需求",
+                            "--cli", "kimi", "--r", "2", "--w", "1"],
+                     expect_rc=1)
+    check("git branch -D" in out, "S10 存在历史分支时报错并提示删除")
+
+    # 删除分支后：全新开始，必须从 PI_PLAN 起跑
+    for i in (1, 2):
+        git(repo, "branch", "-D", f"vrt/demo/week_1/r_{i}")
+    out = run_script(repo, ["--new", "demo", "--requirements", "测试需求",
+                            "--cli", "kimi", "--r", "2", "--w", "1"])
+    check("惰性历史" in out, "S10 提示忽略 base 历史中的旧 progress 提交")
+    check("动作 PI_PLAN" in out, "S10 从 PI_PLAN 起跑而非跳过")
+    check("WEEK_DONE" in out, "S10 全新一周完成")
+    check((repo / "vrt/demo/week_1/pi_final_report.md").is_file(),
+          "S10 新纪元的最终报告存在")
+
+
 def main() -> int:
     SANDBOX.mkdir(parents=True, exist_ok=True)
     repo1 = s1_full_week()
@@ -280,6 +311,7 @@ def main() -> int:
     s7_dangling_commit()
     s8_codex_path()
     s9_submodule()
+    s10_delete_and_restart()
 
     print()
     if failures:
