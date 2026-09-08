@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "job": "grhsim-ir-st-opt",
+  "week": 1,
+  "cli": "codex",
+  "base_branch": "grh/grhsim-ir",
+  "r": 3,
+  "w": 6,
+  "state": "PI_PLAN",
+  "ra_index": 0,
+  "step_index": 0,
+  "seq": 0,
+  "hours_used": {},
+  "retries": 0,
+  "status": "done",
+  "updated_at": "2026-09-08T14:39:29+08:00"
+}
