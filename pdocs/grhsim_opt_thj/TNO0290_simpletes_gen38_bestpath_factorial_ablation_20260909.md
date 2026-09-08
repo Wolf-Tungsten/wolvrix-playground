@@ -10,7 +10,7 @@
 | B | selected hot input dispatch branch weighting（`GRHSIM_LIKELY`） |
 | C | event-qualified commit path 上抑制 redundant global active-byte clear |
 
-control 固定为 `control_v2`，从 RTL fresh 构建；A/B/C/AB/AC/ABC 六个 candidate 使用完全相同的 parent、Wolvrix、generation input、toolchain 和 build config。全部构建通过 focused/function gate。运行使用最新 `runtime.py`，关闭 ASLR，固定同一 CCD/CPU 完成 ABBA 与 BAAB；以下结果只采用 gap 小于 `0.25 pp` 的 pair。`run_pair_sameccd.py` 的 `valid` 是 runtime lower gates（ASLR、affinity、NUMA、PMU、迁移、功能和 same-placement），不等同于 evaluator 的完整 schema-v4 stability gate；本记录另行报告 order gap、spread 和方向一致性。
+control 固定为 `control_v2`，从 RTL fresh 构建；A/B/C/AB/AC/BC/ABC 七个 candidate 使用完全相同的 parent、Wolvrix、generation input、toolchain 和 build config（另有 B0 baseline wrapper 作为记录）。全部构建通过 focused/function gate。运行使用最新 `runtime.py`，关闭 ASLR，固定同一 CCD/CPU 完成 ABBA 与 BAAB；以下结果只采用 gap 小于 `0.25 pp` 的 pair。`run_pair_sameccd.py` 的 `valid` 是 runtime lower gates（ASLR、affinity、NUMA、PMU、迁移、功能和 same-placement），不等同于 evaluator 的完整 schema-v4 stability gate；本记录另行报告 order gap、spread 和方向一致性。
 
 ## 结果
 
@@ -21,13 +21,14 @@ control 固定为 `control_v2`，从 RTL fresh 构建；A/B/C/AB/AC/ABC 六个 c
 | C | 42,440.75 | 42,470.25 | -29.50 | -0.069509% | -0.177543% / 0.038955% | 0.216498 | 否 |
 | AB | 42,704.75 | 40,694.50 | 2,010.25 | 4.707322% | 4.764356% / 4.650209% | 0.114147 | 是 |
 | AC | 42,693.75 | 42,638.00 | 55.75 | 0.130581% | 0.127741% / 0.133418% | 0.005677 | 是 |
+| BC | 42,493.00 | 40,461.25 | 2,031.75 | 4.781376% | 4.773334% / 4.789419% | 0.016084 | 是 |
 | ABC | 42,102.50 | 40,200.00 | 1,902.50 | 4.518734% | 4.442255% / 4.595311% | 0.153055 | 是 |
 
 所有 walltime 都是同一 pair 内 control/candidate 的四个样本均值，绝对值以 `Host time spent walltime_ms` 为准。A、B、C、AB、AC、ABC 的正式 result JSON 分别保存在
 `build/grhsim_bestpath_ablation_20260909/results_node030_v1/A_vs_B0`、
 `results_node031_v2/B_repeat6`、`results_node031_v2/C_repeat4`、
 `results_node030_v1/AB_repeat6`、`results_node031_v2/AC_vs_B0`、
-`results_node031_v2/ABC_vs_B0`。
+`results_node031_v2/BC_repeat2`、`results_node031_v2/ABC_vs_B0`。
 
 ## gap 复测与异常
 
@@ -35,11 +36,11 @@ B 臂前五轮 gap 为 `0.427290/0.468443/0.711317/0.497914/1.605585 pp`，第�
 
 BC 臂的第一份构建被发现使用了不同的独立生成输入和 toolchain（generation input `94722a…`、toolchain `7669097d…`），因此已明确废弃，不能与本表比较。随后复用 `control_v2` 的 generation input `0c63c318…`、toolchain `3139fef6…` 和 control artifact 完成 exact rebuild，旧身份构建没有覆盖。
 
-BC exact v2 的同 CCD 结果为 control `42,493.00 ms`→candidate `40,461.25 ms`，减少 `2,031.75 ms/4.781376%`；ABBA/BAAB 分别为 `4.773334%/4.789419%`，gap `0.016084 pp`，方向一致。结果保存在 `results_node031_v2/BC_vs_B0`，candidate generated fingerprint 为 `d14bd260a82c1b1bee2c67156352768709be83299540a3bceaa6eb309b082d7a`，`emu` 为 `82,992,832 B`（SHA-256 `097d44134bf62268e93fadd82b81972a4c0f7e31caf666e6c772b7d6efa7ae50`）。
+BC exact v2 的同 CCD 结果为 control `42,493.00 ms`→candidate `40,461.25 ms`，减少 `2,031.75 ms/4.781376%`；ABBA/BAAB 分别为 `4.773334%/4.789419%`，gap `0.016084 pp`，方向一致。首轮 `BC_vs_B0` gap 为 `0.358137 pp`，因此按规则复测并选用 `BC_repeat2`。candidate generated fingerprint 为 `d14bd260a82c1b1bee2c67156352768709be83299540a3bceaa6eb309b082d7a`，`emu` 为 `82,992,832 B`（SHA-256 `097d44134bf62268e93fadd82b81972a4c0f7e31caf666e6c772b7d6efa7ae50`）。
 
 ## 解释边界
 
-B 单项几乎解释了 ABC 的主要收益；AB 与 B 的提升接近，说明 A 在 B 已启用时只增加很小边际。A 与 AC 的弱正向结果低于 `1%`，C 的达标组轻微回退且方向不一致，暂不足以保留 C。单项/组合数值是各自相对同源 control 的端到端结果，不能把百分比直接相加，也不能用不同 CCD 的绝对 walltime 横向相减。BC exact 结果和必要的 direct leave-one-out 比较完成前，不做默认启用或生产落地决定。
+B 单项几乎解释了 ABC 的主要收益；AB 与 B 的提升接近，说明 A 在 B 已启用时只增加很小边际。A 与 AC 的弱正向结果低于 `1%`，C 的达标组轻微回退且方向不一致，暂不足以保留 C。单项/组合数值是各自相对同源 control 的端到端结果，不能把百分比直接相加，也不能用不同 CCD 的绝对 walltime 横向相减。本阶段完成的是相对 B0 的 factorial 消融；如需把每个机制的 leave-one-out 边际用于生产决策，仍应在同源二进制上另行测量。
 
 ## 构建身份
 
