@@ -34,3 +34,7 @@ VRT_NEXT_STEP: 下一 ENGINEER 调用（剩余 5/6）只处理该具体阻塞并
 - `source ./env.sh` 实际安装了依赖且未经过 Makefile；因此用户共享 cache 与 `r_1/.venv` 都不是合格的按 run 隔离环境。后续不得再次 source 该旧安装入口或重复有副作用探测。
 
 本勘误不改变原始目标、RA1 的通用宽值与边界缓冲 emitter/runtime 方向，也不宣称环境或目标已验证。下一步只解除 F02/F03/F05 阻塞；修复成功后立即回到完整 50k 链。
+
+本次 RA 独立读取的进一步依据：ENGINEER 回执 `call-3f97cc898c5b4d49abd5153fdd92fdfb.log:374–395,478–516` 记录 source 及实际安装，RA 回执 `call-a834fa3e81c54d43a9c6610d1f85e2c4.log:1769–1778` 记录入口 bootstrap version 探测；PI 回执 `call-4545fbeac9b048c0a077cdcd77a1c82e.log` 确认 v2 归档提交。三文件绝对父目录均为 `/home/gaoruihao/wksp/wolvrix-playground/vrt/grhsim-ir-st-opt/.runner/c9a4c84b9a384fd1967b6c0a21ad71aa/`，只读未修改。五份目标日志重新读取，target1-mill 6470 bytes 的 SHA256 仍为 `7ba0a4f44c8c721d2ee6c019d7f8647f1ae392d9e1d8942fc06f695ce410df6e`；三个目标一顶层均exit=2，目标二/三未跑。约6秒只是失败时段，F06未测。
+
+21:19:27 +08 新核查日志 `/home/gaoruihao/wksp/wolvrix-playground/ptmp/vrt-grhsim-ir-st-opt-c9a4c84b/week_1/r_1/ptmp/ra-plan-step2-env-v2-20260908/{roots-before.log,receipts-read.log,recursive-read.log}` 记录当前pending/running为本次RA、无未知工程调用；163个RA1仓库HEAD/tree和162个已检出父gitlink匹配，入口仍11个out未跟踪文件，依赖源码只读私有检出，技术clean。pgrep无匹配exit=1、旧PID1605023不存在；未再次启动任何Mill/Java探测。开工主档案HEAD=719fc9a655034dd104eda63218703e451f8e42bf且clean，技术/方向HEAD不变；完整gitdir/common-dir/tree及忽略产物记录见上述日志和step_2_task.md现场表。后续 helper 仍必须遵循 legacy 指针/调用方输出缓冲，不以此次环境修复改变研究方向。
