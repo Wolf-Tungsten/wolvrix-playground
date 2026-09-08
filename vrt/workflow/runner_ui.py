@@ -128,10 +128,10 @@ class UI:
             "VRT 看板  任务={job}  周次={week}  CLI={cli}  已运行={elapsed}".format(
                 job=st.get("job", "-"), week=st.get("week", "-"),
                 cli=st.get("cli", "-"), elapsed=elapsed),
-            "当前动作: {action}   分支: {branch}".format(
-                action=st.get("action", "-"), branch=st.get("branch", "-")),
-            "工时: {hours}".format(hours=st.get("hours", "-")),
-            "最近产出: {arts}".format(arts=", ".join(arts[-4:]) if arts else "-"),
+            "当前动作: {action}   工作目录: {cwd}".format(
+                action=st.get("action", "-"), cwd=st.get("cwd", "-")),
+            "工程调用（已用/配额）: {hours}".format(hours=st.get("hours", "-")),
+            "最近回执: {arts}".format(arts=", ".join(arts[-4:]) if arts else "-"),
             "─" * min(cols, 100),
         ]
         out = ["\x1b7"]                              # 保存日志区光标
@@ -142,5 +142,4 @@ class UI:
         with self.write_lock:
             sys.stdout.write("".join(out))
             sys.stdout.flush()
-
 

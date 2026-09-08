@@ -1,0 +1,3 @@
+# Project-manager execution state, request/response files, and transient logs.
+# Project requirements, plans, reports, and source changes remain tracked.
+*/.runner/

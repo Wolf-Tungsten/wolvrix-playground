@@ -112,6 +112,16 @@ def decision_at(path: Path, request_id: str) -> dict:
         raise ValueError("kind 必须是 dispatch/complete/blocked")
     if not isinstance(data.get("reason"), str) or not data["reason"].strip():
         raise ValueError("缺少 reason")
+    if "week" in data and not ((type(data["week"]) is int and data["week"] > 0)
+                              or (isinstance(data["week"], str) and data["week"].strip())):
+        raise ValueError("week 必须是正整数或非空字符串")
+    if "hours_budget" in data and (type(data["hours_budget"]) is not int or data["hours_budget"] < 1):
+        raise ValueError("hours_budget 必须是正整数")
+    if "hours_used" in data:
+        used = data["hours_used"]
+        if not isinstance(used, dict) or any(not k.isdigit() or int(k) < 1
+                or type(v) is not int or v < 0 for k, v in used.items()):
+            raise ValueError("hours_used 必须是 RA 编号到非负整数的对象")
     if data["kind"] == "dispatch":
         for key in ("task_id", "role", "cwd", "prompt"):
             if not isinstance(data.get(key), str) or not data[key].strip():
@@ -136,7 +146,7 @@ def invoke(state_path: Path, state: dict, args: argparse.Namespace, ui: UI,
                "status": "running"}
     state["calls"].append(receipt)
     save(state_path, state)  # before spawning: recovery knows an action may have run
-    ui.set_status(action=f"{role} {task_id}", branch=str(cwd))
+    ui.set_status(action=f"{role} {task_id}", cwd=str(cwd))
     ui.info(f"派发 {role}，工作目录由项目经理指定：{cwd}")
     env = {"VRT_ACTION": role, "VRT_TASK_ID": task_id,
            "VRT_JOB": state["config"]["job"], "VRT_WORKSPACE": state["config"]["workspace"],
@@ -155,6 +165,7 @@ def invoke(state_path: Path, state: dict, args: argparse.Namespace, ui: UI,
     finally:
         receipt["ended_at"] = now()
         save(state_path, state)
+        ui.add_artifact(f"{role}: {receipt['status']} — {log.name}")
     return receipt
 
 
@@ -176,7 +187,18 @@ def manage(state_path: Path, state: dict, args: argparse.Namespace, ui: UI) -> d
                              "recovery_required": state.get("recovery_required", False),
                              "previous_error": previous_error, "response": str(response)})
         prompt = (ROLES / "project_manager.md").read_text(encoding="utf-8")
-        prompt += f"\n本次请求文件：{request}\n本次响应文件：{response}\nrequest_id: {request_id}\n"
+        project_dir = state["config"].get("project_dir") or str(
+            Path(state["config"]["workspace"]) / "vrt" / state["config"]["job"])
+        prompt += (
+            "\n\n# 当前项目上下文（由执行器嵌入，不要猜测）\n"
+            f"工作区入口：{state['config']['workspace']}\n"
+            f"项目名称：{state['config']['job']}\n"
+            f"当前项目档案目录：{project_dir}\n"
+            f"本次执行会话目录：{state_path.parent}\n"
+            f"本次请求文件：{request}\n本次响应文件：{response}\n"
+            f"调用回执文件：{state_path}\nrequest_id: {request_id}\n"
+            "以上路径由执行器确定。请将项目档案归档到当前项目目录，"
+            "技术仓库可另行选择，但不得另建项目目录。\n")
         if previous_error:
             prompt += (f"\n上次调用或响应校验失败：{previous_error}\n"
                        "请特别检查响应格式：只向本次 response 文件写入一个 JSON 对象，"
@@ -191,6 +213,7 @@ def manage(state_path: Path, state: dict, args: argparse.Namespace, ui: UI) -> d
             decision = decision_at(response, request_id)
             state["decisions"].append({"request": str(request), "response": str(response),
                                        "decision": decision})
+            refresh_dashboard(ui, state)
             state["recovery_required"] = False
             save(state_path, state)
             return decision
@@ -205,6 +228,31 @@ def manage(state_path: Path, state: dict, args: argparse.Namespace, ui: UI) -> d
     state["status"] = "paused"
     save(state_path, state)
     return None
+
+
+def format_hours(decision: dict, state: dict) -> str:
+    budget = decision.get("hours_budget", state["config"].get("w"))
+    used = decision.get("hours_used", {})
+    indices = set(used)
+    if state["config"].get("r"):
+        indices.update(str(i) for i in range(1, state["config"]["r"] + 1))
+    if indices:
+        return " ".join(f"RA{k}:{used.get(k, '?')}/{budget if budget is not None else '?'}"
+                        for k in sorted(indices, key=int))
+    return f"每 RA {budget if budget is not None else '?'} 次；已用待确认"
+
+
+def refresh_dashboard(ui: UI, state: dict) -> None:
+    display = {}
+    for entry in state.get("decisions", []):
+        decision = entry["decision"]
+        if "week" in decision and decision["week"] != display.get("week"):
+            display.pop("hours_used", None)
+        for key in ("week", "hours_budget", "hours_used"):
+            if key in decision:
+                display[key] = decision[key]
+    ui.set_status(week=str(display.get("week", state["config"].get("week") or "待确认")),
+                  hours=format_hours(display, state))
 
 
 def run(state_path: Path, state: dict, args: argparse.Namespace, ui: UI) -> int:
@@ -288,6 +336,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cli", choices=("kimi", "codex"))
     parser.add_argument("--r", type=int)
     parser.add_argument("--w", type=int, help="每 RA 工程调用配额，与物理时间无关")
+    parser.add_argument("--week", type=int, help="用户指定的虚拟周次，传给项目经理并显示")
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--no-tui", action="store_true")
     parser.add_argument("--action-timeout", type=int, default=0)
@@ -342,7 +391,7 @@ def parse_args() -> argparse.Namespace:
     for key in ("action_timeout", "retry_delay", "max_retries", "max_actions"):
         if getattr(args, key) < 0:
             parser.error(f"{key} 不得为负")
-    for key in ("r", "w"):
+    for key in ("r", "w", "week"):
         if getattr(args, key) is not None and getattr(args, key) < 1:
             parser.error(f"{key} 必须为正整数")
     return args
@@ -378,7 +427,7 @@ def main() -> int:
                  "pending": None, "config": {"job": job, "workspace": str(workspace),
                  "project_dir": str(project),
                  "intent": "new" if args.new_job else "continue", "requirements": requirements,
-                 "r": args.r, "w": args.w, "cli": args.cli or "kimi"}}
+                 "r": args.r, "w": args.w, "week": args.week, "cli": args.cli or "kimi"}}
         save(state_path, state)
         write_json(latest, {"run_id": run_id})
         if args.new_job:
@@ -394,13 +443,16 @@ def main() -> int:
         state["config"]["intent"] = "continue"
         if requirements:
             state["config"]["supplement"] = requirements
-        for key in ("r", "w", "cli"):
+        for key in ("r", "w", "week", "cli"):
             if getattr(args, key) is not None:
                 state["config"][key] = getattr(args, key)
         state["status"] = "active"
         save(state_path, state)
     ui = UI(not args.no_tui and sys.stdout.isatty())
-    ui.set_status(job=job, week="项目经理判定", cli=state["config"]["cli"], hours="由项目经理核算")
+    ui.set_status(job=job, cli=state["config"]["cli"])
+    refresh_dashboard(ui, state)
+    for call in state["calls"][-4:]:
+        ui.add_artifact(f"{call['role']}: {call['status']} — {Path(call['log']).name}")
     ui.start()
     try:
         return run(state_path, state, args, ui)
