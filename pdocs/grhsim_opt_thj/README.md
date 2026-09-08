@@ -299,6 +299,7 @@
 | `TNO0287` | `2026-09-07` | [XiangShan RepCut N=K=32 full control reproduction](./TNO0287_xiangshan_repcut_nk32_full_control_reproduction_20260907.md) | 完整冻结 assignment 导入/重建成功；70 package 源文件、33 flat-SV逐字节复现，38 独立审计通过，双实现重算 exact load/KM1 一致；不是新划分性能结果。 |
 | `TNO0288` | `2026-09-07` | [XiangShan RepCut N=K=32 full build entry gate](./TNO0288_xiangshan_repcut_nk32_full_build_entry_gate_20260907.md) | 新 assignment 全 32 模型独立构建入口 13 tests 与真实 package dry-run 通过；toolchain 字典/源身份/原wrapper flags 对齐。未执行新模型 make，四项实测仍被资源阻断。 |
 | `TNO0289` | `2026-09-08` | [SimpleTES gen38 budget-256/valid-128 completion](./TNO0289_simpletes_gen38_budget256_valid128_completion_20260908.md) | node030 正常达到 `98/98 valid` 后收尾（`136/217` generation attempts，22 generation failures，0 evaluation failures）；最佳节点 pooled wall `43,950.25→41,524.00 ms`，减少 `2,426.25 ms/5.520446%`，ABBA/BAAB gap `0.234880 pp`，全部稳定性/功能/NUMA/PMU 门禁通过，尚未 landing/default。 |
+| `TNO0290` | `2026-09-09` | [SimpleTES gen38 best-path factorial ablation](./TNO0290_simpletes_gen38_bestpath_factorial_ablation_20260909.md) | A/B/C 三机制 factorial 消融的六个同源 arm 均完成 fresh build 和 fixed-ASLR 同 CCD ABBA+BAAB；B 单项 `42,531.25→40,531.50 ms`（`+4.701837%`，gap `0.126339 pp`），ABC `42,102.50→40,200.00 ms`（`+4.518734%`），C 达标组轻微回退。BC 首份构建身份不一致已废弃，同源 exact rebuild 待追加。 |
 
 ## 来源覆盖
 
