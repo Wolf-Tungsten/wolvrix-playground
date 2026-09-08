@@ -20,7 +20,7 @@
 # 硬性规则
 
 - 恰好提交一次，提交信息以 `vrt({{JOB}}): week {{WEEK}}` 开头，且不得包含单词 "progress"；
-- 若改动涉及 git 子模块（如 `wolvrix/`）：必须先在子模块内提交，再在根仓库的这次提交中更新 gitlink——子模块内的提交不计入一次提交限制；不得用 patch 文件代替正式提交来规避子模块提交；
+- 子模块规则：脚本不会操作子模块的 git 状态，一切由你完成。**每个动作开始时**，先确认子模块处于与本动作同名的分支 `{{CURRENT_BRANCH}}`——不是则切换，不存在则以 base 分支 `{{BASE_BRANCH}}` 记录的 gitlink 为基点创建（`git ls-tree {{BASE_BRANCH}} -- <子模块路径>` 输出的第 3 列即基点提交）。若有子模块改动，提交到该同名分支，再在根仓库的这次提交中更新 gitlink——子模块内的提交不计入一次提交限制；不得用 patch 文件代替正式提交来规避子模块提交；
 - 绝对不要修改或提交 `{{WEEK_DIR}}/progress.json` 和 `{{JOB_DIR}}/job.json`；
 - 不要执行 `git reset` / `git rebase` / `git push` / `git checkout` 等分支或破坏性操作；
 - 不要改动与本动作无关的文件。

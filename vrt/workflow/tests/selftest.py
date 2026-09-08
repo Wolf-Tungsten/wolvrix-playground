@@ -226,6 +226,49 @@ def s8_codex_path() -> None:
     check("WEEK_DONE" in out, "S8 codex 路径完成本周")
 
 
+def s9_submodule() -> None:
+    print("[S9] 子模块分支隔离（R=2 W=1，mock 在子模块内提交）")
+    repo = setup_sandbox("s9")
+    sub_src = repo.parent / "sub-src"
+    sub_src.mkdir()
+    git(sub_src, "init", "-b", "main")
+    git(sub_src, "config", "user.email", "selftest@localhost")
+    git(sub_src, "config", "user.name", "Selftest")
+    (sub_src / "sub_notes.txt").write_text("init\n", encoding="utf-8")
+    git(sub_src, "add", "-A")
+    git(sub_src, "commit", "-m", "sub init")
+    sh(["git", "-C", str(repo), "-c", "protocol.file.allow=always",
+        "submodule", "add", str(sub_src), "sub"])
+    git(repo, "commit", "-m", "add submodule")
+    git(repo / "sub", "config", "user.email", "selftest@localhost")
+    git(repo / "sub", "config", "user.name", "Selftest")
+
+    out = run_script(repo, ["--new", "demo", "--requirements", "测试需求",
+                            "--cli", "kimi", "--r", "2", "--w", "1"])
+    check("WEEK_DONE" in out, "S9 含子模块的一周完成")
+
+    sub = repo / "sub"
+    for i in (1, 2):
+        b = f"vrt/demo/week_1/r_{i}"
+        git(sub, "rev-parse", "--verify", b)
+        check(True, f"S9 子模块存在同名分支 {b}")
+        link = git(repo, "ls-tree", b, "--", "sub").split()[2]
+        tip = git(sub, "rev-parse", b)
+        check(link == tip, f"S9 根分支 {b} 的 gitlink == 子模块同名分支 tip")
+
+    # 隔离性：r_2 的子模块分支不应包含 r_1 的工作提交
+    r2_log = git(sub, "log", "--format=%s", "vrt/demo/week_1/r_2")
+    check("ra 1" not in r2_log and "ra 2" in r2_log,
+          "S9 子模块分支相互隔离（r_2 不含 r_1 的提交）")
+
+    # 合并后：main 的 gitlink == 优胜方向子模块 tip，且子模块工作区已对齐
+    link_main = git(repo, "ls-tree", "main", "--", "sub").split()[2]
+    tip_r1 = git(sub, "rev-parse", "vrt/demo/week_1/r_1")
+    check(link_main == tip_r1, "S9 合并后 main 的 gitlink 指向优胜子模块提交")
+    check(git(sub, "rev-parse", "HEAD") == link_main,
+          "S9 PI_FINAL 后子模块工作区与 gitlink 一致")
+
+
 def main() -> int:
     SANDBOX.mkdir(parents=True, exist_ok=True)
     repo1 = s1_full_week()
@@ -236,6 +279,7 @@ def main() -> int:
     s6_dirty_detection(repo5)
     s7_dangling_commit()
     s8_codex_path()
+    s9_submodule()
 
     print()
     if failures:

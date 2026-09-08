@@ -21,7 +21,7 @@
 # 提交规则（本动作例外）
 
 - 允许恰好两次提交：一次合并提交（merge 自动产生）+ 一次报告提交；若合并因冲突中止，则只提交报告这一次；
-- 若改动涉及 git 子模块（如 `wolvrix/`）：必须先在子模块内提交，再在根仓库的提交中更新 gitlink——子模块内的提交不计入上述次数限制；不得用 patch 文件代替正式提交来规避子模块提交；
+- 子模块规则：脚本不会操作子模块的 git 状态。动作开始时先确认子模块工作区与 gitlink 一致（不一致则执行 `git submodule update --checkout --force` 对齐，确认无未提交改动）；合并优胜分支后再次执行同样对齐；本动作不应在子模块内产生新提交；
 - 提交信息以 `vrt({{JOB}}): week {{WEEK}}` 开头，且不得包含单词 "progress"；
 - 绝对不要修改或提交 `{{WEEK_DIR}}/progress.json` 和 `{{JOB_DIR}}/job.json`；
 - 除上述合并外，不要执行 `git reset` / `git rebase` / `git push` / `git checkout` 等分支或破坏性操作；

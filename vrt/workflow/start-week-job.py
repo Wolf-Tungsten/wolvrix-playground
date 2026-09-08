@@ -77,9 +77,10 @@ def git_out(repo: Path, *args: str) -> str:
 
 
 def ensure_git_identity(repo: Path) -> None:
-    if not git_out(repo, "config", "user.email"):
-        git(repo, "config", "user.email", "vrt-bot@localhost")
-        git(repo, "config", "user.name", "VRT Bot")
+    if git(repo, "config", "user.email", check=False).stdout.strip():
+        return
+    git(repo, "config", "user.email", "vrt-bot@localhost")
+    git(repo, "config", "user.name", "VRT Bot")
 
 
 def current_branch(repo: Path) -> str:
@@ -91,6 +92,12 @@ def rev_parse(repo: Path, ref: str) -> str:
 
 
 def worktree_dirty(repo: Path) -> list[str]:
+    """工作区脏检查：只看顶层仓库。
+
+    顶层 `git status --porcelain` 会把子模块的变更（新提交、脏内容）汇总为
+    一行 `M <子模块>`，信号已足够；子模块可能很多甚至递归，不做递归检查。
+    子模块内部的分支/提交正确性由提示词约束 AI 保证（审查动作会核对）。
+    """
     out = git_out(repo, "status", "--porcelain")
     return [l for l in out.splitlines() if l.strip()]
 
@@ -526,6 +533,11 @@ def build_ctx(progress: dict, action: dict, user_supplement: str) -> dict[str, s
 
 
 def ensure_ra_branches(repo: Path, progress: dict) -> None:
+    """创建根仓库 RA 分支（机械操作）。子模块分支不由脚本创建——
+
+    脚本不对子模块做任何 git 写操作；子模块同名分支的创建/切换/提交
+    全部由 AI 在动作内按提示词完成。
+    """
     base = progress["base_branch"]
     for j in range(1, progress["r"] + 1):
         b = ra_branch(progress["job"], progress["week"], j)
@@ -533,7 +545,7 @@ def ensure_ra_branches(repo: Path, progress: dict) -> None:
             git(repo, "branch", b, base)
 
 
-def checkout(repo: Path, branch: str) -> None:
+def checkout(repo: Path, progress: dict, branch: str) -> None:
     dirty = worktree_dirty(repo)
     if dirty:
         raise AbortRun(
@@ -542,12 +554,15 @@ def checkout(repo: Path, branch: str) -> None:
         )
     if current_branch(repo) != branch:
         git(repo, "checkout", branch)
+    # 注意：不同步子模块。根仓库切换分支后，子模块工作区可能暂时落后于
+    # 本分支的 gitlink，由接下来动作的 AI 按提示词自行切换/对齐；
+    # 动作结束后的顶层脏检查（子模块变更会汇总显示）负责兜底。
 
 
 def decide_after_review(repo: Path, progress: dict, ui: UI) -> dict:
     """RA_REVIEW 完成后读取 verdict，决定下一步走向。"""
     i, k = progress["ra_index"], progress["step_index"]
-    checkout(repo, ra_branch(progress["job"], progress["week"], i))
+    checkout(repo, progress, ra_branch(progress["job"], progress["week"], i))
     verdict = read_verdict(
         repo / week_dir_rel(progress["job"], progress["week"])
         / f"ra_{i}" / "steps" / f"step_{k}_review.md"
@@ -582,7 +597,8 @@ def detect_interruption(repo: Path, job: str, args: argparse.Namespace,
             print("\n".join(dirty[:10]))
             print("可能是首个动作中断的残留。请人工检查确认后执行：")
             print("  git reset --hard HEAD")
-            print("  git clean -fd   # 如有未跟踪的残留文件")
+            print("  git submodule update --checkout --force   # 子模块恢复到 gitlink 记录的状态")
+            print("  git clean -fd   # 如有未跟踪的残留文件（子模块内：git submodule foreach git clean -fd）")
             sys.exit(2)
         return None
 
@@ -608,7 +624,8 @@ def detect_interruption(repo: Path, job: str, args: argparse.Namespace,
         print("\n".join(dirty[:10]))
         print("请用 git status 检查，确认是中断残留后执行：")
         print("  git reset --hard HEAD")
-        print("  git clean -fd   # 如有未跟踪的残留文件")
+        print("  git submodule update --checkout --force   # 子模块恢复到 gitlink 记录的状态")
+        print("  git clean -fd   # 如有未跟踪的残留文件（子模块内：git submodule foreach git clean -fd）")
     for ref, extra in dangling.items():
         b_anchor = branch_last_progress(repo, job, ref)
         print(f"\n[分支 {ref} 在其最近 progress 提交之后还有提交]：")
@@ -778,7 +795,7 @@ def run_week(repo: Path, progress: dict, requirements: str,
         if state.startswith("RA_") or state == "ENG_EXEC":
             ensure_ra_branches(repo, progress)
         branch = action_branch(progress, action)
-        checkout(repo, branch)
+        checkout(repo, progress, branch)
 
         ctx = build_ctx(progress, action, requirements)
         prompt = render_prompt(state, ctx, retries)
@@ -802,6 +819,8 @@ def run_week(repo: Path, progress: dict, requirements: str,
             "VRT_R": str(progress["r"]),
             "VRT_W": str(progress["w"]),
             "VRT_REPO": str(repo),
+            "VRT_BRANCH": branch,
+            "VRT_BASE_BRANCH": progress["base_branch"],
         }
         rc = run_cli(progress["cli"], prompt, env_extra, ui, repo,
                      args.action_timeout)
