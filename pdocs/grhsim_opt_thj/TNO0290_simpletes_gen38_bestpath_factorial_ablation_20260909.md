@@ -33,7 +33,9 @@ control 固定为 `control_v2`，从 RTL fresh 构建；A/B/C/AB/AC/ABC 六个 c
 
 B 臂前五轮 gap 为 `0.427290/0.468443/0.711317/0.497914/1.605585 pp`，第六轮才达到 `0.126339 pp`；AB 臂前五轮 gap 为 `1.616709/1.821706/0.668861/0.379601/0.357268 pp`，第六轮达到 `0.114147 pp`。C 臂前几轮方向不一致且 gap 超限，第四轮得到本表的低 gap 结果，但仍无正向收益。外部负载造成的 pre-gate/运行中污染只记为 retryable infrastructure outcome，没有计入样本。
 
-BC 臂的第一份构建被发现使用了不同的独立生成输入和 toolchain（generation input `94722a…`、toolchain `7669097d…`），因此已明确废弃，不能与本表比较。与本表同源的 BC exact rebuild 正在进行，目标是复用 `control_v2` 的 generation input `0c63c318…`、toolchain `3139fef6…` 和 control artifact；完成后将追加结果，不覆盖错误身份的构建记录。
+BC 臂的第一份构建被发现使用了不同的独立生成输入和 toolchain（generation input `94722a…`、toolchain `7669097d…`），因此已明确废弃，不能与本表比较。随后复用 `control_v2` 的 generation input `0c63c318…`、toolchain `3139fef6…` 和 control artifact 完成 exact rebuild，旧身份构建没有覆盖。
+
+BC exact v2 的同 CCD 结果为 control `42,493.00 ms`→candidate `40,461.25 ms`，减少 `2,031.75 ms/4.781376%`；ABBA/BAAB 分别为 `4.773334%/4.789419%`，gap `0.016084 pp`，方向一致。结果保存在 `results_node031_v2/BC_vs_B0`，candidate generated fingerprint 为 `d14bd260a82c1b1bee2c67156352768709be83299540a3bceaa6eb309b082d7a`，`emu` 为 `82,992,832 B`（SHA-256 `097d44134bf62268e93fadd82b81972a4c0f7e31caf666e6c772b7d6efa7ae50`）。
 
 ## 解释边界
 
@@ -44,6 +46,6 @@ B 单项几乎解释了 ABC 的主要收益；AB 与 B 的提升接近，说明 
 - parent commit：`6e2436e37286264e9f03f114d14d81bae4ed313b`
 - Wolvrix pin：`054c6a7c09b007a12eb36fdb49fcb659a1bfc590`
 - control `emu` SHA-256：`02654be2541f58be51dd36dbd48a93975b2560853561cf4829c6acfe9630c4b5`
-- source SHA-256：baseline `0ed757db91f79df795562677d6f22789ad1aa84df818ef43786e8a18f6bdb196`；A `997e3605e07fd8528c89ca78f266333b5b93e906cb95053d59b960d10db057cb`；B `4d1aaff4b647ed3e064335d80762253666572fef2e0c1bebc574c1035768d051`；C `73e911542b40235b43616e62a452bf89b565fb4825c90eae491e8d2af696904c`；AB `9ff52935a9e6f16b0b4789f18a1ade4801b9b37056d4741ade45b1ccbe34deab`；AC `a979c9b3796acf032f4ae260daa93845b04bac3ccf09270dcdfe141572190d30`；ABC `4ced2a4a2a6f836e6f7b2f56214088fd1af73e0a1bf3009b421830f6e0c4184e`。
+- source SHA-256：baseline `0ed757db91f79df795562677d6f22789ad1aa84df818ef43786e8a18f6bdb196`；A `997e3605e07fd8528c89ca78f266333b5b93e906cb95053d59b960d10db057cb`；B `4d1aaff4b647ed3e064335d80762253666572fef2e0c1bebc574c1035768d051`；C `73e911542b40235b43616e62a452bf89b565fb4825c90eae491e8d2af696904c`；AB `9ff52935a9e6f16b0b4789f18a1ade4801b9b37056d4741ade45b1ccbe34deab`；AC `a979c9b3796acf032f4ae260daa93845b04bac3ccf09270dcdfe141572190d30`；BC `6b14e8c444dd0d42533dc598a46369bacb5e2ff623af1a3e99ced9c157004066`；ABC `4ced2a4a2a6f836e6f7b2f56214088fd1af73e0a1bf3009b421830f6e0c4184e`。
 
 本阶段未修改生产 Wolvrix 默认源码，也未启动新的 SimpleTES research。
