@@ -1,6 +1,0 @@
-{
-  "name": "grhsim-ir-st-opt",
-  "base_branch": "grh/grhsim-ir",
-  "created_at": "2026-09-08T10:05:15+08:00",
-  "initial_requirements": "优化grhsim-ir路线单线程仿真xiangshan coremark 50k 的性能，目前与gsim还有较大差距（gsim 约需40s），目标是尽可能提升；鼓励的优化方法：扩展grhsim-ir语义，改进分区算法，实现更多模式。匹配的优化替换在 ir 改优化 emit 形态；禁止的优化方法：修改 grh ir、修改xiangshan以及相关测试代码."
-}
