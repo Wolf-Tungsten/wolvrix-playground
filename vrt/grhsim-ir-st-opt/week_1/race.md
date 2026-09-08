@@ -63,3 +63,47 @@ RA1 当前 **2/6，余4**；RA2/RA3 各0/6。三方向仍独立 worktree/依赖�
 详细审查及两run完整绝对日志位置见 [step_2_review.md](ra_1/steps/step_2_review.md)（L1/L2以不同完整candidate SHA区分）。本次档案提交 `1127d47acc91729789a6cb32c70847301901aec7` 原样归档 step_2_result，并新增review和上述race追加；本段补记结束核查。主档案分支仍 `grh/grhsim-ir`，技术/方向代码未合入档案提交。只读证据根为 `/home/gaoruihao/wksp/wolvrix-playground/ptmp/vrt-grhsim-ir-st-opt-c9a4c84b/week_1/r_1/ptmp/ra-review-step2-c9a4c84b`：roots-opening/closing.log、recursive-opening/closing.tsv记录HEAD/tree/分支/gitdir/common-dir/status/父gitlink；结束递归文件与开工逐字节一致，489仓库中仅RA1入口相对共同基点有上述两提交，486父gitlink全匹配，其他源码均clean。RA1入口仍11个旧out未跟踪文件，技术clean；忽略.venv/build/XS out与新旧run未清理，未见残留java/mill/emu/verilator/firtool。483处依赖私有gitdir通过alternates借读主检出Git对象库，三方向均有，需PI补充拓扑描述；这不授权共享可变缓存。result原hash `a42ed27962a401f5d08a5caa666b3885c7b3bbcb84f1a450fe445ee54eafaaf1` 提交后仍相同。
 
 本次RA不冻结共同环境、不修改baseline/requirements/pi_plan/.runner，不取消已计费用量。PM应派PI评估返工与精确公共后继提交/工具锁/三方向应用关系；核定前RA2/3不复制，之后各自从原多仓库起点独立应用同一公共规范并重建，不接RA1优化或生成物。共同起点/测量口径变化时全部受影响A/B重测，无证据不可排名。RA2/3首个工程调用仍须真实尝试完整链至完成或最早阻塞；每方向用满6次成功ENGINEER、逐次RA审查及周报后才由PI选至多一个合格方向，PM再派Agent精确多仓库集成/复验，不拼接，无合格不集成，落选成果保留。
+
+## PI 公共返工核定与下一步赛马交接（B1-c9a4c84b-v3）
+
+执行编号 `week-1-pi-environment-reconcile-and-race-handoff-c9a4c84b`。本次为第1周中规范核定，不重建方向、不实施、不选优、不集成。最新规范以 [baseline.md §7](baseline.md#7-公共环境返工规范-b1-c9a4c84b-v32026-09-08) 和 [pi_plan.md step3交接](pi_plan.md#第1周公共返工与-ra1-step3-交接b1-c9a4c84b-v3) 为准，历史v1/v2和RA审查原样保留。最新已读审查提交1127d47acc91729789a6cb32c70847301901aec7、6bfd6a55f828d2636dba6c16fac0b44ee1eb16cf。
+
+### 当前共同起点、方向续接和公共补丁状态
+
+`A=/home/gaoruihao/wksp/wolvrix-playground`，`D=A/ptmp/vrt-grhsim-ir-st-opt-c9a4c84b/week_1`。共同入口源码仍 `0567b6c7d0261ddd1834daffa8f15327c7f5810a` / tree `8544a4528fac5f15fb59d57e6ef5622eccea2e99`；技术共同 `cba9c32240f3cd06c5b675968b56046e5b76f818` / tree `6bcc50560c2fb21f5e000cc521bec5a5e58d8483`。入口档案HEAD是归档版本，不是新方向源码基点。
+
+|方向与既定任务|本次实际入口续接 / 技术HEAD|独立性、配额及下一动作|
+|---|---|---|
+|RA1 通用宽值/边界缓冲emitter/runtime|D/r_1：0567b6c7d0261ddd1834daffa8f15327c7f5810a → aaca3fafe3134f7147f1f3e866cfcb1401c5be35 → **3eea16676f73cba5f87364e8959049437de40308**；D/r_1/wolvrix仍cba9c32240f3cd06c5b675968b56046e5b76f818|入口只有旧out11文件未跟踪，技术clean；2/6余4。下一RA写step3任务书，工程仅公共环境返工/准确Git诊断及完整链尝试；优化另步继续本方向。|
+|RA2 通用活动度/分区调度|D/r_2入口0567b6c7d0261ddd1834daffa8f15327c7f5810a；技术cba9c32240f3cd06c5b675968b56046e5b76f818|两级clean、0/6余6，未采用RA1任何环境草案或优化。|
+|RA3 通用语义等价子图/状态访问替换|D/r_3入口0567b6c7d0261ddd1834daffa8f15327c7f5810a；技术cba9c32240f3cd06c5b675968b56046e5b76f818|两级clean、0/6余6，未采用RA1任何环境草案或优化。|
+
+两级分支仍分别 `vrt/grhsim-ir-st-opt/c9a4c84b/week_1/r_1`、`vrt/grhsim-ir-st-opt/c9a4c84b/week_1/r_2`、`vrt/grhsim-ir-st-opt/c9a4c84b/week_1/r_3`。入口gitdir为A/.git/worktrees/r_i，common=A/.git；技术gitdir为A/.git/modules/wolvrix/worktrees/wolvrix、wolvrix1、wolvrix2，common=A/.git/modules/wolvrix。三方向XS均私有.git、detached/clean，HEAD `4a6e3da8bfb1140d24eaa6c9e0d058fd981b35a6` / tree `bb4b5dc0ed12891829b69028b09e6352993c6d4d`。
+
+PI本次实际重新审计全部489仓库：仅RA1入口相对共同起点HEAD/tree有变化，486个已检出父gitlink全部匹配；3处openc910仍为未检出排除项。483个依赖gitdir各一条alternates借读主对象库，不是对象自包含副本。完整身份继承baseline §5，新增拓扑按§7.2规则逐父仓库展开，实测表 `D/evidence/pi-env-v3/alternates-opening.tsv` SHA256 `5dc8f7c0cfdbbaf0163f75870b7fc07bd598f3ec0298945caaf969e71812f5ec`；Git对象借读不授权可变cache/build共享或库修复。无需重建隔离、复制依赖或给所有子库切同名分支。
+
+**公共核定状态：** aaca3fa和3eea166都是保留的环境草案，不冻结为共同可比代码；首patch SHA256 `3460712b4b4d8efd80a47ed34318670e1c8660767d3bb238fb316fe34a5d20e6`，累计patch `955f8b192b97165e32a30e8a55a8d64cf3bdd36d62e3ebf1c7ca6a881018ffa9`。PI只冻结v3规范/验收门槛与已核四包wheel输入锁（wheels.lock SHA256 `cb980c72f1673db6e70639fc5f3dc05060e55af5ab7df023d571d98b5a4419b7`），不冻结完整工具闭包或兼容通过。尚无后继公共代码已核定SHA，不能虚构。
+
+RA2/3目前不采用未冻结草案，只有PI在ENGINEER实施及RA审查后明确发布精确共同补丁/工具锁时，才由各自ENGINEER从原始多仓库共同基点应用同一公共环境补丁并独立构建。公共补丁只含合法入口环境编排，不能夹带RA1宽值优化；RA2/3不得接RA1技术成果、venv、cache、classes、RTL/IR/model/emu或诊断生成物，也不得将本档案提交合入方向代码。环境规范适用三方向，但“适用规范”不等于“已有可采用的冻结代码”。
+
+### 公共阻塞决策与重新测量
+
+L1目标一实际nested MILL_OUTPUT_DIR越界，make2/nested130；L2修正路径后越过major69，在VcsVersion rev-list bad object处make2/Git128，目标二/三未执行。准确失败Git exec/GIT_*缺失，PI认可H1默认cwd错配为优先假设而非已复现定论；只允许捕获证据后在受限Mill上下文适配真实Git cwd，保留显式参数与合法子库，不伪造version/hash/tag/dirty，不全局GIT_DIR，不修库/fetch/改禁区。准确命令、两run完整绝对路径和退出码见baseline §7.1，后续失败安全分支见pi_plan step3。
+
+不批准HotSpot `/tmp/hsperfdata` 例外；v3统一 `-XX:+PerfDisableSharedMem` 等工具专用run路径并要求实际全部JVM/写入验证。恢复 `/usr/local/bin/verilator`，修空TOOL_EXTENSION传值，补realpath/运行库/wheel/Scala插件闭包与真正owner的tracked保护，采用可捕短命进程与文件写入的诊断证据。prepare/verify只证明局部检查，不等于完整链可用；当前环境隔离仍不通过、完整工具链仍待验证。
+
+step3先解决这些具体问题后立即串行 `make -j1 xs_wolf_grhsim_ir` → `make -j1 xs_wolf_grhsim_ir_build_emu` → `taskset -c 2 make -j1 run_xs_wolf_grhsim_ir_emu`，参数按pi_plan完整数组及step_2_task，前步失败记录并停止链，不降低50k/1000/正确性。安装构建测试全经Make，缺入口先由ENGINEER加再调用，不直接Python/pip/cmake/ctest/compiler或source旧安装env。
+
+所有新写入按方向 `ptmp/B1-c9a4c84b-v3/<完整入口候选SHA>/<唯一run>`，保留旧现场。diagnostic跟踪时间单列，不用于正式F06/F07；同候选另起空输出正式冷编译，py_install native与目标期间Scala/native/model/emu编译全部计入连续F06，不预热或扣除。正式轻量observer统一CPU0/1s采样，模型仍CPU2、sibling18空闲、单线程；诊断短命线程/写入证据与正式版本对应。任何共同补丁/环境/观测变动使全部受影响A/B同口径重测，不能补齐不可排名。
+
+当前没有有效完整50k、冷编译<1800s或三次交错A/B成绩可迁移，未测不证伪。各方向必须用满6次成功ENGINEER、逐次RA审查和周报；done/no_value不提前停。前两RA1步骤是narrowed，下一步不再泛化盘点；后续连续两步无推进/缩小阻塞/独立新证据则RA改变策略。RA2/3首工程仍实际尝试完整流程至完成或最早阻塞。全部齐备后PI按周初F01–F08只选至多一个合格方向，指定逐仓库精确候选，PM另派Agent集成到预记目标引用并验收。禁止拼接多个方向、无合格不集成；目标漂移/冲突/多库部分成功须报告并重验，保留落选现场。本次不选优、不重置配额、不结束本周。
+
+### 本次取证、失败恢复与档案提交责任
+
+实时Q/state.json在本PI开工显示pending为本任务、running仅本PI `0f9717167e69459c9e88ed140dcd9b0d`、recovery_required=false；两成功ENGINEER仍是week-1-ra-1-step-1-eng-c9a4c84b和week-1-ra-1-step-2-eng-env-and-target-c9a4c84b，无未知工程调用。本PI及此前同任务失败重试不计费。上次call-15b4e4d3e5a34aab84215cabc40bb1d2.log为HTTP429重试耗尽/exit1，开工已核无v3改动或新提交，保留回执不改写。
+
+本次取证只写 `/home/gaoruihao/wksp/wolvrix-playground/ptmp/vrt-grhsim-ir-st-opt-c9a4c84b/week_1/evidence/pi-env-v3/`，文件为非正式状态证据：audit.sh、roots-opening/closing.log、repos-opening/closing.tsv、links-opening/closing.tsv、alternates-opening/closing.tsv、git-context-current.log、run-evidence.log、tools-read.log、receipt-excerpts.log及commit-before/after.log。前后核Git实际路径/HEAD/tree/status/忽略现场/进程，不将旧PID当运行证明。跨库Git exit128和缺/usr/bin/verilator exit2为证据中的预期失败，不能改写成环境成功；原始命令和安全续接已在baseline/pi_plan明确。
+
+开工及提交父SHA为 **6bfd6a55f828d2636dba6c16fac0b44ee1eb16cf**，主入口分支grh/grhsim-ir、clean，主技术cba9c32240f3cd06c5b675968b56046e5b76f818、clean。只在A显式stage本次baseline.md、pi_plan.md、race.md；提交信息以 `vrt(grhsim-ir-st-opt): week 1` 开头，精确提交后SHA/状态由E/commit-after.log及PI最终回执记录，避免在同一提交中自引用不存在的SHA。技术/方向/父gitlink未修改，RA1旧out/忽略输出与两run保留。没有make/安装/工程测试、子Agent、推送、合并、历史改写、清理或.runner修改。档案连续可用，不把此归档提交传播到方向代码。
+
+提交前结束复核补记：PI的repos/links/alternates opening与closing分别逐字节相同（cmp均exit0），489仓库、486已检出父gitlink和483借读关系均保留；各alternate实际源逐项对照主库对象路径无不匹配。结束未匹配目标进程（pgrep exit1），RA1入口仍旧out11文件，主技术和RA2/3 clean。`git diff --check`通过；本次只新增三文档规范，不需要也未运行工程测试。最终精确提交和提交后status另在E/commit-after.log与PI最终回复给出。

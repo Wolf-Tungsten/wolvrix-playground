@@ -304,3 +304,120 @@ ENGINEER 验证目标是：私有 Make 环境准备/工具探测 → 立即接�
 本次只读定位曾遇到不存在的 `testcase/xiangshan/build.sc`（实际是 build.mill，rg 退出 2）、`L/rerun.log`（实际 target1-rerun.stdout.log，cat 退出 1）、difftest/build.mill 及外部 chisel .github/workflows（rg 退出 2）；随后读取实际文件。`unzip -p` 读取 Mill manifest 有“572 extra bytes”提示并退出 1，内容可读；这是带 shell 前缀的发行文件，非兼容实验失败。本次没有目标失败命令或新工程配额；所有工程失败命令/退出码以 §6.1 原日志为准。未知项如上明确保留，不宣称环境已可用。
 
 本次只读证据文件固定 SHA256：`E/roots-before.log`=`c64c4ff73ff16f0237ec93e335e8c7f73358f910fe71b5c9cdee640823732493`；`E/recursive-before.tsv`=`7c3977cf27e941a55075315dea716742dc12cffc66f2141d5f88e373db33c342`；`E/gitlinks-check.log`=`a08f34b55d7632caea72e5ef545297022a08b1fc7d90ac0a9abdb34175835d6d`；`E/fingerprints.log`=`59fbf2728fd0f85c1c2e9e4af66330e4bf8869f3954375d44977897ae70f9331`；`E/out-processes.log`=`e0440e37d044a2fedfcef97ca12790119fb6dcfb19c742af1ee959b3ae0e7d8d`。这些日志不随档案提交，关键事实和指纹已在本节持久记录。
+
+## 7. 公共环境返工规范 B1-c9a4c84b-v3（2026-09-08）
+
+执行编号 `week-1-pi-environment-reconcile-and-race-handoff-c9a4c84b`。这是第1周中补充，保留 v1/v2 历史、§5 全部源码身份和原三方向/F01–F08。本次**冻结返工规范和验收门槛，不冻结现存环境代码为共同可比基线**；后继代码尚未实施，精确提交须 ENGINEER 实施、RA 审查后再交 PI。未测不是证伪，当前没有完整50k或可迁移成绩。本 PI 只读技术现场、修改三份正式档案，没有构建、安装、目标实验、依赖修复、配额消费或选优集成。
+
+### 7.1 实时回执、原始证据与独立判断
+
+本节路径定义均为绝对路径的可展开别名：`A=/home/gaoruihao/wksp/wolvrix-playground`；`D=A/ptmp/vrt-grhsim-ir-st-opt-c9a4c84b/week_1`；`R=D/r_1`；`E=D/evidence/pi-env-v3`；`Q=A/vrt/grhsim-ir-st-opt/.runner/c9a4c84b9a384fd1967b6c0a21ad71aa`；`RAE=R/ptmp/ra-review-step2-c9a4c84b`。
+
+- 开工正式入口 `grh/grhsim-ir` / `6bfd6a55f828d2636dba6c16fac0b44ee1eb16cf`，clean；主技术 `grh/grhsim-ir` / `cba9c32240f3cd06c5b675968b56046e5b76f818`，clean。检查未发现已存在 v3 或本次未提交档案，不重复前次动作。上次 PI `15b4e4d3e5a34aab84215cabc40bb1d2` returned failure/exit1，其 `Q/call-15b4e4d3e5a34aab84215cabc40bb1d2.log` 末尾为 HTTP429 / exceeded retry limit；这不是工程/目标失败，不扣工程机会。
+- 实时 `Q/state.json` updated_at=`2026-09-08T22:23:44.623778+08:00`：pending 已为本 PI task，running 仅 `0f9717167e69459c9e88ed140dcd9b0d` PI；recovery_required=false。两个 ENGINEER task `week-1-ra-1-step-1-eng-c9a4c84b` 与 `week-1-ra-1-step-2-eng-env-and-target-c9a4c84b` 均 returned/exit0，无未知工程调用。因此 RA1=2/6余4、RA2/3各0/6余6。派发前 pending=null 不是此时状态；不修改回执。
+- 最新审查依据是档案 `1127d47acc91729789a6cb32c70847301901aec7` 与结束补记 `6bfd6a55f828d2636dba6c16fac0b44ee1eb16cf`，并交叉读取 `Q/call-0d7755d1f0d8436f99aea6643cee9182.log` 和 `Q/call-39b9dd9eb26145bc8bd311aeae9ed244.log` 的原命令/错误。摘录与原文件hash在 `E/receipt-excerpts.log`。
+
+两run完整证据根分别为：
+
+1. `L1=/home/gaoruihao/wksp/wolvrix-playground/ptmp/vrt-grhsim-ir-st-opt-c9a4c84b/week_1/r_1/ptmp/B1-c9a4c84b-v2/aaca3fafe3134f7147f1f3e866cfcb1401c5be35/w1-r1-s2-a-0567b6c-cba9c32-v2-01/logs`。
+2. `L2=/home/gaoruihao/wksp/wolvrix-playground/ptmp/vrt-grhsim-ir-st-opt-c9a4c84b/week_1/r_1/ptmp/B1-c9a4c84b-v2/3eea16676f73cba5f87364e8959049437de40308/w1-r1-s2-a-0567b6c-cba9c32-v2-01/logs`。
+
+各自 `driver.log`、`commands.jsonl`（实际字段是 command/exit，不是 argv/exit_code）、`xs_wolf_grhsim_ir.raw.log`、`xs_wolf_grhsim_ir.processes.jsonl`、`mill-probe.strace`、`tools.jsonl`、`pinned.sha256`、`wheels.lock`、`wheels.sha256.jsonl`、`wheel-resolve.json` 是本次读取对象。裸名 processes.jsonl 不存在，不能据此称目标无进程记录；实际带目标前缀。`mill-probe.strace` 只覆盖 probe，绝不是目标 trace。现存 `all.sha256` 仅 L2 当时48个非空日志快照，非全run封存或完整工具锁，后续文件与缓存不在覆盖范围。
+
+|实际目标及退出|PI 独立判断及证据边界|
+|---|---|
+|L1 `make -j1 xs_wolf_grhsim_ir`（完整参数见 driver/commands），make=2，nested=130，内层75.588s/外层77.264s|raw 中实际 classes 写 XS/.docker-mill-out，违反私有 run 输出要求；中止后目标二/三未执行。首次观察清单漏此目录，unchanged=True 不能推翻原始写入证据。|
+|L2 同一目标含命令行 `MILL_OUTPUT_DIR=<L2父>/mill-target`，make=2，Mill=1、Git=128，内层66.466s/外层68.427s|build.mill 编译后进入749任务图，VcsVersion.scala:82 的 rev-list 报完整 XS hash bad object；本路径越过 major69，只证明阻塞推进，目标二/三与 py_install native 均未执行，失败耗时不是 F06 成绩。|
+|L1 prepare/verify=0，7.472s/2.034s；L2 prepare/verify=0，10.460s/1.971s|纠正 result 将第一run准备时间写在第二run下的归属。局部准备/版本通过不证明完整 Scala/firtool/RTL/native/emu/50k 可用。|
+
+L1 raw SHA256=`628661cec123c3a254d6dde7dfb4029edf8421d160df79bee5a0cc1b95812038`；L2 raw=`f4abb02ffad234b3ddf3dced213256506bc2c70a9b63d434c25a6d23c9af62bd`；L2 commands=`d022163eadc01aefee958878bd1f2c169039b379c11907eecc26ebcc6a01e3c5`；L2 probe trace=`68d037fd4e59109fd330eba300f818a0ab44079b57bca13945450dcd5534f275`。本次重核两run pinned 和所有四wheel字节均通过，记录在 `E/run-evidence.log`。
+
+**Git 优先假设 H1，而非已复现根因：** `RAE/VcsVersion.bytecode.log` 的实际0.4.0构件显示 rev-parse/exact describe 使用 vcsBasePath，而 fallback describe、rev-list、diff 使用 os.proc 默认 cwd。`RAE/observed-git.tsv` 捕获入口 R 中的 status，未捕获失败 rev-list。PI 本次 `E/git-context-current.log` 再执行 `git -C <cwd> rev-parse --show-toplevel --absolute-git-dir --git-common-dir HEAD`、`cat-file -t <XS完整SHA>`、`rev-list <XS完整SHA> --count`：XS 内均exit0、count=11810；R及现存mill-target父目录对象查询exit128，精确复现跨库查询的 bad object。RA 原可达对象遍历118746项、exit0、无missing标记也支持源码对象可读。这不能还原已退出 sandbox 中失败 exec 的 cwd/GIT_* 或 fallback tag，不等于复现插件失败调用。H2（继承Git环境/config覆盖）仍未排除；H3（正确上下文的对象/历史缺口）优先级低，无理由先修库。
+
+### 7.2 多仓库身份与 alternates 拓扑补充
+
+本次 `E/audit.sh opening` 为只读 Git/文件/进程审计，不是构建测试脚本。重新核对原 `D/evidence/isolation-verified.tsv` 全489个方向仓库实际路径、gitdir、absolute common-dir、branch、HEAD/tree、未跟踪与忽略目录、父gitlink。仅 RA1 入口 HEAD/tree 相对周初变化；486个已检出父gitlink全部匹配，另外3个openc910仍未检出且排除。各方向其余源码clean，RA1入口仅11个旧out文件未跟踪。主入口/主技术另见 `E/roots-opening.log`。当时 pgrep 精确 java/mill/emu/verilator/verilator_bin/firtool 无匹配exit1；CPU2 powersave、siblings=2,18。这是当时观察，不保证未来无进程。
+
+|角色|完整 HEAD / tree|物理 Git 关系|
+|---|---|---|
+|共同入口源码 A0|0567b6c7d0261ddd1834daffa8f15327c7f5810a / 8544a4528fac5f15fb59d57e6ef5622eccea2e99|档案主分支推进不改变 A0|
+|RA1 入口续接|3eea16676f73cba5f87364e8959049437de40308 / 7606970036deb01130b50e92d24b858454615598|gitdir=A/.git/worktrees/r_1；common=A/.git|
+|RA2/3 入口|各 A0 / 同tree|gitdir=A/.git/worktrees/r_2、r_3；common=A/.git|
+|三方向 wolvrix|cba9c32240f3cd06c5b675968b56046e5b76f818 / 6bcc50560c2fb21f5e000cc521bec5a5e58d8483|gitdir=A/.git/modules/wolvrix/worktrees/wolvrix、wolvrix1、wolvrix2；common=A/.git/modules/wolvrix|
+|三方向 XiangShan|4a6e3da8bfb1140d24eaa6c9e0d058fd981b35a6 / bb4b5dc0ed12891829b69028b09e6352993c6d4d|各 D/r_i/testcase/xiangshan/.git；common=自身.git；detached/clean|
+
+入口/技术分支分别仍为完整 `vrt/grhsim-ir-st-opt/c9a4c84b/week_1/r_1`、`vrt/grhsim-ir-st-opt/c9a4c84b/week_1/r_2`、`vrt/grhsim-ir-st-opt/c9a4c84b/week_1/r_3`。其余161个每方向依赖的路径、HEAD/tree/父子身份与§5（排除入口、wolvrix、openc910）一一对应，不要求切同名分支。
+
+**追加拓扑清单采用以下无歧义展开规则，并以483行原始表核验：** 对§5上述161个依赖条目，每个方向 `D/r_i/<相对A路径>` 都是物理私有检出，gitdir/common-dir 均为该目录的 `.git`；各有恰一条 `objects/info/alternates`，其文本为对应主检出 Git 对象目录的绝对路径。该对象目录从§5父关系递归展开：主入口的直接子库 p 为 `A/.git/modules/<p>/objects`；父库 gitdir 为 g 的子库、相对父库路径为 q 时，为 `g/modules/<q>/objects`。不是在每个文件夹分隔符处插 modules，必须按§5仓库父边界展开。例如 XS 为 `A/.git/modules/testcase/xiangshan/objects`，XS/ready-to-run 为 `A/.git/modules/testcase/xiangshan/modules/ready-to-run/objects`，wolvrix/external/slang 为 `A/.git/modules/wolvrix/modules/external/slang/objects`。三方向每个同名依赖借读同一主对象源，161×3=483；入口/wolvrix两个worktree另走上表common-dir，不混算为alternates。
+
+`E/alternates-opening.tsv` 显式列 direction、私有路径、gitdir、alternates原文、真实对象源，SHA256=`5dc8f7c0cfdbbaf0163f75870b7fc07bd598f3ec0298945caaf969e71812f5ec`；`E/repos-opening.tsv`=`fb39b7d1edf5e9f363447d3328e9cd49b6471ab7a05423123bb9582175822c5f`；`E/links-opening.tsv`=`adee6234e83236bc1501898cf13b89f56d344cb7d4dedad085071e78bc5fff40`。上面的规则、§5完整清单与精确例外在正式文档中持久定义全部关系；ptmp表用于逐项复核，不代替正式清单。
+
+对象库不是自包含私有副本；借读允许读取既定对象，不授权 fetch/gc/repack/prune、修改 alternates、补对象或依赖切换。保留被借读主对象源，不以“源码私有”误称其可安全删除。源码独立性依据 commit/tree/gitlink，而可变cache、venv、classes、RTL/model/emu不得借共享对象名义复用。无需重建当前隔离。
+
+### 7.3 公共问题的逐项返工决定
+
+以下均为下一 ENGINEER 获准的**入口环境编排**范围；不能改 XiangShan、build.mill、difftest/测试/依赖源码、插件jar、冻结GRH/pass或 Git 数据库。
+
+|问题|PI 核定的返工边界|验收证据与失败处理|
+|---|---|---|
+|Git H1 工作目录错配|先捕获失败准确 exec。优先用已支持的入口 Mill 启动/cwd 选项保持输出在本run，同时使该版本查询发现正确 XS。若 Mill 无此支持，允许入口私有 Git wrapper **仅对本run已识别Mill sandbox的默认仓库查询**设置 XS cwd；必须校验当前进程祖先/启动时间、真实sandbox前缀、固定XS身份和所捕获查询类别。|至少捕获 rev-parse、exact/fallback describe、失败rev-list（含是否--not及真实tag）、diff/status的argv、物理cwd、exe、pid/ppid/starttime、退出码、发现的top/gitdir/common-dir与白名单Git环境。同argv在捕获cwd/XS中对照，保留原始stdout/stderr。wrapper对显式-C、--git-dir、--work-tree、有效子库上下文原样透传，不能仅按hash/模块名或任意git命令重定向；不能只修rev-list留下错误tag/dirty。所有version/hash/tag/dirty必须由真实Git查询计算，禁止硬编码、伪造成功或伪造输出。条件无法可靠识别则不扩大wrapper范围，交PI。|
+|Git H2 环境/config注入|诊断记录 GIT_DIR、GIT_WORK_TREE、GIT_COMMON_DIR、GIT_OBJECT_DIRECTORY、GIT_ALTERNATE_OBJECT_DIRECTORIES、GIT_CEILING_DIRECTORIES、GIT_DISCOVERY_ACROSS_FILESYSTEM、GIT_CONFIG/COUNT/KEY与仓库发现相关值、配置来源。不要全量打印环境/配置或凭证。只在已识别工具进程作用域清理被证实影响发现的注入。|给出清理前后的准确调用及发现结果，配置只留相关安全字段；敏感值脱敏并标存在，不把未采集当unset。禁止向三目标链全局export GIT_DIR/GIT_WORK_TREE，禁止改全局/库config或覆盖其他子库合法Git上下文。|
+|Git H3 正确上下文仍缺对象|仅正确XS与捕获Git环境下同argv仍失败时列缺失commit/tree/parent/tag、alternates来源和最小命令。|上报PM/PI核定共同依赖补充；不fetch、修库、升级、切换、借其他方向对象。若argv不同或新错误，报告具体分支，不能把H1升级为无证定论。|
+|HotSpot 外部perfdata|**不批准 /tmp 例外。** 统一JDK17进程参数增加 `-XX:+PerfDisableSharedMem`，沿用 `-Duser.home=<run>/java-home -Djava.io.tmpdir=<run>/tmp/java -Divy.home=<run>/cache/ivy`，由入口 JAVA_OPTS/JAVA_TOOL_OPTIONS 明确传播；Crash/error/heapdump的可写输出亦以工具专用参数指向run。|L2 probe open/create/unlink及目标maps已证实 /tmp/hsperfdata 写入；TMPDIR单独无效。新probe和真实目标全部JVM须核实际参数、trace写入与maps，不能只检查变量。若仍外写/选项不支持，即隔离失败，停止相关链并留证，不默许系统/tmp或改HOME。选项效果尚未实测。|
+|Verilator 路径|恢复既定 `/usr/local/bin/verilator`；私有PATH包含必要 `/usr/local/bin`，或精确launcher同等解析；verify须检查存在、可执行、realpath、版本与hash及其真正后端。|当前 /usr/bin/verilator 不存在exit2；/usr/local wrapper已重核。此问题尚未到达native，不能称为bad object原因。必须核子make实际使用与verilator_bin/运行资源，错误路径应在prepare/verify门禁失败。不能升级或建系统伪链接掩盖。|
+|TOOL_EXTENSION 空值|入口Makefile环境解析改为保留“已设置但空”的精确字面值，允许合法纯变量加载或明确结构化传递；不靠cut双引号猜单引号文件，也不eval任意文本。|新纯export/unset env 与顶层、observer、子make、JVM实际值均应为空字符串；记录origin/长度/转义表示。当前 `export TOOL_EXTENSION=''` 被解析成整行是实证错误；工具存在检查不能覆盖此门禁。|
+|工具、库和解析闭包|锁定realpath最终字节及symlink链；补 Git/helper、Clang/clang++/LLVM运行库、CMake/Make、Python/venv/wolvrix扩展、JDK modules/libjvm/外链目标、Verilator实际后端、firtool、Mill/Scala编译插件与传递jar/pom/解析元数据。|静态锁与实际exec/classpath/maps/依赖解析相互核对；按URL/坐标/版本/hash记录私有下载。当前已识别身份与尚未到达阶段的兼容性分列，不为没运行的工具写通过。新依赖版本/字节变化交PI，不能无锁重新解析后直接排名。|
+|输出所有权与旧现场|每个将映射的输出先在**真正所有者仓库**核 `git ls-files -- <repo-relative-path>`，包括嵌套gitlink与真实链接目标，不能只在R检查XS跟踪路径。输出普通文件字节必须落本方向run；源码中仅允许既有忽略输出入口的链接。|记录旧lstat/realpath/完整内容hash、owner top/gitdir、tracked检查退出码、生产/消费解析及占用；generated-src须XS生产/消费者解析同run。已有目录/链接保留至新run/preserved或原位，不覆盖删除。任何tracked源或跨方向指向立即停止。XS/build、.docker-mill-out及动态发现的新写路径均纳入，不能仅核固定旧列表。|
+|短命进程和写入|诊断模式经Makefile捕获完整后代exec/chdir/open/create/rename/unlink与写FD/共享可写映射，解析相对路径/dirfd/symlink；/proc轮询只作补证。|目标trace不能由probe替代；保留短命Git、JVM fork及临时文件，分类可写文件最终路径。观测丢失/无法归属即待补证，不能宣称零外写。前后旧目录hash不足以证明无创建后删除。进程处置只限本次已确认后代+exe+启动时间+真实输出占用，禁止按旧PID或仅XS cwd批量杀。|
+
+所有任务日志、临时文件、工具下载、锁、venv、cache、编译和仿真输出均在方向 `ptmp/B1-c9a4c84b-v3/<完整入口候选SHA>/<唯一run>`；本PI取证仅 E。系统工具/运行库允许按指纹只读，不授权在外部创建任务产物。HOME及用户全局配置不重设；必要工具专用路径逐项显式设定。阻止外部写入的诊断保护触发时原始错误必须保留，不通过清理、加ignore或降低目标来制造合格。
+
+### 7.4 固定参数、现存提交与锁的核定状态
+
+JDK17.0.20+8-1-24.04-Ubuntu、Mill0.12.15 JVM/原-i、Python3.12.3、LLVM22.1.2及§6指纹不变；Scala2.13.17、Chisel7.3.0、firtool-resolver2.0.1保留原源码要求，不自行升级。除本节显式的环境作用域/路径/perfdata约束外，TLConfig/E.b/单核/systemverilog/split-verilog/dump-fir/enable-difftest、原firtool flags、XMX40G/XSS256m、冻结GRH pipeline、50k/1000、CPU2/powersave、EMU_THREADS=0、two-state、seed0/reset50、Release/-O3、8编译jobs、reg_to_mem1/resume0/keep_origins0/batch64、波形/perf/phase/trace关闭全部沿用 F01–F08 和 step_2_task。诊断系统调用trace另属证据工具，不开启模型trace。
+
+|现存提交/锁|本PI决定|
+|---|---|
+|aaca3fafe3134f7147f1f3e866cfcb1401c5be35；首patch 3460712b4b4d8efd80a47ed34318670e1c8660767d3bb238fb316fe34a5d20e6|保留环境草案，**不可冻结/传播**；nested输出越界及公共缺口实证不合格。|
+|3eea16676f73cba5f87364e8959049437de40308；累计patch 955f8b192b97165e32a30e8a55a8d64cf3bdd36d62e3ebf1c7ca6a881018ffa9|仅RA1合法续接草案，**不可冻结/传播**；只修改Makefile、scripts/vrt_common_env.mk、scripts/vrt_common_env.py，无优化；仍有外写、工具路径/空值错误及Git/闭包缺证。|
+|两run pinned.sha256|所列JDK/Python/Mill/CoreMark/NEMU单项身份重核通过，继续作为§6输入约束；**不是完整环境锁**。|
+|两run wheels.lock，文件SHA256 cb980c72f1673db6e70639fc5f3dc05060e55af5ab7df023d571d98b5a4419b7|**冻结为四包安装输入字节锁**，下表完整持久记录；不冻结草案安装实现，不证明wolvrix/native兼容。ENGINEER应在入口环境锁文件保存同字节，Make下载同源同hash、no-index/require-hashes安装，不重新自由解析或复用方向venv。|
+|tools.jsonl、L2/all.sha256|分别是部分工具身份/日志快照；**不可冻结为完整工具或全run锁**，clang symlink终点、Verilator/backend、运行库与未来阶段闭包需补齐。|
+|VcsVersion 0.4.0 的 mill0.11_2.13 构件|已识别构件SHA256 a8e0cc9ef56e1473518df6590c205143ab21c0bc714ac2ce1d69316d293cd0d1，保留该身份作为下一诊断输入；**完整Scala/Mill插件闭包未冻结、全链兼容未证实**，不因名字含mill0.11自选另一构件或修改jar。|
+|后继公共代码/总锁|尚不存在已核定后继SHA。本节只冻结规范；工程交付精确父子提交、累计patch与闭包清单，RA独立审查，PI再公布精确共同补丁及采用关系。|
+
+四包 wheel 输入（两run URL/完整解析在各自 wheel-resolve.json；固定文件名均为 py3-none-any.whl，来源 files.pythonhosted.org，同hash可从经Make重新下载的同字节文件获取；禁止把别的方向cache当输入）：
+
+|包/版本|SHA256|
+|---|---|
+|pip 24.0|ba0d021a166865d2265246961bec0152ff124de910c5cc39f1156ce3fa7c69dc|
+|scikit_build_core 1.0.3|ae95427b7d3c14a6cf8bbfd4d901f6138ab64c99e20cbe8ea7d75cd26093f085|
+|packaging 26.3|d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c|
+|pathspec 1.1.1|a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189|
+
+本次新增可读文件身份：`/usr/local/bin/verilator` SHA256=`fb2cc573b1055cf096c90e1efc9966fe56bdb4b265c83590cf2a49f7a0defcdf`；LLVM clang/clang++均解析为 `/home/gaoruihao/wksp/LLVM-22.1.2-Linux-X64/bin/clang-22`，字节SHA256=`ff1c4a7557acb600225d4bb93e53b8ec4d29ce4cd625a92cf904a11676568487`；`/usr/bin/git`=`2a8c18fbf43da9f692d75474c72bea9dfd796c260b0f3dfe456376abc3bbd668`；`/usr/bin/cmake`=`1c5227af4edd22d8d689def545e18ee458260c0fd579eba2187967f38817e638`；`/usr/bin/make`=`d78b8f1d099fbcfb6f2f49ab87223b9b68fb3956642f92d6ec6de812e8afa965`；JDK17 `lib/server/libjvm.so`=`35f86cffa7a4edf211cb342c55427e1a3d7ac5ee28aa0d239d8ad8b0b7de743f`。证据 `E/tools-read.log`/`E/run-evidence.log`；只读hash不是新运行兼容性实验。
+
+### 7.5 测量与三方向应用门槛
+
+v3规范适用于三方向全部A/B。RA1可在3eea166上进行公共返工与目标诊断；RA2/3目前不采用两份草案，只在PI发布后继**精确共同补丁**后，各自从原A0/技术cba9c322应用同补丁并独立准备/构建，不继承RA1优化、classes/cache/RTL/IR/model/emu。源码共同起点保持不变；新补丁是明确的共同环境增量，不把易变分支或本档案提交当精确源码基线。
+
+诊断与资格测量分开：详细exec/系统调用trace、Git对照、路径探测时间完整记录为diagnostic，不能删去追踪开销后报F06/F07，也不得降周期。修复后立即用完整三目标链验证至完成或最早新阻塞。正式冷编译使用另一新run、同代码/工具/参数、空Scala/native/model/emu输出，不复用诊断classes或native产物；prepare只准备锁定外部工具/四包wheel，不能编译目标源码。F06从目标一开始到目标二成功的连续墙钟，含目标期间Scala生成/首次编译、**py_install native**、emit、模型/emu编译及目标期间下载，不事后扣除；环境wheel/工具获取在开始前单列。OS page cache不手工清空；记录此局限，cold指本协议全新构建产物/无编译cache，不冒称系统磁盘冷缓存。
+
+正式运行禁用详细strace/高频全/proc扫描；共同保留低频（1s）仅本次后代/emu线程与affinity、启动/结束身份记录、前后旧现场清单，观察器固定在CPU2和sibling18以外的CPU（统一CPU0，资源不满足就等待）。诊断完整50k提供短命线程/写入覆盖；正式同一候选/环境的各样本记录轻量观测模式及证据关联，观察器不是模型线程，不能据此豁免模型多线程。无法建立覆盖或代码/环境变化时重做诊断核验。不得把诊断成绩和正式成绩混合；正式仍用Host time spent并保留emu启动至退出墙钟。工具锁未经PI最终冻结前所得完整记录只能标目标推进/待核定证据。
+
+全部受影响A/B必须在最终相同环境下重新取得F01–F08：每方向冷编译<1800s；A/B各至少三次交错50k、每1000采样/终态/NEMU及单线程证据；candidate中位数<A×0.99且组内max/min≤1.05。当前没有可迁移成绩。RA1 step3具体交接见 pi_plan.md 文末；任何本范围不能解决的阻塞交PM/PI，保留现场不扩大权限。
+
+Git作用域的“本run已识别Mill sandbox”包括经准确exec证明由该sandbox任务产生、默认cwd落回入口R的版本查询；只有同时满足本run启动标识、当前Mill祖先/启动时间、捕获到的默认查询类别及目标XS身份时才可适配。R目录本身绝不是重定向充分条件。没有显式仓库选项却在合法子库执行的调用仍原样通过；不能识别版本查询来源时停止适配并交PI。此允许范围不授权Git数据库写入，也不能在普通py_install或其他工具调用中继续携带wrapper作用域。
+
+HotSpot错误产物路径具体采用工具专用 `-XX:ErrorFile=<run>/logs/hs_err_pid%p.log` 与 `-XX:HeapDumpPath=<run>/tmp/java`，连同PerfDisableSharedMem在所有实际JVM中验证；未开启heapdump功能也不得让未来失败回落工作区外。正式observer只调整观察器自身到CPU0，不能让目标继承CPU0：实际emu及其模型线程必须核Cpus_allowed_list=2；外层taskset命令不是这一事实的替代证据。
+
+固定wheel原始URL（对应上表同名hash；无需下一次网络重新解析）：
+
+- pip：`https://files.pythonhosted.org/packages/8a/6a/19e9fe04fca059ccf770861c7d5721ab4c2aebc539889e97c7977528a53b/pip-24.0-py3-none-any.whl`
+- scikit_build_core：`https://files.pythonhosted.org/packages/b7/b0/7ad8fa9aebb0835b2e20afebf1483cbe175d1612fe01e85042ce9ced8755/scikit_build_core-1.0.3-py3-none-any.whl`
+- packaging：`https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl`
+- pathspec：`https://files.pythonhosted.org/packages/f1/d9/7fb5aa316bc299258e68c73ba3bddbc499654a07f151cba08f6153988714/pathspec-1.1.1-py3-none-any.whl`
+
+结束复核：`E/repos-closing.tsv`、`E/links-closing.tsv`、`E/alternates-closing.tsv`与各自opening逐字节cmp exit0，hash分别同§7.2；逐项主对象路径对照也无不匹配（`E/topology-main-check.log`）。无技术/方向/父gitlink变化，RA1旧out/忽略现场保留，结束pgrep无匹配exit1。三份档案是唯一待提交修改。所有审计是只读现场验证，未执行构建/安装/工程测试。
+
+本次只读失败明确留存：`E/git-context-current.log` 的跨库cat-file/rev-list各exit128为上下文对照；`ls /usr/bin/verilator /usr/local/bin/verilator` exit2是已证实缺路径；首次查不存在的E目录rg exit2、查裸processes.jsonl的head exit1后已按实际文件名读取；误按argv/exit_code提取产生null，已按command/exit原字段重读，不能将null当未知工程退出。日志均为只读取证，无工程调用。开工/结束与提交前后现场记录于E，禁止删除旧out/.venv/Mill输出/两run、修库、改ignore、切分支或改父gitlink。
