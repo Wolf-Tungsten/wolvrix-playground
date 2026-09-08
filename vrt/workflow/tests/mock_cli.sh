@@ -38,6 +38,9 @@ commit() {
 
 echo "[mock] action=${VRT_ACTION} job=${VRT_JOB} week=${VRT_WEEK} ra=${VRT_RA_INDEX} step=${VRT_STEP_INDEX}"
 
+# 测试可用 MOCK_ACTION_DELAY 放慢每个动作，让 TUI 重绘线程有机会覆盖到各动作状态
+sleep "${MOCK_ACTION_DELAY:-0}"
+
 case "${VRT_ACTION}" in
 PI_PLAN)
     cat > "vrt/${VRT_JOB}/requirements.md" <<EOF

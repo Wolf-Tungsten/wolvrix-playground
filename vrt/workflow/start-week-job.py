@@ -21,7 +21,6 @@ import json
 import os
 import re
 import shlex
-import shutil
 import signal
 import subprocess
 import sys
@@ -246,6 +245,18 @@ def commit_progress(repo: Path, progress: dict) -> None:
 # 界面：TUI 看板 / 纯文本流
 # ---------------------------------------------------------------------------
 
+def terminal_size() -> tuple[int, int]:
+    """返回 (cols, rows)。直接 ioctl 查询 stdout 的 pty，窗口缩放即时生效；
+    不读 COLUMNS/LINES 环境变量——进程启动后它们不会随缩放更新。
+    注意 shutil/os.get_terminal_size 返回的是 (columns, lines)，别解包反了。
+    """
+    try:
+        size = os.get_terminal_size(sys.stdout.fileno())
+        return size.columns, size.lines
+    except OSError:
+        return 100, 30
+
+
 class UI:
     """TUI 看板：顶部固定状态头 + 下方滚动日志区。
 
@@ -286,7 +297,7 @@ class UI:
         if self._thread:
             self._thread.join(timeout=2)
         with self.write_lock:
-            rows, _ = shutil.get_terminal_size((100, 30))
+            _, rows = terminal_size()
             sys.stdout.write("\x1b[r")             # 恢复整屏滚动
             sys.stdout.write(f"\x1b[{rows};1H")   # 光标移到最底部
             sys.stdout.write("\x1b[?25h")          # 恢复光标
@@ -318,7 +329,7 @@ class UI:
 
     @staticmethod
     def _fit(line: str, cols: int) -> str:
-        """按显示宽度截断（CJK 计 2 列），防止换行冲乱头部。"""
+        """按显示宽度截断（CJK 计 2 列），防止换行冲乱头部；截断时以 … 收尾示意。"""
         width = 0
         end = 0
         for ch in line:
@@ -326,7 +337,17 @@ class UI:
             if width > cols:
                 break
             end += 1
-        return line[:end]
+        if end == len(line) or cols < 2:
+            return line[:end]
+        width = 0
+        end = 0
+        for ch in line:
+            w = 2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1
+            if width + w > cols - 1:  # 预留 1 列给省略号
+                break
+            width += w
+            end += 1
+        return line[:end] + "…"
 
     def _render_loop(self) -> None:
         while not self._stop.is_set():
@@ -334,7 +355,7 @@ class UI:
             self._stop.wait(0.5)
 
     def _draw_header(self) -> None:
-        rows, cols = shutil.get_terminal_size((100, 30))
+        cols, rows = terminal_size()
         if rows < self.HEADER_LINES + 2:
             return
         with self.write_lock:
@@ -548,11 +569,17 @@ def action_branch(progress: dict, action: dict) -> str:
 def build_ctx(progress: dict, action: dict, user_supplement: str) -> dict[str, str]:
     job, week = progress["job"], progress["week"]
     i, k = action.get("ra_index", 0), action.get("step_index", 0)
+    # 工程实施机会预算：hours_used 只在 ENG_EXEC 成功时 +1，
+    # ENG_USED = 截至本动作已消耗的机会数，ENG_LEFT = 剩余机会数。
+    # RA_PLAN_STEP 时 ENG_LEFT 含本次即将派发的一步；RA_REVIEW 时 ENG_USED 含刚完成的本步。
+    eng_used = progress["hours_used"].get(str(i), 0) if i else 0
     return {
         "JOB": job,
         "WEEK": str(week),
         "R": str(progress["r"]),
         "W": str(progress["w"]),
+        "ENG_USED": str(eng_used),
+        "ENG_LEFT": str(progress["w"] - eng_used),
         "JOB_DIR": job_dir_rel(job),
         "WEEK_DIR": week_dir_rel(job, week),
         "RA_INDEX": str(i),

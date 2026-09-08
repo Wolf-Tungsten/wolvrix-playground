@@ -10,12 +10,17 @@
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
+import pty
 import re
+import select
 import shutil
+import struct
 import subprocess
 import sys
+import termios
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -300,6 +305,72 @@ def s10_delete_and_restart() -> None:
           "S10 新纪元的最终报告存在")
 
 
+def s11_tui_render() -> None:
+    """pty 下启用 TUI 跑一整周，验证看板渲染。
+
+    回归目标：终端尺寸获取的 cols/rows 顺序（曾经解包反了，宽度被当成行数，
+    看板每行被截到几十列、滚动区域底被设到屏幕外）。在 120x40 的 pty 下：
+    - 滚动区域必须是 [6, 40]（即转义序列 \\x1b[6;40r）；
+    - 头部首行必须完整显示到 CLI=kimi  已运行=（启动时即绘制，无竞态）；
+    - 头部"分支"行必须完整显示 vrt/demo/week_1/r_1（61 列 < 119，不得截断）。
+      动作用 MOCK_ACTION_DELAY 放慢到 1.5s，重绘线程每 0.5s 一次，
+      每个动作窗口内必然至少有两次重绘，分支行必然被捕获。
+    """
+    print("[S11] pty TUI 渲染（120x40，验证头部完整与滚动区域）")
+    repo = setup_sandbox("s11")
+    env = dict(os.environ)
+    env["VRT_KIMI_CMD"] = f"bash {MOCK}"
+    env["MOCK_DIR"] = str(repo.parent / "mock")
+    env["MOCK_ACTION_DELAY"] = "1.5"
+    env.pop("COLUMNS", None)
+    env.pop("LINES", None)
+
+    master, slave = pty.openpty()
+    # TIOCSWINSZ 参数顺序是 (rows, cols)：40 行 x 120 列
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
+    proc = subprocess.Popen(
+        [sys.executable, str(SCRIPT), "--repo", str(repo),
+         "--new", "demo", "--requirements", "测试需求",
+         "--cli", "kimi", "--r", "1", "--w", "1",
+         "--yes", "--retry-delay", "0"],
+        stdin=subprocess.DEVNULL, stdout=slave, stderr=slave,
+        env=env, start_new_session=True,
+    )
+    os.close(slave)
+    chunks: list[bytes] = []
+    while True:
+        if select.select([master], [], [], 0.2)[0]:
+            try:
+                data = os.read(master, 65536)
+            except OSError:
+                break  # 子进程退出后 slave 关闭，Linux 下读 master 得 EIO
+            if not data:
+                break
+            chunks.append(data)
+        elif proc.poll() is not None:
+            try:
+                data = os.read(master, 65536)
+                if data:
+                    chunks.append(data)
+                    continue
+            except OSError:
+                pass
+            break
+    proc.wait(timeout=120)
+    os.close(master)
+    raw = b"".join(chunks).decode("utf-8", errors="replace")
+
+    check(proc.returncode == 0, f"S11 脚本退出码 {proc.returncode} == 预期 0")
+    check("WEEK_DONE" in raw, "S11 pty 下完成本周")
+    check("\x1b[6;40r" in raw, "S11 滚动区域底部为第 40 行（rows 未与 cols 颠倒）")
+    check("\x1b[6;120r" not in raw, "S11 滚动区域底部未被错误设为第 120 行")
+    check("CLI=kimi  已运行=" in raw, "S11 看板首行完整显示（未截断）")
+    if "分支: vrt/demo/week_1/r_1" not in raw:
+        print(raw[-3000:])
+    check("分支: vrt/demo/week_1/r_1" in raw,
+          "S11 看板头部完整显示分支名（未截断）")
+
+
 def main() -> int:
     SANDBOX.mkdir(parents=True, exist_ok=True)
     repo1 = s1_full_week()
@@ -312,6 +383,7 @@ def main() -> int:
     s8_codex_path()
     s9_submodule()
     s10_delete_and_restart()
+    s11_tui_render()
 
     print()
     if failures:
