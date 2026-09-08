@@ -1,6 +1,0 @@
-{
-  "name": "grhsim-ir-st-opt",
-  "base_branch": "grh/grhsim-ir",
-  "created_at": "2026-09-07T23:50:57+08:00",
-  "initial_requirements": "当前，grhsim-ir路的性能与 gsim 在仿真xiangshan coremark 50k 的时候仍有显著差异.\n你的研究目标是，尽可能优化单线程grhsim-ir仿真上述负载的性能，gsim 大概只需要 40s 左右.\n鼓励的优化方法：扩展 grhsim-ir 的定义；.grhsim-ir中的 分区算法；3.更多优化模替换pass；4.更优化的emit代码模式；最好能将你的修改显式地表达为grhsim ir层面的动作。不允许的方法：1. 修改xiangshan；2. 修改前序的grh ir"
-}
