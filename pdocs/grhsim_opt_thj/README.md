@@ -298,12 +298,13 @@
 | `TNO0286` | `2026-09-07` | [XiangShan RepCut N=K=32 resource blocker](./TNO0286_xiangshan_repcut_nk32_resource_blocker_20260907.md) | 全部允许节点双 NUMA 轮询；4 次 pair 尝试共 40 次 admission 拒绝、实际 launch=0。短扫曾通过但启动门未通过，没有 BA/性能 summary，不放宽门槛或改默认。 |
 | `TNO0287` | `2026-09-07` | [XiangShan RepCut N=K=32 full control reproduction](./TNO0287_xiangshan_repcut_nk32_full_control_reproduction_20260907.md) | 完整冻结 assignment 导入/重建成功；70 package 源文件、33 flat-SV逐字节复现，38 独立审计通过，双实现重算 exact load/KM1 一致；不是新划分性能结果。 |
 | `TNO0288` | `2026-09-07` | [XiangShan RepCut N=K=32 full build entry gate](./TNO0288_xiangshan_repcut_nk32_full_build_entry_gate_20260907.md) | 新 assignment 全 32 模型独立构建入口 13 tests 与真实 package dry-run 通过；toolchain 字典/源身份/原wrapper flags 对齐。未执行新模型 make，四项实测仍被资源阻断。 |
+| `TNO0289` | `2026-09-08` | [SimpleTES gen38 budget-256/valid-128 completion](./TNO0289_simpletes_gen38_budget256_valid128_completion_20260908.md) | node030 正常达到 `98/98 valid` 后收尾（`136/217` generation attempts，22 generation failures，0 evaluation failures）；最佳节点 pooled wall `43,950.25→41,524.00 ms`，减少 `2,426.25 ms/5.520446%`，ABBA/BAAB gap `0.234880 pp`，全部稳定性/功能/NUMA/PMU 门禁通过，尚未 landing/default。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`288`（`TNO0001..TNO0288`）。
+- 当前记录类文档总数：`289`（`TNO0001..TNO0289`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
