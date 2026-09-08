@@ -51,3 +51,11 @@ PI未修改或删除入口out、嵌套out、.venv、build/xs、旧日志及共�
 ### 本次档案仓库边界与交接状态
 
 开工主入口 `/home/gaoruihao/wksp/wolvrix-playground`，gitdir=G，分支grh/grhsim-ir，HEAD=`12ed381becc6fbafebe4a52a71e57301ac28e090`、tree=`14f05945b19c10a6c18121b4ad1eef138c950d91`，clean。技术主检出 `/home/gaoruihao/wksp/wolvrix-playground/wolvrix`，gitdir=G/modules/wolvrix，grh/grhsim-ir、HEAD=cba9c32240f3cd06c5b675968b56046e5b76f818，clean。仅主入口三份周档案baseline/pi_plan/race显式stage并提交；本补充提交的父提交为上述12ed381，精确新提交号由PI最终回执给出。所有方向代码HEAD/分支/gitlink和技术主检出保持本表状态，r_1未跟踪out仍保留。新只读取证日志仅留ptmp、不入提交；.runner只读且连续可用，不修改、不清理、不提交、不推送或改写历史。
+
+## RA1 步2审查交接（week-1-ra-1-review-step-2-c9a4c84b）
+
+共同起点仍入口 `0567b6c7d0261ddd1834daffa8f15327c7f5810a`、wolvrix `cba9c32240f3cd06c5b675968b56046e5b76f818`，XiangShan `4a6e3da8bfb1140d24eaa6c9e0d058fd981b35a6`；RA1 仅续接本方向公共环境提交 `aaca3fafe3134f7147f1f3e866cfcb1401c5be35` → `3eea16676f73cba5f87364e8959049437de40308`，累计 patch SHA256 `955f8b192b97165e32a30e8a55a8d64cf3bdd36d62e3ebf1c7ca6a881018ffa9`。两提交仅入口 Makefile/环境辅助编排，未含宽值 emitter/runtime、GRH IR/pass、XiangShan、测试或依赖源码；**尚未由 PI 冻结**，RA2/RA3 不得自行采用。
+
+本步独立复核：L1 首次 run 因 nested `MILL_OUTPUT_DIR=.docker-mill-out` 越界而中止；L2 修正 run 用 JDK17/Mill0.12.15 越过 major69，目标一 66.466s 内层/68.427s 外层退出2，在 XiangShan VcsVersion `git rev-list` 处 `fatal: bad object 4a6e3da8...`；目标二/三未执行。XiangShan 本身 `cat-file`、`rev-list --count`（11810）及对象遍历成功，故 bad object 更像 VcsVersion 默认 cwd 与入口 Git 上下文错配，尚无对象损坏定论。外部 `/tmp/hsperfdata_gaoruihao` 写入、`/usr/bin/verilator` 不存在、TOOL_EXTENSION 传值异常、目标 Git argv/GIT_* 未捕获，均需 PI/ENGINEER 处理。
+
+RA1 当前 **2/6，余4**；RA2/RA3 各0/6。三方向仍独立 worktree/依赖检出，RA2/3 保持共同基点、clean、无成果。当前无完整50k、单线程、正确性、冷编译<1800s或三次交错A/B成绩；本方向无可排名候选。等待 PI 决定 Git cwd/环境注入、HotSpot perfdata 例外、工具路径/锁和依赖 alternates 的共同规范；排障后按原口径串行 `make xs_wolf_grhsim_ir` → `make xs_wolf_grhsim_ir_build_emu` → `taskset -c 2 make run_xs_wolf_grhsim_ir_emu`，前步失败不盲跑后步。所有两次 run、旧 out/.venv/Mill 输出和新证据均保留。
