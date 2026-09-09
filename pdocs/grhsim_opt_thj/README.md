@@ -302,12 +302,13 @@
 | `TNO0290` | `2026-09-09` | [SimpleTES gen38 best-path factorial ablation](./TNO0290_simpletes_gen38_bestpath_factorial_ablation_20260909.md) | A/B/C 三机制 factorial 的八个 arm 均有同源 build 和 fixed-ASLR 同 CCD ABBA+BAAB；B `42,531.25→40,531.50 ms`（`+4.701837%`，gap `0.126339 pp`），BC exact `42,493.00→40,461.25 ms`（`+4.781376%`，gap `0.016084 pp`），ABC `42,102.50→40,200.00 ms`（`+4.518734%`），C 仍轻微回退。首份 BC 身份不一致已废弃。 |
 | `TNO0291` | `2026-09-09` | [SimpleTES C independent retest](./TNO0291_simpletes_c_independent_retest_20260909.md) | 同一 B0/C binary 在 node031 独立复测：`42,592.75→42,816.75 ms`，慢 `224.00 ms/0.525911%`；ABBA/BAAB 都回退，gap `0.034567 pp`，离线复核当前全部 8 项稳定性门禁通过；旧 C_repeat4 的 spread 超限另作说明，不改生产默认。 |
 | `TNO0292` | `2026-09-09` | [SimpleTES B to AB direct comparison](./TNO0292_simpletes_b_to_ab_direct_comparison_20260909.md) | 直接 B→AB 三组完整值为 `40,401.50→40,250.00 / 40,438.75→40,488.00 / 40,881.00→40,889.00 ms`，gap `0.525755/0.261007/0.445236 pp` 均不达标；继续三轮因外部污染无完整组。最终四节点 30 秒调查均 0/24 空闲 CCD，正式复测被负载阻断；全部原始记录保留，无默认或研究状态变更。 |
+| `TNO0295` | `2026-09-09` | [SimpleTES B to AB valid retest](./TNO0295_simpletes_b_to_ab_valid_retest_20260909.md) | node032 同 CCD fixed-ASLR 八样本与完整稳定性审计通过：B `40,633.00→AB 40,826.75 ms`，AB 慢 `193.75 ms/0.476829%`；两个顺序均回退，gap `0.099027 pp`。建议只保留 B、不默认叠加 A；尚未落地或改变研究基线。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`292`（`TNO0001..TNO0292`）。
+- 当前记录类文档总数：`295`（`TNO0001..TNO0295`，含另项工作已占号的 `TNO0293..TNO0294`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
