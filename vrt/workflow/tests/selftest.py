@@ -24,6 +24,19 @@ def main() -> int:
     sys.path.insert(0, str(RUNNER.parent))
     runner = runpy.run_path(str(RUNNER))
     from runner_ui import UI
+    prompts = ROOT / "vrt/workflow/prompts"
+    check(not (prompts / ("race_" + "contract.md")).exists(), "旧赛马契约已移除")
+    check("不负责实现步骤" in (prompts / "pi_plan.tmpl.md").read_text(encoding="utf-8"),
+          "PI 提示词只保留方向职责")
+    engineer_prompt = (prompts / "eng_exec.tmpl.md").read_text(encoding="utf-8")
+    check("不能直接甩回 RA" in engineer_prompt and "尝试最小修复" in engineer_prompt,
+          "工程师提示词要求遇阻继续排查修复")
+    check(all(len(p.read_text(encoding="utf-8").splitlines()) <= 20
+              for p in prompts.glob("*.tmpl.md")), "角色模板保持精简")
+    check(runner["cli_command"]("codex", "x")[-1] == "x",
+          "Codex 保持提示词原样，由派发层添加角色前缀")
+    check(runner["cli_command"]("kimi", "/goal x")[-1] == "/goal x",
+          "Kimi 不重复添加 /goal 前缀")
     dashboard = UI(False)
     sample = {"config": {"week": 4, "r": 2, "w": 6}, "decisions": []}
     runner["refresh_dashboard"](dashboard, sample)

@@ -50,7 +50,8 @@ def write_json(path: Path, value: dict) -> None:
 
 def cli_command(cli: str, prompt: str) -> list[str]:
     if cli == "kimi":
-        return shlex.split(os.environ.get("VRT_KIMI_CMD", "kimi")) + ["-p", "/goal " + prompt]
+        goal_prompt = prompt if prompt.lstrip().startswith("/goal") else "/goal " + prompt
+        return shlex.split(os.environ.get("VRT_KIMI_CMD", "kimi")) + ["-p", goal_prompt]
     return shlex.split(os.environ.get("VRT_CODEX_CMD", "codex")) + [
         "exec", "--dangerously-bypass-approvals-and-sandbox", prompt]
 
@@ -276,6 +277,8 @@ def run(state_path: Path, state: dict, args: argparse.Namespace, ui: UI) -> int:
         save(state_path, state)
         for attempt in count():
             prompt = decision["prompt"]
+            if decision["role"] == "ENGINEER" and not prompt.lstrip().startswith("/goal"):
+                prompt = "/goal " + prompt
             prompt += (f"\n执行编号：{decision['task_id']}。项目经理派发说明：{decision['reason']}\n"
                        "调用回执：" + str(state_path) + "\n")
             if attempt:

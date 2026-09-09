@@ -1,53 +1,30 @@
-# 主目标推进契约（调度器强制校验）
+# 主目标推进契约
 
-所有字段都写在产出 Markdown 的正文中，使用 `VRT_字段名: 非空值` 独占一行，不加列表符号、不放在代码块里、不重复。以下是字段说明，不要把示例描述原样复制成证据。长解释、数据表放在对应行之后。
+产出中的机器字段必须独占一行，格式为 `VRT_字段名: 非空值`，不加列表符号或代码围栏。字段之外的说明保持简短。
 
 ## 共同行为
 
-- 首次工程调用必须实际尝试原始目标的完整流程，直至完成或遇到最早的实际阻塞。入口缺失也应留下尝试命令及真实错误，再补齐入口。不能用静态扫描或小基准冒充目标流程，也不能因预计耗时长而不尝试。优先复用用户认可的流程，遵守项目 Makefile 等执行规范。
-- PI 规划中的最终验收项是固定参照。每步列出验收表：原始验收项及编号、目前通过/失败/未测、本步证据、剩余缺口；RA 无权通过改写原始需求或 PI 规划缩减目标。用户之后明确调整的需求应由 PI 更新。
-- 每步区分“本步工程任务完成”和“原始目标推进”。报告字数、代码行数、小测试数量不算推进。已取得结论时，剩余调用用于有区别的反例搜索、独立复核或完整测试；不得重复同一实验和报告充数。
+- PI 固定原始目标和编号验收项；RA 不得缩减或改写。每步说明本步状态、证据和剩余缺口。
+- 第一次工程调用必须尝试完整目标流程，记录真实命令和最早阻塞。辅助工作必须解除具体阻塞并说明何时接回目标。
+- 未运行、未完成和失败都不是证伪；已有结论时，用剩余调用做不同的反例搜索、独立复核或完整测试。
 
-## RA_PLAN_STEP 的任务书
+## RA_PLAN_STEP
 
-必填字段：
+必填：`VRT_PRIMARY_GOAL`、`VRT_SUCCESS_CRITERIA`、`VRT_TARGET_PATH`、`VRT_TASK_KIND`（target/blocker/support/verification）、`VRT_NEXT_TARGET`。第 1 步必须为 target；support 还要写 `VRT_BLOCKER`、`VRT_DECISION_RULE` 和结果对应的下一动作。RA 负责选择方法和任务细节。
 
-- `VRT_PRIMARY_GOAL`：引用原始目标与 PI 最终验收项编号。
-- `VRT_SUCCESS_CRITERIA`：本步能检验的假设及证明/证伪判据，不能替代最终验收。
-- `VRT_TARGET_PATH`：目标流程目前到哪一步、本步解除哪个具体阻塞，以及与最终验收的联系。
-- `VRT_TASK_KIND`：仅限 `target`（运行完整目标）、`blocker`（修复目标阻塞）、`support`（必要的辅助实验/工具）、`verification`（攻击或独立复核已有结论）。第 1 步必须为 `target`。
-- `VRT_NEXT_TARGET`：完成本步后接回完整目标流程的具体命令或操作及触发条件；不能只写“后续验证”。
+## ENG_EXEC
 
-`support` 任务还必须填写 `VRT_BLOCKER`（为何不能直接进行目标验证，引用真实证据）和 `VRT_DECISION_RULE`（辅助实验每种结果如何改变下一步）。“增加理解”“提供参考”不够。
+工程师负责在本次调用内尽力完成 RA 目标：编码、运行、定位和修复。遇到普通错误先调查并尝试最小修复、替代验证或缩小复现；不能直接甩回任务。只有实际尝试后仍无法继续，才报告具体阻塞和已尝试动作。
 
-## ENG_EXEC 的成果
+必填：
 
-必填字段：
+- `VRT_PRIMARY_PROGRESS`: advanced / narrowed / verified / none
+- `VRT_EVIDENCE`: 改动、命令、输入/版本、退出码、日志
+- `VRT_REMAINING_GAP`: 完整目标缺口
+- `VRT_TARGET_RUN`: attempted / not_run
 
-- `VRT_PRIMARY_PROGRESS`：仅限 `advanced`（目标流程推进）、`narrowed`（具体阻塞范围缩小）、`verified`（新增独立证据检验已有结论）、`none`（无上述推进）。后续正文给前后对比；不能只宣布推进。
-- `VRT_EVIDENCE`：改动、实验命令、输入/版本及可复核日志，解释如何支持上述状态。
-- `VRT_REMAINING_GAP`：完整目标尚缺什么；已闭合时说明被验证的范围和剩余复核项目。
-- `VRT_TARGET_RUN`：仅限 `attempted`（本步实际运行目标流程）或 `not_run`（本步未运行目标流程）。第 1 步必须为 `attempted`。
+attempted 还要有 `VRT_TARGET_COMMAND`、`VRT_TARGET_EXIT`、`VRT_TARGET_LOG`（仓库内存在且非空）；not_run 还要有 `VRT_BLOCKER`。日志放 `ptmp/`，不得用静态计数替代运行证据。
 
-`attempted` 必须同时提供 `VRT_TARGET_COMMAND`（实际目标命令）、`VRT_TARGET_EXIT`（整数退出码或 `interrupted`）、`VRT_TARGET_LOG`（仓库内相对路径，文件必须存在且非空）。每步使用独立日志，保留真实输出；中断需解释原因，不能自行设置工时墙钟期限。目标流程失败不等于假设被证伪。
+## RA_REVIEW
 
-`not_run` 必须提供 `VRT_BLOCKER`，引用阻塞记录并解释本步工作如何帮助下一次目标执行；不能把旧日志填成新执行。
-
-## RA_REVIEW 的审查
-
-必填字段：
-
-- `VRT_PRIMARY_PROGRESS`：与工程师相同的四种状态，但由 RA 独立核对源码、原始日志和验收表后作出判断；不能照抄工程师自评。
-- `VRT_EVIDENCE_CHECK`：核查了哪些源码、执行证据和输入/版本，发现了哪些不一致。
-- `VRT_NEXT_STEP`：下一步针对哪个缺口，采用什么具体实施方式。
-- `VRT_TARGET_RUN`：本步是否有经核验的真实目标执行，取 `attempted` 或 `not_run`。第 1 步必须为 `attempted`；其他配套字段同 ENG_EXEC，引用本步工程日志或审查时新执行的日志，并说明执行者。不能用历史执行追认本步。
-
-若连续两步 `VRT_PRIMARY_PROGRESS: none`，第 2 次停滞审查与下一步任务书都必须给出三个纠偏字段：
-
-- `VRT_FAILURE_SITE`：最早实际阻塞所在的具体代码位置、接口或失败环节及证据。
-- `VRT_REPAIR_HYPOTHESIS`：重新检查现场后形成的修复假设，说明与前两步做法有何区别。
-- `VRT_VALIDATION_COMMAND`：检验该假设的具体命令或操作、预期结果，以及恢复目标流程的条件。
-
-即使没有剩余调用，第 2 次停滞审查也应留下可接续的纠偏方案。旧记录缺少可识别推进状态时，按未确认推进处理；不得改写旧审查来清零停滞。RA 审查发现未推进时，不能以补齐报告字段替代新的工程证据。
-
-字段不合格会退回当前动作重做，不推进状态、不增加工程调用计数；失败原因会随重试提示词传入。脚本能检查格式、枚举、文件存在性与停滞门槛，不能自动证明实验真实性或科学价值，这仍是 RA 和 PI 的审查责任。
+RA 独立核验源码、日志、退出码和验收项，必填 `VRT_PRIMARY_PROGRESS`、`VRT_EVIDENCE_CHECK`、`VRT_NEXT_STEP`、`VRT_TARGET_RUN`。连续两步 none 时，补充 `VRT_FAILURE_SITE`、`VRT_REPAIR_HYPOTHESIS`、`VRT_VALIDATION_COMMAND`，并改变方法。配额未满不得结束方向。
