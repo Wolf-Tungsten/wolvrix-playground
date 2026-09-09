@@ -116,6 +116,7 @@ XS_RTL_SUFFIX ?= sv
 XS_WITH_CHISELDB ?= 0
 XS_WITH_CONSTANTIN ?= 0
 XS_ZERO_INIT ?= 0
+XS_EMU_CPU ?= 2
 ifeq ($(XS_ZERO_INIT),1)
 XS_ZERO_INIT_DEFINES := RANDOMIZE_REG_INIT RANDOMIZE_MEM_INIT RANDOMIZE_DELAY=0 RANDOM=32'h0
 else
@@ -123,7 +124,7 @@ XS_ZERO_INIT_DEFINES :=
 endif
 XS_ZERO_INIT_SIM_DEFINES := $(subst 32'h0,32\'h0,$(XS_ZERO_INIT_DEFINES))
 XS_SIM_VFLAGS ?= +define+DIFFTEST $(foreach d,$(XS_ZERO_INIT_SIM_DEFINES),+define+$(d))
-XS_EMU_PREFIX ?= $(shell if command -v stdbuf >/dev/null 2>&1; then echo "stdbuf -oL -eL"; fi)
+XS_EMU_PREFIX ?= taskset -c $(XS_EMU_CPU) $(shell if command -v stdbuf >/dev/null 2>&1; then echo "stdbuf -oL -eL"; fi)
 XS_RAM_TRACE_ARGS := $(if $(filter 1,$(XS_RAM_TRACE)),+trace_difftest_ram,)
 XS_LOG_DIR := $(BUILD_DIR)/logs/xs
 XS_WAVEFORM_DIR ?= $(XS_LOG_DIR)
