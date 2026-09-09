@@ -50,3 +50,11 @@ B 单项几乎解释了 ABC 的主要收益；AB 与 B 的提升接近，说明 
 - source SHA-256：baseline `0ed757db91f79df795562677d6f22789ad1aa84df818ef43786e8a18f6bdb196`；A `997e3605e07fd8528c89ca78f266333b5b93e906cb95053d59b960d10db057cb`；B `4d1aaff4b647ed3e064335d80762253666572fef2e0c1bebc574c1035768d051`；C `73e911542b40235b43616e62a452bf89b565fb4825c90eae491e8d2af696904c`；AB `9ff52935a9e6f16b0b4789f18a1ade4801b9b37056d4741ade45b1ccbe34deab`；AC `a979c9b3796acf032f4ae260daa93845b04bac3ccf09270dcdfe141572190d30`；BC `6b14e8c444dd0d42533dc598a46369bacb5e2ff623af1a3e99ced9c157004066`；ABC `4ced2a4a2a6f836e6f7b2f56214088fd1af73e0a1bf3009b421830f6e0c4184e`。
 
 本阶段未修改生产 Wolvrix 默认源码，也未启动新的 SimpleTES research。
+
+## 增量更新 2026-09-09：C 独立复测与门禁说明
+
+用户另行要求重测 C，结果见 [TNO0291](./TNO0291_simpletes_c_independent_retest_20260909.md)：
+`42,592.75→42,816.75 ms`，慢 `224.00 ms/0.525911%`，两个顺序均回退，
+gap `0.034567 pp`，额外离线复核当前 evaluator 的全部 8 项稳定性门禁通过。
+本表旧 `C_repeat4` 虽然 gap 达标，但其 candidate sample spread 为 `2.180350%`，
+未通过当前 `<2%` 的完整稳定性门禁。保留本表原值作为历史记录；新结果未覆盖旧样本。
