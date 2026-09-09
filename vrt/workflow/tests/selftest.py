@@ -24,6 +24,8 @@ def main() -> int:
     sys.path.insert(0, str(RUNNER.parent))
     runner = runpy.run_path(str(RUNNER))
     from runner_ui import UI
+    from runtime_selftest import runtime_tests
+    runtime_tests(ROOT, SANDBOX, check)
     prompts = ROOT / "vrt/workflow/prompts"
     check(not (prompts / ("race_" + "contract.md")).exists(), "旧赛马契约已移除")
     check("不负责实现步骤" in (prompts / "pi_plan.tmpl.md").read_text(encoding="utf-8"),
@@ -71,26 +73,33 @@ def main() -> int:
 set -euo pipefail
 response="${VRT_PM_RESPONSE:-}"
 state="${VRT_RECEIPTS:?}"
+printf '%s' "${@: -1}" > "${VRT_RECEIPTS}.${VRT_ACTION}.prompt.txt"
+test -f "${VRT_INBOX:?}"
+test -n "${VRT_INBOX_ACTOR:?}"
 count=$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["calls"]))' "$state")
 if [ "$VRT_ACTION" = PROJECT_MANAGER ]; then
   printf '%s' "${@: -1}" > "${VRT_PM_REQUEST}.prompt.txt"
   rid=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["request_id"])' "${VRT_PM_REQUEST}")
   if [ "$count" -le 1 ]; then
+    printf '%s\n' '运行时追加：保留验证证据' | make --no-print-directory -s -C "$VRT_TEST_DRIVER_ROOT" vrt_inbox VRT_INBOX_ACTION=send
     cat > "$response" <<JSON
 {"request_id":"$rid","kind":"dispatch","task_id":"technical-1","role":"ENGINEER","cwd":"${VRT_WORKSPACE}/nested/technical-repo","prompt":"写入 result.txt 并提交回执","reason":"验证嵌套仓库工作位置"}
 JSON
   else
+    make --no-print-directory -s -C "$VRT_TEST_DRIVER_ROOT" vrt_inbox VRT_INBOX_ACTION=history > "${VRT_RECEIPTS}.history.json"
     cat > "$response" <<JSON
 {"request_id":"$rid","kind":"complete","reason":"工程师回执已存在，流程完成"}
 JSON
   fi
 else
+  make --no-print-directory -s -C "$VRT_TEST_DRIVER_ROOT" vrt_inbox VRT_INBOX_ACTION=consume > inbox-received.txt
   echo engineer > result.txt
   echo "VRT_PRIMARY_PROGRESS: advanced" > agent-result.md
 fi
 ''', encoding="utf-8")
     pm.chmod(0o755)
-    env = {**os.environ, "VRT_KIMI_CMD": f"bash {pm}", "VRT_CODEX_CMD": f"bash {pm}"}
+    env = {**os.environ, "VRT_KIMI_CMD": f"bash {pm}", "VRT_CODEX_CMD": f"bash {pm}",
+           "VRT_TEST_DRIVER_ROOT": str(ROOT)}
     first = subprocess.run([sys.executable, str(RUNNER), "--repo", str(base), "--new", "demo",
                             "--requirements", "验证项目经理协议", "--cli", "kimi", "--yes",
                             "--no-tui", "--retry-delay", "0", "--max-actions", "1"],
@@ -102,8 +111,17 @@ fi
     dispatch = next(d["decision"] for d in state["decisions"] if d["decision"]["kind"] == "dispatch")
     check(dispatch["cwd"].endswith("nested/technical-repo"), "项目经理选择嵌套仓库")
     check((nested / "result.txt").is_file(), "技术 Agent 在指定目录执行")
+    check((nested / "inbox-received.txt").read_text().strip() == "运行时追加：保留验证证据",
+          "嵌套目录 Agent 经 Makefile 领取共享 inbox")
+    check(not (base / "vrt/demo/.runner/inbox.txt").read_text(), "真实派发领取后清空待处理文件")
     check(not (base / ".git").exists(), "执行器没有创建或切换 Git")
     check(any(c["role"] == "PROJECT_MANAGER" for c in state["calls"]), "保存项目经理回执")
+    for role in ("PROJECT_MANAGER", "ENGINEER"):
+        actual = Path(str(states[0]) + f".{role}.prompt.txt").read_text(encoding="utf-8")
+        check("每隔最多 3 分钟" in actual and "VRT_INBOX_ACTION=consume" in actual
+              and "VRT_INBOX_ACTION=history" in actual
+              and str(base / "vrt/demo/.runner/inbox.txt") in actual,
+              f"实际 {role} 调用收到统一轮询指令、历史与共享 inbox 绝对路径")
     def check_pm_context(snapshot: dict) -> None:
         for entry in snapshot["decisions"]:
             prompt = Path(entry["request"] + ".prompt.txt").read_text(encoding="utf-8")
@@ -122,6 +140,9 @@ fi
     state = json.loads(states[0].read_text(encoding="utf-8"))
     check_pm_context(state)
     check(state["status"] == "complete", "完成状态持久化")
+    shared_history = json.loads(Path(str(states[0]) + ".history.json").read_text())
+    check(shared_history[-1]["text"].strip() == "运行时追加：保留验证证据",
+          "恢复后的项目经理仍可读取工程师已领取的用户要求")
     check(len(state["decisions"]) >= 2, "派发与完成决策均有记录")
     check((base / "vrt/demo/project.json").is_file(), "项目元数据位于 vrt/项目名")
     check((base / "vrt/demo/requirements.md").read_text().strip() == "验证项目经理协议",

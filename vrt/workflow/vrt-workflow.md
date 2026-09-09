@@ -204,12 +204,54 @@ vrt/<job>/
 
 看板启动时展示已提供的周次、RA 数量和配额；未知用量显示 `?`。每次项目经理响应后刷新 week/hours_budget/hours_used，恢复时重建最近已确认的显示数据；旧格式响应缺少显示字段时保留已知值，换周时清除上周用量。工作目录不再标成分支，最近回执展示真实调用状态及日志名称。看板不自行推断 Git 分支或科学验收结果。
 
+### 6.1 运行中追加指令与 inbox
+
+每个项目共享 `vrt/<job>/.runner/inbox.txt`，不随角色、技术 cwd 或执行会话改变。TUI 输入区实时显示正在编辑的草稿，Enter 将完整内容追加到 inbox；多个未领取输入按顺序保留。草稿不会被提前领取。待处理内容及最近消费记录每约 0.1 秒刷新，外部文件变更也会显示。已领取会显示时间、Agent 身份和原文；**领取不代表要求已完成**。
+
+执行器在每次 `invoke` 中附加 `prompts/runtime_inbox.md`，包括项目经理、PI、RA、工程师和失败重试，不依赖项目经理是否在派发中抄写这段规则。每个 Agent 必须开工时先读历史再领取消息、运行中每隔最多 3 分钟检查、结束或回复前再检查。长任务需分段轮询，等待不超过 60 秒，以便在调用间检查时钟和 inbox。收到消息后简短确认影响、吸收要求，并将仍有效的要求交接给下一角色。派生 Agent 时须传递同一协议和路径。
+
+3 分钟是通过提示词执行的轮询约定，执行器不会强制中断模型推理或工具调用，也不把 inbox 文本作为 shell 命令执行。新角色及重试读取 `inbox-history.jsonl`，每次轮询也检查新增消费记录，因此其他 Agent 清空消息后仍可找回用户要求。
+
+终端外或 `--no-tui` 模式可通过 Makefile 投递（从工作区根目录执行，替换 `my-job`）：
+
+```bash
+export VRT_INBOX="$PWD/vrt/my-job/.runner/inbox.txt"
+printf '%s\n' '先暂停新实验，汇总目前的实测结果。' | make -s vrt_inbox VRT_INBOX_ACTION=send
+make -s vrt_inbox VRT_INBOX_ACTION=show
+make -s vrt_inbox VRT_INBOX_ACTION=history
+```
+
+Agent 使用执行器给出的绝对入口 Makefile 命令及环境变量 `VRT_INBOX`、`VRT_INBOX_ACTOR`，以 `VRT_INBOX_ACTION=consume` 领取。追加、领取和 UI 快照使用同一文件锁；消费先持久保存历史再清空 inbox，避免并发投递丢失。若进程恰好在历史落盘后、清空前崩溃，消息可能重复领取；Agent 须结合历史和工作现场避免重复动作。直接用编辑器修改 inbox 能同步显示，但编辑器不参与文件锁，运行中并发投递应使用 TUI 或 `send`，不要自行执行“读取后截断”。
+
+### 6.2 TUI 的 MVC 与窄屏行为
+
+- Model：`runner_ui_model.py` 保存状态、有限日志缓冲、草稿、光标和分页；`runner_inbox.py` 管理共享消息及消费持久记录。
+- View：`runner_ui_view.py` 纯函数式布局，按终端实际列宽计算中文/组合字符宽度、换行和分页；缓存日志换行结果，避免每帧重复扫描。
+- Controller：`runner_ui.py` 的 `UI` 保留执行器调用接口，处理键盘、文件刷新及终端进入/恢复，不作研究流程决策。
+
+看板、inbox、日志和输入区按窗口尺寸重新分配高度。长路径、回执和消息自动换行；超出区域高度的内容可翻页，不再直接截断后丢弃。极矮窗口（少于 12 行）把看板和 inbox 合在可翻页区域，优先保留输入。日志缓冲保留最近 2000 条，完整原始输出仍在调用日志文件中。终端内显示清除控制转义后的文本，防止 CLI 输出破坏布局。
+
+| 按键 | 行为 |
+| --- | --- |
+| Enter | 提交草稿到 inbox |
+| 左/右、Home/End、Backspace/Delete | 编辑草稿；支持中文输入 |
+| Ctrl-U | 清空未提交草稿 |
+| PgUp/PgDn | 看板翻页；极矮窗口也包含 inbox |
+| Ctrl-B/Ctrl-F | inbox 翻页，查看完整待处理消息和最近消费记录 |
+| 上/下 | 查看更早/更晚日志 |
+| Ctrl-C | 中断调用并退出，恢复原终端模式 |
+
+支持终端括号粘贴：粘贴多行时保留换行，等用户再次按 Enter 才提交。Agent 子进程 stdin 连接到空输入，键盘由 TUI 独占。退出恢复原屏幕、回显及输入模式；未提交草稿会打印在退出后的终端中。
+
 本地记录布局：
 
 ```text
 <workspace>/
     vrt/<job>/.runner/
         latest.json
+        inbox.txt                # 尚未领取的用户指令
+        inbox-history.jsonl      # 消费时间、Agent 身份、原始消息
+        inbox.lock               # 追加/领取/快照互斥
         <run_id>/
             state.json
             pm-<request_id>-request.json
@@ -247,6 +289,6 @@ vrt/<job>/
 
 通过项目 Makefile 运行 `make run_vrt_selftest`，测试产物位于 `ptmp/vrt-selftest/`。
 
-当前 mock 自测试覆盖项目经理 dispatch、指定嵌套目录执行、回执保存、max-actions 暂停后重新交给项目经理以及 complete。测试入口不是 Git 仓库，能检查执行器不要求根目录为仓库；它没有创建真正的递归子模块，也未覆盖真实仓库恢复、实际进程中断、延迟重试或研究配额判断。
+当前 mock 自测试覆盖项目经理 dispatch、指定嵌套目录执行、回执保存、max-actions 暂停后重新交给项目经理以及 complete，也覆盖实际派发中的 inbox 提示词、Makefile 投递/领取、恢复后读取历史。运行时测试覆盖并发追加/消费、中文编辑、括号粘贴、窄屏分页，以及真实 PTY 输入、消费显示、缩屏和正常/SIGINT 退出时的终端恢复。测试入口不是 Git 仓库，能检查执行器不要求根目录为仓库；它没有创建真正的递归子模块，也未覆盖真实仓库恢复、真实 CLI 的中断恢复、延迟重试或研究配额判断。
 
 项目经理对流程的遵守、RA/PI 的技术核验、复杂仓库隔离与恢复的正确性，不能仅由协议自测试证明。项目经理必须根据本 workflow 和可核查证据逐次决策；执行器只提供可追踪的调用通道。

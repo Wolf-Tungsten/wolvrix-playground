@@ -2,7 +2,7 @@ SHELL := /bin/bash
 REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 FST_ROI_DISCOVERY_GOALS := build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery
-VRT_GOALS := run_vrt_selftest clean_vrt_selftest
+VRT_GOALS := run_vrt_selftest clean_vrt_selftest vrt_inbox
 ifneq ($(filter $(FST_ROI_DISCOVERY_GOALS) $(VRT_GOALS),$(MAKECMDGOALS)),)
 SKIP_WOLF_ENV_CHECK := 1
 endif
@@ -1240,9 +1240,14 @@ clean:
 VRT_SELFTEST_DIR := $(REPO_ROOT)/ptmp/vrt-selftest
 
 run_vrt_selftest:
-	$(PYTHON) $(REPO_ROOT)/vrt/workflow/tests/selftest.py
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) $(REPO_ROOT)/vrt/workflow/tests/selftest.py
+
+# VRT_INBOX / VRT_INBOX_ACTOR are environment variables; user text goes via stdin.
+VRT_INBOX_ACTION ?= show
+vrt_inbox:
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) $(REPO_ROOT)/vrt/workflow/runner_inbox.py $(VRT_INBOX_ACTION)
 
 clean_vrt_selftest:
 	rm -rf $(VRT_SELFTEST_DIR)
 
-.PHONY: run_vrt_selftest clean_vrt_selftest
+.PHONY: run_vrt_selftest clean_vrt_selftest vrt_inbox

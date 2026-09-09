@@ -22,6 +22,7 @@ from datetime import datetime
 from pathlib import Path
 
 from runner_ui import UI
+from runner_inbox import Inbox
 
 HERE = Path(__file__).resolve().parent
 ROLES = HERE / "prompts"
@@ -76,6 +77,7 @@ def launch(cli: str, prompt: str, cwd: Path, log: Path, env_extra: dict,
     env.update(env_extra)
     with log.open("w", encoding="utf-8") as stream:
         proc = subprocess.Popen(cli_command(cli, prompt), cwd=cwd, env=env,
+                                stdin=subprocess.DEVNULL,
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                 text=True, errors="replace", start_new_session=True)
 
@@ -152,6 +154,14 @@ def invoke(state_path: Path, state: dict, args: argparse.Namespace, ui: UI,
     env = {"VRT_ACTION": role, "VRT_TASK_ID": task_id,
            "VRT_JOB": state["config"]["job"], "VRT_WORKSPACE": state["config"]["workspace"],
            "VRT_RECEIPTS": str(state_path)}
+    inbox_path = state_path.parent.parent / "inbox.txt"
+    env.update(VRT_INBOX=str(inbox_path), VRT_INBOX_ACTOR=f"{role}/{task_id}/{call_id}")
+    command = f"make --no-print-directory -C {shlex.quote(str(HERE.parents[1]))} vrt_inbox"
+    prompt += ("\n\n" + (ROLES / "runtime_inbox.md").read_text(encoding="utf-8")
+               + f"\n共享 inbox：{inbox_path}\n消费历史：{inbox_path.with_name('inbox-history.jsonl')}\n"
+               + f"读取历史：{command} VRT_INBOX_ACTION=history\n"
+               + f"检查并领取：{command} VRT_INBOX_ACTION=consume\n"
+               + "VRT_INBOX 和 VRT_INBOX_ACTOR 已通过环境变量设置，切换 cwd 后仍有效。\n")
     if request and response:
         env.update(VRT_PM_REQUEST=str(request), VRT_PM_RESPONSE=str(response))
     try:
@@ -451,13 +461,17 @@ def main() -> int:
                 state["config"][key] = getattr(args, key)
         state["status"] = "active"
         save(state_path, state)
-    ui = UI(not args.no_tui and sys.stdout.isatty())
+    inbox = Inbox(transport / "inbox.txt")
+    state["config"]["inbox"] = str(inbox.path)
+    save(state_path, state)
+    ui = UI(not args.no_tui and sys.stdout.isatty(), inbox=inbox)
     ui.set_status(job=job, cli=state["config"]["cli"])
     refresh_dashboard(ui, state)
     for call in state["calls"][-4:]:
         ui.add_artifact(f"{call['role']}: {call['status']} — {Path(call['log']).name}")
     ui.start()
     try:
+        ui.info(f"运行中指令 inbox：{inbox.path}；所有 Agent 按提示词每 3 分钟检查")
         return run(state_path, state, args, ui)
     finally:
         ui.stop()
