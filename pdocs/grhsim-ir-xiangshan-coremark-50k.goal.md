@@ -145,9 +145,9 @@ GrhSIM-IR pack 0 生成 5,749 个 C++ 文件，其中 5,595 个是 task 文件�
 
 activity outer guard 使用 GrhSIM source commit `c3dfad0cc19e29943b65d815ae180fdbd42f1bee` 完成两次独立 50k 运行：289.305 s 和 280.093 s，均退出 0、NEMU difftest PASS、73,580 instructions、`cycleCnt=49996`、terminal PC `0x80001312`。生成和编译没有超时。它是当前最佳可复现方案，但平均 284.699 s 仍为 gsim 的 13.794 倍，未达到约 40 s 目标，因此 M3 的性能验收不通过。
 
-### M4 收敛：未完成
+### M4 收敛：档案完成，性能目标未完成
 
-M0、M1、M2 的自包含报告和索引已准备；当前最佳 commit、完整命令、限制和失败方向均已写入 Git 待提交。由于最佳方案尚未达到约 40 s 仿真目标，不能关闭 goal。下一轮应从 task-call/生成代码剩余成本提出新的、独立且有统计依据的候选；不得重复 frame 初始化或把 batch64 的未完成编译当作收益。
+M0、M1、M2、M3 的自包含报告、实验索引、当前最佳 commit、完整命令、限制和失败方向均已纳入 Git。由于最佳方案尚未达到约 40 s 仿真目标，不能关闭 goal。下一轮应从 task-call/生成代码剩余成本提出新的、独立且有统计依据的候选；不得重复 frame 初始化或把 batch64 的未完成编译当作收益。
 
 ## 实验索引
 
