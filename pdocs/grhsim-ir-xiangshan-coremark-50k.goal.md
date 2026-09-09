@@ -9,7 +9,7 @@
 - 仿真行为与参考结果等价，且单线程 GrhSIM-IR 仿真时间达到或优于约 40 秒的 gsim 参照值。
 - 从 SV 生成 C++ 的总耗时小于 30 分钟。
 - 生成的 C++ 编译耗时小于 30 分钟。
-- 全流程不使用多线程仿真；性能数据必须标明 CPU 绑定、输入、cycle 范围和是否启用 waveform/trace。
+- 仿真过程不使用多线程，但编译阶段必须使用多线程（根据机器CPU核数判定）；性能数据必须标明 CPU 绑定、输入、cycle 范围和是否启用 waveform/trace。
 
 “小于 30 分钟”是硬门槛：任何生成或编译步骤达到超时时间，必须立即终止进程，实验记为失败，不得把部分产物或部分结果当作成功数据。
 
@@ -113,8 +113,47 @@
 
 当且仅当 M4 记录完整且已提交到 Git，最佳 GrhSIM-IR 方案在固定输入下满足仿真目标、生成 `<30 min`、编译 `<30 min`，并有行为等价证据和至少一次独立复跑，goal 才算完成。若所有候选均未达标，提交失败分析档案和下一轮候选，不得用缺失数据宣称完成。
 
+## 阶段记录
+
+### M0 基线：已完成
+
+固定输入为 XiangShan revision `4a6e3da8bfb1140d24eaa6c9e0d058fd981b35a6`、`ready-to-run/coremark-2-iteration.bin`（SHA-256 `c764afb8bfd69542620a4794b858867dd1e455efaac56c28eb477f1732f83e8e`）、top `SimTop`、50,000 cycles、`DIFFTEST`，waveform/trace 全部关闭。仿真绑定 CPU 2，明确设置 `XS_EMU_THREADS=1`；机器 `nproc=32`，编译使用多 job。
+
+gsim 运行 20.640 s，退出 0，73,584 instructions，`cycleCnt=49998`，terminal PC `0x8000131e`。当前 GrhSIM-IR pack 0 运行 304.197 s，退出 0，73,580 instructions，`cycleCnt=49996`，terminal PC `0x80001312`；两者均启用 NEMU difftest 且无 mismatch。GrhSIM-IR 生成 87.993 s、编译 502.33 s，均小于 1,800 s。完整方法和限制见 [M0 report](grhsim-ir-m0-baseline-20260910.md)。
+
+### M1 定位：已完成
+
+GrhSIM-IR pack 0 生成 5,749 个 C++ 文件，其中 5,595 个是 task 文件，5,081 个 task 文件含 active-word 逻辑。`eval()` 每轮无条件调用 5,595 个 task；这解释了大量 task body 在 activity byte 为零时仍被进入。IR 规模为 4,530,736 operations、4,285,682 values、508,487 states。基于该证据登记了三个互不相同的方向：
+
+1. **局部 frame 初始化**：移除每次 active supernode 调用的 `std::byte cpu_local[N]{}` 清零。
+2. **activity-driven outer guard**：在 evaluator 调用 activity task 前 OR 检查该 task 的 active-word bytes。
+3. **target batch packing**：把 `XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT` 设为 64，减少 translation units。
+
+候选 1 和 2 完成了 50k 等价实验，候选 3 完成了生成及部分编译筛选；独立报告记录了各自的通用触发条件，未使用模块名称匹配。
+
+### M2 快速筛选：已完成
+
+| 候选 | 生成 | 编译 | 等价性 | 筛选结论 |
+|---|---:|---:|---|---|
+| frame initialization | 86.12 s PASS | 466.12 s PASS | 50k PASS | 拒绝：305.17 s，比基线慢 0.320% |
+| activity outer guard | 87.709 s PASS | 约 515.7 s PASS | 50k 两次 PASS | 保留：平均 284.699 s，比基线快 6.410% |
+| batch count 64 | 594.922 s PASS | 未完成，无 emu | 无可比较运行 | 拒绝本轮筛选；无速度结论 |
+
+所有完成的生成/编译阶段均小于 1,800 s。候选 3 的 680 个 C++ 文件和 169 个已生成 object 只作为结构筛选事实，未被当作性能证据。详细结果见各候选报告。
+
+### M3 完整验证：部分完成
+
+activity outer guard 使用 GrhSIM source commit `c3dfad0cc19e29943b65d815ae180fdbd42f1bee` 完成两次独立 50k 运行：289.305 s 和 280.093 s，均退出 0、NEMU difftest PASS、73,580 instructions、`cycleCnt=49996`、terminal PC `0x80001312`。生成和编译没有超时。它是当前最佳可复现方案，但平均 284.699 s 仍为 gsim 的 13.794 倍，未达到约 40 s 目标，因此 M3 的性能验收不通过。
+
+### M4 收敛：未完成
+
+M0、M1、M2 的自包含报告和索引已准备；当前最佳 commit、完整命令、限制和失败方向均已写入 Git 待提交。由于最佳方案尚未达到约 40 s 仿真目标，不能关闭 goal。下一轮应从 task-call/生成代码剩余成本提出新的、独立且有统计依据的候选；不得重复 frame 初始化或把 batch64 的未完成编译当作收益。
+
 ## 实验索引
 
 | ID | 日期 | 状态 | 仿真(s) | 生成(s) | 编译(s) | 结论 |
 |---|---|---|---:|---:|---:|---|
-| — | — | M0 待建立 | — | — | — | — |
+| [M0 baseline](grhsim-ir-m0-baseline-20260910.md) | 2026-09-10 | BASELINE / VALIDATED | 20.640 gsim; 304.197 IR | 87.993 IR | 502.33 IR | 固定输入和热点已建立 |
+| [frame-init](grhsim-ir-candidate-frame-init-20260910.md) | 2026-09-10 | REJECTED | 305.17 | 86.12 | 466.12 | 清零移除无收益，慢 0.320% |
+| [activity-guard](grhsim-ir-candidate-activity-guard-20260910.md) | 2026-09-10 | VALIDATED / BEST | 289.305; 280.093 | 87.709 | 约 515.7 | 平均快 6.410%，仍慢于目标 |
+| [batch-packing](grhsim-ir-candidate-batch-packing-20260910.md) | 2026-09-09 | REJECTED / INCOMPLETE | — | 594.922 | 未完成 | 680 files，但无完整编译和仿真 |
