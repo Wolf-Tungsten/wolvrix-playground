@@ -307,12 +307,13 @@
 | `TNO0297` | `2026-09-09` | [SimpleTES B native baseline handoff](./TNO0297_simpletes_b_native_baseline_handoff_20260909.md) | SimpleTES 最终 `4ca31aa` 固定实际 parent `fd54f8d` / Wolvrix `94109bc`，新空 control 原生包含 B；161 项 bench/runtime 测试、GPT sol max/thj 离线启动和实际 pin/source/patch 核验通过，已追加逐 word 门槛措辞校正，未启动研究。 |
 | `TNO0298` | `2026-09-09` | [SimpleTES B native fresh build regression](./TNO0298_simpletes_b_native_fresh_build_regression_20260909.md) | node032 当前 pre-B/base+B 独立 fresh RTL 构建成功；CPP 仅 2,074 处分支提示及 3 行宏定义差异，普通 O3 无 PGO/BOLT；双方各 32 项 pybind、100/10k 功能通过，ELF `83,521,600→83,624,000 bytes`，身份/配置一致。 |
 | `TNO0299` | `2026-09-09` | [SimpleTES B native walltime regression](./TNO0299_simpletes_b_native_walltime_regression_20260909.md) | 正式 node032 CPU184 同 CCD fixed-ASLR 50k：base `43,048.50→B 41,051.25 ms`，减少 `1,997.25 ms/4.639534%`；order gap `0.166151 pp`，完整 8 项稳定性门禁通过。前三组 gap 不合格均保留并拒绝，不混合平均；B 保留原生默认。 |
+| `TNO0300` | `2026-09-09` | [SimpleTES native-B Astra fresh research launch](./TNO0300_simpletes_native_b_astra_fresh_launch_20260909.md) | node030 以 native-B 默认基线新建 instance `ed572ae5`；隔离安装当前稳定 Codex `0.153.4`，THJ 派生私有配置的 `gpt-6-astra/max` 真实工具调用预检通过，`64 attempts/32 valid`、`4 gen/1 eval` 已启动，首次 control 构建中，尚无新性能结论。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`299`（`TNO0001..TNO0299`）。
+- 当前记录类文档总数：`300`（`TNO0001..TNO0300`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
