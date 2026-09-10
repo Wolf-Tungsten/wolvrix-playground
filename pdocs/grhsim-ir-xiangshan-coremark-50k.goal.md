@@ -168,6 +168,8 @@ M0、M1、M2、M3 的自包含报告、实验索引、当前最佳 commit、完�
 
 ## 实验索引
 
+2026-09-10 的 packed activity mask 结构筛选核对了全部 5,595 个 task：5,081 个 activity task、513 个 domain guard 和 1 个无条件 task。只有 6 个 activity guard 含两个连续字节，其余 5,075 个均为单字节；最多减少 6/5,087 = 0.1179477% 的静态 activity 检查项，不能视为运行时间收益。该候选在实现前拒绝，未重跑 gsim 或仿真；完整方法见对应报告。当前最佳方案和性能目标未达成的结论不变。
+
 | ID | 日期 | 状态 | 仿真(s) | 生成(s) | 编译(s) | 结论 |
 |---|---|---|---:|---:|---:|---|
 | [M0 baseline](grhsim-ir-m0-baseline-20260910.md) | 2026-09-10 | BASELINE / VALIDATED | 20.640 gsim; 304.197 IR | 87.993 IR | 502.33 IR | 固定输入和热点已建立 |
@@ -176,4 +178,4 @@ M0、M1、M2、M3 的自包含报告、实验索引、当前最佳 commit、完�
 | [batch-packing](grhsim-ir-candidate-batch-packing-20260910.md) | 2026-09-09 | REJECTED / INCOMPLETE | — | 594.922 | 未完成 | 680 files，但无完整编译和仿真 |
 | [ready-queue](grhsim-ir-candidate-ready-queue-20260910.md) | 2026-09-10 | REJECTED / INVALID | cycle 0 failure | 589.254 | 约 707 | RTL assertions, 0 instructions; no timing result |
 | [ready-dispatch](grhsim-ir-candidate-ready-dispatch-20260910.md) | 2026-09-10 | REJECTED / REGRESSION | 737.862 | 87.647 | 约 700 | 功能通过但比 activity-guard 慢约 2.59 倍 |
-| [activity-mask-pack](grhsim-ir-candidate-activity-mask-pack-20260910.md) | 2026-09-10 | IDEA | — | — | — | 将 activity guard 的多字节检查压缩为分组机器字加载，待实现验证 |
+| [activity-mask-pack](grhsim-ir-candidate-activity-mask-pack-20260910.md) | 2026-09-10 | REJECTED / STRUCTURAL SCREEN | 未运行 | 未运行 | 未运行 | 仅 6 个双字节 guard 可合并，静态检查项减少 0.1179477%，无运行收益证据 |

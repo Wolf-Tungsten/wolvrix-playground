@@ -309,6 +309,11 @@ test_grhsim_cpu_mapping:
 	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(grhsim-ir-tests|grhsim-cpu-mapping-tests)$$' --output-on-failure
 
 .PHONY: audit_grhsim_cpu_emit
+.PHONY: analyze_grhsim_activity_guards
+analyze_grhsim_activity_guards:
+	@test -n "$(GRHSIM_ACTIVITY_MODEL)" || { echo "Set GRHSIM_ACTIVITY_MODEL to the generated model .cpp"; exit 1; }
+	$(PYTHON) $(CURDIR)/scripts/grhsim_activity_guard_stats.py --model "$(GRHSIM_ACTIVITY_MODEL)"
+
 .PHONY: test_grhsim_reg_to_mem inspect_grhsim_reg_to_mem
 test_grhsim_reg_to_mem:
 	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
