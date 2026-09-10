@@ -170,6 +170,8 @@ M0、M1、M2、M3 的自包含报告、实验索引、当前最佳 commit、完�
 
 2026-09-10 阶段整理：当前保留 `7b3432b`，实测均值 279.9485 s（收益仍有噪声限制），后续同配置仿真的 1.5× 止损阈值更新为 419.92275 s。已排除 frame 初始化、ready queue、ready-bit dispatcher 和 packed activity guards；batch64 的不完整编译不能用作收益。下一步先量化 compute、commit、publication 各阶段耗时，不再仅凭静态站点数推断热点。gsim 20.640 s 基线继续复用。
 
+阶段计时已在 `93d55ae` 上完成完整模型验证：SV 生成 606.29 s、32-job 编译 477.30 s；CPU 2 单线程 50k 的计时关闭/开启运行分别为 287.162/292.350 s，均 NEMU PASS，末端与 scalar staging 一致。累计 eval 292.1230 s 中 compute 占 56.1832%、commit 占 38.7506%、publication 占 5.0388%，两大 task 阶段合计 94.9338%。单次开启比关闭多 1.8066%，但不足以分离计时开销与噪声；不更新最低实测基线。下一步在 compute/commit 内定位热函数和 task 工作，区分 dispatch/guard 与 task body；仅优化 publication 无法接近约 40 s。详见 [phase profiling report](grhsim-ir-phase-profile-20260910.md)。
+
 ## 实验索引
 
 2026-09-10 的 packed activity mask 结构筛选核对了全部 5,595 个 task：5,081 个 activity task、513 个 domain guard 和 1 个无条件 task。只有 6 个 activity guard 含两个连续字节，其余 5,075 个均为单字节；最多减少 6/5,087 = 0.1179477% 的静态 activity 检查项，不能视为运行时间收益。该候选在实现前拒绝，未重跑 gsim 或仿真；完整方法见对应报告。后续 scalar staging 已完成完整验证，结果单独列于下表。
@@ -184,4 +186,4 @@ M0、M1、M2、M3 的自包含报告、实验索引、当前最佳 commit、完�
 | [ready-dispatch](grhsim-ir-candidate-ready-dispatch-20260910.md) | 2026-09-10 | REJECTED / REGRESSION | 737.862 | 87.647 | 约 700 | 功能通过但比 activity-guard 慢约 2.59 倍 |
 | [activity-mask-pack](grhsim-ir-candidate-activity-mask-pack-20260910.md) | 2026-09-10 | REJECTED / STRUCTURAL SCREEN | 未运行 | 未运行 | 未运行 | 仅 6 个双字节 guard 可合并，静态检查项减少 0.1179477%，无运行收益证据 |
 | [scalar-stage-elision](grhsim-ir-candidate-scalar-stage-elision-20260910.md) | 2026-09-10 | VALIDATED / LOWEST MEAN | 284.075; 275.822 | 605.75（完整 SV） | 471.77 | 均值 279.9485 s，低 1.6686% 但范围重叠；两次 50k PASS，未达约 40 s |
-| [phase-profile](grhsim-ir-phase-profile-20260910.md) | 2026-09-10 | IMPLEMENTED / FOCUSED PASS | 未测 50k | 未测完整模型 | 未测完整模型 | 阶段计时已实现；focused 68.04 s PASS，2,048 次 on/off 回放；待完整阶段占比及扰动测量 |
+| [phase-profile](grhsim-ir-phase-profile-20260910.md) | 2026-09-10 | VALIDATED / DIAGNOSTIC | 287.162 off; 292.350 on | 606.29（完整 SV） | 477.30 | 两次 50k PASS；eval 中 compute 56.18%、commit 38.75%、publish 5.04%；保留旧性能基线，待细分 task 热点 |
