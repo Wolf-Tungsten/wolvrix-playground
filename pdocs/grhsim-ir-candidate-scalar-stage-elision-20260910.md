@@ -1,7 +1,7 @@
 # GrhSIM-IR Candidate: Elide Unchanged Scalar Shadow Writes
 
 - Date: 2026-09-10
-- Status: IMPLEMENTED / FOCUSED TESTS PASS; full workload validation pending
+- Status: VALIDATED / LOWEST OBSERVED MEAN; absolute performance target unmet
 - Root baseline: `92b03b1` (packed-guard screen archived)
 - GrhSIM baseline: `c3dfad0cc19e29943b65d815ae180fdbd42f1bee`, clean worktree
 - Candidate simulator implementation: GrhSIM commit `7b3432b` (parent `c3dfad0`)
@@ -75,7 +75,7 @@ The next goal execution should implement this candidate in the IR emitter, prese
 | Equivalence / speedup | Activity-guard baseline verified in linked archive | Not tested / unmeasured |
 | Simulation stop-loss | 1.5 × 284.699 = 427.0485 s | Not triggered; no run |
 
-The structural counts do not alter the current best or satisfy the approximately 40 s objective. The full SV-to-C++ timing boundary also remains a final acceptance requirement: the archived resumed-flat generation number alone cannot prove it.
+At the structural stage these counts did not alter the current best or satisfy the approximately 40 s objective. The archived resumed-flat generation number alone could not prove the full SV-to-C++ timing requirement; that boundary is measured in the later full validation below.
 
 ## Implementation and focused validation
 
@@ -115,6 +115,77 @@ These results cover local scalar semantics and existing regressions, not XiangSh
 ### Decision and next step
 
 Mark IMPLEMENTED with focused tests passing. Preserve `c3dfad0` as the best full-workload validated baseline; `7b3432b` is an experimental implementation whose speed and 50k behavior are unproven. The next goal execution should run this same candidate through bounded full generation, parallel compilation, and single-threaded CoreMark validation, with exact timing boundaries and immediate stop-loss. Do not select a new candidate before recording this one's result. The approximately 40 s goal remains unmet.
+
+## Full-workload validation
+
+This step started from root `7f8f75b` and clean implementation `7b3432b29f87cae70dfba6f929078a2632d6b066`. XiangShan revision and CoreMark SHA-256 were rechecked and match the fixed input above; the host reports 32 CPUs. RUN_ID is `scalar_stage_50k_20260910_01`. The experiment generated from SV (resume disabled), included the existing `py_install` dependency to refresh the Python emitter, compiled with 32 jobs, and completed two 50k runs on CPU 2 with one emulator thread and no waveform/trace. The comparison and stop-loss selected before running were 284.699 s and 427.0485 s. Each generation/build process tree had a preinstalled 1,800 s kill deadline. Commands and outcomes were appended as each phase completed.
+
+### Generation command
+
+```bash
+mkdir -p ptmp/scalar_stage_50k_20260910_01/tmp ptmp/scalar_stage_50k_20260910_01/ccache ptmp/scalar_stage_50k_20260910_01/pip-cache
+TMPDIR="$PWD/ptmp/scalar_stage_50k_20260910_01/tmp" CCACHE_DIR="$PWD/ptmp/scalar_stage_50k_20260910_01/ccache" PIP_CACHE_DIR="$PWD/ptmp/scalar_stage_50k_20260910_01/pip-cache" CMAKE_BUILD_PARALLEL_LEVEL=32 WOLF_ENV_SOURCED=1 /usr/bin/time -p -o ptmp/scalar_stage_50k_20260910_01/generation.time timeout --signal=KILL 1800s make --no-print-directory xs_wolf_grhsim_ir PYTHON="$PWD/.venv/bin/python" RUN_ID=scalar_stage_50k_20260910_01 XS_GRHSIM_IR_BUILD=ptmp/scalar_stage_50k_20260910_01/flow XS_LOG_DIR=ptmp/scalar_stage_50k_20260910_01/logs XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR=ptmp/scalar_stage_50k_20260910_01/flow/model XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON=0 XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT=0 > ptmp/scalar_stage_50k_20260910_01/generation.log 2>&1
+```
+
+The timer encloses the Make invocation, including its Python installation dependency and the final IR round-trip check. It therefore provides an upper bound on SV→C++/Makefile generation, not just emission time. The archived resumed-flat timing is a different boundary and is not used for a generation speedup percentage.
+
+### Generation result and compilation start
+
+Generation completed with exit 0: Make wall time **605.75 s** (user 704.65 s, sys 25.61 s), PASS against 1,800 s. The script's internal total was 592.915 s. Selected internal intervals were SV ingest 75.530 s, xmr-resolve 55.131 s, hier-flatten 39.403 s, comb-loop-elim 57.399 s (zero loops), and simplify 280.177 s. Stable IR round-trip verification passed. A bytewise `cmp` of the newly generated flat GRH checkpoint against the frozen baseline completed with exit 0; include/define argument files were also byte-identical. The emitted header contains `cpu_write_scalar`, confirming the refreshed Python emitter used the candidate. These observations establish input identity without changing any GRH passes.
+
+The generated model contains **5,749 C++ files and 1,298,655,919 C++ bytes**. Text enumeration finds **21,073 `cpu_write_scalar` call sites in 122 task files**, matching the structural baseline's eligible sites. This is emitted-source coverage only, not a dynamic count. Compilation logs show `clang++ -std=c++20 -O3` for model translation units. The object/link completion result is recorded separately below.
+
+Compilation used the generated Makefile and existing emu build target, with a fresh output directory and 32 model compilation jobs. Its own 1,800 s deadline started at the following invocation.
+
+```bash
+TMPDIR="$PWD/ptmp/scalar_stage_50k_20260910_01/tmp" CCACHE_DIR="$PWD/ptmp/scalar_stage_50k_20260910_01/ccache" WOLF_ENV_SOURCED=1 /usr/bin/time -p -o ptmp/scalar_stage_50k_20260910_01/compile.time timeout --signal=KILL 1800s make --no-print-directory xs_wolf_grhsim_ir_build_emu RUN_ID=scalar_stage_50k_20260910_01 XS_GRHSIM_IR_BUILD=ptmp/scalar_stage_50k_20260910_01/flow XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR=ptmp/scalar_stage_50k_20260910_01/flow/model VM_BUILD_JOBS=32 XS_EMU_THREADS=1 EMU_THREADS=1 WOLVRIX_GRHSIM_WAVEFORM=0 > ptmp/scalar_stage_50k_20260910_01/compile.log 2>&1
+```
+
+### Compilation result and first simulation start
+
+Compilation completed with exit 0 in **471.77 s** (user 7,277.06 s, sys 465.86 s), PASS against 1,800 s. The emu target exists and resolves to the newly linked executable, **131,696,272 bytes**; all model objects total **148,167,152 bytes**. XiangShan's source worktree remains clean. Compilation used 32 jobs; this parallelism is not a simulation speedup.
+
+The first full run used the exact archived workload and default progress setting (0), with explicit CPU 2 binding and `XS_EMU_THREADS=1` in both environment and Make variables. The `timeout` wrapper was installed immediately around the emulator execution prefix, so its 427.0485 s deadline excluded model generation/compilation and Make setup. `/usr/bin/time` measured the execution prefix including `taskset`/`stdbuf` startup; the emulator's own Host time was also retained for direct comparison with the archived baseline.
+
+```bash
+WOLF_ENV_SOURCED=1 XS_EMU_THREADS=1 EMU_PHASE_TIMING=0 make --no-print-directory run_xs_wolf_grhsim_ir_emu RUN_ID=scalar_stage_50k_20260910_01 XS_GRHSIM_IR_BUILD=ptmp/scalar_stage_50k_20260910_01/flow XS_LOG_DIR=ptmp/scalar_stage_50k_20260910_01/logs XS_SIM_MAX_CYCLE=50000 XS_EMU_THREADS=1 XS_EMU_CPU=2 XS_PROGRESS_EVERY_CYCLES=0 XS_WAVEFORM=0 XS_COMMIT_TRACE=0 XS_RAM_TRACE=0 XS_WAVEFORM_PATH= WOLVRIX_GRHSIM_WAVEFORM=0 XS_EMU_PREFIX="timeout --signal=KILL 427.0485s /usr/bin/time -p -o $PWD/ptmp/scalar_stage_50k_20260910_01/run1.time taskset -c 2 stdbuf -oL -eL" > ptmp/scalar_stage_50k_20260910_01/run1.log 2>&1
+```
+
+### First run result and independent repeat
+
+The first run exited 0 at 50,000 cycles with NEMU difftest enabled and no mismatch. The endpoint is **73,580 instructions, cycleCnt 49,996, terminal PC 0x80001312**, exactly matching activity guard. Host time is **284.075 s**; execution-prefix wall time is **284.10 s** (user 284.02, sys 0.04). No stop-loss occurred. The single-run change against 284.699 s is approximately **-0.2192%**, much smaller than the archived baseline's 9.212 s spread. This is insufficient evidence of a speedup, so one independent repeat is now justified to characterize this candidate's measurement rather than accept noise.
+
+The second invocation reused the same built emu and all input/resource/trace settings. Its separate RUN_ID and timing/log files are recorded below; the same 427.0485 s stop-loss applied.
+
+```bash
+WOLF_ENV_SOURCED=1 XS_EMU_THREADS=1 EMU_PHASE_TIMING=0 make --no-print-directory run_xs_wolf_grhsim_ir_emu RUN_ID=scalar_stage_50k_20260910_01_rerun XS_GRHSIM_IR_BUILD=ptmp/scalar_stage_50k_20260910_01/flow XS_LOG_DIR=ptmp/scalar_stage_50k_20260910_01/logs XS_SIM_MAX_CYCLE=50000 XS_EMU_THREADS=1 XS_EMU_CPU=2 XS_PROGRESS_EVERY_CYCLES=0 XS_WAVEFORM=0 XS_COMMIT_TRACE=0 XS_RAM_TRACE=0 XS_WAVEFORM_PATH= WOLVRIX_GRHSIM_WAVEFORM=0 XS_EMU_PREFIX="timeout --signal=KILL 427.0485s /usr/bin/time -p -o $PWD/ptmp/scalar_stage_50k_20260910_01/run2.time taskset -c 2 stdbuf -oL -eL" > ptmp/scalar_stage_50k_20260910_01/run2.log 2>&1
+```
+
+### Independent repeat result and final comparison
+
+The independent repeat exited 0 at 50,000 cycles, with NEMU difftest enabled and no mismatch. It exactly reproduced the first run's **73,580 instructions, cycleCnt 49,996, terminal PC 0x80001312**, and guest-cycle count 50,001. Host time was **275.822 s**; execution-prefix wall time was **275.85 s** (user 275.77, sys 0.04). Both complete logs were checked for mismatch, ABORT, bad trap, assertion failure, and segmentation fault; none appeared. The two tool process handles returned exit 0. Stop-loss result is NONE for both, using the preselected 427.0485 s limit.
+
+| Model / run | Host simulation (s) | Execution wall (s) | Exit / equivalence |
+|---|---:|---:|---|
+| Archived gsim | 20.640 | Not archived | 0 / NEMU PASS; backend cycle-accounting limitation described in M0 |
+| Activity guard, first | 289.305 | Not archived | 0 / PASS |
+| Activity guard, repeat | 280.093 | Not archived | 0 / PASS |
+| Activity guard, mean | 284.699 | — | Comparison selected before experiment |
+| Scalar staging, first | 284.075 | 284.10 | 0 / PASS |
+| Scalar staging, independent repeat | 275.822 | 275.85 | 0 / PASS |
+| Scalar staging, mean | **279.9485** | **279.975** | Both complete runs valid |
+
+The first and second Host-time changes against the fixed 284.699 s comparison value are -0.2192% and -3.1180%. The mean change is `(279.9485 / 284.699 - 1) * 100 = -1.6686%`. Against original pack-0 M0 304.197 s, the mean is 7.9713% lower. The current mean remains **13.5634 times** the measured gsim 20.640 s, and approximately seven times the 40 s target.
+
+Generation **605.75 s** and compilation **471.77 s** each pass the strict 1,800 s gate. Generation covers the complete SV route, and its flat-GRH result is byte-identical to the frozen baseline. There is no comparable archived full-SV generation interval for activity guard, so no generation percentage is claimed. The old compilation number is approximate; the present exact Make wall time is used to establish the gate, not a causal compilation speedup.
+
+### Decision, limitations, and next step
+
+Keep `7b3432b29f87cae70dfba6f929078a2632d6b066` as the candidate with the lowest observed mean and mark it VALIDATED, not ACCEPTED. This execution completed one candidate experiment, including an independent rerun, and no other optimization was tested. The implementation passed focused regressions, both full-workload comparisons, and both build-time gates; the absolute simulation target is still not met.
+
+The 4.7505 s difference in means is smaller than the baseline's 9.212 s spread and the candidate's 8.253 s spread. The ranges overlap. Two repetitions are insufficient to establish a statistically reliable speedup or isolate host drift, temperature, and scheduling noise. Retaining the measured minimum is a provisional search choice, not a claim that the optimization reliably saves 1.67%. The static site count does not reveal how many writes were unchanged at runtime, and the old direct-commit path already handles most ordinary scalar register writes.
+
+For subsequent experiments using this source and identical settings, the updated measured comparison value is **279.9485 s**, giving a 1.5× simulation limit of **419.92275 s**. Reuse the existing gsim measurement. The next search step should quantify time in compute, commit, and publication before selecting another optimization; this experiment does not establish which phase dominates. The overall goal remains active because the approximately 40 s performance requirement is unfulfilled.
 
 ## Archive
 

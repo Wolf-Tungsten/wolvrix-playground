@@ -156,7 +156,9 @@ GrhSIM-IR pack 0 生成 5,749 个 C++ 文件，其中 5,595 个是 task 文件�
 
 ### M3 完整验证：部分完成
 
-activity outer guard 使用 GrhSIM source commit `c3dfad0cc19e29943b65d815ae180fdbd42f1bee` 完成两次独立 50k 运行：289.305 s 和 280.093 s，均退出 0、NEMU difftest PASS、73,580 instructions、`cycleCnt=49996`、terminal PC `0x80001312`。生成和编译没有超时。它是当前最佳可复现方案，但平均 284.699 s 仍为 gsim 的 13.794 倍，未达到约 40 s 目标，因此 M3 的性能验收不通过。
+activity outer guard 使用 GrhSIM source commit `c3dfad0cc19e29943b65d815ae180fdbd42f1bee` 完成两次独立 50k 运行：289.305 s 和 280.093 s，均退出 0、NEMU difftest PASS、73,580 instructions、`cycleCnt=49996`、terminal PC `0x80001312`。它是后续 scalar staging 实验的比较基线；平均 284.699 s 为 gsim 的 13.794 倍，未达到约 40 s 目标。
+
+scalar staging 使用 source commit `7b3432b29f87cae70dfba6f929078a2632d6b066` 完成从 SV 生成（605.75 s）、32-job 编译（471.77 s）和两次 CPU 2 单线程 50k 运行（284.075 s、275.822 s），均退出 0、NEMU difftest PASS，末端计数和 PC 与 activity guard 完全一致。新 flat GRH checkpoint 与冻结基线逐字节一致。当前最低实测均值为 **279.9485 s**，比 activity guard 均值低 1.6686%；两组范围重叠，尚不能证明收益超出噪声。该方案保留为 `VALIDATED`，完整命令和限制见 [scalar staging report](grhsim-ir-candidate-scalar-stage-elision-20260910.md)。平均值仍为 gsim 的 13.5634 倍，M3 的绝对性能验收仍不通过。
 
 ready-queue dispatcher 完成生成、稳定 round-trip 和编译，但首次 50k 仿真在 cycle 0 触发 XiangShan RTL assertion，`instrCnt=0`、`pc=0x0`，退出 2；因此没有计入性能数据，详见 [ready-queue report](grhsim-ir-candidate-ready-queue-20260910.md)。该方向拒绝。
 
@@ -166,17 +168,19 @@ ready-bit dispatcher 完成 focused 测试、生成、稳定 round-trip、编译
 
 M0、M1、M2、M3 的自包含报告、实验索引、当前最佳 commit、完整命令、限制和失败方向均已纳入 Git。由于最佳方案尚未达到约 40 s 仿真目标，不能关闭 goal。下一轮应从 task-call/生成代码剩余成本提出新的、独立且有统计依据的候选；不得重复 frame 初始化或把 batch64 的未完成编译当作收益。
 
+2026-09-10 阶段整理：当前保留 `7b3432b`，实测均值 279.9485 s（收益仍有噪声限制），后续同配置仿真的 1.5× 止损阈值更新为 419.92275 s。已排除 frame 初始化、ready queue、ready-bit dispatcher 和 packed activity guards；batch64 的不完整编译不能用作收益。下一步先量化 compute、commit、publication 各阶段耗时，不再仅凭静态站点数推断热点。gsim 20.640 s 基线继续复用。
+
 ## 实验索引
 
-2026-09-10 的 packed activity mask 结构筛选核对了全部 5,595 个 task：5,081 个 activity task、513 个 domain guard 和 1 个无条件 task。只有 6 个 activity guard 含两个连续字节，其余 5,075 个均为单字节；最多减少 6/5,087 = 0.1179477% 的静态 activity 检查项，不能视为运行时间收益。该候选在实现前拒绝，未重跑 gsim 或仿真；完整方法见对应报告。当前最佳方案和性能目标未达成的结论不变。
+2026-09-10 的 packed activity mask 结构筛选核对了全部 5,595 个 task：5,081 个 activity task、513 个 domain guard 和 1 个无条件 task。只有 6 个 activity guard 含两个连续字节，其余 5,075 个均为单字节；最多减少 6/5,087 = 0.1179477% 的静态 activity 检查项，不能视为运行时间收益。该候选在实现前拒绝，未重跑 gsim 或仿真；完整方法见对应报告。后续 scalar staging 已完成完整验证，结果单独列于下表。
 
 | ID | 日期 | 状态 | 仿真(s) | 生成(s) | 编译(s) | 结论 |
 |---|---|---|---:|---:|---:|---|
 | [M0 baseline](grhsim-ir-m0-baseline-20260910.md) | 2026-09-10 | BASELINE / VALIDATED | 20.640 gsim; 304.197 IR | 87.993 IR | 502.33 IR | 固定输入和热点已建立 |
 | [frame-init](grhsim-ir-candidate-frame-init-20260910.md) | 2026-09-10 | REJECTED | 305.17 | 86.12 | 466.12 | 清零移除无收益，慢 0.320% |
-| [activity-guard](grhsim-ir-candidate-activity-guard-20260910.md) | 2026-09-10 | VALIDATED / BEST | 289.305; 280.093 | 87.709 | 约 515.7 | 平均快 6.410%，仍慢于目标 |
+| [activity-guard](grhsim-ir-candidate-activity-guard-20260910.md) | 2026-09-10 | VALIDATED / PRIOR BASELINE | 289.305; 280.093 | 87.709（恢复 flat） | 约 515.7 | 平均快 6.410%，作为 scalar staging 对照 |
 | [batch-packing](grhsim-ir-candidate-batch-packing-20260910.md) | 2026-09-09 | REJECTED / INCOMPLETE | — | 594.922 | 未完成 | 680 files，但无完整编译和仿真 |
 | [ready-queue](grhsim-ir-candidate-ready-queue-20260910.md) | 2026-09-10 | REJECTED / INVALID | cycle 0 failure | 589.254 | 约 707 | RTL assertions, 0 instructions; no timing result |
 | [ready-dispatch](grhsim-ir-candidate-ready-dispatch-20260910.md) | 2026-09-10 | REJECTED / REGRESSION | 737.862 | 87.647 | 约 700 | 功能通过但比 activity-guard 慢约 2.59 倍 |
 | [activity-mask-pack](grhsim-ir-candidate-activity-mask-pack-20260910.md) | 2026-09-10 | REJECTED / STRUCTURAL SCREEN | 未运行 | 未运行 | 未运行 | 仅 6 个双字节 guard 可合并，静态检查项减少 0.1179477%，无运行收益证据 |
-| [scalar-stage-elision](grhsim-ir-candidate-scalar-stage-elision-20260910.md) | 2026-09-10 | IMPLEMENTED / FOCUSED PASS | 未运行 | 未运行 | 未运行 | 实现 commit 7b3432b；focused 测试 60.95 s PASS，10 种标量/10,240 次边沿；待 50k 验证 |
+| [scalar-stage-elision](grhsim-ir-candidate-scalar-stage-elision-20260910.md) | 2026-09-10 | VALIDATED / LOWEST MEAN | 284.075; 275.822 | 605.75（完整 SV） | 471.77 | 均值 279.9485 s，低 1.6686% 但范围重叠；两次 50k PASS，未达约 40 s |

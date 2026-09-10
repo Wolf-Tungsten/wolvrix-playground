@@ -1,7 +1,7 @@
 # GrhSIM-IR Candidate: Activity-Driven Task Guard
 
 - Date: 2026-09-10
-- Status: VALIDATED / CURRENT BEST, goal target still unmet
+- Status: VALIDATED / PRIOR BASELINE, goal target still unmet
 - Root source before archival docs: `d3d2d5ed483e44f4d498465ec12d40155c84ef1d`
 - GrhSIM source commit: `c3dfad0cc19e29943b65d815ae180fdbd42f1bee`
 
@@ -43,4 +43,4 @@ The emitted model has 5,749 C++ files (5,595 task files), 1,298,508,408 C++ byte
 
 ## Analysis, limits, and decision
 
-The exact generated-shape assertion reconstructs active-word offsets from `CpuDataLayout` and checks every activity task, while the existing sanitizer suite covers execution behavior. The two full runs agree on architectural checkpoints; their 3.2% spread shows ordinary host variance, so the mean is the comparison value. The guard is retained as the current best validated candidate, but it is not marked accepted because the absolute target remains far away. A future candidate must address the remaining task-call and generated-code costs without weakening the same equivalence checks.
+The exact generated-shape assertion reconstructs active-word offsets from `CpuDataLayout` and checks every activity task, while the existing sanitizer suite covers execution behavior. The two full runs agree on architectural checkpoints; their 3.2% spread shows ordinary host variance, so the mean is the comparison value. The guard was retained as the best validated candidate at this stage, but was not marked accepted because the absolute target remained far away. The later [scalar staging experiment](grhsim-ir-candidate-scalar-stage-elision-20260910.md), which retains this guard, measured a lower mean of 279.9485 s with overlapping timing ranges. This report's original measurements remain its comparison baseline.
