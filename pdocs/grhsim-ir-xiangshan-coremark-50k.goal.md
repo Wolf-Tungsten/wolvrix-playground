@@ -94,5 +94,6 @@
 | [task-hotspots](grhsim-ir-task-hotspots-20260910.md) | 诊断：283.389 s，56,397 样本，对拍通过；未实施优化 |
 | [shared-history](grhsim-ir-candidate-shared-history-20260910.md) | ACCEPTED：共享同一 commit task 内等价私有 event history；生成 615.95 s、编译 246.50 s；50k 候选均值 268.947 s，对照均值 292.113 s，提升 7.9303% |
 | [edge-snapshot](grhsim-ir-candidate-edge-snapshot-20260910.md) | ACCEPTED：496 个 task 的 226,510 次重复边沿条件引用复用 496 个快照；生成 611.87 s、编译 255.12 s；50k 两次均值 215.6715 s，相对最终控制 270.194 s 降低 20.1790% |
+| [pending-dedup](grhsim-ir-candidate-pending-dedup-20260910.md) | REJECTED：四处入队路径均由 dirty 位保证同一 key 每轮最多一条记录；内存按 cell 分配 key。静态证伪，未运行性能实验 |
 
-当前搜索复盘：共享 history 与复用边沿判定已得到可组合收益；ready queue/间接 dispatch、移除 frame 清零及覆盖面过小的 activity-mask packing 已排除。距离约 40 s 仍差 175.6715 s。现有热点百分比来自优化前版本，后续应重新定位 compute、payload commit 和 publication 的主要成本，避免继续围绕同一局部缓存微调。本次仅完成 edge-snapshot 节点。
+当前搜索复盘：共享 history 与复用边沿判定已得到可组合收益；ready queue/间接 dispatch、移除 frame 清零及覆盖面过小的 activity-mask packing 已排除。pending 记录去重也因 dirty 位不变量证伪。距离约 40 s 仍差 175.6715 s。后续应重新定位 compute、payload commit 和 publication 的主要成本，避免继续围绕已排除方向微调。本次完成 pending-dedup 节点。
