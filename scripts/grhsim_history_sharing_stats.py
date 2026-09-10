@@ -12,7 +12,7 @@ def inspect(directory):
     initializers = collections.Counter()
     tasks = {}
     total_bytes = 0
-    scalar_calls = batches = 0
+    scalar_calls = batches = snapshots = snapshot_uses = snapshot_tasks = 0
     for path in sorted(directory.glob("*.cpp")):
         data = path.read_bytes()
         total_bytes += len(data)
@@ -22,9 +22,19 @@ def inspect(directory):
             tasks[path.name] = (hashlib.sha256(data).hexdigest(), len(data))
             scalar_calls += data.count(b"cpu_write_scalar<bool>(")
             batches += data.count(b"// cpu_history_batch states=")
+            cached = re.findall(rb"const bool (cpu_edge_snapshot_\d+)=.*?; // cpu_edge_snapshot uses=(\d+)\n", data)
+            if len(cached) != data.count(b"const bool cpu_edge_snapshot_"):
+                raise ValueError(f"unrecognized edge snapshot declaration in {path}")
+            for name, expected in cached:
+                uses = len(re.findall(rb"if\(\(?" + re.escape(name) + rb"\)", data))
+                if uses != int(expected) or uses < 2:
+                    raise ValueError(f"edge snapshot use count differs in {path}: {name!r}")
+                snapshot_uses += uses
+            snapshots += len(cached)
+            snapshot_tasks += bool(cached)
     if not tasks or not initializers:
         raise ValueError("missing generated tasks or bool initializers")
-    return initializers, tasks, total_bytes, scalar_calls, batches
+    return initializers, tasks, total_bytes, scalar_calls, batches, snapshots, snapshot_uses, snapshot_tasks
 
 
 def main():
@@ -36,7 +46,8 @@ def main():
     for label, data in zip(("baseline", "candidate"), (before, after)):
         print(f"{label}: bool_initializers={sum(data[0].values())} "
               f"unique_bool_addresses={len(data[0])} cpp_bytes={data[2]} "
-              f"bool_stage_sites={data[3]} history_batch_sites={data[4]}")
+              f"bool_stage_sites={data[3]} history_batch_sites={data[4]} "
+              f"edge_snapshots={data[5]} edge_snapshot_uses={data[6]} edge_snapshot_tasks={data[7]}")
     changed = [name for name in before[1] if before[1][name] != after[1][name]]
     print(f"tasks={len(before[1])} changed_tasks={len(changed)} "
           f"eliminated_unique_bool_addresses={len(before[0]) - len(after[0])}")

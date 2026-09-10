@@ -70,8 +70,8 @@
 - XiangShan：`4a6e3da8bfb1140d24eaa6c9e0d058fd981b35a6`；top `SimTop`，DIFFTEST/NEMU。
 - 输入：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`；SHA-256 `c764afb8bfd69542620a4794b858867dd1e455efaac56c28eb477f1732f83e8e`。
 - 50,000 cycles、CPU 2、`XS_EMU_THREADS=1`，waveform/commit/RAM trace 关闭；主机 32 CPU。
-- 最低实测均值：scalar staging `7b3432b29f87cae70dfba6f929078a2632d6b066`，两次 **284.075 / 275.822 s**，均值 **279.9485 s**；相对前一基线低 1.6686%，但范围重叠，收益未排除噪声。止损线 **419.92275 s**。
-- 该版本完整生成 **605.75 s**、32-job 编译 **471.77 s**，flat GRH 与冻结基线逐字节一致；两次 NEMU PASS，73,580 instructions、cycleCnt 49,996、末端 PC `0x80001312`、guest cycles 50,001。
+- 当前最佳为 [edge-snapshot 节点](grhsim-ir-candidate-edge-snapshot-20260910.md)：两次 **217.336 / 214.007 s**，均值 **215.6715 s**；相对无重叠 shared-history 控制 **270.194 s** 降低 **20.1790%**。本节点运行前固定止损线 **403.4205 s**，所有运行均通过。后续节点需在启动前重新选定比较值及止损线。
+- 该版本完整生成 **611.87 s**、32-job 编译 **255.12 s**，flat GRH 与冻结基线逐字节一致；两次 NEMU PASS，73,580 instructions、cycleCnt 49,996、末端 PC `0x80001312`、guest cycles 50,001。实现 commit 见节点报告。
 - gsim 参照 **20.640 s**，NEMU PASS；其计数为 73,584 instructions、cycleCnt 49,998、PC `0x8000131e`，后端计数边界差异见 M0 报告。
 
 诊断版本 `93d55ae` 的 eval 时间：compute **56.18%**、commit **38.75%**、publication **5.04%**。函数采样中 `cpu_write_scalar<bool>` 占 **6.22%**；compute 热点分散于 3,367 个 task，前十仅占总样本 **2.55%**；整个 evaluator 占 **3.05%** 且包含内联 publication，不能全归因于 dispatch。应从通用语义和重复工作寻找覆盖面大的机制，事件历史采样/扫描值得分析；这些诊断不构成优化收益。
@@ -93,3 +93,6 @@
 | [phase-profile](grhsim-ir-phase-profile-20260910.md) | 诊断：off/on 287.162/292.350 s，均对拍通过；完整生成/编译 606.29/477.30 s |
 | [task-hotspots](grhsim-ir-task-hotspots-20260910.md) | 诊断：283.389 s，56,397 样本，对拍通过；未实施优化 |
 | [shared-history](grhsim-ir-candidate-shared-history-20260910.md) | ACCEPTED：共享同一 commit task 内等价私有 event history；生成 615.95 s、编译 246.50 s；50k 候选均值 268.947 s，对照均值 292.113 s，提升 7.9303% |
+| [edge-snapshot](grhsim-ir-candidate-edge-snapshot-20260910.md) | ACCEPTED：496 个 task 的 226,510 次重复边沿条件引用复用 496 个快照；生成 611.87 s、编译 255.12 s；50k 两次均值 215.6715 s，相对最终控制 270.194 s 降低 20.1790% |
+
+当前搜索复盘：共享 history 与复用边沿判定已得到可组合收益；ready queue/间接 dispatch、移除 frame 清零及覆盖面过小的 activity-mask packing 已排除。距离约 40 s 仍差 175.6715 s。现有热点百分比来自优化前版本，后续应重新定位 compute、payload commit 和 publication 的主要成本，避免继续围绕同一局部缓存微调。本次仅完成 edge-snapshot 节点。
