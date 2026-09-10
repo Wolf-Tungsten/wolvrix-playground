@@ -179,4 +179,4 @@ M0、M1、M2、M3 的自包含报告、实验索引、当前最佳 commit、完�
 | [ready-queue](grhsim-ir-candidate-ready-queue-20260910.md) | 2026-09-10 | REJECTED / INVALID | cycle 0 failure | 589.254 | 约 707 | RTL assertions, 0 instructions; no timing result |
 | [ready-dispatch](grhsim-ir-candidate-ready-dispatch-20260910.md) | 2026-09-10 | REJECTED / REGRESSION | 737.862 | 87.647 | 约 700 | 功能通过但比 activity-guard 慢约 2.59 倍 |
 | [activity-mask-pack](grhsim-ir-candidate-activity-mask-pack-20260910.md) | 2026-09-10 | REJECTED / STRUCTURAL SCREEN | 未运行 | 未运行 | 未运行 | 仅 6 个双字节 guard 可合并，静态检查项减少 0.1179477%，无运行收益证据 |
-| [scalar-stage-elision](grhsim-ir-candidate-scalar-stage-elision-20260910.md) | 2026-09-10 | BASELINE / STRUCTURAL | 未运行 | 未运行 | 未运行 | 21,073 处 bool staging、17,102 个状态；依据旧 helper 的有效 shadow 比较策略，下一步实现验证 |
+| [scalar-stage-elision](grhsim-ir-candidate-scalar-stage-elision-20260910.md) | 2026-09-10 | IMPLEMENTED / FOCUSED PASS | 未运行 | 未运行 | 未运行 | 实现 commit 7b3432b；focused 测试 60.95 s PASS，10 种标量/10,240 次边沿；待 50k 验证 |
