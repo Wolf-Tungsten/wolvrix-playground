@@ -318,6 +318,10 @@ test_grhsim_cpu_profile:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_cpu_profile.py
 
 .PHONY: analyze_grhsim_scalar_staging
+.PHONY: analyze_grhsim_history_sharing
+analyze_grhsim_history_sharing:
+	$(PYTHON) $(CURDIR)/scripts/grhsim_history_sharing_stats.py "$(GRHSIM_HISTORY_BASELINE)" "$(GRHSIM_HISTORY_CANDIDATE)"
+
 analyze_grhsim_scalar_staging:
 	@test -n "$(GRHSIM_STAGE_MODEL)" || { echo "Set GRHSIM_STAGE_MODEL to the generated model .cpp"; exit 1; }
 	$(PYTHON) $(CURDIR)/scripts/grhsim_scalar_stage_stats.py --model "$(GRHSIM_STAGE_MODEL)"

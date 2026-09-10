@@ -2,7 +2,7 @@
 
 ## 目标与范围
 
-通过多个完整节点积累可组合的性能改进，逐步逼近约 **40 s**，不要求单个方案一步达标。整个 goal 完成须同时满足：50k 行为等价、单线程仿真性能提升大于5%、完整 SV→C++ 生成和 C++ 编译各 `<1800 s`、至少一次独立复跑，以及完整归档已提交。
+通过多个完整节点积累可组合的性能改进，逐步逼近约 **40 s**，不要求单个方案一步达标。整个 goal 完成须同时满足：50k 行为等价、单线程仿真性能提升大于 **3%**（用户于本节点执行中调整）、完整 SV→C++ 生成和 C++ 编译各 `<1800 s`、至少一次独立复跑，以及完整归档已提交。
 
 允许修改 GrhSIM-IR 语义、op、emit、分区、调度及等价子图/状态访问优化。禁止修改冻结的 GRH IR、GRH 上已有 pass、XiangShan 和测试源码；禁止多线程仿真及模块名称匹配优化。方案必须由语义、依赖、位宽、读写属性等通用特征触发。
 
@@ -92,3 +92,4 @@
 | [scalar-stage-elision](grhsim-ir-candidate-scalar-stage-elision-20260910.md) | VALIDATED / 最低均值：279.9485 s，仍有噪声限制 |
 | [phase-profile](grhsim-ir-phase-profile-20260910.md) | 诊断：off/on 287.162/292.350 s，均对拍通过；完整生成/编译 606.29/477.30 s |
 | [task-hotspots](grhsim-ir-task-hotspots-20260910.md) | 诊断：283.389 s，56,397 样本，对拍通过；未实施优化 |
+| [shared-history](grhsim-ir-candidate-shared-history-20260910.md) | ACCEPTED：共享同一 commit task 内等价私有 event history；生成 615.95 s、编译 246.50 s；50k 候选均值 268.947 s，对照均值 292.113 s，提升 7.9303% |
