@@ -1,192 +1,94 @@
 # Goal: 优化 GrhSIM-IR 单线程 XiangShan CoreMark 50k
 
-## 目标声明
+## 目标与范围
 
-在不修改冻结的 GRH IR、GRH 上已有 pass、XiangShan 源码和测试源码的前提下，优化 GrhSIM-IR 路线的单线程 XiangShan CoreMark 50k 仿真性能。
+通过多个完整节点积累可组合的性能改进，逐步逼近约 **40 s**，不要求单个方案一步达标。整个 goal 完成须同时满足：50k 行为等价、单线程仿真性能提升大于5%、完整 SV→C++ 生成和 C++ 编译各 `<1800 s`、至少一次独立复跑，以及完整归档已提交。
 
-验收同时满足以下条件：
+允许修改 GrhSIM-IR 语义、op、emit、分区、调度及等价子图/状态访问优化。禁止修改冻结的 GRH IR、GRH 上已有 pass、XiangShan 和测试源码；禁止多线程仿真及模块名称匹配优化。方案必须由语义、依赖、位宽、读写属性等通用特征触发。
 
-- 仿真行为与参考结果等价，且单线程 GrhSIM-IR 仿真时间达到或优于约 40 秒的 gsim 参照值。
-- 从 SV 生成 C++ 的总耗时小于 30 分钟。
-- 生成的 C++ 编译耗时小于 30 分钟。
-- 仿真过程不使用多线程，但编译阶段必须使用多线程（根据机器CPU核数判定）；性能数据必须标明 CPU 绑定、输入、cycle 范围和是否启用 waveform/trace。
+优先探索能大幅减少主要成本的创新机制，如共享重复状态/事件历史、消除重复求值、跨子图融合、专用 op 或执行机制重构。每个假设须说明新意、瓶颈证据、覆盖面、预期收益范围或上界及可证伪标准。不能长期围绕边角 helper 或同一参数微调；局部调整应服务于核心方案。允许有证据的失败，不以创新为由放宽正确性和时间门槛。
 
-“小于 30 分钟”是硬门槛：任何生成或编译步骤达到超时时间，必须立即终止进程，实验记为失败，不得把部分产物或部分结果当作成功数据。
+## 节点与阶段
 
-## 允许与禁止
+**每次 `/goal` 完成一个节点：围绕一个核心优化假设，从提出推进到实验验证和最终判定，统一提交后停止。** 阶段是节点内部状态，不是独立的 `/goal` 或提交点：
 
-允许的方向包括：扩展 GrhSIM-IR 语义；增加高性能 op 和对应 emit 方法；改善分区及调度算法；在行为等价证明覆盖的范围内做子图替换、常量传播或状态访问优化；减少生成代码体积和运行时开销。
+| 阶段 | 必要工作 |
+|---|---|
+| `IDEA` | 提出假设、创新机制、局部收益目标和验证标准 |
+| `BASELINE` | 核对输入，建立或复用对照，确定资源配置、计时边界和止损线 |
+| `IMPLEMENTED` | 实现方案，记录语义约束和版本差异，通过聚焦测试 |
+| `VALIDATED` | 完成全流程门槛、50k 等价检查、性能测量和必要独立复跑 |
+| `ACCEPTED` | 局部收益有可复现证据，正确性和生成/编译门槛通过 |
+| `REJECTED` | 假设被否定、收益不足或验证失败，记录理由及未执行阶段 |
 
-禁止：修改已冻结的 GRH IR 及 GRH 上的 pass；修改 XiangShan 和测试相关源码；采用多线程加速仿真；加入针对特定模块名称匹配的优化算法。优化必须依据 IR 结构、op 语义、依赖关系、位宽、读写属性等通用特征触发。
+- 各阶段在同一报告中及时记录计划、方法、结果和决策，留在工作区供观察；不预填结果，不作阶段提交。
+- 基线测量、工具准备、实现和测试均在当前节点内完成，不能拆成多次 `/goal` 代替方案验证。
+- `ACCEPTED` 只表示节点局部接受，不要求已达到 40 s；噪声范围内的差异不能当作已证明收益。
+- 证据足以否定假设时可提前 `REJECTED`。同一假设的精化重试建议最多 2 次；改变核心机制属于新节点。
+- 自动续行、工具调用和上下文切换只延续当前节点。节点完成后，须由用户再次启动 `/goal` 才能开始下一节点。
+- 用户中断或外部阻塞时保留工作区和阶段记录，恢复后继续同一节点；不得把中断当作节点完成或提前提交。
 
-## 基线与统一执行纪律
+## 执行与验证
 
-一次 goal 执行只允许推进一个搜索步骤，并且必须形成一个完整、可审计的实验归档：从一个明确的问题假设开始，完成该步骤所需的实现或基线准备、测试、判定和报告/索引更新，然后结束本次执行。不得在同一次执行中连续挑选或测试多个候选，也不得把多个未完成候选合并成一个“步骤”。下一步搜索必须在后续 goal 执行中开始，并以前一步已提交的归档为输入。
+所有构建、安装、生成、测试和仿真均通过 Makefile 目标；缺少目标时先补充，禁止手拼底层命令。常用目标为 `xs_wolf_grhsim_ir`、`xs_wolf_grhsim_ir_build_emu`、`run_xs_wolf_grhsim_ir_emu`，以当前 Makefile 为准。
 
-实验文档采用渐进式补充方式维护，而不是一次性写完。开始搜索时先记录问题、假设、预期机制和对照方案（至少达到 `IDEA`）；确定实现后补充改动范围、输入和执行目标；完成每个阶段后立即补写对应的方法、结果、分析和决策；实验结束前补齐归档引用、提交检查和索引。每次 goal 执行结束时，文档必须反映本次已经完成的证据，未执行的内容明确留空或标为未完成，不得预填结果或事后用记忆替代原始记录。
+每个节点有唯一 ID，每次实验有唯一 `RUN_ID`。日志和临时产物放在 `ptmp/`，不写 `/tmp`。仿真固定 CPU 并显式设置 `XS_EMU_THREADS=1`；编译按可用 CPU 数并行。
 
-每个实验都必须使用同一输入和可比较的基线。同一机器、固定输入及相同 CPU 绑定和 trace 设置下，首次建档时完成一次 gsim 运行并记录实际时间，后续实验直接复用该已归档的 gsim 基线，不得为每个实验重复测试 gsim。当前 GrhSIM-IR 基线应在需要比较的代码基线发生变化时更新；若机器、输入、CPU 绑定或 trace 设置变化，必须重新建立相应基线。不得把“约 40 秒”当作测量值。
+| 区间 | 计时边界与门槛 |
+|---|---|
+| SV→C++ 生成 | Make 启动至完整目标 C++ 和 Makefile 生成完成，墙钟 `<1800 s`；恢复已有 IR 的时间不能替代完整 SV 路线 |
+| C++ 编译 | 编译目标启动至 emu 可执行文件完成，墙钟 `<1800 s` |
+| 仿真 | 仅 emu 执行区间；记录 Host/墙钟时间、cycle 上限、退出状态及等价性 |
 
-所有构建、生成、编译、测试和仿真只能通过仓库已有 Makefile 目标执行。禁止手拼 `cmake`、`ctest`、编译器、链接器或脚本命令；若工作流缺少 Makefile 目标，先单独补充目标，再使用该目标。命令、参数和环境必须完整写入实验记录。
+启动前安装截止机制：生成或编译达到 1800 s 时立即终止该步骤及子进程，记 `TIMEOUT_KILLED` 并隔离未完成产物。仿真达到预选可比较基线的 **1.5 倍**时立即终止进程树，记 `REGRESSION_KILLED`。基线有多次测量时，须在运行前选定比较值。触发上述限制后拒绝并收尾当前节点，不再继续性能实验。
 
-单线程仿真必须明确设置并记录线程参数（例如 `XS_EMU_THREADS=1`，以及 CPU 绑定设置）。生成阶段和编译阶段可以按现有 Makefile 机制使用并行编译，但不得将其冒充为单线程仿真收益。
+退出非零、崩溃、断言失败、difftest mismatch 或输入不一致均记 `INVALID`；运行中确认失败即终止。失败或部分结果只能用于原因分析，不能作为性能收益证据。
 
-命令日志和临时工作流产物必须放入 `ptmp/`；不得把实验产物写入 `/tmp` 或提交生成目录。每次实验使用唯一 `RUN_ID`，代码变更用 git commit 标识。临时产物只用于实验现场分析，正式档案遵守以下归档纪律。
+比较须保持机器、输入、CPU 绑定、cycle 范围和 waveform/trace 设置一致。配置未变时复用已归档 gsim 测量，不重复运行；配置变化时重建相应基线，代码变化时建立相应 GrhSIM-IR 对照。约 40 s 是目标，不是实测值；采样/插桩时间不得混入未插桩性能基线。
 
-## 归档与证据纪律
+## 文档与 Git 归档
 
-档案不得引用任何尚未添加到 Git 或不能添加到 Git 的文件。所有文件引用必须指向已经受 Git 跟踪的文件；新增报告及其引用的可提交附件必须一并添加并提交。禁止以未跟踪日志、被忽略的统计文件、波形、生成的 C++、二进制或本机绝对路径作为结论依据的引用，也不得通过强制添加生成目录来绕过限制。
+每个节点维护一份 `pdocs/` 报告，逐阶段更新以下信息，节点结束时补齐索引：
 
-如果分析依赖这些临时产物，必须将分析结果整理成论文式的文字实验报告，写入 `pdocs/` 并提交。报告必须自包含：读者仅凭 Git 中的档案即可理解实验方法、测量结果和结论，无需访问原始临时文件。不得用“详见日志”、文件路径或文件哈希替代分析正文。
+- 假设与机制：创新点、瓶颈证据、局部目标、改动范围及语义约束。
+- 复现方法：基线 commit、工作区实验版本差异、输入身份、完整 Make 命令/参数/环境、资源、计时边界、重复次数和止损线。
+- 结果与分析：各次时间、退出状态、等价性、变化比例及计算口径；相关代码规模/热点数据、噪声、限制和重试差异。
+- 最终判定：`ACCEPTED` 或 `REJECTED` 的依据、未执行阶段、保留实现的最终 commit、后续方向及报告链接。
 
-每份实验分析至少包含：
+报告须自包含，将临时产物中的证据整理入正文，不能用“详见日志”、路径或哈希代替分析。正式引用只能指向已跟踪或随节点一起提交的文件；节点内可引用待归档的新文件。不得提交生成代码、日志、profile、波形和二进制，也不得强制添加生成目录。
 
-- 问题与假设：优化针对的通用瓶颈、预期机制和对照方案。
-- 实验方法：源码版本、输入身份、Makefile 目标及参数、资源配置、计时边界、重复次数和等价性检查方法。复现命令中的产物路径仅表示执行配置，不作为证据引用。
-- 结果：直接写入各次测量值、基线对比表、变化百分比及计算口径；必要时摘录关键诊断文本或统计数据，并解释其含义。
-- 分析与限制：观察到的事实、对原因的解释、噪声或混杂因素、证据不足之处；不得把推测写成已验证结论。
-- 决策：接受、拒绝或精化重试的理由，包括失败、超时和无收益的结果。
+**仅节点完成时集中暂存、检查并提交代码、测试、报告和索引，每个有改动的仓库原则上一次提交。** 涉及子模块时先提交子模块，再提交根仓库指针与档案。中间版本用基线及差异记录，不为取得 commit 而提前提交。
 
-失败实验也必须形成并提交分析报告。实验索引只能链接到已纳入 Git 的报告；实验归档完成以相关报告和索引的 Git 提交为准。临时产物即使被删除，也不得影响档案的可读性和结论审查。
+用户启动 `/goal` 已授权正常暂存和节点最终提交。复用已有 Git 授权，不按阶段、文件或仓库反复询问；环境确需额外权限时，完成全部准备后在节点收尾集中处理，不绕过权限限制。
 
-## 时间与结果判定
+每完成 3 个节点，在收尾时更新当前最佳、已排除方向和剩余主要差距，检查是否陷入低收益微调。整体累计验收门为：M0 固定基线；M1 热点证据及至少 3 个独立方向；M2 小规模等价和生成/编译门槛；M3 完整 50k 验证；M4 最终性能、独立复跑及归档全部达标。只有 M4 完成才能关闭整个 goal。
 
-将总流程拆成三个可审计区间：
+## 当前基线与搜索依据
 
-1. **SV→IR/C++ 生成**：从 Make 目标启动到生成目标 C++ 和其 Makefile 完成。墙钟时间必须 `< 1800 s`。
-2. **C++ 编译**：从 C++ 编译目标启动到 emu 可执行文件完成。墙钟时间必须 `< 1800 s`。
-3. **仿真**：只统计 emu 执行区间；记录 cycle 上限、退出状态、仿真秒数和等价性结果。
+截至 2026-09-10，最终性能目标未完成。固定配置：
 
-建议使用仓库已有目标 `xs_wolf_grhsim_ir`、`xs_wolf_grhsim_ir_emu`、`run_xs_wolf_grhsim_ir_emu` 及其依赖目标；gsim 和现有 GrhSIM 路线使用对应的 `run_xs_gsim_emu`、`run_xs_wolf_grhsim_emu`。实际采用的目标以当时 Makefile 为准并原样记录。
+- XiangShan：`4a6e3da8bfb1140d24eaa6c9e0d058fd981b35a6`；top `SimTop`，DIFFTEST/NEMU。
+- 输入：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`；SHA-256 `c764afb8bfd69542620a4794b858867dd1e455efaac56c28eb477f1732f83e8e`。
+- 50,000 cycles、CPU 2、`XS_EMU_THREADS=1`，waveform/commit/RAM trace 关闭；主机 32 CPU。
+- 最低实测均值：scalar staging `7b3432b29f87cae70dfba6f929078a2632d6b066`，两次 **284.075 / 275.822 s**，均值 **279.9485 s**；相对前一基线低 1.6686%，但范围重叠，收益未排除噪声。止损线 **419.92275 s**。
+- 该版本完整生成 **605.75 s**、32-job 编译 **471.77 s**，flat GRH 与冻结基线逐字节一致；两次 NEMU PASS，73,580 instructions、cycleCnt 49,996、末端 PC `0x80001312`、guest cycles 50,001。
+- gsim 参照 **20.640 s**，NEMU PASS；其计数为 73,584 instructions、cycleCnt 49,998、PC `0x8000131e`，后端计数边界差异见 M0 报告。
 
-超时处理规则：启动前确定 1800 秒截止时刻；到达截止时刻立即杀掉该步骤及其子进程，记录 `TIMEOUT_KILLED`，清理或隔离未完成产物，并停止该实验的后续性能比较。超时实验可以用于定位瓶颈，但不能作为收益证据。
+诊断版本 `93d55ae` 的 eval 时间：compute **56.18%**、commit **38.75%**、publication **5.04%**。函数采样中 `cpu_write_scalar<bool>` 占 **6.22%**；compute 热点分散于 3,367 个 task，前十仅占总样本 **2.55%**；整个 evaluator 占 **3.05%** 且包含内联 publication，不能全归因于 dispatch。应从通用语义和重复工作寻找覆盖面大的机制，事件历史采样/扫描值得分析；这些诊断不构成优化收益。
 
-仿真也采用即时止损。启动仿真前必须确定当前可比较基线的时间；若运行中已能确认编译/运行失败，立即终止并记为 `INVALID`。若墙钟时间达到基线时间的 1.5 倍（即比基线慢 50%），立即杀掉仿真及其子进程，记录 `REGRESSION_KILLED`，实验记为失败，不再等待 cycle 上限或继续收集性能数据。该阈值按同一输入、cycle 范围、CPU 绑定和 trace 设置下的单次基线时间计算；若基线有多次测量，使用实验开始前确定并记录的比较值。被止损的部分输出只能用于失败分析，不能作为收益证据。
+## 报告索引
 
-行为等价是性能数据的前置条件。至少检查仿真退出状态、difftest/参考结果和关键日志；任何 mismatch、崩溃、非零退出或输入不一致都标记为 `INVALID`，不得比较其速度。
+保留历史结果；旧报告中按阶段拆分执行或提交的做法不再适用。后续按完整节点登记。
 
-## 实验生命周期
-
-每个设想按以下状态推进：`IDEA` → `BASELINE` → `IMPLEMENTED` → `VALIDATED` → `ACCEPTED` 或 `REJECTED`。只有 `VALIDATED` 才能进入性能比较，只有满足全部时间门槛并有可复现数据才能 `ACCEPTED`。
-
-状态按阶段逐步落档：`IDEA` 步骤只登记假设和预期，不要求虚构实验结果；后续 goal 执行每次只把同一设想推进一个阶段或完成一次围绕它的实验。若该步骤在生成、编译或仿真阶段触发超时/回退止损，立即结束本次执行并提交失败记录，再由后续执行决定是否转向新设想。
-
-同一设想允许少量精化重试，建议最多 2 次。重试必须说明改动假设和预期指标；连续重试看不到明确收益、触碰时间门槛或出现等价性风险时，立即标记 `REJECTED`，转向新的独立方法。不得通过反复微调同一参数消耗迭代。
-
-优先级建议按“运行时间收益 / 生成时间增量 / 编译时间增量 / 等价性风险”排序。先用统计、代码尺寸、supernode/partition 分布和热点测量缩小问题，再实施改动；没有测量依据的优化只登记为候选，不直接作为主线。
-
-## 单次实验记录模板
-
-将以下模板复制到本文件末尾，或另存为 `pdocs/experiments/<ID>.md`。档案索引必须链接到每个实验记录。
-
-```markdown
-## <ID> <简短名称>
-
-- 日期：
-- 状态：IDEA | BASELINE | IMPLEMENTED | VALIDATED | ACCEPTED | REJECTED
-- commit：
-- 假设：哪个通用瓶颈、为什么预期有效、预期影响哪个阶段
-- 改动范围：文件/模块；确认未触碰禁止项
-- 输入固定项：XiangShan revision、CoreMark binary、top、cycle 范围、定义、waveform/trace
-- 执行目标：逐字记录 Makefile target 和变量；禁止填手工底层命令
-- 资源约束：CPU 绑定、仿真线程数、编译 jobs、内存（如已知）
-- 生成耗时：`<秒数>`；结果 `PASS | TIMEOUT_KILLED | FAIL`
-- 编译耗时：`<秒数>`；结果 `PASS | TIMEOUT_KILLED | FAIL`
-- 仿真耗时：`<秒数>`；退出状态：；等价性：`PASS | INVALID`
-- 仿真止损阈值：基线比较值 `<秒数>`；1.5× 阈值 `<秒数>`；止损结果 `NONE | REGRESSION_KILLED`
-- 代码规模：C++ 文件数、总行数/字节数、目标文件或二进制大小（可得时）
-- 关键计数：IR op、partition/supernode 数量、最大/平均规模、热点统计
-- 对比：gsim 时间；当前 GrhSIM-IR 基线时间；本实验时间；变化百分比
-- 结论：接受/拒绝及证据
-- 后续：最多列一个精化重试，否则提出新的设想
-- 实验方法：计时边界、重复次数、等价性检查方法及结果
-- 结果正文：各次测量值、基线对比表、变化百分比及计算口径
-- 分析正文：关键统计/诊断摘录及解释、瓶颈机制、噪声与限制
-- 归档引用：仅链接已纳入 Git 的报告或附件；临时产物的分析直接写入正文
-- 提交检查：本报告、引用文件和实验索引均已添加到 Git，并随归档提交
-
-记录应在实验推进过程中逐段填写；本模板允许先提交只有假设的 `IDEA` 记录，后续 goal 执行再补充同一记录或关联报告。
-```
-
-## 档案索引与阶段门
-
-在本文件末尾维护实验索引表，按时间顺序记录 ID、状态、仿真时间、生成时间、编译时间和结论。每周或每完成 3 个实验，整理一次“当前最佳方案”和“已排除方向”，避免重复尝试。
-
-阶段门如下：
-
-- **M0 基线**：固定输入，完成 gsim 与当前 GrhSIM-IR 的可复现实测。
-- **M1 定位**：有热点或结构统计，提出至少 3 个互不相同的候选方向。
-- **M2 快速筛选**：候选通过小规模等价检查和生成/编译时间门槛。
-- **M3 完整验证**：在 CoreMark 50k 上完成单线程全流程，等价且无超时。
-- **M4 收敛**：记录最终最佳 commit、完整命令、全部计时和已知限制；将自包含的实验分析报告和索引提交到 Git，检查所有文件引用均已纳入 Git；只有此时 goal 才可关闭。
-
-## 完成条件
-
-当且仅当 M4 记录完整且已提交到 Git，最佳 GrhSIM-IR 方案在固定输入下满足仿真目标、生成 `<30 min`、编译 `<30 min`，并有行为等价证据和至少一次独立复跑，goal 才算完成。若所有候选均未达标，提交失败分析档案和下一轮候选，不得用缺失数据宣称完成。
-
-goal 的“完成一次”定义为完成一个搜索步骤并提交该步骤的增量归档；它不等同于关闭本 goal。只有达到 M4 的最终条件，整个优化 goal 才可关闭。
-
-## 阶段记录
-
-### M0 基线：已完成
-
-固定输入为 XiangShan revision `4a6e3da8bfb1140d24eaa6c9e0d058fd981b35a6`、`ready-to-run/coremark-2-iteration.bin`（SHA-256 `c764afb8bfd69542620a4794b858867dd1e455efaac56c28eb477f1732f83e8e`）、top `SimTop`、50,000 cycles、`DIFFTEST`，waveform/trace 全部关闭。仿真绑定 CPU 2，明确设置 `XS_EMU_THREADS=1`；机器 `nproc=32`，编译使用多 job。
-
-gsim 运行 20.640 s，退出 0，73,584 instructions，`cycleCnt=49998`，terminal PC `0x8000131e`。当前 GrhSIM-IR pack 0 运行 304.197 s，退出 0，73,580 instructions，`cycleCnt=49996`，terminal PC `0x80001312`；两者均启用 NEMU difftest 且无 mismatch。GrhSIM-IR 生成 87.993 s、编译 502.33 s，均小于 1,800 s。完整方法和限制见 [M0 report](grhsim-ir-m0-baseline-20260910.md)。
-
-### M1 定位：已完成
-
-GrhSIM-IR pack 0 生成 5,749 个 C++ 文件，其中 5,595 个是 task 文件，5,081 个 task 文件含 active-word 逻辑。`eval()` 每轮无条件调用 5,595 个 task；这解释了大量 task body 在 activity byte 为零时仍被进入。IR 规模为 4,530,736 operations、4,285,682 values、508,487 states。基于该证据登记了三个互不相同的方向：
-
-1. **局部 frame 初始化**：移除每次 active supernode 调用的 `std::byte cpu_local[N]{}` 清零。
-2. **activity-driven outer guard**：在 evaluator 调用 activity task 前 OR 检查该 task 的 active-word bytes。
-3. **target batch packing**：把 `XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT` 设为 64，减少 translation units。
-
-候选 1 和 2 完成了 50k 等价实验，候选 3 完成了生成及部分编译筛选；独立报告记录了各自的通用触发条件，未使用模块名称匹配。
-
-### M2 快速筛选：已完成
-
-| 候选 | 生成 | 编译 | 等价性 | 筛选结论 |
-|---|---:|---:|---|---|
-| frame initialization | 86.12 s PASS | 466.12 s PASS | 50k PASS | 拒绝：305.17 s，比基线慢 0.320% |
-| activity outer guard | 87.709 s PASS | 约 515.7 s PASS | 50k 两次 PASS | 保留：平均 284.699 s，比基线快 6.410% |
-| batch count 64 | 594.922 s PASS | 未完成，无 emu | 无可比较运行 | 拒绝本轮筛选；无速度结论 |
-
-所有完成的生成/编译阶段均小于 1,800 s。候选 3 的 680 个 C++ 文件和 169 个已生成 object 只作为结构筛选事实，未被当作性能证据。详细结果见各候选报告。
-
-### M3 完整验证：部分完成
-
-activity outer guard 使用 GrhSIM source commit `c3dfad0cc19e29943b65d815ae180fdbd42f1bee` 完成两次独立 50k 运行：289.305 s 和 280.093 s，均退出 0、NEMU difftest PASS、73,580 instructions、`cycleCnt=49996`、terminal PC `0x80001312`。它是后续 scalar staging 实验的比较基线；平均 284.699 s 为 gsim 的 13.794 倍，未达到约 40 s 目标。
-
-scalar staging 使用 source commit `7b3432b29f87cae70dfba6f929078a2632d6b066` 完成从 SV 生成（605.75 s）、32-job 编译（471.77 s）和两次 CPU 2 单线程 50k 运行（284.075 s、275.822 s），均退出 0、NEMU difftest PASS，末端计数和 PC 与 activity guard 完全一致。新 flat GRH checkpoint 与冻结基线逐字节一致。当前最低实测均值为 **279.9485 s**，比 activity guard 均值低 1.6686%；两组范围重叠，尚不能证明收益超出噪声。该方案保留为 `VALIDATED`，完整命令和限制见 [scalar staging report](grhsim-ir-candidate-scalar-stage-elision-20260910.md)。平均值仍为 gsim 的 13.5634 倍，M3 的绝对性能验收仍不通过。
-
-ready-queue dispatcher 完成生成、稳定 round-trip 和编译，但首次 50k 仿真在 cycle 0 触发 XiangShan RTL assertion，`instrCnt=0`、`pc=0x0`，退出 2；因此没有计入性能数据，详见 [ready-queue report](grhsim-ir-candidate-ready-queue-20260910.md)。该方向拒绝。
-
-ready-bit dispatcher 完成 focused 测试、生成、稳定 round-trip、编译和一次完整 50k 仿真；仿真退出 0 且对拍通过，但耗时 737.862 s，约为 activity-guard 平均值的 2.59 倍。该方向拒绝，详见 [ready-dispatch report](grhsim-ir-candidate-ready-dispatch-20260910.md)。
-
-### M4 收敛：档案完成，性能目标未完成
-
-M0、M1、M2、M3 的自包含报告、实验索引、当前最佳 commit、完整命令、限制和失败方向均已纳入 Git。由于最佳方案尚未达到约 40 s 仿真目标，不能关闭 goal。下一轮应从 task-call/生成代码剩余成本提出新的、独立且有统计依据的候选；不得重复 frame 初始化或把 batch64 的未完成编译当作收益。
-
-2026-09-10 阶段整理：当前保留 `7b3432b`，实测均值 279.9485 s（收益仍有噪声限制），后续同配置仿真的 1.5× 止损阈值更新为 419.92275 s。已排除 frame 初始化、ready queue、ready-bit dispatcher 和 packed activity guards；batch64 的不完整编译不能用作收益。下一步先量化 compute、commit、publication 各阶段耗时，不再仅凭静态站点数推断热点。gsim 20.640 s 基线继续复用。
-
-阶段计时已在 `93d55ae` 上完成完整模型验证：SV 生成 606.29 s、32-job 编译 477.30 s；CPU 2 单线程 50k 的计时关闭/开启运行分别为 287.162/292.350 s，均 NEMU PASS，末端与 scalar staging 一致。累计 eval 292.1230 s 中 compute 占 56.1832%、commit 占 38.7506%、publication 占 5.0388%，两大 task 阶段合计 94.9338%。单次开启比关闭多 1.8066%，但不足以分离计时开销与噪声；不更新最低实测基线。下一步在 compute/commit 内定位热函数和 task 工作，区分 dispatch/guard 与 task body；仅优化 publication 无法接近约 40 s。详见 [phase profiling report](grhsim-ir-phase-profile-20260910.md)。
-
-函数热点测量已完成一次同模型 50k SIGPROF 采样：Host 283.389 s，NEMU PASS，56,397 个样本全部核对。compute task 本体占 47.3624%、commit task 本体占 35.6047%；独立 `cpu_write_scalar<bool>` helper 占 6.2184%。整个 evaluator 仅占 3.0463%，其中包含内联 publication，不能全归为 dispatch。compute 样本分布于 3,367 个 task，前十名仅占总样本 2.5516%；热点证据支持后续分析通用事件历史采样/扫描的重复工作，尚未选择或验证新变换。本轮按用户要求仅完成这一个搜索步骤并停止，报告见 [task hotspots](grhsim-ir-task-hotspots-20260910.md)。原性能基线和 419.92275 s 止损线保持不变。
-
-## 实验索引
-
-2026-09-10 的 packed activity mask 结构筛选核对了全部 5,595 个 task：5,081 个 activity task、513 个 domain guard 和 1 个无条件 task。只有 6 个 activity guard 含两个连续字节，其余 5,075 个均为单字节；最多减少 6/5,087 = 0.1179477% 的静态 activity 检查项，不能视为运行时间收益。该候选在实现前拒绝，未重跑 gsim 或仿真；完整方法见对应报告。后续 scalar staging 已完成完整验证，结果单独列于下表。
-
-| ID | 日期 | 状态 | 仿真(s) | 生成(s) | 编译(s) | 结论 |
-|---|---|---|---:|---:|---:|---|
-| [M0 baseline](grhsim-ir-m0-baseline-20260910.md) | 2026-09-10 | BASELINE / VALIDATED | 20.640 gsim; 304.197 IR | 87.993 IR | 502.33 IR | 固定输入和热点已建立 |
-| [frame-init](grhsim-ir-candidate-frame-init-20260910.md) | 2026-09-10 | REJECTED | 305.17 | 86.12 | 466.12 | 清零移除无收益，慢 0.320% |
-| [activity-guard](grhsim-ir-candidate-activity-guard-20260910.md) | 2026-09-10 | VALIDATED / PRIOR BASELINE | 289.305; 280.093 | 87.709（恢复 flat） | 约 515.7 | 平均快 6.410%，作为 scalar staging 对照 |
-| [batch-packing](grhsim-ir-candidate-batch-packing-20260910.md) | 2026-09-09 | REJECTED / INCOMPLETE | — | 594.922 | 未完成 | 680 files，但无完整编译和仿真 |
-| [ready-queue](grhsim-ir-candidate-ready-queue-20260910.md) | 2026-09-10 | REJECTED / INVALID | cycle 0 failure | 589.254 | 约 707 | RTL assertions, 0 instructions; no timing result |
-| [ready-dispatch](grhsim-ir-candidate-ready-dispatch-20260910.md) | 2026-09-10 | REJECTED / REGRESSION | 737.862 | 87.647 | 约 700 | 功能通过但比 activity-guard 慢约 2.59 倍 |
-| [activity-mask-pack](grhsim-ir-candidate-activity-mask-pack-20260910.md) | 2026-09-10 | REJECTED / STRUCTURAL SCREEN | 未运行 | 未运行 | 未运行 | 仅 6 个双字节 guard 可合并，静态检查项减少 0.1179477%，无运行收益证据 |
-| [scalar-stage-elision](grhsim-ir-candidate-scalar-stage-elision-20260910.md) | 2026-09-10 | VALIDATED / LOWEST MEAN | 284.075; 275.822 | 605.75（完整 SV） | 471.77 | 均值 279.9485 s，低 1.6686% 但范围重叠；两次 50k PASS，未达约 40 s |
-| [phase-profile](grhsim-ir-phase-profile-20260910.md) | 2026-09-10 | VALIDATED / DIAGNOSTIC | 287.162 off; 292.350 on | 606.29（完整 SV） | 477.30 | 两次 50k PASS；eval 中 compute 56.18%、commit 38.75%、publish 5.04%；保留旧性能基线，待细分 task 热点 |
-| [task-hotspots](grhsim-ir-task-hotspots-20260910.md) | 2026-09-10 | VALIDATED / DIAGNOSTIC | 283.389 sampled | 复用 606.29 | 复用 477.30 | 一次 50k PASS，56,397 样本；compute 热点分散，scalar history helper 占 6.22%；无优化变更，本轮完成后停止 |
+| 报告 | 状态 / 关键结论 |
+|---|---|
+| [M0 baseline](grhsim-ir-m0-baseline-20260910.md) | 基线：gsim 20.640 s；原始 IR 304.197 s |
+| [frame-init](grhsim-ir-candidate-frame-init-20260910.md) | REJECTED：305.17 s，移除清零无收益 |
+| [activity-guard](grhsim-ir-candidate-activity-guard-20260910.md) | 前一基线：均值 284.699 s |
+| [batch-packing](grhsim-ir-candidate-batch-packing-20260910.md) | REJECTED / INCOMPLETE：编译未完成，无性能结论 |
+| [ready-queue](grhsim-ir-candidate-ready-queue-20260910.md) | REJECTED / INVALID：cycle 0 RTL assertion，0 instructions |
+| [ready-dispatch](grhsim-ir-candidate-ready-dispatch-20260910.md) | REJECTED / REGRESSION：737.862 s，对拍通过但显著变慢 |
+| [activity-mask-pack](grhsim-ir-candidate-activity-mask-pack-20260910.md) | REJECTED：仅减少 0.1179477% 静态 guard 检查项，无运行收益证据 |
+| [scalar-stage-elision](grhsim-ir-candidate-scalar-stage-elision-20260910.md) | VALIDATED / 最低均值：279.9485 s，仍有噪声限制 |
+| [phase-profile](grhsim-ir-phase-profile-20260910.md) | 诊断：off/on 287.162/292.350 s，均对拍通过；完整生成/编译 606.29/477.30 s |
+| [task-hotspots](grhsim-ir-task-hotspots-20260910.md) | 诊断：283.389 s，56,397 样本，对拍通过；未实施优化 |
