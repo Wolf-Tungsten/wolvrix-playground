@@ -147,6 +147,8 @@ activity outer guard 使用 GrhSIM source commit `c3dfad0cc19e29943b65d815ae180f
 
 ready-queue dispatcher 完成生成、稳定 round-trip 和编译，但首次 50k 仿真在 cycle 0 触发 XiangShan RTL assertion，`instrCnt=0`、`pc=0x0`，退出 2；因此没有计入性能数据，详见 [ready-queue report](grhsim-ir-candidate-ready-queue-20260910.md)。该方向拒绝。
 
+ready-bit dispatcher 完成 focused 测试、生成、稳定 round-trip、编译和一次完整 50k 仿真；仿真退出 0 且对拍通过，但耗时 737.862 s，约为 activity-guard 平均值的 2.59 倍。该方向拒绝，详见 [ready-dispatch report](grhsim-ir-candidate-ready-dispatch-20260910.md)。
+
 ### M4 收敛：档案完成，性能目标未完成
 
 M0、M1、M2、M3 的自包含报告、实验索引、当前最佳 commit、完整命令、限制和失败方向均已纳入 Git。由于最佳方案尚未达到约 40 s 仿真目标，不能关闭 goal。下一轮应从 task-call/生成代码剩余成本提出新的、独立且有统计依据的候选；不得重复 frame 初始化或把 batch64 的未完成编译当作收益。
@@ -160,3 +162,4 @@ M0、M1、M2、M3 的自包含报告、实验索引、当前最佳 commit、完�
 | [activity-guard](grhsim-ir-candidate-activity-guard-20260910.md) | 2026-09-10 | VALIDATED / BEST | 289.305; 280.093 | 87.709 | 约 515.7 | 平均快 6.410%，仍慢于目标 |
 | [batch-packing](grhsim-ir-candidate-batch-packing-20260910.md) | 2026-09-09 | REJECTED / INCOMPLETE | — | 594.922 | 未完成 | 680 files，但无完整编译和仿真 |
 | [ready-queue](grhsim-ir-candidate-ready-queue-20260910.md) | 2026-09-10 | REJECTED / INVALID | cycle 0 failure | 589.254 | 约 707 | RTL assertions, 0 instructions; no timing result |
+| [ready-dispatch](grhsim-ir-candidate-ready-dispatch-20260910.md) | 2026-09-10 | REJECTED / REGRESSION | 737.862 | 87.647 | 约 700 | 功能通过但比 activity-guard 慢约 2.59 倍 |
