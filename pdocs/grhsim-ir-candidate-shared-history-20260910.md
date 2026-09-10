@@ -1,7 +1,7 @@
 # Shared Commit Event Histories
 
 - Node: `shared_history_20260910_01`
-- Status: IMPLEMENTED; full-flow validation running
+- Status: ACCEPTED
 - Root baseline: `719066a`; wolvrix baseline: `93d55ae7d53d592c5d20e5f83863f1241fb0fcbb`.
 
 ## Hypothesis and Gates
