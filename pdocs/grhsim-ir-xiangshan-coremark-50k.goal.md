@@ -65,13 +65,14 @@
 
 ## 当前基线与搜索依据
 
-截至 2026-09-10，最终性能目标未完成。固定配置：
+截至 2026-09-11，最终性能目标未完成。固定配置：
 
 - XiangShan：`4a6e3da8bfb1140d24eaa6c9e0d058fd981b35a6`；top `SimTop`，DIFFTEST/NEMU。
 - 输入：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`；SHA-256 `c764afb8bfd69542620a4794b858867dd1e455efaac56c28eb477f1732f83e8e`。
 - 50,000 cycles、CPU 2、`XS_EMU_THREADS=1`，waveform/commit/RAM trace 关闭；主机 32 CPU。
-- 当前最佳为 [edge-snapshot 节点](grhsim-ir-candidate-edge-snapshot-20260910.md)：两次 **217.336 / 214.007 s**，均值 **215.6715 s**；相对无重叠 shared-history 控制 **270.194 s** 降低 **20.1790%**。本节点运行前固定止损线 **403.4205 s**，所有运行均通过。后续节点需在启动前重新选定比较值及止损线。
-- 该版本完整生成 **611.87 s**、32-job 编译 **255.12 s**，flat GRH 与冻结基线逐字节一致；两次 NEMU PASS，73,580 instructions、cycleCnt 49,996、末端 PC `0x80001312`、guest cycles 50,001。实现 commit 见节点报告。
+- 当前最佳为 [compute-history 节点](grhsim-ir-candidate-compute-history-20260911.md)：两次 **182.379 / 182.451 s**，均值 **182.415 s**；相对同场隔离 edge-snapshot 控制 **213.636 s** 降低 **14.6141%**。本节点运行前固定止损线 **323.50725 s**，所有运行均通过。后续节点需在启动前重新选定比较值及止损线。
+- 该版本完整生成 **609.89 s**、32-job 编译 **254.56 s**，flat GRH 与冻结基线逐字节一致；两次 NEMU PASS，73,580 instructions、cycleCnt 49,996、末端 PC `0x80001312`、guest cycles 50,001。实现 commit 见节点报告。
+- 前最佳 [edge-snapshot](grhsim-ir-candidate-edge-snapshot-20260910.md)：均值 215.6715 s（相对其控制 270.194 s 降低 20.1790%）。
 - gsim 参照 **20.640 s**，NEMU PASS；其计数为 73,584 instructions、cycleCnt 49,998、PC `0x8000131e`，后端计数边界差异见 M0 报告。
 
 诊断版本 `93d55ae` 的 eval 时间：compute **56.18%**、commit **38.75%**、publication **5.04%**。函数采样中 `cpu_write_scalar<bool>` 占 **6.22%**；compute 热点分散于 3,367 个 task，前十仅占总样本 **2.55%**；整个 evaluator 占 **3.05%** 且包含内联 publication，不能全归因于 dispatch。应从通用语义和重复工作寻找覆盖面大的机制，事件历史采样/扫描值得分析；这些诊断不构成优化收益。
@@ -96,5 +97,6 @@
 | [edge-snapshot](grhsim-ir-candidate-edge-snapshot-20260910.md) | ACCEPTED：496 个 task 的 226,510 次重复边沿条件引用复用 496 个快照；生成 611.87 s、编译 255.12 s；50k 两次均值 215.6715 s，相对最终控制 270.194 s 降低 20.1790% |
 | [pending-dedup](grhsim-ir-candidate-pending-dedup-20260910.md) | REJECTED：四处入队路径均由 dirty 位保证同一 key 每轮最多一条记录；内存按 cell 分配 key。静态证伪，未运行性能实验 |
 | [residual-hotspots](grhsim-ir-residual-hotspots-20260910.md) | 诊断：当前最佳构建相位 compute 70.3274% / commit 24.6039% / publication 5.0300%；flat 热点 `cpu_write_scalar<bool>` 8.7076%、commit 5141 2.2560%；两次诊断运行 NEMU PASS，性能基线不变 |
+| [compute-history](grhsim-ir-candidate-compute-history-20260911.md) | ACCEPTED：51 个 compute task 的 13,382 个等价私有 event history 按 unit 共享代表元；生成 609.89 s、编译 254.56 s；50k 两次均值 182.415 s，相对同场控制 213.636 s 降低 14.6141% |
 
-当前搜索复盘：共享 history 与复用边沿判定已得到可组合收益；ready queue/间接 dispatch、移除 frame 清零、覆盖面过小的 activity-mask packing 及 pending 记录去重已排除。残余热点重定位表明 commit 占比已从 38.7506% 降至 24.6039%，compute 升至 70.3274%；最大单函数为 out-of-line `cpu_write_scalar<bool>`（8.7076%，调用点 84.7% 在 compute 侧 assert/history 采样），最热 task 为未共享的 commit 5141（2.2560%）。距离约 40 s 仍差 175.6715 s。后续优先探索标量 history 采样/staging 快路径的通用语义机制（上界约 10%，须重新证明 dirty/pending 不变量），其次是未共享 commit 离群类（约 3-4%）与 publication 路径（约 5%）。本次完成 residual-hotspots 节点。
+当前搜索复盘：共享 history（commit 侧与 compute 侧）与复用边沿判定已得到可组合收益；ready queue/间接 dispatch、移除 frame 清零、覆盖面过小的 activity-mask packing 及 pending 记录去重已排除。compute-history 将标量 staging 调用点从 16,255 降至 2,873，候选均值 182.415 s。距离约 40 s 仍差 142.415 s。history 共享族已无剩余重要覆盖面；后续按残余证据探索：未共享 commit 离群类（task 5141，约 3-4%）、publication 路径（约 5%）、assert task 内 guard 机制（task 级不变量装载提升），或重新 profile 定位新主成本。本次完成 compute-history 节点。
