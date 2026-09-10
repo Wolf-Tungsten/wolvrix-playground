@@ -172,6 +172,8 @@ M0、M1、M2、M3 的自包含报告、实验索引、当前最佳 commit、完�
 
 阶段计时已在 `93d55ae` 上完成完整模型验证：SV 生成 606.29 s、32-job 编译 477.30 s；CPU 2 单线程 50k 的计时关闭/开启运行分别为 287.162/292.350 s，均 NEMU PASS，末端与 scalar staging 一致。累计 eval 292.1230 s 中 compute 占 56.1832%、commit 占 38.7506%、publication 占 5.0388%，两大 task 阶段合计 94.9338%。单次开启比关闭多 1.8066%，但不足以分离计时开销与噪声；不更新最低实测基线。下一步在 compute/commit 内定位热函数和 task 工作，区分 dispatch/guard 与 task body；仅优化 publication 无法接近约 40 s。详见 [phase profiling report](grhsim-ir-phase-profile-20260910.md)。
 
+函数热点测量已完成一次同模型 50k SIGPROF 采样：Host 283.389 s，NEMU PASS，56,397 个样本全部核对。compute task 本体占 47.3624%、commit task 本体占 35.6047%；独立 `cpu_write_scalar<bool>` helper 占 6.2184%。整个 evaluator 仅占 3.0463%，其中包含内联 publication，不能全归为 dispatch。compute 样本分布于 3,367 个 task，前十名仅占总样本 2.5516%；热点证据支持后续分析通用事件历史采样/扫描的重复工作，尚未选择或验证新变换。本轮按用户要求仅完成这一个搜索步骤并停止，报告见 [task hotspots](grhsim-ir-task-hotspots-20260910.md)。原性能基线和 419.92275 s 止损线保持不变。
+
 ## 实验索引
 
 2026-09-10 的 packed activity mask 结构筛选核对了全部 5,595 个 task：5,081 个 activity task、513 个 domain guard 和 1 个无条件 task。只有 6 个 activity guard 含两个连续字节，其余 5,075 个均为单字节；最多减少 6/5,087 = 0.1179477% 的静态 activity 检查项，不能视为运行时间收益。该候选在实现前拒绝，未重跑 gsim 或仿真；完整方法见对应报告。后续 scalar staging 已完成完整验证，结果单独列于下表。
@@ -187,3 +189,4 @@ M0、M1、M2、M3 的自包含报告、实验索引、当前最佳 commit、完�
 | [activity-mask-pack](grhsim-ir-candidate-activity-mask-pack-20260910.md) | 2026-09-10 | REJECTED / STRUCTURAL SCREEN | 未运行 | 未运行 | 未运行 | 仅 6 个双字节 guard 可合并，静态检查项减少 0.1179477%，无运行收益证据 |
 | [scalar-stage-elision](grhsim-ir-candidate-scalar-stage-elision-20260910.md) | 2026-09-10 | VALIDATED / LOWEST MEAN | 284.075; 275.822 | 605.75（完整 SV） | 471.77 | 均值 279.9485 s，低 1.6686% 但范围重叠；两次 50k PASS，未达约 40 s |
 | [phase-profile](grhsim-ir-phase-profile-20260910.md) | 2026-09-10 | VALIDATED / DIAGNOSTIC | 287.162 off; 292.350 on | 606.29（完整 SV） | 477.30 | 两次 50k PASS；eval 中 compute 56.18%、commit 38.75%、publish 5.04%；保留旧性能基线，待细分 task 热点 |
+| [task-hotspots](grhsim-ir-task-hotspots-20260910.md) | 2026-09-10 | VALIDATED / DIAGNOSTIC | 283.389 sampled | 复用 606.29 | 复用 477.30 | 一次 50k PASS，56,397 样本；compute 热点分散，scalar history helper 占 6.22%；无优化变更，本轮完成后停止 |

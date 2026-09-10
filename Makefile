@@ -309,6 +309,14 @@ test_grhsim_cpu_mapping:
 	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(grhsim-ir-tests|grhsim-cpu-mapping-tests)$$' --output-on-failure
 
 .PHONY: audit_grhsim_cpu_emit
+.PHONY: analyze_grhsim_cpu_profile
+analyze_grhsim_cpu_profile:
+	$(PYTHON) $(CURDIR)/scripts/grhsim_cpu_profile.py --profile "$(GRHSIM_CPU_PROFILE)" --binary "$(GRHSIM_CPU_PROFILE_BINARY)" --model "$(GRHSIM_CPU_PROFILE_MODEL)" --expected-samples "$(GRHSIM_CPU_PROFILE_SAMPLES)"
+
+.PHONY: test_grhsim_cpu_profile
+test_grhsim_cpu_profile:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_cpu_profile.py
+
 .PHONY: analyze_grhsim_scalar_staging
 analyze_grhsim_scalar_staging:
 	@test -n "$(GRHSIM_STAGE_MODEL)" || { echo "Set GRHSIM_STAGE_MODEL to the generated model .cpp"; exit 1; }
