@@ -184,3 +184,4 @@ M0、M1、M2、M3 的自包含报告、实验索引、当前最佳 commit、完�
 | [ready-dispatch](grhsim-ir-candidate-ready-dispatch-20260910.md) | 2026-09-10 | REJECTED / REGRESSION | 737.862 | 87.647 | 约 700 | 功能通过但比 activity-guard 慢约 2.59 倍 |
 | [activity-mask-pack](grhsim-ir-candidate-activity-mask-pack-20260910.md) | 2026-09-10 | REJECTED / STRUCTURAL SCREEN | 未运行 | 未运行 | 未运行 | 仅 6 个双字节 guard 可合并，静态检查项减少 0.1179477%，无运行收益证据 |
 | [scalar-stage-elision](grhsim-ir-candidate-scalar-stage-elision-20260910.md) | 2026-09-10 | VALIDATED / LOWEST MEAN | 284.075; 275.822 | 605.75（完整 SV） | 471.77 | 均值 279.9485 s，低 1.6686% 但范围重叠；两次 50k PASS，未达约 40 s |
+| [phase-profile](grhsim-ir-phase-profile-20260910.md) | 2026-09-10 | IMPLEMENTED / FOCUSED PASS | 未测 50k | 未测完整模型 | 未测完整模型 | 阶段计时已实现；focused 68.04 s PASS，2,048 次 on/off 回放；待完整阶段占比及扰动测量 |
