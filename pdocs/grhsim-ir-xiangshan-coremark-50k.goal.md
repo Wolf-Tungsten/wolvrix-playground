@@ -70,9 +70,10 @@
 - XiangShan：`4a6e3da8bfb1140d24eaa6c9e0d058fd981b35a6`；top `SimTop`，DIFFTEST/NEMU。
 - 输入：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`；SHA-256 `c764afb8bfd69542620a4794b858867dd1e455efaac56c28eb477f1732f83e8e`。
 - 50,000 cycles、CPU 2、`XS_EMU_THREADS=1`，waveform/commit/RAM trace 关闭；主机 32 CPU。
-- 当前最佳为 [compute-guard-hoist 节点](NO00016-grhsim-ir-candidate-compute-guard-hoist-20260911.md)（NO00016）：两次 **169.410 / 169.710 s**，均值 **169.560 s**；相对同场隔离 compute-history 控制 **183.520 s** 降低 **7.6068%**。该节点运行前固定止损线 **273.6225 s**，所有运行均通过。后续节点需在启动前重新选定比较值及止损线。
-- 该版本完整生成 **601.22 s**、32-job 编译 **251.18 s**，flat GRH 与冻结基线逐字节一致；两次 NEMU PASS，73,580 instructions、cycleCnt 49,996、末端 PC `0x80001312`、guest cycles 50,001。实现 commit 见节点报告。
-- 前最佳 [compute-history](NO00015-grhsim-ir-candidate-compute-history-20260911.md)（NO00015）：均值 182.415 s（相对其控制 213.636 s 降低 14.6141%）。
+- 当前最佳为 [seed-elision 节点](NO00017-grhsim-ir-candidate-seed-elision-20260911.md)（NO00017）：两次 **97.710 / 100.120 s**，均值 **98.915 s**；相对同场隔离 compute-guard-hoist 控制 **165.820 s** 降低 **40.3461%**。该节点运行前固定止损线 **254.34 s**，所有运行均通过。后续节点需在启动前重新选定比较值及止损线。
+- 该版本完整生成 **600.89 s**（Make 墙钟 960.06 s，含绑定冷重建）、32-job 编译 **253.02 s**，flat GRH 与冻结基线逐字节一致；两次 NEMU PASS，73,580 instructions、cycleCnt 49,996、末端 PC `0x80001312`、guest cycles 50,001。实现 commit 见节点报告。相位诊断：compute **45.65 s (45.65%)**、commit **52.36 s (52.36%)**、publication **1.93 s**，轮次结构不变。
+- 前最佳 [compute-guard-hoist](NO00016-grhsim-ir-candidate-compute-guard-hoist-20260911.md)（NO00016）：两次 169.410 / 169.710 s，均值 169.560 s（相对同场控制 183.520 s 降低 7.6068%）。
+- 更早最佳 [compute-history](NO00015-grhsim-ir-candidate-compute-history-20260911.md)（NO00015）：均值 182.415 s（相对其控制 213.636 s 降低 14.6141%）。
 - 更早最佳 [edge-snapshot](NO00012-grhsim-ir-candidate-edge-snapshot-20260910.md)（NO00012）：均值 215.6715 s（相对其控制 270.194 s 降低 20.1790%）。
 - gsim 参照 **20.640 s**，NEMU PASS；其计数为 73,584 instructions、cycleCnt 49,998、PC `0x8000131e`，后端计数边界差异见 M0 报告。
 
