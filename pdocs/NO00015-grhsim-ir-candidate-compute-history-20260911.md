@@ -7,8 +7,8 @@
 ## Hypothesis
 
 Extend the accepted commit-side private event history sharing
-([shared-history](grhsim-ir-candidate-shared-history-20260910.md)) to eligible
-compute tasks. The [residual-hotspots profile](grhsim-ir-residual-hotspots-20260910.md)
+([shared-history](NO00011-grhsim-ir-candidate-shared-history-20260910.md)) to eligible
+compute tasks. The [residual-hotspots profile](NO00014-grhsim-ir-residual-hotspots-20260910.md)
 shows the out-of-line `cpu_write_scalar<bool>` staging helper now holds
 **8.7076%** of flat samples, with 13,763 of its 16,255 static call sites
 (84.7%) in compute tasks — the assert/DPI task class that tops the compute

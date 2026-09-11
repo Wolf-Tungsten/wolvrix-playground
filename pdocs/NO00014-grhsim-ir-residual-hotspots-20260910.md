@@ -6,10 +6,10 @@
 
 ## Question and plan recorded before execution
 
-The accepted [edge-snapshot node](grhsim-ir-candidate-edge-snapshot-20260910.md)
+The accepted [edge-snapshot node](NO00012-grhsim-ir-candidate-edge-snapshot-20260910.md)
 lowered the 50k Host mean to **215.6715 s** (−20.1790% against its final
 control). The only function-level profile on this program
-([task-hotspots](grhsim-ir-task-hotspots-20260910.md)) predates both accepted
+([task-hotspots](NO00010-grhsim-ir-task-hotspots-20260910.md)) predates both accepted
 optimizations: it measured the scalar-stage executable at compute 56.1832% /
 commit 38.7506% / publication 5.0388% of eval time, commit tasks at 35.6047% of
 flat samples, and `cpu_write_scalar<bool>` at 6.2184%. Edge-snapshot removed
@@ -255,7 +255,7 @@ that falsified pending-dedup applies and must be re-proven for any record
 elision). Falsification criterion for that node: static site counts and a
 matching-source control, acceptance >3% beyond noise per the standing gate.
 
-Archive: this report, the [goal index](grhsim-ir-xiangshan-coremark-50k.goal.md),
+Archive: this report, the [goal index](grhsim-ir-xiangshan-coremark-50k.index.md),
 and the reused tools ([analyzer](../scripts/grhsim_cpu_profile.py),
 [reader tests](../scripts/test_grhsim_cpu_profile.py), [Makefile](../Makefile))
 are the only tracked artifacts; no code, script, or submodule change occurred

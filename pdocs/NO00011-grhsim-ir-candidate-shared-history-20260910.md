@@ -12,9 +12,9 @@ redundant history staging, publication, and stability scanning. The trigger uses
 IR ownership, event identity, initialization, and publication targets. No GRH pass,
 frozen GRH, XiangShan source, or workload is changed.
 
-The [function profile](grhsim-ir-task-hotspots-20260910.md) measured commit tasks at
+The [function profile](NO00010-grhsim-ir-task-hotspots-20260910.md) measured commit tasks at
 35.6047% of flat samples and the bool staging helper at 6.2184%; the independent
-[phase profile](grhsim-ir-phase-profile-20260910.md) measured commit at 38.7506%
+[phase profile](NO00009-grhsim-ir-phase-profile-20260910.md) measured commit at 38.7506%
 and publication at 5.0388% of eval time. These overlapping measurements are not
 additive. Generated tasks contain thousands of histories for very few events.
 The hypothesis targets repeated work across commit tasks, not a hot module name.

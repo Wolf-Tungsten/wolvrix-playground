@@ -15,7 +15,7 @@ consumer notifications. It would cover scalar, wide and memory-cell writes
 without matching module names. It must preserve visible/shadow separation,
 ordered masked writes and notifications for every changed cell.
 
-The search clue was the earlier [phase profile](grhsim-ir-phase-profile-20260910.md):
+The search clue was the earlier [phase profile](NO00009-grhsim-ir-phase-profile-20260910.md):
 publication occupied 5.04% of eval time at `93d55ae`. That is an old profile,
 not evidence of duplicate records or a current runtime bound. Even removing
 all publication could save only that fraction of eval time in that old run;
@@ -127,6 +127,6 @@ node should obtain current cost evidence for compute or payload work and
 test a mechanism with reachable coverage, rather than extend this queue
 screen. The broader program remains open.
 
-References: [goal/index](grhsim-ir-xiangshan-coremark-50k.goal.md),
-[accepted edge-snapshot baseline](grhsim-ir-candidate-edge-snapshot-20260910.md),
+References: [goal](grhsim-ir-xiangshan-coremark-50k.goal.md)/[index](grhsim-ir-xiangshan-coremark-50k.index.md),
+[accepted edge-snapshot baseline](NO00012-grhsim-ir-candidate-edge-snapshot-20260910.md),
 and the tracked source, fixture and phase report linked above.

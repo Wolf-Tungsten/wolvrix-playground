@@ -14,7 +14,7 @@ those loads invariant. Explicit boolean snapshots express the IR invariant and
 remove redundant edge evaluation across intervening writes without reordering
 those writes. This node changes predicate evaluation, not history ownership.
 
-The existing [phase profile](grhsim-ir-phase-profile-20260910.md) attributed
+The existing [phase profile](NO00009-grhsim-ir-phase-profile-20260910.md) attributed
 38.7506% of eval time to commit. That profile predates history sharing and is
 only a search clue, not a current bound. In the accepted generated model, task
 5121 repeats two identical event/history terms before thousands of writes.
@@ -42,7 +42,7 @@ node and ends performance experiments. No results are prefilled.
 
 Keep XiangShan revision, CoreMark binary, SimTop, NEMU, CPU 2, 50,000 cycles,
 explicit `XS_EMU_THREADS=1`, and disabled waveform/trace/profiling as in the
-[accepted baseline](grhsim-ir-candidate-shared-history-20260910.md). Recheck input
+[accepted baseline](NO00011-grhsim-ir-candidate-shared-history-20260910.md). Recheck input
 identities before execution. Compile with all 32 available CPUs. Reuse gsim
 20.640 seconds; no gsim rerun is justified by an unchanged configuration.
 

@@ -6,7 +6,7 @@
 
 ## Hypothesis
 
-The accepted [compute-history node](grhsim-ir-candidate-compute-history-20260911.md)
+The accepted [compute-history node](NO00015-grhsim-ir-candidate-compute-history-20260911.md)
 aliased 13,382 private compute-side event histories to per-unit
 representatives. A side effect not yet exploited: the event **guards** of the
 aliased ops are now textually identical within a scheduler unit — every guard
