@@ -70,8 +70,9 @@
 - XiangShan：`4a6e3da8bfb1140d24eaa6c9e0d058fd981b35a6`；top `SimTop`，DIFFTEST/NEMU。
 - 输入：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`；SHA-256 `c764afb8bfd69542620a4794b858867dd1e455efaac56c28eb477f1732f83e8e`。
 - 50,000 cycles、CPU 2、`XS_EMU_THREADS=1`，waveform/commit/RAM trace 关闭；主机 32 CPU。
-- 当前最佳为 [activity-word-scan 节点](NO00019-grhsim-ir-candidate-activity-word-scan-20260911.md)（NO00019）：两次 **67.364 / 69.082 s**，均值 **68.223 s**；相对同场隔离 commit-port-arm 控制 **87.585 s** 降低 **22.1061%**。该节点运行前固定止损线 **130.50825 s**，所有运行均通过。后续节点需在启动前重新选定比较值及止损线。
-- 该版本完整生成 **612.45 s**（Make 墙钟）、32-job 编译 **263.03 s**，flat GRH 与冻结基线逐字节一致；两次 NEMU PASS，73,580 instructions、cycleCnt 49,996、末端 PC `0x80001312`、guest cycles 50,001。实现 commit 见节点报告。相位诊断：compute **44.82 s (65.1%)**、commit **22.13 s (32.1%)**、publication **1.83 s**，轮次结构不变。
+- 当前最佳为 [seed-quiesce 节点](NO00020-grhsim-ir-candidate-seed-quiesce-20260911.md)（NO00020）：四次 **67.042 / 66.942 / 67.172 / 66.692 s**，均值 **66.962 s**；相对同窗口交错控制（70.719 / 71.344 / 70.098 s，均值 70.720 s）降低 **5.3137%**，全控制池口径 4.3485%。该节点运行前固定止损线 **102.3345 s**，所有运行均通过。后续节点需在启动前重新选定比较值及止损线；注意约 90 分钟尺度的机器漂移已达 ~4%，小收益节点须预注册交错控制块。
+- 该版本完整生成 **618.66 s**（Make 墙钟）、32-job 编译 **258.25 s**，flat GRH 与冻结基线逐字节一致；十次 NEMU PASS（含对照、相位与探针诊断），73,580 instructions、cycleCnt 49,996、末端 PC `0x80001312`、guest cycles 50,001。实现 commit 见节点报告。相位诊断：compute **42.96 s (63.9%)**、commit **22.06 s (32.8%)**、publication **1.89 s**，轮次结构不变（201,258 / 100,102）；探针实测跳过率 50.26%（341 unit × 201,258 轮）。
+- 前最佳 [activity-word-scan 节点](NO00019-grhsim-ir-candidate-activity-word-scan-20260911.md)（NO00019）：两次 **67.364 / 69.082 s**，均值 **68.223 s**；相对同场隔离 commit-port-arm 控制 **87.585 s** 降低 **22.1061%**。该版本完整生成 **612.45 s**（Make 墙钟）、32-job 编译 **263.03 s**；相位诊断 compute **44.82 s (65.1%)**、commit **22.13 s (32.1%)**、publication **1.83 s**。
 - 前最佳 [commit-port-arm 节点](NO00018-grhsim-ir-candidate-commit-port-arm-20260911.md)（NO00018）：两次 87.085 / 86.926 s，均值 87.0055 s（相对同场隔离 seed-elision 控制 99.475 s 降低 12.5352%）。
 - 前最佳 [seed-elision 节点](NO00017-grhsim-ir-candidate-seed-elision-20260911.md)（NO00017）：两次 97.710 / 100.120 s，均值 98.915 s（相对同场隔离 compute-guard-hoist 控制 165.820 s 降低 40.3461%）。
 - 前最佳 [compute-guard-hoist](NO00016-grhsim-ir-candidate-compute-guard-hoist-20260911.md)（NO00016）：两次 169.410 / 169.710 s，均值 169.560 s（相对同场控制 183.520 s 降低 7.6068%）。
@@ -79,7 +80,7 @@
 - 更早最佳 [edge-snapshot](NO00012-grhsim-ir-candidate-edge-snapshot-20260910.md)（NO00012）：均值 215.6715 s（相对其控制 270.194 s 降低 20.1790%）。
 - gsim 参照 **20.640 s**，NEMU PASS；其计数为 73,584 instructions、cycleCnt 49,998、PC `0x8000131e`，后端计数边界差异见 M0 报告。
 
-当前最佳构建（activity-word-scan）的相位诊断（69.033 s 诊断 Host，NEMU PASS 精确终点）：compute **44.82 s (65.1%)**、commit **22.13 s (32.1%)**、publication **1.83 s**，evals 100,102 / rounds 201,258 轮次结构不变。最近一次新鲜平坦 profile 仍属前最佳构建（commit-port-arm，19,950 样本，名义 100.249 s CPU）：commit_task **47.42%**、compute_task **36.86%**、harness **8.34%**、evaluator **5.72%**、external **1.50%**；task_5141 独占 4.67%。这些诊断不构成优化收益。
+当前最佳构建（seed-quiesce）的相位诊断（67.170 s 诊断 Host，NEMU PASS 精确终点）：compute **42.96 s (63.9%)**、commit **22.06 s (32.8%)**、publication **1.89 s**，evals 100,102 / rounds 201,258 轮次结构不变。最近一次新鲜平坦 profile 属前最佳构建（activity-word-scan，13,789 样本，名义 69.290 s CPU）：compute_task **57.65%**（其中 51 个播种 system/DPI 任务占 9.57%，现已有一半轮次被静默跳过）、commit_task **24.92%**、harness **11.41%**、evaluator **3.22%**、external **2.65%**；helper 中 cpu_stage_cell 2.73%、cpu_write_scalar\<bool\> 1.97%、cpu_direct_state_changed 1.54%，最热任务 cpu_task_5141 1.23%。这些诊断不构成优化收益。
 
 ## 报告索引
 
