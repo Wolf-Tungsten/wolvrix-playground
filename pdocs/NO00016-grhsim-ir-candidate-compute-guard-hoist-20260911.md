@@ -1,7 +1,7 @@
 # Compute-Task Event Guard Hoisting
 
 - Node: `compute_guard_hoist_20260911_01`
-- Status: IDEA / BASELINE recorded; not yet implemented
+- Status: ACCEPTED; candidate mean 169.560 s vs control 183.520 s (−7.6068%), all gates passed
 - Root baseline: `24349282318a7a7a625453ee72bebe085a1a0195`; wolvrix baseline: `767240530a717b9d6d749d31766538c2ab1e4762`.
 
 ## Hypothesis

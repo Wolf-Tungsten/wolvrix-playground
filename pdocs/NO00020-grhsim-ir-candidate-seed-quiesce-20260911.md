@@ -1,7 +1,7 @@
 # Seed Quiescence Skip
 
 - Node: `seed_quiesce_20260911_01`
-- Status: IN PROGRESS (IDEA/BASELINE recorded before any candidate work)
+- Status: ACCEPTED; candidate mean 66.962 s vs in-window interleaved control mean 70.720 s (−5.3137%), all gates passed (see Final Decision and Archive)
 - Root baseline: `aef45ab` (activity-word-scan accepted); wolvrix baseline: `5e52a3e` (activity-word-scan, accepted NO00019).
 
 ## Hypothesis

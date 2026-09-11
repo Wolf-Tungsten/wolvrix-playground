@@ -1,7 +1,7 @@
 # Compute-Task Private Event History Sharing
 
 - Node: `compute_history_20260911_01`
-- Status: IDEA / BASELINE recorded; not yet implemented
+- Status: ACCEPTED; candidate mean 182.415 s vs control 213.636 s (−14.6141%), all gates passed
 - Root baseline: `3164609`; wolvrix baseline: `c8b8676aee27efbf701e62d86c37e3ca86b576e3`.
 
 ## Hypothesis

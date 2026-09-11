@@ -1,7 +1,7 @@
 # Word-Packed Activity Scans
 
 - Node: `activity_word_scan_20260911_01`
-- Status: IN PROGRESS (IDEA/BASELINE recorded before any candidate work)
+- Status: ACCEPTED; candidate mean 68.223 s vs isolated control 87.585 s (−22.1061%), all gates passed (see Final Decision and Archive)
 - Root baseline: `74e55ee` (commit-port-arm accepted); wolvrix baseline: `cc420ba` (commit-port-arm, accepted NO00018).
 
 ## Hypothesis
