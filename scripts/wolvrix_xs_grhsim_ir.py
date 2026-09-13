@@ -27,6 +27,7 @@ CPU_PIPELINE = [
     # Recover scalarized table state while the GrhSIM model still exposes
     # state reads/writes; CPU mapping and scheduling consume the arrays.
     "grhsim.reg-to-mem",
+    "grhsim.canonicalize-compute",
     "cpu.st.split-phase",
     "cpu.st.form-event-domains",
     "cpu.st.build-compute-nodes",

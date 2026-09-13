@@ -67,12 +67,14 @@
 
 ## 当前基线与搜索依据
 
-截至 2026-09-13，NO00022 已接受，最终性能目标未完成。固定配置：
+截至 2026-09-13，NO00023 已接受，最终性能目标未完成。固定配置：
 
 - XiangShan：`4a6e3da8bfb1140d24eaa6c9e0d058fd981b35a6`；top `SimTop`，DIFFTEST/NEMU。
 - 输入：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`；SHA-256 `c764afb8bfd69542620a4794b858867dd1e455efaac56c28eb477f1732f83e8e`。
 - 50,000 cycles、CPU 2、`XS_EMU_THREADS=1`，waveform/commit/RAM trace 关闭；主机 32 CPU。
-- 当前最佳为 [shared-port-edge 节点](NO00022-grhsim-ir-candidate-shared-port-edge-20260913.md)（NO00022）：正式新样本 **63.589 / 62.558 / 63.522 s**，均值 **63.223000 s**、样本标准差 **0.576880 s**；同窗口连续旧/新交替的对照为 **65.589 / 65.944 / 64.625 s**，均值 **65.386000 s**、样本标准差 **0.682530 s**。均值降低 **3.308048%**，`max(new)=63.589 < min(old)=64.625`，Mann–Whitney U=0、单侧精确 p=0.05，全部六次保留。距约 40 s 仍差 **23.223000 s**。该节点预选止损线 **96.878 s**（1.5 × NO00021 均值，毫秒取整）。
+- 当前最佳为 [compute canonicalization 节点](NO00023-grhsim-ir-candidate-compute-residual-20260913.md)（NO00023）：正式新样本 **60.669 / 60.678 / 60.590 s**，均值 **60.645667 s**、样本标准差 **0.048418 s**；同窗口连续旧/新交替的对照为 **62.719 / 63.033 / 63.755 s**，均值 **63.169000 s**、样本标准差 **0.531221 s**。均值降低 **3.994575%**，`max(new)=60.678 < min(old)=62.719`，Mann–Whitney U=0、单侧精确 p=0.05，old−new Cohen's d=6.689870；全部六次保留。距约 40 s 仍差 **20.645667 s**。该节点预选止损线 **94.835 s**（1.5 × NO00022 均值，毫秒取整）。
+- NO00023 在 GrhSIM 侧先归一化同完整类型的两态 logic 赋值，再共享精确相同的纯计算，删除 **233816 identity assigns + 201115 duplicate computes = 434931** 个操作/值，CPU tasks **5595→5036**，boundary **2411392→2282776 bytes**。状态、初始化和副作用操作保留；按有序 operands、结果类型和完整参数匹配，不按模块名触发。完整生成 **609.71 s**、fresh 32-job 编译 **240.37 s**，均预装 1800 s 截止，flat GRH 与 NO00022 逐字节相同。最终六次均 NEMU PASS，73580 instructions、cycleCnt 49996、PC `0x80001312`、guest cycles 50001；harness `XS_NUM_CORES=1`，冻结 RTL/GRH/GRH pass 不变。最终相位诊断 Host **59.157 s**，compute **38.935131 s（66.01%）**、commit **18.505281 s（31.37%）**、publication **1.468784 s**，evals/rounds **100102/201258**；诊断未混入性能基线。无条件/多使用结果转发、bool 包装简化、仅 identity 等被否定尝试全部撤销，报告保留所有结果。三节点定期复盘已更新；本次节点结束，未启动下一节点。
+- 前最佳为 [shared-port-edge 节点](NO00022-grhsim-ir-candidate-shared-port-edge-20260913.md)（NO00022）：正式新样本 **63.589 / 62.558 / 63.522 s**，均值 **63.223000 s**、样本标准差 **0.576880 s**；同窗口连续旧/新交替的对照为 **65.589 / 65.944 / 64.625 s**，均值 **65.386000 s**、样本标准差 **0.682530 s**。均值降低 **3.308048%**，`max(new)=63.589 < min(old)=64.625`，Mann–Whitney U=0、单侧精确 p=0.05，全部六次保留。该节点预选止损线 **96.878 s**（1.5 × NO00021 均值，毫秒取整）。
 - NO00022 在 497 个任务内共享提交边沿，将 3412 个块检查归为任务入口检查，边沿成立时按实际端口掩码一次消费活动字节；混合边沿保留原路径。完整生成 **615.88 s**、fresh 32-job 编译 **253.93 s**，均预装 1800 s 截止；flat GRH 与 NO00021 逐字节相同。正式六次均 NEMU PASS，73580 instructions、cycleCnt 49996、PC `0x80001312`、guest cycles 50001；harness `XS_NUM_CORES=1`，冻结 RTL 不变。最终相位诊断 Host 62.323 s，compute **41.914338 s（67.44%）**、commit **18.606339 s（29.94%）**、publication **1.557333 s**，evals/rounds 100102/201258；诊断未混入性能基线。通知分组/分支/目标汇聚等失败尝试全部撤销，详见节点报告。下一个节点仍须重新预选止损线并预注册六次交替。
 - 前最佳 [history-cohorts 节点](NO00021-grhsim-ir-candidate-history-batch-overwrite-20260912.md)（NO00021）：正式新样本 **63.319 / 65.287 / 65.150 s**，均值 **64.585333 s**、样本标准差 **1.098814 s**；同窗口按旧/新交替的对照为 **67.350 / 66.480 / 66.547 s**，均值 **66.792333 s**、样本标准差 **0.484114 s**。均值降低 **3.304271%**，`max(new)=65.287 < min(old)=66.480`，Mann–Whitney U=0、单侧精确 p=0.05；全部样本保留。该节点运行前固定止损线 **100.443 s = 1.5 × 66.962 s**。
 - NO00021 完整生成 **597.25 s**（Make 墙钟）、fresh 32-job 编译 **265.58 s**，均安装 1800 s 截止；flat GRH 与 NO00020 逐字节一致。正式六次均 NEMU PASS，73,580 instructions、cycleCnt 49,996、末端 PC `0x80001312`、guest cycles 50,001；harness `XS_NUM_CORES=1` 与旧构建一致，冻结 RTL 不变。实现 commit 与全部验证数据见节点报告。该节点未重新采集相位/profile，后续须先刷新残余证据；后续节点仍需在启动前重新选定止损线并预注册六次交错比较，不以跨窗口历史值代替同期控制。
@@ -85,7 +87,7 @@
 - 更早最佳 [edge-snapshot](NO00012-grhsim-ir-candidate-edge-snapshot-20260910.md)（NO00012）：均值 215.6715 s（相对其控制 270.194 s 降低 20.1790%）。
 - gsim 参照 **20.640 s**，NEMU PASS；其计数为 73,584 instructions、cycleCnt 49,998、PC `0x8000131e`，后端计数边界差异见 M0 报告。
 
-最近一次相位诊断属于当前 NO00022，数据见上。最近一次平坦 profile 属 NO00021，由 NO00022 开始时刷新：Host 65.568 s、13118 samples（200 Hz），compute tasks **59.9024%**、commit tasks **25.8805%**、evaluator **2.9578%**、main-other **8.9419%**、external **2.1955%**；`cpu_stage_cell` **2.9273%**、`cpu_direct_state_changed` **1.5322%**。compute 热点分散在 2539 个 task，commit 前十 task 占总样本 **8.5912%**。这些采样不代表 NO00022 当前平坦热点，也不构成其收益证据；后续按最终相位和新鲜热点选择方向，不重复尝试已经否定的通知分支/局部汇聚。
+最近一次相位诊断属于当前 NO00023，数据见上。最近一次平坦 profile 属 NO00022，由 NO00023 开始时刷新：Host **64.084 s**、emu 墙钟 **64.12 s**、12821 samples（200 Hz），compute tasks **61.180875%**、commit tasks **24.249279%**、evaluator **2.971687%**、main-other **8.891662%**、external **2.433508%**，compute 热点分散在 **2551** 个 task。这些采样不代表 NO00023 当前平坦热点，也不构成其收益证据。NO00021–23 同窗口收益分别 **3.304271% / 3.308048% / 3.994575%**，相较先前大步改善已经收窄；本节点从 helper/通知微调转向语义去重，但当前仍有约 66% compute、31% commit。后续先刷新对应动态覆盖，优先调查细粒度 compute 执行、稀疏 commit 端口执行或 staged memory 访问，不循环已否定的局部转发、bool 包装、通知分支/汇聚或仅 identity 删减。不能将跨窗口均值直接相减或相乘当作累计收益；下次节点仍须重新预选截止并预注册六次交替。
 
 ## 报告索引
 
