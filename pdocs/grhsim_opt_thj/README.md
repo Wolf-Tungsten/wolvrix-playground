@@ -309,12 +309,13 @@
 | `TNO0299` | `2026-09-09` | [SimpleTES B native walltime regression](./TNO0299_simpletes_b_native_walltime_regression_20260909.md) | 正式 node032 CPU184 同 CCD fixed-ASLR 50k：base `43,048.50→B 41,051.25 ms`，减少 `1,997.25 ms/4.639534%`；order gap `0.166151 pp`，完整 8 项稳定性门禁通过。前三组 gap 不合格均保留并拒绝，不混合平均；B 保留原生默认。 |
 | `TNO0300` | `2026-09-09` | [SimpleTES native-B Astra fresh research launch](./TNO0300_simpletes_native_b_astra_fresh_launch_20260909.md) | node030 以 native-B 默认基线新建 instance `ed572ae5`；隔离安装当前稳定 Codex `0.153.4`，THJ 派生私有配置的 `gpt-6-astra/max` 真实工具调用预检通过，`64 attempts/32 valid`、`4 gen/1 eval` 已启动，首次 control 构建中，尚无新性能结论。 |
 | `TNO0301` | `2026-09-10` | [SimpleTES function-gate locale fix](./TNO0301_simpletes_function_gate_locale_fix_20260910.md) | SimpleTES `9d19a65` 为 evaluator 子进程及 source 后统一固定 `LC_ALL=C`，修复千位逗号导致的 10k 假失败；focused `165/165`、full `330/330`、node030 同 ELF 旧环境复现及修复后 100/10k gate 通过。引擎未重启，修复将在下一次自然 evaluator retry 加载，尚无新 50k 结果。 |
+| `TNO0302` | `2026-09-14` | [SimpleTES Astra budget-128/valid-64 resume](./TNO0302_simpletes_astra_budget128_valid64_resume_20260914.md) | 原 Astra 树正常完成 `42 attempts/32 valid`，best g34 为 `40,469→39,490 ms`（减少 `2.419136%`）；node030 从最终 checkpoint 单调扩容至累计 `128/64`，原 instance `ed572ae5`、Astra/max、`4 gen/1 eval` 已续跑。首次模型 attestation 预检拒绝未启动引擎，第二次严格预检通过，历史分数/基线不变。 |
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`301`（`TNO0001..TNO0301`）。
+- 当前记录类文档总数：`302`（`TNO0001..TNO0302`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
