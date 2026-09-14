@@ -71,8 +71,8 @@
 
 - 配置：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`，`XS_NUM_CORES=1`，`XS_EMU_THREADS=1`，`XS_EMU_CPU=2`，waveform/commit/RAM trace 关闭，cycle 上限 `100000`。
 - **gsim**（emu 编译于 2026-09-10 01:50:26）：Host time spent **46.965 s**；`instrCnt=238550`、`cycleCnt=99998`、IPC **2.385548**、末端 PC `0x80000b40`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
-- **GrhSIM-IR**（[NO00026 最新状态共享节点](NO00026-grhsim-ir-candidate-boolean-functions-20260914.md)的 emu，编译于 2026-09-14 12:29:47）：Host time spent **131.361 s**；`instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
-- 按 Host time 计算，GrhSIM-IR 为 gsim 的 **2.796998×**，高 **84.396 s（179.699776%）**。
+- **GrhSIM-IR**（[NO00027 caller-owned wide replicate](NO00027-grhsim-ir-candidate-frame-liveness-20260914.md) 的正式 `new3`，编译于 2026-09-14）：Host time spent **129.280 s**；`instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。该节点六次正式新样本均值为 **130.152333 s**。
+- 按 `new3` Host time 计算，GrhSIM-IR 为 gsim 的 **2.752688×**，高 **82.315 s（175.268817%）**。
 
 本次测量使用的 Makefile 目标为 `run_xs_gsim_emu` 和 `run_xs_wolf_grhsim_ir_emu`，两者均设置 `XS_SIM_MAX_CYCLE=100000`、`XS_NUM_CORES=1`、`XS_EMU_THREADS=1`、`XS_EMU_CPU=2`、`XS_WAVEFORM=0`、`XS_COMMIT_TRACE=0`、`XS_RAM_TRACE=0`。
 
