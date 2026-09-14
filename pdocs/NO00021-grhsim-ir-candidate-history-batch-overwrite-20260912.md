@@ -266,8 +266,8 @@ evaluator 主文件与 legacy runtime header 相对 NO00020 逐字节不变。�
 [emitter 回归](../wolvrix/tests/grhsim/test_cpu_emit.cpp)、
 [history 运行夹具](../wolvrix/tests/grhsim/data/cpu_history_scan_main.cpp) 和
 [CPU 后端文档](../wolvrix/docs/grhsim_ir/backends/cpu.md)。根仓库集中提交该子模块
-指针、本报告、[索引](grhsim-ir-xiangshan-coremark-50k.index.md) 和
-[goal 当前最佳记录](grhsim-ir-xiangshan-coremark-50k.goal.md)。生成代码、日志、
+指针、本报告、[索引](grhsim-ir-xiangshan-coremark.index.md) 和
+[goal 当前最佳记录](grhsim-ir-xiangshan-coremark.goal.md)。生成代码、日志、
 profile、波形、二进制及临时实验补丁留在 `ptmp/`，不纳入归档提交。
 
 当前最佳均值 **64.585333 s**，距约 40 s 仍差 **24.585333 s**，整个性能目标未完成。

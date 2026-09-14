@@ -255,7 +255,7 @@ that falsified pending-dedup applies and must be re-proven for any record
 elision). Falsification criterion for that node: static site counts and a
 matching-source control, acceptance >3% beyond noise per the standing gate.
 
-Archive: this report, the [goal index](grhsim-ir-xiangshan-coremark-50k.index.md),
+Archive: this report, the [goal index](grhsim-ir-xiangshan-coremark.index.md),
 and the reused tools ([analyzer](../scripts/grhsim_cpu_profile.py),
 [reader tests](../scripts/test_grhsim_cpu_profile.py), [Makefile](../Makefile))
 are the only tracked artifacts; no code, script, or submodule change occurred

@@ -127,6 +127,6 @@ node should obtain current cost evidence for compute or payload work and
 test a mechanism with reachable coverage, rather than extend this queue
 screen. The broader program remains open.
 
-References: [goal](grhsim-ir-xiangshan-coremark-50k.goal.md)/[index](grhsim-ir-xiangshan-coremark-50k.index.md),
+References: [goal](grhsim-ir-xiangshan-coremark.goal.md)/[index](grhsim-ir-xiangshan-coremark.index.md),
 [accepted edge-snapshot baseline](NO00012-grhsim-ir-candidate-edge-snapshot-20260910.md),
 and the tracked source, fixture and phase report linked above.

@@ -197,7 +197,7 @@ compute；与 NO00023 旧相位来自不同窗口，不能直接相减作为分�
 三节点定期复盘仅一个节点，本次更新当前最佳和残余证据，不另开下一节点。
 后续优先从依赖/条件驱动的 compute 子图执行或 staged memory 访问寻找更大的
 收益；不要把静态常量引用数量当作动态上界，也不循环先前已否定的 helper、
-结果转发和通知阈值微调。节点归档见[索引](grhsim-ir-xiangshan-coremark-50k.index.md)。
+结果转发和通知阈值微调。节点归档见[索引](grhsim-ir-xiangshan-coremark.index.md)。
 
 ## 复现方法与计时边界
 

@@ -446,7 +446,7 @@ NO00021–NO00023 三节点分别减少混合 task history 重复采样、共享
 下一节点。长期约 40 s 目标仍未完成。
 
 归档顺序为子模块实现提交，再根仓库入口、子模块指针、本报告、goal 与
-[索引](grhsim-ir-xiangshan-coremark-50k.index.md)；生成物、日志、profile 和二进制
+[索引](grhsim-ir-xiangshan-coremark.index.md)；生成物、日志、profile 和二进制
 均留在 ptmp，不提交。保留实现的最终子模块 commit：
 `abefd39e11c0ce52eb34996336eec9112ae93f1d`（`feat(grhsim): canonicalize pure compute expressions`）。
 该提交的 pass 源码与本文完整生成、回归和六次正式测量的冻结哈希一致；根仓库

@@ -1,0 +1,34 @@
+# GrhSIM-IR XiangShan CoreMark 报告索引
+
+本索引从 [goal](grhsim-ir-xiangshan-coremark.goal.md) 分离单独维护。报告文件按创建顺序以 `NOxxxxx` 编号前缀命名，编号单调递增、不复用；新节点完成时在表尾追加登记。
+
+保留历史结果；旧报告中按阶段拆分执行或提交的做法不再适用。后续按完整节点登记。
+
+| 编号 | 报告 | 状态 / 关键结论 |
+|---|---|---|
+| NO00001 | [M0 baseline](NO00001-grhsim-ir-m0-baseline-20260910.md) | 基线：gsim 20.640 s；原始 IR 304.197 s |
+| NO00002 | [frame-init](NO00002-grhsim-ir-candidate-frame-init-20260910.md) | REJECTED：305.17 s，移除清零无收益 |
+| NO00003 | [activity-guard](NO00003-grhsim-ir-candidate-activity-guard-20260910.md) | 前一基线：均值 284.699 s |
+| NO00004 | [batch-packing](NO00004-grhsim-ir-candidate-batch-packing-20260910.md) | REJECTED / INCOMPLETE：编译未完成，无性能结论 |
+| NO00005 | [ready-queue](NO00005-grhsim-ir-candidate-ready-queue-20260910.md) | REJECTED / INVALID：cycle 0 RTL assertion，0 instructions |
+| NO00006 | [ready-dispatch](NO00006-grhsim-ir-candidate-ready-dispatch-20260910.md) | REJECTED / REGRESSION：737.862 s，对拍通过但显著变慢 |
+| NO00007 | [activity-mask-pack](NO00007-grhsim-ir-candidate-activity-mask-pack-20260910.md) | REJECTED：仅减少 0.1179477% 静态 guard 检查项，无运行收益证据 |
+| NO00008 | [scalar-stage-elision](NO00008-grhsim-ir-candidate-scalar-stage-elision-20260910.md) | VALIDATED / 最低均值：279.9485 s，仍有噪声限制 |
+| NO00009 | [phase-profile](NO00009-grhsim-ir-phase-profile-20260910.md) | 诊断：off/on 287.162/292.350 s，均对拍通过；完整生成/编译 606.29/477.30 s |
+| NO00010 | [task-hotspots](NO00010-grhsim-ir-task-hotspots-20260910.md) | 诊断：283.389 s，56,397 样本，对拍通过；未实施优化 |
+| NO00011 | [shared-history](NO00011-grhsim-ir-candidate-shared-history-20260910.md) | ACCEPTED：共享同一 commit task 内等价私有 event history；生成 615.95 s、编译 246.50 s；50k 候选均值 268.947 s，对照均值 292.113 s，提升 7.9303% |
+| NO00012 | [edge-snapshot](NO00012-grhsim-ir-candidate-edge-snapshot-20260910.md) | ACCEPTED：496 个 task 的 226,510 次重复边沿条件引用复用 496 个快照；生成 611.87 s、编译 255.12 s；50k 两次均值 215.6715 s，相对最终控制 270.194 s 降低 20.1790% |
+| NO00013 | [pending-dedup](NO00013-grhsim-ir-candidate-pending-dedup-20260910.md) | REJECTED：四处入队路径均由 dirty 位保证同一 key 每轮最多一条记录；内存按 cell 分配 key。静态证伪，未运行性能实验 |
+| NO00014 | [residual-hotspots](NO00014-grhsim-ir-residual-hotspots-20260910.md) | 诊断：当前最佳构建相位 compute 70.3274% / commit 24.6039% / publication 5.0300%；flat 热点 `cpu_write_scalar<bool>` 8.7076%、commit 5141 2.2560%；两次诊断运行 NEMU PASS，性能基线不变 |
+| NO00015 | [compute-history](NO00015-grhsim-ir-candidate-compute-history-20260911.md) | ACCEPTED：51 个 compute task 的 13,382 个等价私有 event history 按 unit 共享代表元；生成 609.89 s、编译 254.56 s；50k 两次均值 182.415 s，相对同场控制 213.636 s 降低 14.6141% |
+| NO00016 | [compute-guard-hoist](NO00016-grhsim-ir-candidate-compute-guard-hoist-20260911.md) | ACCEPTED：51 个 assert/DPI task 的 13,630 次重复事件 guard 归并为 323 个 unit 级局部量；生成 601.22 s、编译 251.18 s；50k 两次均值 169.560 s，相对同场控制 183.520 s 降低 7.6068% |
+| NO00017 | [seed-elision](NO00017-grhsim-ir-candidate-seed-elision-20260911.md) | ACCEPTED：状态读者全部改为 commit fanout 真变化激活（仅 system/DPI 保留播种），投影位图物化且只决定收敛标记；每轮播种存储 1,716→51；生成 600.89 s（Make 墙钟 960.06 s）、编译 253.02 s；50k 两次均值 **98.915 s**，相对同场控制 165.820 s 降低 **40.3461%**；相位 compute 116.62→45.65 s |
+| NO00018 | [commit-port-arm](NO00018-grhsim-ir-candidate-commit-port-arm-20260911.md) | ACCEPTED：192,340/192,348 个 direct-commit 写端口改为操作数变化武装（24,303 个 cpu_pflags 字节、291,411 个 compute 侧武装站点，操作数未变的端口在边沿跳过求值）；证伪门实测武装比例上界 3.49%；生成 611.30 s（Make 墙钟）、编译 256.08 s；50k 两次均值 **87.0055 s**，相对同场控制 99.475 s 降低 **12.5352%**；相位 commit 52.36→31.61 s（−39.6%），轮次结构不变 |
+| NO00019 | [activity-word-scan](NO00019-grhsim-ir-candidate-activity-word-scan-20260911.md) | ACCEPTED：三处逐字节稠密活动扫描统一加 uint64 空测试预过滤（调度 5,588 检查/758 组、domain 交接 461 槽/121 组、pflags 走查 23,898/24,303 字/3,027 组），语义逐位不变；生成 612.45 s、编译 263.03 s；50k 两次均值 **68.223 s**，相对同场控制 87.585 s 降低 **22.1061%**；相位 compute 53.48→44.82 s、commit 31.61→22.13 s，轮次结构不变 |
+| NO00020 | [seed-quiesce](NO00020-grhsim-ir-candidate-seed-quiesce-20260911.md) | ACCEPTED：341 个全边沿守卫 compute unit（45 个播种 system/DPI 任务的 355 槽中）按入口守卫静默跳过（hist==event 时边沿守卫全假且内嵌采样无操作）；生成 618.66 s、编译 258.25 s；50k 四次均值 **66.962 s**，相对同窗口交错控制 70.720 s 降低 **5.3137%**（全控制池 4.3485%）；探针跳过率 50.26% 与预注册模型 50.25% 一致；轮次结构不变 |
+| NO00021 | [history-cohorts](NO00021-grhsim-ir-candidate-history-batch-overwrite-20260912.md) | ACCEPTED：逐 history 证明采样等价，在混合 commit task 内共享存储与边沿谓词；独立 bool 地址减少 8404、批量采样站点 212→0；完整生成 **597.25 s**、编译 **265.58 s**；六次交替 50k 均 NEMU PASS，新均值 **64.585333 s**、旧均值 **66.792333 s**，降低 **3.304271%**；max(new) 65.287 < min(old) 66.480 s，U=0、单侧精确 p=0.05。旧 0.534% 比较因样本交叉和 harness 配置不一致作废 |
+| NO00022 | [shared-port-edge](NO00022-grhsim-ir-candidate-shared-port-edge-20260913.md) | ACCEPTED：497 个任务共享端口边沿，3412 个块检查归为任务入口检查，按实际端口掩码一次消费活动字节；完整生成 **615.88 s**、编译 **253.93 s**；六次交替 50k 均 NEMU PASS，新均值 **63.223 s**、旧均值 **65.386 s**，降低 **3.308048%**；max(new) 63.589 < min(old) 64.625 s，U=0、单侧精确 p=0.05。多种通知/值分支尝试未通过，全部撤销 |
+| NO00023 | [compute canonicalization](NO00023-grhsim-ir-candidate-compute-residual-20260913.md) | ACCEPTED：GrhSIM 同类型赋值归一化后共享精确重复的纯计算，删除 **434931** 个操作/值，任务 **5595→5036**；完整生成 **609.71 s**、fresh 编译 **240.37 s**；六次交替 50k 均 NEMU PASS，新均值 **60.645667 s**、旧均值 **63.169000 s**，降低 **3.994575%**；max(new) 60.678 < min(old) 62.719 s，U=0、单侧精确 p=0.05。结果转发、bool 包装及仅 identity 尝试未通过，失败结果全部保留、源码撤销 |
+| NO00024 | [constant operands](NO00024-grhsim-ir-candidate-constant-operands-20260913.md) | ACCEPTED：13814 个不可变标量常量在使用点特化，覆盖 **1271104** 个引用，text 减少 **7.165048%**；完整生成 **595.01 s**、fresh 编译 **229.70 s**；六次交替 50k 均 NEMU PASS，新均值 **58.417667 s**、旧均值 **60.347333 s**，降低 **3.197601%**；max(new) 58.782 < min(old) 59.453 s，U=0、单侧精确 p=0.05。所有有效样本保留，IR/分区/布局/调度与冻结 RTL、GRH pass 不变 |
+| NO00025 | [scalar memory staging](NO00025-grhsim-ir-candidate-memory-noop-20260914.md) | ACCEPTED：33725 个标量内存写操作先比较 masked next，只有变化时才进入 shadow/pending，保留多端口顺序和地址级通知；完整生成 **605.49 s**、fresh 编译 **232.94 s**；六次交替 50k 均 NEMU PASS，新均值 **57.548667 s**、旧均值 **58.759000 s**，降低 **2.059826%**；max(new) 57.656 < min(old) 58.594 s，U=0、单侧精确 p=0.05。四个 mux 条件执行版本被否定并撤销，全部数据保留 |
+| NO00026 | [equivalent ordinary state sharing](NO00026-grhsim-ir-candidate-boolean-functions-20260914.md) | ACCEPTED：确定性 two-state 普通状态副本共享并合并读取，删除 **40830 states / 107179 operations**；完整生成 **657.43 s**、fresh 编译 **239.56 s**；六次交替 50k 均 NEMU PASS，新均值 **55.700000 s**、旧均值 **57.176667 s**，降低 **2.582639%**；max(new) 55.900 < min(old) 57.030，U=0、单侧精确 p=0.05；子模块 commit `cafaf61` |
