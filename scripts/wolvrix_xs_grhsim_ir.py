@@ -28,6 +28,7 @@ CPU_PIPELINE = [
     # state reads/writes; CPU mapping and scheduling consume the arrays.
     "grhsim.reg-to-mem",
     "grhsim.canonicalize-compute",
+    "grhsim.clone-shared-compute",
     "cpu.st.split-phase",
     "cpu.st.form-event-domains",
     "cpu.st.build-compute-nodes",
@@ -77,10 +78,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--emit-cpp-dir", type=Path)
     parser.add_argument("--cpu-target-batch-count", type=int)
     parser.add_argument("--disable-reg-to-mem", action="store_true")
+    parser.add_argument("--clone-shared-compute", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--clone-shared-compute-max-clones", type=int, default=250000)
     parser.add_argument("--reg-to-mem-report", type=Path)
     args = parser.parse_args()
     if args.cpu_target_batch_count is not None and args.cpu_target_batch_count < 0:
         parser.error("--cpu-target-batch-count must be nonnegative")
+    if args.clone_shared_compute_max_clones <= 0:
+        parser.error("--clone-shared-compute-max-clones must be positive")
     return args
 
 
@@ -165,7 +170,11 @@ def main() -> int:
         for pass_name in CPU_PIPELINE:
             if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
                 continue
+            if pass_name == "grhsim.clone-shared-compute" and not args.clone_shared_compute:
+                continue
             pass_options = {}
+            if pass_name == "grhsim.clone-shared-compute":
+                pass_options["max-clones"] = args.clone_shared_compute_max_clones
             if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_report:
                 args.reg_to_mem_report.parent.mkdir(parents=True, exist_ok=True)
                 pass_options["report"] = str(args.reg_to_mem_report.resolve())

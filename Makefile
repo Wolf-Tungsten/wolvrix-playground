@@ -163,6 +163,8 @@ XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON ?= 0
 XS_WOLF_GRHSIM_IR_KEEP_ORIGINS ?= 0
 XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR ?=
 XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT ?=
+XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE ?= 1
+XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
 XS_SIM_DEFINES ?= DIFFTEST
 XS_SIM_DEFINES += $(XS_ZERO_INIT_DEFINES)
 XS_ROOT_ABS := $(abspath $(XS_ROOT))
@@ -316,6 +318,23 @@ analyze_grhsim_cpu_profile:
 .PHONY: test_grhsim_cpu_profile
 test_grhsim_cpu_profile:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_cpu_profile.py
+
+GRHSIM_IR_BENCH_CPU ?= 2
+GRHSIM_IR_BENCH_PAIRS ?= 3
+.PHONY: benchmark_grhsim_ir
+benchmark_grhsim_ir:
+	$(PYTHON) scripts/benchmark_grhsim_ir.py --old "$(GRHSIM_IR_BENCH_OLD)" --new "$(GRHSIM_IR_BENCH_NEW)" \
+		--output "$(GRHSIM_IR_BENCH_OUTPUT)" --cpu "$(GRHSIM_IR_BENCH_CPU)" \
+		--pairs "$(GRHSIM_IR_BENCH_PAIRS)" --baseline-seconds "$(GRHSIM_IR_BENCH_BASELINE_SECONDS)"
+
+.PHONY: test_benchmark_grhsim_ir
+test_benchmark_grhsim_ir:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_benchmark_grhsim_ir.py
+
+.PHONY: analyze_grhsim_localization
+analyze_grhsim_localization:
+	@$(PYTHON) scripts/grhsim_localization_stats.py --flow "$(GRHSIM_LOCALIZATION_FLOW)" \
+		--state-suffix '$(GRHSIM_LOCALIZATION_STATE_SUFFIX)' $(if $(filter 1,$(GRHSIM_LOCALIZATION_DEAD_CONES)),--dead-cones-only,)
 
 .PHONY: analyze_grhsim_scalar_staging
 .PHONY: analyze_grhsim_history_sharing
@@ -727,6 +746,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON)),--resume-from-flat-grh,) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_KEEP_ORIGINS)),--keep-origins,) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_REG_TO_MEM)),--disable-reg-to-mem,) \
+			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE)),--no-clone-shared-compute,--clone-shared-compute --clone-shared-compute-max-clones $(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES)) \
 			--reg-to-mem-report "$(XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT)" \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",); \
