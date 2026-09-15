@@ -23,13 +23,7 @@ GRH_PIPELINE: list[tuple[str, dict]] = [
     ("memory-init-check", {}),
 ]
 
-CPU_PIPELINE = [
-    # Recover scalarized table state while the GrhSIM model still exposes
-    # state reads/writes; CPU mapping and scheduling consume the arrays.
-    "grhsim.reg-to-mem",
-    "grhsim.canonicalize-compute",
-    "grhsim.clone-shared-compute",
-    "grhsim.bitwise-predicates",
+CPU_MAPPING_PIPELINE = [
     "cpu.st.split-phase",
     "cpu.st.form-event-domains",
     "cpu.st.build-compute-nodes",
@@ -39,6 +33,21 @@ CPU_PIPELINE = [
     "cpu.st.layout-data",
     "cpu.st.build-schedule",
 ]
+
+CPU_SEMANTIC_PIPELINE = [
+    # Recover scalarized table state while the GrhSIM model still exposes
+    # state reads/writes; CPU mapping and scheduling consume the arrays.
+    "grhsim.reg-to-mem",
+    "grhsim.canonicalize-compute",
+    "grhsim.clone-shared-compute",
+    "grhsim.bitwise-predicates",
+]
+# Packing reads the first schedule's quiescence projection and invalidates its
+# mapping. Rebuild all stages so emit uses the transformed state dependencies.
+CPU_PIPELINE = (
+    CPU_SEMANTIC_PIPELINE + CPU_MAPPING_PIPELINE
+    + ["grhsim.pack-bit-registers"] + CPU_MAPPING_PIPELINE
+)
 
 
 def log(message: str) -> None:
@@ -82,6 +91,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--clone-shared-compute", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--clone-shared-compute-max-clones", type=int, default=250000)
     parser.add_argument("--bitwise-predicates", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--reg-to-mem-report", type=Path)
     args = parser.parse_args()
     if args.cpu_target_batch_count is not None and args.cpu_target_batch_count < 0:
@@ -169,7 +179,8 @@ def main() -> int:
             lambda: session.run_grhsim_pass("grhsim.verify", model="grhsim.main"),
         )
         require_ok(diagnostics, "GrhSIM verify pass")
-        for pass_name in CPU_PIPELINE:
+        pipeline = CPU_PIPELINE if args.pack_bit_registers else CPU_SEMANTIC_PIPELINE + CPU_MAPPING_PIPELINE
+        for pass_name in pipeline:
             if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
                 continue
             if pass_name == "grhsim.clone-shared-compute" and not args.clone_shared_compute:

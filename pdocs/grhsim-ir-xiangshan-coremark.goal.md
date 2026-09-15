@@ -67,12 +67,12 @@
 
 ## 当前 100k 实测性能
 
-自 2026-09-14 起，CoreMark 性能测量统一执行 **100,000 cycles**，以降低短窗口噪声。以下为同一主机、输入和仿真配置的 gsim 归档测量及最新 GrhSIM-IR 正式结果；gsim 不在 NO00031 的交替测量窗口内。
+自 2026-09-14 起，CoreMark 性能测量统一执行 **100,000 cycles**，以降低短窗口噪声。以下为同一主机、输入和仿真配置的 gsim 归档测量及最新 GrhSIM-IR 正式结果；gsim 不在 NO00032 的交替测量窗口内。
 
 - 配置：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`，`XS_NUM_CORES=1`，`XS_EMU_THREADS=1`，`XS_EMU_CPU=2`，waveform/commit/RAM trace 关闭，cycle 上限 `100000`。
 - **gsim**（emu 编译于 2026-09-10 01:50:26）：Host time spent **46.965 s**；`instrCnt=238550`、`cycleCnt=99998`、IPC **2.385548**、末端 PC `0x80000b40`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
-- **GrhSIM-IR**（[NO00031 bitwise predicates](NO00031-grhsim-ir-bitwise-predicates-20260915.md)，编译于 2026-09-15）：三次正式 new Host 为 **118.886 / 118.579 / 118.430 s**，均值 **118.631667 s**，样本 SD **0.232517 s**；相对同窗口 NO00030 old 均值 **122.377667 s** 降低 **3.061016%**。max(new) 118.886 < min(old) 122.062，U=0、单侧精确 p=0.05。六次均为 `instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
-- 按最新三次 new 均值计算，GrhSIM-IR 为 gsim 归档时间的 **2.525959×**，高 **71.666667 s（152.595905%）**；该比例表示剩余目标差距，不代替同窗 old/new 统计。NO00031 将 **377635** 个一位布尔逻辑与/或规范化为位运算，配合 emit 将 compute 条件跳转减少 **117635（15.00%）**；完整生成 **672.64 s**、fresh 编译 **231.46 s** 均达标。NO00028–30 的方向复盘保留在 NO00030 报告中。
+- **GrhSIM-IR**（[NO00032 packed bit registers](NO00032-grhsim-ir-state-read-views-20260915.md)，编译于 2026-09-16）：三次正式 new Host 为 **110.056 / 109.567 / 110.288 s**，均值 **109.970333 s**，样本 SD **0.368055 s**；相对同窗口 NO00031 old 均值 **118.153000 s** 降低 **6.925484%**。max(new) 110.288 < min(old) 117.343，U=0、单侧精确 p=0.05。六次均为 `instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
+- 按最新三次 new 均值计算，GrhSIM-IR 为 gsim 归档时间的 **2.341538×**，高 **63.005333 s（134.153802%）**；该比例表示剩余目标差距，不代替同窗 old/new 统计。NO00032 将 **66935** 个同控制一位寄存器打包为 **4433** 个word，协同既有CPU标量发射路径，减少 **62502** 个提交写口；commit静态指令少 **790206（27.01%）**，compute静态指令略增 **1.12%**。完整生成 **704.68 s**、fresh编译 **215.90 s** 均达标。读视图拆分A–E均被否定并撤回；NO00028–30的方向复盘保留在NO00030报告中。
 
 上述 gsim 归档和 IR 实测分别使用 Makefile 目标 `run_xs_gsim_emu` 和 `run_xs_wolf_grhsim_ir_emu`，均设置 `XS_SIM_MAX_CYCLE=100000`、`XS_NUM_CORES=1`、`XS_EMU_THREADS=1`、`XS_EMU_CPU=2`、`XS_WAVEFORM=0`、`XS_COMMIT_TRACE=0`、`XS_RAM_TRACE=0`。
 

@@ -166,6 +166,7 @@ XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT ?=
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE ?= 1
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
 XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES ?= 1
+XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS ?= 1
 XS_SIM_DEFINES ?= DIFFTEST
 XS_SIM_DEFINES += $(XS_ZERO_INIT_DEFINES)
 XS_ROOT_ABS := $(abspath $(XS_ROOT))
@@ -324,6 +325,11 @@ test_grhsim_cpu_profile:
 profile_grhsim_ir:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/profile_grhsim_ir.py --flow "$(GRHSIM_IR_PROFILE_FLOW)" --output "$(GRHSIM_IR_PROFILE_OUTPUT)" --baseline-seconds "$(GRHSIM_IR_PROFILE_BASELINE_SECONDS)"
 
+.PHONY: reemit_grhsim_ir
+GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT ?= 0
+reemit_grhsim_ir: py_install
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,)
+
 GRHSIM_IR_BENCH_CPU ?= 2
 GRHSIM_IR_BENCH_PAIRS ?= 3
 .PHONY: benchmark_grhsim_ir
@@ -345,9 +351,13 @@ analyze_grhsim_localization:
 analyze_grhsim_predicates:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_predicate_stats.py --model "$(GRHSIM_PREDICATE_MODEL)" $(if $(GRHSIM_PREDICATE_REFERENCE),--reference "$(GRHSIM_PREDICATE_REFERENCE)",)
 
+.PHONY: analyze_grhsim_state_reads
+analyze_grhsim_state_reads:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_state_read_stats.py --model "$(GRHSIM_STATE_READ_MODEL)" $(if $(GRHSIM_STATE_READ_REFERENCE),--reference "$(GRHSIM_STATE_READ_REFERENCE)",) $(if $(filter 1,$(GRHSIM_STATE_READ_NOTIFY)),--notify,) $(if $(filter 1,$(GRHSIM_STATE_READ_PROJECTED_ONLY)),--projected-only,) $(if $(filter 1,$(GRHSIM_STATE_READ_FEEDBACK)),--feedback,) $(if $(filter 1,$(GRHSIM_STATE_READ_PACK)),--pack-states,) $(if $(filter 1,$(GRHSIM_STATE_READ_SUMMARY)),--summary-only,)
+
 .PHONY: analyze_grhsim_cpu_code
 analyze_grhsim_cpu_code:
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_cpu_code_stats.py --old "$(GRHSIM_CPU_CODE_OLD)" --new "$(GRHSIM_CPU_CODE_NEW)"
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_cpu_code_stats.py --old "$(GRHSIM_CPU_CODE_OLD)" --new "$(GRHSIM_CPU_CODE_NEW)" $(if $(filter 1,$(GRHSIM_CPU_CODE_PHASE_ONLY)),--phase-only,)
 
 .PHONY: analyze_grhsim_scalar_staging
 .PHONY: analyze_grhsim_history_sharing
@@ -761,6 +771,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_REG_TO_MEM)),--disable-reg-to-mem,) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE)),--no-clone-shared-compute,--clone-shared-compute --clone-shared-compute-max-clones $(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES)) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES)),--no-bitwise-predicates,--bitwise-predicates) \
+			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS)),--no-pack-bit-registers,--pack-bit-registers) \
 			--reg-to-mem-report "$(XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT)" \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",); \

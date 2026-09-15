@@ -51,17 +51,21 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--old", type=Path, required=True)
     parser.add_argument("--new", type=Path, required=True)
+    parser.add_argument("--phase-only", action="store_true",
+                        help="compare phase totals when partition contents or task IDs changed")
     args = parser.parse_args()
     old, new = measure(args.old), measure(args.new)
-    if old["tasks"].keys() != new["tasks"].keys():
+    if not args.phase_only and old["tasks"].keys() != new["tasks"].keys():
         raise ValueError("task IDs differ; taskwise comparison is invalid")
-    deltas = {task: new["tasks"][task]["conditional_jumps"] - row["conditional_jumps"]
-              for task, row in old["tasks"].items()}
+    deltas = {} if args.phase_only else {
+        task: new["tasks"][task]["conditional_jumps"] - row["conditional_jumps"]
+        for task, row in old["tasks"].items()}
     selected = sorted(deltas, key=lambda task: (deltas[task], task))[:5]
     examples = {task: {"old": old["tasks"][task], "new": new["tasks"][task]} for task in selected}
     for item in (old, new):
         item["task_count"] = len(item.pop("tasks"))
     print(json.dumps({"old": old, "new": new, "largest_conditional_jump_reductions": examples,
+                      "phase_only": args.phase_only,
                       "note": "Static instructions, not executed instructions or branch misses."}, indent=2))
 
 
