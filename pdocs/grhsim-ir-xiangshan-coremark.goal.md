@@ -67,12 +67,12 @@
 
 ## 当前 100k 实测性能
 
-自 2026-09-14 起，CoreMark 性能测量统一执行 **100,000 cycles**，以降低短窗口噪声。以下为同一主机、输入和仿真配置的 gsim 归档测量及最新 GrhSIM-IR 正式结果；gsim 不在 NO00030 的交替测量窗口内。
+自 2026-09-14 起，CoreMark 性能测量统一执行 **100,000 cycles**，以降低短窗口噪声。以下为同一主机、输入和仿真配置的 gsim 归档测量及最新 GrhSIM-IR 正式结果；gsim 不在 NO00031 的交替测量窗口内。
 
 - 配置：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`，`XS_NUM_CORES=1`，`XS_EMU_THREADS=1`，`XS_EMU_CPU=2`，waveform/commit/RAM trace 关闭，cycle 上限 `100000`。
 - **gsim**（emu 编译于 2026-09-10 01:50:26）：Host time spent **46.965 s**；`instrCnt=238550`、`cycleCnt=99998`、IPC **2.385548**、末端 PC `0x80000b40`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
-- **GrhSIM-IR**（[NO00030 shared scalar compute localization](NO00030-grhsim-ir-rootcause-20260915.md)，编译于 2026-09-15）：三次正式 new Host 为 **121.856 / 121.557 / 122.097 s**，均值 **121.836667 s**，样本 SD **0.270519 s**；相对同窗口 NO00029 old 均值 **124.085000 s** 降低 **1.811930%**。max(new) 122.097 < min(old) 123.915，U=0、单侧精确 p=0.05。六次均为 `instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
-- 按最新三次 new 均值计算，GrhSIM-IR 为 gsim 归档时间的 **2.594201×**，高 **74.871667 s（159.420136%）**；该比例表示剩余目标差距，不代替同窗 old/new 统计。NO00030 同时记录了 NO00028–30 的方向复盘和未接受尝试，完整生成 **660.65 s**、fresh 编译 **227.48 s** 均达标。
+- **GrhSIM-IR**（[NO00031 bitwise predicates](NO00031-grhsim-ir-bitwise-predicates-20260915.md)，编译于 2026-09-15）：三次正式 new Host 为 **118.886 / 118.579 / 118.430 s**，均值 **118.631667 s**，样本 SD **0.232517 s**；相对同窗口 NO00030 old 均值 **122.377667 s** 降低 **3.061016%**。max(new) 118.886 < min(old) 122.062，U=0、单侧精确 p=0.05。六次均为 `instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
+- 按最新三次 new 均值计算，GrhSIM-IR 为 gsim 归档时间的 **2.525959×**，高 **71.666667 s（152.595905%）**；该比例表示剩余目标差距，不代替同窗 old/new 统计。NO00031 将 **377635** 个一位布尔逻辑与/或规范化为位运算，配合 emit 将 compute 条件跳转减少 **117635（15.00%）**；完整生成 **672.64 s**、fresh 编译 **231.46 s** 均达标。NO00028–30 的方向复盘保留在 NO00030 报告中。
 
 上述 gsim 归档和 IR 实测分别使用 Makefile 目标 `run_xs_gsim_emu` 和 `run_xs_wolf_grhsim_ir_emu`，均设置 `XS_SIM_MAX_CYCLE=100000`、`XS_NUM_CORES=1`、`XS_EMU_THREADS=1`、`XS_EMU_CPU=2`、`XS_WAVEFORM=0`、`XS_COMMIT_TRACE=0`、`XS_RAM_TRACE=0`。
 

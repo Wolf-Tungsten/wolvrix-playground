@@ -165,6 +165,7 @@ XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR ?=
 XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT ?=
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE ?= 1
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
+XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES ?= 1
 XS_SIM_DEFINES ?= DIFFTEST
 XS_SIM_DEFINES += $(XS_ZERO_INIT_DEFINES)
 XS_ROOT_ABS := $(abspath $(XS_ROOT))
@@ -319,6 +320,10 @@ analyze_grhsim_cpu_profile:
 test_grhsim_cpu_profile:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_cpu_profile.py
 
+.PHONY: profile_grhsim_ir
+profile_grhsim_ir:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/profile_grhsim_ir.py --flow "$(GRHSIM_IR_PROFILE_FLOW)" --output "$(GRHSIM_IR_PROFILE_OUTPUT)" --baseline-seconds "$(GRHSIM_IR_PROFILE_BASELINE_SECONDS)"
+
 GRHSIM_IR_BENCH_CPU ?= 2
 GRHSIM_IR_BENCH_PAIRS ?= 3
 .PHONY: benchmark_grhsim_ir
@@ -335,6 +340,14 @@ test_benchmark_grhsim_ir:
 analyze_grhsim_localization:
 	@$(PYTHON) scripts/grhsim_localization_stats.py --flow "$(GRHSIM_LOCALIZATION_FLOW)" \
 		--state-suffix '$(GRHSIM_LOCALIZATION_STATE_SUFFIX)' $(if $(filter 1,$(GRHSIM_LOCALIZATION_DEAD_CONES)),--dead-cones-only,)
+
+.PHONY: analyze_grhsim_predicates
+analyze_grhsim_predicates:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_predicate_stats.py --model "$(GRHSIM_PREDICATE_MODEL)" $(if $(GRHSIM_PREDICATE_REFERENCE),--reference "$(GRHSIM_PREDICATE_REFERENCE)",)
+
+.PHONY: analyze_grhsim_cpu_code
+analyze_grhsim_cpu_code:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_cpu_code_stats.py --old "$(GRHSIM_CPU_CODE_OLD)" --new "$(GRHSIM_CPU_CODE_NEW)"
 
 .PHONY: analyze_grhsim_scalar_staging
 .PHONY: analyze_grhsim_history_sharing
@@ -747,6 +760,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_KEEP_ORIGINS)),--keep-origins,) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_REG_TO_MEM)),--disable-reg-to-mem,) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE)),--no-clone-shared-compute,--clone-shared-compute --clone-shared-compute-max-clones $(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES)) \
+			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES)),--no-bitwise-predicates,--bitwise-predicates) \
 			--reg-to-mem-report "$(XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT)" \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",); \

@@ -29,6 +29,7 @@ CPU_PIPELINE = [
     "grhsim.reg-to-mem",
     "grhsim.canonicalize-compute",
     "grhsim.clone-shared-compute",
+    "grhsim.bitwise-predicates",
     "cpu.st.split-phase",
     "cpu.st.form-event-domains",
     "cpu.st.build-compute-nodes",
@@ -80,6 +81,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--disable-reg-to-mem", action="store_true")
     parser.add_argument("--clone-shared-compute", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--clone-shared-compute-max-clones", type=int, default=250000)
+    parser.add_argument("--bitwise-predicates", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--reg-to-mem-report", type=Path)
     args = parser.parse_args()
     if args.cpu_target_batch_count is not None and args.cpu_target_batch_count < 0:
@@ -171,6 +173,8 @@ def main() -> int:
             if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
                 continue
             if pass_name == "grhsim.clone-shared-compute" and not args.clone_shared_compute:
+                continue
+            if pass_name == "grhsim.bitwise-predicates" and not args.bitwise_predicates:
                 continue
             pass_options = {}
             if pass_name == "grhsim.clone-shared-compute":
