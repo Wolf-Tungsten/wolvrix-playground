@@ -328,7 +328,7 @@ profile_grhsim_ir:
 .PHONY: reemit_grhsim_ir
 GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT ?= 0
 reemit_grhsim_ir: py_install
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,)
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,) $(if $(filter 1,$(GRHSIM_REEMIT_REMAP)),--remap,)
 
 GRHSIM_IR_BENCH_CPU ?= 2
 GRHSIM_IR_BENCH_PAIRS ?= 3
@@ -358,6 +358,10 @@ analyze_grhsim_state_reads:
 .PHONY: analyze_grhsim_cpu_code
 analyze_grhsim_cpu_code:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_cpu_code_stats.py --old "$(GRHSIM_CPU_CODE_OLD)" --new "$(GRHSIM_CPU_CODE_NEW)" $(if $(filter 1,$(GRHSIM_CPU_CODE_PHASE_ONLY)),--phase-only,)
+
+.PHONY: analyze_grhsim_compute_storage
+analyze_grhsim_compute_storage:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_compute_storage_stats.py --model "$(GRHSIM_COMPUTE_STORAGE_MODEL)" $(if $(GRHSIM_COMPUTE_STORAGE_REFERENCE),--reference "$(GRHSIM_COMPUTE_STORAGE_REFERENCE)",)
 
 .PHONY: analyze_grhsim_scalar_staging
 .PHONY: analyze_grhsim_history_sharing

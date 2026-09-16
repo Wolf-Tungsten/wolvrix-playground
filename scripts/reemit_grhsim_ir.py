@@ -13,6 +13,7 @@ def main():
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--flow", type=Path, required=True)
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--remap", action="store_true", help="rebuild CPU mapping without a semantic transform")
     parser.add_argument("--cpu-target-batch-count", type=int, default=0)
     args = parser.parse_args()
     if args.cpu_target_batch_count < 0:
@@ -39,6 +40,12 @@ def main():
             ]
         else:
             actions = []
+        if args.remap and not args.pack_bit_registers:
+            actions = [
+                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **(
+                    {"target_batch_count": args.cpu_target_batch_count} if name == "cpu.st.pack-emit-functions" else {}))
+                for name in CPU_MAPPING_PIPELINE
+            ]
         for action in actions + [
             lambda: session.run_grhsim_pass("cpu.st.emit-cpp", model="grhsim.main", output=str(flow / "model")),
             lambda: session.store_grhsim(model="grhsim.main", output=str(flow / "xiangshan_grhsim_ir.json")),
