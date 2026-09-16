@@ -377,4 +377,6 @@ gsim 不在本次窗口内，该比例只表示剩余目标差距，不是本节
 `test_grhsim_cpu_emit`、`test_grhsim_cpu_mapping`、`test_grhsim_cpu_schedule` 均通过，
 总墙钟 **101.26 s**（exit 0）。该修正只影响 checkpoint 读取，不改变已测量生成
 源码或 emu 二进制。所有报告内关键证据已列出，不提交生成代码、日志、profile、波形或二进制。
-子模块实现提交在最终集中归档时填入，随后根仓库提交子模块指针、报告、索引及 goal。
+子模块实现提交为 `1fb8feb`（`feat: cache stable helper inputs in grhsim cpu emit`）；
+根仓库归档提交为 `13ae782`（`feat: accept NO00034 helper input cache`），包含子模块
+指针、报告、索引和 goal 更新。
