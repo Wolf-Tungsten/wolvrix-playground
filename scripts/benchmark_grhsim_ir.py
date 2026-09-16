@@ -95,7 +95,7 @@ def main() -> None:
     (output / "preregister.json").write_text(json.dumps(registration, indent=2) + "\n")
     env = {key: value for key, value in os.environ.items()
            if key not in ("CPUPROFILE", "CPUPROFILE_FREQUENCY", "LD_PRELOAD")}
-    env.update(WOLF_ENV_SOURCED="1", EMU_THREADS="1", EMU_RUNTIME_PROFILE="0", EMU_PHASE_TIMING="0")
+    env.update(WOLF_ENV_SOURCED="1", EMU_THREADS="1", EMU_RUNTIME_PROFILE="0", EMU_PHASE_TIMING="0", LC_ALL="C")
     results = []
     for mode, repeat in order:
         label = f"{mode}{repeat}"

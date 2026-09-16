@@ -328,7 +328,7 @@ profile_grhsim_ir:
 .PHONY: reemit_grhsim_ir
 GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT ?= 0
 reemit_grhsim_ir: py_install
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,) $(if $(filter 1,$(GRHSIM_REEMIT_REMAP)),--remap,) $(if $(filter 1,$(GRHSIM_REEMIT_BITWISE_MUXES)),--bitwise-muxes,)
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,) $(if $(filter 1,$(GRHSIM_REEMIT_REMAP)),--remap,) $(if $(filter 1,$(GRHSIM_REEMIT_BITWISE_MUXES)),--bitwise-muxes,) $(if $(filter 1,$(GRHSIM_REEMIT_DYNAMIC_STATS)),--dynamic-stats,) $(if $(strip $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE),)
 
 GRHSIM_IR_BENCH_CPU ?= 2
 GRHSIM_IR_BENCH_PAIRS ?= 3
@@ -366,6 +366,42 @@ analyze_grhsim_compute_storage:
 .PHONY: analyze_grhsim_mux_fusion
 analyze_grhsim_mux_fusion:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_mux_fusion_stats.py --model "$(GRHSIM_MUX_FUSION_MODEL)" $(if $(GRHSIM_MUX_FUSION_REFERENCE),--reference "$(GRHSIM_MUX_FUSION_REFERENCE)",)
+
+.PHONY: analyze_grhsim_op_mix
+analyze_grhsim_op_mix:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_op_mix_stats.py --model "$(GRHSIM_OP_MIX_MODEL)" $(if $(GRHSIM_OP_MIX_TOP),--top "$(GRHSIM_OP_MIX_TOP)",)
+
+.PHONY: analyze_grhsim_dynamic
+analyze_grhsim_dynamic:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_dynamic_stats.py --log "$(GRHSIM_DYNAMIC_LOG)" --model "$(GRHSIM_DYNAMIC_MODEL)"
+
+.PHONY: analyze_grhsim_boundary_layout
+analyze_grhsim_boundary_layout:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_boundary_layout_stats.py --model "$(GRHSIM_BOUNDARY_LAYOUT_MODEL)"
+
+.PHONY: analyze_grhsim_change_implication
+analyze_grhsim_change_implication:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_change_implication_stats.py --model "$(GRHSIM_CHANGE_IMPLICATION_MODEL)"
+
+.PHONY: analyze_grhsim_slice_chains
+analyze_grhsim_slice_chains:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_slice_chain_stats.py --model "$(GRHSIM_SLICE_CHAIN_MODEL)"
+
+.PHONY: analyze_grhsim_algebra_residue
+analyze_grhsim_algebra_residue:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_algebra_residue_stats.py --model "$(GRHSIM_ALGEBRA_MODEL)"
+
+.PHONY: analyze_grhsim_task_read_cache
+analyze_grhsim_task_read_cache:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_task_read_cache_stats.py --model "$(GRHSIM_TASK_CACHE_MODEL)" $(if $(GRHSIM_TASK_CACHE_LOG),--log "$(GRHSIM_TASK_CACHE_LOG)",)
+
+.PHONY: analyze_grhsim_lane_fusion
+analyze_grhsim_lane_fusion:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_lane_fusion_stats.py --model "$(GRHSIM_LANE_FUSION_MODEL)"
+
+.PHONY: analyze_grhsim_replicate
+analyze_grhsim_replicate:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_replicate_stats.py --model "$(GRHSIM_REPLICATE_MODEL)"
 
 .PHONY: analyze_grhsim_scalar_staging
 .PHONY: analyze_grhsim_history_sharing
@@ -780,6 +816,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE)),--no-clone-shared-compute,--clone-shared-compute --clone-shared-compute-max-clones $(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES)) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES)),--no-bitwise-predicates,--bitwise-predicates) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS)),--no-pack-bit-registers,--pack-bit-registers) \
+			$(if $(strip $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE),) \
 			--reg-to-mem-report "$(XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT)" \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",); \

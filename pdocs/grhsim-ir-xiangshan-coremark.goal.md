@@ -67,12 +67,12 @@
 
 ## 当前 100k 实测性能
 
-自 2026-09-14 起，CoreMark 性能测量统一执行 **100,000 cycles**，以降低短窗口噪声。以下为同一主机、输入和仿真配置的 gsim 归档测量及最新 GrhSIM-IR 正式结果；gsim 不在 NO00035 的交替测量窗口内。
+自 2026-09-14 起，CoreMark 性能测量统一执行 **100,000 cycles**，以降低短窗口噪声。以下为同一主机、输入和仿真配置的 gsim 归档测量及最新 GrhSIM-IR 正式结果；gsim 不在节点交替测量窗口内。
 
 - 配置：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`，`XS_NUM_CORES=1`，`XS_EMU_THREADS=1`，`XS_EMU_CPU=2`，waveform/commit/RAM trace 关闭，cycle 上限 `100000`。
 - **gsim**（emu 编译于 2026-09-10 01:50:26）：Host time spent **46.965 s**；`instrCnt=238550`、`cycleCnt=99998`、IPC **2.385548**、末端 PC `0x80000b40`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
-- **GrhSIM-IR**（[NO00035 bitwise mux selection](NO00035-grhsim-ir-bitwise-muxes-20260916.md)，编译于 2026-09-16）：三次正式 new Host 为 **102.565 / 102.711 / 102.242 s**，均值 **102.506000 s**，样本 SD **0.240002 s**；相对同窗口 NO00034 old 均值 **105.865000 s** 降低 **3.172909%**。max(new) 102.711 < min(old) 105.742，U=0、单侧精确 p=0.05。六次均为 `instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
-- 按最新三次 new 均值计算，GrhSIM-IR 为 gsim 归档时间的 **2.182604×**，高 **55.541000 s（118.260407%）**；该比例表示剩余目标差距，不代替同窗 old/new 统计。NO00035 新增 `grhsim.bitwise-muxes` / `core.compute.bitSelect`，将 **199429** 个两态unsigned bit mux变为按位选择，compute静态条件跳转少 **42477（10.34%）**；其余语义字段、依赖、分区、存储和调度完全相同，总指令与ELF text略增。完整生成 **696.82 s**、fresh编译 **214.24 s** 均达标。同条件mux/concat融合A筛选慢1.34%后撤回。当前旧模型诊断compute占eval **77.02%**，确认布尔数据选择被发射为分支是一项局部成本；未测量branch-miss，也未将它归为全部差距。后续应以动态覆盖证据继续区分选择计算、值物化与活动传播成本。NO00035已完成，本次不开始下一节点。
+- **GrhSIM-IR**（[NO00036 dynamic coverage and 1-bit replicate broadcast](NO00036-grhsim-ir-dynamic-coverage-20260916.md)，编译于 2026-09-16）：三次正式 new Host 为 **99.801 / 101.291 / 99.869 s**，均值 **100.320333 s**，样本 SD **0.841309 s**；相对同窗口 NO00035 old 均值 **102.529667 s** 降低 **2.154823%**。max(new) 101.291 < min(old) 102.237，U=0、单侧精确 p=0.05。六次均为 `instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
+- 按最新三次 new 均值计算，GrhSIM-IR 为 gsim 归档时间的 **2.136066×**，高 **53.355333 s（113.611%）**；该比例表示剩余目标差距，不代替同窗 old/new 统计。NO00036 的动态覆盖显示每次 eval 约 **574637** 个 compute op，71% supernode 激活无 boundary 产出，21.45B 次 boundary 写回仅 6.04% 真变化；细粒度映射筛选慢30.69%、提交内联慢12.58%后撤回。保留的一位 two-state unsigned replicate 广播特化消除 concat/helper 物化开销，完整生成 **705.37 s**、fresh编译 **213.11 s** 均达标。该收益确认按语义证明缩减动态值物化是可组合局部方向，不能外推解释全部差距；节点 NO00036 已完成，本次不开始下一节点。
 
 上述 gsim 归档和 IR 实测分别使用 Makefile 目标 `run_xs_gsim_emu` 和 `run_xs_wolf_grhsim_ir_emu`，均设置 `XS_SIM_MAX_CYCLE=100000`、`XS_NUM_CORES=1`、`XS_EMU_THREADS=1`、`XS_EMU_CPU=2`、`XS_WAVEFORM=0`、`XS_COMMIT_TRACE=0`、`XS_RAM_TRACE=0`。
 

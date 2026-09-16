@@ -15,10 +15,16 @@ def main():
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--remap", action="store_true", help="rebuild CPU mapping without a semantic transform")
     parser.add_argument("--bitwise-muxes", action="store_true")
+    parser.add_argument("--dynamic-stats", action="store_true",
+                        help="emit diagnostic dynamic counters into the model (screening builds only)")
+    parser.add_argument("--max-op-in-compute-supernode", type=int,
+                        help="override the compute supernode op cap during remapping")
     parser.add_argument("--cpu-target-batch-count", type=int, default=0)
     args = parser.parse_args()
     if args.cpu_target_batch_count < 0:
         parser.error("cpu target batch count must be nonnegative")
+    if args.max_op_in_compute_supernode is not None and args.max_op_in_compute_supernode <= 0:
+        parser.error("max op in compute supernode must be positive")
     root = Path(__file__).resolve().parents[1]
     flow = args.flow.resolve()
     if not flow.is_relative_to(root / "ptmp") or (flow / "model").exists():
@@ -31,31 +37,40 @@ def main():
             print(entry, flush=True)
         if any(str(entry.get("kind", "")).lower() == "error" for entry in diagnostics):
             raise RuntimeError("checkpoint load failed")
+
+        def mapping_options(name):
+            options = {}
+            if name == "cpu.st.pack-emit-functions":
+                options["target_batch_count"] = args.cpu_target_batch_count
+            if name == "cpu.st.merge-compute-supernodes" and args.max_op_in_compute_supernode is not None:
+                options["max_op_in_compute_supernode"] = args.max_op_in_compute_supernode
+            return options
+
         if args.pack_bit_registers:
             actions = [
                 lambda: session.run_grhsim_pass("grhsim.pack-bit-registers", model="grhsim.main"),
             ] + [
-                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **(
-                    {"target_batch_count": args.cpu_target_batch_count} if name == "cpu.st.pack-emit-functions" else {}))
+                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
                 for name in CPU_MAPPING_PIPELINE
             ]
         else:
             actions = []
         if args.remap and not args.pack_bit_registers:
             actions = [
-                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **(
-                    {"target_batch_count": args.cpu_target_batch_count} if name == "cpu.st.pack-emit-functions" else {}))
+                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
                 for name in CPU_MAPPING_PIPELINE
             ]
         if args.bitwise_muxes:
             actions += [lambda: session.run_grhsim_pass("grhsim.bitwise-muxes", model="grhsim.main")]
             actions += [
-                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **(
-                    {"target_batch_count": args.cpu_target_batch_count} if name == "cpu.st.pack-emit-functions" else {}))
+                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
                 for name in CPU_MAPPING_PIPELINE
             ]
+        emit_options = {"model": "grhsim.main", "output": str(flow / "model")}
+        if args.dynamic_stats:
+            emit_options["dynamic_stats"] = True
         for action in actions + [
-            lambda: session.run_grhsim_pass("cpu.st.emit-cpp", model="grhsim.main", output=str(flow / "model")),
+            lambda: session.run_grhsim_pass("cpu.st.emit-cpp", **emit_options),
             lambda: session.store_grhsim(model="grhsim.main", output=str(flow / "xiangshan_grhsim_ir.json")),
         ]:
             diagnostics = action()

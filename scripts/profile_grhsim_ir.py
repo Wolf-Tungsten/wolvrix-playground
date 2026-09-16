@@ -47,6 +47,7 @@ def main():
     (output / "registration.json").write_text(json.dumps(registration, indent=2) + "\n")
     env = {k: v for k, v in os.environ.items() if k not in ("LD_PRELOAD", "CPUPROFILE", "CPUPROFILE_FREQUENCY")}
     env["WOLF_ENV_SOURCED"] = "1"
+    env["LC_ALL"] = "C"
     log = output / "make.log"
     start = time.monotonic()
     killed = None

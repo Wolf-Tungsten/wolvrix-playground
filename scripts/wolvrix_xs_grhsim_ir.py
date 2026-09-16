@@ -92,10 +92,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--clone-shared-compute-max-clones", type=int, default=250000)
     parser.add_argument("--bitwise-predicates", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--max-op-in-compute-supernode", type=int,
+                        help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
     args = parser.parse_args()
     if args.cpu_target_batch_count is not None and args.cpu_target_batch_count < 0:
         parser.error("--cpu-target-batch-count must be nonnegative")
+    if args.max_op_in_compute_supernode is not None and args.max_op_in_compute_supernode <= 0:
+        parser.error("--max-op-in-compute-supernode must be positive")
     if args.clone_shared_compute_max_clones <= 0:
         parser.error("--clone-shared-compute-max-clones must be positive")
     return args
@@ -196,6 +200,8 @@ def main() -> int:
                 pass_options["report"] = str(args.reg_to_mem_report.resolve())
             if pass_name == "cpu.st.pack-emit-functions" and args.cpu_target_batch_count is not None:
                 pass_options["target_batch_count"] = args.cpu_target_batch_count
+            if pass_name == "cpu.st.merge-compute-supernodes" and args.max_op_in_compute_supernode is not None:
+                pass_options["max_op_in_compute_supernode"] = args.max_op_in_compute_supernode
             diagnostics = timed(
                 f"GrhSIM CPU pass {pass_name}" + (f" {pass_options}" if pass_options else ""),
                 lambda name=pass_name, options=pass_options: session.run_grhsim_pass(name, model="grhsim.main", **options),
