@@ -67,12 +67,12 @@
 
 ## 当前 100k 实测性能
 
-自 2026-09-14 起，CoreMark 性能测量统一执行 **100,000 cycles**，以降低短窗口噪声。以下为同一主机、输入和仿真配置的 gsim 归档测量及最新 GrhSIM-IR 正式结果；gsim 不在 NO00034 的交替测量窗口内。
+自 2026-09-14 起，CoreMark 性能测量统一执行 **100,000 cycles**，以降低短窗口噪声。以下为同一主机、输入和仿真配置的 gsim 归档测量及最新 GrhSIM-IR 正式结果；gsim 不在 NO00035 的交替测量窗口内。
 
 - 配置：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`，`XS_NUM_CORES=1`，`XS_EMU_THREADS=1`，`XS_EMU_CPU=2`，waveform/commit/RAM trace 关闭，cycle 上限 `100000`。
 - **gsim**（emu 编译于 2026-09-10 01:50:26）：Host time spent **46.965 s**；`instrCnt=238550`、`cycleCnt=99998`、IPC **2.385548**、末端 PC `0x80000b40`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
-- **GrhSIM-IR**（[NO00034 helper input read cache](NO00034-grhsim-ir-helper-read-cache-20260916.md)，编译于 2026-09-16）：三次正式 new Host 为 **103.949 / 104.107 / 105.727 s**，均值 **104.594333 s**，样本 SD **0.984094 s**；相对同窗口 NO00033 old 均值 **108.014333 s** 降低 **3.166246%**。max(new) 105.727 < min(old) 107.175，U=0、单侧精确 p=0.05。六次均为 `instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
-- 按最新三次 new 均值计算，GrhSIM-IR 为 gsim 归档时间的 **2.227070×**，高 **57.629333 s（122.706980%）**；该比例表示剩余目标差距，不代替同窗 old/new 统计。NO00034 扩展 CPU layout，把 **29192** 个 helper 中 **1767421** 次稳定输入引用共享为 **408161** 个缓存项；compute 静态条件跳转少 **119611（22.56%）**，总指令和 ELF text 略增，不能将源码去重直接换算为执行次数。完整生成 **720.38 s**、fresh 编译 **214.26 s** 均达标。精确表达式复用 A 未通过六次统计、大范围局部变量提升 B 筛选慢3.36%，均撤回。主要剩余成本仍是分散的 compute 求值；后续应探索更高层的通用依赖锥/执行融合，避免继续微调相同缓存参数。NO00034 已完成，本次不开始下一节点。
+- **GrhSIM-IR**（[NO00035 bitwise mux selection](NO00035-grhsim-ir-bitwise-muxes-20260916.md)，编译于 2026-09-16）：三次正式 new Host 为 **102.565 / 102.711 / 102.242 s**，均值 **102.506000 s**，样本 SD **0.240002 s**；相对同窗口 NO00034 old 均值 **105.865000 s** 降低 **3.172909%**。max(new) 102.711 < min(old) 105.742，U=0、单侧精确 p=0.05。六次均为 `instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`、guest cycles **100001**，退出码 0，DIFFTEST 无 mismatch。
+- 按最新三次 new 均值计算，GrhSIM-IR 为 gsim 归档时间的 **2.182604×**，高 **55.541000 s（118.260407%）**；该比例表示剩余目标差距，不代替同窗 old/new 统计。NO00035 新增 `grhsim.bitwise-muxes` / `core.compute.bitSelect`，将 **199429** 个两态unsigned bit mux变为按位选择，compute静态条件跳转少 **42477（10.34%）**；其余语义字段、依赖、分区、存储和调度完全相同，总指令与ELF text略增。完整生成 **696.82 s**、fresh编译 **214.24 s** 均达标。同条件mux/concat融合A筛选慢1.34%后撤回。当前旧模型诊断compute占eval **77.02%**，确认布尔数据选择被发射为分支是一项局部成本；未测量branch-miss，也未将它归为全部差距。后续应以动态覆盖证据继续区分选择计算、值物化与活动传播成本。NO00035已完成，本次不开始下一节点。
 
 上述 gsim 归档和 IR 实测分别使用 Makefile 目标 `run_xs_gsim_emu` 和 `run_xs_wolf_grhsim_ir_emu`，均设置 `XS_SIM_MAX_CYCLE=100000`、`XS_NUM_CORES=1`、`XS_EMU_THREADS=1`、`XS_EMU_CPU=2`、`XS_WAVEFORM=0`、`XS_COMMIT_TRACE=0`、`XS_RAM_TRACE=0`。
 

@@ -14,6 +14,7 @@ def main():
     parser.add_argument("--flow", type=Path, required=True)
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--remap", action="store_true", help="rebuild CPU mapping without a semantic transform")
+    parser.add_argument("--bitwise-muxes", action="store_true")
     parser.add_argument("--cpu-target-batch-count", type=int, default=0)
     args = parser.parse_args()
     if args.cpu_target_batch_count < 0:
@@ -42,6 +43,13 @@ def main():
             actions = []
         if args.remap and not args.pack_bit_registers:
             actions = [
+                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **(
+                    {"target_batch_count": args.cpu_target_batch_count} if name == "cpu.st.pack-emit-functions" else {}))
+                for name in CPU_MAPPING_PIPELINE
+            ]
+        if args.bitwise_muxes:
+            actions += [lambda: session.run_grhsim_pass("grhsim.bitwise-muxes", model="grhsim.main")]
+            actions += [
                 lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **(
                     {"target_batch_count": args.cpu_target_batch_count} if name == "cpu.st.pack-emit-functions" else {}))
                 for name in CPU_MAPPING_PIPELINE

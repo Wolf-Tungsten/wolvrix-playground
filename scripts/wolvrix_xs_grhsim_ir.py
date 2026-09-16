@@ -46,7 +46,7 @@ CPU_SEMANTIC_PIPELINE = [
 # mapping. Rebuild all stages so emit uses the transformed state dependencies.
 CPU_PIPELINE = (
     CPU_SEMANTIC_PIPELINE + CPU_MAPPING_PIPELINE
-    + ["grhsim.pack-bit-registers"] + CPU_MAPPING_PIPELINE
+    + ["grhsim.pack-bit-registers", "grhsim.bitwise-muxes"] + CPU_MAPPING_PIPELINE
 )
 
 
@@ -179,7 +179,8 @@ def main() -> int:
             lambda: session.run_grhsim_pass("grhsim.verify", model="grhsim.main"),
         )
         require_ok(diagnostics, "GrhSIM verify pass")
-        pipeline = CPU_PIPELINE if args.pack_bit_registers else CPU_SEMANTIC_PIPELINE + CPU_MAPPING_PIPELINE
+        pipeline = CPU_PIPELINE if args.pack_bit_registers else (
+            CPU_SEMANTIC_PIPELINE + ["grhsim.bitwise-muxes"] + CPU_MAPPING_PIPELINE)
         for pass_name in pipeline:
             if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
                 continue
