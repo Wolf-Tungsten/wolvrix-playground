@@ -1,8 +1,9 @@
-# NO00040：布尔逻辑锥的 LUT 折叠（core.compute.lut：以真值表取代逐 op 求值）
+# NO00040：lut-fold 证伪与端点 boundary 致密布局（core.compute.lut 失败链 → cpu.st.layout-data 致密化）
 
-日期：2026-09-17。最终判定：`进行中`。
+日期：2026-09-17 起，2026-09-18 完成。最终判定：**ACCEPTED（候选 F：event-gated system/DPI 端点 boundary 致密布局，+1.032961%，页帧驱逐协议下 6 次交替秩次判据通过）**。
 
-本节点在 GrhSIM-IR 上新增 `core.compute.lut` 算子与 `grhsim.lut-fold` 语义 pass：
+本节点始于新增 `core.compute.lut` 算子与 `grhsim.lut-fold` 语义 pass 的
+布尔逻辑锥 LUT 折叠尝试：
 把扇入受限、内部复杂度超线性的 1-bit 布尔逻辑锥整体折叠为一张内嵌真值表，
 用一次索引拼装 + 查表（n≤6 时退化为常量移位，无访存）取代锥内全部逐 op 求值，
 并在子图划分（CPU mapping）之前完成折叠，使被折叠锥的中间值不再产生
