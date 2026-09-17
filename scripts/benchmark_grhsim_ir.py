@@ -25,6 +25,27 @@ def digest(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def evict_page_cache(path: Path) -> bool:
+    """Drop the file's page-cache pages so the next run reallocates its
+    physical frames. Without eviction a freshly linked binary keeps its
+    compile-time frame allocation, which behaves as a fixed per-file
+    performance offset (measured up to ±6-9% on this workload) that an
+    alternating old/new protocol cannot average out."""
+    if not path.is_file():
+        return False
+    try:
+        fd = os.open(path, os.O_RDONLY)
+    except OSError:
+        return False
+    try:
+        os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_DONTNEED)
+        return True
+    except OSError:
+        return False
+    finally:
+        os.close(fd)
+
+
 def endpoint(text: str) -> tuple[int, int, int, str, float]:
     text = re.sub(r"\x1b\[[0-9;]*m", "", text)
     if FAILURE.search(text) or "Difftest enabled" not in text:
@@ -71,6 +92,8 @@ def main() -> None:
     parser.add_argument("--cpu", type=int, default=2)
     parser.add_argument("--pairs", type=int, choices=(1, 3), default=3)
     parser.add_argument("--baseline-seconds", type=float, required=True)
+    parser.add_argument("--evict-page-cache", action=argparse.BooleanOptionalAction, default=True,
+                        help="evict each flow binary's page cache before every run (default on)")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     output = args.output.resolve()
@@ -89,6 +112,7 @@ def main() -> None:
                                for name in ("coremark-2-iteration.bin", "riscv64-nemu-interpreter-so")},
                     "baseline_s": args.baseline_seconds, "cutoff_s": cutoff, "cpu": args.cpu,
                     "threads": 1, "cycles": 100000, "trace": False, "profile": False,
+                    "evict_page_cache": args.evict_page_cache,
                     "primary": "Host time", "gate": "max(new) < min(old), 3+3 valid runs",
                     "expected_endpoint": [240349, 99996, 100001, "0x80000c0c"],
                     "timestamp": time.time()}
@@ -97,10 +121,13 @@ def main() -> None:
            if key not in ("CPUPROFILE", "CPUPROFILE_FREQUENCY", "LD_PRELOAD")}
     env.update(WOLF_ENV_SOURCED="1", EMU_THREADS="1", EMU_RUNTIME_PROFILE="0", EMU_PHASE_TIMING="0", LC_ALL="C")
     results = []
+    evicted = set()
     for mode, repeat in order:
         label = f"{mode}{repeat}"
         directory = output / label
         directory.mkdir()
+        if args.evict_page_cache and evict_page_cache(flows[mode] / "emu/emu"):
+            evicted.add(mode)
         timing = directory / "emu.time"
         prefix = shlex.join(["timeout", "--signal=KILL", f"{cutoff:.6f}s", "/usr/bin/time",
                              "-f", "wall=%e,exit=%x", "-o", str(timing), "taskset", "-c",
@@ -147,6 +174,7 @@ def main() -> None:
         (output / "results.json").write_text(json.dumps(results, indent=2) + "\n")
         print(f"DONE {label} Host={parsed[4]:.3f}s emu_wall={wall[1]}s", flush=True)
     stats = summary(results)
+    stats["page_cache_evicted"] = sorted(evicted)
     (output / "summary.json").write_text(json.dumps(stats, indent=2) + "\n")
     print(json.dumps(stats, indent=2), flush=True)
 

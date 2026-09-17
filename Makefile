@@ -315,7 +315,7 @@ test_grhsim_cpu_mapping:
 .PHONY: audit_grhsim_cpu_emit
 .PHONY: analyze_grhsim_cpu_profile
 analyze_grhsim_cpu_profile:
-	$(PYTHON) $(CURDIR)/scripts/grhsim_cpu_profile.py --profile "$(GRHSIM_CPU_PROFILE)" --binary "$(GRHSIM_CPU_PROFILE_BINARY)" --model "$(GRHSIM_CPU_PROFILE_MODEL)" --expected-samples "$(GRHSIM_CPU_PROFILE_SAMPLES)"
+	$(PYTHON) $(CURDIR)/scripts/grhsim_cpu_profile.py --profile "$(GRHSIM_CPU_PROFILE)" --binary "$(GRHSIM_CPU_PROFILE_BINARY)" --model "$(GRHSIM_CPU_PROFILE_MODEL)" --expected-samples "$(GRHSIM_CPU_PROFILE_SAMPLES)" $(if $(GRHSIM_CPU_PROFILE_TOP),--top "$(GRHSIM_CPU_PROFILE_TOP)",)
 
 .PHONY: test_grhsim_cpu_profile
 test_grhsim_cpu_profile:
@@ -398,6 +398,30 @@ analyze_grhsim_task_read_cache:
 .PHONY: analyze_grhsim_lane_fusion
 analyze_grhsim_lane_fusion:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_lane_fusion_stats.py --model "$(GRHSIM_LANE_FUSION_MODEL)"
+
+.PHONY: analyze_grhsim_lut_cones
+analyze_grhsim_lut_cones:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_lut_cone_stats.py --model "$(GRHSIM_LUT_CONE_MODEL)" $(if $(GRHSIM_LUT_CONE_MAX_INPUTS),--max-inputs "$(GRHSIM_LUT_CONE_MAX_INPUTS)",) $(if $(GRHSIM_LUT_CONE_MIN_OPS),--min-ops "$(GRHSIM_LUT_CONE_MIN_OPS)",) $(if $(GRHSIM_LUT_CONE_RATIO),--ratio "$(GRHSIM_LUT_CONE_RATIO)",) $(if $(GRHSIM_LUT_CONE_MIN_CROSSING),--min-crossing "$(GRHSIM_LUT_CONE_MIN_CROSSING)",) $(if $(filter 1,$(GRHSIM_LUT_CONE_SELECT)),--select,) $(if $(filter 1,$(GRHSIM_LUT_CONE_CROSS)),--cross,) $(if $(filter 1,$(GRHSIM_LUT_CONE_TABLES)),--tables,) $(if $(filter 1,$(GRHSIM_LUT_CONE_GROUP)),--group,) $(if $(filter 1,$(GRHSIM_LUT_CONE_CONCAT_SINKS)),--concat-sinks,) $(if $(filter 1,$(GRHSIM_LUT_CONE_PROFIT_GATE)),--profit-gate,) $(if $(filter 1,$(GRHSIM_LUT_CONE_WIDE_CONES)),--wide-cones,)
+
+.PHONY: analyze_grhsim_commit_history
+analyze_grhsim_commit_history:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_commit_history_stats.py --model "$(GRHSIM_COMMIT_HISTORY_MODEL)"
+
+.PHONY: analyze_grhsim_commit_cluster
+analyze_grhsim_commit_cluster:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_commit_cluster_stats.py --model "$(GRHSIM_COMMIT_CLUSTER_MODEL)" $(if $(GRHSIM_COMMIT_CLUSTER_TOP),--top "$(GRHSIM_COMMIT_CLUSTER_TOP)",)
+
+.PHONY: analyze_grhsim_compute_hotspots
+analyze_grhsim_compute_hotspots:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_compute_hotspots.py --profile "$(GRHSIM_HOT_PROFILE)" --binary "$(GRHSIM_HOT_BINARY)" --model "$(GRHSIM_HOT_MODEL)" --expected-samples "$(GRHSIM_HOT_SAMPLES)" $(if $(GRHSIM_HOT_TOP),--top "$(GRHSIM_HOT_TOP)",) $(if $(GRHSIM_HOT_NATIVE_CACHE),--native-cache "$(GRHSIM_HOT_NATIVE_CACHE)",) $(if $(GRHSIM_HOT_REFERENCE_DIR),--reference-dir "$(GRHSIM_HOT_REFERENCE_DIR)",)
+
+.PHONY: analyze_grhsim_compute_branches
+analyze_grhsim_compute_branches:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_compute_branch_classes.py --model-dir "$(GRHSIM_BRANCH_MODEL_DIR)" $(if $(GRHSIM_BRANCH_BINARY),--binary "$(GRHSIM_BRANCH_BINARY)",) $(if $(GRHSIM_BRANCH_NATIVE_CACHE),--native-cache "$(GRHSIM_BRANCH_NATIVE_CACHE)",) $(if $(GRHSIM_BRANCH_FOCUS),--focus-tasks "$(GRHSIM_BRANCH_FOCUS)",)
+
+.PHONY: analyze_grhsim_task_similarity
+analyze_grhsim_task_similarity:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_task_similarity.py --model-dir "$(GRHSIM_SIM_MODEL_DIR)" --binary "$(GRHSIM_SIM_BINARY)" $(if $(GRHSIM_SIM_NATIVE_CACHE),--native-cache "$(GRHSIM_SIM_NATIVE_CACHE)",) $(if $(GRHSIM_SIM_HOT_TASKS),--hot-tasks "$(GRHSIM_SIM_HOT_TASKS)",)
 
 .PHONY: analyze_grhsim_replicate
 analyze_grhsim_replicate:
