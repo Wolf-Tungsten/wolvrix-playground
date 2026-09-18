@@ -152,6 +152,13 @@ sampleEvents 对该 op 无发射即历史已 direct-sample/batch/alias）：
   cold_hints=11,933）。
 - HDLBits DUT=001 回归通过（`[TB] dut_001 passed: one=1`）。
 - fresh 编译 **734 s**（<1800 s，exit 0）。
+- **订正（2026-09-18）**：上述 734 s 实为 `-j4` 下测得。本次编译命令未显式传
+  `VM_BUILD_JOBS=32`，落入根 Makefile `xs_wolf_grhsim_ir_build_emu` 当时的
+  默认并行度 4；NO00001–NO00039 均显式以 `VM_BUILD_JOBS=32` 测量（fresh 编译
+  约 205–265 s），故该数字与历史节点不可比。门槛判定不受影响（仍 <1800 s），
+  且编译并行度只影响构建墙钟，不影响 emu 二进制性能结论。Makefile 默认值已
+  订正为机器实际核数（`XS_VM_BUILD_JOBS=nproc`），后续节点按实际核数并行
+  并在文档中记录 job 数。
 
 ### 正式 6 次交替复测：ACCEPTED（2026-09-18）
 

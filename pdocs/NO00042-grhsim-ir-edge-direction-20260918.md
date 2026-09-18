@@ -170,6 +170,11 @@ changed/fanout/silent 三种标量存储变体（含 dyn 形态）。覆盖
   round-trip 校验通过；timeout 1800 截止机制在位未触发）。
 - 正式 model 与筛选 model（flow-screen4）全部 **5,052 个源文件 md5 全等**。
 - fresh 编译 **735 s**（<1800 s，exit 0）。
+- **订正（2026-09-18）**：上述 735 s 实为 `-j4` 下测得，原因同 NO00041 订正
+  （编译命令未显式传 `VM_BUILD_JOBS=32`，落入根 Makefile 当时的默认并行度
+  4）；与历史 32-job 节点的 205–265 s 不可比。门槛判定不受影响（仍 <1800 s），
+  emu 性能结论不受编译并行度影响。Makefile 默认值已订正为机器实际核数
+  （`XS_VM_BUILD_JOBS=nproc`）。
 - HDLBits DUT=001 回归通过（`[TB] dut_001 passed: one=1`）。
 
 ### 正式 6 次交替复测：ACCEPTED（2026-09-18）

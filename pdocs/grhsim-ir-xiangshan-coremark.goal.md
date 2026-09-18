@@ -32,7 +32,7 @@
 
 所有构建、安装、生成、测试和仿真均通过 Makefile 目标；缺少目标时先补充，禁止手拼底层命令。常用目标为 `xs_wolf_grhsim_ir`、`xs_wolf_grhsim_ir_build_emu`、`run_xs_wolf_grhsim_ir_emu`，以当前 Makefile 为准。
 
-每个节点有唯一 ID，每次实验有唯一 `RUN_ID`。日志和临时产物放在 `ptmp/`，不写 `/tmp`。仿真固定 CPU 并显式设置 `XS_EMU_THREADS=1`；编译按可用 CPU 数并行。
+每个节点有唯一 ID，每次实验有唯一 `RUN_ID`。日志和临时产物放在 `ptmp/`，不写 `/tmp`。仿真固定 CPU 并显式设置 `XS_EMU_THREADS=1`；编译按机器实际核数并行——`xs_wolf_grhsim_ir_build_emu` 默认 `VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS)`（`nproc`，2026-09-18 订正，此前固定默认 4 曾致 NO00041/42 编译计时虚高约 3.4 倍），不得沿用固定小并行度；节点文档须记录实际 job 数。
 
 | 区间 | 计时边界与门槛 |
 |---|---|
