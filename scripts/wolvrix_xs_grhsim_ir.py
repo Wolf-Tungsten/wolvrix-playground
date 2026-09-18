@@ -46,7 +46,7 @@ CPU_SEMANTIC_PIPELINE = [
 # mapping. Rebuild all stages so emit uses the transformed state dependencies.
 CPU_PIPELINE = (
     CPU_SEMANTIC_PIPELINE + CPU_MAPPING_PIPELINE
-    + ["grhsim.pack-bit-registers", "grhsim.bitwise-muxes"] + CPU_MAPPING_PIPELINE
+    + ["grhsim.pack-bit-registers", "grhsim.bitwise-muxes", "grhsim.mux-chain-fold"] + CPU_MAPPING_PIPELINE
 )
 
 

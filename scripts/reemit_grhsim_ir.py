@@ -15,6 +15,7 @@ def main():
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--remap", action="store_true", help="rebuild CPU mapping without a semantic transform")
     parser.add_argument("--bitwise-muxes", action="store_true")
+    parser.add_argument("--mux-chain-fold", action="store_true")
     parser.add_argument("--dynamic-stats", action="store_true",
                         help="emit diagnostic dynamic counters into the model (screening builds only)")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
@@ -62,6 +63,12 @@ def main():
             ]
         if args.bitwise_muxes:
             actions += [lambda: session.run_grhsim_pass("grhsim.bitwise-muxes", model="grhsim.main")]
+            actions += [
+                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
+                for name in CPU_MAPPING_PIPELINE
+            ]
+        if args.mux_chain_fold:
+            actions += [lambda: session.run_grhsim_pass("grhsim.mux-chain-fold", model="grhsim.main")]
             actions += [
                 lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
                 for name in CPU_MAPPING_PIPELINE
