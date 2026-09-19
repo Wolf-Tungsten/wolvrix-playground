@@ -213,6 +213,7 @@ def main() -> int:
                 lambda: session.run_grhsim_pass(
                     "cpu.st.emit-cpp", model="grhsim.main", output=str(emit_cpp_dir),
                     commit_compact_walk=True,
+                    commit_mem_walk=True,
                 ),
             )
             require_ok(diagnostics, "emit CPU C++ model")

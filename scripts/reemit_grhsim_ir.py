@@ -20,6 +20,8 @@ def main():
                         help="emit diagnostic dynamic counters into the model (screening builds only)")
     parser.add_argument("--commit-compact-walk", action="store_true",
                         help="emit uniform u64 direct-commit pflag bytes as branch-free change scans")
+    parser.add_argument("--commit-mem-walk", action="store_true",
+                        help="hoist shared snapshot guards of commit memWrite runs and cache their boundary enables")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap during remapping")
     parser.add_argument("--cpu-target-batch-count", type=int, default=0)
@@ -80,6 +82,8 @@ def main():
             emit_options["dynamic_stats"] = True
         if args.commit_compact_walk:
             emit_options["commit_compact_walk"] = True
+        if args.commit_mem_walk:
+            emit_options["commit_mem_walk"] = True
         for action in actions + [
             lambda: session.run_grhsim_pass("cpu.st.emit-cpp", **emit_options),
             lambda: session.store_grhsim(model="grhsim.main", output=str(flow / "xiangshan_grhsim_ir.json")),
