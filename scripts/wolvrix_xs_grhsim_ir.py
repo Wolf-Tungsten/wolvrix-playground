@@ -211,7 +211,8 @@ def main() -> int:
             diagnostics = timed(
                 f"emit CPU C++ model {emit_cpp_dir}",
                 lambda: session.run_grhsim_pass(
-                    "cpu.st.emit-cpp", model="grhsim.main", output=str(emit_cpp_dir)
+                    "cpu.st.emit-cpp", model="grhsim.main", output=str(emit_cpp_dir),
+                    commit_compact_walk=True,
                 ),
             )
             require_ok(diagnostics, "emit CPU C++ model")
