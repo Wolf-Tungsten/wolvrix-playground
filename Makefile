@@ -375,6 +375,10 @@ analyze_grhsim_op_mix:
 analyze_grhsim_dynamic:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_dynamic_stats.py --log "$(GRHSIM_DYNAMIC_LOG)" --model "$(GRHSIM_DYNAMIC_MODEL)"
 
+.PHONY: analyze_grhsim_topocut
+analyze_grhsim_topocut:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_topocut_stats.py --model "$(GRHSIM_TOPOCUT_MODEL)"
+
 .PHONY: analyze_grhsim_boundary_layout
 analyze_grhsim_boundary_layout:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_boundary_layout_stats.py --model "$(GRHSIM_BOUNDARY_LAYOUT_MODEL)"
