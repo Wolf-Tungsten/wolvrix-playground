@@ -904,5 +904,36 @@ worker，不再产生原先的 N+1 个实体。
 
 验证方面，`emit-verilator-repcut-package` 生成契约测试已更新并通过；生成的 common wrapper
 以 C++17 编译通过，覆盖 K=3 fixture 的 200-step smoke source，RepCut 相关 5 个 CTest
-目标全部通过。当前尚未用该通用 emitter 重新生成 XiangShan 32 分区 ELF，也没有把这次代码
-落地宣称为新的 Host walltime 结果；原有 node030 all-spin 数据仍是选择默认策略的依据。
+目标全部通过。本节提交时尚未用该通用 emitter 重新生成 XiangShan 32 分区 ELF，也没有把
+代码落地宣称为新的 Host walltime 结果；后续端到端验证见 8.13。
+
+### 8.13 通用 emitter 的 XiangShan 端到端验证（2026-09-20）
+
+用 Wolvrix `5f6bb8b` 重新读取 B 组已分区 JSON（`3,681,281,481` bytes，SHA-256
+`c33ecac1f8d82f06fb81e10b253540c681321749300b00949b74a423f8d78c0a`）并直接生成生产
+package，没有重跑 Chisel、ingest 或 RepCut。新旧 package 的 65 个 SV 文件逐字节一致，
+因此复用原 32 个 Verilator partition archive；所有受新 header 影响的对象均重新编译，包括
+common/load/eval/update 四个 wrapper 和外层 `partitioned_verilator.cpp`，随后重新链接得到 ELF
+`db03f4986dadb0cc9753c4d2d50fc3179efb6dcba242d70e5fdbbacf5109c8d7`。这只复用模型机器码，
+不复用本轮要验证的 runtime 或其对象布局。
+
+在 node030 CPU96–127、NUMA1 上，不设置三个 `WOLVI_REPCUT_*` override，以
+`XS_EMU_THREADS=32` 运行。启动日志确认生产路径为 `legacy-host`、31 个后台 worker、Host lane 9
+/ CPU105、`per-lane-atomic-spin`、Host/worker 均为默认 infinite spin，且
+`early_phases=supported`。C=100 以 exit 0 结束，功能签名为 PC `0x0`、`instrCnt=0`、
+`cycleCnt=96`、guest cycle `101`、302 steps。两次 C=10000 均以 exit 0 结束，无 difftest
+mismatch/assert，且都得到 PC `0x800027c6`、`instrCnt=458`、`cycleCnt=9996`、guest cycle
+`10001`、20102 steps，和既有基线完全一致。
+
+同一时间窗按“生产、旧 v6、生产”交错运行 C=10000，得到：
+
+| 指标 | 生产 run 1 | 旧专用 v6 对照 | 生产 run 2 |
+| --- | ---: | ---: | ---: |
+| Host time | `7.809 s` | `8.038 s` | `7.860 s` |
+| step total | `7.746 s` | `7.972 s` | `7.795 s` |
+| eval avg | `301.052 us` | `311.116 us` | `303.680 us` |
+| update avg | `72.628 us` | `73.298 us` | `71.948 us` |
+
+这组短交错只用于确认生产落地没有明显性能回退，不替代正式 AB/BA 性能验收；当前节点状态下
+旧 v6 同样慢于 8.11 的历史约 `6.8 s`，因此不把跨时间窗口差异归因于代码。生成、身份审计、
+成功 ELF 和运行日志集中在 `build/asc_counter_host_20260915/production_allspin_20260920/`。
