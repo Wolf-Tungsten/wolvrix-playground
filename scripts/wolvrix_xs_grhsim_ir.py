@@ -44,9 +44,12 @@ CPU_SEMANTIC_PIPELINE = [
 ]
 # Packing reads the first schedule's quiescence projection and invalidates its
 # mapping. Rebuild all stages so emit uses the transformed state dependencies.
+# used-bits runs last among semantic passes: dead-cone elimination and width
+# narrowing see the fully canonicalized model.
 CPU_PIPELINE = (
     CPU_SEMANTIC_PIPELINE + CPU_MAPPING_PIPELINE
-    + ["grhsim.pack-bit-registers", "grhsim.bitwise-muxes", "grhsim.mux-chain-fold"] + CPU_MAPPING_PIPELINE
+    + ["grhsim.pack-bit-registers", "grhsim.bitwise-muxes", "grhsim.mux-chain-fold",
+       "grhsim.used-bits"] + CPU_MAPPING_PIPELINE
 )
 
 
@@ -92,6 +95,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--clone-shared-compute-max-clones", type=int, default=250000)
     parser.add_argument("--bitwise-predicates", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--used-bits", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
@@ -191,6 +195,8 @@ def main() -> int:
             if pass_name == "grhsim.clone-shared-compute" and not args.clone_shared_compute:
                 continue
             if pass_name == "grhsim.bitwise-predicates" and not args.bitwise_predicates:
+                continue
+            if pass_name == "grhsim.used-bits" and not args.used_bits:
                 continue
             pass_options = {}
             if pass_name == "grhsim.clone-shared-compute":

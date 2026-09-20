@@ -22,6 +22,8 @@ def main():
                         help="emit uniform u64 direct-commit pflag bytes as branch-free change scans")
     parser.add_argument("--commit-mem-walk", action="store_true",
                         help="hoist shared snapshot guards of commit memWrite runs and cache their boundary enables")
+    parser.add_argument("--used-bits", action="store_true",
+                        help="run grhsim.used-bits (dead-cone elimination + width narrowing), then remap")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap during remapping")
     parser.add_argument("--cpu-target-batch-count", type=int, default=0)
@@ -73,6 +75,12 @@ def main():
             ]
         if args.mux_chain_fold:
             actions += [lambda: session.run_grhsim_pass("grhsim.mux-chain-fold", model="grhsim.main")]
+            actions += [
+                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
+                for name in CPU_MAPPING_PIPELINE
+            ]
+        if args.used_bits:
+            actions += [lambda: session.run_grhsim_pass("grhsim.used-bits", model="grhsim.main")]
             actions += [
                 lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
                 for name in CPU_MAPPING_PIPELINE
