@@ -347,6 +347,24 @@ analyze_grhsim_localization:
 	@$(PYTHON) scripts/grhsim_localization_stats.py --flow "$(GRHSIM_LOCALIZATION_FLOW)" \
 		--state-suffix '$(GRHSIM_LOCALIZATION_STATE_SUFFIX)' $(if $(filter 1,$(GRHSIM_LOCALIZATION_DEAD_CONES)),--dead-cones-only,)
 
+# Codegen probe: compile one emitted model translation unit with the production
+# compiler/flags into an analysis output directory (assembly or object), for
+# micro-experiments on generated-code shape. Never links into an emu.
+GRHSIM_PROBE_MODEL ?= $(XS_GRHSIM_IR_BUILD_ABS)/model
+GRHSIM_PROBE_MODE ?= asm
+.PHONY: probe_grhsim_ir_codegen
+probe_grhsim_ir_codegen:
+	@test -n "$(GRHSIM_PROBE_SRC)" || { echo "[FAIL] set GRHSIM_PROBE_SRC=<model cpp>"; exit 1; }
+	@test -n "$(GRHSIM_PROBE_OUT)" || { echo "[FAIL] set GRHSIM_PROBE_OUT=<output dir>"; exit 1; }
+	@mkdir -p "$(GRHSIM_PROBE_OUT)"
+	@out="$(GRHSIM_PROBE_OUT)/$$(basename "$(GRHSIM_PROBE_SRC)" .cpp).$(if $(filter asm,$(GRHSIM_PROBE_MODE)),s,o)"; \
+	echo "[PROBE] $(CXX) -std=c++20 -O3 -I$(GRHSIM_PROBE_MODEL) $(GRHSIM_PROBE_SRC) -> $$out"; \
+	if [ "$(GRHSIM_PROBE_MODE)" = "asm" ]; then \
+		$(CXX) -std=c++20 -O3 -I"$(GRHSIM_PROBE_MODEL)" -S "$(GRHSIM_PROBE_SRC)" -o "$$out"; \
+	else \
+		$(CXX) -std=c++20 -O3 -I"$(GRHSIM_PROBE_MODEL)" -c "$(GRHSIM_PROBE_SRC)" -o "$$out"; \
+	fi
+
 .PHONY: analyze_grhsim_predicates
 analyze_grhsim_predicates:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_predicate_stats.py --model "$(GRHSIM_PREDICATE_MODEL)" $(if $(GRHSIM_PREDICATE_REFERENCE),--reference "$(GRHSIM_PREDICATE_REFERENCE)",)
