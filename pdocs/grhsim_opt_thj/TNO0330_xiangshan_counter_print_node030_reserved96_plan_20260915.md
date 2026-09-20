@@ -884,3 +884,25 @@ v6 构建和规格位于 `host_spin_20260918/{builds,specs}/v6/`；默认等价�
 `N=K=32` 专用 runtime 的 exploratory 证据；通用生产 emitter 还支持 `N<K`、可变 K 和
 early phase，不能直接用硬编码 lane 9 的实验实现替换，故本轮没有把该专用实现冒充成通用
 生产默认。
+
+### 8.12 all-spin 通用实现落入 Wolvrix emitter（2026-09-20）
+
+前面的 all-spin 已在固定 `N=K=32`、Host lane 9 的隔离 runtime 中验证。本轮将机制移入
+`wolvrix/lib/emit/verilator_repcut_package.cpp` 的通用 Verilator RepCut package 生成器，边界
+刻意保持保守：令 `N=XS_EMU_THREADS`、`K=RepCut partition count`，只有 `N=K>=2` 默认启用
+Host 参与和 all-spin；`N<K` 继续使用原有 N 个后台 worker＋condition variable，`N<=1` 继续
+串行。这样 N=K 时仍只有 N 个 runnable 实体：Host 接管一个逻辑 lane，后台只创建 N−1 个
+worker，不再产生原先的 N+1 个实体。
+
+通用实现不再硬编码 32 路、空 early phase 或 CPU105：默认 Host lane 为 `min(9,N−1)`，可用
+`WOLVI_REPCUT_HOST_LANE` 覆盖；`WOLVI_REPCUT_HOST_SPIN_US` 和
+`WOLVI_REPCUT_WORKER_SPIN_US` 支持 `infinite`/有限回退（worker 侧为 `0` 或 `infinite`）。
+每个 worker 增加 cacheline 对齐的 acquire/release work/completion/stop 原子状态；all-spin
+热路径不进入 mutex/CV，混合或 CV 回退仍保留 predicate 等待。线程启动增加绑核握手，Host
+保存并在 shutdown/异常后恢复完整 affinity mask；Host 或 worker 异常会先 drain 已派发 callback，
+再 stop/join 后重新抛出，避免后台线程继续访问模型。
+
+验证方面，`emit-verilator-repcut-package` 生成契约测试已更新并通过；生成的 common wrapper
+以 C++17 编译通过，覆盖 K=3 fixture 的 200-step smoke source，RepCut 相关 5 个 CTest
+目标全部通过。当前尚未用该通用 emitter 重新生成 XiangShan 32 分区 ELF，也没有把这次代码
+落地宣称为新的 Host walltime 结果；原有 node030 all-spin 数据仍是选择默认策略的依据。

@@ -339,7 +339,7 @@
 | `TNO0327` | `2026-09-15` | [XiangShan counter-print build resource diagnosis](./TNO0327_xiangshan_counter_print_build_resource_diagnosis_20260915.md) | A构建受资源影响、回读采样确认大页分配触发直接内存整理；仅调整本次构建affinity，未改系统设置，不作为Host证据。 |
 | `TNO0328` | `2026-09-15` | [XiangShan counter-print partition build gate](./TNO0328_xiangshan_counter_print_partition_build_gate_20260915.md) | 两臂全量32模型编译和源码gate通过；最终最大partition ops降26.50%，每update复制449729→441866字节（−1.75%），不等同Host收益。 |
 | `TNO0329` | `2026-09-15` | [XiangShan counter-print Host admission blocked](./TNO0329_xiangshan_counter_print_host_admission_blocked_20260915.md) | 全部允许节点扫描后两次node030 mask各4次admission全失败，0次仿真launch；无新Host数据，保留构建与原始失败记录，等待安静四CCD。 |
-| `TNO0330` | `2026-09-15` | [XiangShan counter-print node030 reserved96 plan](./TNO0330_xiangshan_counter_print_node030_reserved96_plan_20260915.md) | counter-print 探索性 Host −2.21%；第8节固定Host＋同核最后通知相对冻结B Host −10.17%；8.4方案一前后时空图；8.5–8.11定位 Host 参与回退、CPU105 降频及自旋因果，并补充未固定 Host vs all-spin 单步时空图。以最终 walltime 为目标后，当前 N=K=32 专用 runtime 已将 all-spin 改为默认；相对 Host-only 50 µs 的 Host −26.49%，代价为 task-clock +73.59%。v6 默认与显式 all-spin 的 Host 差 −0.19%。 |
+| `TNO0330` | `2026-09-15` | [XiangShan counter-print node030 reserved96 plan](./TNO0330_xiangshan_counter_print_node030_reserved96_plan_20260915.md) | counter-print 探索性 Host −2.21%；第8节固定Host＋同核最后通知相对冻结B Host −10.17%；8.4方案一前后时空图；8.5–8.11定位 Host 参与回退、CPU105 降频及自旋因果，并补充未固定 Host vs all-spin 单步时空图。以最终 walltime 为目标后，当前 N=K=32 专用 runtime 已将 all-spin 改为默认；相对 Host-only 50 µs 的 Host −26.49%，代价为 task-clock +73.59%。v6 默认与显式 all-spin 的 Host 差 −0.19%；8.12 已将同一机制落入通用 Wolvrix emitter 的 N=K>=2 路径，尚未形成新的 XiangShan 长测结果。 |
 
 ## 来源覆盖
 
