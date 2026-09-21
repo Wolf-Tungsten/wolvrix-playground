@@ -24,6 +24,12 @@ def main():
                         help="hoist shared snapshot guards of commit memWrite runs and cache their boundary enables")
     parser.add_argument("--shape-twin-share", action="store_true",
                         help="fold cross-file shape-identical task bodies into shared noinline functions")
+    parser.add_argument("--branch-shape-share", action="store_true",
+                        help="fold shape-identical activity-guard branch bodies into shared noinline helpers")
+    parser.add_argument("--branch-shape-hotness", default="",
+                        help="TSV of func->sample-percent; hot groups are excluded greedily (cold outlining)")
+    parser.add_argument("--branch-shape-growth-budget", type=float, default=1.0,
+                        help="max estimated parameter-load growth in model units when hotness is provided")
     parser.add_argument("--used-bits", action="store_true",
                         help="run grhsim.used-bits (dead-cone elimination + width narrowing), then remap")
     parser.add_argument("--canonicalize-compute", action="store_true",
@@ -104,6 +110,11 @@ def main():
             emit_options["commit_mem_walk"] = True
         if args.shape_twin_share:
             emit_options["shape_twin_share"] = True
+        if args.branch_shape_share:
+            emit_options["branch_shape_share"] = True
+        if args.branch_shape_hotness:
+            emit_options["branch_shape_hotness"] = args.branch_shape_hotness
+            emit_options["branch_shape_growth_budget"] = args.branch_shape_growth_budget
         for action in actions + [
             lambda: session.run_grhsim_pass("cpu.st.emit-cpp", **emit_options),
             lambda: session.store_grhsim(model="grhsim.main", output=str(flow / "xiangshan_grhsim_ir.json")),

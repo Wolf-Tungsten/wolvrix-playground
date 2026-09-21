@@ -101,6 +101,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
+    parser.add_argument("--branch-shape-hotness", type=Path,
+                        help="TSV of func->sample-percent; hot branch groups are excluded greedily (cold outlining)")
+    parser.add_argument("--branch-shape-growth-budget", type=float, default=1.0,
+                        help="max estimated parameter-load growth in model units when hotness is provided")
     args = parser.parse_args()
     if args.cpu_target_batch_count is not None and args.cpu_target_batch_count < 0:
         parser.error("--cpu-target-batch-count must be nonnegative")
@@ -216,14 +220,20 @@ def main() -> int:
             )
             require_ok(diagnostics, f"GrhSIM CPU pass {pass_name}")
         if emit_cpp_dir is not None:
+            emit_options = {
+                "model": "grhsim.main",
+                "output": str(emit_cpp_dir),
+                "commit_compact_walk": True,
+                "commit_mem_walk": True,
+                "shape_twin_share": True,
+                "branch_shape_share": True,
+            }
+            if args.branch_shape_hotness:
+                emit_options["branch_shape_hotness"] = str(args.branch_shape_hotness.resolve())
+                emit_options["branch_shape_growth_budget"] = args.branch_shape_growth_budget
             diagnostics = timed(
                 f"emit CPU C++ model {emit_cpp_dir}",
-                lambda: session.run_grhsim_pass(
-                    "cpu.st.emit-cpp", model="grhsim.main", output=str(emit_cpp_dir),
-                    commit_compact_walk=True,
-                    commit_mem_walk=True,
-                    shape_twin_share=True,
-                ),
+                lambda: session.run_grhsim_pass("cpu.st.emit-cpp", **emit_options),
             )
             require_ok(diagnostics, "emit CPU C++ model")
         diagnostics = timed(

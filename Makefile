@@ -163,6 +163,8 @@ XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON ?= 0
 XS_WOLF_GRHSIM_IR_KEEP_ORIGINS ?= 0
 XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR ?=
 XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT ?=
+XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS ?=
+XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_GROWTH_BUDGET ?= 1.0
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE ?= 1
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
 XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES ?= 1
@@ -327,8 +329,10 @@ profile_grhsim_ir:
 
 .PHONY: reemit_grhsim_ir
 GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT ?= 0
+GRHSIM_REEMIT_BRANCH_SHAPE_HOTNESS ?=
+GRHSIM_REEMIT_BRANCH_SHAPE_GROWTH_BUDGET ?= 1.0
 reemit_grhsim_ir: py_install
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,) $(if $(filter 1,$(GRHSIM_REEMIT_REMAP)),--remap,) $(if $(filter 1,$(GRHSIM_REEMIT_BITWISE_MUXES)),--bitwise-muxes,) $(if $(filter 1,$(GRHSIM_REEMIT_MUX_CHAIN_FOLD)),--mux-chain-fold,) $(if $(filter 1,$(GRHSIM_REEMIT_USED_BITS)),--used-bits,) $(if $(filter 1,$(GRHSIM_REEMIT_CANONICALIZE_COMPUTE)),--canonicalize-compute,) $(if $(filter 1,$(GRHSIM_REEMIT_DYNAMIC_STATS)),--dynamic-stats,) $(if $(filter 1,$(GRHSIM_REEMIT_COMMIT_COMPACT_WALK)),--commit-compact-walk,) $(if $(filter 1,$(GRHSIM_REEMIT_COMMIT_MEM_WALK)),--commit-mem-walk,) $(if $(filter 1,$(GRHSIM_REEMIT_SHAPE_TWIN_SHARE)),--shape-twin-share,) $(if $(strip $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE),)
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,) $(if $(filter 1,$(GRHSIM_REEMIT_REMAP)),--remap,) $(if $(filter 1,$(GRHSIM_REEMIT_BITWISE_MUXES)),--bitwise-muxes,) $(if $(filter 1,$(GRHSIM_REEMIT_MUX_CHAIN_FOLD)),--mux-chain-fold,) $(if $(filter 1,$(GRHSIM_REEMIT_USED_BITS)),--used-bits,) $(if $(filter 1,$(GRHSIM_REEMIT_CANONICALIZE_COMPUTE)),--canonicalize-compute,) $(if $(filter 1,$(GRHSIM_REEMIT_DYNAMIC_STATS)),--dynamic-stats,) $(if $(filter 1,$(GRHSIM_REEMIT_COMMIT_COMPACT_WALK)),--commit-compact-walk,) $(if $(filter 1,$(GRHSIM_REEMIT_COMMIT_MEM_WALK)),--commit-mem-walk,) $(if $(filter 1,$(GRHSIM_REEMIT_SHAPE_TWIN_SHARE)),--shape-twin-share,) $(if $(filter 1,$(GRHSIM_REEMIT_BRANCH_SHAPE_SHARE)),--branch-shape-share,) $(if $(strip $(GRHSIM_REEMIT_BRANCH_SHAPE_HOTNESS)),--branch-shape-hotness "$(GRHSIM_REEMIT_BRANCH_SHAPE_HOTNESS)" --branch-shape-growth-budget "$(GRHSIM_REEMIT_BRANCH_SHAPE_GROWTH_BUDGET)",) $(if $(strip $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE),)
 
 GRHSIM_IR_BENCH_CPU ?= 2
 GRHSIM_IR_BENCH_PAIRS ?= 3
@@ -877,7 +881,8 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE),) \
 			--reg-to-mem-report "$(XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT)" \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",); \
+			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",) \
+			$(if $(strip $(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS)),--branch-shape-hotness "$(abspath $(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS))" --branch-shape-growth-budget "$(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_GROWTH_BUDGET)",); \
 	} 2>&1 | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
 	status=$$?; \
 	echo "[EXIT] xs_wolf_grhsim_ir $$status" | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
