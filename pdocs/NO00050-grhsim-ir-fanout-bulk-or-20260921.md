@@ -1,6 +1,15 @@
 # NO00050: 表达式粗化门槛（否决）+ compute 侧 fanout 发布批量 OR
 
-日期：2026-09-21。节点状态：进行中。
+日期：2026-09-21。节点状态：**FAILED（用户人工判定，2026-09-21）**。
+
+> **判定登记**：本节点机制（fanout 发布批量 OR）已走完整筛选与正式流程并一度
+> 判定 ACCEPTED（数据见下，全部保留）；2026-09-21 经**用户人工判定**本节点为
+> FAILED（按 goal 协议，FAILED 只能由用户人工判定并登记），ACCEPTED 判定撤回。
+> 候选代码全部回退：wolvrix `1f6761a` 经 revert（`7fd134e`）恢复至 `54d6e74`
+> 零差异；普查工具保留（`scripts/grhsim_fuse_chain_stats.py`、根 Makefile
+> `probe_grhsim_ir_codegen` 探针目标）。当前最佳回退至 NO00049
+> （70.419333 s，gsim 的 1.499839×）。四个被否决方向（P4/P3/memWrite arming/
+> 粗粒度 256）的否定数据为独立实验结论，不随本判定失效。
 
 ## 节点输入与假设
 
@@ -205,9 +214,14 @@ gsim 的激活发布为 `activeFlags[i] |= cond << k`（单指令位移注入）
   - 六次全部 NEMU 对拍通过（等价门槛由 benchmark 脚本内置校验）。
   - 第二轮结果见最终判定节。
 
-## 最终判定：ACCEPTED
+## 最终判定：FAILED（用户人工判定，2026-09-21）
 
-**机制**：compute 侧 fanout 发布批量 OR——`activate()`/`armPorts()` 的
+**判定登记**：本节数据为撤回前 ACCEPTED 流程的完整记录，全部保留。机制曾通过
+筛选两票与三轮正式交替（第二、三轮秩次门通过），但 2026-09-21 经用户人工判定
+本节点 FAILED，ACCEPTED 撤回；候选代码全部回退（wolvrix `1f6761a` 经
+`7fd134e` revert，与 `54d6e74` 零差异），当前最佳回退至 NO00049。
+
+**机制**（已回退）：compute 侧 fanout 发布批量 OR——`activate()`/`armPorts()` 的
 (offset, mask) 目标按对齐 8 字节窗口归并为单条 memcpy 形式 u64 OR
 （窗口 ≥2 字节时），无分支、与 gsim 的 `*(uint64_t*)&activeFlags[g] |=
 -(uint64_t)cond & MASK` 形态对齐。
@@ -226,15 +240,18 @@ NEMU 无 mismatch）：
 | 3（确认） | 70.371/70.090/69.995（均值 70.152000） | 69.666/69.440/69.449（均值 **69.518333**） | +0.9033% | **过**（max(new) 69.666 < min(old) 69.995，U=0，p=0.05） |
 
 第一轮秩次门未过后按协议加跑，第二、三轮连续通过且方向与两票筛选一致
-（四轮均值效应量 +0.7%~+1.5%），判定收益真实。生成代码侧佐证：fanout 热点
+（四轮均值效应量 +0.7%~+1.5%）——据此曾判定收益真实，该判定已于 2026-09-21
+被用户人工判定 FAILED 撤回。生成代码侧佐证：fanout 热点
 task_70 静态指令 23,074→18,661（−19.1%）。
 
 - 完整生成 730.83 s、fresh 编译 202.05 s（nproc=32）均 <1800 s 门；
   md5 对拍（flow-final == 筛选 flow-v3）、HDLBits DUT=001 回归通过。
-- 距 gsim：以第三轮 new 均值 69.518 s 对归档 46.965 s = **1.480239×**
-  （NO00049 后 1.499839×）。
-- 提交：wolvrix 子模块（cpu_emit.cpp +59/−7）与根仓库（Makefile probe 目标、
-  普查脚本、本报告、索引）见各自 commit。
+- 距 gsim（撤回前口径）：以第三轮 new 均值 69.518 s 对归档 46.965 s =
+  1.480239×；判定撤回后该锚点作废，当前最佳回到 NO00049 的 **1.499839×**。
+- 提交与回退：wolvrix `1f6761a`（cpu_emit.cpp +59/−7）与根仓库 `143ef17`
+  （Makefile probe 目标、普查脚本、本报告、索引）；FAILED 判定后 wolvrix
+  经 `7fd134e` revert 恢复 `54d6e74` 零差异，根仓库普查工具（
+  `scripts/grhsim_fuse_chain_stats.py`、`probe_grhsim_ir_codegen`）保留。
 
 ## 节点复盘与移交
 
@@ -249,11 +266,11 @@ task_70 静态指令 23,074→18,661（−19.1%）。
   代码（`build/xs/gsim/gsim-compile/model/`）是最直接的形态对照源——本节点
   机制直接来自逐行读 gsim 输出。
 - **剩余池**：compute 任务体 hotness 加权语句构成——局部计算 38.6%、
-  fanout+arm 发布 ~24%（本节点回收其约 1/3 成本）、boundary 写回 16.4%、
-  缓存读 8.2%；71% 零产出激活池仍受 clang 控制流惩罚封锁。
-- 后续候选：写回层（changed 比较+存储 16.4%）的批量/位打包（与 fanout 同族
-  思路，按 u64 窗口批量比较与回写）；提交侧 commit 任务体 16.1% 中
-  write_cell 调用形态（~93 cyc/端口评估，NO00047 归因）。
-- 下一节点 old 对照：`ptmp/no00050_expr_coarsen_20260921/flow-final`；
-  预注册比较值 **69.518333 s**（第三轮 new 均值）；checkpoint：
-  `ptmp/no00050_expr_coarsen_20260921/flow-final/xiangshan_grhsim_ir.json`。
+  fanout+arm 发布 ~24%（本节点批量 OR 曾回收其约 1/3 成本，已随 FAILED 回退）、
+  boundary 写回 16.4%、缓存读 8.2%；71% 零产出激活池仍受 clang 控制流惩罚封锁。
+- 后续候选：写回层（changed 比较+存储 16.4%）的批量/位打包（按 u64 窗口批量
+  比较与回写）；提交侧 commit 任务体 16.1% 中 write_cell 调用形态
+  （~93 cyc/端口评估，NO00047 归因）。
+- 下一节点 old 对照（FAILED 回退后）：`ptmp/no00049_used_bits_20260920/flow-final`；
+  预注册比较值 **70.419333 s**（NO00049 正式 new 均值）；checkpoint：
+  `ptmp/no00049_used_bits_20260920/flow-final/xiangshan_grhsim_ir.json`。
