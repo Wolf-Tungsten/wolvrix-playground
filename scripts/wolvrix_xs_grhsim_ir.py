@@ -44,11 +44,13 @@ CPU_SEMANTIC_PIPELINE = [
 ]
 # Packing reads the first schedule's quiescence projection and invalidates its
 # mapping. Rebuild all stages so emit uses the transformed state dependencies.
-# used-bits runs last among semantic passes: dead-cone elimination and width
-# narrowing see the fully canonicalized model.
+# canonicalize-compute re-runs right after packing: per-bit reads become word
+# slices, so gathers of those bits degenerate into foldable concat-of-slices
+# identities. used-bits runs last among semantic passes: dead-cone elimination
+# and width narrowing see the fully canonicalized model.
 CPU_PIPELINE = (
     CPU_SEMANTIC_PIPELINE + CPU_MAPPING_PIPELINE
-    + ["grhsim.pack-bit-registers", "grhsim.bitwise-muxes", "grhsim.mux-chain-fold",
+    + ["grhsim.pack-bit-registers", "grhsim.canonicalize-compute", "grhsim.bitwise-muxes", "grhsim.mux-chain-fold",
        "grhsim.used-bits"] + CPU_MAPPING_PIPELINE
 )
 

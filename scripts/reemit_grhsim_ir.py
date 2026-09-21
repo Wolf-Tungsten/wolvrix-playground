@@ -24,6 +24,8 @@ def main():
                         help="hoist shared snapshot guards of commit memWrite runs and cache their boundary enables")
     parser.add_argument("--used-bits", action="store_true",
                         help="run grhsim.used-bits (dead-cone elimination + width narrowing), then remap")
+    parser.add_argument("--canonicalize-compute", action="store_true",
+                        help="run grhsim.canonicalize-compute (incl. concat-of-slices folds), then remap")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap during remapping")
     parser.add_argument("--cpu-target-batch-count", type=int, default=0)
@@ -75,6 +77,12 @@ def main():
             ]
         if args.mux_chain_fold:
             actions += [lambda: session.run_grhsim_pass("grhsim.mux-chain-fold", model="grhsim.main")]
+            actions += [
+                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
+                for name in CPU_MAPPING_PIPELINE
+            ]
+        if args.canonicalize_compute:
+            actions += [lambda: session.run_grhsim_pass("grhsim.canonicalize-compute", model="grhsim.main")]
             actions += [
                 lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
                 for name in CPU_MAPPING_PIPELINE
