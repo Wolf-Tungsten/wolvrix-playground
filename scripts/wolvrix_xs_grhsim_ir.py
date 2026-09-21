@@ -222,6 +222,7 @@ def main() -> int:
                     "cpu.st.emit-cpp", model="grhsim.main", output=str(emit_cpp_dir),
                     commit_compact_walk=True,
                     commit_mem_walk=True,
+                    shape_twin_share=True,
                 ),
             )
             require_ok(diagnostics, "emit CPU C++ model")

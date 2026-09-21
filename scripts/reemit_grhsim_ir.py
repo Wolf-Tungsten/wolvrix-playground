@@ -22,6 +22,8 @@ def main():
                         help="emit uniform u64 direct-commit pflag bytes as branch-free change scans")
     parser.add_argument("--commit-mem-walk", action="store_true",
                         help="hoist shared snapshot guards of commit memWrite runs and cache their boundary enables")
+    parser.add_argument("--shape-twin-share", action="store_true",
+                        help="fold cross-file shape-identical task bodies into shared noinline functions")
     parser.add_argument("--used-bits", action="store_true",
                         help="run grhsim.used-bits (dead-cone elimination + width narrowing), then remap")
     parser.add_argument("--canonicalize-compute", action="store_true",
@@ -100,6 +102,8 @@ def main():
             emit_options["commit_compact_walk"] = True
         if args.commit_mem_walk:
             emit_options["commit_mem_walk"] = True
+        if args.shape_twin_share:
+            emit_options["shape_twin_share"] = True
         for action in actions + [
             lambda: session.run_grhsim_pass("cpu.st.emit-cpp", **emit_options),
             lambda: session.store_grhsim(model="grhsim.main", output=str(flow / "xiangshan_grhsim_ir.json")),
