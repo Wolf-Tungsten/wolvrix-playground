@@ -417,6 +417,14 @@ analyze_grhsim_algebra_residue:
 analyze_grhsim_used_bits:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_used_bits_stats.py --model "$(GRHSIM_USED_BITS_MODEL)"
 
+.PHONY: analyze_grhsim_priority_cond
+analyze_grhsim_priority_cond:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_guard_absorb_stats.py --model "$(GRHSIM_GUARD_ABSORB_MODEL)"
+
+.PHONY: analyze_grhsim_cone_replicate
+analyze_grhsim_cone_replicate:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_cone_replicate_stats.py --model "$(GRHSIM_CONE_REPLICATE_MODEL)"
+
 .PHONY: analyze_grhsim_task_read_cache
 analyze_grhsim_task_read_cache:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_task_read_cache_stats.py --model "$(GRHSIM_TASK_CACHE_MODEL)" $(if $(GRHSIM_TASK_CACHE_LOG),--log "$(GRHSIM_TASK_CACHE_LOG)",)
