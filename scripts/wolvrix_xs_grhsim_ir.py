@@ -89,7 +89,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("read_args_file")
     parser.add_argument("log_level", nargs="?", default="info")
     parser.add_argument("--resume-from-flat-grh", action="store_true")
-    parser.add_argument("--keep-origins", action="store_true")
+    parser.add_argument("--keep-origins", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--emit-cpp-dir", type=Path)
     parser.add_argument("--cpu-target-batch-count", type=int)
     parser.add_argument("--disable-reg-to-mem", action="store_true")

@@ -160,9 +160,13 @@ XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_grhsim_ir_ro
 XS_WOLF_GRHSIM_IR_REG_TO_MEM ?= 1
 XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT ?= $(XS_GRHSIM_IR_BUILD)/reg_to_mem.tsv
 XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON ?= 0
-XS_WOLF_GRHSIM_IR_KEEP_ORIGINS ?= 0
+XS_WOLF_GRHSIM_IR_KEEP_ORIGINS ?= 1
 XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR ?=
-XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT ?=
+# Batch count 0 keeps one emit function per compute supernode (the schedule
+# every accepted xiangshan run was validated with). The pass default (64)
+# merges supernodes into giant tasks, which makes text-level shape/block
+# sharing much less effective.
+XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT ?= 0
 XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS ?=
 XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_GROWTH_BUDGET ?= 1.0
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE ?= 1
