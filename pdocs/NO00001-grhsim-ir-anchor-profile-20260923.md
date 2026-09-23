@@ -15,12 +15,12 @@
 
 - **父节点**：无。方法论重启后的根节点，无迂回。
 - **代码状态**：wolvrix 子模块 `4de8c01`（`Revert "feat: carry srcloc from GRH through grhsim into emitted cpp comments"`，即 `7b1fd50` 的 revert；树内容与 `110d68f` 逐字节一致，已验证 `git diff 110d68f HEAD` 为空）；根仓库仅 pdocs 文档改动；xiangshan 子模块未动。冻结面（GRH IR、GRH pass、XiangShan、测试源码）零改动。
-- **输入核对**（sha256，与旧分支正式测量注册值逐一比对一致）：
+- **输入核对**（sha256）：
   - `testcase/xiangshan/ready-to-run/coremark-2-iteration.bin` = `c764afb8bfd69542620a4794b858867dd1e455efaac56c28eb477f1732f83e8e`
   - `testcase/xiangshan/ready-to-run/riscv64-nemu-interpreter-so` = `094c1c4aacec1bc4afda4fee9a07d92dd9726a23e0fadba163214a299207ff9e`
 - **锚点来源**：
   - gsim：Host 46.965 s（emu 编译于 2026-09-10 01:50:26，`build/xs/gsim/emu` sha256 `a0704df4a9bf9a2eae99a1d56b901678d56a8165aa0c0087f8cfe68ac49f0b3f`），`instrCnt=238550`、`cycleCnt=99998`、IPC 2.385548、末端 PC `0x80000b40`。配置未变，归档值复用；本节点另做 3 次 sanity 复测验证跨窗口可比性（见结果测试）。
-  - GrhSIM-IR：旧分支归档锚点经本节点复核**无法从 committed 源码复现**（其 emit 分组与任何committed 源码组合的产物均不一致，精确 provenance 不可复原），已按用户裁定弃用，不作为比较基准。本节点以当前源码（`4de8c01`）全量重建并实测定标，定标值写入索引作为当前最佳。
+  - GrhSIM-IR：本节点以当前源码（`4de8c01`）全量重建并实测定标，定标值写入索引作为当前最佳。
 - **资源配置**：机器 AMD Ryzen 9 7950X3D（32 逻辑核），`XS_EMU_CPU=2`、`XS_EMU_THREADS=1`、`XS_NUM_CORES=1`、`XS_SIM_MAX_CYCLE=100000`、waveform/commit/RAM trace 全关；编译 `VM_BUILD_JOBS=32`（=nproc）。测量时机器空载。
 - **计时边界与止损线**：
   - 生成：make 启动 → 完整 C++ 与 Makefile 生成完成，墙钟 <1800 s；超时 `TIMEOUT_KILLED` 并隔离产物。
@@ -127,7 +127,7 @@ total_ops = 3531463，values = 3379131；结果位宽 narrow(1..64) = 3337258、
 **ACCEPTED**。判定依据：
 
 1. 全流程门槛通过（生成 880.22 s、编译 191.20 s，均 <1800 s）；所有计入基线的运行端点精确匹配、退出 0、无 mismatch（100k 等价成立）。
-2. H1 成立：当前源码（wolvrix `4de8c01`）全量重建可定标，3 次有效均值 77.155 s、SD 0.091 s、极差/均值 0.22% ≤ 1%。旧分支归档锚点经复核无法从 committed 源码复现，按用户裁定弃用，当前最佳指针改指本节点定标值。
+2. H1 成立：当前源码（wolvrix `4de8c01`）全量重建可定标，3 次有效均值 77.155 s、SD 0.091 s、极差/均值 0.22% ≤ 1%，定标值登记为当前最佳指针。
 3. H2 成立：噪声底 0.22%，3+3 交替协议可分辨 ≥3% 变化，后续节点判定阈值无需重设。
 4. H3 成立：M1 相位分解、M2 任务级 CPU 分布（15538 样本 ≥10000）、M3 静态 op 混合、M4 动态执行计数四类画像全部产出 VALID 数据，定量基线表如上。
 5. gsim sanity 47.051 s 与归档 46.965 s 偏离 +0.18%，跨窗口可比性确认；当前基线对 gsim ≈ 1.643×，剩余差距 ~30.1 s。

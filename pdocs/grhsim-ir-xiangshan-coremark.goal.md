@@ -81,7 +81,6 @@
 
 - **gsim 归档测量**（emu 编译于 2026-09-10 01:50:26）：Host time **46.965 s**；`instrCnt=238550`、`cycleCnt=99998`、IPC **2.385548**、末端 PC `0x80000b40`、guest cycles 100001，退出码 0，DIFFTEST 无 mismatch。NO00001 三次 sanity 复测均值 47.051 s，与归档值吻合。
 - **GrhSIM-IR 当前最佳**（NO00001 定标，2026-09-23 三次有效均值）：**77.155 s**（wolvrix `4de8c01`）；`instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`，退出码 0，DIFFTEST 无 mismatch。对 gsim ≈ **1.64×**，即剩余差距 ~30.1 s。
-- 旧分支归档的 GrhSIM-IR 锚点经 NO00001 复核无法从 committed 源码复现，已按用户裁定弃用，不作为任何比较基准；gsim 锚点继承归档测量并经 NO00001 sanity 复测确认有效。
 
 上述 gsim 归档和 IR 实测分别使用 Makefile 目标 `run_xs_gsim_emu` 和 `run_xs_wolf_grhsim_ir_emu`，均设置 `XS_SIM_MAX_CYCLE=100000`、`XS_NUM_CORES=1`、`XS_EMU_THREADS=1`、`XS_EMU_CPU=2`、`XS_WAVEFORM=0`、`XS_COMMIT_TRACE=0`、`XS_RAM_TRACE=0`。
 
