@@ -8,7 +8,7 @@
 
 ## 方法论说明（2026-09-23）
 
-旧 pdocs（NO00001–NO00059）已删除，其中结论、人工判定、验收门调整、排除清单与移交候选一律不继承。节点编号自 NO00001 起延续，不复用。节点是唯一粒度；节点以父指针组成树。仅两条实测锚点（gsim 归档测量、当前最佳构建时间）保留为参考，首个节点须复核。
+旧 pdocs（NO00001–NO00059）已删除，其中结论、人工判定、验收门调整、排除清单与移交候选一律不继承。节点编号自 **NO00001** 重启（沿用五位编号；旧编号随旧报告删除一并作废，新分支自 NO00001 重新计数），编号单调递增。节点是唯一粒度；节点以父指针组成树。仅两条实测锚点（gsim 归档测量、当前最佳构建时间）保留为参考，首个节点须复核。
 
 ## 节点：唯一粒度与固定流程
 
@@ -79,12 +79,12 @@
 
 自 2026-09-14 起统一 **100,000 cycles**。配置：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`，`XS_NUM_CORES=1`，`XS_EMU_THREADS=1`，`XS_EMU_CPU=2`，waveform/commit/RAM trace 关闭，cycle 上限 `100000`。
 
-- **gsim 归档测量**（emu 编译于 2026-09-10 01:50:26）：Host time **46.965 s**；`instrCnt=238550`、`cycleCnt=99998`、IPC **2.385548**、末端 PC `0x80000b40`、guest cycles 100001，退出码 0，DIFFTEST 无 mismatch。
-- **GrhSIM-IR 当前最佳**（2026-09-22 三次正式 new 均值）：**71.309667 s**；`instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`，退出码 0，DIFFTEST 无 mismatch。对 gsim ≈ **1.518×**，即剩余差距 ~24.3 s。
-- 两条锚点继承自旧分支归档测量，代码状态未变故物理有效；首个节点须以 6 次交替复测复核当前最佳并实测噪声底，据此定标。
+- **gsim 归档测量**（emu 编译于 2026-09-10 01:50:26）：Host time **46.965 s**；`instrCnt=238550`、`cycleCnt=99998`、IPC **2.385548**、末端 PC `0x80000b40`、guest cycles 100001，退出码 0，DIFFTEST 无 mismatch。NO00001 三次 sanity 复测均值 47.051 s，与归档值吻合。
+- **GrhSIM-IR 当前最佳**（NO00001 定标，2026-09-23 三次有效均值）：**77.155 s**（wolvrix `4de8c01`）；`instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`，退出码 0，DIFFTEST 无 mismatch。对 gsim ≈ **1.64×**，即剩余差距 ~30.1 s。
+- 旧分支归档的 GrhSIM-IR 锚点经 NO00001 复核无法从 committed 源码复现，已按用户裁定弃用，不作为任何比较基准；gsim 锚点继承归档测量并经 NO00001 sanity 复测确认有效。
 
 上述 gsim 归档和 IR 实测分别使用 Makefile 目标 `run_xs_gsim_emu` 和 `run_xs_wolf_grhsim_ir_emu`，均设置 `XS_SIM_MAX_CYCLE=100000`、`XS_NUM_CORES=1`、`XS_EMU_THREADS=1`、`XS_EMU_CPU=2`、`XS_WAVEFORM=0`、`XS_COMMIT_TRACE=0`、`XS_RAM_TRACE=0`。
 
 ## 启动自举
 
-首个节点为**诊断节点**：复核性能锚点、实测噪声底、以定量画像建立首批微观指标的定量基线（写入该节点报告，供后续节点锚定引用）。随后每次 `/goal` 一个节点。
+首个节点为**诊断节点**（编号 NO00001）：复核性能锚点、实测噪声底、以定量画像建立首批微观指标的定量基线（写入该节点报告，供后续节点锚定引用）。随后每次 `/goal` 一个节点。
