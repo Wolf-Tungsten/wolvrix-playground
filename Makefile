@@ -167,6 +167,11 @@ XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR ?=
 # merges supernodes into giant tasks, which makes text-level shape/block
 # sharing much less effective.
 XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT ?= 0
+# Text-level sharing (shape-twin / branch-block noinline folding) is opt-in:
+# it trades runtime for compile time, so the validated default keeps tasks
+# fully inlined. Set to 1 to re-enable for compile-time pressure or A/B.
+XS_WOLF_GRHSIM_IR_SHAPE_TWIN_SHARE ?=
+XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_SHARE ?=
 XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS ?=
 XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_GROWTH_BUDGET ?= 1.0
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE ?= 1
@@ -886,6 +891,8 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			--reg-to-mem-report "$(XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT)" \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",) \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_SHAPE_TWIN_SHARE)),--shape-twin-share,) \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_SHARE)),--branch-shape-share,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS)),--branch-shape-hotness "$(abspath $(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS))" --branch-shape-growth-budget "$(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_GROWTH_BUDGET)",); \
 	} 2>&1 | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
 	status=$$?; \

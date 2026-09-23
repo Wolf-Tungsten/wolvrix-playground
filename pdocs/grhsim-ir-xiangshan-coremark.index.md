@@ -4,13 +4,14 @@
 
 ## 当前最佳
 
-指针：**NO00001**（诊断定标，wolvrix `4de8c01`），Host **77.155 s**（3 次有效均值，SD 0.091 s）；端点 `instrCnt=240349、cycleCnt=99996、guest=100001、PC=0x80000c0c`。对 gsim 归档 46.965 s ≈ 1.643×。
+指针：**NO00002**（关闭 XS emit 文本级共享，wolvrix `4de8c01` + 根仓库本节点提交），Host **70.134 s**（3 次有效均值，SD 0.278 s）；端点 `instrCnt=240349、cycleCnt=99996、guest=100001、PC=0x80000c0c`。对 gsim 归档 46.965 s ≈ 1.493×。
 
 ## 节点树
 
 | 编号 | 报告 | 父节点 | 角色 | 锚定指标 | 判定 | 最终性能（Host s） | 关键结论 |
 |---|---|---|---|---|---|---|---|
 | NO00001 | [报告](NO00001-grhsim-ir-anchor-profile-20260923.md) | 无 | 诊断 | Host time 100k | ACCEPTED | 77.155 | 定标基线（wolvrix `4de8c01`）；噪声底 0.22%（3+3 协议可分辨 ≥3%）；M1–M4 定量基线：model_step 占 99.5%（compute 76.9% / commit 21.8% / publish 1.1%），任务级分布长尾无单点热点 |
+| NO00002 | [报告](NO00002-grhsim-ir-disable-text-share-20260924.md) | NO00001 | 优化 | M-share ≤1%；M-tput ≥+6% | ACCEPTED | 70.134 | 关闭 shape-twin/branch-block 文本共享：M-share 36.29%→0%，M-tput +10.0%（dynOps 逐键不变），compute −7.76 s；编译时间几乎不变（195.95 vs 191.20 s），共享机制的运行时代价是纯损失； −9.42% Host，秩次判据 p=0.05 |
 
 ## 机制证伪表
 

@@ -80,7 +80,7 @@
 自 2026-09-14 起统一 **100,000 cycles**。配置：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`，`XS_NUM_CORES=1`，`XS_EMU_THREADS=1`，`XS_EMU_CPU=2`，waveform/commit/RAM trace 关闭，cycle 上限 `100000`。
 
 - **gsim 归档测量**（emu 编译于 2026-09-10 01:50:26）：Host time **46.965 s**；`instrCnt=238550`、`cycleCnt=99998`、IPC **2.385548**、末端 PC `0x80000b40`、guest cycles 100001，退出码 0，DIFFTEST 无 mismatch。NO00001 三次 sanity 复测均值 47.051 s，与归档值吻合。
-- **GrhSIM-IR 当前最佳**（NO00001 定标，2026-09-23 三次有效均值）：**77.155 s**（wolvrix `4de8c01`）；`instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`，退出码 0，DIFFTEST 无 mismatch。对 gsim ≈ **1.64×**，即剩余差距 ~30.1 s。
+- **GrhSIM-IR 当前最佳**（NO00002，2026-09-24 三次有效均值）：**70.134 s**（wolvrix `4de8c01` + 根仓库 NO00002 提交，XS emit 文本级共享关闭）；`instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`，退出码 0，DIFFTEST 无 mismatch。对 gsim ≈ **1.49×**，即剩余差距 ~23.2 s。
 
 上述 gsim 归档和 IR 实测分别使用 Makefile 目标 `run_xs_gsim_emu` 和 `run_xs_wolf_grhsim_ir_emu`，均设置 `XS_SIM_MAX_CYCLE=100000`、`XS_NUM_CORES=1`、`XS_EMU_THREADS=1`、`XS_EMU_CPU=2`、`XS_WAVEFORM=0`、`XS_COMMIT_TRACE=0`、`XS_RAM_TRACE=0`。
 

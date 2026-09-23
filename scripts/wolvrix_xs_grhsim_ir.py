@@ -101,6 +101,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
+    parser.add_argument("--shape-twin-share", action="store_true",
+                        help="fold cross-file shape-identical task bodies into noinline shared bodies (off by default: runtime over compile time)")
+    parser.add_argument("--branch-shape-share", action="store_true",
+                        help="fold shape-identical activity-guard branch blocks into noinline shared bodies (off by default)")
     parser.add_argument("--branch-shape-hotness", type=Path,
                         help="TSV of func->sample-percent; hot branch groups are excluded greedily (cold outlining)")
     parser.add_argument("--branch-shape-growth-budget", type=float, default=1.0,
@@ -225,10 +229,13 @@ def main() -> int:
                 "output": str(emit_cpp_dir),
                 "commit_compact_walk": True,
                 "commit_mem_walk": True,
-                "shape_twin_share": True,
-                "branch_shape_share": True,
             }
+            if args.shape_twin_share:
+                emit_options["shape_twin_share"] = True
+            if args.branch_shape_share:
+                emit_options["branch_shape_share"] = True
             if args.branch_shape_hotness:
+                emit_options["branch_shape_share"] = True
                 emit_options["branch_shape_hotness"] = str(args.branch_shape_hotness.resolve())
                 emit_options["branch_shape_growth_budget"] = args.branch_shape_growth_budget
             diagnostics = timed(
