@@ -447,6 +447,10 @@ analyze_grhsim_op_mix:
 analyze_grhsim_dynamic:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_dynamic_stats.py --log "$(GRHSIM_DYNAMIC_LOG)" --model "$(GRHSIM_DYNAMIC_MODEL)"
 
+.PHONY: analyze_grhsim_cone_guard
+analyze_grhsim_cone_guard:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_cone_guard_census.py --model "$(GRHSIM_CONE_MODEL)" $(if $(GRHSIM_CONE_DYNLOG),--dynlog "$(GRHSIM_CONE_DYNLOG)",) $(if $(GRHSIM_CONE_SAMPLES),--samples "$(GRHSIM_CONE_SAMPLES)",) $(if $(GRHSIM_CONE_OUT),--out "$(GRHSIM_CONE_OUT)",)
+
 .PHONY: analyze_grhsim_topocut
 analyze_grhsim_topocut:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_topocut_stats.py --model "$(GRHSIM_TOPOCUT_MODEL)"

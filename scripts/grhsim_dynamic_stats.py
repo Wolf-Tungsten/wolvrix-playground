@@ -9,6 +9,7 @@ import re
 
 KIND_LINE = re.compile(r"^\[grhsim-dyn] kind (\S+) wr=(\d+) ch=(\d+) silent=(\d+)$")
 SN_LINE = re.compile(r"^\[grhsim-dyn] sn (\d+) act=(\d+) body=(\d+) grp=(\d+) chg=(\d+)$")
+SNX_LINE = re.compile(r"^\[grhsim-dyn] snx (\d+) exec=(\d+)$")
 COMMIT_LINE = re.compile(r"^\[grhsim-dyn] commit (\d+) ent=(\d+)$")
 TOTALS_LINE = re.compile(r"^\[grhsim-dyn] totals (.*)$")
 PHASE_LINE = re.compile(r"^\[grhsim-cpu-phase] evals=(\d+) rounds=(\d+)")
@@ -21,11 +22,14 @@ def main():
     args = parser.parse_args()
     text = args.log.read_text(errors="replace")
     kinds, units, commits, totals, evals, rounds = {}, {}, {}, {}, None, None
+    snx = {}
     for line in text.splitlines():
         if match := KIND_LINE.match(line):
             kinds[match[1]] = tuple(map(int, match.groups()[1:]))
         elif match := SN_LINE.match(line):
             units[int(match[1])] = tuple(map(int, match.groups()[1:]))
+        elif match := SNX_LINE.match(line):
+            snx[int(match[1])] = int(match[2])
         elif match := COMMIT_LINE.match(line):
             commits[int(match[1])] = int(match[2])
         elif match := TOTALS_LINE.match(line):
@@ -109,6 +113,27 @@ def main():
     print("\n== dynamic compute op executions by kind (body-weighted; top 30) ==")
     total_exec = sum(dyn_exec.values())
     print(f"total_dynamic_compute_ops={total_exec} per_eval={total_exec / evals:.1f}")
+    # NO00007 cone-guard accounting. snx lines mark guarded units and carry the
+    # ops actually executed inside run guards; units without an snx line keep the
+    # body x static-ops definition. Old logs (no snx lines) degrade gracefully.
+    guarded = set(snx)
+    if guarded:
+        guard_exec = sum(snx.values())
+        guard_body_ops = sum(units[pid][1] * unit_ops.get(pid, 0) for pid in guarded if pid in units)
+        unguarded_body_ops = sum(body * unit_ops.get(pid, 0)
+                                 for pid, (act, body, grp, chg) in units.items() if pid not in guarded)
+        new_exec = guard_exec + unguarded_body_ops
+        print(f"total_executed_ops_newdef={new_exec} per_eval={new_exec / evals:.1f} "
+              f"(guarded_exec={guard_exec} + unguarded_body_ops={unguarded_body_ops})")
+        residual = guard_exec / max(guard_body_ops, 1)
+        print(f"guard_pool: units={len(guarded)} body_ops={guard_body_ops} exec={guard_exec} "
+              f"residual={residual:.4f} ({100 * residual:.2f}%)")
+        tok_sum = totals.get("tok_sum", 0)
+        tok_hist = [totals.get(f"tok_hist{i}", 0) for i in range(8)]
+        bodies_with_mask = sum(tok_hist[1:])
+        k = tok_sum / bodies_with_mask if bodies_with_mask else 0.0
+        print(f"cone tokens: tok_sum={tok_sum} bodies_with_mask={bodies_with_mask} k={k:.4f} "
+              f"hist[0,1,2,3,4,5-8,9-16,17+]={tok_hist} exec_ops_totals={totals.get('exec_ops', 0)}")
     for name, count in dyn_exec.most_common(30):
         print(f"{count:>14} {100.0 * count / max(total_exec, 1):7.3f}% {name}")
     print("\n== boundary write activity by kind ==")
