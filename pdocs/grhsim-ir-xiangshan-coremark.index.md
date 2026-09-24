@@ -4,7 +4,7 @@
 
 ## 当前最佳
 
-指针：**NO00002**（关闭 XS emit 文本级共享，wolvrix `4de8c01` + 根仓库本节点提交），Host **70.134 s**（3 次有效均值，SD 0.278 s）；端点 `instrCnt=240349、cycleCnt=99996、guest=100001、PC=0x80000c0c`。对 gsim 归档 46.965 s ≈ 1.493×。
+指针：**NO00004**（编译器 PGO 施加于 GrhSIM-IR emu，wolvrix `dc3e3cb` + 根仓库本节点提交，发射源与 NO00003 逐字节一致，仅编译 flag 变化），Host **55.864 s**（3 次有效均值，SD 0.270 s）；端点 `instrCnt=240349、cycleCnt=99996、guest=100001、PC=0x80000c0c`。对 gsim 归档 46.965 s ≈ **1.189×**。
 
 ## 节点树
 
@@ -13,6 +13,7 @@
 | NO00001 | [报告](NO00001-grhsim-ir-anchor-profile-20260923.md) | 无 | 诊断 | Host time 100k | ACCEPTED | 77.155 | 定标基线（wolvrix `4de8c01`）；噪声底 0.22%（3+3 协议可分辨 ≥3%）；M1–M4 定量基线：model_step 占 99.5%（compute 76.9% / commit 21.8% / publish 1.1%），任务级分布长尾无单点热点 |
 | NO00002 | [报告](NO00002-grhsim-ir-disable-text-share-20260924.md) | NO00001 | 优化 | M-share ≤1%；M-tput ≥+6% | ACCEPTED | 70.134 | 关闭 shape-twin/branch-block 文本共享：M-share 36.29%→0%，M-tput +10.0%（dynOps 逐键不变），compute −7.76 s；编译时间几乎不变（195.95 vs 191.20 s），共享机制的运行时代价是纯损失； −9.42% Host，秩次判据 p=0.05 |
 | NO00003 | [报告](NO00003-grhsim-ir-falling-edge-elision-20260924.md) | NO00002 | 优化 | M-neg ≤1.5% 且降 ≥80%（基线 2.868%） | REJECTED | 70.231（锚定 parity） | 下降沿 eval 整体消除被双重机制证伪：① 设计固有 neg 真实工作（409 ICG 锁存 latchWrite@ClockGate.sv:11 enable=¬clock + 2 negedge 边沿项 + 21 非 quiescent 系统单元）否决全部 4 个 1-bit 输入；② M-neg 基线 2.868%<3%（neg 单价 19.9 µs = pos 的 1/34，活动驱动已压制 neg 成本），收益上限 ≤2.0 s。设施保留：边沿分裂计时 + 资格分析器（fp_evals=0，对最佳点零回退） |
+| NO00004 | [报告](NO00004-grhsim-ir-compiler-pgo-20260924.md) | NO00002 | 优化 | M-tput ≥+3%（基线 1.4184 Gop/s） | ACCEPTED | 55.864 | clang 三阶段 PGO（插桩构建→带 difftest 训练→profile-use 重建，合计 695.95 s 过门槛）：M-tput +25.6%（dynOps 由源逐字节一致锁定不变），−20.27% Host，秩次判据 p=0.05；收益分布：commit −58.6%（16.93→7.01 s，偏斜分支扫描对布局优化高响应）+ compute −8.4%；PGO 后 commit 相位收益基线重置为 7.0 s；`analyze_grhsim_cpu_profile` 地址连续假设与 PGO 函数重排不兼容（任务级 profile 链路待修）；llvm-bolt / -march=native 为后续正交手段 |
 
 ## 机制证伪表
 

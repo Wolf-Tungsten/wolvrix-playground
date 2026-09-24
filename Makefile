@@ -264,6 +264,7 @@ HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_wolf_grhsim_ir xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
+	xs_wolf_grhsim_ir_emu xs_wolf_grhsim_ir_build_emu xs_wolf_grhsim_ir_emu_pgo xs_wolf_grhsim_ir_build_emu_pgo \
 	xs_no0076_stats clean
 
 all: build
@@ -920,6 +921,71 @@ xs_wolf_grhsim_ir_build_emu:
 		VM_BUILD_JOBS=$(if $(VM_BUILD_JOBS),$(VM_BUILD_JOBS),$(XS_VM_BUILD_JOBS)) \
 		GRHSIM=1 \
 		GRHSIM_MODEL_DIR=$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)) \
+		WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM)
+
+# Compiler PGO for the GrhSIM IR emu: three-phase build (instrument, train on the
+# production workload with difftest on, profile-use rebuild). Emitted sources are
+# untouched; only compile/link flags change. The emu toolchain is clang (difftest
+# default), so the flags use LLVM IR PGO: phase 2 writes raw profiles under
+# XS_WOLF_GRHSIM_IR_PGO_DIR, llvm-profdata merges them, phase 3 consumes the
+# merged .profdata. The PGO dir is wiped on every build, keeping the flow
+# self-contained.
+XS_WOLF_GRHSIM_IR_PGO_JOBS ?= $(if $(VM_BUILD_JOBS),$(VM_BUILD_JOBS),$(XS_VM_BUILD_JOBS))
+XS_WOLF_GRHSIM_IR_PGO_DIR ?= $(XS_GRHSIM_IR_BUILD_ABS)/pgo
+LLVM_PROFDATA ?= llvm-profdata
+
+.PHONY: xs_wolf_grhsim_ir_emu_pgo xs_wolf_grhsim_ir_build_emu_pgo
+xs_wolf_grhsim_ir_emu_pgo: xs_wolf_grhsim_ir
+	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir_build_emu_pgo
+
+xs_wolf_grhsim_ir_build_emu_pgo:
+	@test -n "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)" && test -f "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)/Makefile" || { echo "[FAIL] Generate the GrhSIM IR C++ model before PGO emu build"; exit 1; }
+	@command -v "$(LLVM_PROFDATA)" >/dev/null || { echo "[FAIL] llvm-profdata not found (set LLVM_PROFDATA)"; exit 1; }
+	@echo "[RUN] PGO phase 1/3: instrumented emu build (model + harness)"
+	@rm -rf "$(XS_WOLF_GRHSIM_IR_PGO_DIR)" && mkdir -p "$(XS_WOLF_GRHSIM_IR_PGO_DIR)"
+	@rm -f "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)"/*.o "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)"/libgrhsim_*.a
+	@if [ -d "$(XS_GRHSIM_IR_BUILD_ABS)/emu/grhsim-compile" ]; then \
+		find "$(XS_GRHSIM_IR_BUILD_ABS)/emu/grhsim-compile" -name '*.o' -delete; \
+		rm -f "$(XS_GRHSIM_IR_BUILD_ABS)/emu/grhsim-compile/emu"; \
+	fi
+	@NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
+		BUILD_DIR=$(XS_GRHSIM_IR_BUILD_ABS)/emu \
+		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		NUM_CORES=$(XS_NUM_CORES) \
+		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
+		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
+		VM_BUILD_JOBS=$(XS_WOLF_GRHSIM_IR_PGO_JOBS) \
+		GRHSIM=1 \
+		GRHSIM_MODEL_DIR=$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)) \
+		GRHSIM_MODEL_CXXFLAGS="-std=c++20 -O3 -fprofile-generate" \
+		PGO_CFLAGS="-fprofile-generate" \
+		PGO_LDFLAGS="-fprofile-generate" \
+		WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM)
+	@echo "[RUN] PGO phase 2/3: training run (difftest on, production run flags)"
+	@cd "$(XS_GRHSIM_IR_BUILD_ABS)/emu" && LLVM_PROFILE_FILE="$(XS_WOLF_GRHSIM_IR_PGO_DIR)/train-%p.profraw" \
+		EMU_PROGRESS_EVERY_CYCLES="$(XS_PROGRESS_EVERY_CYCLES)" $(XS_EMU_PREFIX) ./emu \
+		-i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin \
+		--diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so \
+		-b $(XS_LOG_BEGIN) -e $(XS_LOG_END) \
+		$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),)
+	@echo "[RUN] PGO phase 2/3: merge profiles with $(LLVM_PROFDATA)"
+	@"$(LLVM_PROFDATA)" merge -output="$(XS_WOLF_GRHSIM_IR_PGO_DIR)/code.profdata" "$(XS_WOLF_GRHSIM_IR_PGO_DIR)"/*.profraw
+	@echo "[RUN] PGO phase 3/3: profile-use rebuild"
+	@rm -f "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)"/*.o "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)"/libgrhsim_*.a
+	@find "$(XS_GRHSIM_IR_BUILD_ABS)/emu/grhsim-compile" -name '*.o' -delete
+	@rm -f "$(XS_GRHSIM_IR_BUILD_ABS)/emu/grhsim-compile/emu"
+	@NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
+		BUILD_DIR=$(XS_GRHSIM_IR_BUILD_ABS)/emu \
+		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		NUM_CORES=$(XS_NUM_CORES) \
+		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
+		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
+		VM_BUILD_JOBS=$(XS_WOLF_GRHSIM_IR_PGO_JOBS) \
+		GRHSIM=1 \
+		GRHSIM_MODEL_DIR=$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)) \
+		GRHSIM_MODEL_CXXFLAGS="-std=c++20 -O3 -fprofile-use=$(XS_WOLF_GRHSIM_IR_PGO_DIR)/code.profdata" \
+		PGO_CFLAGS="-fprofile-use=$(XS_WOLF_GRHSIM_IR_PGO_DIR)/code.profdata" \
+		PGO_LDFLAGS="-fprofile-use=$(XS_WOLF_GRHSIM_IR_PGO_DIR)/code.profdata" \
 		WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM)
 
 run_xs_repcut: py_install
