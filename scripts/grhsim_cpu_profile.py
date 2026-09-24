@@ -71,10 +71,12 @@ def task_phases(model):
     match = re.search(r"void \w+::eval\(\)\{(.*?)void \w+::dump_runtime_profile", text, re.S)
     if not match:
         raise ValueError("no generated evaluator/profile boundaries")
-    parts = match[1].split("cpu_profile_tick(cpu_profile_data.compute_ns);")
+    # Accept both the one-argument and the two-argument (edge-split) tick forms.
+    tick = r"cpu_profile_tick\(cpu_profile_data\.%s(?:,[^)]*)?\);"
+    parts = re.split(tick % "compute_ns", match[1])
     if len(parts) != 2:
         raise ValueError("expected one contiguous compute phase")
-    commit = parts[1].split("cpu_profile_tick(cpu_profile_data.commit_ns);")
+    commit = re.split(tick % "commit_ns", parts[1])
     if len(commit) != 2:
         raise ValueError("expected one contiguous commit phase")
     phases = {}

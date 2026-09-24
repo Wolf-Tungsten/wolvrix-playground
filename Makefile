@@ -125,6 +125,9 @@ endif
 XS_ZERO_INIT_SIM_DEFINES := $(subst 32'h0,32\'h0,$(XS_ZERO_INIT_DEFINES))
 XS_SIM_VFLAGS ?= +define+DIFFTEST $(foreach d,$(XS_ZERO_INIT_SIM_DEFINES),+define+$(d))
 XS_EMU_PREFIX ?= taskset -c $(XS_EMU_CPU) $(shell if command -v stdbuf >/dev/null 2>&1; then echo "stdbuf -oL -eL"; fi)
+# Reference-difftest CLI args shared by the gsim/grhsim run targets; override
+# (e.g. XS_EMU_DIFF_ARGS=--no-diff) only for diagnostic no-difftest runs.
+XS_EMU_DIFF_ARGS ?= --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so
 XS_RAM_TRACE_ARGS := $(if $(filter 1,$(XS_RAM_TRACE)),+trace_difftest_ram,)
 XS_LOG_DIR := $(BUILD_DIR)/logs/xs
 XS_WAVEFORM_DIR ?= $(XS_LOG_DIR)
@@ -367,6 +370,31 @@ benchmark_grhsim_ir:
 .PHONY: test_benchmark_grhsim_ir
 test_benchmark_grhsim_ir:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_benchmark_grhsim_ir.py
+
+# Native work/cost comparison between the GrhSIM-IR emu and the gsim emu on the
+# 100k CoreMark caliber (perf stat 3+3, icache/TLB group, no-difftest net work,
+# perf record symbol attribution). All runs are perf-instrumented diagnostics;
+# their Host times are recorded but never mixed into performance baselines.
+GRHSIM_NATIVE_IR_FLOW ?=
+GRHSIM_NATIVE_GSIM_BUILD ?= $(XS_GSIM_PGO_BUILD)
+GRHSIM_NATIVE_OUTPUT ?=
+GRHSIM_NATIVE_PAIRS ?= 3
+GRHSIM_NATIVE_IR_BASELINE_SECONDS ?= 55.864333
+GRHSIM_NATIVE_GSIM_BASELINE_SECONDS ?= 27.376
+.PHONY: analyze_grhsim_native_work
+analyze_grhsim_native_work:
+	@test -n "$(GRHSIM_NATIVE_IR_FLOW)" || { echo "[FAIL] set GRHSIM_NATIVE_IR_FLOW=<grhsim-ir flow dir>"; exit 1; }
+	@test -n "$(GRHSIM_NATIVE_OUTPUT)" || { echo "[FAIL] set GRHSIM_NATIVE_OUTPUT=<new dir under ptmp>"; exit 1; }
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_native_work_compare.py \
+		--ir-flow "$(GRHSIM_NATIVE_IR_FLOW)" --gsim-build "$(GRHSIM_NATIVE_GSIM_BUILD)" \
+		--output "$(GRHSIM_NATIVE_OUTPUT)" --pairs "$(GRHSIM_NATIVE_PAIRS)" \
+		--ir-baseline-seconds "$(GRHSIM_NATIVE_IR_BASELINE_SECONDS)" \
+		--gsim-baseline-seconds "$(GRHSIM_NATIVE_GSIM_BASELINE_SECONDS)" \
+		$(if $(GRHSIM_NATIVE_PASSES),--passes "$(GRHSIM_NATIVE_PASSES)",)
+
+.PHONY: test_grhsim_native_work_compare
+test_grhsim_native_work_compare:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_native_work_compare.py
 
 .PHONY: analyze_grhsim_localization
 analyze_grhsim_localization:
@@ -1395,10 +1423,10 @@ run_xs_gsim_emu:
 	echo "[RUN] xs gsim emu"; \
 		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_COMMIT_TRACE=$(XS_COMMIT_TRACE) XS_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) XS_LOG_BEGIN=$(XS_LOG_BEGIN) XS_LOG_END=$(XS_LOG_END)"; \
 		echo "[LOG] gsim: $$GSIM_LOG"; \
-		echo "[CMD] cd $(XS_GSIM_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,)"; \
+		echo "[CMD] cd $(XS_GSIM_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin $(XS_EMU_DIFF_ARGS) -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,)"; \
 		cd $(XS_GSIM_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES="$(XS_PROGRESS_EVERY_CYCLES)" $(XS_EMU_PREFIX) ./emu \
 			-i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin \
-			--diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so \
+			$(XS_EMU_DIFF_ARGS) \
 			-b $(XS_LOG_BEGIN) -e $(XS_LOG_END) \
 			$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) \
 			$(XS_RAM_TRACE_ARGS) \
@@ -1494,10 +1522,10 @@ run_xs_wolf_grhsim_emu:
 		if [ "$(XS_WAVEFORM)" = "1" ] || [ -n "$(XS_WAVEFORM_PATH)" ]; then \
 			echo "[WAVEFORM] wolf grhsim: $$GRHSIM_WAVEFORM"; \
 		fi; \
-		echo "[CMD] cd $(XS_GRHSIM_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$GRHSIM_WAVEFORM,)"; \
+		echo "[CMD] cd $(XS_GRHSIM_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin $(XS_EMU_DIFF_ARGS) -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$GRHSIM_WAVEFORM,)"; \
 		cd $(XS_GRHSIM_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES="$(XS_PROGRESS_EVERY_CYCLES)" $(XS_EMU_PREFIX) ./emu \
 			-i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin \
-			--diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so \
+			$(XS_EMU_DIFF_ARGS) \
 			-b $(XS_LOG_BEGIN) -e $(XS_LOG_END) \
 			$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) \
 			$(XS_RAM_TRACE_ARGS) \
