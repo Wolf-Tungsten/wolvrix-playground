@@ -4,7 +4,9 @@
 
 ## 当前最佳
 
-指针：**NO00004**（编译器 PGO 施加于 GrhSIM-IR emu，wolvrix `dc3e3cb` + 根仓库本节点提交，发射源与 NO00003 逐字节一致，仅编译 flag 变化），Host **55.864 s**（3 次有效均值，SD 0.270 s）；端点 `instrCnt=240349、cycleCnt=99996、guest=100001、PC=0x80000c0c`。对 gsim 归档 46.965 s ≈ **1.189×**。
+指针：**NO00004**（编译器 PGO 施加于 GrhSIM-IR emu，wolvrix `dc3e3cb` + 根仓库本节点提交，发射源与 NO00003 逐字节一致，仅编译 flag 变化），Host **55.864 s**（3 次有效均值，SD 0.270 s）；端点 `instrCnt=240349、cycleCnt=99996、guest=100001、PC=0x80000c0c`。
+
+**对照锚点（2026-09-24 起，用户指示两侧统一启用 PGO）**：gsim+PGO = **27.376 s**（3 次有效均值，SD 0.065 s；`make xs_gsim_emu_pgo` 构建，与非 PGO 归档模型源逐字节一致；同窗口非 PGO 对照 46.873 s，PGO 改善 −41.6%，p=0.05；测量细节见 goal 文档锚点节）。当前最佳对 gsim+PGO ≈ **2.041×**（剩余差距 ~28.5 s）；gsim 非 PGO 归档 46.965 s 仅作历史参考。
 
 ## 节点树
 

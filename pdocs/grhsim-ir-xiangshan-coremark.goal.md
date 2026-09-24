@@ -2,13 +2,18 @@
 
 ## 目标与范围
 
-总目标不变：逼近 **gsim 单线程仿真性能**。整个 goal 关闭须同时满足：100k 行为等价、最终性能相对 gsim 归档测量的差距进入噪声底以内（或由用户判定关闭）、完整 SV→C++ 生成和 C++ 编译各 `<1800 s`、完整归档已提交。goal 的关闭只能由目标达成或用户判定；AI 不得宣告整体失败。
+总目标不变：逼近 **gsim 单线程仿真性能**。整个 goal 关闭须同时满足：100k 行为等价、最终性能相对 **gsim+PGO 锚点**（见"当前性能锚点"节；2026-09-24 起取代非 PGO 归档测量，用户指示两侧对比统一启用 PGO）的差距进入噪声底以内（或由用户判定关闭）、完整 SV→C++ 生成和 C++ 编译各 `<1800 s`、完整归档已提交。goal 的关闭只能由目标达成或用户判定；AI 不得宣告整体失败。
 
 允许修改 GrhSIM-IR 语义、op、emit、分区、调度及等价子图/状态访问优化。禁止修改冻结的 GRH IR、GRH 上已有 pass、XiangShan 和测试源码；禁止多线程仿真及模块名称匹配优化。方案必须由语义、依赖、位宽、读写属性等通用特征触发。不以任何理由放宽正确性和时间门槛。
 
 ## 方法论说明（2026-09-23）
 
 旧 pdocs（NO00001–NO00059）已删除，其中结论、人工判定、验收门调整、排除清单与移交候选一律不继承。节点编号自 **NO00001** 重启（沿用五位编号；旧编号随旧报告删除一并作废，新分支自 NO00001 重新计数），编号单调递增。节点是唯一粒度；节点以父指针组成树。仅两条实测锚点（gsim 归档测量、当前最佳构建时间）保留为参考，首个节点须复核。
+
+## 分析提示（2026-09-24，用户指示）
+
+1. **科学问题意识**：同一负载在不同 IR 表达与映射（op 粒度与语义、状态布局、任务划分、调度结构、代码形态）下为何呈现性能差异，是本 goal 的核心科学问题。每个节点的假设与复盘都应回到这个问题——把单次收益沉淀为"哪种表达/映射特征导致多少逐 op 成本或工作量差异"的机制性解释，可迁移、可反驳，而不是孤立的调参尝试。
+2. **微观指标环比 gsim**：微观分析不得只在 GrhSIM-IR 自身历史上纵向对比（同比），还要与 gsim 同维度横向对比（环比）——相位拆分、任务/op 单价、动态计数、生成代码形态、编译器响应等，凡 grhsim-ir 侧建立的微观指标，都应尽量取得 gsim 侧的对应值并写入报告；gsim 侧缺测量口径时，先建立口径再对比，差距本身即是瓶颈证据。
 
 ## 节点：唯一粒度与固定流程
 
@@ -75,14 +80,17 @@
 
 用户启动 `/goal` 已授权正常暂存和节点最终提交，复用已有 Git 授权，不按阶段、文件或仓库反复询问。自动续行只延续当前节点；节点完成后须用户再次启动 `/goal`。用户中断或外部阻塞时保留工作区与记录，恢复后继续同一节点。
 
-## 当前性能锚点（继承实测，首节点复核）
+## 当前性能锚点
 
 自 2026-09-14 起统一 **100,000 cycles**。配置：`testcase/xiangshan/ready-to-run/coremark-2-iteration.bin`，`XS_NUM_CORES=1`，`XS_EMU_THREADS=1`，`XS_EMU_CPU=2`，waveform/commit/RAM trace 关闭，cycle 上限 `100000`。
 
-- **gsim 归档测量**（emu 编译于 2026-09-10 01:50:26）：Host time **46.965 s**；`instrCnt=238550`、`cycleCnt=99998`、IPC **2.385548**、末端 PC `0x80000b40`、guest cycles 100001，退出码 0，DIFFTEST 无 mismatch。NO00001 三次 sanity 复测均值 47.051 s，与归档值吻合。
-- **GrhSIM-IR 当前最佳**（NO00004，2026-09-24 三次有效均值）：**55.864 s**（wolvrix `dc3e3cb` + 根仓库 NO00004 提交，发射源同 NO00003，clang 三阶段 PGO 构建）；`instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`，退出码 0，DIFFTEST 无 mismatch。对 gsim ≈ **1.189×**，即剩余差距 ~8.9 s。
+**对比口径（2026-09-24 起，用户指示）**：gsim 对照一律使用启用编译器 PGO 的构建，与 GrhSIM-IR 侧自 NO00004 起的 PGO 口径对等；两侧 PGO 均为 clang 22.1.2 LLVM IR 插桩三阶段流程（插桩构建 → 生产口径训练运行（difftest 开启、训练输入 = 测量输入）→ profile-use 重建），`PGO_BOLT=0`（llvm-bolt 保留为两侧均可叠加的正交手段）。
 
-上述 gsim 归档和 IR 实测分别使用 Makefile 目标 `run_xs_gsim_emu` 和 `run_xs_wolf_grhsim_ir_emu`，均设置 `XS_SIM_MAX_CYCLE=100000`、`XS_NUM_CORES=1`、`XS_EMU_THREADS=1`、`XS_EMU_CPU=2`、`XS_WAVEFORM=0`、`XS_COMMIT_TRACE=0`、`XS_RAM_TRACE=0`。
+- **gsim+PGO 锚点**（2026-09-24 实测；构建 `make xs_gsim_emu_pgo`，difftest `gsim.mk` 内建三阶段流程，build 目录 `build/xs/gsim-pgo`；运行 `make run_xs_gsim_emu XS_GSIM_BUILD=build/xs/gsim-pgo`）：Host time **27.376 s**（3 次有效 27.345/27.451/27.333，SD 0.065 s）；端点 `instrCnt=238550`、`cycleCnt=99998`、IPC **2.385548**、末端 PC `0x80000b40`、guest cycles 100001，退出码 0，DIFFTEST 无 mismatch。同窗口 3+3 交替对照（非 PGO 归档二进制，sha256 `a0704df4…49f0b3f`）：46.873 s（46.880/46.813/46.925，SD 0.056 s，对历史归档 46.965 s 偏差 −0.20%），PGO 改善 **−41.6%**，全部 3 次新运行优于全部 3 次旧运行（Mann-Whitney 单侧精确 p=0.05）。PGO 二进制 sha256 `4e099ee9…f7a8827`；模型 C++ 源与非 PGO 归档 `build/xs/gsim` 逐字节一致（`diff -rq` 排除 `.o`），差异仅为编译 flag。构建计时（墙钟）：模型生成（sim-verilog 检查 + gsim codegen）769 s；PGO 三阶段 968 s（插桩编译 385 s + 训练运行 149 s（插桩 Host 148.671 s ≈ 3.2× 减速，端点 VALID）+ `llvm-profdata` 合并 + profile-use 重建 434 s）；make 合计 1735.8 s（-j32）。
+- **gsim 非 PGO 历史归档**（emu 编译于 2026-09-10 01:50:26）：Host time 46.965 s；NO00001 三次 sanity 复测均值 47.051 s。自 2026-09-24 起被 gsim+PGO 锚点取代，仅作历史参考，不再充当对照。
+- **GrhSIM-IR 当前最佳**（NO00004，2026-09-24 三次有效均值）：**55.864 s**（wolvrix `dc3e3cb` + 根仓库 NO00004 提交，发射源同 NO00003，clang 三阶段 PGO 构建）；`instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`，退出码 0，DIFFTEST 无 mismatch。对 gsim+PGO 锚点 ≈ **2.041×**，即剩余差距 ~28.5 s。
+
+运行入口：gsim 两侧分别为 `run_xs_gsim_emu XS_GSIM_BUILD=build/xs/gsim`（非 PGO 归档）与 `run_xs_gsim_emu XS_GSIM_BUILD=build/xs/gsim-pgo`（PGO 锚点），IR 实测为 `run_xs_wolf_grhsim_ir_emu`；均设置 `XS_SIM_MAX_CYCLE=100000`、`XS_NUM_CORES=1`、`XS_EMU_THREADS=1`、`XS_EMU_CPU=2`、`XS_WAVEFORM=0`、`XS_COMMIT_TRACE=0`、`XS_RAM_TRACE=0`。
 
 ## 启动自举
 
