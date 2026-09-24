@@ -13,6 +13,15 @@ def log(message: str) -> None:
     sys.stderr.flush()
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.environ.get(name, "1" if default else "0").strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise RuntimeError(f"{name} must be a boolean (0/1, true/false, yes/no, on/off)")
+
+
 def _build_repcut_kwargs(
     work_dir: Path,
 ) -> dict:
@@ -25,6 +34,7 @@ def _build_repcut_kwargs(
         "mtkahypar_preset": REPCUT_MTKAHYPAR_PRESET,
         "mtkahypar_threads": REPCUT_MTKAHYPAR_THREADS,
         "weight_mode": REPCUT_WEIGHT_MODE,
+        "cost_model": REPCUT_COST_MODEL,
     }
     if REPCUT_KEEP_INTERMEDIATE_FILES:
         kwargs["keep_intermediate_files"] = True
@@ -40,12 +50,30 @@ REPCUT_IMBALANCE_FACTOR = "0.015"
 REPCUT_PARTITIONER = "mt-kahypar"
 REPCUT_MTKAHYPAR_PRESET = "quality"
 REPCUT_MTKAHYPAR_THREADS = "0"
-REPCUT_WEIGHT_MODE = os.environ.get("XS_REPCUT_WEIGHT_MODE", "baseline")
+REPCUT_WEIGHT_MODE = os.environ.get("XS_REPCUT_WEIGHT_MODE", "closure-aware")
+REPCUT_COST_MODEL = os.environ.get("XS_REPCUT_COST_MODEL", "verilator-v1")
 REPCUT_KEEP_INTERMEDIATE_FILES = True
+REPCUT_ENABLE_MEMORY_WRITE_COALESCE = _env_bool(
+    "XS_REPCUT_MEMORY_WRITE_COALESCE", True
+)
+REPCUT_ENABLE_REG_TO_MEM = _env_bool("XS_REPCUT_REG_TO_MEM", True)
+REPCUT_REG_TO_MEM_PROFITABILITY_FILTER = os.environ.get(
+    "XS_REPCUT_REG_TO_MEM_PROFITABILITY_FILTER", "verilator-v1"
+).strip().lower()
 
 if REPCUT_WEIGHT_MODE not in {"baseline", "closure-aware"}:
     raise RuntimeError(
         "XS_REPCUT_WEIGHT_MODE must be one of: baseline, closure-aware"
+    )
+
+if REPCUT_COST_MODEL not in {"legacy", "verilator-v1"}:
+    raise RuntimeError(
+        "XS_REPCUT_COST_MODEL must be one of: legacy, verilator-v1"
+    )
+
+if REPCUT_REG_TO_MEM_PROFITABILITY_FILTER not in {"none", "verilator-v1"}:
+    raise RuntimeError(
+        "XS_REPCUT_REG_TO_MEM_PROFITABILITY_FILTER must be one of: none, verilator-v1"
     )
 
 if len(sys.argv) < 4:
@@ -73,12 +101,40 @@ with wolvrix.Session() as sess:
     log(f"read_json done {int((time.perf_counter() - start) * 1000)}ms")
 
     start = time.perf_counter()
-    log(f"pass repcut start path={REPCUT_PATH} weight_mode={REPCUT_WEIGHT_MODE}")
+    log(
+        f"pass repcut start path={REPCUT_PATH} "
+        f"weight_mode={REPCUT_WEIGHT_MODE} cost_model={REPCUT_COST_MODEL}"
+    )
     repcut_work_dir.mkdir(parents=True, exist_ok=True)
     repcut_kwargs = _build_repcut_kwargs(repcut_work_dir)
     sess.run_pass("repcut", design="design.main", **repcut_kwargs)
     log(f"pass repcut args argc={len(repcut_kwargs)}")
     log(f"pass repcut done {int((time.perf_counter() - start) * 1000)}ms")
+
+    # Keep these transforms after RepCut: the validation line operates on the
+    # frozen partitioned graph, so every partition is handled uniformly.
+    if REPCUT_ENABLE_MEMORY_WRITE_COALESCE:
+        start = time.perf_counter()
+        log("pass memory-write-coalesce start")
+        sess.run_pass("memory-write-coalesce", design="design.main")
+        log(
+            "pass memory-write-coalesce done "
+            f"{int((time.perf_counter() - start) * 1000)}ms"
+        )
+
+    if REPCUT_ENABLE_REG_TO_MEM:
+        start = time.perf_counter()
+        log(
+            "pass reg-to-mem start intent=false "
+            f"profitability_filter={REPCUT_REG_TO_MEM_PROFITABILITY_FILTER}"
+        )
+        sess.run_pass(
+            "reg-to-mem",
+            design="design.main",
+            intent=False,
+            profitability_filter=REPCUT_REG_TO_MEM_PROFITABILITY_FILTER,
+        )
+        log(f"pass reg-to-mem done {int((time.perf_counter() - start) * 1000)}ms")
 
     start = time.perf_counter()
     log(f"write_json start {json_out}")

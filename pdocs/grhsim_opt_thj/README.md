@@ -340,12 +340,51 @@
 | `TNO0328` | `2026-09-15` | [XiangShan counter-print partition build gate](./TNO0328_xiangshan_counter_print_partition_build_gate_20260915.md) | 两臂全量32模型编译和源码gate通过；最终最大partition ops降26.50%，每update复制449729→441866字节（−1.75%），不等同Host收益。 |
 | `TNO0329` | `2026-09-15` | [XiangShan counter-print Host admission blocked](./TNO0329_xiangshan_counter_print_host_admission_blocked_20260915.md) | 全部允许节点扫描后两次node030 mask各4次admission全失败，0次仿真launch；无新Host数据，保留构建与原始失败记录，等待安静四CCD。 |
 | `TNO0330` | `2026-09-15` | [XiangShan counter-print node030 reserved96 plan](./TNO0330_xiangshan_counter_print_node030_reserved96_plan_20260915.md) | counter-print 探索性 Host −2.21%；第8节固定Host＋同核最后通知相对冻结B Host −10.17%；8.4方案一前后时空图；8.5–8.11定位 Host 参与回退、CPU105 降频及自旋因果，并补充未固定 Host vs all-spin 单步时空图。以最终 walltime 为目标后，当前 N=K=32 专用 runtime 已将 all-spin 改为默认；相对 Host-only 50 µs 的 Host −26.49%，代价为 task-clock +73.59%。8.12–8.13 完成通用实现及 XiangShan K=32 端到端验证；8.14 六对生产/旧 v6 交错 C=10000 全部通过，生产 Host 配对中位数 `−2.65%`、`6/6` 胜出。 |
+| `TNO0331` | `2026-09-20` | [XiangShan residual giant separator audit](./TNO0331_xiangshan_residual_giant_separator_audit_20260920.md) | 残余392-memory ASC 与选择性 mem-to-reg；§7.10 三方案 wrapper -O3：single Host −32.17%、pair −33.69%。追加2026-09-21 §7.11：single+pair 组合、四方案各八次，功能全过；组合最大ASC仍642,580，相对pair复制字节 −0.94%、Host −5.03%、wall −4.84%，7/8轮胜出，eval瓶颈转至part_3。本批波动较大，保留全部成功样本；未改变默认分区管线。§7.12追加同批四方案32线程时空重建图、CSV及离线交互HTML，明确非事件trace。§7.13追加128分区权重/eval/update可选条形图，含三种权重口径与归一化/双轴视图。 |
+| `TNO0332` | `2026-09-22` | [RepCut backend cost models](./TNO0332_repcut_backend_cost_models_20260922.md) | 汇总预估边界、过拟合风险、后端可扩展架构；§5记录可选verilator-v1与测试；§6追加固定四组相关性及combined重新分区，C10000/C30000各8对AB/BA全部获胜，walltime约降2.50%/2.39%，尾部预测仍不足；§7定位part_6宽移位热点，生成器改写后C30000再测8对全部获胜，Host/wall约降10.66%/10.59%，legacy分区与权重不变。§9–10追加part_3热点定位及常量左移memory-write改写：消除2360次宽左移，C30000八对AB/BA全胜，walltime再降5.41%、part_3 eval降6.69%；§11追加连续 memory staging 合并，C30000八对全胜，walltime再降0.66%、eval降0.83%；编译/功能审计通过，分区及通信不变。§12追加当前v3的PMU/机器码/RTL对照，定位refillBuffer逐bit提交和BusPMU逐entry条件更新；区分静态归约数量与动态成本，并补充§11边界勘误。§12.4–12.5追加通用 memory-write-coalesce 结构变换：part_3 移除2040个写端口，C30000八对全胜，Host/wall分别下降7.34%/7.27%，最大分区 eval 下降11.28%；功能、编译和通信审计通过，默认 pipeline 仍未开启。§13.6 新增 `shift_low_bit_v1→const_shift_part3_v2→memory_slice_part3_v3→memory_coalesce_v5` 四阶段 PNG/SVG/交互 HTML 及时间明细，三次优化后 walltime 相对 baseline 下降15.74%、eval下降19.87%。 |
+
+增量更新（2026-09-23）：TNO0332 §12.6–12.7 记录冻结 `memory_coalesce_v5` 的
+残余热点复核和后续实验。decoded register table 的 packed 候选数据/逐项提交约占
+`part_3` 模型采样 2.22% / 3.63%；据此选用已有通用 `reg-to-mem` pass 恢复 indexed
+storage。只变更 part_3，C=30000 八对交错 AB/BA 全胜：Host −6.284%、wall −6.254%、
+全局 eval −8.552%、最大 part eval −18.335%；update 近中性、通信完全不变。候选仍为
+显式实验，未加入默认 pipeline；profile 显示剩余热点已分散到多个组合求值函数，继续
+按生成结构找通用模式。backend-lowered cost manifest 的并行工作保持独立。
+
+增量更新（2026-09-23）：TNO0332 §12.8 修正 part_28 Verilator `.cpp` 统计口径，完整
+构建显示该分区源码由 56.9 MB 增至 108.8 MB。§12.9 按用户建议直接验证全图
+`reg-to-mem` 的 walltime：冻结 V5 分区上自动转换 375 组、影响 12 个 part SV，未按
+分区/信号名称筛选；C=30000 八对 AB/BA 全胜，Host −12.14%、wall −11.96%、eval
+-15.22%、最大分区 eval −18.42%，update +0.36%，通信不变。完整 Difftest/build 审计通过；
+结果尚未加入默认 pipeline，需其他 workload 复测。§12.10 加入 baseline / V5 / 全图
+reg-to-mem 三组共享横轴时空图及离线交互 HTML，并标明 baseline 跨批次、V5/all-part
+同批 AB/BA 的比较边界。
+
+增量更新（2026-09-24）：TNO0332 §12.10 的三组 HTML 对齐既有四组主题，补齐
+指标卡、关键线程/Host 标记、详情、分区明细与 CSV 导出；浏览器交互与数据不变性
+检查通过，原链接不变。
+
+同日增量：TNO0332 §12.11 在同一 node030 窗口完成 12 轮三臂交错复测（36 个样本），
+并生成以新批次数据为源的三组 HTML；全图相对 V5 的 wall 中位数改善为 -12.23%。
+同节已追加 HTML 配对字段不匹配的修正及严格浏览器回归结果：三组/96 分区、切换、
+排序筛选、CSV、桌面/手机均通过；原始实验数据未变。
+
+同日增量：TNO0332 §12.12 增加默认关闭的 Verilator reg-to-mem 逐组收益筛选；
+冻结输入下只拒绝高冲突的 p28 表，保留 p3 转换。两批各 8 对 AB/BA 均确认
+p28 eval 约降 35%--36%，但整体 Host/wall 尚无收益，需继续分析关键路径与全局影响。
+
+同日增量：TNO0332 §12.13 将该验证线收为 XiangShan RepCut 默认入口：默认使用
+`closure-aware + verilator-v1`，并在 RepCut 后执行全图 `memory-write-coalesce`、
+带 `verilator-v1` 逐组门槛的 `reg-to-mem(intent=false)`；库级 profitability 默认
+仍为 `None`。完全不传 `XS_REPCUT_*` 覆盖的默认生成与显式验证线 package inventory
+完全一致；node030 C=30000 交错 8 对 AB/BA 全部通过功能校验，默认/验证线的
+Host/wall 配对中位变化分别为 +0.37%/+0.33%，处于测量噪声范围内。
 
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`330`（`TNO0001..TNO0330`）。
+- 当前记录类文档总数：`332`（`TNO0001..TNO0332`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
