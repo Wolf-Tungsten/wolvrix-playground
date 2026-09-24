@@ -193,6 +193,8 @@ XS_RTL_BUILD_ABS := $(abspath $(XS_RTL_BUILD))
 XS_REF_BUILD_ABS := $(abspath $(XS_REF_BUILD))
 XS_GSIM_BUILD_ABS := $(abspath $(XS_GSIM_BUILD))
 XS_GSIM_PGO_BUILD_ABS := $(abspath $(XS_GSIM_PGO_BUILD))
+XS_GSIM_RTPROF_BUILD ?= $(XS_WORK_BASE)/gsim-rtprof
+XS_GSIM_RTPROF_BUILD_ABS := $(abspath $(XS_GSIM_RTPROF_BUILD))
 XS_WOLF_BUILD_ABS := $(abspath $(XS_WOLF_BUILD))
 XS_GRHSIM_BUILD_ABS := $(abspath $(XS_GRHSIM_BUILD))
 XS_GRHSIM_IR_BUILD_ABS := $(abspath $(XS_GRHSIM_IR_BUILD))
@@ -269,7 +271,7 @@ HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_wolf_grhsim_ir xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
-	xs_gsim_emu_pgo \
+	xs_gsim_emu_pgo xs_gsim_emu_rtprof \
 	xs_wolf_grhsim_ir_emu xs_wolf_grhsim_ir_build_emu xs_wolf_grhsim_ir_emu_pgo xs_wolf_grhsim_ir_build_emu_pgo \
 	xs_no0076_stats clean
 
@@ -395,6 +397,29 @@ analyze_grhsim_native_work:
 .PHONY: test_grhsim_native_work_compare
 test_grhsim_native_work_compare:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_native_work_compare.py
+
+# gsim native runtime-profile calibers + two-sided dynOps factor decomposition
+# (NO00008). Requires a gsim-rtprof build (make xs_gsim_emu_rtprof). Runs the
+# diagnostic emu twice through run_xs_gsim_emu with EMU_RUNTIME_PROFILE injected
+# via XS_EMU_PREFIX; counts are deterministic and must be bit-identical.
+GSIM_RTPROF_IR_DYN_LOG ?=
+GSIM_RTPROF_OUTPUT ?=
+GSIM_RTPROF_RUNS ?= 2
+GSIM_RTPROF_CUTOFF ?= 300
+.PHONY: analyze_gsim_runtime_profile
+analyze_gsim_runtime_profile:
+	@test -n "$(GSIM_RTPROF_IR_DYN_LOG)" || { echo "[FAIL] set GSIM_RTPROF_IR_DYN_LOG=<archived grhsim-dyn emu log>"; exit 1; }
+	@test -n "$(GSIM_RTPROF_OUTPUT)" || { echo "[FAIL] set GSIM_RTPROF_OUTPUT=<new dir under ptmp>"; exit 1; }
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/gsim_runtime_profile_compare.py \
+		--gsim-build "$(XS_GSIM_RTPROF_BUILD)" \
+		--anchor-model "$(XS_GSIM_PGO_BUILD)/gsim-compile/model" \
+		--ir-dyn-log "$(GSIM_RTPROF_IR_DYN_LOG)" \
+		--output "$(GSIM_RTPROF_OUTPUT)" \
+		--runs "$(GSIM_RTPROF_RUNS)" --cutoff "$(GSIM_RTPROF_CUTOFF)"
+
+.PHONY: test_gsim_runtime_profile_compare
+test_gsim_runtime_profile_compare:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_gsim_runtime_profile_compare.py
 
 .PHONY: analyze_grhsim_localization
 analyze_grhsim_localization:
@@ -1328,6 +1353,46 @@ xs_gsim_emu_pgo: xs_gsim_rtl
 		2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
 	@if [ ! -x "$(XS_GSIM_PGO_BUILD_ABS)/emu" ]; then \
 		echo "[FAIL] xs gsim pgo: emu build did not produce executable $(XS_GSIM_PGO_BUILD_ABS)/emu"; \
+		exit 1; \
+	fi
+
+# Diagnostic gsim emu with the in-tree runtime profile feature enabled
+# (GSIM_EMIT_RUNTIME_PROFILE=1: supernode activation / node / enode counters and
+# the per-supernode fire-count TSV). Pure command-line variable injection into
+# the difftest gsim.mk flow; the anchored gsim/gsim-pgo builds stay untouched.
+# Run it with: run_xs_gsim_emu XS_GSIM_BUILD=build/xs/gsim-rtprof \
+#   XS_EMU_PREFIX="EMU_RUNTIME_PROFILE=1 GSIM_SUPERNODE_TSV=<fire.tsv> taskset -c 2 ..."
+xs_gsim_emu_rtprof: xs_gsim_rtl
+	@if [ ! -x "$(XS_GSIM_BIN)" ] && [ -f "$(REF_GSIM_ROOT)/Makefile" ]; then \
+		echo "[RUN] Building reference gsim..."; \
+		$(MAKE) --no-print-directory -C "$(REF_GSIM_ROOT)" build-gsim; \
+	fi
+	@echo "[RUN] Building XiangShan gsim emu with runtime profile counters..."
+	@mkdir -p "$(XS_LOG_DIR_ABS)"
+	@$(eval RUN_ID := $(if $(RUN_ID),$(RUN_ID),$(shell date +%Y%m%d_%H%M%S)))
+	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_gsim_rtprof_build_$(RUN_ID).log)
+	@echo "[LOG] Capturing build output to: $(XS_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_BUILD_LOG_FILE)"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) $(if $(strip $(XS_VM_BUILD_JOBS)),-j $(XS_VM_BUILD_JOBS),) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_GSIM_RTPROF_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_RTL_DIR_ABS) SIM_TOP_V=$(XS_SIM_TOP_V) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) EMU_RANDOMIZE=0 WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) GSIM=1 GSIM_BIN=$(XS_GSIM_BIN) GSIM_EMIT_RUNTIME_PROFILE=1" | tee -a "$(XS_BUILD_LOG_FILE)"
+	NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) $(if $(strip $(XS_VM_BUILD_JOBS)),-j $(XS_VM_BUILD_JOBS),) -C $(XS_ROOT)/difftest emu \
+		BUILD_DIR=$(XS_GSIM_RTPROF_BUILD_ABS) \
+		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		RTL_DIR=$(XS_RTL_DIR_ABS) \
+		SIM_TOP_V=$(XS_SIM_TOP_V) \
+		NUM_CORES=$(XS_NUM_CORES) \
+		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
+		EMU_THREADS=$(XS_EMU_THREADS) \
+		VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) \
+		EMU_RANDOMIZE=0 \
+		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
+		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
+		GSIM=1 \
+		GSIM_BIN="$(XS_GSIM_BIN)" \
+		GSIM_EMIT_RUNTIME_PROFILE=1 \
+		2>&1 | tee "$(XS_BUILD_LOG_FILE)"
+	@if [ ! -x "$(XS_GSIM_RTPROF_BUILD_ABS)/emu" ]; then \
+		echo "[FAIL] xs gsim rtprof: emu build did not produce executable $(XS_GSIM_RTPROF_BUILD_ABS)/emu"; \
 		exit 1; \
 	fi
 

@@ -1,7 +1,8 @@
 import unittest
 
 from grhsim_native_work_compare import (MAIN_EVENTS, classify_gsim, classify_ir,
-                                        parse_perf_report, parse_perf_stat, task_phases)
+                                        endpoint_fields, parse_perf_report,
+                                        parse_perf_stat, task_phases)
 
 
 class PerfStatParserTests(unittest.TestCase):
@@ -119,6 +120,30 @@ class ClassifyTests(unittest.TestCase):
                                        "riscv64-nemu-interpreter-so"), "difftest_ref")
         self.assertEqual(classify_gsim("GsimSim::step(unsigned long)", "emu"), "harness")
         self.assertEqual(classify_gsim("__memmove_avx_unaligned", "libc.so.6"), "libc")
+
+
+class EndpointFieldsTests(unittest.TestCase):
+    def sample(self, counts="238550, cycleCnt = 99998", guest="100001", host="27376"):
+        return ("The reference model is riscv64-nemu-interpreter-so\n"
+                f"Core-0 instrCnt = {counts}, IPC = 2.385548\n"
+                f"Seed=0 Guest cycle spent: {guest} (this will be different)\n"
+                "EXCEEDING CYCLE/INSTR LIMIT at pc = 0x80000b40\n"
+                f"Host time spent: {host}ms\n")
+
+    def test_plain(self):
+        fields = endpoint_fields(self.sample(), require_difftest=True)
+        self.assertEqual(fields, (238550, 99998, 100001, "0x80000b40", 27.376))
+
+    def test_thousands_separators(self):
+        fields = endpoint_fields(self.sample(counts="238,550, cycleCnt = 99,998",
+                                             guest="100,001", host="66,740"),
+                                 require_difftest=True)
+        self.assertEqual(fields, (238550, 99998, 100001, "0x80000b40", 66.740))
+
+    def test_missing_difftest_rejected(self):
+        with self.assertRaises(ValueError):
+            endpoint_fields(self.sample().replace("The reference model is", "x"),
+                            require_difftest=True)
 
 
 if __name__ == "__main__":

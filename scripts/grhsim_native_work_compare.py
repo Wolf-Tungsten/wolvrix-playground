@@ -151,13 +151,16 @@ def endpoint_fields(text: str, require_difftest: bool) -> tuple[int, int, int, s
     # loaded (difftest attached); [DIFFTEST_INIT] prints even with --no-diff.
     if require_difftest and "The reference model is" not in text:
         raise ValueError("missing difftest")
-    counts = re.search(r"instrCnt = (\d+), cycleCnt = (\d+)", text)
-    guest = re.search(r"Guest cycle spent: (\d+)", text)
+    # difftest formats counters with %'d, so digits may carry locale thousands
+    # separators (setlocale(LC_NUMERIC, "") in common.cpp); accept both forms.
+    counts = re.search(r"instrCnt = ([\d,]+), cycleCnt = ([\d,]+)", text)
+    guest = re.search(r"Guest cycle spent: ([\d,]+)", text)
     pc = re.search(r"EXCEEDING CYCLE/INSTR LIMIT at pc = (0x[0-9a-f]+)", text)
-    host = re.search(r"Host time spent: (\d+)ms", text)
+    host = re.search(r"Host time spent: ([\d,]+)ms", text)
     if not all((counts, guest, pc, host)):
         raise ValueError("missing endpoint fields")
-    return int(counts[1]), int(counts[2]), int(guest[1]), pc[1], int(host[1]) / 1000
+    return (int(counts[1].replace(",", "")), int(counts[2].replace(",", "")),
+            int(guest[1].replace(",", "")), pc[1], int(host[1].replace(",", "")) / 1000)
 
 
 def summarize(counter_runs: dict[str, list[dict]], events: tuple[str, ...]) -> dict:
