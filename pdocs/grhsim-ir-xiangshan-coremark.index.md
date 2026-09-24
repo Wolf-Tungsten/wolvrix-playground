@@ -4,9 +4,9 @@
 
 ## 当前最佳
 
-指针：**NO00004**（编译器 PGO 施加于 GrhSIM-IR emu，wolvrix `dc3e3cb` + 根仓库本节点提交，发射源与 NO00003 逐字节一致，仅编译 flag 变化），Host **55.864 s**（3 次有效均值，SD 0.270 s）；端点 `instrCnt=240349、cycleCnt=99996、guest=100001、PC=0x80000c0c`。
+指针：**NO00010**（fanout epilogue 组级分支化，wolvrix NO00010 提交 = `1f8bcc9` + epilogue 组置位序列外包 `if(cpu_changed_<i>)`，emit-only 形态演进恒启用），Host **53.426 s**（3 次有效均值，SD 0.099 s）；端点 `instrCnt=240349、cycleCnt=99996、guest=100001、PC=0x80000c0c`。
 
-**对照锚点（2026-09-24 起，用户指示两侧统一启用 PGO）**：gsim+PGO = **27.376 s**（3 次有效均值，SD 0.065 s；`make xs_gsim_emu_pgo` 构建，与非 PGO 归档模型源逐字节一致；同窗口非 PGO 对照 46.873 s，PGO 改善 −41.6%，p=0.05；测量细节见 goal 文档锚点节）。当前最佳对 gsim+PGO ≈ **2.041×**（剩余差距 ~28.5 s）；gsim 非 PGO 归档 46.965 s 仅作历史参考。
+**对照锚点（2026-09-24 起，用户指示两侧统一启用 PGO）**：gsim+PGO = **27.376 s**（3 次有效均值，SD 0.065 s；`make xs_gsim_emu_pgo` 构建，与非 PGO 归档模型源逐字节一致；同窗口非 PGO 对照 46.873 s，PGO 改善 −41.6%，p=0.05；测量细节见 goal 文档锚点节）。当前最佳对 gsim+PGO ≈ **1.952×**（剩余差距 ~26.1 s，首次收窄至 2.0× 以内）；gsim 非 PGO 归档 46.965 s 仅作历史参考。
 
 ## 节点树
 
@@ -21,6 +21,7 @@
 | NO00007 | [报告](NO00007-grhsim-ir-cone-guard-20260924.md) | NO00004 | 优化 | M-act 降 ≥40%；M-tput 降 ≥10% | REJECTED | 55.864（指针不动，F1 提前止损无生产构建） | 变化 token 粘性掩码 + RS 区域守卫（单位内输入精度）：F1 门触发——动态 k̄=9.59（k≤2 仅 31.4%、k≥9 占 39.3%）把锥并集残余推到 61.81%>60%（普查 k=1/2/3 残余 23.4/38.4/49.1% 外推闭合），M-act −26.15% 未达 −40%（需残余 ≤41.6%⇔k̄≤2.3）；正确性多重验证（双构建端点四字段精确匹配、snl=0、deadpub=0、tok_sum 双构建 0.004%、旧口径 7e-9 一致、终态复跑逐项一致）；gsim k≈1 即时求值 vs ir 批量粘性激活是锥精度机制结构瓶颈；设施门控留存（GRHSIM_CONE_GUARD，门关与 NO00004 逐字节一致） |
 | NO00008 | [报告](NO00008-grhsim-ir-gsim-activation-profile-20260925.md) | NO00004 | 诊断 | M-gact（gsim super 激活/cycle）、M-gwork（动态 node/enode/cycle）、因子表 F | ACCEPTED | 55.864（指针不动） | gsim 侧首批动态口径（原生 runtime profile，零冻结面改动；有效性/确定性/模型一致性门全过）：M-gact 17,631.8 act/cycle（全局激活率实测 20.83%；同尺寸 n_comp 55–65 桶 20.44%——NO00006 的 ~10.6% 估计作废，ir 27.4% 差距实为 1.34×）；M-gwork 829,144 node + 4,256,657 enode/cycle（241.4 enode/act、0.452 instr/enode）；M-gchg 派生下界 10,786.9 changes/cycle；**因子表 F 闭合残差 0%：2.0× 指令差距完全闭合于每单位工作指令密度 8.54×**（ir 3.86 instr/dynOp vs gsim 0.45 instr/enode，粒度覆盖仅 4.28×），变化流密度 1.175× 非主因；变化检测 ir 221,343 vs gsim 87,965 次/cycle（2.52×）；sink 类 fire 份额 54.2%；Pareto 平坦（Top 20 仅 15.6%），super 个案优化无空间；后续方向排序：每 dynOp 指令密度 > boundary 检测频次 > 变化流密度 |
 | NO00009 | [报告](NO00009-grhsim-ir-typed-local-values-20260925.md) | NO00004 | 优化 | M-idens（compute instr/cycle ÷ dynOps/cycle）降 ≥8% | REJECTED | 56.862（+1.48%，预算内；指针不动） | unit 内窄值 byte-frame→typed SSA 提升（值承载表达，250 万值、静态 frame 引用 −98.6%）：M-idens 反 +3.85%（4.0090 vs 3.8607）、总指令 +2.86%、.text +2.45%、icache-miss +16.8%；语义门全过（dynOps 32,145 键逐字节一致、checkpoint/端点精确、差异文件集==提升文件集 3,895）；全量反汇编归因（4,439 函数）：字节帧给 clang 三层保护——内存槽即 PHI 合并点（cmov +39%/零写物化）、不透明访问抑制 SLP（SSE +13.4%，195 函数 0→向量走火）、帧集中 L1 免 RA 压力（reload +85K/rsp 引用 +184K）——"SSA 必优于帧"前提不成立，instr/work 8.54× 差距不可归因于值承载形式；设施门控留存（GRHSIM_PROMOTE_LOCALS，门关 stash 对照逐字节一致） |
+| NO00010 | [报告](NO00010-grhsim-ir-fanout-epilogue-guard-20260925.md) | NO00004 | 优化 | M-idens 降 ≥6%（≤3.631）；branch-misses 绊线 +30% | ACCEPTED | **53.426**（−3.99%，p=0.05；指针更新） | fanout epilogue 组级分支化（2.6% 组开火率下外包 `if(chg_g)` 跳过空转置位，emit-only、checkpoint 逐字节一致）：M-idens 3.8607→**3.2445**（−15.96%，普查预期 −10%），compute −613K instr/cycle（每 arm 实际成本高于普查估计），总 instr −16.1%、cycles −3.07%、CPI +15.6%、icache-miss −13.9%；语义门全过（dynOps 32,145 键逐键一致、端点四字段精确、hdlbits 161/162，105 预存失败）；**branch-misses +45.9% 破 +30% 绊线**（新分支 ~112K/cycle、误预测率 ~4.5% ≈ 2×开火率静态最差界，非病态尾部），按预注册证伪条款（破绊线∧Host 回退→机制证伪）合取不成立且 goal 验收定义全满足→ACCEPTED（验收条款过严起草的处置与方法论教训见报告判定节）；机制知识：簿记形态三方对照两格已定量（ir 无分支广播-与 vs ir 组级分支：指令 −16% ⇔ 误预测 +5.05K/cycle），第三格 gsim 寄存器聚合批量 OR（无分支、~125–250K instr/cycle 独立价值）成为明确后续候选 |
 
 ## 机制证伪表
 
