@@ -12,6 +12,7 @@
 |---|---|---|---|---|---|---|---|
 | NO00001 | [报告](NO00001-grhsim-ir-anchor-profile-20260923.md) | 无 | 诊断 | Host time 100k | ACCEPTED | 77.155 | 定标基线（wolvrix `4de8c01`）；噪声底 0.22%（3+3 协议可分辨 ≥3%）；M1–M4 定量基线：model_step 占 99.5%（compute 76.9% / commit 21.8% / publish 1.1%），任务级分布长尾无单点热点 |
 | NO00002 | [报告](NO00002-grhsim-ir-disable-text-share-20260924.md) | NO00001 | 优化 | M-share ≤1%；M-tput ≥+6% | ACCEPTED | 70.134 | 关闭 shape-twin/branch-block 文本共享：M-share 36.29%→0%，M-tput +10.0%（dynOps 逐键不变），compute −7.76 s；编译时间几乎不变（195.95 vs 191.20 s），共享机制的运行时代价是纯损失； −9.42% Host，秩次判据 p=0.05 |
+| NO00003 | [报告](NO00003-grhsim-ir-falling-edge-elision-20260924.md) | NO00002 | 优化 | M-neg ≤1.5% 且降 ≥80%（基线 2.868%） | REJECTED | 70.231（锚定 parity） | 下降沿 eval 整体消除被双重机制证伪：① 设计固有 neg 真实工作（409 ICG 锁存 latchWrite@ClockGate.sv:11 enable=¬clock + 2 negedge 边沿项 + 21 非 quiescent 系统单元）否决全部 4 个 1-bit 输入；② M-neg 基线 2.868%<3%（neg 单价 19.9 µs = pos 的 1/34，活动驱动已压制 neg 成本），收益上限 ≤2.0 s。设施保留：边沿分裂计时 + 资格分析器（fp_evals=0，对最佳点零回退） |
 
 ## 机制证伪表
 
@@ -19,4 +20,4 @@
 
 | 机制类 | 机制层面证据（节点） | 备注 |
 |---|---|---|
-| — | 空 | |
+| 下降沿 eval 整体消除（冻结双相 tick 的 neg 半周视为纯簿记） | NO00003：XS 上 4 个 1-bit 输入全部被资格否决，neg eval 含设计固有真实工作——409 个 ICG 使能锁存 `latchWrite@ClockGate.sv:11`（enable=¬clock，k+1 gated clock 依赖其新值）+ clock input.read 上 2 个 negedge 边沿项 + 21 个非 quiescent 系统单元（188 op，difftest DPI 等）；且 M-neg 基线实测 2.868%（<3% 门槛），neg eval 单价 19.9 µs 仅为 pos 的 1/34（活动驱动已压制 neg 成本） | 保留真实 negedge 工作的选择性消除不受结构证伪约束，但收益上限 ≤2.0 s（M-neg 2.868%×Host），立项前须论证可在该上限内取得 ≥3% 显著收益；边沿分裂计时 `[grhsim-cpu-edge]`、资格分析器、M-neg 锚定基线为可用设施 |

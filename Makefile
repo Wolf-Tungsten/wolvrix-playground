@@ -174,6 +174,9 @@ XS_WOLF_GRHSIM_IR_SHAPE_TWIN_SHARE ?=
 XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_SHARE ?=
 XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS ?=
 XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_GROWTH_BUDGET ?= 1.0
+# Falling-edge eval elision in the emitted CPU model is on by default; set to 1
+# to emit without it (the emitted model also honors GRHSIM_IR_DISABLE_FP_ELISION).
+XS_WOLF_GRHSIM_IR_DISABLE_FP_ELISION ?=
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE ?= 1
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
 XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES ?= 1
@@ -893,7 +896,8 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_SHAPE_TWIN_SHARE)),--shape-twin-share,) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_SHARE)),--branch-shape-share,) \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS)),--branch-shape-hotness "$(abspath $(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS))" --branch-shape-growth-budget "$(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_GROWTH_BUDGET)",); \
+			$(if $(strip $(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS)),--branch-shape-hotness "$(abspath $(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS))" --branch-shape-growth-budget "$(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_GROWTH_BUDGET)",) \
+			$(if $(strip $(XS_WOLF_GRHSIM_IR_DISABLE_FP_ELISION)),--disable-falling-edge-elision,); \
 	} 2>&1 | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
 	status=$$?; \
 	echo "[EXIT] xs_wolf_grhsim_ir $$status" | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \

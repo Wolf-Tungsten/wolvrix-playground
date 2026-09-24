@@ -109,6 +109,8 @@ def parse_args() -> argparse.Namespace:
                         help="TSV of func->sample-percent; hot branch groups are excluded greedily (cold outlining)")
     parser.add_argument("--branch-shape-growth-budget", type=float, default=1.0,
                         help="max estimated parameter-load growth in model units when hotness is provided")
+    parser.add_argument("--disable-falling-edge-elision", action="store_true",
+                        help="disable the falling-edge eval elision fast path in the emitted CPU model (on by default)")
     args = parser.parse_args()
     if args.cpu_target_batch_count is not None and args.cpu_target_batch_count < 0:
         parser.error("--cpu-target-batch-count must be nonnegative")
@@ -238,11 +240,14 @@ def main() -> int:
                 emit_options["branch_shape_share"] = True
                 emit_options["branch_shape_hotness"] = str(args.branch_shape_hotness.resolve())
                 emit_options["branch_shape_growth_budget"] = args.branch_shape_growth_budget
+            if args.disable_falling_edge_elision:
+                emit_options["falling_edge_elision"] = False
             diagnostics = timed(
                 f"emit CPU C++ model {emit_cpp_dir}",
                 lambda: session.run_grhsim_pass("cpu.st.emit-cpp", **emit_options),
             )
             require_ok(diagnostics, "emit CPU C++ model")
+            session.print_diagnostics(diagnostics, min_level="info")
         diagnostics = timed(
             f"store GrhSIM checkpoint {grhsim_json}",
             lambda: session.store_grhsim(model="grhsim.main", output=str(grhsim_json)),

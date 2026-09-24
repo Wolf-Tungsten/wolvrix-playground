@@ -94,6 +94,9 @@ def main() -> None:
     parser.add_argument("--baseline-seconds", type=float, required=True)
     parser.add_argument("--evict-page-cache", action=argparse.BooleanOptionalAction, default=True,
                         help="evict each flow binary's page cache before every run (default on)")
+    parser.add_argument("--old-env", action="append", default=[], metavar="KEY=VALUE",
+                        help="extra environment variable for old-mode runs only (repeatable); "
+                             "enables same-binary A/B when old and new point at one flow")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     output = args.output.resolve()
@@ -107,12 +110,18 @@ def main() -> None:
     order = [(mode, i) for i in range(1, args.pairs + 1) for mode in ("old", "new")]
     cutoff = args.baseline_seconds * 1.5
     output.mkdir(parents=True)
+    old_env = {}
+    for assignment in args.old_env:
+        if "=" not in assignment:
+            parser.error("--old-env must be KEY=VALUE")
+        key, value = assignment.split("=", 1)
+        old_env[key] = value
     registration = {"order": [f"{mode}{i}" for mode, i in order], "binaries": binaries,
                     "inputs": {name: digest(root / "testcase/xiangshan/ready-to-run" / name)
                                for name in ("coremark-2-iteration.bin", "riscv64-nemu-interpreter-so")},
                     "baseline_s": args.baseline_seconds, "cutoff_s": cutoff, "cpu": args.cpu,
                     "threads": 1, "cycles": 100000, "trace": False, "profile": False,
-                    "evict_page_cache": args.evict_page_cache,
+                    "evict_page_cache": args.evict_page_cache, "old_env": old_env,
                     "primary": "Host time", "gate": "max(new) < min(old), 3+3 valid runs",
                     "expected_endpoint": [240349, 99996, 100001, "0x80000c0c"],
                     "timestamp": time.time()}
@@ -143,8 +152,9 @@ def main() -> None:
         start = time.monotonic()
         log = directory / "make.log"
         killed = None
+        run_env = {**env, **old_env} if mode == "old" else env
         with log.open("w") as stream:
-            process = subprocess.Popen(command, cwd=root, env=env, stdout=stream,
+            process = subprocess.Popen(command, cwd=root, env=run_env, stdout=stream,
                                        stderr=subprocess.STDOUT, start_new_session=True)
             while process.poll() is None:
                 if FAILURE.search(log.read_text(errors="replace")):
