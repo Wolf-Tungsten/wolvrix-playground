@@ -136,6 +136,7 @@ XS_WORK_BASE ?= $(BUILD_DIR)/xs
 XS_RTL_BUILD ?= $(XS_WORK_BASE)/rtl
 XS_REF_BUILD ?= $(XS_WORK_BASE)/ref
 XS_GSIM_BUILD ?= $(XS_WORK_BASE)/gsim
+XS_GSIM_PGO_BUILD ?= $(XS_WORK_BASE)/gsim-pgo
 XS_WOLF_BUILD ?= $(XS_WORK_BASE)/wolf
 XS_GRHSIM_BUILD ?= $(XS_WORK_BASE)/grhsim
 XS_GRHSIM_IR_BUILD ?= $(XS_WORK_BASE)/grhsim-ir
@@ -188,6 +189,7 @@ XS_NOOP_HOME ?= $(XS_ROOT_ABS)
 XS_RTL_BUILD_ABS := $(abspath $(XS_RTL_BUILD))
 XS_REF_BUILD_ABS := $(abspath $(XS_REF_BUILD))
 XS_GSIM_BUILD_ABS := $(abspath $(XS_GSIM_BUILD))
+XS_GSIM_PGO_BUILD_ABS := $(abspath $(XS_GSIM_PGO_BUILD))
 XS_WOLF_BUILD_ABS := $(abspath $(XS_WOLF_BUILD))
 XS_GRHSIM_BUILD_ABS := $(abspath $(XS_GRHSIM_BUILD))
 XS_GRHSIM_IR_BUILD_ABS := $(abspath $(XS_GRHSIM_IR_BUILD))
@@ -264,6 +266,7 @@ HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_wolf_grhsim_ir xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
+	xs_gsim_emu_pgo \
 	xs_wolf_grhsim_ir_emu xs_wolf_grhsim_ir_build_emu xs_wolf_grhsim_ir_emu_pgo xs_wolf_grhsim_ir_build_emu_pgo \
 	xs_no0076_stats clean
 
@@ -349,11 +352,17 @@ reemit_grhsim_ir: py_install
 
 GRHSIM_IR_BENCH_CPU ?= 2
 GRHSIM_IR_BENCH_PAIRS ?= 3
+GRHSIM_IR_BENCH_MAKE_TARGET ?= run_xs_wolf_grhsim_ir_emu
+GRHSIM_IR_BENCH_BUILD_VAR ?= XS_GRHSIM_IR_BUILD
+GRHSIM_IR_BENCH_EMU_RELPATH ?= emu/emu
+GRHSIM_IR_BENCH_EXPECTED_ENDPOINT ?= 240349,99996,100001,0x80000c0c
 .PHONY: benchmark_grhsim_ir
 benchmark_grhsim_ir:
 	$(PYTHON) scripts/benchmark_grhsim_ir.py --old "$(GRHSIM_IR_BENCH_OLD)" --new "$(GRHSIM_IR_BENCH_NEW)" \
 		--output "$(GRHSIM_IR_BENCH_OUTPUT)" --cpu "$(GRHSIM_IR_BENCH_CPU)" \
-		--pairs "$(GRHSIM_IR_BENCH_PAIRS)" --baseline-seconds "$(GRHSIM_IR_BENCH_BASELINE_SECONDS)"
+		--pairs "$(GRHSIM_IR_BENCH_PAIRS)" --baseline-seconds "$(GRHSIM_IR_BENCH_BASELINE_SECONDS)" \
+		--make-target "$(GRHSIM_IR_BENCH_MAKE_TARGET)" --build-var "$(GRHSIM_IR_BENCH_BUILD_VAR)" \
+		--emu-relpath "$(GRHSIM_IR_BENCH_EMU_RELPATH)" --expected-endpoint "$(GRHSIM_IR_BENCH_EXPECTED_ENDPOINT)"
 
 .PHONY: test_benchmark_grhsim_ir
 test_benchmark_grhsim_ir:
@@ -1244,6 +1253,51 @@ xs_gsim_emu: xs_gsim_rtl
 		GSIM=1 \
 		GSIM_BIN="$(XS_GSIM_BIN)" \
 		2>&1 | tee "$(XS_BUILD_LOG_FILE)"
+
+# Compiler PGO for the gsim emu, through the difftest gsim.mk three-phase flow
+# (instrumented build -> training run on the production workload with difftest
+# on -> profile-use rebuild). The toolchain is clang (gsim.mk GSIM_CXX), so the
+# flow is LLVM IR PGO; PGO_BOLT=0 keeps the technique matched with the GrhSIM IR
+# emu PGO build (llvm-bolt stays an orthogonal lever on both sides). The build
+# goes to XS_GSIM_PGO_BUILD so the archived non-PGO emu under XS_GSIM_BUILD
+# stays intact for A/B. Run it with: run_xs_gsim_emu XS_GSIM_BUILD=build/xs/gsim-pgo
+xs_gsim_emu_pgo: xs_gsim_rtl
+	@if [ ! -x "$(XS_GSIM_BIN)" ] && [ -f "$(REF_GSIM_ROOT)/Makefile" ]; then \
+		echo "[RUN] Building reference gsim..."; \
+		$(MAKE) --no-print-directory -C "$(REF_GSIM_ROOT)" build-gsim; \
+	fi
+	@echo "[RUN] Building XiangShan gsim emu with compiler PGO (instrument, train, profile-use)..."
+	@mkdir -p "$(XS_LOG_DIR_ABS)"
+	@$(eval RUN_ID := $(if $(RUN_ID),$(RUN_ID),$(shell date +%Y%m%d_%H%M%S)))
+	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_gsim_pgo_build_$(RUN_ID).log)
+	@echo "[LOG] Capturing build output to: $(XS_BUILD_LOG_FILE)"
+	@printf '' > "$(XS_BUILD_LOG_FILE)"
+	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) $(if $(strip $(XS_VM_BUILD_JOBS)),-j $(XS_VM_BUILD_JOBS),) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_GSIM_PGO_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_RTL_DIR_ABS) SIM_TOP_V=$(XS_SIM_TOP_V) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) EMU_RANDOMIZE=0 WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) GSIM=1 GSIM_BIN=$(XS_GSIM_BIN) PGO_WORKLOAD=$(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin PGO_MAX_CYCLE=$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),$(XS_SIM_MAX_CYCLE),100000) PGO_EMU_ARGS=\"--diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(XS_RAM_TRACE_ARGS)\" PGO_BOLT=0 LLVM_PROFDATA=$(LLVM_PROFDATA)" | tee -a "$(XS_BUILD_LOG_FILE)"
+	NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) $(if $(strip $(XS_VM_BUILD_JOBS)),-j $(XS_VM_BUILD_JOBS),) -C $(XS_ROOT)/difftest emu \
+		BUILD_DIR=$(XS_GSIM_PGO_BUILD_ABS) \
+		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		RTL_DIR=$(XS_RTL_DIR_ABS) \
+		SIM_TOP_V=$(XS_SIM_TOP_V) \
+		NUM_CORES=$(XS_NUM_CORES) \
+		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
+		EMU_THREADS=$(XS_EMU_THREADS) \
+		VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) \
+		EMU_RANDOMIZE=0 \
+		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
+		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
+		GSIM=1 \
+		GSIM_BIN="$(XS_GSIM_BIN)" \
+		PGO_WORKLOAD="$(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin" \
+		PGO_MAX_CYCLE=$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),$(XS_SIM_MAX_CYCLE),100000) \
+		PGO_EMU_ARGS="--diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(XS_RAM_TRACE_ARGS)" \
+		PGO_BOLT=0 \
+		LLVM_PROFDATA="$(LLVM_PROFDATA)" \
+		2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
+	@if [ ! -x "$(XS_GSIM_PGO_BUILD_ABS)/emu" ]; then \
+		echo "[FAIL] xs gsim pgo: emu build did not produce executable $(XS_GSIM_PGO_BUILD_ABS)/emu"; \
+		exit 1; \
+	fi
 
 xs_wolf_emu: xs_wolf_emit
 	@echo "[RUN] Building XiangShan wolf emu..."

@@ -92,12 +92,28 @@ def main() -> None:
     parser.add_argument("--cpu", type=int, default=2)
     parser.add_argument("--pairs", type=int, choices=(1, 3), default=3)
     parser.add_argument("--baseline-seconds", type=float, required=True)
+    parser.add_argument("--make-target", default="run_xs_wolf_grhsim_ir_emu",
+                        help="root Makefile run target used for every timed run")
+    parser.add_argument("--build-var", default="XS_GRHSIM_IR_BUILD",
+                        help="root Makefile variable that selects the flow build directory")
+    parser.add_argument("--emu-relpath", default="emu/emu",
+                        help="emu binary path relative to the flow directory")
+    parser.add_argument("--expected-endpoint", default="240349,99996,100001,0x80000c0c",
+                        help="instrCnt,cycleCnt,guestCycles,pc that every valid run must hit")
     parser.add_argument("--evict-page-cache", action=argparse.BooleanOptionalAction, default=True,
                         help="evict each flow binary's page cache before every run (default on)")
     parser.add_argument("--old-env", action="append", default=[], metavar="KEY=VALUE",
                         help="extra environment variable for old-mode runs only (repeatable); "
                              "enables same-binary A/B when old and new point at one flow")
     args = parser.parse_args()
+    endpoint_fields = args.expected_endpoint.split(",")
+    if len(endpoint_fields) != 4:
+        parser.error("--expected-endpoint must be instrCnt,cycleCnt,guestCycles,pc")
+    try:
+        expected_endpoint = [int(endpoint_fields[0]), int(endpoint_fields[1]),
+                             int(endpoint_fields[2]), endpoint_fields[3]]
+    except ValueError:
+        parser.error("--expected-endpoint counts must be integers")
     root = Path(__file__).resolve().parents[1]
     output = args.output.resolve()
     if not output.is_relative_to(root / "ptmp") or output.exists():
@@ -105,7 +121,7 @@ def main() -> None:
     if args.cpu not in os.sched_getaffinity(0) or not math.isfinite(args.baseline_seconds) or args.baseline_seconds <= 0:
         parser.error("CPU must be available and baseline time positive")
     flows = {mode: getattr(args, mode).resolve() for mode in ("old", "new")}
-    binaries = {mode: {"path": str(flow / "emu/emu"), "sha256": digest(flow / "emu/emu")}
+    binaries = {mode: {"path": str(flow / args.emu_relpath), "sha256": digest(flow / args.emu_relpath)}
                 for mode, flow in flows.items()}
     order = [(mode, i) for i in range(1, args.pairs + 1) for mode in ("old", "new")]
     cutoff = args.baseline_seconds * 1.5
@@ -122,8 +138,10 @@ def main() -> None:
                     "baseline_s": args.baseline_seconds, "cutoff_s": cutoff, "cpu": args.cpu,
                     "threads": 1, "cycles": 100000, "trace": False, "profile": False,
                     "evict_page_cache": args.evict_page_cache, "old_env": old_env,
+                    "make_target": args.make_target, "build_var": args.build_var,
+                    "emu_relpath": args.emu_relpath,
                     "primary": "Host time", "gate": "max(new) < min(old), 3+3 valid runs",
-                    "expected_endpoint": [240349, 99996, 100001, "0x80000c0c"],
+                    "expected_endpoint": expected_endpoint,
                     "timestamp": time.time()}
     (output / "preregister.json").write_text(json.dumps(registration, indent=2) + "\n")
     env = {key: value for key, value in os.environ.items()
@@ -135,14 +153,14 @@ def main() -> None:
         label = f"{mode}{repeat}"
         directory = output / label
         directory.mkdir()
-        if args.evict_page_cache and evict_page_cache(flows[mode] / "emu/emu"):
+        if args.evict_page_cache and evict_page_cache(flows[mode] / args.emu_relpath):
             evicted.add(mode)
         timing = directory / "emu.time"
         prefix = shlex.join(["timeout", "--signal=KILL", f"{cutoff:.6f}s", "/usr/bin/time",
                              "-f", "wall=%e,exit=%x", "-o", str(timing), "taskset", "-c",
                              str(args.cpu), "stdbuf", "-oL", "-eL"])
-        command = ["make", "--no-print-directory", "run_xs_wolf_grhsim_ir_emu",
-                   f"XS_GRHSIM_IR_BUILD={flows[mode]}", f"XS_LOG_DIR={directory / 'logs'}",
+        command = ["make", "--no-print-directory", args.make_target,
+                   f"{args.build_var}={flows[mode]}", f"XS_LOG_DIR={directory / 'logs'}",
                    f"RUN_ID={output.parent.name}_{output.name}_{label}", "XS_NUM_CORES=1", "XS_EMU_THREADS=1", "EMU_THREADS=1",
                    f"XS_EMU_CPU={args.cpu}", "XS_SIM_MAX_CYCLE=100000", "XS_WAVEFORM=0",
                    "XS_WAVEFORM_PATH=", "XS_COMMIT_TRACE=0", "XS_RAM_TRACE=0",
