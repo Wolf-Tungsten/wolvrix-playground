@@ -108,6 +108,8 @@ def parse_args() -> argparse.Namespace:
                         help="migrate single-consumer pure compute ops into their consumer compute supernode (off by default: NO00013 candidate mechanism)")
     parser.add_argument("--demonitor-redundant", action="store_true",
                         help="drop activation-redundant compute fanout rows (off by default: NO00014 candidate mechanism)")
+    parser.add_argument("--demonitor-edge-completion-profile", type=Path,
+                        help="vchg profile enabling edge-completion de-monitoring (off by default: NO00015 candidate mechanism)")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
@@ -217,6 +219,8 @@ def main() -> int:
             pipeline = pipeline + ["grhsim.migrate-boundary-ops"]
         if args.demonitor_redundant:
             pipeline = pipeline + ["grhsim.demonitor-redundant"]
+        if args.demonitor_edge_completion_profile:
+            pipeline = pipeline + ["grhsim.demonitor-edge-completion"]
         for pass_name in pipeline:
             if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
                 continue
@@ -236,6 +240,8 @@ def main() -> int:
                 pass_options["target_batch_count"] = args.cpu_target_batch_count
             if pass_name == "cpu.st.merge-compute-supernodes" and args.max_op_in_compute_supernode is not None:
                 pass_options["max_op_in_compute_supernode"] = args.max_op_in_compute_supernode
+            if pass_name == "grhsim.demonitor-edge-completion":
+                pass_options["profile"] = str(args.demonitor_edge_completion_profile.resolve())
             diagnostics = timed(
                 f"GrhSIM CPU pass {pass_name}" + (f" {pass_options}" if pass_options else ""),
                 lambda name=pass_name, options=pass_options: session.run_grhsim_pass(name, model="grhsim.main", **options),

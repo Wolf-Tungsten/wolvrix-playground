@@ -142,6 +142,56 @@ def view_from_model(model):
         commit_fanout[row[0]].update(row[1])
         commit_fanout[row[0]].update(row[2])
     view["commit_fanout"] = commit_fanout
+
+    # Emit read-alias mirror (cpu_emit.cpp planReadAliases): a core.state.read
+    # result inside an ActivityDrivenCompute unit whose state is quiescence
+    # projected, which no op outside compute units and no event gate reads, and
+    # whose type matches the state type is emitted as a direct alias of the
+    # state slot -- its computeSupernodeFanout row is dead code at runtime and
+    # cannot carry an added activation edge (NO00015 correctness fix).
+    compute_ops = set()
+    for numa in schedule[0]:
+        for core in numa[1]:
+            for _task_id, part, _waits, execution in core[1]:
+                if execution != 0:  # CpuExecution::ActivityDrivenCompute
+                    continue
+                for word in partitions[part][4]:
+                    for unit in partitions[word][4]:
+                        for node in partitions[unit][4]:
+                            compute_ops.update(partitions[node][5])
+    snapshot = set()
+    for op in model["operations"]:
+        if op[0] not in compute_ops:
+            snapshot.update(op[4])
+    snapshot |= view["event_gate_values"]
+    projected = set()
+    for word_index, word in enumerate(schedule[8]):
+        w = word
+        while w:
+            lsb = w & -w
+            projected.add(word_index * 64 + lsb.bit_length() - 1)
+            w ^= lsb
+    value_type = {v[0]: v[1] for v in model["values"]}
+    state_type = {s[0]: s[2] for s in model["states"]}  # [id, name, type, origin]
+    aliased = set()
+    dpi_produced = set()
+    for op in model["operations"]:
+        oid = op[0]
+        name = view["op_name"][oid]
+        if name == "core.dpi.call":
+            dpi_produced.update(op[5])
+            continue
+        if name != "core.state.read" or oid not in compute_ops or not op[5] or not op[6]:
+            continue
+        ref = op[6][0]
+        sid = ref[1] if isinstance(ref, list) else ref
+        result = op[5][0]
+        tid = value_type[result]
+        if (sid in projected and result not in snapshot
+                and types[tid][2] == "logic" and tid == state_type.get(sid)):
+            aliased.add(result)
+    view["aliased_read_values"] = aliased
+    view["dpi_produced"] = dpi_produced
     return view
 
 
