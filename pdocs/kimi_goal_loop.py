@@ -11,8 +11,11 @@ Prompt-mode goal exit codes (per official docs):
 Every outcome simply advances to the next iteration: the instruction itself
 tells the next run to resume an unfinished node or start a new one.
 
+A run that exceeds --timeout seconds (default: 4 hours) is killed outright —
+SIGKILL to its whole process group — and the loop continues with the next task.
+
 Per-run logs and an index (runs.jsonl) are written under ptmp/kimi-goal-loop/.
-Ctrl-C stops the loop (the child receives the same SIGINT and shuts down).
+Ctrl-C stops the loop (the child's process group is terminated as well).
 
 Docs: https://www.kimi.com/code/docs/en/kimi-code-cli/guides/goals.html
       https://www.kimi.com/code/docs/en/kimi-code-cli/reference/kimi-command.html
@@ -21,7 +24,7 @@ Usage:
     python3 pdocs/kimi_goal_loop.py                 # loop forever
     python3 pdocs/kimi_goal_loop.py --max-runs 3    # stop after 3 runs
     python3 pdocs/kimi_goal_loop.py --sleep 60      # 60 s between runs
-    python3 pdocs/kimi_goal_loop.py --timeout 7200  # kill a run after 2 h
+    python3 pdocs/kimi_goal_loop.py --timeout 7200  # kill a run after 2 h (default: 4 h)
     python3 pdocs/kimi_goal_loop.py --dry-run       # print command, do not run
 """
 
@@ -29,8 +32,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import signal
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -53,13 +59,33 @@ def parse_args() -> argparse.Namespace:
                         help="stop after N runs (default: 0 = unlimited)")
     parser.add_argument("--sleep", type=float, default=5.0,
                         help="seconds to wait between runs (default: 5)")
-    parser.add_argument("--timeout", type=float, default=0.0,
-                        help="kill a single run after N seconds (default: 0 = no limit)")
+    parser.add_argument("--timeout", type=float, default=4 * 3600.0,
+                        help="kill a single run after N seconds (default: 14400 = 4 h; 0 = no limit)")
     parser.add_argument("--kimi", default="kimi",
                         help="path to the kimi CLI binary (default: 'kimi' from PATH)")
     parser.add_argument("--dry-run", action="store_true",
                         help="print the command and exit without running")
     return parser.parse_args()
+
+
+def _signal_group(process: subprocess.Popen, sig: int) -> None:
+    try:
+        os.killpg(process.pid, sig)
+    except (ProcessLookupError, PermissionError):
+        pass
+
+
+def kill_tree(process: subprocess.Popen) -> None:
+    _signal_group(process, signal.SIGKILL)
+    process.wait()
+
+
+def terminate_tree(process: subprocess.Popen) -> None:
+    _signal_group(process, signal.SIGTERM)
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        kill_tree(process)
 
 
 def run_once(args: argparse.Namespace, run_id: str, log_path: Path) -> dict:
@@ -74,35 +100,37 @@ def run_once(args: argparse.Namespace, run_id: str, log_path: Path) -> dict:
             process = subprocess.Popen(
                 command, cwd=ROOT, stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT, text=True, bufsize=1,
+                start_new_session=True,
             )
         except FileNotFoundError:
             log.write(f"kimi binary not found: {args.kimi}\n")
             record.update(exit_code=None, label="kimi-not-found", duration_s=0.0)
             return record
-        try:
-            deadline = start + args.timeout if args.timeout > 0 else None
+
+        def pump_output() -> None:
             assert process.stdout is not None
-            while True:
-                line = process.stdout.readline()
-                if line:
-                    sys.stdout.write(line)
-                    sys.stdout.flush()
-                    log.write(line)
-                elif process.poll() is not None:
-                    break
-                if deadline is not None and time.monotonic() > deadline:
-                    timed_out = True
-                    process.kill()
-        except KeyboardInterrupt:
-            process.terminate()
+            for line in process.stdout:
+                sys.stdout.write(line)
+                sys.stdout.flush()
+                log.write(line)
+
+        pump = threading.Thread(target=pump_output, daemon=True)
+        pump.start()
+        try:
             try:
-                process.wait(timeout=10)
+                process.wait(timeout=args.timeout if args.timeout > 0 else None)
             except subprocess.TimeoutExpired:
-                process.kill()
+                timed_out = True
+                log.write(f"# timeout after {args.timeout}s; killing process group\n")
+                kill_tree(process)
+        except KeyboardInterrupt:
+            terminate_tree(process)
             record.update(exit_code=None, label="interrupted",
                           duration_s=round(time.monotonic() - start, 1))
+            pump.join(timeout=5)
             raise
-        exit_code = process.wait()
+        pump.join(timeout=5)
+        exit_code = process.returncode
     label = "timeout" if timed_out else EXIT_LABELS.get(exit_code, f"exit-{exit_code}")
     record.update(exit_code=exit_code, label=label,
                   duration_s=round(time.monotonic() - start, 1))
