@@ -34,6 +34,8 @@ def main():
                         help="run grhsim.used-bits (dead-cone elimination + width narrowing), then remap")
     parser.add_argument("--fuse-expr-chains", action="store_true",
                         help="fuse single-use scalar compute chains into core.compute.expr tree ops (keeps the mapping)")
+    parser.add_argument("--migrate-boundary-ops", action="store_true",
+                        help="migrate single-consumer pure compute ops into their consumer compute supernode (rebuilds layout and schedule)")
     parser.add_argument("--canonicalize-compute", action="store_true",
                         help="run grhsim.canonicalize-compute (incl. concat-of-slices folds), then remap")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
@@ -105,6 +107,8 @@ def main():
             ]
         if args.fuse_expr_chains:
             actions += [lambda: session.run_grhsim_pass("grhsim.fuse-expr-chains", model="grhsim.main")]
+        if args.migrate_boundary_ops:
+            actions += [lambda: session.run_grhsim_pass("grhsim.migrate-boundary-ops", model="grhsim.main")]
         emit_options = {"model": "grhsim.main", "output": str(flow / "model")}
         if args.dynamic_stats:
             emit_options["dynamic_stats"] = True

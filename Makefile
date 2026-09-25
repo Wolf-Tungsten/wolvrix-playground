@@ -353,7 +353,7 @@ GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT ?= 0
 GRHSIM_REEMIT_BRANCH_SHAPE_HOTNESS ?=
 GRHSIM_REEMIT_BRANCH_SHAPE_GROWTH_BUDGET ?= 1.0
 reemit_grhsim_ir: py_install
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,) $(if $(filter 1,$(GRHSIM_REEMIT_REMAP)),--remap,) $(if $(filter 1,$(GRHSIM_REEMIT_BITWISE_MUXES)),--bitwise-muxes,) $(if $(filter 1,$(GRHSIM_REEMIT_MUX_CHAIN_FOLD)),--mux-chain-fold,) $(if $(filter 1,$(GRHSIM_REEMIT_USED_BITS)),--used-bits,) $(if $(filter 1,$(GRHSIM_REEMIT_FUSE_EXPR_CHAINS)),--fuse-expr-chains,) $(if $(filter 1,$(GRHSIM_REEMIT_CANONICALIZE_COMPUTE)),--canonicalize-compute,) $(if $(filter 1,$(GRHSIM_REEMIT_DYNAMIC_STATS)),--dynamic-stats,) $(if $(filter 1,$(GRHSIM_REEMIT_COMMIT_COMPACT_WALK)),--commit-compact-walk,) $(if $(filter 1,$(GRHSIM_REEMIT_COMMIT_MEM_WALK)),--commit-mem-walk,) $(if $(filter 1,$(GRHSIM_REEMIT_SHAPE_TWIN_SHARE)),--shape-twin-share,) $(if $(filter 1,$(GRHSIM_REEMIT_BRANCH_SHAPE_SHARE)),--branch-shape-share,) $(if $(strip $(GRHSIM_REEMIT_BRANCH_SHAPE_HOTNESS)),--branch-shape-hotness "$(GRHSIM_REEMIT_BRANCH_SHAPE_HOTNESS)" --branch-shape-growth-budget "$(GRHSIM_REEMIT_BRANCH_SHAPE_GROWTH_BUDGET)",) $(if $(strip $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE),)
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,) $(if $(filter 1,$(GRHSIM_REEMIT_REMAP)),--remap,) $(if $(filter 1,$(GRHSIM_REEMIT_BITWISE_MUXES)),--bitwise-muxes,) $(if $(filter 1,$(GRHSIM_REEMIT_MUX_CHAIN_FOLD)),--mux-chain-fold,) $(if $(filter 1,$(GRHSIM_REEMIT_USED_BITS)),--used-bits,) $(if $(filter 1,$(GRHSIM_REEMIT_FUSE_EXPR_CHAINS)),--fuse-expr-chains,) $(if $(filter 1,$(GRHSIM_REEMIT_MIGRATE_BOUNDARY_OPS)),--migrate-boundary-ops,) $(if $(filter 1,$(GRHSIM_REEMIT_CANONICALIZE_COMPUTE)),--canonicalize-compute,) $(if $(filter 1,$(GRHSIM_REEMIT_DYNAMIC_STATS)),--dynamic-stats,) $(if $(filter 1,$(GRHSIM_REEMIT_COMMIT_COMPACT_WALK)),--commit-compact-walk,) $(if $(filter 1,$(GRHSIM_REEMIT_COMMIT_MEM_WALK)),--commit-mem-walk,) $(if $(filter 1,$(GRHSIM_REEMIT_SHAPE_TWIN_SHARE)),--shape-twin-share,) $(if $(filter 1,$(GRHSIM_REEMIT_BRANCH_SHAPE_SHARE)),--branch-shape-share,) $(if $(strip $(GRHSIM_REEMIT_BRANCH_SHAPE_HOTNESS)),--branch-shape-hotness "$(GRHSIM_REEMIT_BRANCH_SHAPE_HOTNESS)" --branch-shape-growth-budget "$(GRHSIM_REEMIT_BRANCH_SHAPE_GROWTH_BUDGET)",) $(if $(strip $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE),)
 
 GRHSIM_IR_BENCH_CPU ?= 2
 GRHSIM_IR_BENCH_PAIRS ?= 3
@@ -501,6 +501,28 @@ analyze_grhsim_dynamic:
 .PHONY: analyze_grhsim_cone_guard
 analyze_grhsim_cone_guard:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_cone_guard_census.py --model "$(GRHSIM_CONE_MODEL)" $(if $(GRHSIM_CONE_DYNLOG),--dynlog "$(GRHSIM_CONE_DYNLOG)",) $(if $(GRHSIM_CONE_SAMPLES),--samples "$(GRHSIM_CONE_SAMPLES)",) $(if $(GRHSIM_CONE_OUT),--out "$(GRHSIM_CONE_OUT)",)
+
+.PHONY: analyze_grhsim_migration_census
+analyze_grhsim_migration_census:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_migration_census.py --model "$(GRHSIM_MIGRATION_MODEL)" $(if $(GRHSIM_MIGRATION_RUN),--run "$(GRHSIM_MIGRATION_RUN)",) --output "$(GRHSIM_MIGRATION_OUTPUT)" $(if $(GRHSIM_MIGRATION_CYCLES),--cycles "$(GRHSIM_MIGRATION_CYCLES)",)
+
+.PHONY: test_grhsim_migration_census
+test_grhsim_migration_census:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_migration_census.py
+
+.PHONY: analyze_grhsim_migration
+analyze_grhsim_migration:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_migration_gates.py \
+		--old-model "$(GRHSIM_MIGRATION_OLD_MODEL)" --new-model "$(GRHSIM_MIGRATION_NEW_MODEL)" \
+		$(if $(GRHSIM_MIGRATION_BASELINE_RUN),--baseline-run "$(GRHSIM_MIGRATION_BASELINE_RUN)",) \
+		$(if $(GRHSIM_MIGRATION_RUN1),--run1 "$(GRHSIM_MIGRATION_RUN1)",) \
+		$(if $(GRHSIM_MIGRATION_RUN2),--run2 "$(GRHSIM_MIGRATION_RUN2)",) \
+		$(if $(GRHSIM_MIGRATION_SHRINK_MIN),--shrink-min "$(GRHSIM_MIGRATION_SHRINK_MIN)",) \
+		--output "$(GRHSIM_MIGRATION_OUTPUT)"
+
+.PHONY: test_grhsim_migration_gates
+test_grhsim_migration_gates:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_migration_gates.py
 
 .PHONY: analyze_grhsim_topocut
 analyze_grhsim_topocut:
@@ -990,7 +1012,8 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_SHAPE_TWIN_SHARE)),--shape-twin-share,) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_SHARE)),--branch-shape-share,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS)),--branch-shape-hotness "$(abspath $(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_HOTNESS))" --branch-shape-growth-budget "$(XS_WOLF_GRHSIM_IR_BRANCH_SHAPE_GROWTH_BUDGET)",) \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_DISABLE_FP_ELISION)),--disable-falling-edge-elision,); \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_DISABLE_FP_ELISION)),--disable-falling-edge-elision,) \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_MIGRATE_BOUNDARY_OPS)),--migrate-boundary-ops,); \
 	} 2>&1 | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
 	status=$$?; \
 	echo "[EXIT] xs_wolf_grhsim_ir $$status" | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
