@@ -421,6 +421,32 @@ analyze_gsim_runtime_profile:
 test_gsim_runtime_profile_compare:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_gsim_runtime_profile_compare.py
 
+# NO00012 per-value change-rate profile + monitored-set activation economics +
+# wide-value cost baseline (diagnostic). Consumes the two diagnostic run logs
+# from the dyn+vchg build (ptmp/no00012_vchg_profile_20260925/dyn_flow.sh),
+# the mapped checkpoint, and the generated model dir of the diagnostic build.
+GRHSIM_VCHG_MODEL ?=
+GRHSIM_VCHG_RUN1 ?=
+GRHSIM_VCHG_RUN2 ?=
+GRHSIM_VCHG_GEN_MODEL ?=
+GRHSIM_VCHG_OUTPUT ?=
+.PHONY: analyze_grhsim_vchg_profile
+analyze_grhsim_vchg_profile:
+	@test -n "$(GRHSIM_VCHG_MODEL)" || { echo "[FAIL] set GRHSIM_VCHG_MODEL=<mapped checkpoint json>"; exit 1; }
+	@test -n "$(GRHSIM_VCHG_RUN1)" || { echo "[FAIL] set GRHSIM_VCHG_RUN1=<run1 emu log>"; exit 1; }
+	@test -n "$(GRHSIM_VCHG_RUN2)" || { echo "[FAIL] set GRHSIM_VCHG_RUN2=<run2 emu log>"; exit 1; }
+	@test -n "$(GRHSIM_VCHG_GEN_MODEL)" || { echo "[FAIL] set GRHSIM_VCHG_GEN_MODEL=<generated model dir>"; exit 1; }
+	@test -n "$(GRHSIM_VCHG_OUTPUT)" || { echo "[FAIL] set GRHSIM_VCHG_OUTPUT=<new dir under ptmp>"; exit 1; }
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_vchg_profile.py \
+		--model "$(GRHSIM_VCHG_MODEL)" \
+		--run1 "$(GRHSIM_VCHG_RUN1)" --run2 "$(GRHSIM_VCHG_RUN2)" \
+		--gen-model "$(GRHSIM_VCHG_GEN_MODEL)" \
+		--output "$(GRHSIM_VCHG_OUTPUT)"
+
+.PHONY: test_grhsim_vchg_profile
+test_grhsim_vchg_profile:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_vchg_profile.py
+
 .PHONY: analyze_grhsim_localization
 analyze_grhsim_localization:
 	@$(PYTHON) scripts/grhsim_localization_stats.py --flow "$(GRHSIM_LOCALIZATION_FLOW)" \
