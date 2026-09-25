@@ -53,6 +53,10 @@ CPU_PIPELINE = (
     + ["grhsim.pack-bit-registers", "grhsim.canonicalize-compute", "grhsim.bitwise-muxes", "grhsim.mux-chain-fold",
        "grhsim.used-bits"] + CPU_MAPPING_PIPELINE
 )
+# Expression-tree fusion (NO00011, rejected: measured net regression) stays out
+# of the shared default pipeline; the XS flow appends it only under
+# --fuse-expr-chains. It rewrites single-use scalar compute chains into
+# core.compute.expr ops and consumes (and preserves) the final schedule mapping.
 
 
 def log(message: str) -> None:
@@ -98,6 +102,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bitwise-predicates", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--used-bits", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--fuse-expr-chains", action="store_true",
+                        help="fuse single-use scalar compute chains into core.compute.expr tree ops (off by default: NO00011 measured a net regression)")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
@@ -201,6 +207,8 @@ def main() -> int:
         require_ok(diagnostics, "GrhSIM verify pass")
         pipeline = CPU_PIPELINE if args.pack_bit_registers else (
             CPU_SEMANTIC_PIPELINE + ["grhsim.bitwise-muxes"] + CPU_MAPPING_PIPELINE)
+        if args.fuse_expr_chains:
+            pipeline = pipeline + ["grhsim.fuse-expr-chains"]
         for pass_name in pipeline:
             if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
                 continue

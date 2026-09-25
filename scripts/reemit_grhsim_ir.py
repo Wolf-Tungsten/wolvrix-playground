@@ -32,6 +32,8 @@ def main():
                         help="max estimated parameter-load growth in model units when hotness is provided")
     parser.add_argument("--used-bits", action="store_true",
                         help="run grhsim.used-bits (dead-cone elimination + width narrowing), then remap")
+    parser.add_argument("--fuse-expr-chains", action="store_true",
+                        help="fuse single-use scalar compute chains into core.compute.expr tree ops (keeps the mapping)")
     parser.add_argument("--canonicalize-compute", action="store_true",
                         help="run grhsim.canonicalize-compute (incl. concat-of-slices folds), then remap")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
@@ -101,6 +103,8 @@ def main():
                 lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
                 for name in CPU_MAPPING_PIPELINE
             ]
+        if args.fuse_expr_chains:
+            actions += [lambda: session.run_grhsim_pass("grhsim.fuse-expr-chains", model="grhsim.main")]
         emit_options = {"model": "grhsim.main", "output": str(flow / "model")}
         if args.dynamic_stats:
             emit_options["dynamic_stats"] = True
