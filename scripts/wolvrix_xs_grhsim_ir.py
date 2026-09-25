@@ -106,6 +106,8 @@ def parse_args() -> argparse.Namespace:
                         help="fuse single-use scalar compute chains into core.compute.expr tree ops (off by default: NO00011 measured a net regression)")
     parser.add_argument("--migrate-boundary-ops", action="store_true",
                         help="migrate single-consumer pure compute ops into their consumer compute supernode (off by default: NO00013 candidate mechanism)")
+    parser.add_argument("--demonitor-redundant", action="store_true",
+                        help="drop activation-redundant compute fanout rows (off by default: NO00014 candidate mechanism)")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
@@ -213,6 +215,8 @@ def main() -> int:
             pipeline = pipeline + ["grhsim.fuse-expr-chains"]
         if args.migrate_boundary_ops:
             pipeline = pipeline + ["grhsim.migrate-boundary-ops"]
+        if args.demonitor_redundant:
+            pipeline = pipeline + ["grhsim.demonitor-redundant"]
         for pass_name in pipeline:
             if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
                 continue
