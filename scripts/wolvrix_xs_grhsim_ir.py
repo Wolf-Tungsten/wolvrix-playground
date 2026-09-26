@@ -110,6 +110,8 @@ def parse_args() -> argparse.Namespace:
                         help="drop activation-redundant compute fanout rows (off by default: NO00014 candidate mechanism)")
     parser.add_argument("--demonitor-edge-completion-profile", type=Path,
                         help="vchg profile enabling edge-completion de-monitoring (off by default: NO00015 candidate mechanism)")
+    parser.add_argument("--fold-residue", action="store_true",
+                        help="fold post-schedule identity/constant residue ops (off by default: NO00016 candidate mechanism)")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
@@ -221,6 +223,8 @@ def main() -> int:
             pipeline = pipeline + ["grhsim.demonitor-redundant"]
         if args.demonitor_edge_completion_profile:
             pipeline = pipeline + ["grhsim.demonitor-edge-completion"]
+        if args.fold_residue:
+            pipeline = pipeline + ["grhsim.fold-residue"]
         for pass_name in pipeline:
             if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
                 continue

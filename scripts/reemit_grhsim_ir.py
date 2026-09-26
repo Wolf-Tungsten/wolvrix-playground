@@ -40,6 +40,8 @@ def main():
                         help="drop activation-redundant compute fanout rows (rebuilds the schedule; writes/stores stay)")
     parser.add_argument("--demonitor-edge-completion-profile", default="",
                         help="vchg profile enabling edge-completion de-monitoring (adds missing operand activation edges, then removes redundant rows)")
+    parser.add_argument("--fold-residue", action="store_true",
+                        help="fold post-schedule identity/constant residue ops (rewires consumers; emitter skips the folded ops)")
     parser.add_argument("--canonicalize-compute", action="store_true",
                         help="run grhsim.canonicalize-compute (incl. concat-of-slices folds), then remap")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
@@ -118,6 +120,8 @@ def main():
         if args.demonitor_edge_completion_profile:
             actions += [lambda: session.run_grhsim_pass("grhsim.demonitor-edge-completion", model="grhsim.main",
                                                         profile=args.demonitor_edge_completion_profile)]
+        if args.fold_residue:
+            actions += [lambda: session.run_grhsim_pass("grhsim.fold-residue", model="grhsim.main")]
         emit_options = {"model": "grhsim.main", "output": str(flow / "model")}
         if args.dynamic_stats:
             emit_options["dynamic_stats"] = True
