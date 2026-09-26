@@ -185,6 +185,7 @@ XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE ?= 1
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
 XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES ?= 1
 XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS ?= 1
+XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS ?= 0
 XS_SIM_DEFINES ?= DIFFTEST
 XS_SIM_DEFINES += $(XS_ZERO_INIT_DEFINES)
 XS_ROOT_ABS := $(abspath $(XS_ROOT))
@@ -644,6 +645,26 @@ analyze_grhsim_gsim_module_compare:
 .PHONY: test_grhsim_gsim_module_compare
 test_grhsim_gsim_module_compare:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_gsim_module_compare.py
+
+GRHSIM_BUCKET_ROOT ?= ptmp/no00021_bucket_dyn_price_20260927
+GRHSIM_BUCKET_MODEL ?= ptmp/no00019_migrate_ec_20260926/flow/xiangshan_grhsim_ir.json
+GRHSIM_BUCKET_RUN ?= ptmp/no00019_migrate_ec_20260926/run1/logs/xs_wolf_grhsim_no00019_migrateec_run1_20260926.log
+GRHSIM_BUCKET_OUTPUT ?= $(GRHSIM_BUCKET_ROOT)/analysis
+GRHSIM_BUCKET_EXPECT_OPS ?= {"(reg-to-mem)": 409314, "(packed)": 271174, "(events)": 63336}
+GRHSIM_BUCKET_EXPECT_WR ?= 20799649516
+
+.PHONY: analyze_grhsim_bucket_dyn_price
+analyze_grhsim_bucket_dyn_price:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_bucket_dyn_price.py \
+		--model "$(GRHSIM_BUCKET_MODEL)" \
+		--run "$(GRHSIM_BUCKET_RUN)" \
+		--output "$(GRHSIM_BUCKET_OUTPUT)" \
+		--expect-ops '$(GRHSIM_BUCKET_EXPECT_OPS)' \
+		--expect-vchg-wr "$(GRHSIM_BUCKET_EXPECT_WR)" $(if $(GRHSIM_BUCKET_CYCLES),--cycles "$(GRHSIM_BUCKET_CYCLES)",)
+
+.PHONY: test_grhsim_bucket_dyn_price
+test_grhsim_bucket_dyn_price:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_bucket_dyn_price.py
 
 GRHSIM_ICLASS_DISASM ?= ptmp/no00018_iclass_20260926/disasm_full.txt
 GRHSIM_ICLASS_EMU ?= ptmp/no00015_edge_complete_20260925/flow/emu/emu
@@ -1151,6 +1172,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE)),--no-clone-shared-compute,--clone-shared-compute --clone-shared-compute-max-clones $(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES)) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES)),--no-bitwise-predicates,--bitwise-predicates) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS)),--no-pack-bit-registers,--pack-bit-registers) \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS)),--disable-pack-bit-registers,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE),) \
 			--reg-to-mem-report "$(XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT)" \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \

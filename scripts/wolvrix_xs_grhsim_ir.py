@@ -101,6 +101,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--clone-shared-compute-max-clones", type=int, default=250000)
     parser.add_argument("--bitwise-predicates", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--disable-pack-bit-registers", action="store_true",
+                        help="drop only grhsim.pack-bit-registers from the pipeline, keeping both "
+                             "mapping rounds and every other semantic pass (isolated A/B arm, NO00021)")
     parser.add_argument("--used-bits", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--fuse-expr-chains", action="store_true",
                         help="fuse single-use scalar compute chains into core.compute.expr tree ops (off by default: NO00011 measured a net regression)")
@@ -229,6 +232,9 @@ def main() -> int:
             require_ok(diagnostics, "store post-lower GrhSIM dump")
         pipeline = CPU_PIPELINE if args.pack_bit_registers else (
             CPU_SEMANTIC_PIPELINE + ["grhsim.bitwise-muxes"] + CPU_MAPPING_PIPELINE)
+        if args.disable_pack_bit_registers:
+            pipeline = [name for name in CPU_PIPELINE
+                        if name != "grhsim.pack-bit-registers"]
         if args.fuse_expr_chains:
             pipeline = pipeline + ["grhsim.fuse-expr-chains"]
         if args.migrate_boundary_ops:
