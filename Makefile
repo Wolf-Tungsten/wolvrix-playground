@@ -593,6 +593,14 @@ analyze_grhsim_residue_fold:
 test_grhsim_residue_fold_gates:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_residue_fold_gates.py
 
+.PHONY: analyze_grhsim_kind_cost_census
+analyze_grhsim_kind_cost_census:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_kind_cost_census.py --model "$(GRHSIM_KINDCOST_MODEL)" --run "$(GRHSIM_KINDCOST_RUN)" --emu "$(GRHSIM_KINDCOST_EMU)" --output "$(GRHSIM_KINDCOST_OUTPUT)" $(if $(GRHSIM_KINDCOST_CYCLES),--cycles "$(GRHSIM_KINDCOST_CYCLES)",)
+
+.PHONY: test_grhsim_kind_cost_census
+test_grhsim_kind_cost_census:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_kind_cost_census.py
+
 .PHONY: analyze_grhsim_topocut
 analyze_grhsim_topocut:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_topocut_stats.py --model "$(GRHSIM_TOPOCUT_MODEL)"
