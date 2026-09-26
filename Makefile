@@ -271,7 +271,7 @@ HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_wolf_grhsim_ir xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
-	xs_gsim_emu_pgo xs_gsim_emu_rtprof \
+	xs_gsim_emu_pgo xs_gsim_emu_rtprof xs_gsim_export_precoarsen \
 	xs_wolf_grhsim_ir_emu xs_wolf_grhsim_ir_build_emu xs_wolf_grhsim_ir_emu_pgo xs_wolf_grhsim_ir_build_emu_pgo \
 	xs_no0076_stats clean
 
@@ -622,6 +622,28 @@ analyze_grhsim_kind_cost_census:
 .PHONY: test_grhsim_kind_cost_census
 test_grhsim_kind_cost_census:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_kind_cost_census.py
+
+GRHSIM_MODCMP_ROOT ?= ptmp/no00020_gsim_module_compare_20260926
+GRHSIM_MODCMP_GSIM ?= $(GRHSIM_MODCMP_ROOT)/gsim-export/SimTop_PreCoarsen.json
+GRHSIM_MODCMP_GRHSIM_PRE ?= $(GRHSIM_MODCMP_ROOT)/flow/grhsim_pre_partition.json
+GRHSIM_MODCMP_GRHSIM_FINAL ?= $(GRHSIM_MODCMP_ROOT)/flow/xiangshan_grhsim_ir.json
+GRHSIM_MODCMP_GRHSIM_FULL ?= $(GRHSIM_MODCMP_ROOT)/flow/xiangshan_grhsim_ir_full.json
+GRHSIM_MODCMP_GRHSIM_ARCHIVE ?= ptmp/no00015_edge_complete_20260925/flow/xiangshan_grhsim_ir.json
+GRHSIM_MODCMP_OUTPUT ?= $(GRHSIM_MODCMP_ROOT)/analysis
+
+.PHONY: analyze_grhsim_gsim_module_compare
+analyze_grhsim_gsim_module_compare:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_gsim_module_compare.py \
+		--gsim-json "$(GRHSIM_MODCMP_GSIM)" \
+		--grhsim-pre "$(GRHSIM_MODCMP_GRHSIM_PRE)" \
+		--grhsim-final "$(GRHSIM_MODCMP_GRHSIM_FINAL)" \
+		--grhsim-full "$(GRHSIM_MODCMP_GRHSIM_FULL)" \
+		--grhsim-archive "$(GRHSIM_MODCMP_GRHSIM_ARCHIVE)" \
+		--out-dir "$(GRHSIM_MODCMP_OUTPUT)" $(if $(GRHSIM_MODCMP_TOP_N),--top-n "$(GRHSIM_MODCMP_TOP_N)",) $(if $(GRHSIM_MODCMP_G2REF),--g2-reference "$(GRHSIM_MODCMP_G2REF)",)
+
+.PHONY: test_grhsim_gsim_module_compare
+test_grhsim_gsim_module_compare:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_gsim_module_compare.py
 
 GRHSIM_ICLASS_DISASM ?= ptmp/no00018_iclass_20260926/disasm_full.txt
 GRHSIM_ICLASS_EMU ?= ptmp/no00015_edge_complete_20260925/flow/emu/emu
@@ -1141,7 +1163,9 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_DEMONITOR_REDUNDANT)),--demonitor-redundant,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EDGECOMPLETE_PROFILE)),--demonitor-edge-completion-profile "$(abspath $(XS_WOLF_GRHSIM_IR_EDGECOMPLETE_PROFILE))",) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_MIGRATE_EC_PROFILE)),--migrate-boundary-ops-ec-profile "$(abspath $(XS_WOLF_GRHSIM_IR_MIGRATE_EC_PROFILE))",) \
-			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESIDUE_FOLD)),--fold-residue,); \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESIDUE_FOLD)),--fold-residue,) \
+			$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON)),--dump-post-lower-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON))",) \
+			$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON)),--dump-pre-partition-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON))",); \
 	} 2>&1 | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
 	status=$$?; \
 	echo "[EXIT] xs_wolf_grhsim_ir $$status" | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
@@ -1572,6 +1596,42 @@ xs_gsim_emu_rtprof: xs_gsim_rtl
 		echo "[FAIL] xs gsim rtprof: emu build did not produce executable $(XS_GSIM_RTPROF_BUILD_ABS)/emu"; \
 		exit 1; \
 	fi
+
+# Diagnostic export of the un-partitioned (PreCoarsen) gsim graph for the
+# XiangShan design (NO00020): full graph JSON including assignTree ENode
+# detail, plus the strict executable-GRH projection. Read-only export: it
+# neither rebuilds gsim nor touches the anchored emu builds.
+XS_GSIM_EXPORT_DIR ?= $(CURDIR)/ptmp/gsim_precoarsen_export
+# xiangshan-gsim-coremark-stub stubs ext modules with initial-event side
+# effects (e.g. PrintCommitIDModule) that full-fidelity export rejects.
+XS_GSIM_EXPORT_GRH_PROFILE ?= xiangshan-gsim-coremark-stub
+.PHONY: xs_gsim_export_precoarsen
+xs_gsim_export_precoarsen:
+	@if [ ! -x "$(XS_GSIM_BIN)" ] && [ -f "$(REF_GSIM_ROOT)/Makefile" ]; then \
+		echo "[RUN] Building reference gsim..."; \
+		$(MAKE) --no-print-directory -C "$(REF_GSIM_ROOT)" build-gsim; \
+	fi
+	@test -f "$(XS_SIM_TOP_FIR)" || { echo "[FAIL] missing $(XS_SIM_TOP_FIR); run make xs_gsim_rtl first"; exit 1; }
+	@mkdir -p "$(XS_GSIM_EXPORT_DIR)" "$(XS_LOG_DIR_ABS)"
+	@$(eval RUN_ID := $(if $(RUN_ID),$(RUN_ID),$(shell date +%Y%m%d_%H%M%S)))
+	@$(eval XS_GSIM_EXPORT_LOG := $(XS_LOG_DIR_ABS)/xs_gsim_export_precoarsen_$(RUN_ID).log)
+	@echo "[LOG] Capturing gsim PreCoarsen export to: $(XS_GSIM_EXPORT_LOG)"
+	@set -o pipefail; { \
+		echo "[CMD] $(XS_GSIM_BIN) --supernode-max-size=$(XS_GSIM_SUPERNODE_MAX_SIZE) --cpp-max-size-KB=8192 --sep-mod=__DOT__ --sep-aggr=__DOT__ --dump-json --dump-assign-tree --dump-stages=PreCoarsen --stop-after-stage=PreCoarsen --export-executable-grh=$(XS_GSIM_EXPORT_DIR)/executable_grh.json --export-precoarsen-grh=$(XS_GSIM_EXPORT_DIR)/precoarsen_grh.json --dir $(XS_GSIM_EXPORT_DIR) $(XS_SIM_TOP_FIR)"; \
+		$(XS_GSIM_BIN) \
+			--supernode-max-size=$(XS_GSIM_SUPERNODE_MAX_SIZE) \
+			--cpp-max-size-KB=8192 \
+			--sep-mod=__DOT__ \
+			--sep-aggr=__DOT__ \
+			--dump-json --dump-assign-tree \
+			--dump-stages=PreCoarsen \
+			--stop-after-stage=PreCoarsen \
+			--export-executable-grh="$(XS_GSIM_EXPORT_DIR)/executable_grh.json" \
+			--executable-grh-profile="$(XS_GSIM_EXPORT_GRH_PROFILE)" \
+			--export-precoarsen-grh="$(XS_GSIM_EXPORT_DIR)/precoarsen_grh.json" \
+			--dir "$(XS_GSIM_EXPORT_DIR)" \
+			"$(XS_SIM_TOP_FIR)"; \
+	} 2>&1 | tee "$(XS_GSIM_EXPORT_LOG)"
 
 xs_wolf_emu: xs_wolf_emit
 	@echo "[RUN] Building XiangShan wolf emu..."

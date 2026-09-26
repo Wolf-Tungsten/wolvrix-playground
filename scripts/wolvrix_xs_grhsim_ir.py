@@ -114,6 +114,10 @@ def parse_args() -> argparse.Namespace:
                         help="vchg profile enabling selective boundary-op migration that may add activation edges (off by default: NO00019 candidate mechanism)")
     parser.add_argument("--fold-residue", action="store_true",
                         help="fold post-schedule identity/constant residue ops (off by default: NO00016 candidate mechanism)")
+    parser.add_argument("--dump-post-lower-json", type=Path,
+                        help="diagnostic (NO00020): also store the GrhSIM model right after grhsim.verify, before any semantic/mapping pass")
+    parser.add_argument("--dump-pre-partition-json", type=Path,
+                        help="diagnostic (NO00020): also store the GrhSIM model after the semantic passes, right before the second cpu.st.split-phase (un-partitioned production form)")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
@@ -215,6 +219,14 @@ def main() -> int:
             lambda: session.run_grhsim_pass("grhsim.verify", model="grhsim.main"),
         )
         require_ok(diagnostics, "GrhSIM verify pass")
+        if args.dump_post_lower_json is not None:
+            dump_path = args.dump_post_lower_json.resolve()
+            dump_path.parent.mkdir(parents=True, exist_ok=True)
+            diagnostics = timed(
+                f"store post-lower GrhSIM dump {dump_path}",
+                lambda: session.store_grhsim(model="grhsim.main", output=str(dump_path)),
+            )
+            require_ok(diagnostics, "store post-lower GrhSIM dump")
         pipeline = CPU_PIPELINE if args.pack_bit_registers else (
             CPU_SEMANTIC_PIPELINE + ["grhsim.bitwise-muxes"] + CPU_MAPPING_PIPELINE)
         if args.fuse_expr_chains:
@@ -229,6 +241,7 @@ def main() -> int:
             pipeline = pipeline + ["grhsim.migrate-boundary-ops-ec"]
         if args.fold_residue:
             pipeline = pipeline + ["grhsim.fold-residue"]
+        split_phase_seen = 0
         for pass_name in pipeline:
             if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
                 continue
@@ -252,6 +265,16 @@ def main() -> int:
                 pass_options["profile"] = str(args.demonitor_edge_completion_profile.resolve())
             if pass_name == "grhsim.migrate-boundary-ops-ec":
                 pass_options["profile"] = str(args.migrate_boundary_ops_ec_profile.resolve())
+            if pass_name == "cpu.st.split-phase":
+                split_phase_seen += 1
+                if split_phase_seen == 2 and args.dump_pre_partition_json is not None:
+                    dump_path = args.dump_pre_partition_json.resolve()
+                    dump_path.parent.mkdir(parents=True, exist_ok=True)
+                    diagnostics = timed(
+                        f"store pre-partition GrhSIM dump {dump_path}",
+                        lambda: session.store_grhsim(model="grhsim.main", output=str(dump_path)),
+                    )
+                    require_ok(diagnostics, "store pre-partition GrhSIM dump")
             diagnostics = timed(
                 f"GrhSIM CPU pass {pass_name}" + (f" {pass_options}" if pass_options else ""),
                 lambda name=pass_name, options=pass_options: session.run_grhsim_pass(name, model="grhsim.main", **options),
