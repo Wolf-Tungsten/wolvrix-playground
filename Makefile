@@ -353,7 +353,7 @@ GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT ?= 0
 GRHSIM_REEMIT_BRANCH_SHAPE_HOTNESS ?=
 GRHSIM_REEMIT_BRANCH_SHAPE_GROWTH_BUDGET ?= 1.0
 reemit_grhsim_ir: py_install
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,) $(if $(filter 1,$(GRHSIM_REEMIT_REMAP)),--remap,) $(if $(filter 1,$(GRHSIM_REEMIT_BITWISE_MUXES)),--bitwise-muxes,) $(if $(filter 1,$(GRHSIM_REEMIT_MUX_CHAIN_FOLD)),--mux-chain-fold,) $(if $(filter 1,$(GRHSIM_REEMIT_USED_BITS)),--used-bits,) $(if $(filter 1,$(GRHSIM_REEMIT_FUSE_EXPR_CHAINS)),--fuse-expr-chains,) $(if $(filter 1,$(GRHSIM_REEMIT_MIGRATE_BOUNDARY_OPS)),--migrate-boundary-ops,) $(if $(filter 1,$(GRHSIM_REEMIT_DEMONITOR_REDUNDANT)),--demonitor-redundant,) $(if $(strip $(GRHSIM_REEMIT_EDGECOMPLETE_PROFILE)),--demonitor-edge-completion-profile "$(GRHSIM_REEMIT_EDGECOMPLETE_PROFILE)",) $(if $(filter 1,$(GRHSIM_REEMIT_RESIDUE_FOLD)),--fold-residue,) $(if $(filter 1,$(GRHSIM_REEMIT_CANONICALIZE_COMPUTE)),--canonicalize-compute,) $(if $(filter 1,$(GRHSIM_REEMIT_DYNAMIC_STATS)),--dynamic-stats,) $(if $(filter 1,$(GRHSIM_REEMIT_COMMIT_COMPACT_WALK)),--commit-compact-walk,) $(if $(filter 1,$(GRHSIM_REEMIT_COMMIT_MEM_WALK)),--commit-mem-walk,) $(if $(filter 1,$(GRHSIM_REEMIT_SHAPE_TWIN_SHARE)),--shape-twin-share,) $(if $(filter 1,$(GRHSIM_REEMIT_BRANCH_SHAPE_SHARE)),--branch-shape-share,) $(if $(strip $(GRHSIM_REEMIT_BRANCH_SHAPE_HOTNESS)),--branch-shape-hotness "$(GRHSIM_REEMIT_BRANCH_SHAPE_HOTNESS)" --branch-shape-growth-budget "$(GRHSIM_REEMIT_BRANCH_SHAPE_GROWTH_BUDGET)",) $(if $(strip $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE),)
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,) $(if $(filter 1,$(GRHSIM_REEMIT_REMAP)),--remap,) $(if $(filter 1,$(GRHSIM_REEMIT_BITWISE_MUXES)),--bitwise-muxes,) $(if $(filter 1,$(GRHSIM_REEMIT_MUX_CHAIN_FOLD)),--mux-chain-fold,) $(if $(filter 1,$(GRHSIM_REEMIT_USED_BITS)),--used-bits,) $(if $(filter 1,$(GRHSIM_REEMIT_FUSE_EXPR_CHAINS)),--fuse-expr-chains,) $(if $(filter 1,$(GRHSIM_REEMIT_MIGRATE_BOUNDARY_OPS)),--migrate-boundary-ops,) $(if $(filter 1,$(GRHSIM_REEMIT_DEMONITOR_REDUNDANT)),--demonitor-redundant,) $(if $(strip $(GRHSIM_REEMIT_EDGECOMPLETE_PROFILE)),--demonitor-edge-completion-profile "$(GRHSIM_REEMIT_EDGECOMPLETE_PROFILE)",) $(if $(strip $(GRHSIM_REEMIT_MIGRATE_EC_PROFILE)),--migrate-boundary-ops-ec-profile "$(GRHSIM_REEMIT_MIGRATE_EC_PROFILE)",) $(if $(filter 1,$(GRHSIM_REEMIT_RESIDUE_FOLD)),--fold-residue,) $(if $(filter 1,$(GRHSIM_REEMIT_CANONICALIZE_COMPUTE)),--canonicalize-compute,) $(if $(filter 1,$(GRHSIM_REEMIT_DYNAMIC_STATS)),--dynamic-stats,) $(if $(filter 1,$(GRHSIM_REEMIT_COMMIT_COMPACT_WALK)),--commit-compact-walk,) $(if $(filter 1,$(GRHSIM_REEMIT_COMMIT_MEM_WALK)),--commit-mem-walk,) $(if $(filter 1,$(GRHSIM_REEMIT_SHAPE_TWIN_SHARE)),--shape-twin-share,) $(if $(filter 1,$(GRHSIM_REEMIT_BRANCH_SHAPE_SHARE)),--branch-shape-share,) $(if $(strip $(GRHSIM_REEMIT_BRANCH_SHAPE_HOTNESS)),--branch-shape-hotness "$(GRHSIM_REEMIT_BRANCH_SHAPE_HOTNESS)" --branch-shape-growth-budget "$(GRHSIM_REEMIT_BRANCH_SHAPE_GROWTH_BUDGET)",) $(if $(strip $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE),)
 
 GRHSIM_IR_BENCH_CPU ?= 2
 GRHSIM_IR_BENCH_PAIRS ?= 3
@@ -566,6 +566,28 @@ analyze_grhsim_edgecomplete:
 .PHONY: test_grhsim_edgecomplete_gates
 test_grhsim_edgecomplete_gates:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_edgecomplete_gates.py
+
+.PHONY: analyze_grhsim_migrate_ec_census
+analyze_grhsim_migrate_ec_census:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_migrate_ec_census.py --model "$(GRHSIM_MIGRATE_EC_MODEL)" $(if $(GRHSIM_MIGRATE_EC_RUN),--run "$(GRHSIM_MIGRATE_EC_RUN)",) --output "$(GRHSIM_MIGRATE_EC_OUTPUT)" $(if $(GRHSIM_MIGRATE_EC_PROFILE),--profile-output "$(GRHSIM_MIGRATE_EC_PROFILE)",) $(if $(GRHSIM_MIGRATE_EC_CYCLES),--cycles "$(GRHSIM_MIGRATE_EC_CYCLES)",)
+
+.PHONY: test_grhsim_migrate_ec_census
+test_grhsim_migrate_ec_census:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_migrate_ec_census.py
+
+.PHONY: analyze_grhsim_migrate_ec
+analyze_grhsim_migrate_ec:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_migrate_ec_gates.py \
+		--old-model "$(GRHSIM_MIGRATE_EC_OLD_MODEL)" --new-model "$(GRHSIM_MIGRATE_EC_NEW_MODEL)" \
+		--baseline-run "$(GRHSIM_MIGRATE_EC_BASELINE_RUN)" \
+		$(if $(GRHSIM_MIGRATE_EC_RUN1),--run1 "$(GRHSIM_MIGRATE_EC_RUN1)",) \
+		$(if $(GRHSIM_MIGRATE_EC_RUN2),--run2 "$(GRHSIM_MIGRATE_EC_RUN2)",) \
+		$(if $(GRHSIM_MIGRATE_EC_CENSUS),--census "$(GRHSIM_MIGRATE_EC_CENSUS)",) \
+		--output "$(GRHSIM_MIGRATE_EC_OUTPUT)"
+
+.PHONY: test_grhsim_migrate_ec_gates
+test_grhsim_migrate_ec_gates:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_migrate_ec_gates.py
 
 .PHONY: analyze_grhsim_residue_fold_census
 analyze_grhsim_residue_fold_census:
@@ -1118,6 +1140,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_MIGRATE_BOUNDARY_OPS)),--migrate-boundary-ops,) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_DEMONITOR_REDUNDANT)),--demonitor-redundant,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EDGECOMPLETE_PROFILE)),--demonitor-edge-completion-profile "$(abspath $(XS_WOLF_GRHSIM_IR_EDGECOMPLETE_PROFILE))",) \
+			$(if $(strip $(XS_WOLF_GRHSIM_IR_MIGRATE_EC_PROFILE)),--migrate-boundary-ops-ec-profile "$(abspath $(XS_WOLF_GRHSIM_IR_MIGRATE_EC_PROFILE))",) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESIDUE_FOLD)),--fold-residue,); \
 	} 2>&1 | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
 	status=$$?; \

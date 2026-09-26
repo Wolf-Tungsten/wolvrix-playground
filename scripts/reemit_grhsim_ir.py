@@ -40,6 +40,8 @@ def main():
                         help="drop activation-redundant compute fanout rows (rebuilds the schedule; writes/stores stay)")
     parser.add_argument("--demonitor-edge-completion-profile", default="",
                         help="vchg profile enabling edge-completion de-monitoring (adds missing operand activation edges, then removes redundant rows)")
+    parser.add_argument("--migrate-boundary-ops-ec-profile", default="",
+                        help="vchg profile enabling selective boundary-op migration into compute supernodes (may add activation edges; NO00019)")
     parser.add_argument("--fold-residue", action="store_true",
                         help="fold post-schedule identity/constant residue ops (rewires consumers; emitter skips the folded ops)")
     parser.add_argument("--canonicalize-compute", action="store_true",
@@ -120,6 +122,9 @@ def main():
         if args.demonitor_edge_completion_profile:
             actions += [lambda: session.run_grhsim_pass("grhsim.demonitor-edge-completion", model="grhsim.main",
                                                         profile=args.demonitor_edge_completion_profile)]
+        if args.migrate_boundary_ops_ec_profile:
+            actions += [lambda: session.run_grhsim_pass("grhsim.migrate-boundary-ops-ec", model="grhsim.main",
+                                                        profile=args.migrate_boundary_ops_ec_profile)]
         if args.fold_residue:
             actions += [lambda: session.run_grhsim_pass("grhsim.fold-residue", model="grhsim.main")]
         emit_options = {"model": "grhsim.main", "output": str(flow / "model")}

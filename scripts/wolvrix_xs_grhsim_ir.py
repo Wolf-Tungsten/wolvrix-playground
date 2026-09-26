@@ -110,6 +110,8 @@ def parse_args() -> argparse.Namespace:
                         help="drop activation-redundant compute fanout rows (off by default: NO00014 candidate mechanism)")
     parser.add_argument("--demonitor-edge-completion-profile", type=Path,
                         help="vchg profile enabling edge-completion de-monitoring (off by default: NO00015 candidate mechanism)")
+    parser.add_argument("--migrate-boundary-ops-ec-profile", type=Path,
+                        help="vchg profile enabling selective boundary-op migration that may add activation edges (off by default: NO00019 candidate mechanism)")
     parser.add_argument("--fold-residue", action="store_true",
                         help="fold post-schedule identity/constant residue ops (off by default: NO00016 candidate mechanism)")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
@@ -223,6 +225,8 @@ def main() -> int:
             pipeline = pipeline + ["grhsim.demonitor-redundant"]
         if args.demonitor_edge_completion_profile:
             pipeline = pipeline + ["grhsim.demonitor-edge-completion"]
+        if args.migrate_boundary_ops_ec_profile:
+            pipeline = pipeline + ["grhsim.migrate-boundary-ops-ec"]
         if args.fold_residue:
             pipeline = pipeline + ["grhsim.fold-residue"]
         for pass_name in pipeline:
@@ -246,6 +250,8 @@ def main() -> int:
                 pass_options["max_op_in_compute_supernode"] = args.max_op_in_compute_supernode
             if pass_name == "grhsim.demonitor-edge-completion":
                 pass_options["profile"] = str(args.demonitor_edge_completion_profile.resolve())
+            if pass_name == "grhsim.migrate-boundary-ops-ec":
+                pass_options["profile"] = str(args.migrate_boundary_ops_ec_profile.resolve())
             diagnostics = timed(
                 f"GrhSIM CPU pass {pass_name}" + (f" {pass_options}" if pass_options else ""),
                 lambda name=pass_name, options=pass_options: session.run_grhsim_pass(name, model="grhsim.main", **options),

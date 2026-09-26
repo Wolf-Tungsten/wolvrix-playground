@@ -192,6 +192,10 @@ def view_from_model(model):
             aliased.add(result)
     view["aliased_read_values"] = aliased
     view["dpi_produced"] = dpi_produced
+    # NO00019: stored NO00015 edge-completion removal list (schedule trailing
+    # field [10]; [9] is the demonitorRedundant flag). Absent on pre-NO00015
+    # checkpoints or when the flag is off.
+    view["stored_ec_removed"] = (set(schedule[10]) if len(schedule) > 10 else set())
     return view
 
 
