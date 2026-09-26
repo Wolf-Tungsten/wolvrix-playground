@@ -601,6 +601,31 @@ analyze_grhsim_kind_cost_census:
 test_grhsim_kind_cost_census:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_kind_cost_census.py
 
+GRHSIM_ICLASS_DISASM ?= ptmp/no00018_iclass_20260926/disasm_full.txt
+GRHSIM_ICLASS_EMU ?= ptmp/no00015_edge_complete_20260925/flow/emu/emu
+GRHSIM_ICLASS_PERF_ROOT ?= ptmp/no00018_iclass_20260926
+GRHSIM_ICLASS_MODEL ?= ptmp/no00015_edge_complete_20260925/flow/xiangshan_grhsim_ir.json
+GRHSIM_ICLASS_RUN ?= ptmp/no00015_edge_complete_20260925/run1/logs/xs_wolf_grhsim_no00015_edgecomplete_run1_20260926.log
+GRHSIM_ICLASS_PHASE ?= ptmp/no00018_iclass_20260926/phase_ref.csv
+GRHSIM_ICLASS_OUTPUT ?= ptmp/no00018_iclass_20260926/analysis
+
+.PHONY: analyze_grhsim_dyn_iclass
+analyze_grhsim_dyn_iclass:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_dyn_iclass_profile.py --disasm "$(GRHSIM_ICLASS_DISASM)" --emu "$(GRHSIM_ICLASS_EMU)" \
+		--perf "$(GRHSIM_ICLASS_PERF_ROOT)/perf1/perf.data" \
+		--perf "$(GRHSIM_ICLASS_PERF_ROOT)/perf2/perf.data" \
+		--perf "$(GRHSIM_ICLASS_PERF_ROOT)/perf3/perf.data" \
+		--perf "$(GRHSIM_ICLASS_PERF_ROOT)/perf4/perf.data" \
+		--perf "$(GRHSIM_ICLASS_PERF_ROOT)/perf5/perf.data" \
+		$(if $(GRHSIM_ICLASS_MODEL),--model "$(GRHSIM_ICLASS_MODEL)",) \
+		$(if $(GRHSIM_ICLASS_RUN),--run "$(GRHSIM_ICLASS_RUN)",) \
+		$(if $(GRHSIM_ICLASS_PHASE),--phase-csv "$(GRHSIM_ICLASS_PHASE)",) \
+		--output "$(GRHSIM_ICLASS_OUTPUT)" $(if $(GRHSIM_ICLASS_CYCLES),--cycles "$(GRHSIM_ICLASS_CYCLES)",)
+
+.PHONY: test_grhsim_dyn_iclass
+test_grhsim_dyn_iclass:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_dyn_iclass_profile.py
+
 .PHONY: analyze_grhsim_topocut
 analyze_grhsim_topocut:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_topocut_stats.py --model "$(GRHSIM_TOPOCUT_MODEL)"
