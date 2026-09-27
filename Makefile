@@ -696,6 +696,31 @@ test_grhsim_rat_gcone:
 	@mkdir -p "$(REPO_ROOT)/ptmp/grhsim-rat-gcone-tests"
 	TMPDIR="$(REPO_ROOT)/ptmp/grhsim-rat-gcone-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_rat_gcone_census.py
 
+GRHSIM_RESIDUAL_ROOT ?= ptmp/no00023_residual_write_cones_20260927
+GRHSIM_RESIDUAL_PARENT ?= ptmp/no00022_writenet_factor_20260927
+GRHSIM_RESIDUAL_RUN ?= $(GRHSIM_RESIDUAL_PARENT)/run1/run.log
+GRHSIM_RESIDUAL_OUTPUT ?= $(GRHSIM_RESIDUAL_ROOT)/analysis/run1
+
+.PHONY: analyze_grhsim_residual_write_cones test_grhsim_residual_write_cones
+analyze_grhsim_residual_write_cones:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_residual_write_cones.py \
+		--pre "$(GRHSIM_RESIDUAL_ROOT)/flow/pre_partition.json" \
+		--final "$(GRHSIM_RESIDUAL_ROOT)/flow/xiangshan_grhsim_ir.json" \
+		--archive "$(GRHSIM_RESIDUAL_PARENT)/flow/xiangshan_grhsim_ir.json" \
+		--dynamic-model "$(GRHSIM_RESIDUAL_PARENT)/flow-dyn2/xiangshan_grhsim_ir.json" \
+		--gsim "$(GRHSIM_MODCMP_GSIM)" --run "$(GRHSIM_RESIDUAL_RUN)" \
+		--output "$(GRHSIM_RESIDUAL_OUTPUT)"
+
+test_grhsim_residual_write_cones:
+	@mkdir -p "$(REPO_ROOT)/ptmp/grhsim-residual-write-tests"
+	TMPDIR="$(REPO_ROOT)/ptmp/grhsim-residual-write-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_residual_write_cones.py
+
+.PHONY: inspect_grhsim_residual_write_cones
+inspect_grhsim_residual_write_cones:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_residual_write_cones.py \
+		--gsim "$(GRHSIM_MODCMP_GSIM)" --inspect-report "$(GRHSIM_RESIDUAL_OUTPUT)/summary.json" \
+		--output "$(GRHSIM_RESIDUAL_ROOT)/details"
+
 GRHSIM_ICLASS_DISASM ?= ptmp/no00018_iclass_20260926/disasm_full.txt
 GRHSIM_ICLASS_EMU ?= ptmp/no00015_edge_complete_20260925/flow/emu/emu
 GRHSIM_ICLASS_PERF_ROOT ?= ptmp/no00018_iclass_20260926
