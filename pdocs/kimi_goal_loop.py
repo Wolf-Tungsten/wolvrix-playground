@@ -33,7 +33,7 @@ Usage:
     python3 pdocs/kimi_goal_loop.py                 # loop forever
     python3 pdocs/kimi_goal_loop.py --max-runs 3    # stop after 3 runs
     python3 pdocs/kimi_goal_loop.py --sleep 60      # 60 s between runs
-    python3 pdocs/kimi_goal_loop.py --timeout 7200  # kill a run after 2 h (default: 2 h)
+    python3 pdocs/kimi_goal_loop.py --timeout 7200  # kill a run after 2 h (default: 3 h)
     python3 pdocs/kimi_goal_loop.py --no-tui        # plain streaming output
     python3 pdocs/kimi_goal_loop.py --dry-run       # print command, do not run
 """
@@ -88,8 +88,8 @@ def parse_args() -> argparse.Namespace:
                         help="stop after N runs (default: 0 = unlimited)")
     parser.add_argument("--sleep", type=float, default=5.0,
                         help="seconds to wait between runs (default: 5)")
-    parser.add_argument("--timeout", type=float, default=2 * 3600.0,
-                        help="kill a single run after N seconds (default: 7200 = 2 h; 0 = no limit)")
+    parser.add_argument("--timeout", type=float, default=3 * 3600.0,
+                        help="kill a single run after N seconds (default: 10800 = 3 h; 0 = no limit)")
     parser.add_argument("--kimi", default="kimi",
                         help="path to the kimi CLI binary (default: 'kimi' from PATH)")
     parser.add_argument("--no-tui", action="store_true",
