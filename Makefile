@@ -728,6 +728,25 @@ inspect_grhsim_residual_write_cones:
 		--output "$(GRHSIM_RESIDUAL_ROOT)/details"
 
 GRHSIM_ICLASS_DISASM ?= ptmp/no00018_iclass_20260926/disasm_full.txt
+
+GRHSIM_BIT_UPDATE_ROOT ?= ptmp/no00025_bit_update_census_20260927
+GRHSIM_BIT_UPDATE_PARENT ?= ptmp/no00024_or_write_recovery_20260927/flow
+GRHSIM_BIT_UPDATE_OUTPUT ?= $(GRHSIM_BIT_UPDATE_ROOT)/analysis/run1
+.PHONY: analyze_grhsim_bit_updates test_grhsim_bit_updates
+analyze_grhsim_bit_updates:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_bit_update_census.py \
+		--pre "$(GRHSIM_BIT_UPDATE_ROOT)/flow/pre_partition.json" \
+		--final "$(GRHSIM_BIT_UPDATE_ROOT)/flow/xiangshan_grhsim_ir.json" \
+		--parent "$(GRHSIM_BIT_UPDATE_PARENT)/xiangshan_grhsim_ir.json" \
+		--dynamic "$(GRHSIM_BIT_UPDATE_ROOT)/dynamic/xiangshan_grhsim_ir.json" \
+		--run1 "$(GRHSIM_BIT_UPDATE_ROOT)/dynamic-run1.log" \
+		--run2 "$(GRHSIM_BIT_UPDATE_ROOT)/dynamic-run2.log" \
+		--gsim "$(GRHSIM_MODCMP_GSIM)" --output "$(GRHSIM_BIT_UPDATE_OUTPUT)"
+
+test_grhsim_bit_updates:
+	@mkdir -p "$(REPO_ROOT)/ptmp/grhsim-bit-update-tests"
+	TMPDIR="$(REPO_ROOT)/ptmp/grhsim-bit-update-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_bit_update_census.py
+
 GRHSIM_ICLASS_EMU ?= ptmp/no00015_edge_complete_20260925/flow/emu/emu
 GRHSIM_ICLASS_PERF_ROOT ?= ptmp/no00018_iclass_20260926
 GRHSIM_ICLASS_MODEL ?= ptmp/no00015_edge_complete_20260925/flow/xiangshan_grhsim_ir.json
