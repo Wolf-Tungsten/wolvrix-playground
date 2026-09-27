@@ -560,6 +560,7 @@ test_grhsim_edgecomplete_census:
 .PHONY: analyze_grhsim_edgecomplete
 analyze_grhsim_edgecomplete:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_edgecomplete_gates.py \
+		$(if $(filter 1,$(GRHSIM_CHECKPOINT_ALLOW_SOURCE_RENUMBER)),--allow-grh-source-renumber,) \
 		--old-model "$(GRHSIM_EDGECOMPLETE_OLD_MODEL)" --new-model "$(GRHSIM_EDGECOMPLETE_NEW_MODEL)" \
 		--baseline-run "$(GRHSIM_EDGECOMPLETE_BASELINE_RUN)" \
 		$(if $(GRHSIM_EDGECOMPLETE_RUN1),--run1 "$(GRHSIM_EDGECOMPLETE_RUN1)",) \
@@ -581,6 +582,7 @@ test_grhsim_migrate_ec_census:
 .PHONY: analyze_grhsim_migrate_ec
 analyze_grhsim_migrate_ec:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_migrate_ec_gates.py \
+		$(if $(filter 1,$(GRHSIM_CHECKPOINT_ALLOW_SOURCE_RENUMBER)),--allow-grh-source-renumber,) \
 		--old-model "$(GRHSIM_MIGRATE_EC_OLD_MODEL)" --new-model "$(GRHSIM_MIGRATE_EC_NEW_MODEL)" \
 		--baseline-run "$(GRHSIM_MIGRATE_EC_BASELINE_RUN)" \
 		$(if $(GRHSIM_MIGRATE_EC_RUN1),--run1 "$(GRHSIM_MIGRATE_EC_RUN1)",) \
@@ -591,6 +593,10 @@ analyze_grhsim_migrate_ec:
 .PHONY: test_grhsim_migrate_ec_gates
 test_grhsim_migrate_ec_gates:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_migrate_ec_gates.py
+
+.PHONY: test_grhsim_checkpoint_identity
+test_grhsim_checkpoint_identity:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_checkpoint_identity.py
 
 .PHONY: analyze_grhsim_residue_fold_census
 analyze_grhsim_residue_fold_census:
@@ -853,7 +859,7 @@ summarize_grhsim_reg_to_mem: test_grhsim_reg_to_mem
 .PHONY: test_grhsim_reg_to_mem_generated
 test_grhsim_reg_to_mem_generated: test_grhsim_reg_to_mem
 	$(WOLVRIX_BUILD_DIR)/bin/grhsim-reg-to-mem-tests --emit-checks "$(CURDIR)/ptmp/reg_to_mem/generated_checks"
-	@for shape in writes reads windows shifted_windows edge_window overlap multi_bit_window multi_bit_shift row_constant_fill row_constant_fill_overlap; do \
+	@for shape in writes reads windows shifted_windows edge_window overlap multi_bit_window multi_bit_shift row_constant_fill row_constant_fill_overlap or_writes or_global or_feedback or_word64; do \
 		TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp $(MAKE) --no-print-directory -C "$(CURDIR)/ptmp/reg_to_mem/generated_checks/$$shape" \
 		-f "$(WOLVRIX_DIR)/tests/grhsim/data/reg_to_mem_generated.mk" -j 2 check \
 		CXX="$(CXX)" CXXFLAGS='-std=c++20 -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all' || exit $$?; \
@@ -1231,6 +1237,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE),) \
 			--reg-to-mem-report "$(XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT)" \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_ROW_CONSTANT_FILL)),--reg-to-mem-row-constant-fill,) \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_OR_WRITE_MERGE)),--reg-to-mem-or-write-merge,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_SHAPE_TWIN_SHARE)),--shape-twin-share,) \

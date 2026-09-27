@@ -124,6 +124,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
+    parser.add_argument("--reg-to-mem-or-write-merge", action="store_true",
+                        help="recover decoded OR-of-zero-mux writes with shared same-address data merging")
     parser.add_argument("--reg-to-mem-row-constant-fill", action="store_true",
                         help="let grhsim.reg-to-mem merge write families whose fill branch data is a "
                              "per-row constant, expanding the fill to static-address sequence triples "
@@ -271,6 +273,8 @@ def main() -> int:
                 pass_options["report"] = str(args.reg_to_mem_report.resolve())
             if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_row_constant_fill:
                 pass_options["enable_row_constant_fill"] = True
+            if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_or_write_merge:
+                pass_options["enable_or_write_merge"] = True
             if pass_name == "cpu.st.pack-emit-functions" and args.cpu_target_batch_count is not None:
                 pass_options["target_batch_count"] = args.cpu_target_batch_count
             if pass_name == "cpu.st.merge-compute-supernodes" and args.max_op_in_compute_supernode is not None:

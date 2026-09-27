@@ -510,6 +510,8 @@ def main(argv=None):
                              "of the in-process recomputation")
     parser.add_argument("--cycles", type=int, default=100001)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--allow-grh-source-renumber", action="store_true",
+                        help="permit only proven GRH sourceIndex/private event name renumbering")
     args = parser.parse_args(argv)
 
     old_model = json.loads(args.old_model.read_bytes())
@@ -530,7 +532,7 @@ def main(argv=None):
         selected, view["partitions"], unit_flat_ops)
     unit_bound = widen_bounds(projected, vchg)
 
-    gates = [gate_model_neutral(old_model, new_model)]
+    gates = [gate_model_neutral(old_model, new_model, args.allow_grh_source_renumber)]
     flipped, moved_ops, new_to_old, old_to_new, ambiguous = analyze_migration(old, new)
     gates.append(gate_boundary_closed(old, new, flipped))
     gates.append(gate_membership(old, new, flipped, moved_ops, new_to_old,

@@ -219,13 +219,15 @@ def main(argv=None):
     parser.add_argument("--run2", type=Path)
     parser.add_argument("--cycles", type=int, default=100001)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--allow-grh-source-renumber", action="store_true",
+                        help="permit only proven GRH sourceIndex/private event name renumbering")
     args = parser.parse_args(argv)
 
     old_model = json.loads(args.old_model.read_bytes())
     new_model = json.loads(args.new_model.read_bytes())
     baseline_vchg, _ = dc.parse_run(args.baseline_run.read_text(errors="replace"))
 
-    gates = [gate_model_neutral(old_model, new_model),
+    gates = [gate_model_neutral(old_model, new_model, args.allow_grh_source_renumber),
              gate_partition_layout_neutral(old_model, new_model)]
     fanout_gate, selected, added = gate_fanout_edges(old_model, new_model, baseline_vchg)
     gates.append(fanout_gate)

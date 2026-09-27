@@ -70,8 +70,16 @@ def schedule_of(model):
     return model["mappings"][0][-1][4]
 
 
-def gate_model_neutral(old_model, new_model):
+def gate_model_neutral(old_model, new_model, allow_grh_source_renumber=False):
     g = Gate("1.model-section-neutral")
+    if allow_grh_source_renumber:
+        from grhsim_checkpoint_identity import source_renumber_identity
+        errors, notes = source_renumber_identity(old_model, new_model)
+        for error in errors:
+            g.check(False, error)
+        for note in notes:
+            g.note(note)
+        return g
     old_keys = {k for k in old_model if k != "mappings"}
     new_keys = {k for k in new_model if k != "mappings"}
     g.check(old_keys == new_keys, f"top-level key sets differ: {old_keys ^ new_keys}")
