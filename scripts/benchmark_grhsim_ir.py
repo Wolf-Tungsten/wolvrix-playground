@@ -84,6 +84,27 @@ def summary(results: list[dict]) -> dict:
             "rank_gate_pass": len(new) >= 3 and len(old) >= 3 and max(new) < min(old)}
 
 
+def native_work_summary(results: list[dict]) -> dict:
+    groups = {}
+    for mode in ("old", "new"):
+        runs = [result for result in results if result["mode"] == mode]
+        instructions = [run["counts"]["instructions:u"] for run in runs]
+        per_cycle = [count / run["endpoint"][2] for count, run in zip(instructions, runs)]
+        mean_instructions = statistics.mean(instructions)
+        groups[mode] = {
+            "instructions": instructions,
+            "instructions_per_guest_cycle": per_cycle,
+            "mean_instructions_per_guest_cycle": statistics.mean(per_cycle),
+            "sample_sd_instructions_per_guest_cycle": statistics.stdev(per_cycle) if len(runs) > 1 else None,
+            "instruction_spread_ratio": (max(instructions) - min(instructions)) / mean_instructions,
+            "cpi": statistics.mean(run["counts"]["cycles:u"] for run in runs) / mean_instructions,
+        }
+    groups["instruction_reduction_percent"] = 100 * (1 -
+        groups["new"]["mean_instructions_per_guest_cycle"] /
+        groups["old"]["mean_instructions_per_guest_cycle"])
+    return groups
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--old", type=Path, required=True)
@@ -102,6 +123,8 @@ def main() -> None:
                         help="instrCnt,cycleCnt,guestCycles,pc that every valid run must hit")
     parser.add_argument("--evict-page-cache", action=argparse.BooleanOptionalAction, default=True,
                         help="evict each flow binary's page cache before every run (default on)")
+    parser.add_argument("--perf-stat", action="store_true",
+                        help="collect native work counters; these runs are diagnostics, not Host baselines")
     parser.add_argument("--old-env", action="append", default=[], metavar="KEY=VALUE",
                         help="extra environment variable for old-mode runs only (repeatable); "
                              "enables same-binary A/B when old and new point at one flow")
@@ -143,6 +166,12 @@ def main() -> None:
                     "primary": "Host time", "gate": "max(new) < min(old), 3+3 valid runs",
                     "expected_endpoint": expected_endpoint,
                     "timestamp": time.time()}
+    registration["perf_stat"] = args.perf_stat
+    if args.perf_stat:
+        from grhsim_native_work_compare import MAIN_EVENTS, parse_perf_stat
+        registration["primary"] = "instructions per guest cycle"
+        registration["kind"] = "perf-stat diagnostic; Host times are not performance baselines"
+        registration["events"] = list(MAIN_EVENTS)
     (output / "preregister.json").write_text(json.dumps(registration, indent=2) + "\n")
     env = {key: value for key, value in os.environ.items()
            if key not in ("CPUPROFILE", "CPUPROFILE_FREQUENCY", "LD_PRELOAD")}
@@ -153,12 +182,19 @@ def main() -> None:
         label = f"{mode}{repeat}"
         directory = output / label
         directory.mkdir()
-        if args.evict_page_cache and evict_page_cache(flows[mode] / args.emu_relpath):
+        cache_evicted = False
+        if args.evict_page_cache:
+            cache_evicted = evict_page_cache(flows[mode] / args.emu_relpath)
+            if not cache_evicted:
+                raise RuntimeError(f"{label}: cannot evict binary page cache")
             evicted.add(mode)
         timing = directory / "emu.time"
-        prefix = shlex.join(["timeout", "--signal=KILL", f"{cutoff:.6f}s", "/usr/bin/time",
-                             "-f", "wall=%e,exit=%x", "-o", str(timing), "taskset", "-c",
-                             str(args.cpu), "stdbuf", "-oL", "-eL"])
+        prefix_args = ["timeout", "--signal=KILL", f"{cutoff:.6f}s", "/usr/bin/time",
+                       "-f", "wall=%e,exit=%x", "-o", str(timing)]
+        if args.perf_stat:
+            prefix_args += ["perf", "stat", "-x,", "-e", ",".join(MAIN_EVENTS),
+                            "-o", str(directory / "perf.stat")]
+        prefix = shlex.join(prefix_args + ["taskset", "-c", str(args.cpu), "stdbuf", "-oL", "-eL"])
         command = ["make", "--no-print-directory", args.make_target,
                    f"{args.build_var}={flows[mode]}", f"XS_LOG_DIR={directory / 'logs'}",
                    f"RUN_ID={output.parent.name}_{output.name}_{label}", "XS_NUM_CORES=1", "XS_EMU_THREADS=1", "EMU_THREADS=1",
@@ -198,11 +234,17 @@ def main() -> None:
         if not wall:
             raise RuntimeError(f"{label}: INVALID emu exit/timing")
         result.update(host_s=parsed[4], emu_wall_s=float(wall[1]), emu_exit=0, endpoint=list(parsed[:4]))
+        result["page_cache_evicted"] = cache_evicted
+        if args.perf_stat:
+            result["counts"] = parse_perf_stat((directory / "perf.stat").read_text(), MAIN_EVENTS)
         results.append(result)
         (output / "results.json").write_text(json.dumps(results, indent=2) + "\n")
         print(f"DONE {label} Host={parsed[4]:.3f}s emu_wall={wall[1]}s", flush=True)
     stats = summary(results)
     stats["page_cache_evicted"] = sorted(evicted)
+    if args.perf_stat:
+        stats["kind"] = registration["kind"]
+        stats["native_work"] = native_work_summary(results)
     (output / "summary.json").write_text(json.dumps(stats, indent=2) + "\n")
     print(json.dumps(stats, indent=2), flush=True)
 

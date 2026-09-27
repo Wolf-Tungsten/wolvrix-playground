@@ -362,13 +362,15 @@ GRHSIM_IR_BENCH_MAKE_TARGET ?= run_xs_wolf_grhsim_ir_emu
 GRHSIM_IR_BENCH_BUILD_VAR ?= XS_GRHSIM_IR_BUILD
 GRHSIM_IR_BENCH_EMU_RELPATH ?= emu/emu
 GRHSIM_IR_BENCH_EXPECTED_ENDPOINT ?= 240349,99996,100001,0x80000c0c
+GRHSIM_IR_BENCH_PERF_STAT ?= 0
 .PHONY: benchmark_grhsim_ir
 benchmark_grhsim_ir:
 	$(PYTHON) scripts/benchmark_grhsim_ir.py --old "$(GRHSIM_IR_BENCH_OLD)" --new "$(GRHSIM_IR_BENCH_NEW)" \
 		--output "$(GRHSIM_IR_BENCH_OUTPUT)" --cpu "$(GRHSIM_IR_BENCH_CPU)" \
 		--pairs "$(GRHSIM_IR_BENCH_PAIRS)" --baseline-seconds "$(GRHSIM_IR_BENCH_BASELINE_SECONDS)" \
 		--make-target "$(GRHSIM_IR_BENCH_MAKE_TARGET)" --build-var "$(GRHSIM_IR_BENCH_BUILD_VAR)" \
-		--emu-relpath "$(GRHSIM_IR_BENCH_EMU_RELPATH)" --expected-endpoint "$(GRHSIM_IR_BENCH_EXPECTED_ENDPOINT)"
+		--emu-relpath "$(GRHSIM_IR_BENCH_EMU_RELPATH)" --expected-endpoint "$(GRHSIM_IR_BENCH_EXPECTED_ENDPOINT)" \
+		$(if $(filter 1,$(GRHSIM_IR_BENCH_PERF_STAT)),--perf-stat,)
 
 .PHONY: test_benchmark_grhsim_ir
 test_benchmark_grhsim_ir:
@@ -666,6 +668,34 @@ analyze_grhsim_bucket_dyn_price:
 test_grhsim_bucket_dyn_price:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_bucket_dyn_price.py
 
+GRHSIM_GCONE_ROOT ?= ptmp/no00022_writenet_factor_20260927
+GRHSIM_GCONE_MODEL ?= ptmp/no00019_migrate_ec_20260926/flow/xiangshan_grhsim_ir.json
+GRHSIM_GCONE_RUN ?= ptmp/no00019_migrate_ec_20260926/run1/logs/xs_wolf_grhsim_no00019_migrateec_run1_20260926.log
+GRHSIM_GCONE_OUTPUT ?= $(GRHSIM_GCONE_ROOT)/gcone
+GRHSIM_GCONE_EXPECT_FAMILIES ?= {"fpRat/arch_table": 34, "fpRat/difftest_table": 32, "vecRat/arch_table": 47, "vecRat/difftest_table": 31}
+
+.PHONY: analyze_grhsim_rat_gcone
+analyze_grhsim_rat_gcone:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_rat_gcone_census.py \
+		--model "$(GRHSIM_GCONE_MODEL)" \
+		--run "$(GRHSIM_GCONE_RUN)" \
+		--output "$(GRHSIM_GCONE_OUTPUT)/run1" \
+		--expect-families '$(GRHSIM_GCONE_EXPECT_FAMILIES)' $(if $(GRHSIM_GCONE_CYCLES),--cycles "$(GRHSIM_GCONE_CYCLES)",) \
+		$(if $(GRHSIM_GCONE_EXPECT_MEMORIES),--expect-memories '$(GRHSIM_GCONE_EXPECT_MEMORIES)',)
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_rat_gcone_census.py \
+		--model "$(GRHSIM_GCONE_MODEL)" \
+		--run "$(GRHSIM_GCONE_RUN)" \
+		--output "$(GRHSIM_GCONE_OUTPUT)/run2" \
+		--expect-families '$(GRHSIM_GCONE_EXPECT_FAMILIES)' $(if $(GRHSIM_GCONE_CYCLES),--cycles "$(GRHSIM_GCONE_CYCLES)",) \
+		$(if $(GRHSIM_GCONE_EXPECT_MEMORIES),--expect-memories '$(GRHSIM_GCONE_EXPECT_MEMORIES)',)
+	diff "$(GRHSIM_GCONE_OUTPUT)/run1/summary.json" "$(GRHSIM_GCONE_OUTPUT)/run2/summary.json"
+	diff "$(GRHSIM_GCONE_OUTPUT)/run1/summary.md" "$(GRHSIM_GCONE_OUTPUT)/run2/summary.md"
+
+.PHONY: test_grhsim_rat_gcone
+test_grhsim_rat_gcone:
+	@mkdir -p "$(REPO_ROOT)/ptmp/grhsim-rat-gcone-tests"
+	TMPDIR="$(REPO_ROOT)/ptmp/grhsim-rat-gcone-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_rat_gcone_census.py
+
 GRHSIM_ICLASS_DISASM ?= ptmp/no00018_iclass_20260926/disasm_full.txt
 GRHSIM_ICLASS_EMU ?= ptmp/no00015_edge_complete_20260925/flow/emu/emu
 GRHSIM_ICLASS_PERF_ROOT ?= ptmp/no00018_iclass_20260926
@@ -798,7 +828,7 @@ summarize_grhsim_reg_to_mem: test_grhsim_reg_to_mem
 .PHONY: test_grhsim_reg_to_mem_generated
 test_grhsim_reg_to_mem_generated: test_grhsim_reg_to_mem
 	$(WOLVRIX_BUILD_DIR)/bin/grhsim-reg-to-mem-tests --emit-checks "$(CURDIR)/ptmp/reg_to_mem/generated_checks"
-	@for shape in writes reads windows shifted_windows edge_window overlap multi_bit_window multi_bit_shift; do \
+	@for shape in writes reads windows shifted_windows edge_window overlap multi_bit_window multi_bit_shift row_constant_fill row_constant_fill_overlap; do \
 		TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp $(MAKE) --no-print-directory -C "$(CURDIR)/ptmp/reg_to_mem/generated_checks/$$shape" \
 		-f "$(WOLVRIX_DIR)/tests/grhsim/data/reg_to_mem_generated.mk" -j 2 check \
 		CXX="$(CXX)" CXXFLAGS='-std=c++20 -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all' || exit $$?; \
@@ -1175,6 +1205,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS)),--disable-pack-bit-registers,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE),) \
 			--reg-to-mem-report "$(XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT)" \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_ROW_CONSTANT_FILL)),--reg-to-mem-row-constant-fill,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_SHAPE_TWIN_SHARE)),--shape-twin-share,) \
@@ -1187,7 +1218,8 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_MIGRATE_EC_PROFILE)),--migrate-boundary-ops-ec-profile "$(abspath $(XS_WOLF_GRHSIM_IR_MIGRATE_EC_PROFILE))",) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESIDUE_FOLD)),--fold-residue,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON)),--dump-post-lower-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON))",) \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON)),--dump-pre-partition-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON))",); \
+			$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON)),--dump-pre-partition-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON))",) \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_DYNAMIC_STATS)),--dynamic-stats,); \
 	} 2>&1 | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
 	status=$$?; \
 	echo "[EXIT] xs_wolf_grhsim_ir $$status" | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \

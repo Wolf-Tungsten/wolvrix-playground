@@ -1,6 +1,6 @@
 import unittest
 
-from benchmark_grhsim_ir import endpoint, summary
+from benchmark_grhsim_ir import endpoint, native_work_summary, summary
 
 
 class BenchmarkTests(unittest.TestCase):
@@ -28,6 +28,21 @@ Host time spent: 122471ms
         self.assertEqual(stats["cliff_delta"], -1)
         self.assertFalse(summary(results([5, 6, 7], [3, 4, 5]))["rank_gate_pass"])
         self.assertFalse(summary(results([6], [3]))["rank_gate_pass"])
+
+    def test_native_work_uses_guest_cycles_and_keeps_host_separate(self):
+        runs = [
+            {"mode": mode, "endpoint": [42, 99, 100, "0x123"], "host_s": 999,
+             "counts": {"instructions:u": count, "cycles:u": count * 2}}
+            for mode, counts in (("old", [1000, 1020, 980]), ("new", [800, 800, 800]))
+            for count in counts
+        ]
+        stats = native_work_summary(runs)
+        self.assertAlmostEqual(stats["instruction_reduction_percent"], 20)
+        self.assertEqual(stats["old"]["mean_instructions_per_guest_cycle"], 10)
+        self.assertAlmostEqual(stats["old"]["sample_sd_instructions_per_guest_cycle"], 0.2)
+        self.assertEqual(stats["new"]["instruction_spread_ratio"], 0)
+        self.assertEqual(stats["new"]["cpi"], 2)
+        self.assertNotIn("host_s", stats["new"])
 
 
 if __name__ == "__main__":

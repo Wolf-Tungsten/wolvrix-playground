@@ -124,6 +124,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
+    parser.add_argument("--reg-to-mem-row-constant-fill", action="store_true",
+                        help="let grhsim.reg-to-mem merge write families whose fill branch data is a "
+                             "per-row constant, expanding the fill to static-address sequence triples "
+                             "(off by default: NO00022 candidate mechanism)")
     parser.add_argument("--shape-twin-share", action="store_true",
                         help="fold cross-file shape-identical task bodies into noinline shared bodies (off by default: runtime over compile time)")
     parser.add_argument("--branch-shape-share", action="store_true",
@@ -134,6 +138,8 @@ def parse_args() -> argparse.Namespace:
                         help="max estimated parameter-load growth in model units when hotness is provided")
     parser.add_argument("--disable-falling-edge-elision", action="store_true",
                         help="disable the falling-edge eval elision fast path in the emitted CPU model (on by default)")
+    parser.add_argument("--dynamic-stats", action="store_true",
+                        help="emit diagnostic dynamic counters into the model (screening builds only)")
     args = parser.parse_args()
     if args.cpu_target_batch_count is not None and args.cpu_target_batch_count < 0:
         parser.error("--cpu-target-batch-count must be nonnegative")
@@ -263,6 +269,8 @@ def main() -> int:
             if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_report:
                 args.reg_to_mem_report.parent.mkdir(parents=True, exist_ok=True)
                 pass_options["report"] = str(args.reg_to_mem_report.resolve())
+            if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_row_constant_fill:
+                pass_options["enable_row_constant_fill"] = True
             if pass_name == "cpu.st.pack-emit-functions" and args.cpu_target_batch_count is not None:
                 pass_options["target_batch_count"] = args.cpu_target_batch_count
             if pass_name == "cpu.st.merge-compute-supernodes" and args.max_op_in_compute_supernode is not None:
@@ -293,6 +301,8 @@ def main() -> int:
                 "commit_compact_walk": True,
                 "commit_mem_walk": True,
             }
+            if args.dynamic_stats:
+                emit_options["dynamic_stats"] = True
             if args.shape_twin_share:
                 emit_options["shape_twin_share"] = True
             if args.branch_shape_share:

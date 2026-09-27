@@ -8,10 +8,10 @@
 
 总是参考用户最新提示的建议。
 
-## 用户最新提示（2026-09-26 22:26）
+## 用户最新提示（2026-09-27 08:19）
 - **优化背后的原理性问题**：GSIM 直接读取 xiangshan 的 FIRRTL； GrhSIM-IR 读取相同 FIRRTL 生成的 SV；相同的设计到达 GRHSIM IR 时，经历了 Firtool、GRH IR 两重转换，这个转换破坏了原本的形态，导致 GrhSIM-IR 的最终性能落后于 gsim。一个显著的指标差异是，完全相同的 xiangshan 设计，仿真时的总 host instrCnt 存在显著差距。
 - 你的所有努力，都是在不动 Firtool 和 GRH IR 的前提下，从 GRHSIM IR 层面应用变换（IR的替换而不是单纯emit形态的替换），消除上述形态差异，实现性能提升。
-- 建议探索的方向：把未分图的 gsim ir、grhsim ir 导出后，按模块逻辑语义精确对比，寻找差异，定向优化。
+- 建议探索的方向：把未分图的 gsim ir、grhsim ir 导出后，按模块逻辑语义精确对比，寻找差异，定向优化，如果完整xiangshan不好分析，可以参考 testcase/xs-components/src/main/scala/cases 中的模式，提取小的模块进行模块级的 IR 比对。
 - 禁止的方向：单纯的 emit 层面改进（如 emit 代码生成、emit 调度、emit 分区）、在 schedule 分区后的图上进行op微调。
 - 文档编写必须简洁直白，明确优化动作的原理，不许编造超出一般认识的黑话。
 
@@ -93,7 +93,7 @@
 
 - **gsim+PGO 锚点**（2026-09-24 实测；构建 `make xs_gsim_emu_pgo`，difftest `gsim.mk` 内建三阶段流程，build 目录 `build/xs/gsim-pgo`；运行 `make run_xs_gsim_emu XS_GSIM_BUILD=build/xs/gsim-pgo`）：Host time **27.376 s**（3 次有效 27.345/27.451/27.333，SD 0.065 s）；端点 `instrCnt=238550`、`cycleCnt=99998`、IPC **2.385548**、末端 PC `0x80000b40`、guest cycles 100001，退出码 0，DIFFTEST 无 mismatch。同窗口 3+3 交替对照（非 PGO 归档二进制，sha256 `a0704df4…49f0b3f`）：46.873 s（46.880/46.813/46.925，SD 0.056 s，对历史归档 46.965 s 偏差 −0.20%），PGO 改善 **−41.6%**，全部 3 次新运行优于全部 3 次旧运行（Mann-Whitney 单侧精确 p=0.05）。PGO 二进制 sha256 `4e099ee9…f7a8827`；模型 C++ 源与非 PGO 归档 `build/xs/gsim` 逐字节一致（`diff -rq` 排除 `.o`），差异仅为编译 flag。构建计时（墙钟）：模型生成（sim-verilog 检查 + gsim codegen）769 s；PGO 三阶段 968 s（插桩编译 385 s + 训练运行 149 s（插桩 Host 148.671 s ≈ 3.2× 减速，端点 VALID）+ `llvm-profdata` 合并 + profile-use 重建 434 s）；make 合计 1735.8 s（-j32）。
 - **gsim 非 PGO 历史归档**（emu 编译于 2026-09-10 01:50:26）：Host time 46.965 s；NO00001 三次 sanity 复测均值 47.051 s。自 2026-09-24 起被 gsim+PGO 锚点取代，仅作历史参考，不再充当对照。
-- **GrhSIM-IR 当前最佳**（NO00004，2026-09-24 三次有效均值）：**55.864 s**（wolvrix `dc3e3cb` + 根仓库 NO00004 提交，发射源同 NO00003，clang 三阶段 PGO 构建）；`instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`，退出码 0，DIFFTEST 无 mismatch。对 gsim+PGO 锚点 ≈ **2.041×**，即剩余差距 ~28.5 s。
+- **GrhSIM-IR 已归档当前最佳**：**NO00022（ACCEPTED）**，Host **50.009 s**（2026-09-27 三次有效均值，SD 0.545 s；wolvrix `56c12e3`，clang 三阶段 PGO）。同窗口父节点 NO00019 为 52.497 s，改善 **4.739%**，单侧精确 **p=0.05**；M-gcone 保守降 **71.392%**、M-net 降 **6.095%**。完整 SV→C++ 生成 **829.30 s**、三阶段 PGO 编译 **590.97 s**，均通过门槛。端点 `instrCnt=240349`、`cycleCnt=99996`、IPC **2.403586**、末端 PC `0x80000c0c`，退出 0，DIFFTEST 无 mismatch。对 gsim+PGO ≈ **1.827×**，差 **22.633 s**。此前 Git 只读阻塞已解除，本节点完成归档；总 goal 未关闭。
 
 运行入口：gsim 两侧分别为 `run_xs_gsim_emu XS_GSIM_BUILD=build/xs/gsim`（非 PGO 归档）与 `run_xs_gsim_emu XS_GSIM_BUILD=build/xs/gsim-pgo`（PGO 锚点），IR 实测为 `run_xs_wolf_grhsim_ir_emu`；均设置 `XS_SIM_MAX_CYCLE=100000`、`XS_NUM_CORES=1`、`XS_EMU_THREADS=1`、`XS_EMU_CPU=2`、`XS_WAVEFORM=0`、`XS_COMMIT_TRACE=0`、`XS_RAM_TRACE=0`。
 
