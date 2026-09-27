@@ -107,7 +107,6 @@ def main() -> int:
             skip_transform = getenv("WOLVRIX_SKIP_TRANSFORM", "0")
             if skip_transform != "1":
                 sess.run_pass("xmr-resolve", design="design.main")
-                sess.run_pass("mem-to-reg", design="design.main", row_limit=8)
                 sess.run_pass("latch-transparent-read", design="design.main")
                 sess.run_pass("simplify", design="design.main")
                 sess.run_pass("memory-init-check", design="design.main")

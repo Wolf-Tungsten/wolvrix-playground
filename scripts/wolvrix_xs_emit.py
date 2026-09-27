@@ -68,7 +68,6 @@ with wolvrix.Session() as sess:
     pipeline: list[tuple[str, dict]] = [
         ("xmr-resolve", {}),
         ("memory-read-retime", {}),
-        #("mem-to-reg", {"row_limit": 512}),
         ("multidriven-guard", {}),
         ("blackbox-guard", {}),
         ("latch-transparent-read", {}),
