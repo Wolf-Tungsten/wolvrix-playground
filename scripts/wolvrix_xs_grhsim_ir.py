@@ -124,6 +124,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
+    parser.add_argument("--pack-bit-registers-report", type=Path,
+                        help="diagnostic (NO00026): dump the packed_bits member list TSV from grhsim.pack-bit-registers")
     parser.add_argument("--reg-to-mem-or-write-merge", action="store_true",
                         help="recover decoded OR-of-zero-mux writes with shared same-address data merging")
     parser.add_argument("--reg-to-mem-row-constant-fill", action="store_true",
@@ -275,6 +277,9 @@ def main() -> int:
                 pass_options["enable_row_constant_fill"] = True
             if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_or_write_merge:
                 pass_options["enable_or_write_merge"] = True
+            if pass_name == "grhsim.pack-bit-registers" and args.pack_bit_registers_report:
+                args.pack_bit_registers_report.parent.mkdir(parents=True, exist_ok=True)
+                pass_options["report"] = str(args.pack_bit_registers_report.resolve())
             if pass_name == "cpu.st.pack-emit-functions" and args.cpu_target_batch_count is not None:
                 pass_options["target_batch_count"] = args.cpu_target_batch_count
             if pass_name == "cpu.st.merge-compute-supernodes" and args.max_op_in_compute_supernode is not None:

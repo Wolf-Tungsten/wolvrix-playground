@@ -184,6 +184,7 @@ XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
 XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES ?= 1
 XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS ?= 1
 XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS ?= 0
+XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT ?=
 XS_SIM_DEFINES ?= DIFFTEST
 XS_SIM_DEFINES += $(XS_ZERO_INIT_DEFINES)
 XS_ROOT_ABS := $(abspath $(XS_ROOT))
@@ -749,6 +750,36 @@ test_grhsim_bit_updates:
 	@mkdir -p "$(REPO_ROOT)/ptmp/grhsim-bit-update-tests"
 	TMPDIR="$(REPO_ROOT)/ptmp/grhsim-bit-update-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_bit_update_census.py
 
+GRHSIM_DECLARED_PACK_ROOT ?= ptmp/no00026_declared_pack_census_20260928
+GRHSIM_DECLARED_PACK_POST_LOWER ?= $(GRHSIM_DECLARED_PACK_ROOT)/flow/post_lower.json
+GRHSIM_DECLARED_PACK_FINAL ?= $(GRHSIM_DECLARED_PACK_ROOT)/dynamic/xiangshan_grhsim_ir.json
+GRHSIM_DECLARED_PACK_MEMBERS ?= $(GRHSIM_DECLARED_PACK_ROOT)/flow/pack_members.tsv
+GRHSIM_DECLARED_PACK_REG2MEM ?= ptmp/declsym_baseline_20260928/flow/reg_to_mem.tsv
+GRHSIM_DECLARED_PACK_RUN1 ?= $(GRHSIM_DECLARED_PACK_ROOT)/dynamic-run1.log
+GRHSIM_DECLARED_PACK_RUN2 ?= $(GRHSIM_DECLARED_PACK_ROOT)/dynamic-run2.log
+GRHSIM_DECLARED_PACK_TOP_N ?= 25
+GRHSIM_DECLARED_PACK_SAMPLE_VERIFY ?= 0
+GRHSIM_DECLARED_PACK_SAMPLE_SEED ?= 20260928
+GRHSIM_DECLARED_PACK_OUTPUT ?= $(GRHSIM_DECLARED_PACK_ROOT)/analysis/run1
+
+.PHONY: analyze_grhsim_declared_pack_census test_grhsim_declared_pack_census
+analyze_grhsim_declared_pack_census:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_declared_pack_census.py \
+		--post-lower-json "$(GRHSIM_DECLARED_PACK_POST_LOWER)" \
+		--final-json "$(GRHSIM_DECLARED_PACK_FINAL)" \
+		--pack-members "$(GRHSIM_DECLARED_PACK_MEMBERS)" \
+		--reg-to-mem "$(GRHSIM_DECLARED_PACK_REG2MEM)" \
+		--run1 "$(GRHSIM_DECLARED_PACK_RUN1)" \
+		--run2 "$(GRHSIM_DECLARED_PACK_RUN2)" \
+		--top-n "$(GRHSIM_DECLARED_PACK_TOP_N)" \
+		--sample-verify "$(GRHSIM_DECLARED_PACK_SAMPLE_VERIFY)" \
+		--sample-seed "$(GRHSIM_DECLARED_PACK_SAMPLE_SEED)" \
+		--out-dir "$(GRHSIM_DECLARED_PACK_OUTPUT)"
+
+test_grhsim_declared_pack_census:
+	@mkdir -p "$(REPO_ROOT)/ptmp/grhsim-declared-pack-tests"
+	TMPDIR="$(REPO_ROOT)/ptmp/grhsim-declared-pack-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_declared_pack_census.py
+
 GRHSIM_ICLASS_EMU ?= ptmp/no00015_edge_complete_20260925/flow/emu/emu
 GRHSIM_ICLASS_PERF_ROOT ?= ptmp/no00018_iclass_20260926
 GRHSIM_ICLASS_MODEL ?= ptmp/no00015_edge_complete_20260925/flow/xiangshan_grhsim_ir.json
@@ -1269,6 +1300,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESIDUE_FOLD)),--fold-residue,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON)),--dump-post-lower-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON))",) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON)),--dump-pre-partition-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON))",) \
+			$(if $(strip $(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT)),--pack-bit-registers-report "$(abspath $(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT))",) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_DYNAMIC_STATS)),--dynamic-stats,); \
 	} 2>&1 | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
 	status=$$?; \
