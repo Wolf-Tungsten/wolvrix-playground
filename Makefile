@@ -804,6 +804,32 @@ test_grhsim_paired_cone_diff:
 	@mkdir -p "$(REPO_ROOT)/ptmp/grhsim-paired-cone-tests"
 	TMPDIR="$(REPO_ROOT)/ptmp/grhsim-paired-cone-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_paired_cone_diff.py
 
+GRHSIM_GUARDED_BASE ?= ptmp/declsym_baseline_20260928/flow
+GRHSIM_GUARDED_DYNAMIC ?= ptmp/no00026_declared_pack_census_20260928
+GRHSIM_GUARDED_OUTPUT ?= ptmp/no00028_guarded_write_census_20260928/analysis/run1
+GRHSIM_GUARDED_REFERENCE ?=
+GRHSIM_GUARDED_PRODUCTION ?= ptmp/no00028_guarded_write_census_20260928/flow
+
+.PHONY: analyze_grhsim_guarded_writes test_grhsim_guarded_writes verify_grhsim_guarded_production
+analyze_grhsim_guarded_writes:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_guarded_write_census.py \
+		--pre "$(GRHSIM_GUARDED_BASE)/pre_partition.json" \
+		--final "$(GRHSIM_GUARDED_BASE)/xiangshan_grhsim_ir.json" \
+		--dynamic "$(GRHSIM_GUARDED_DYNAMIC)/dynamic/xiangshan_grhsim_ir.json" \
+		--model-dir "$(GRHSIM_GUARDED_DYNAMIC)/dynamic/model" \
+		--run1 "$(GRHSIM_GUARDED_DYNAMIC)/dynamic-run1.log" \
+		--run2 "$(GRHSIM_GUARDED_DYNAMIC)/dynamic-run2.log" \
+		--output "$(GRHSIM_GUARDED_OUTPUT)" \
+		$(if $(GRHSIM_GUARDED_REFERENCE),--reference "$(GRHSIM_GUARDED_REFERENCE)",)
+
+test_grhsim_guarded_writes:
+	@mkdir -p "$(REPO_ROOT)/ptmp/grhsim-guarded-write-tests"
+	TMPDIR="$(REPO_ROOT)/ptmp/grhsim-guarded-write-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_guarded_write_census.py
+
+verify_grhsim_guarded_production:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_guarded_write_census.py \
+		--verify-production "$(GRHSIM_GUARDED_PRODUCTION)" --baseline "$(GRHSIM_GUARDED_BASE)"
+
 GRHSIM_ICLASS_EMU ?= ptmp/no00015_edge_complete_20260925/flow/emu/emu
 GRHSIM_ICLASS_PERF_ROOT ?= ptmp/no00018_iclass_20260926
 GRHSIM_ICLASS_MODEL ?= ptmp/no00015_edge_complete_20260925/flow/xiangshan_grhsim_ir.json
