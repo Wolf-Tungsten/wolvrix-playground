@@ -780,6 +780,30 @@ test_grhsim_declared_pack_census:
 	@mkdir -p "$(REPO_ROOT)/ptmp/grhsim-declared-pack-tests"
 	TMPDIR="$(REPO_ROOT)/ptmp/grhsim-declared-pack-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_declared_pack_census.py
 
+GRHSIM_PAIRED_ROOT ?= ptmp/no00027_paired_cone_diff_20260928
+GRHSIM_PAIRED_BASE ?= ptmp/declsym_baseline_20260928/flow
+GRHSIM_PAIRED_DYNAMIC ?= ptmp/no00026_declared_pack_census_20260928
+GRHSIM_PAIRED_OUTPUT ?= $(GRHSIM_PAIRED_ROOT)/analysis/run1
+GRHSIM_PAIRED_REFERENCE ?=
+
+.PHONY: analyze_grhsim_paired_cone_diff test_grhsim_paired_cone_diff
+analyze_grhsim_paired_cone_diff:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_paired_cone_diff.py \
+		--gsim-json ptmp/no00020_gsim_module_compare_20260926/gsim-export/SimTop_PreCoarsen.json \
+		--gsim-sha256 abed2a4e4ca6553b275ea2b21012f0cb7ec20ef18bc8c2b3e5345f4f0c2c2411 \
+		--grhsim-pre "$(GRHSIM_PAIRED_BASE)/pre_partition.json" \
+		--grhsim-final "$(GRHSIM_PAIRED_BASE)/xiangshan_grhsim_ir.json" \
+		--grhsim-dynamic "$(GRHSIM_PAIRED_DYNAMIC)/dynamic/xiangshan_grhsim_ir.json" \
+		--model-dir "$(GRHSIM_PAIRED_DYNAMIC)/dynamic/model" \
+		--run1 "$(GRHSIM_PAIRED_DYNAMIC)/dynamic-run1.log" \
+		--run2 "$(GRHSIM_PAIRED_DYNAMIC)/dynamic-run2.log" \
+		--sample-verify 100 --sample-seed 20260928 --out-dir "$(GRHSIM_PAIRED_OUTPUT)" \
+		$(if $(GRHSIM_PAIRED_REFERENCE),--g2-reference "$(GRHSIM_PAIRED_REFERENCE)",)
+
+test_grhsim_paired_cone_diff:
+	@mkdir -p "$(REPO_ROOT)/ptmp/grhsim-paired-cone-tests"
+	TMPDIR="$(REPO_ROOT)/ptmp/grhsim-paired-cone-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_paired_cone_diff.py
+
 GRHSIM_ICLASS_EMU ?= ptmp/no00015_edge_complete_20260925/flow/emu/emu
 GRHSIM_ICLASS_PERF_ROOT ?= ptmp/no00018_iclass_20260926
 GRHSIM_ICLASS_MODEL ?= ptmp/no00015_edge_complete_20260925/flow/xiangshan_grhsim_ir.json
