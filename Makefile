@@ -379,6 +379,55 @@ benchmark_grhsim_ir:
 test_benchmark_grhsim_ir:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_benchmark_grhsim_ir.py
 
+# ---------------------------------------------------------------------------
+# Sim-model refactor M0: golden baseline capture and diff harness.
+# capture_sim_refactor_baseline records per-eval port traces for every HDLBits
+# DUT with the current (pre-refactor) IR CPU backend, runs each testbench
+# twice and requires byte-identical traces, then builds the coverage manifest.
+# check_sim_refactor_baseline re-runs the traced testbenches with the current
+# build and diffs each run against the stored golden (first divergence wins).
+# ---------------------------------------------------------------------------
+SIM_REFACTOR_BASELINE_DIR ?= $(CURDIR)/ptmp/sim-refactor-baseline
+SIM_REFACTOR_CAPTURE_DUTS ?= $(HDLBITS_GRHSIM_DUTS)
+SIM_REFACTOR_CHECK_DUTS ?= $(patsubst dut_%.trace,%,$(notdir $(wildcard $(SIM_REFACTOR_BASELINE_DIR)/hdlbits/dut_*.trace)))
+.PHONY: capture_sim_refactor_baseline
+capture_sim_refactor_baseline: py_install
+	@mkdir -p $(SIM_REFACTOR_BASELINE_DIR)/hdlbits $(SIM_REFACTOR_BASELINE_DIR)/work/hdlbits
+	@fail=""; \
+	for dut in $(SIM_REFACTOR_CAPTURE_DUTS); do \
+		echo "==== Golden capture DUT=$$dut ===="; \
+		$(MAKE) --no-print-directory -C $(HDLBITS_ROOT) run_grhtb_trace \
+			DUT=$$dut PYTHON=$(PYTHON) \
+			BUILD_DIR=$(SIM_REFACTOR_BASELINE_DIR)/work/hdlbits \
+			GRHSIM_SCRIPT=$(HDLBITS_GRHSIM_SCRIPT) GRHSIM_BACKEND=ir \
+			GOLDEN_DIR=$(SIM_REFACTOR_BASELINE_DIR)/hdlbits || fail="$$fail $$dut"; \
+	done; \
+	echo "$$fail" > $(SIM_REFACTOR_BASELINE_DIR)/work/failed_duts.txt; \
+	if [ -n "$$fail" ]; then echo "[CAPTURE] FAILED DUTs (pre-existing, excluded from golden):$$fail"; fi
+	$(PYTHON) scripts/build_sim_refactor_manifest.py \
+		--golden-dir $(SIM_REFACTOR_BASELINE_DIR)/hdlbits \
+		--work-dir $(SIM_REFACTOR_BASELINE_DIR)/work/hdlbits \
+		--failed-list $(SIM_REFACTOR_BASELINE_DIR)/work/failed_duts.txt \
+		--output $(SIM_REFACTOR_BASELINE_DIR)/hdlbits/MANIFEST.json
+	@fail="$$(cat $(SIM_REFACTOR_BASELINE_DIR)/work/failed_duts.txt)"; \
+	if [ -n "$$fail" ]; then echo "[CAPTURE] baseline incomplete, failed DUTs:$$fail"; exit 1; fi
+
+.PHONY: check_sim_refactor_baseline
+check_sim_refactor_baseline: py_install
+	@test -n "$(SIM_REFACTOR_CHECK_DUTS)" || { echo "[FAIL] no golden traces under $(SIM_REFACTOR_BASELINE_DIR)/hdlbits"; exit 1; }
+	@for dut in $(SIM_REFACTOR_CHECK_DUTS); do \
+		$(MAKE) --no-print-directory -C $(HDLBITS_ROOT) run_grhtb_trace_check \
+			DUT=$$dut PYTHON=$(PYTHON) \
+			BUILD_DIR=$(SIM_REFACTOR_BASELINE_DIR)/work/hdlbits \
+			GRHSIM_SCRIPT=$(HDLBITS_GRHSIM_SCRIPT) GRHSIM_BACKEND=ir \
+			GOLDEN_DIR=$(SIM_REFACTOR_BASELINE_DIR)/hdlbits || exit $$?; \
+	done
+	@echo "[BASELINE] all checked DUTs match golden ($(words $(SIM_REFACTOR_CHECK_DUTS)) DUTs)"
+
+.PHONY: test_sim_refactor_trace
+test_sim_refactor_trace:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_ir_trace_diff.py
+
 # Native work/cost comparison between the GrhSIM-IR emu and the gsim emu on the
 # 100k CoreMark caliber (perf stat 3+3, icache/TLB group, no-difftest net work,
 # perf record symbol attribution). All runs are perf-instrumented diagnostics;
@@ -803,6 +852,17 @@ analyze_grhsim_paired_cone_diff:
 test_grhsim_paired_cone_diff:
 	@mkdir -p "$(REPO_ROOT)/ptmp/grhsim-paired-cone-tests"
 	TMPDIR="$(REPO_ROOT)/ptmp/grhsim-paired-cone-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_paired_cone_diff.py
+
+GRHSIM_UNPAIRED_MODEL ?= $(GRHSIM_PAIRED_BASE)/xiangshan_grhsim_ir.json
+GRHSIM_UNPAIRED_GSIM ?= $(GRHSIM_MODCMP_GSIM)
+GRHSIM_UNPAIRED_REFERENCE ?= $(GRHSIM_PAIRED_ROOT)/analysis/run7
+GRHSIM_UNPAIRED_OUTPUT ?= ptmp/grhsim_unpaired_registers_20260928
+
+.PHONY: export_grhsim_unpaired_registers
+export_grhsim_unpaired_registers:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_unpaired_registers.py \
+		--model "$(GRHSIM_UNPAIRED_MODEL)" --gsim "$(GRHSIM_UNPAIRED_GSIM)" \
+		--reference "$(GRHSIM_UNPAIRED_REFERENCE)" --output "$(GRHSIM_UNPAIRED_OUTPUT)"
 
 GRHSIM_GUARDED_BASE ?= ptmp/declsym_baseline_20260928/flow
 GRHSIM_GUARDED_DYNAMIC ?= ptmp/no00026_declared_pack_census_20260928
