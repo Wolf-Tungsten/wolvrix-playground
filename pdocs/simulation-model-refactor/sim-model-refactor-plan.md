@@ -46,6 +46,7 @@ eval() {
 - 所有 (event, edge) 去重聚类后排布在 EventActStore 结构体中，每个bit表示一个事件边沿是否发生；仿真类持有 eventActStore 实例；eventActStore 每轮 P_event 覆盖重算、不粘滞：某 bit 仅在对应边沿被检出的当轮为 1；
 - eventActiveFlag：uint8 数组，长度等于 P_general 超节点数量，每一bit表示一个超节点是否被事件激活；由 P_event 每轮根据当轮 eventActStore 重建，脉冲式（仅在检出边沿的当轮有效）；对下游不含事件 op 的超节点视为常 1（豁免，直接不做边沿检测）；
 - dataActiveFlag，dataActiveFlagNext：uint8 数组，长度等于 P_general 超节点数量，每个bit表示一个超节点是否被数据激活；dataActiveFlag 为粘滞语义：置位后跨 round、跨 eval 保留，直到对应超节点真正点火时清除；
+- timeslotTriggerFlag：uint8 数组，长度等于 P_output 中带事件门控的 time-slot 系统任务数量，每一bit表示对应任务在本 eval 内是否已被触发；由 P_event 检出对应边沿时按静态映射置位，eval 级粘滞（round 间不重建、不随 eventActStore 覆盖而失效），P_output 消费后清除；无事件的 time-slot 任务不占位（走历史值判定）；
 
 ## 分阶段说明
 
@@ -156,7 +157,7 @@ eventActiveFlag 无需在此清理，下一轮 P_event 会根据当轮 eventActS
 $monitor / $strobe 类 time-slot 语义的系统任务也挪到本阶段，收敛后执行一次，对齐 IEEE"time slot 末只报一次"的语义；其参数锥与输出锥同等处理，复制进 P_output 从 S 自包含计算：
 
 - 无事件的（如连续监测的 $monitor）：靠保存的历史值做"较上一 time slot 是否变化"判定（沿用现状 demonitor 的历史机制），变化才报；
-- 带事件门控的（如 always @(posedge clk) 块内的 $strobe）：触发条件在 round 内由 eventActStore 给出，但 eventActStore 每轮覆盖、到 eval 末已不可见，因此给这类 op 配一个 eval 级粘滞触发位——round 内 guard 成立时置位，P_output 消费后清除；
+- 带事件门控的（如 always @(posedge clk) 块内的 $strobe）：触发条件在 round 内由 eventActStore 给出，但 eventActStore 每轮覆盖、到 eval 末已不可见，因此这类 op 的触发记录由 timeslotTriggerFlag 承载（见关键内存布局）——P_event 检出对应边沿时按静态映射置位，eval 级粘滞，P_output 消费后清除；
 - always_comb 里的 $display 等仍留在 P_general：delta-cycle 内重复触发符合 IEEE 语义，无需特殊处理。
 
 ### 初始化
