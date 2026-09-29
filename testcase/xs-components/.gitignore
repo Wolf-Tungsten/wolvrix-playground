@@ -2,3 +2,9 @@ build/
 out/
 .sandbox-cache/
 build-*/
+
+# rob-extract 提取产物（make -C testcase/xs-components rob-extract 重新生成）
+rob/Rob.fir
+rob/rtl/
+rob/rtl.f
+rob/manifest.json

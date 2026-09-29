@@ -374,3 +374,5 @@ matrix:
 
 clean:
 	rm -rf $(BUILD_DIR) out
+
+include rob.mk
