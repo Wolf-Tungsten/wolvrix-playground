@@ -351,6 +351,12 @@ test_grhsim_cpu_phases:
 	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-cpu-phases-tests -j 2
 	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-cpu-phases-tests$$' --output-on-failure
 
+.PHONY: test_grhsim_cpu_stores
+test_grhsim_cpu_stores:
+	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-cpu-stores-tests -j 2
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-cpu-stores-tests$$' --output-on-failure
+
 .PHONY: audit_grhsim_cpu_emit
 .PHONY: analyze_grhsim_cpu_profile
 analyze_grhsim_cpu_profile:
