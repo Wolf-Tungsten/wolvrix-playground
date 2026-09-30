@@ -1,14 +1,16 @@
 SHELL := /bin/bash
 
 PYTHON ?= python3
+WOLVRIX_PYTHON ?= $(abspath ../../.venv/bin/python)
+WOLVRIX_GRHSIM_IR_SCRIPT := $(abspath ../../scripts/wolvrix_xs_grhsim_ir.py)
 CXX = clang++
 MILL ?= mill
 GSIM_BIN ?= ../../reference/gsim/build/gsim/gsim
-CACHE_DIR ?= .sandbox-cache
+CACHE_DIR ?= ../../ptmp/big-comb/.sandbox-cache
 MILL_ENV := COURSIER_CACHE=$(abspath $(CACHE_DIR)/coursier) XDG_CACHE_HOME=$(abspath $(CACHE_DIR)/xdg) IVY_HOME=$(abspath $(CACHE_DIR)/ivy2) MILL_COURSIER_CACHE=$(abspath $(CACHE_DIR)/mill-coursier)
 
 TOP := BigComb
-BUILD_DIR ?= build
+BUILD_DIR ?= ../../ptmp/big-comb
 CHISEL_FIR_DIR := $(BUILD_DIR)/chisel-fir
 CHISEL_SV_DIR := $(BUILD_DIR)/chisel-sv
 GSIM_DIR := $(BUILD_DIR)/gsim
@@ -24,17 +26,11 @@ BENCH_TB_SRC := tb/big_comb_bench.cpp
 BENCH_TB := $(TB_DIR)/big_comb_bench
 BENCH_LOG := $(TB_DIR)/big_comb_bench.log
 GSIM_GRAPH_STATS := $(GSIM_MODEL_DIR)/$(TOP)_0Final_Stats.json
-GRHSIM_GRAPH_STATS := $(GRHSIM_MODEL_DIR)/activity_schedule_stats.json
+GRHSIM_IR_JSON := $(GRHSIM_DIR)/$(TOP).json
 GSIM_BUILD_STAMP := $(GSIM_DIR)/obj/.stamp
 
 GSIM_FLAGS ?= --supernode-max-size=8 --cpp-max-size-KB=512
 GSIM_CXXFLAGS ?= -O3 -std=c++17 -fbracket-depth=2048 -Wno-parentheses-equality -I$(abspath $(GSIM_MODEL_DIR))
-GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE ?= 8
-GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE ?= 768
-GRHSIM_SCHED_BATCH_MAX_OPS ?= 2048
-GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES ?= 8192
-GRHSIM_SCHED_BATCH_TARGET_COUNT ?= 64
-GRHSIM_EMIT_PARALLELISM ?= 4
 GRHSIM_CXXFLAGS ?= -O3 -std=c++20
 BENCH_CXXFLAGS ?= -O3 -std=c++20 -I$(abspath $(GSIM_MODEL_DIR)) -I$(abspath $(GRHSIM_MODEL_DIR))
 BENCH_VECTORS ?= 100000
@@ -79,17 +75,18 @@ $(GSIM_BUILD_STAMP): $(GSIM_MODEL_DIR)/$(TOP)0.cpp
 
 gsim: $(GSIM_BUILD_STAMP)
 
-$(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_GRAPH_STATS) &: $(SV) scripts/emit_grhsim.py
+$(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_IR_JSON) &: $(SV) $(WOLVRIX_GRHSIM_IR_SCRIPT)
 	@mkdir -p $(GRHSIM_MODEL_DIR)
-	$(PYTHON) scripts/emit_grhsim.py --sv $(SV) --top $(TOP) --out $(GRHSIM_MODEL_DIR) --json $(GRHSIM_DIR)/$(TOP).json \
-		--max-op-in-compute-supernode $(GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE) \
-		--max-op-in-commit-supernode $(GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE) \
-		--sched-batch-max-ops $(GRHSIM_SCHED_BATCH_MAX_OPS) \
-		--sched-batch-max-estimated-lines $(GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES) \
-		--sched-batch-target-count $(GRHSIM_SCHED_BATCH_TARGET_COUNT) \
-		--emit-parallelism $(GRHSIM_EMIT_PARALLELISM)
+	@find "$(abspath $(CHISEL_SV_DIR))" -maxdepth 1 -name '*.sv' -print | sort > "$(GRHSIM_DIR)/rtl.f"
+	@: > "$(GRHSIM_DIR)/read_args.txt"
+	set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(WOLVRIX_PYTHON) $(WOLVRIX_GRHSIM_IR_SCRIPT) \
+		"$(GRHSIM_DIR)/rtl.f" $(TOP) "$(GRHSIM_DIR)/flat_grh.json" \
+		"$(GRHSIM_IR_JSON)" "$(GRHSIM_DIR)/roundtrip.json" \
+		"$(GRHSIM_DIR)/read_args.txt" info --emit-cpp-dir "$(GRHSIM_MODEL_DIR)" \
+		2>&1 | tee "$(GRHSIM_DIR)/emit.log"
 	test -f $(GRHSIM_MODEL_DIR)/Makefile
-	test -f $(GRHSIM_GRAPH_STATS)
+	test -f $(GRHSIM_MODEL_DIR)/grhsim_$(TOP).hpp
+	test -f $(GRHSIM_IR_JSON)
 
 grhsim: $(GRHSIM_MODEL_DIR)/Makefile
 	$(MAKE) -C $(GRHSIM_MODEL_DIR) CXX=$(CXX) CXXFLAGS="$(GRHSIM_CXXFLAGS)"

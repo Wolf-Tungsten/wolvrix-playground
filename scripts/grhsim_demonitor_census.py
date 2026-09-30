@@ -143,7 +143,8 @@ def view_from_model(model):
         commit_fanout[row[0]].update(row[2])
     view["commit_fanout"] = commit_fanout
 
-    # Emit read-alias mirror (cpu_emit.cpp planReadAliases): a core.state.read
+    # Emit read-alias mirror (legacy cpu_emit.cpp planReadAliases, removed in
+    # M5b; the census logic mirrors the historical behavior): a core.state.read
     # result inside an ActivityDrivenCompute unit whose state is quiescence
     # projected, which no op outside compute units and no event gate reads, and
     # whose type matches the state type is emitted as a direct alias of the

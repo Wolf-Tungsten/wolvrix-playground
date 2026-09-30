@@ -24,14 +24,18 @@ GRH_PIPELINE: list[tuple[str, dict]] = [
 ]
 
 CPU_MAPPING_PIPELINE = [
-    "cpu.st.split-phase",
-    "cpu.st.form-event-domains",
-    "cpu.st.build-compute-nodes",
-    "cpu.st.merge-compute-supernodes",
-    "cpu.st.pack-active-words",
-    "cpu.st.pack-emit-functions",
-    "cpu.st.layout-data",
-    "cpu.st.build-schedule",
+    "grhsim.classify-event-inputs",
+    "grhsim.lower-edge-detect",
+    "grhsim.extract-output-cones",
+    "grhsim.migrate-timeslot-tasks",
+    "cpu.st.split-phases",
+    "cpu.st.build-general-nodes",
+    "cpu.st.merge-general-supernodes",
+    "cpu.st.pack-general-functions",
+    "cpu.st.layout-named-stores",
+    "cpu.st.build-event-bitmaps",
+    "cpu.st.build-mem-write-plan",
+    "cpu.st.build-phase-schedule",
 ]
 
 CPU_SEMANTIC_PIPELINE = [
@@ -42,8 +46,8 @@ CPU_SEMANTIC_PIPELINE = [
     "grhsim.clone-shared-compute",
     "grhsim.bitwise-predicates",
 ]
-# Packing reads the first schedule's quiescence projection and invalidates its
-# mapping. Rebuild all stages so emit uses the transformed state dependencies.
+# Packing reads the first schedule's reader/fanout tables and invalidates the
+# mapping; both mapping rounds rebuild through the six-phase pipeline.
 # canonicalize-compute re-runs right after packing: per-bit reads become word
 # slices, so gathers of those bits degenerate into foldable concat-of-slices
 # identities. used-bits runs last among semantic passes: dead-cone elimination
@@ -53,10 +57,6 @@ CPU_PIPELINE = (
     + ["grhsim.pack-bit-registers", "grhsim.canonicalize-compute", "grhsim.bitwise-muxes", "grhsim.mux-chain-fold",
        "grhsim.used-bits"] + CPU_MAPPING_PIPELINE
 )
-# Expression-tree fusion (NO00011, rejected: measured net regression) stays out
-# of the shared default pipeline; the XS flow appends it only under
-# --fuse-expr-chains. It rewrites single-use scalar compute chains into
-# core.compute.expr ops and consumes (and preserves) the final schedule mapping.
 
 
 def log(message: str) -> None:
@@ -105,22 +105,10 @@ def parse_args() -> argparse.Namespace:
                         help="drop only grhsim.pack-bit-registers from the pipeline, keeping both "
                              "mapping rounds and every other semantic pass (isolated A/B arm, NO00021)")
     parser.add_argument("--used-bits", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--fuse-expr-chains", action="store_true",
-                        help="fuse single-use scalar compute chains into core.compute.expr tree ops (off by default: NO00011 measured a net regression)")
-    parser.add_argument("--migrate-boundary-ops", action="store_true",
-                        help="migrate single-consumer pure compute ops into their consumer compute supernode (off by default: NO00013 candidate mechanism)")
-    parser.add_argument("--demonitor-redundant", action="store_true",
-                        help="drop activation-redundant compute fanout rows (off by default: NO00014 candidate mechanism)")
-    parser.add_argument("--demonitor-edge-completion-profile", type=Path,
-                        help="vchg profile enabling edge-completion de-monitoring (off by default: NO00015 candidate mechanism)")
-    parser.add_argument("--migrate-boundary-ops-ec-profile", type=Path,
-                        help="vchg profile enabling selective boundary-op migration that may add activation edges (off by default: NO00019 candidate mechanism)")
-    parser.add_argument("--fold-residue", action="store_true",
-                        help="fold post-schedule identity/constant residue ops (off by default: NO00016 candidate mechanism)")
     parser.add_argument("--dump-post-lower-json", type=Path,
                         help="diagnostic (NO00020): also store the GrhSIM model right after grhsim.verify, before any semantic/mapping pass")
     parser.add_argument("--dump-pre-partition-json", type=Path,
-                        help="diagnostic (NO00020): also store the GrhSIM model after the semantic passes, right before the second cpu.st.split-phase (un-partitioned production form)")
+                        help="diagnostic (NO00020): also store the GrhSIM model after the semantic passes, right before the second cpu.st.split-phases (un-partitioned production form)")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
@@ -132,18 +120,6 @@ def parse_args() -> argparse.Namespace:
                         help="let grhsim.reg-to-mem merge write families whose fill branch data is a "
                              "per-row constant, expanding the fill to static-address sequence triples "
                              "(off by default: NO00022 candidate mechanism)")
-    parser.add_argument("--shape-twin-share", action="store_true",
-                        help="fold cross-file shape-identical task bodies into noinline shared bodies (off by default: runtime over compile time)")
-    parser.add_argument("--branch-shape-share", action="store_true",
-                        help="fold shape-identical activity-guard branch blocks into noinline shared bodies (off by default)")
-    parser.add_argument("--branch-shape-hotness", type=Path,
-                        help="TSV of func->sample-percent; hot branch groups are excluded greedily (cold outlining)")
-    parser.add_argument("--branch-shape-growth-budget", type=float, default=1.0,
-                        help="max estimated parameter-load growth in model units when hotness is provided")
-    parser.add_argument("--disable-falling-edge-elision", action="store_true",
-                        help="disable the falling-edge eval elision fast path in the emitted CPU model (on by default)")
-    parser.add_argument("--dynamic-stats", action="store_true",
-                        help="emit diagnostic dynamic counters into the model (screening builds only)")
     args = parser.parse_args()
     if args.cpu_target_batch_count is not None and args.cpu_target_batch_count < 0:
         parser.error("--cpu-target-batch-count must be nonnegative")
@@ -245,18 +221,6 @@ def main() -> int:
         if args.disable_pack_bit_registers:
             pipeline = [name for name in CPU_PIPELINE
                         if name != "grhsim.pack-bit-registers"]
-        if args.fuse_expr_chains:
-            pipeline = pipeline + ["grhsim.fuse-expr-chains"]
-        if args.migrate_boundary_ops:
-            pipeline = pipeline + ["grhsim.migrate-boundary-ops"]
-        if args.demonitor_redundant:
-            pipeline = pipeline + ["grhsim.demonitor-redundant"]
-        if args.demonitor_edge_completion_profile:
-            pipeline = pipeline + ["grhsim.demonitor-edge-completion"]
-        if args.migrate_boundary_ops_ec_profile:
-            pipeline = pipeline + ["grhsim.migrate-boundary-ops-ec"]
-        if args.fold_residue:
-            pipeline = pipeline + ["grhsim.fold-residue"]
         split_phase_seen = 0
         for pass_name in pipeline:
             if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
@@ -280,15 +244,11 @@ def main() -> int:
             if pass_name == "grhsim.pack-bit-registers" and args.pack_bit_registers_report:
                 args.pack_bit_registers_report.parent.mkdir(parents=True, exist_ok=True)
                 pass_options["report"] = str(args.pack_bit_registers_report.resolve())
-            if pass_name == "cpu.st.pack-emit-functions" and args.cpu_target_batch_count is not None:
+            if pass_name == "cpu.st.pack-general-functions" and args.cpu_target_batch_count is not None:
                 pass_options["target_batch_count"] = args.cpu_target_batch_count
-            if pass_name == "cpu.st.merge-compute-supernodes" and args.max_op_in_compute_supernode is not None:
+            if pass_name == "cpu.st.merge-general-supernodes" and args.max_op_in_compute_supernode is not None:
                 pass_options["max_op_in_compute_supernode"] = args.max_op_in_compute_supernode
-            if pass_name == "grhsim.demonitor-edge-completion":
-                pass_options["profile"] = str(args.demonitor_edge_completion_profile.resolve())
-            if pass_name == "grhsim.migrate-boundary-ops-ec":
-                pass_options["profile"] = str(args.migrate_boundary_ops_ec_profile.resolve())
-            if pass_name == "cpu.st.split-phase":
+            if pass_name == "cpu.st.split-phases":
                 split_phase_seen += 1
                 if split_phase_seen == 2 and args.dump_pre_partition_json is not None:
                     dump_path = args.dump_pre_partition_json.resolve()
@@ -307,21 +267,7 @@ def main() -> int:
             emit_options = {
                 "model": "grhsim.main",
                 "output": str(emit_cpp_dir),
-                "commit_compact_walk": True,
-                "commit_mem_walk": True,
             }
-            if args.dynamic_stats:
-                emit_options["dynamic_stats"] = True
-            if args.shape_twin_share:
-                emit_options["shape_twin_share"] = True
-            if args.branch_shape_share:
-                emit_options["branch_shape_share"] = True
-            if args.branch_shape_hotness:
-                emit_options["branch_shape_share"] = True
-                emit_options["branch_shape_hotness"] = str(args.branch_shape_hotness.resolve())
-                emit_options["branch_shape_growth_budget"] = args.branch_shape_growth_budget
-            if args.disable_falling_edge_elision:
-                emit_options["falling_edge_elision"] = False
             diagnostics = timed(
                 f"emit CPU C++ model {emit_cpp_dir}",
                 lambda: session.run_grhsim_pass("cpu.st.emit-cpp", **emit_options),

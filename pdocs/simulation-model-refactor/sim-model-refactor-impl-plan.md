@@ -15,7 +15,7 @@
 - **直接替换，黄金参照兜底**：
   - M0 先用现实现抓取**黄金参照**（各测试逐 eval 输出 + 性能快照），长期保留在 `ptmp/`；
   - 正确性验证 = 新实现对黄金参照逐 eval 比对 + hdlbits 流程的 Verilator 参照；
-  - 删除清单（M5 执行，依赖允许可提前）：`wolvrix/lib/emit/grhsim_cpp.cpp`、`grhsim_runtime.cpp` 及对应头文件（legacy 仿真）、`wolvrix/lib/grhsim/backend/cpu_emit.cpp`（旧 emit，含 shadow/pending/domain-arm/边沿历史批处理等专属机制）、`cpu_shape_share.cpp`/`cpu_block_share.cpp`（已关闭的文本共享）；`cpu_partition/cpu_layout/cpu_schedule` 为改造而非删除；system_verilog.cpp 等 hdlbits 流程设施**保留**。
+  - 删除清单（M5 执行，依赖允许可提前）：`wolvrix/lib/emit/grhsim_cpp.cpp` 及对应头文件（legacy 仿真）、`wolvrix/lib/grhsim/backend/cpu_emit.cpp`（旧 emit，含 shadow/pending/domain-arm/边沿历史批处理等专属机制）、`cpu_shape_share.cpp`/`cpu_block_share.cpp`（已关闭的文本共享）；`grhsim_runtime.{hpp,cpp}` 保留为新 emit 的 runtime 头生成器；`cpu_partition/cpu_layout/cpu_schedule` 为改造而非删除；system_verilog.cpp 等 hdlbits 流程设施**保留**。
 - **先正确后优化**：第一版严格按语义文档做最简形态（全量 memcpy、无跳过机制），差分全绿后再逐项回填优化，每次回填回归差分。
 - **构建/测试一律经 Makefile 目标**（AGENTS.md 约束），缺目标先补目标；日志与大 artifact 落 `ptmp/`。
 - **文档同步**：每个里程碑收尾同步 `wolvrix/docs/grhsim_ir/`（overview.md、dialects/core.md、backends/cpu.md、flows/cpu-st.md 重写 pass 序列）；行为变化涉及 AGENTS.md 所述流程时一并更新。
@@ -44,7 +44,7 @@
 | 后端分区 | `backend/cpu.cpp`、`cpu_partition.cpp` | `split-phase`→四类；合并框架加事件域禁止条件；`form-event-domains` 保留复用 |
 | 布局/调度 | `cpu_layout.cpp`、`cpu_schedule.cpp` | 具名 store 布局；新增静态表 pass |
 | 旧 emit | `backend/cpu_emit.cpp`、`cpu_shape_share.cpp`、`cpu_block_share.cpp` | **删除**，新 emit 另起文件 |
-| legacy 仿真 | `lib/emit/grhsim_cpp.cpp`、`grhsim_runtime.cpp`（+头文件） | **删除** |
+| legacy 仿真 | `lib/emit/grhsim_cpp.cpp`（+头文件） | **删除**；`grhsim_runtime.{hpp,cpp}` 由新 emit 使用，保留 |
 | checkpoint | `wolvrix/lib/grhsim/io/json.cpp` | `wolvrix.grhsim.v2`，覆盖新 store/flag/触发位 |
 | 保留 | `lib/emit/system_verilog.cpp`、hdlbits 流程 | 不动 |
 
@@ -146,16 +146,17 @@ pass 命名为新管线草案，实现时可微调；每个 pass 后均可 dump 
 ## 9. 进展记录（2026-09-30）
 
 代码在 `wolvrix` 子模块（branch `grh/grhsim-ir`），脚本/Makefile 在根仓库
-（branch `grh/grhsim-ir-gap-driven`）。**根仓库 wolvrix 指针仍停在 M1 前的
-e49d454，按仓库惯例留待 M5 差分全绿后的验收 commit 再移动。**
+（branch `grh/grhsim-ir-gap-driven`）。本次按作者要求先提交当前检查点，
+同步前移根仓库的子模块指针；M5c 全绿后再做最终验收提交。
 
 ### 已完成
 
 - **M0**：黄金基线设施落成——161/162 hdlbits DUT 黄金轨迹 + MANIFEST + XS
   coremark 快照（`ptmp/sim-refactor-baseline/`，端点 instrCnt=240349 /
   cycleCnt=99996 / pc=0x80000c0c）；`make check_sim_refactor_baseline` 门禁可用。
-  openc910 无任何 grhsim 流程（在案），差分链不含它；dut_105 预存失败
-  （used-bits dangling value bug，原生流程同样失败）不在门禁内。
+  openc910 无任何 grhsim 流程（在案），差分链不含它；dut_105 在 M0 采集时因
+  used-bits dangling value 失败，故旧黄金集不含该例；M5b-1 已修复并通过
+  GrhSIM testbench，全量 162 例均可运行，黄金轨迹仍待补录。
 - **M1**（wolvrix `9bacb94`）：edgeDet op / SimPhase / verifier 框架 / JSON v2 /
   namedStores 等空壳。
 - **M2a**（`d42c19d`）：`grhsim.classify-event-inputs` +
@@ -182,22 +183,110 @@ e49d454，按仓库惯例留待 M5 差分全绿后的验收 commit 再移动。*
 
 - 规格已写定：`ptmp/spec-m5.md`（生成代码契约、六阶段 eval 骨架、管线切换 12
   pass 序列、删除清单及其消费方盘点、差分推进门禁、xs-bugcase IR 接线方案）。
-- **M5a（新 emit 实现）**：coder 搭建中被中断，工作树留有早期脚手架
-  `wolvrix/lib/grhsim/backend/cpu_phase_emit.{hpp,cpp}`（约 650 行，仅
-  IndentBuffer 基础设施 + SixPhaseEmitter 类骨架开头，未接线、未编译验证）。
-  续作时可在此基础上继续或重写。已核实的实施 facts：旧 emit round 上限
-  100000 + 未收敛 throw；分叉点 `emitCpuCpp`（stage==PhaseSchedule→新，
-  Schedule→旧）；旧 emit 无 PCH、是多 TU 拆分（`_task_<id>.cpp` 等 + 含
-  `LIB := ` 行的 Makefile）；waveform/perf 属 legacy emit 选项，IR 后端当前
-  直接 raise，stub 契约见 spec §1.1。
-- **M5b（管线切换 + 删除 + 文档）**、**M5c（XS/xs-bugcase 差分）**：未开始。
+- **M5a（新 emit 实现）：已完成**（本次检查点提交）。因"一步到位"被卡一上午，
+  拆成 5 片逐片端到端验证后落地：
+  - M5a-1 骨架+纯组合端到端：`cpu_phase_emit.{hpp,cpp}`（cpp 现 2922 行）全函数体
+    实现；`grhsim-cpu-phase-emit-tests` ctest exe + 根 `test_grhsim_cpu_phase_emit`
+    目标；七具名 store 生成、端口契约（第一个 public 块最前段）、eval/init/
+    pInput/pPublish/pGeneral(双门控)/pOutput 主干、宽值走 `writeGrhSimRuntime`
+    的指针+调用方缓冲 helper、`dumpState()`、MAX_ROUND=100000+未收敛 throw；
+  - M5a-2 P_event+事件门控：edgeDet（prev 无条件更新）、eventAct 字节数组位打包
+    （act/8 字节 act%8 位，三处一致）、位图 OR 重建 eventActiveFlag、timeslot
+    flag 生命周期（P_event 置位/P_output 消费即清）；6 个事件定向用例（计数器
+    自环、A→B 残留、上电无伪边沿、异步复位、双钟不吞标志、glitch 跨 round
+    出沿——"同 eval 多边沿"按语义文档 §72 字面=派生信号跨 round 翻转）；
+  - M5a-3 P_mem：四种写（memWrite/memFill/memAssign/memWriteSeq）act guard、
+    cell 级变化检测（宽值 `grhsim_apply_masked_words_inplace`）、读者表静态
+    精确/动态保守激活、优先级=plan 序原地顺序写（后写赢）；latch 环收敛、
+    event-free mem 写收敛用例；
+  - M5a-4 system task/DPI/timeslot/契约桩：$display/$monitor/$strobe 全路径
+    （$monitor 历史值判定+每 eval 至多一报、timeslot flag 沿任务数据无关每沿
+    都报——与 P_general 双门控任务的语义差已记录）、DPI import marshal、
+    `configure_waveform`/`perf_counters()`（8 字段名固定、新语义计数、
+    `GRHSIM_PERF_COUNT` 宏零开销）/`set_runtime_profile_enabled`/`dump_runtime_profile`
+    契约桩；剩余占位仅 `taskCpp`（多 TU）与 `core.compute.expr`（新管线不产生）；
+  - M5a-5 硬化（修 M3/M4 三缺陷，定向用例全部去掉 `--max-op-in-compute-supernode 1`
+    绕行）：**D1** merge rule 2 字面允许无事件 sink 并入事件域→event-free 成员
+    被双门控丢执行，修法=EventDomainInfo 加 `unboundFree` 禁合第三条
+    （cpu_partition.cpp）+ verifier 锁步；**D2** sink 边门控 × 电平敏感 mem 读者，
+    修法=emit 侧 `eventGated_` 按"超节点含≥1 个带 event_acts 成员"计算（纯
+    event-free 超节点 dataActiveFlag 单门控，依据 plan §112/§115；位图仍驱动
+    eventActiveFlag 重建）；**D3** 整表 state.read 读者缺席 memWritePlan.readers，
+    修法=build-mem-write-plan 补收（恒 dynamic 读者）。pass 文档同步。
+    **遗留风险**：General 分枝超节点序=拓扑序无显式保证（同 eval 输入+沿到达时
+    boundary fanout 落 Next 可能滞后一个沿）——M5c 差分若出沿采样偏差先查这里，
+    修法备选=build-phase-schedule 对 General 分枝拓扑排序。
+  - 测试：`test_cpu_phase_emit.cpp`（1291 行）21 子项全绿（生成模型经系统
+    clang++ -O2+UBSan 编译驱动比对）；phases/stores/event_lowering/mapping/
+    schedule 套件无回归。
+- **M5b（管线切换+删除+文档）**：拆为四个里程碑。M5b-1 管线切换与
+  HDLBits 验证已完成，本地 benchmark 入口仍待实测：
+
+  **M5b-1 管线切换与旧 emit/legacy 删除（验证中）**
+  - 已删：旧 CPU emit 三件套（cpu_emit/cpu_shape_share/cpu_block_share + 头 +
+    test_cpu_emit.cpp，GRHSIM_DIRECT_MEM 改动备份 `ptmp/grhsim_direct_mem_backup_20260930.diff`）；
+    legacy 仿真（lib/emit/grhsim_cpp.cpp + 头 + 两个 emit 测试 exe）；
+    `grhsim_runtime.{hpp,cpp}` 按修订后的清单保留供新 emit 生成 runtime 头；
+    孤立的 `cpu_emit_shape` 测试 fixture 与 `scripts/wolvrix_xs_grhsim.py`、
+    testcase/{big-comb,xs-components}/scripts/emit_grhsim.py；
+  - 已切换：新 emit 正名 `cpu.st.emit-cpp`；`wolvrix_xs_grhsim_ir.py`
+    CPU_MAPPING_PIPELINE=12 pass 新序列+旧选项清除；`HDLBITS_GRHSIM_BACKEND ?= ir`、
+    hdlbits legacy 分支摘除；根 Makefile 旧 XS 目标摘除；pybind emit 接口适配；
+    convert `__event_*` 生成摘除（grh_to_grhsim.cpp -21 行，lower-edge-detect
+    适配原始事件标注，相关测试同步）；xs-bugcase CASE_006..024 Makefile 已切
+    IR 管线（M5c §8 接线的 Makefile 部分提前落地，tb/双驱动比对部分状态待核）。
+  - 验证完成：`source env.sh && make build` 全树通过；`make test_wolvrix` 为
+    52/55，通过项无新增失败，三项失败与既有记录一致
+    （`transform-comb-lane-pack`、`transform-repcut`、`ingest-write-back-slice`
+    SEGFAULT）；GrhSIM 定向目标 `test_grhsim_cpu_phase_emit`、`test_grhsim_cpu_schedule`、
+    `test_grhsim_cpu_mapping`、`test_grhsim_event_lowering`、`test_grhsim_cpu_phases`、
+    `test_grhsim_cpu_stores` 全绿；默认 IR 管线 HDLBits 冒烟 DUT=001（组合）、023
+    （时序）、116（512 位状态）、162（128-entry memory、异步复位、`$display`）全绿。
+    HDLBits DUT 没有 `$monitor`/`$strobe`，两类 task 由 phase emit 与 event lowering
+    定向测试覆盖。`grhsim.used-bits` 保留输出完整使用的截断 concat 全部操作数依赖，
+    修复 DUT=105 的 dangling value；回归 `test_grhsim_cpu_mapping` 与
+    `test_grhsim_reg_to_mem_rtl`（8192 样本）通过；默认 IR 管线 HDLBits 162/162
+    testbench 全绿（`ptmp/hdlbits-grhsim-full/20260930-dut105-fixed/summary.txt`）。
+    旧 emitter API/源文件在生产代码和构建注册中无引用；历史文档与注释的旧路径文字
+    留待 M5b-3 文档收口。big-comb/xs-components 新 IR 本地入口已接线，实际生成与
+    benchmark 验证按当前优先级暂缓。
+  - 清理：新 `cpu.st.emit-cpp` 拒绝旧 emit 选项；其注册测试确认旧选项已移除。
+
+  **M5b-2 旧 mapping pass 实现删除（未开始）**
+  - 范围：`cpu.st.split-phase`/`form-event-domains`/`build-compute-nodes`/
+    `merge-compute-supernodes`/`pack-active-words`/`pack-emit-functions`/
+    `layout-data`/`build-schedule` 的注册与实现；随之孤儿化的
+    `refreshCpuDataLayout`/`refreshCpuSchedule`/`computeDemonitorEdgeCompletionSelection`；
+    针对旧结构的语义/调度 pass（`grhsim.demonitor-redundant`/
+    `demonitor-edge-completion`/`migrate-boundary-ops(-ec)`/`fuse-expr-chains`/
+    `fold-residue`）逐个处置（删除或保留需论证）；
+    `CpuMappingStage` 旧档位枚举值保留（JSON 兼容），处理代码删除。
+  - 完成标志：pass 注册表只剩新管线 + 保留语义 pass；`make build` 与全部
+    ctest 绿；被删 pass 名全仓 grep 无引用。
+
+  **M5b-3 文档重写收口（部分已开始，完成度待核）**
+  - 范围：`docs/grhsim_ir/backends/cpu.md`、`flows/cpu-st.md` 按新六阶段模型
+    重写完成（已开始的改动核对补全）；`dialects/core.md` 复核；
+    impl plan §3 删除清单已修订（grhsim_runtime 保留）；
+    AGENTS.md 若涉流程变化同步。
+  - 完成标志：两篇文档完整反映新管线/新 emit，无旧机制（shadow/pending/
+    domain-arm/激活字）残留描述。
+
+  **M5b-4 最终验收提交（依赖 M5c 全绿）**
+  - 本次先按作者要求提交当前检查点（HDLBits 子模块默认 IR、wolvrix 新 emit+
+    删除、根仓库脚本/Makefile/文档与子模块指针）；M5c 全绿后再提交后续修复与验收
+    结果。提交说明点名 GRHSIM_DIRECT_MEM 备份位置提醒属主。
+
+- **M5c（差分推进）**：hdlbits 161 黄金 / XS coremark / xs-bugcase 24 例均未跑通，
+  等 M5b-1 验证收口后依次推进。
 
 ### 环境注意事项（持续有效）
 
-- `wolvrix/lib/grhsim/backend/cpu_emit.cpp` 与 `tests/grhsim/test_cpu_emit.cpp`
-  有他人未提交改动（GRHSIM_DIRECT_MEM 实验，约 564 行）：各任务均不得触碰、
-  不带入 commit；M5b 删除 cpu_emit.cpp 前先把 `git diff` 备份到 ptmp 并提醒
-  属主。
+- ~~cpu_emit.cpp/test_cpu_emit.cpp 他人未提交改动~~：已随 M5b-1 删除，改动备份在
+  `ptmp/grhsim_direct_mem_backup_20260930.diff`（903 行 diff），**最终报告与提交
+  说明里必须点名提醒属主**。
 - `make test_wolvrix` 全量有 3 个既有失败（transform-comb-lane-pack、
   transform-repcut、ingest-write-back-slice SEGFAULT），与本重构无关，不修。
 - `scripts/grhsim_unpaired_registers.py` 是他人的未跟踪文件，不动。
+- `testcase/hdlbits` 子模块 Makefile 的 `GRHSIM_BACKEND ?= legacy→ir` 已改（实质改动，
+  提交时与子模块指针一起处理）。

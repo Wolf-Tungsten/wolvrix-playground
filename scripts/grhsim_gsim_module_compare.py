@@ -9,7 +9,7 @@ Compares two "pre-partition" IR dumps of the same XiangShan design:
     into the tree's flat "nodes" array; OP_EMPTY leaves reference other
     nodes by name, OP_INT leaves carry strVal constants).
   * GrhSIM side: grhsim_pre_partition.json -- wolvrix.grhsim.v1 compact
-    checkpoint after all semantic passes, before cpu.st.split-phase
+    checkpoint after all semantic passes, before cpu.st.split-phases
     (production shape; G1b proves the second CPU mapping pass does not
     change the op multiset).
 

@@ -7,7 +7,6 @@ import wolvrix
 
 from wolvrix_xs_grhsim_ir import CPU_MAPPING_PIPELINE
 
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", type=Path, required=True)
@@ -16,34 +15,10 @@ def main():
     parser.add_argument("--remap", action="store_true", help="rebuild CPU mapping without a semantic transform")
     parser.add_argument("--bitwise-muxes", action="store_true")
     parser.add_argument("--mux-chain-fold", action="store_true")
-    parser.add_argument("--dynamic-stats", action="store_true",
-                        help="emit diagnostic dynamic counters into the model (screening builds only)")
-    parser.add_argument("--commit-compact-walk", action="store_true",
-                        help="emit uniform u64 direct-commit pflag bytes as branch-free change scans")
-    parser.add_argument("--commit-mem-walk", action="store_true",
-                        help="hoist shared snapshot guards of commit memWrite runs and cache their boundary enables")
-    parser.add_argument("--shape-twin-share", action="store_true",
-                        help="fold cross-file shape-identical task bodies into shared noinline functions")
-    parser.add_argument("--branch-shape-share", action="store_true",
-                        help="fold shape-identical activity-guard branch bodies into shared noinline helpers")
-    parser.add_argument("--branch-shape-hotness", default="",
-                        help="TSV of func->sample-percent; hot groups are excluded greedily (cold outlining)")
-    parser.add_argument("--branch-shape-growth-budget", type=float, default=1.0,
-                        help="max estimated parameter-load growth in model units when hotness is provided")
+
     parser.add_argument("--used-bits", action="store_true",
                         help="run grhsim.used-bits (dead-cone elimination + width narrowing), then remap")
-    parser.add_argument("--fuse-expr-chains", action="store_true",
-                        help="fuse single-use scalar compute chains into core.compute.expr tree ops (keeps the mapping)")
-    parser.add_argument("--migrate-boundary-ops", action="store_true",
-                        help="migrate single-consumer pure compute ops into their consumer compute supernode (rebuilds layout and schedule)")
-    parser.add_argument("--demonitor-redundant", action="store_true",
-                        help="drop activation-redundant compute fanout rows (rebuilds the schedule; writes/stores stay)")
-    parser.add_argument("--demonitor-edge-completion-profile", default="",
-                        help="vchg profile enabling edge-completion de-monitoring (adds missing operand activation edges, then removes redundant rows)")
-    parser.add_argument("--migrate-boundary-ops-ec-profile", default="",
-                        help="vchg profile enabling selective boundary-op migration into compute supernodes (may add activation edges; NO00019)")
-    parser.add_argument("--fold-residue", action="store_true",
-                        help="fold post-schedule identity/constant residue ops (rewires consumers; emitter skips the folded ops)")
+
     parser.add_argument("--canonicalize-compute", action="store_true",
                         help="run grhsim.canonicalize-compute (incl. concat-of-slices folds), then remap")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
@@ -69,9 +44,9 @@ def main():
 
         def mapping_options(name):
             options = {}
-            if name == "cpu.st.pack-emit-functions":
+            if name == "cpu.st.pack-general-functions":
                 options["target_batch_count"] = args.cpu_target_batch_count
-            if name == "cpu.st.merge-compute-supernodes" and args.max_op_in_compute_supernode is not None:
+            if name == "cpu.st.merge-general-supernodes" and args.max_op_in_compute_supernode is not None:
                 options["max_op_in_compute_supernode"] = args.max_op_in_compute_supernode
             return options
 
@@ -113,34 +88,7 @@ def main():
                 lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
                 for name in CPU_MAPPING_PIPELINE
             ]
-        if args.fuse_expr_chains:
-            actions += [lambda: session.run_grhsim_pass("grhsim.fuse-expr-chains", model="grhsim.main")]
-        if args.migrate_boundary_ops:
-            actions += [lambda: session.run_grhsim_pass("grhsim.migrate-boundary-ops", model="grhsim.main")]
-        if args.demonitor_redundant:
-            actions += [lambda: session.run_grhsim_pass("grhsim.demonitor-redundant", model="grhsim.main")]
-        if args.demonitor_edge_completion_profile:
-            actions += [lambda: session.run_grhsim_pass("grhsim.demonitor-edge-completion", model="grhsim.main",
-                                                        profile=args.demonitor_edge_completion_profile)]
-        if args.migrate_boundary_ops_ec_profile:
-            actions += [lambda: session.run_grhsim_pass("grhsim.migrate-boundary-ops-ec", model="grhsim.main",
-                                                        profile=args.migrate_boundary_ops_ec_profile)]
-        if args.fold_residue:
-            actions += [lambda: session.run_grhsim_pass("grhsim.fold-residue", model="grhsim.main")]
         emit_options = {"model": "grhsim.main", "output": str(flow / "model")}
-        if args.dynamic_stats:
-            emit_options["dynamic_stats"] = True
-        if args.commit_compact_walk:
-            emit_options["commit_compact_walk"] = True
-        if args.commit_mem_walk:
-            emit_options["commit_mem_walk"] = True
-        if args.shape_twin_share:
-            emit_options["shape_twin_share"] = True
-        if args.branch_shape_share:
-            emit_options["branch_shape_share"] = True
-        if args.branch_shape_hotness:
-            emit_options["branch_shape_hotness"] = args.branch_shape_hotness
-            emit_options["branch_shape_growth_budget"] = args.branch_shape_growth_budget
         for action in actions + [
             lambda: session.run_grhsim_pass("cpu.st.emit-cpp", **emit_options),
             lambda: session.store_grhsim(model="grhsim.main", output=str(flow / "xiangshan_grhsim_ir.json")),
@@ -151,7 +99,6 @@ def main():
             if any(str(entry.get("kind", "")).lower() == "error" for entry in diagnostics):
                 raise RuntimeError("checkpoint transform/emit failed")
     print("CHECKPOINT SCREENING ONLY: this timing does not qualify as full SV generation", flush=True)
-
 
 if __name__ == "__main__":
     main()

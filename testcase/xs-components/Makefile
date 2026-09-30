@@ -1,11 +1,13 @@
 SHELL := /bin/bash
 
 PYTHON ?= python3
+WOLVRIX_PYTHON ?= $(abspath ../../.venv/bin/python)
+WOLVRIX_GRHSIM_IR_SCRIPT := $(abspath ../../scripts/wolvrix_xs_grhsim_ir.py)
 CXX = clang++
 MILL ?= mill
 GSIM_BIN ?= ../../reference/gsim/build/gsim/gsim
 OBJDUMP ?= objdump
-CACHE_DIR ?= .sandbox-cache
+CACHE_DIR ?= ../../ptmp/xs-components/.sandbox-cache
 MILL_ENV := COURSIER_CACHE=$(abspath $(CACHE_DIR)/coursier) XDG_CACHE_HOME=$(abspath $(CACHE_DIR)/xdg) IVY_HOME=$(abspath $(CACHE_DIR)/ivy2) MILL_COURSIER_CACHE=$(abspath $(CACHE_DIR)/mill-coursier)
 
 CASES := XsReal000PipelineLoadunitLarge XsReal001RobRobLarge XsReal002MemMemblockLarge XsReal003DecodeDecodeunitcompLarge XsReal004LsqueueStorequeueLarge XsReal005MmuPagetablecacheLarge XsReal006DcacheDcachewrapperLarge XsReal007FuCsrLarge XsReal008DecodeDecodeunitLarge XsReal009NewcsrNewcsrLarge XsReal010IssueIssuequeueLarge XsReal011MainpipeMissqueueLarge XsReal012MmuPagetablewalkerLarge XsReal013PrefetchSmsprefetcherLarge XsReal014DispatchNewdispatchLarge XsReal015Tl2ChiMshrLarge XsReal016DecodeVecdecoderLarge XsReal017MmuL2TlbLarge XsReal018VectorVsegmentunitLarge XsReal019BackendCtrlblockLarge XsReal020DatapathDatapathLarge XsReal021Tl2ChiMainpipeLarge XsReal022BackendRegionLarge XsReal023RenameRenameLarge XsReal024MainpipeMainpipeLarge XsReal025IfuIfuLarge XsReal026LsqueueLoadqueuereplayLarge XsReal027SbufferSbufferLarge XsReal028PrefetchL1PrefetchcomponentLarge XsReal029PipelineStoreunitLarge XsReal030PrefetchBertiLarge XsReal031DataBankeddataarrayLarge XsReal032IssueEntriesLarge XsReal033XiangshanPackageLarge XsReal034MmuTlbLarge XsReal035BackendBackendLarge XsReal036VectorVeccommonLarge XsReal037Tl2TlMainpipeLarge XsReal038PrefetchBestoffsetprefetchLarge XsReal039LoadpipeLoadpipeLarge XsReal040MmuRepeaterLarge XsReal041ScScLarge XsReal042ExuExeunitLarge XsReal043TageTageLarge XsReal044SramSramtemplateLarge XsReal045NewcsrMachinelevelLarge XsReal046PipelineAtomicsunitLarge XsReal047LsqueueLoadmisalignbufferLarge XsReal048LsqueueStoremisalignbufferLarge XsReal049LsqueueLsqwrapperLarge XsReal050Coupledl2Coupledl2Large XsReal051DcacheUncacheLarge XsReal052WrapperCsrLarge XsReal053FtqFtqLarge XsReal054VectorVsplitLarge XsReal055DecodeFusiondecoderLarge XsReal056IcacheIcacheprefetchpipeLarge XsReal057BpuBpuLarge XsReal058LsqueueLoadqueueuncacheLarge XsReal059VectorVmergebufferLarge XsReal060MdpStoresetLarge XsReal061UtilityChiseltaggedtraceLarge XsReal062MmuBitmapcheckLarge XsReal063LsqueueLoadqueuerawLarge XsReal064IcacheIcachemissunitLarge XsReal065NewcsrCsrpermitmoduleLarge XsReal066LsqueueLoadqueueLarge XsReal067DatapathWbarbiterLarge XsReal068Tl2TlMshrLarge XsReal069IbufferIbufferLarge XsReal070PrefetchL1StreamprefetcherLarge XsReal071IcacheIcachemainpipeLarge XsReal072BackendVecexcpdatamergemoduleLarge XsReal073PrefetchPrefetcherwrapperLarge XsReal074DatapathBypassnetworkLarge XsReal075RobVtypebufferLarge XsReal076Coupledl2GrantbufferLarge XsReal077RegfileRegfileLarge XsReal078WrapperVfaluLarge XsReal079PrefetchPrefetcherLarge XsReal080XiangshanL2TopLarge XsReal081RenameRenametableLarge XsReal082Tl2ChiMmiobridgeLarge XsReal083ChiMessageLarge XsReal084IttageIttageLarge XsReal085MainpipeWritebackqueueLarge XsReal086DecodeDecodestageLarge XsReal087NewcsrInterruptfilterLarge XsReal088FuPmpLarge XsReal089LsqueueStorequeuedataLarge XsReal090PrefetchTemporalprefetchLarge XsReal091Coupledl2RequestbufferLarge XsReal092MmuTlbstorageLarge XsReal093FrontendFrontendLarge XsReal094Coupledl2RequestarbLarge XsReal095RobRabLarge XsReal096Coupledl2CommonLarge XsReal097FuSrt16DividerLarge XsReal098LsqueueVirtualloadqueueLarge XsReal099PrefetchPrefetchermonitorLarge XsReal100BackendNfmappedelemidxSmall
@@ -215,7 +217,7 @@ SCALE_XsReal100BackendNfmappedelemidxSmall := small
 CASE ?= XsReal000PipelineLoadunitLarge
 KIND := $(KIND_$(CASE))
 SCALE := $(SCALE_$(CASE))
-BUILD_DIR ?= build
+BUILD_DIR ?= ../../ptmp/xs-components
 CASE_BUILD := $(BUILD_DIR)/$(CASE)
 FIR_DIR := $(CASE_BUILD)/chisel-fir
 SV_DIR := $(CASE_BUILD)/chisel-sv
@@ -230,7 +232,7 @@ MATRIX_DIR := $(BUILD_DIR)/matrix
 FIR := $(FIR_DIR)/$(CASE).fir
 SV := $(SV_DIR)/$(CASE).sv
 GSIM_GRAPH_STATS := $(GSIM_MODEL_DIR)/$(CASE)_0Final_Stats.json
-GRHSIM_GRAPH_STATS := $(GRHSIM_MODEL_DIR)/activity_schedule_stats.json
+GRHSIM_IR_JSON := $(GRHSIM_DIR)/$(CASE).json
 GSIM_BUILD_STAMP := $(GSIM_DIR)/obj/.stamp
 GRHSIM_LIB := $(GRHSIM_MODEL_DIR)/libgrhsim_$(CASE).a
 BENCH_TB := $(TB_DIR)/$(CASE)_bench
@@ -240,15 +242,6 @@ MODEL_STATS_JSON := $(STATS_DIR)/model_stats.json
 
 GSIM_FLAGS ?= --supernode-max-size=8 --cpp-max-size-KB=512
 GSIM_CXXFLAGS ?= -O3 -std=c++17 -fbracket-depth=2048 -Wno-parentheses-equality -I$(abspath $(GSIM_MODEL_DIR))
-GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE ?= 128
-GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE ?= 768
-GRHSIM_SCHED_BATCH_MAX_OPS ?= 2048
-GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES ?= 8192
-GRHSIM_SCHED_BATCH_TARGET_COUNT ?= 64
-GRHSIM_EMIT_PARALLELISM ?= 4
-GRHSIM_PERF ?= off
-GRHSIM_INPUT_FULLPASS_SPECIALIZATION ?= 0
-GRHSIM_POSEDGE_FULLPASS_SPECIALIZATION ?= 0
 GRHSIM_CXXFLAGS ?= -O3 -std=c++20
 BENCH_CXXFLAGS ?= -O3 -std=c++20 -I$(abspath $(GSIM_MODEL_DIR)) -I$(abspath $(GRHSIM_MODEL_DIR))
 BENCH_VECTORS ?= 100000
@@ -298,20 +291,18 @@ $(GSIM_BUILD_STAMP): $(GSIM_MODEL_DIR)/$(CASE)0.cpp
 
 gsim: $(GSIM_BUILD_STAMP)
 
-$(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_GRAPH_STATS) &: $(SV) scripts/emit_grhsim.py
+$(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_IR_JSON) &: $(SV) $(WOLVRIX_GRHSIM_IR_SCRIPT)
 	@mkdir -p $(GRHSIM_MODEL_DIR)
-	$(PYTHON) scripts/emit_grhsim.py --sv $(SV) --top $(CASE) --out $(GRHSIM_MODEL_DIR) --json $(GRHSIM_DIR)/$(CASE).json \
-		--max-op-in-compute-supernode $(GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE) \
-		--max-op-in-commit-supernode $(GRHSIM_MAX_OP_IN_COMMIT_SUPERNODE) \
-		--sched-batch-max-ops $(GRHSIM_SCHED_BATCH_MAX_OPS) \
-		--sched-batch-max-estimated-lines $(GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES) \
-		--sched-batch-target-count $(GRHSIM_SCHED_BATCH_TARGET_COUNT) \
-		--emit-parallelism $(GRHSIM_EMIT_PARALLELISM) \
-		--perf $(GRHSIM_PERF) \
-		$(if $(filter 1 true TRUE yes YES on ON,$(GRHSIM_INPUT_FULLPASS_SPECIALIZATION)),--input-fullpass-specialization,) \
-		$(if $(filter 1 true TRUE yes YES on ON,$(GRHSIM_POSEDGE_FULLPASS_SPECIALIZATION)),--posedge-fullpass-specialization,)
+	@find "$(abspath $(SV_DIR))" -maxdepth 1 -name '*.sv' -print | sort > "$(GRHSIM_DIR)/rtl.f"
+	@: > "$(GRHSIM_DIR)/read_args.txt"
+	set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(WOLVRIX_PYTHON) $(WOLVRIX_GRHSIM_IR_SCRIPT) \
+		"$(GRHSIM_DIR)/rtl.f" $(CASE) "$(GRHSIM_DIR)/flat_grh.json" \
+		"$(GRHSIM_IR_JSON)" "$(GRHSIM_DIR)/roundtrip.json" \
+		"$(GRHSIM_DIR)/read_args.txt" info --emit-cpp-dir "$(GRHSIM_MODEL_DIR)" \
+		2>&1 | tee "$(GRHSIM_DIR)/emit.log"
 	test -f $(GRHSIM_MODEL_DIR)/Makefile
-	test -f $(GRHSIM_GRAPH_STATS)
+	test -f $(GRHSIM_MODEL_DIR)/grhsim_$(CASE).hpp
+	test -f $(GRHSIM_IR_JSON)
 
 $(GRHSIM_LIB): $(GRHSIM_MODEL_DIR)/Makefile
 	$(MAKE) -C $(GRHSIM_MODEL_DIR) CXX=$(CXX) CXXFLAGS="$(GRHSIM_CXXFLAGS)"
@@ -350,11 +341,11 @@ $(STATS_DIR)/grhsim.json: $(GRHSIM_LIB) scripts/objdump_stats.py
 
 stats: $(STATS_DIR)/gsim.json $(STATS_DIR)/grhsim.json
 
-$(MODEL_STATS_JSON): bench stats scripts/model_stats.py
+$(MODEL_STATS_JSON): bench stats $(GRHSIM_IR_JSON) scripts/model_stats.py
 	$(PYTHON) scripts/model_stats.py \
 		--case $(CASE) --kind $(KIND) --scale $(SCALE) \
 		--gsim-graph-stats $(GSIM_GRAPH_STATS) \
-		--grhsim-graph-stats $(GRHSIM_GRAPH_STATS) \
+		--grhsim-ir $(GRHSIM_IR_JSON) \
 		--gsim-instruction-stats $(STATS_DIR)/gsim.json \
 		--grhsim-instruction-stats $(STATS_DIR)/grhsim.json \
 		--bench-log $(BENCH_LOG) \
