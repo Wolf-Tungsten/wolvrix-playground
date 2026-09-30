@@ -142,3 +142,62 @@ pass 命名为新管线草案，实现时可微调；每个 pass 后均可 dump 
 - PCH 阈值：默认字段数 5 万或单 TU 编译超 30s，实测调整。
 - eventActiveFlag 存储形态：默认每 act bit 一个超节点位图（P_event 里 OR 重建）。
 - P_event 是否分任务：默认单任务顺序执行（锥小）；profiling 后再议拆分。
+
+## 9. 进展记录（2026-09-30）
+
+代码在 `wolvrix` 子模块（branch `grh/grhsim-ir`），脚本/Makefile 在根仓库
+（branch `grh/grhsim-ir-gap-driven`）。**根仓库 wolvrix 指针仍停在 M1 前的
+e49d454，按仓库惯例留待 M5 差分全绿后的验收 commit 再移动。**
+
+### 已完成
+
+- **M0**：黄金基线设施落成——161/162 hdlbits DUT 黄金轨迹 + MANIFEST + XS
+  coremark 快照（`ptmp/sim-refactor-baseline/`，端点 instrCnt=240349 /
+  cycleCnt=99996 / pc=0x80000c0c）；`make check_sim_refactor_baseline` 门禁可用。
+  openc910 无任何 grhsim 流程（在案），差分链不含它；dut_105 预存失败
+  （used-bits dangling value bug，原生流程同样失败）不在门禁内。
+- **M1**（wolvrix `9bacb94`）：edgeDet op / SimPhase / verifier 框架 / JSON v2 /
+  namedStores 等空壳。
+- **M2a**（`d42c19d`）：`grhsim.classify-event-inputs` +
+  `grhsim.lower-edge-detect` + cone_extract helper。
+- **M2b**（`4cc25ff`）：`grhsim.extract-output-cones` +
+  `grhsim.migrate-timeslot-tasks`。偏差：convert 的 `__event_*` 生成摘除从 M2
+  推迟到 M5 随旧管线一起删。
+- **M3**（`0dc0709`）：`cpu.st.split-phases` / `build-general-nodes` /
+  `merge-general-supernodes` / `pack-general-functions` + 事件域禁合 +
+  verifyCpuPhases + eventActs attr。**关键修正（计划外、已做主落地）**：事件域
+  影响图只含值扇出边，不含 state 写→读边——否则双域设计被禁合规则打死且会丢
+  更新；依据是语义文档"reg/latch/mem read 直接读 S 天然自由"。
+- **M4**（`42fe2e8`，根仓库 `0144f63`）：`cpu.st.layout-named-stores` /
+  `build-event-bitmaps` / `build-mem-write-plan` / `build-phase-schedule`，
+  终态 `PhaseSchedule`=complete 合法档位（旧管线 complete==Schedule 判定不变）。
+  七具名 store、supernode 序号=General 分枝树序展开、timeslotTriggers（JSON v2
+  位置化尾字段，在 memWritePlan 后）、verifyCpuPhases 逐级放宽校验（位图/写计划/
+  fanout/task/trigger 全量重算比对）。接受偏差：ActiveFlags aux 记总数 N（序号==
+  数组下标）；mem 写 priority=per-mem op id 升序；latch-only 锥豁免事件位图。
+  详见 `wolvrix/docs/grhsim_ir/passes/{layout-named-stores,build-event-bitmaps,
+  build-mem-write-plan,build-phase-schedule}.md`。
+
+### 进行中：M5（已拆 M5a/M5b/M5c 执行）
+
+- 规格已写定：`ptmp/spec-m5.md`（生成代码契约、六阶段 eval 骨架、管线切换 12
+  pass 序列、删除清单及其消费方盘点、差分推进门禁、xs-bugcase IR 接线方案）。
+- **M5a（新 emit 实现）**：coder 搭建中被中断，工作树留有早期脚手架
+  `wolvrix/lib/grhsim/backend/cpu_phase_emit.{hpp,cpp}`（约 650 行，仅
+  IndentBuffer 基础设施 + SixPhaseEmitter 类骨架开头，未接线、未编译验证）。
+  续作时可在此基础上继续或重写。已核实的实施 facts：旧 emit round 上限
+  100000 + 未收敛 throw；分叉点 `emitCpuCpp`（stage==PhaseSchedule→新，
+  Schedule→旧）；旧 emit 无 PCH、是多 TU 拆分（`_task_<id>.cpp` 等 + 含
+  `LIB := ` 行的 Makefile）；waveform/perf 属 legacy emit 选项，IR 后端当前
+  直接 raise，stub 契约见 spec §1.1。
+- **M5b（管线切换 + 删除 + 文档）**、**M5c（XS/xs-bugcase 差分）**：未开始。
+
+### 环境注意事项（持续有效）
+
+- `wolvrix/lib/grhsim/backend/cpu_emit.cpp` 与 `tests/grhsim/test_cpu_emit.cpp`
+  有他人未提交改动（GRHSIM_DIRECT_MEM 实验，约 564 行）：各任务均不得触碰、
+  不带入 commit；M5b 删除 cpu_emit.cpp 前先把 `git diff` 备份到 ptmp 并提醒
+  属主。
+- `make test_wolvrix` 全量有 3 个既有失败（transform-comb-lane-pack、
+  transform-repcut、ingest-write-back-slice SEGFAULT），与本重构无关，不修。
+- `scripts/grhsim_unpaired_registers.py` 是他人的未跟踪文件，不动。
