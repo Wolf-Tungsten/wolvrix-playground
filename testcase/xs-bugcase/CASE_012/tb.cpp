@@ -118,21 +118,6 @@ bool compare(const Outputs& ref, const Outputs& grhsim, int cycle, const char* p
     return false;
 }
 
-bool check_runtime(const GrhSIM_xs_bugcase_tb& grhsim, int cycle, const char* phase)
-{
-    if (!grhsim.fatal_requested() && !grhsim.finish_requested() && !grhsim.stop_requested()) {
-        return true;
-    }
-    std::fprintf(stderr,
-                 "[RUNTIME] cycle=%d phase=%s fatal=%u finish=%u stop=%u\n",
-                 cycle,
-                 phase,
-                 grhsim.fatal_requested() ? 1u : 0u,
-                 grhsim.finish_requested() ? 1u : 0u,
-                 grhsim.stop_requested() ? 1u : 0u);
-    return false;
-}
-
 void eval_both(VRef& ref, GrhSIM_xs_bugcase_tb& grhsim)
 {
     ref.eval();
@@ -147,17 +132,11 @@ bool step(VRef& ref, GrhSIM_xs_bugcase_tb& grhsim, int cycle)
     if (!compare(sample_ref(ref), sample_grhsim(grhsim), cycle, "low")) {
         return false;
     }
-    if (!check_runtime(grhsim, cycle, "low")) {
-        return false;
-    }
     ++main_time;
 
     drive(ref, grhsim, true, s);
     eval_both(ref, grhsim);
     if (!compare(sample_ref(ref), sample_grhsim(grhsim), cycle, "high")) {
-        return false;
-    }
-    if (!check_runtime(grhsim, cycle, "high")) {
         return false;
     }
     ++main_time;

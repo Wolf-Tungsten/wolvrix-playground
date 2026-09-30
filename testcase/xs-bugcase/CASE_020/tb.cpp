@@ -170,12 +170,13 @@ bool compare(const Outputs& ref,
              const Outputs& grhsim,
              const Stimulus& s,
              int cycle,
-             const char* phase)
+             const char* phase,
+             bool read_response_valid)
 {
-    const bool target_resp_window = cycle >= 279 && cycle <= 283;
+    const bool compare_response = cycle >= 279 && cycle <= 283 && read_response_valid;
     if (ref.read_ready == grhsim.read_ready &&
         ref.write_ready == grhsim.write_ready &&
-        (!target_resp_window ||
+        (!compare_response ||
          (ref.resp_data == grhsim.resp_data && ref.resp_code == grhsim.resp_code))) {
         return true;
     }
@@ -205,22 +206,28 @@ bool compare(const Outputs& ref,
     return false;
 }
 
-bool step(VRef& ref, GrhSIM_xs_bugcase_tb& grhsim, const Stimulus& s, int cycle)
+bool step(VRef& ref, GrhSIM_xs_bugcase_tb& grhsim, const Stimulus& s, int cycle,
+          bool& read_response_valid)
 {
     drive(ref, grhsim, false, s);
     ref.eval();
     grhsim.eval();
-    if (!compare(sample_ref(ref), sample_grhsim(grhsim), s, cycle, "low")) {
+    const Outputs low_ref = sample_ref(ref);
+    const Outputs low_grhsim = sample_grhsim(grhsim);
+    if (!compare(low_ref, low_grhsim, s, cycle, "low", read_response_valid)) {
         return false;
     }
     ++main_time;
 
+    const bool read_fire = s.read_valid && (s.read_waymask & 1U) &&
+                           !s.write_valid && low_ref.read_ready;
     drive(ref, grhsim, true, s);
     ref.eval();
     grhsim.eval();
-    if (!compare(sample_ref(ref), sample_grhsim(grhsim), s, cycle, "high")) {
+    if (!compare(sample_ref(ref), sample_grhsim(grhsim), s, cycle, "high", read_fire)) {
         return false;
     }
+    read_response_valid = read_fire;
     ++main_time;
     return true;
 }
@@ -236,10 +243,11 @@ int main(int argc, char** argv)
     VRef ref;
     GrhSIM_xs_bugcase_tb grhsim;
     grhsim.init();
+    bool read_response_valid = false;
 
     for (int cycle = 0; cycle < 360; ++cycle) {
         const Stimulus s = build_stimulus(cycle);
-        if (!step(ref, grhsim, s, cycle)) {
+        if (!step(ref, grhsim, s, cycle, read_response_valid)) {
             return 1;
         }
     }

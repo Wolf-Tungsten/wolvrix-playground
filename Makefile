@@ -1061,6 +1061,27 @@ py_install:
 	@echo "[PY] Installing wolvrix into the current Python environment via scikit-build-core"
 	@PIP_DISABLE_PIP_VERSION_CHECK=1 $(PIP) install --no-build-isolation $(PIP_CONFIG_SETTINGS) -e $(WOLVRIX_DIR)
 
+.PHONY: run_xs_bugcase_grhsim
+run_xs_bugcase_grhsim: py_install
+	@mkdir -p "$(REPO_ROOT)/ptmp/xs-bugcase-grhsim/ccache"
+	@set +e; passed=0; failed=0; \
+	  export CCACHE_DIR="$(REPO_ROOT)/ptmp/xs-bugcase-grhsim/ccache"; \
+	  summary="$(REPO_ROOT)/ptmp/xs-bugcase-grhsim/summary.txt"; \
+	  : > "$$summary"; \
+	  for index in $$(seq 1 24); do \
+	    case_tag=$$(printf 'CASE_%03d' "$$index"); \
+	    target=run; if [ "$$index" -le 5 ]; then target=run_grhsim; fi; \
+	    log="$(REPO_ROOT)/ptmp/xs-bugcase-grhsim/$${case_tag}.log"; \
+	    echo "[RUN] $$case_tag $$target"; \
+	    if $(MAKE) --no-print-directory -C "$(REPO_ROOT)/testcase/xs-bugcase/$$case_tag" "$$target" >"$$log" 2>&1; then \
+	      echo "PASS $$case_tag" | tee -a "$$summary"; passed=$$((passed + 1)); \
+	    else \
+	      echo "FAIL $$case_tag ($$log)" | tee -a "$$summary"; failed=$$((failed + 1)); \
+	    fi; \
+	  done; \
+	  echo "Result: $$passed/24 passed, $$failed failed" | tee -a "$$summary"; \
+	  test "$$failed" -eq 0
+
 $(HDLBITS_EMITTED_DUT) $(HDLBITS_EMITTED_JSON): $(HDLBITS_DUT_SRC) $(HDLBITS_WOLVRIX_SCRIPT) check_id
 	@mkdir -p $(HDLBITS_OUT_DIR)
 	$(PYTHON) $(HDLBITS_WOLVRIX_SCRIPT) $(DUT) $(HDLBITS_OUT_DIR)

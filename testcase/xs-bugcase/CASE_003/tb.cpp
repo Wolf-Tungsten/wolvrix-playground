@@ -3,7 +3,9 @@
 #include <cstring>
 
 #include "VRef.h"
+#ifndef GRHSIM_TEST
 #include "VWolf.h"
+#endif
 #include "verilated.h"
 #include "verilated_cov.h"
 
@@ -23,6 +25,11 @@ static uint64_t get_chunk(const vluint32_t *vec, int chunk) {
     const uint64_t lo = static_cast<uint64_t>(vec[word]);
     const uint64_t hi = static_cast<uint64_t>(vec[word + 1]);
     return lo | (hi << 32);
+}
+
+static uint64_t get_chunk(const VlWide<236> &vec, int chunk) {
+    return static_cast<uint64_t>(vec[chunk * 2]) |
+           (static_cast<uint64_t>(vec[chunk * 2 + 1]) << 32);
 }
 
 static constexpr int kObsChunks = 118;
@@ -201,6 +208,9 @@ int main(int argc, char **argv) {
 
     VRef *ref = new VRef;
     VWolf *wolf = new VWolf;
+#ifdef GRHSIM_TEST
+    wolf->init();
+#endif
 
     ref->clk = 0;
     wolf->clk = 0;
@@ -252,6 +262,9 @@ int main(int argc, char **argv) {
     }
 
     VerilatedCov::write();
+#ifdef GRHSIM_TEST
+    std::printf("[PASS] CASE_003 ref == grhsim\n");
+#endif
     delete ref;
     delete wolf;
     return 0;

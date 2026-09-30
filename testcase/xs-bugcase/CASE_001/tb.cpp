@@ -23,6 +23,10 @@ static inline void set_w76(vluint32_t *dst, uint64_t lo, uint32_t hi) {
     dst[2] = static_cast<vluint32_t>(hi & 0x0fffu);
 }
 
+static inline void set_w76(VlWide<3> &dst, uint64_t lo, uint32_t hi) {
+    set_w76(dst.data(), lo, hi);
+}
+
 static inline bool eq_w76(const vluint32_t *a, const vluint32_t *b) {
     if (a[0] != b[0]) {
         return false;
@@ -31,6 +35,10 @@ static inline bool eq_w76(const vluint32_t *a, const vluint32_t *b) {
         return false;
     }
     return (a[2] & 0x0fffu) == (b[2] & 0x0fffu);
+}
+
+static inline bool eq_w76(const VlWide<3> &a, const VlWide<3> &b) {
+    return eq_w76(a.data(), b.data());
 }
 
 static int compare_step(const VRef *ref, const VWolf *wolf, int cycle) {

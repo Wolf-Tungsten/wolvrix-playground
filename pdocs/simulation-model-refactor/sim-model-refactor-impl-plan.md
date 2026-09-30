@@ -219,10 +219,10 @@ pass 命名为新管线草案，实现时可微调；每个 pass 后均可 dump 
   - 测试：`test_cpu_phase_emit.cpp`（1291 行）21 子项全绿（生成模型经系统
     clang++ -O2+UBSan 编译驱动比对）；phases/stores/event_lowering/mapping/
     schedule 套件无回归。
-- **M5b（管线切换+删除+文档）**：拆为四个里程碑。M5b-1 管线切换与
-  HDLBits 验证已完成，本地 benchmark 入口仍待实测：
+- **M5b（管线切换+删除+文档）**：拆为四个里程碑。M5b-1 管线切换与主要
+  回归已通过；big-comb/xs-components 本地 benchmark 仍待实测：
 
-  **M5b-1 管线切换与旧 emit/legacy 删除（验证中）**
+  **M5b-1 管线切换与旧 emit/legacy 删除（主要验证已通过）**
   - 已删：旧 CPU emit 三件套（cpu_emit/cpu_shape_share/cpu_block_share + 头 +
     test_cpu_emit.cpp，GRHSIM_DIRECT_MEM 改动备份 `ptmp/grhsim_direct_mem_backup_20260930.diff`）；
     legacy 仿真（lib/emit/grhsim_cpp.cpp + 头 + 两个 emit 测试 exe）；
@@ -233,14 +233,16 @@ pass 命名为新管线草案，实现时可微调；每个 pass 后均可 dump 
     CPU_MAPPING_PIPELINE=12 pass 新序列+旧选项清除；`HDLBITS_GRHSIM_BACKEND ?= ir`、
     hdlbits legacy 分支摘除；根 Makefile 旧 XS 目标摘除；pybind emit 接口适配；
     convert `__event_*` 生成摘除（grh_to_grhsim.cpp -21 行，lower-edge-detect
-    适配原始事件标注，相关测试同步）；xs-bugcase CASE_006..024 Makefile 已切
-    IR 管线（M5c §8 接线的 Makefile 部分提前落地，tb/双驱动比对部分状态待核）。
+    适配原始事件标注，相关测试同步）；xs-bugcase CASE_001..005 新增独立
+    GrhSIM IR 双驱动 `run_grhsim` 并保留原 SV `run`，CASE_006..024 继续由
+    `run` 执行 GrhSIM 双驱动，根 `run_xs_bugcase_grhsim` 汇总入口已加入。
   - 验证完成：`source env.sh && make build` 全树通过；`make test_wolvrix` 为
     52/55，通过项无新增失败，三项失败与既有记录一致
     （`transform-comb-lane-pack`、`transform-repcut`、`ingest-write-back-slice`
     SEGFAULT）；GrhSIM 定向目标 `test_grhsim_cpu_phase_emit`、`test_grhsim_cpu_schedule`、
     `test_grhsim_cpu_mapping`、`test_grhsim_event_lowering`、`test_grhsim_cpu_phases`、
-    `test_grhsim_cpu_stores` 全绿；默认 IR 管线 HDLBits 冒烟 DUT=001（组合）、023
+    `test_grhsim_cpu_stores` 全绿；本轮 GrhSIM CPU phase emit、event lowering、IR 与
+    CPU mapping 回归全绿；默认 IR 管线 HDLBits 冒烟 DUT=001（组合）、023
     （时序）、116（512 位状态）、162（128-entry memory、异步复位、`$display`）全绿。
     HDLBits DUT 没有 `$monitor`/`$strobe`，两类 task 由 phase emit 与 event lowering
     定向测试覆盖。`grhsim.used-bits` 保留输出完整使用的截断 concat 全部操作数依赖，
@@ -249,7 +251,13 @@ pass 命名为新管线草案，实现时可微调；每个 pass 后均可 dump 
     testbench 全绿（`ptmp/hdlbits-grhsim-full/20260930-dut105-fixed/summary.txt`）。
     旧 emitter API/源文件在生产代码和构建注册中无引用；历史文档与注释的旧路径文字
     留待 M5b-3 文档收口。big-comb/xs-components 新 IR 本地入口已接线，实际生成与
-    benchmark 验证按当前优先级暂缓。
+    benchmark 验证按当前优先级暂缓。修复 CPU `sliceArray` C++ 括号生成、`$random`
+    跨 output-cone clone 的单次采样，以及 1-bit DPI `svBit` ABI；新增对应 emit 回归。
+    xs-bugcase 汇总 `make run_xs_bugcase_grhsim` 24/24 通过；2026-10-01 在
+    CASE_001..003 的运行入口加入旧 coverage 文件清理后复测仍为 24/24，结果见
+    `ptmp/xs-bugcase-grhsim/summary.txt`（各例日志位于同目录）。原 SV 路径 CASE_002
+    仍有独立已知差异（cycle 3：`exit ref=1 wolf=0`），不影响 GrhSIM 对 Verilator
+    的 120-cycle 对拍（JTAG DPI 59 次、RAM read 60 次、write 40 次）。
   - 清理：新 `cpu.st.emit-cpp` 拒绝旧 emit 选项；其注册测试确认旧选项已移除。
 
   **M5b-2 旧 mapping pass 实现删除（未开始）**
@@ -277,8 +285,8 @@ pass 命名为新管线草案，实现时可微调；每个 pass 后均可 dump 
     删除、根仓库脚本/Makefile/文档与子模块指针）；M5c 全绿后再提交后续修复与验收
     结果。提交说明点名 GRHSIM_DIRECT_MEM 备份位置提醒属主。
 
-- **M5c（差分推进）**：hdlbits 161 黄金 / XS coremark / xs-bugcase 24 例均未跑通，
-  等 M5b-1 验证收口后依次推进。
+- **M5c（差分推进）**：xs-bugcase 24 例 GrhSIM 双驱动已全绿；hdlbits 黄金集与 XS
+  coremark 的后续差分仍待推进。
 
 ### 环境注意事项（持续有效）
 

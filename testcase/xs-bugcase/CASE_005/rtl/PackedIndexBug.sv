@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 // Minimal repro for packed array indexing lowering
 module PackedIndexPassthru(
     input  logic [4:0] in,
