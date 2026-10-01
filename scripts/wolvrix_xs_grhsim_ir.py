@@ -24,19 +24,21 @@ GRH_PIPELINE: list[tuple[str, dict]] = [
 ]
 
 CPU_MAPPING_PIPELINE = [
-    # Legacy six-phase CPU mapping (removed in M5d-6): builds the four-branch
-    # tree from the sealed phase attribution and advances it to the
-    # PhaseSchedule stage. Runs exactly once; the old pipeline's
-    # "mapping -> semantic rewrite -> mapping" round trip is abolished
-    # (M5d-5): the partition-stage simplify below subsumes the post-mapping
-    # cleanups, before any mapping exists.
-    "cpu.st.split-phases",
+    # Final CPU mapping (M5d-6, C segment): build-general-nodes initializes
+    # the one mapping from the sealed phase attribution (the semantic
+    # grhsim.split-phases is B5 above) and forms the General nodes;
+    # merge-general-supernodes fixes the supernode ordinals in partition
+    # order (resolution 2); layout/bitmaps/mem-plan run at the supernode
+    # stage; pack-general-functions only records supernode intervals for the
+    # emit functions; build-phase-schedule closes the mapping. Runs exactly
+    # once; the old pipeline's "mapping -> semantic rewrite -> mapping" round
+    # trip is abolished (M5d-5).
     "cpu.st.build-general-nodes",
     "cpu.st.merge-general-supernodes",
-    "cpu.st.pack-general-functions",
     "cpu.st.layout-named-stores",
     "cpu.st.build-event-bitmaps",
     "cpu.st.build-mem-write-plan",
+    "cpu.st.pack-general-functions",
     "cpu.st.build-phase-schedule",
 ]
 
@@ -146,7 +148,7 @@ def parse_args() -> argparse.Namespace:
                         help="diagnostic (NO00020): also store the GrhSIM model right after grhsim.verify, before any semantic/mapping pass")
     parser.add_argument("--dump-pre-partition-json", type=Path,
                         help="diagnostic (NO00020): also store the GrhSIM model after the sealed "
-                             "semantic pipeline (B8), right before the single cpu.st.split-phases "
+                             "semantic pipeline (B8), right before the single cpu.st.build-general-nodes "
                              "mapping run")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
@@ -299,7 +301,7 @@ def main() -> int:
                 pass_options["target_batch_count"] = args.cpu_target_batch_count
             if pass_name == "cpu.st.merge-general-supernodes" and args.max_op_in_compute_supernode is not None:
                 pass_options["max_op_in_compute_supernode"] = args.max_op_in_compute_supernode
-            if pass_name == "cpu.st.split-phases" and args.dump_pre_partition_json is not None:
+            if pass_name == "cpu.st.build-general-nodes" and args.dump_pre_partition_json is not None:
                 dump_path = args.dump_pre_partition_json.resolve()
                 dump_path.parent.mkdir(parents=True, exist_ok=True)
                 diagnostics = timed(

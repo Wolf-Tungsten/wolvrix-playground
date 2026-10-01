@@ -390,7 +390,7 @@ grhsim.const-fold          # 新增：完整常量运算折叠
 | M5d-7 多 TU 规划与 emit | C8-C10、Makefile 多源构建 | 最终 mapping -> 规模受控且可并行编译链接的 C++ 模型 |
 | M5d-8 入口、回归与整核验收 | 统一工作流、参照差分、资源/性能测量、提交收口 | 目标管线与生成模型 -> 可复现的完整验收证据 |
 
-M5d-1、M5d-2、M5d-3、M5d-4、M5d-5 已完成（见上文）；M5d-6 至 M5d-8 均待实施。下述构建和测试是后续验收要求。
+M5d-1、M5d-2、M5d-3、M5d-4、M5d-5、M5d-6 已完成（见上文）；M5d-7 至 M5d-8 均待实施。下述构建和测试是后续验收要求。
 
 ### M5d-1 声明来源与 GRH/lower 契约（已完成，2026-10-01）
 
@@ -765,7 +765,7 @@ M5d-1、M5d-2、M5d-3、M5d-4、M5d-5 已完成（见上文）；M5d-6 至 M5d-8
   B8 封板）；`flows/cpu-st.md` 重写 A/B 段叙述、拆除往返段并新增"演进（M5d-5）"节
   记录 compat shim 与预测 helper 一致性测试。
 
-### M5d-6 General supernode、最终 mapping 与旧实现清理（未开始，依赖 M5d-5）
+### M5d-6 General supernode、最终 mapping 与旧实现清理（已完成，2026-10-01）
 
 - 范围：C 段第二轮分解与映射调度——由 build-general-nodes（C1）初始化一次最终 mapping，merge-general-supernodes（C2）形成超节点并按划分结果顺序确定超节点序号，随后 layout-named-stores（C3）、build-event-bitmaps（C4）、build-mem-write-plan（C5）、pack-general-functions（C6）、build-phase-schedule（C7）单向推进。
 - 序号与函数打包解耦（归位决议 2）：超节点序号不再按“emit function 子序 → supernode 子序”派生，build-event-bitmaps 改用 C2 序号；pack-general-functions 从划分段移至 build-phase-schedule 之前，EmitFunction 只记录持有的超节点区间；layout-named-stores 的 stage 前置从 GeneralFunctions 降为 GeneralSupernodes。CpuMappingStage 枚举顺序与 verifyCpuPhases 逐级校验相应重排，兼容所需枚举数值保持稳定。
@@ -775,6 +775,99 @@ M5d-1、M5d-2、M5d-3、M5d-4、M5d-5 已完成（见上文）；M5d-6 至 M5d-8
 - 旧 schedule 消费者：处置 `grhsim.demonitor-redundant`/`demonitor-edge-completion`/`migrate-boundary-ops(-ec)`/`fuse-expr-chains`/`fold-residue`；有独立收益的语义能力需迁入前序优化层并证明适用性，依赖旧 mapping 的实现删除。随消费者退出删除孤儿化的 refreshCpuDataLayout、refreshCpuSchedule、computeDemonitorEdgeCompletionSelection，兼容所需 CpuMappingStage 枚举数值保留稳定。
 - 检查点：最终图/布局/位图/读者表/fanout/schedule 交叉校验及 JSON 字节稳定往返通过，事件域和同轮传播定向回归通过。同步构建注册与相关测试，生产入口无旧 mapping 消费者；历史说明、兼容枚举和拒绝旧参数的测试不计作残留实现。
 - 文档：同步 backend、flow 和 mapping pass 文档，明确一次最终 mapping 与三段式流水线结构；不恢复旧 shadow/pending/domain-arm 执行路线。
+
+**交付清单**（wolvrix 子模块 branch `grh/grhsim-ir` + 根仓库脚本/Makefile）：
+
+- C1 `cpu.st.build-general-nodes`（重写，接替 `cpu.st.split-phases`）：无前置 mapping——
+  从封板语义模型一次性初始化 CpuBackendMapping（root + Event/General/Mem/Output
+  四平铺分枝：Event 锥拓扑序 edgeDet 殿后、Mem 收 `op.phase==Mem`（op-id 序）、
+  Output 拓扑序），随后在**全部** General 相 op 上形成 node（regLatch 类数组 mem 写
+  作为锚点进入 node 形成，其单消费者操作数锥被吸收）。要求总相位归属（None 相报错
+  指向 B5）；重复运行丢弃并重建（reemit remap 路径保持可用）。
+- C2 `cpu.st.merge-general-supernodes`：逻辑不变；超节点永久作为 General 分枝直接子节点，
+  **分枝子序即最终超节点序号**（`generalSupernodeOrder` 改为直读分枝，跳过 C6 尾随的
+  EmitFunction 叶子；与旧函数扁平化顺序逐值一致——打包本就不重排）。
+- C3 `cpu.st.layout-named-stores`：前置降为 GeneralSupernodes；状态归 store 只消费 A7
+  `storeClass`（`TypeKind::Array` 隐式分类摘除，未分类报错指向 select-state-stores）；
+  boundary 写参数槽位命名回到按 `op.phase==Mem`（compat shim 移除）。
+- C4/C5/C7：位图/读者表/fanout 全部按 C2 序号。C5 写集严格 `op.phase==Mem`、读者按
+  `storeClass==Mem`；C7 前置改 GeneralFunctions，General 任务来自 EmitFunction 叶子区间，
+  `commitStateFanout` 扩展收 regLatch 类数组的 General 相 memRead 读者（NBA 提交经
+  stateFanout 激活，与标量写一致）。
+- C6 `cpu.st.pack-general-functions`：移到 C5 之后 C7 之前；超节点不再重新挂载——
+  EmitFunction 成为尾随叶子分区，仅记录 `attrs.supernodeRange = {offset, count}`
+  （铺满 [0,N) 由 verifyCpuPhases 校验）；超节点 helperChunks 照旧。
+- emit 新能力（`cpu_phase_emit.cpp`）：`emitGeneralMemWrite`——General 相 regLatch 类
+  数组写（memWrite/memFill/memAssign/memWriteSeq）在超节点内 NBA 提交
+  `regLatchStoreNext`（merge 基为 next 行=同轮多写顺序累积；对 cur 行真变化检测，经
+  stateFanout 激活读者进 dataActiveFlagNext——与 emitRegWrite 同一契约，逐行）；
+  memRead 对 regLatch 类数组读 `regLatchStore` 当前值（同轮读旧）；init 写 cur 后由
+  initGlue 末尾 `regLatchStoreNext=regLatchStore` 同步；dumpState 对 regLatch 大数组
+  （count>64）与 memStore 一样走 fnv1a 哈希。
+- 阶段序与校验：`cpuMappingStageRank/cpuMappingStageAtLeast`（`model.hpp`）替代数值比较
+  ——流水线序 GeneralNodes<GeneralSupernodes<LayoutNamedStores<EventBitmaps<MemWritePlan<
+  GeneralFunctions<PhaseSchedule 不再是枚举数值序（GeneralFunctions=11 排到 MemWritePlan=14
+  之后）；枚举数值与 CpuPhase/CpuPartitionKind/CpuExecution 兼容值全部保留；
+  `SplitPhases` 阶段不再产生（仅兼容校验保留），stage<SplitPhases 的旧 checkpoint 拒绝；
+  `setCpuMapping`/JSON load 的 complete 判定收敛为仅 PhaseSchedule。
+- 旧实现清理：8 个旧 mapping pass（split-phase/form-event-domains/build-compute-nodes/
+  merge-compute-supernodes/pack-active-words/pack-emit-functions/layout-data/build-schedule）
+  与 6 个旧 schedule 消费者（demonitor-redundant/demonitor-edge-completion/
+  migrate-boundary-ops(-ec)/fuse-expr-chains/fold-residue）及孤儿 helper
+  （refreshCpuDataLayout/refreshCpuSchedule/computeDemonitorEdgeCompletionSelection）全部
+  删除；`CpuDataLayout`/`CpuSchedulePlan`/`CpuPartitionAttrs` 的 legacy 字段
+  （objects/values/localFrames/runtime/*Bytes/helperReadCaches、quiescenceProjection/
+  roundSeeds/inputShadows/demonitor*/foldResidue*、eventGate/activeId/activeWord）随 serde
+  一并移除（partition attr 尾部改为 `[chunks],[acts]?[range]?`；range 前的空 acts 元素是
+  占位符，读侧按此消歧）。`verifyCpuMapping`/`verifyCpuDataLayout`/`verifyCpuSchedule`
+  的 legacy 校验路径删除。M5d-5 的全部 compat shim（Mem 分枝按类型播种、buildGeneralNodes
+  排除 mem 写类型、mem 写计划/槽位命名/boundary 采样按类型、verify 容许 Mem 分枝 General
+  相写）随本次移除——General 相 regLatch 类 mem 写真正进入超节点。
+- 管线接线（`scripts/wolvrix_xs_grhsim_ir.py`）：`CPU_MAPPING_PIPELINE` 为 C1→C7 单向
+  7-pass（`cpu.st.split-phases` 移除）；`--dump-pre-partition-json` 触发点改在 C1 之前。
+  HDLBits/RTL 差分脚本经 CPU_PIPELINE 自动继承；`reemit_grhsim_ir.py --remap` 经 C1 重建。
+- 测试：删 `test_cpu_mapping.cpp`/`test_cpu_schedule.cpp`/`test_cpu_schedule_trace.cpp`
+  （旧线专属，含 CMake 目标与 Makefile 目标）；`test_cpu_phases.cpp` 重写为 C1/C2/C6 契约
+  （C1 初始化/重建、未归因拒绝、序号直序、区间铺满校验、已删 pass 注册拒绝，新增
+  regLatchMemWriteTest 定向 regLatch 类写进 General 超节点）；`test_cpu_stores.cpp` 更新
+  管线顺序与 EmitFunction 任务断言（layout 前置 GeneralSupernodes、pack 在 mem-plan 后）；
+  `test_cpu_phase_emit.cpp` 更新管线并新增 `regLatchArrayWriteTest`（General 相 NBA 数组写
+  实跑：memWriteSeq 优先级、mask RMW、event-free fill 收敛，与 mem 类同迹）；5 个 P_mem
+  定向测试以 `--mem-min-bytes 0` 钉住 P_mem 形态；`test_grhsim_ir.cpp` 删
+  fuse-expr-chains/fold-residue 两个测试函数、shell 夹具改跑真管线 round-trip；
+  `test_grhsim_split_phases.cpp` 的预测一致性改由 C1 直驱；`test_reg_to_mem_semantics.cpp`
+  失效测试改经 B3+B5+C1 建立 mapping、以相位保持的 simplify 验证失效（reg-to-mem 是
+  A 段 pass，不在带相位模型上运行）。
+
+**检查点证据**（均实跑）：
+
+- `make build` 通过（无告警）；`make test_wolvrix` 54/57——恰为 3 项既有失败
+  （transform-comb-lane-pack、transform-repcut、ingest-write-back-slice SEGFAULT），
+  57 = 旧 59 − 删掉的 2 个旧线测试目标，无新增失败。定向套件全绿：
+  grhsim-cpu-phases/grhsim-cpu-stores/grhsim-cpu-phase-emit/grhsim-split-phases/
+  grhsim-ir/grhsim-reg-to-mem。
+- `make run_all_hdlbits_grhsim_tests_report` 162/162 全绿（含 regLatch 类数组写经
+  General NBA 的运行差分）；`make run_xs_bugcase_grhsim` 24/24；
+  `make test_grhsim_reg_to_mem_rtl` 8192 样本 PASS。日志 `ptmp/m5d6_*.log`。
+- XS 整核管线（`make xs_wolf_grhsim_ir`，无 emit，exit 0，checkpoint 字节稳定往返）：
+  B5 归属 3609685 op（General 3587132 / Mem 22553 / `mem_writes_reglatch=14603`，
+  B2-B4 预标记 133094）；B7 克隆 89983 / 消除边界 31256（同 M5d-5）；C1：General
+  node 972398（event_ops=15894 / mem_ops=22553 / output_ops=1443）；C2：45016
+  超节点（事件域禁合 91458 次）；C3：regLatch 104646 字段 / mem 2101 字段（与 M5d-4
+  分类一致）、boundary 683995、activeFlags 135048 B（=45016×3）；C4：420 事件簇；
+  C5：22553 写 / 545070 读者表项；C6：4003 个 General EmitFunction；C7：tasks=4006。
+  日志 `ptmp/m5d6_xs_pipeline.log`。
+- 事件/DPI/随机采样/time-slot 的运行差分继续按计划留待 M5d-7 新 emit 接通后验收；
+  XS 整核 emu 编译仍按既定决定暂停。多 TU 规划消费 C6 的 EmitFunction 区间与 C7 任务表。
+- 文档：`docs/grhsim_ir/flows/cpu-st.md` 重写 C 段（一次最终 mapping、C1-C7 表、rank
+  段、运行时五相位轮次、演进节合并为 M5d-6）；`passes/split-phases.md` 改为移除说明；
+  `passes/build-general-nodes.md`/`merge-general-supernodes.md`/`pack-general-functions.md`/
+  `layout-named-stores.md`/`build-event-bitmaps.md`/`build-mem-write-plan.md`/
+  `build-phase-schedule.md`/`grhsim-split-phases.md`/`select-state-stores.md` 同步；
+  `overview.md` 新增 §3.7（C 段契约）；`backends/cpu.md` 的 layout/partition/schedule
+  schema 与实现节更新为 M5d-6 形态；`dialects/core.md` 演进注记同步；
+  `scripts/grhsim_gsim_module_compare.py` docstring 同步。
+
 
 ### M5d-7 多 TU 规划、emit 与并行构建（未开始，最终集成依赖 M5d-6）
 

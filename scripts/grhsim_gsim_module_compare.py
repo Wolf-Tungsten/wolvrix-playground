@@ -10,8 +10,8 @@ Compares two "pre-partition" IR dumps of the same XiangShan design:
     nodes by name, OP_INT leaves carry strVal constants).
   * GrhSIM side: grhsim_pre_partition.json -- wolvrix.grhsim.v1 compact
     checkpoint after the sealed semantic pipeline (B8), before
-    cpu.st.split-phases (production shape; G1b proves the CPU mapping passes
-    do not change the op multiset).
+    cpu.st.build-general-nodes (the single C-segment mapping run, M5d-6;
+    G1b proves the CPU mapping passes do not change the op multiset).
 
 Metrics (pre-registered in pdocs/NO00020-*.md, HYPOTHESIS section):
 

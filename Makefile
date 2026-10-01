@@ -301,12 +301,6 @@ test_wolvrix: build
 	mkdir -p $(CURDIR)/ptmp/ctest_tmp $(CURDIR)/ptmp/ctest_ccache
 	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) --output-on-failure
 
-.PHONY: test_grhsim_cpu_schedule
-test_grhsim_cpu_schedule:
-	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
-	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-cpu-schedule-tests -j 2
-	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-cpu-schedule-tests$$' --output-on-failure
-
 .PHONY: test_grhsim_ir
 test_grhsim_ir:
 	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
@@ -348,12 +342,6 @@ test_transform_memory_read_retime:
 	mkdir -p $(CURDIR)/ptmp/ctest_tmp $(CURDIR)/ptmp/ctest_ccache
 	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-memory-read-retime -j 2
 	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-memory-read-retime$$' --output-on-failure
-
-.PHONY: test_grhsim_cpu_mapping
-test_grhsim_cpu_mapping:
-	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
-	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-ir-tests grhsim-cpu-mapping-tests -j 2
-	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(grhsim-ir-tests|grhsim-cpu-mapping-tests)$$' --output-on-failure
 
 .PHONY: test_grhsim_event_lowering
 test_grhsim_event_lowering:
