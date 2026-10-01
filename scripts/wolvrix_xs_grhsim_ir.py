@@ -39,22 +39,25 @@ CPU_MAPPING_PIPELINE = [
 ]
 
 CPU_SEMANTIC_PIPELINE = [
-    # Recover scalarized table state while the GrhSIM model still exposes
-    # state reads/writes; CPU mapping and scheduling consume the arrays.
-    "grhsim.reg-to-mem",
+    # Whole-graph stage-A pipeline (M5d-3): normalize first so pattern
+    # matching sees canonical input, recover scalarized tables, pack
+    # isomorphic comb lanes and bit registers while raw event_edges are still
+    # present, then run the unified whole-graph simplify to a fixed point.
+    # clone-shared-compute stays last: it must follow the final CSE-bearing
+    # simplify (its boundary-aware rework is B7, M5d-5).
     "grhsim.canonicalize-compute",
+    "grhsim.reg-to-mem",
+    "grhsim.comb-pack",
+    "grhsim.pack-bit-registers",
+    "grhsim.simplify",
     "grhsim.clone-shared-compute",
-    "grhsim.bitwise-predicates",
 ]
-# Packing reads the first schedule's reader/fanout tables and invalidates the
-# mapping; both mapping rounds rebuild through the six-phase pipeline.
-# canonicalize-compute re-runs right after packing: per-bit reads become word
-# slices, so gathers of those bits degenerate into foldable concat-of-slices
-# identities. used-bits runs last among semantic passes: dead-cone elimination
-# and width narrowing see the fully canonicalized model.
+# The post-mapping semantic cleanups and the second mapping round stay as
+# they were validated (NO00021); pack-bit-registers moved into the
+# pre-mapping stage-A segment (M5d-3) and no longer invalidates a schedule.
 CPU_PIPELINE = (
     CPU_SEMANTIC_PIPELINE + CPU_MAPPING_PIPELINE
-    + ["grhsim.pack-bit-registers", "grhsim.canonicalize-compute", "grhsim.bitwise-muxes", "grhsim.mux-chain-fold",
+    + ["grhsim.canonicalize-compute", "grhsim.bitwise-muxes", "grhsim.mux-chain-fold",
        "grhsim.used-bits"] + CPU_MAPPING_PIPELINE
 )
 
@@ -97,6 +100,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--emit-cpp-dir", type=Path)
     parser.add_argument("--cpu-target-batch-count", type=int)
     parser.add_argument("--disable-reg-to-mem", action="store_true")
+    parser.add_argument("--comb-pack", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--comb-pack-report", type=Path,
+                        help="diagnostic (M5d-3): dump the group list TSV from grhsim.comb-pack")
     parser.add_argument("--clone-shared-compute", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--clone-shared-compute-max-clones", type=int, default=250000)
     parser.add_argument("--bitwise-predicates", action=argparse.BooleanOptionalAction, default=True)
@@ -176,9 +182,12 @@ def main() -> int:
             )
             require_ok(diagnostics, "ingest XiangShan RTL")
             for pass_name, pass_options in GRH_PIPELINE:
+                # Declared-symbol retention must stay on through the whole GRH
+                # pipeline: the lowered declProvenance association depends on it.
+                options_with_retention = {"keep_declared_symbols": True, **pass_options}
                 diagnostics = timed(
                     f"GRH pass {pass_name}",
-                    lambda name=pass_name, options=pass_options: session.run_pass(
+                    lambda name=pass_name, options=options_with_retention: session.run_pass(
                         name, design="design.main", **options
                     ),
                 )
@@ -199,6 +208,7 @@ def main() -> int:
                 top=args.top,
                 logic_domain="2-state",
                 keep_origins=args.keep_origins,
+                keep_declared_symbols=True,
                 consume=True,
             ),
         )
@@ -216,11 +226,11 @@ def main() -> int:
                 lambda: session.store_grhsim(model="grhsim.main", output=str(dump_path)),
             )
             require_ok(diagnostics, "store post-lower GrhSIM dump")
-        pipeline = CPU_PIPELINE if args.pack_bit_registers else (
-            CPU_SEMANTIC_PIPELINE + ["grhsim.bitwise-muxes"] + CPU_MAPPING_PIPELINE)
-        if args.disable_pack_bit_registers:
-            pipeline = [name for name in CPU_PIPELINE
-                        if name != "grhsim.pack-bit-registers"]
+        pipeline = list(CPU_PIPELINE)
+        if not args.pack_bit_registers or args.disable_pack_bit_registers:
+            pipeline = [name for name in pipeline if name != "grhsim.pack-bit-registers"]
+        if not args.comb_pack:
+            pipeline = [name for name in pipeline if name != "grhsim.comb-pack"]
         split_phase_seen = 0
         for pass_name in pipeline:
             if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
@@ -241,6 +251,9 @@ def main() -> int:
                 pass_options["enable_row_constant_fill"] = True
             if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_or_write_merge:
                 pass_options["enable_or_write_merge"] = True
+            if pass_name == "grhsim.comb-pack" and args.comb_pack_report:
+                args.comb_pack_report.parent.mkdir(parents=True, exist_ok=True)
+                pass_options["report"] = str(args.comb_pack_report.resolve())
             if pass_name == "grhsim.pack-bit-registers" and args.pack_bit_registers_report:
                 args.pack_bit_registers_report.parent.mkdir(parents=True, exist_ok=True)
                 pass_options["report"] = str(args.pack_bit_registers_report.resolve())
@@ -263,6 +276,9 @@ def main() -> int:
                 lambda name=pass_name, options=pass_options: session.run_grhsim_pass(name, model="grhsim.main", **options),
             )
             require_ok(diagnostics, f"GrhSIM CPU pass {pass_name}")
+            # Keep pass hit counters (candidates/transformed/rejections/...)
+            # visible in the flow log; M5d-3 checkpoints consume these.
+            session.print_diagnostics(diagnostics, min_level="info")
         if emit_cpp_dir is not None:
             emit_options = {
                 "model": "grhsim.main",

@@ -25,7 +25,8 @@ def main() -> None:
             require_ok(session.run_pass(name, design="design.main", **options), name)
         require_ok(session.lower_grhsim(design="design.main", out_model="grhsim.main",
                                        top="reg_to_mem_tables", logic_domain="2-state",
-                                       keep_origins=False, consume=True), "lower table RTL")
+                                       keep_origins=True, keep_declared_symbols=True,
+                                       consume=True), "lower table RTL")
         for name in CPU_PIPELINE:
             # Small fixtures exercise transformations regardless of their runtime
             # profitability; production flow retains default cost selection.

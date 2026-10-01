@@ -67,7 +67,8 @@ def run_pipeline(dut_path: Path, out_dir: Path, waveform_mode: str | None, perf_
         )
         sess.lower_grhsim(
             design="design.main", out_model="grhsim.main", top=TOP_NAME,
-            logic_domain="2-state", keep_origins=False, consume=True,
+            logic_domain="2-state", keep_origins=True, keep_declared_symbols=True,
+            consume=True,
         )
         sess.run_grhsim_pass("grhsim.verify", model="grhsim.main")
         for pass_name in CPU_PIPELINE:
