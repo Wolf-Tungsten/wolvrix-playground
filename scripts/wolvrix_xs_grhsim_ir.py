@@ -45,12 +45,16 @@ CPU_SEMANTIC_PIPELINE = [
     # present, then run the unified whole-graph simplify to a fixed point.
     # clone-shared-compute stays last: it must follow the final CSE-bearing
     # simplify (its boundary-aware rework is B7, M5d-5).
+    # select-state-stores (M5d-4, A7) closes stage A with the semantic store
+    # classification; downstream old-mapping passes ignore the annotation
+    # (consumption is M5d-5/M5d-6), so behavior is unchanged.
     "grhsim.canonicalize-compute",
     "grhsim.reg-to-mem",
     "grhsim.comb-pack",
     "grhsim.pack-bit-registers",
     "grhsim.simplify",
     "grhsim.clone-shared-compute",
+    "grhsim.select-state-stores",
 ]
 # The post-mapping semantic cleanups and the second mapping round stay as
 # they were validated (NO00021); pack-bit-registers moved into the
@@ -103,6 +107,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--comb-pack", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--comb-pack-report", type=Path,
                         help="diagnostic (M5d-3): dump the group list TSV from grhsim.comb-pack")
+    parser.add_argument("--select-state-stores", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--state-store-report", type=Path,
+                        help="diagnostic (M5d-4): dump the per-state store class TSV from "
+                             "grhsim.select-state-stores")
+    parser.add_argument("--mem-min-bytes", type=int,
+                        help="minimum linear byte size for the mem store class "
+                             "(grhsim.select-state-stores; smaller arrays stay in regLatch)")
     parser.add_argument("--clone-shared-compute", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--clone-shared-compute-max-clones", type=int, default=250000)
     parser.add_argument("--bitwise-predicates", action=argparse.BooleanOptionalAction, default=True)
@@ -133,6 +144,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("--max-op-in-compute-supernode must be positive")
     if args.clone_shared_compute_max_clones <= 0:
         parser.error("--clone-shared-compute-max-clones must be positive")
+    if args.mem_min_bytes is not None and args.mem_min_bytes < 0:
+        parser.error("--mem-min-bytes must be nonnegative")
     return args
 
 
@@ -231,6 +244,8 @@ def main() -> int:
             pipeline = [name for name in pipeline if name != "grhsim.pack-bit-registers"]
         if not args.comb_pack:
             pipeline = [name for name in pipeline if name != "grhsim.comb-pack"]
+        if not args.select_state_stores:
+            pipeline = [name for name in pipeline if name != "grhsim.select-state-stores"]
         split_phase_seen = 0
         for pass_name in pipeline:
             if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
@@ -254,6 +269,12 @@ def main() -> int:
             if pass_name == "grhsim.comb-pack" and args.comb_pack_report:
                 args.comb_pack_report.parent.mkdir(parents=True, exist_ok=True)
                 pass_options["report"] = str(args.comb_pack_report.resolve())
+            if pass_name == "grhsim.select-state-stores":
+                if args.mem_min_bytes is not None:
+                    pass_options["mem-min-bytes"] = args.mem_min_bytes
+                if args.state_store_report:
+                    args.state_store_report.parent.mkdir(parents=True, exist_ok=True)
+                    pass_options["report"] = str(args.state_store_report.resolve())
             if pass_name == "grhsim.pack-bit-registers" and args.pack_bit_registers_report:
                 args.pack_bit_registers_report.parent.mkdir(parents=True, exist_ok=True)
                 pass_options["report"] = str(args.pack_bit_registers_report.resolve())

@@ -390,7 +390,7 @@ grhsim.const-fold          # 新增：完整常量运算折叠
 | M5d-7 多 TU 规划与 emit | C8-C10、Makefile 多源构建 | 最终 mapping -> 规模受控且可并行编译链接的 C++ 模型 |
 | M5d-8 入口、回归与整核验收 | 统一工作流、参照差分、资源/性能测量、提交收口 | 目标管线与生成模型 -> 可复现的完整验收证据 |
 
-M5d-1、M5d-2、M5d-3 已完成（见上文）；M5d-4 至 M5d-8 均待实施。下述构建和测试是后续验收要求。
+M5d-1、M5d-2、M5d-3、M5d-4 已完成（见上文）；M5d-5 至 M5d-8 均待实施。下述构建和测试是后续验收要求。
 
 ### M5d-1 声明来源与 GRH/lower 契约（已完成，2026-10-01）
 
@@ -600,12 +600,80 @@ M5d-1、M5d-2、M5d-3 已完成（见上文）；M5d-4 至 M5d-8 均待实施。
   依赖）；`overview.md` §3.4.1 维护契约补 merge helper；`flows/cpu-st.md` 更新 A 段顺序与
   simplify 接线注记。
 
-### M5d-4 优化后状态的语义存储分类（未开始，依赖 M5d-3）
+### M5d-4 优化后状态的语义存储分类（已完成，2026-10-01）
 
 - 范围：新增 `grhsim.select-state-stores`，按优化后的规模、连续性和更新代价确定 regLatchStore/memStore 归属及读写/提交契约；本阶段不分配最终字节布局。
 - 交付：零碎状态以 next/current 和 publish 整块拷贝实现 NBA，大块连续状态通过 P_mem 处理。允许小数组进入 regLatchStore、恢复的大数组进入 memStore；语义 verifier/JSON 承载明确分类，规定消费端不得仅凭 TypeKind::Array 决定归属，并为 M5d-5 至 M5d-7 定义接口（首个消费者是 B5 split-phases 的 P_mem 写入职责判定）。
 - 检查点：分类及 JSON/verify 覆盖旧值读取依赖、部分写、多写优先级和多轮更新的契约；生成布局和运行时 NBA 等价性分别在 M5d-6/M5d-7 接通后验证。不依赖后续 emit 才能验收分类接口。
 - 文档：定义分类依据、提交时机和新增状态的增量分类规则，给出小数组与大块恢复数组的对照例子。
+
+**交付清单**（wolvrix 子模块，branch grh/grhsim-ir）：
+
+- 表示（`include/grhsim/ir/model.hpp`）：`StateStoreClass { None, RegLatch, Mem }` 作为
+  `StateObject` 字段（clone/compact 自动随状态携带，无需侧表重映射）；模型 API
+  `setStateStoreClass`（越界检查，revision 提交留给调用者，同 setOperationPhase）与
+  `hasStateStoreClassification()`（增量维护触发条件）；`toString`/`parseStateStoreClass`
+  （"none"/"regLatch"/"mem"）。
+- 分类策略（`lib/grhsim/pass/select_state_stores.cpp`，`PassKind::MetadataTransform` 纯注解）：
+  仅 `core.array` 状态可进 mem；线性字节数（行主序语义位/8）≥ `--mem-min-bytes`
+  （默认 64）的数组归 mem，其余（任意宽度标量、小数组、real/string）归 regLatch。
+  更新代价是判据动机而非独立信号：mem 类的寻址写每轮触及单元远小于规模，原地提交避免
+  O(size) publish 拷贝；阈值下整块 memcpy 廉价且统一走 next/current 路径；memFill/
+  memAssign 整写不改变分类（原地应用仍避免物化整数组 boundary 值）。默认只填未分类
+  状态（增量友好），`--reclassify true` 强制重算；`--report` 输出逐状态 TSV
+  （state/name/class/kind/shape/bits/bytes/writes/reads）。
+- NBA 契约（pass 文档定义，两类同实现"读旧值、写延迟一轮"语义）：regLatch 写入按
+  读出-合并-写回累积进 next 缓冲（部分写/多写在同轮叠加），读者恒读 current（旧值依赖
+  构造性成立），P_publish 每轮整块拷贝提交；mem 写参数在 Event/General 采样，P_mem
+  按 op 顺序（memWriteSeq 保持内部操作数序）原地提交，仅触及寻址单元，同轮读者看到
+  上一轮 P_mem 提交后的值。阶段一致性（mem 类状态的 mem op 归 P_mem、regLatch 类状态
+  的写口归 P_general）在相位指派后由 B8 校验，属 M5d-5。
+- verifier（`verifyStateStores`）：分类全有或全无（totality，部分分类逐状态报错）；
+  mem 仅限 `core.array` 状态；mem 类状态不得被 regWrite/latchWrite 写（写口必须是
+  mem op，P_mem 才能承接提交）。未分类模型零开销通过。
+- JSON：`states` 行可选第五元素（class 字符串），仅已分类时写出——未分类 checkpoint
+  与旧模式字节兼容，已分类 checkpoint 字节稳定往返；未知类别串加载即拒绝。
+- 增量分类规则落地：`grhsim.migrate-timeslot-tasks` 在已分类模型上把 `__tslot_prev_*`
+  监测状态分类为 regLatch（Output 相 latchWrite 时序由 publish 边界保持）；
+  `grhsim.used-bits` 窄化重建的状态继承被替换状态的类（窄化仅适用于两态 logic 标量，
+  恒为 regLatch）；其余创建状态的 pass（lower/reg-to-mem/comb-pack/pack-bit-registers）
+  均在 A7 之前运行，无需处理。
+- 接线（`scripts/wolvrix_xs_grhsim_ir.py`）：`CPU_SEMANTIC_PIPELINE` 末尾（A 段出口）
+  追加 `grhsim.select-state-stores`；新增 `--select-state-stores/--no-select-state-stores`、
+  `--state-store-report`、`--mem-min-bytes`；Makefile 旋钮
+  `XS_WOLF_GRHSIM_IR_SELECT_STATE_STORES ?= 1` / `XS_WOLF_GRHSIM_IR_STATE_STORE_REPORT` /
+  `XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES`。HDLBits 与 reg-to-mem RTL 差分脚本经 CPU_PIPELINE
+  自动继承。旧 M3/M4 mapping pass 仍按 TypeKind::Array 隐式分类、不消费注解（C3 消费
+  接线属 M5d-6），接入不改变生成代码。
+- 测试 `tests/grhsim/test_grhsim_select_state_stores.cpp`（新目标
+  `grhsim-select-state-stores-tests`，Makefile `test_grhsim_select_state_stores`）：
+  契约 fixture 覆盖检查点点名的四个方面（memRead 同轮读旧值、带 mask 部分写、
+  memWriteSeq 双口优先级、自反馈计数器多轮更新），分类前后 64 步解释器轨迹逐拍一致
+  （纯注解证明）；默认阈值分类断言（小数组 regLatch / 大数组 mem / 边界 64B 恰好进
+  mem）；阈值参数三档、非法参数拒绝；幂等（二次运行为 no-op）与 --reclassify 重算；
+  未分类/已分类 checkpoint 字节稳定往返、未知类别串拒绝；verifier 三规则（部分分类、
+  非标量 mem、regWrite 写 mem 类）逐条拒绝；clone/compact 保留分类；migrate-timeslot-tasks
+  与 used-bits 的增量分类（含未分类模型对照）。
+
+**检查点证据**（均实跑）：
+
+- `make build` 通过；`make test_grhsim_select_state_stores` 全绿；
+  `make test_wolvrix` 55/58，恰为 3 项既有失败（transform-comb-lane-pack、
+  transform-repcut、ingest-write-back-slice SEGFAULT），无新增失败。
+- `run_all_hdlbits_grhsim_tests_report` 162/162 全绿；`make run_xs_bugcase_grhsim`
+  24/24；`test_grhsim_reg_to_mem_rtl` 8192 样本 PASS（均经 CPU_PIPELINE 跑过 A7）。
+- XS 整核管线（`make xs_wolf_grhsim_ir`，无 emit，A7 实跑 1679ms）：106747 状态全部
+  分类——regLatch 104646（460075 B 语义字节）/ mem 2101（24001499 B）；分类形状符合
+  设计意图：L3 tag/data 等大 SRAM 表（最大 1 MB tpDataTable）进 mem，reg-to-mem 恢复的
+  小表（≤63 B）留 regLatch，阈值边界干净（最小 mem 恰为 64 B）。末端 checkpoint 全部
+  状态行携带类别，store/roundtrip 字节稳定（脚本断言 + cmp 复核）。报告
+  `ptmp/m5d4_xs_state_stores.tsv`，日志 `ptmp/m5d4_xs_pipeline.log`。
+- 布局/emit 消费与运行时 NBA 等价性按计划在 M5d-6/M5d-7 验收，本阶段不反向依赖；
+  XS 整核 emu 编译仍按既定决定暂停。
+- 文档：`docs/grhsim_ir/passes/select-state-stores.md` 新增（分类依据、逐类 NBA 契约、
+  增量分类规则、大小数组对照例子、消费端接口）；`overview.md` 新增 §3.5（表示、维护
+  契约、verifier 规则、JSON 第五元素）；`flows/cpu-st.md` 更新 A 段顺序与旋钮；
+  `json.hpp` 格式注释同步。
 
 ### M5d-5 第一轮分解与分区优化（未开始，依赖 M5d-4）
 
