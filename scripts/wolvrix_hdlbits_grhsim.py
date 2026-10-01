@@ -71,8 +71,8 @@ def run_pipeline(dut_path: Path, out_dir: Path, waveform_mode: str | None, perf_
             consume=True,
         )
         sess.run_grhsim_pass("grhsim.verify", model="grhsim.main")
-        for pass_name in CPU_PIPELINE:
-            sess.run_grhsim_pass(pass_name, model="grhsim.main")
+        for pass_name, pass_options in CPU_PIPELINE:
+            sess.run_grhsim_pass(pass_name, model="grhsim.main", **pass_options)
         emit_options = {"model": "grhsim.main", "output": str(out_dir)}
         if waveform_mode and waveform_mode != "off":
             emit_options["waveform"] = waveform_mode

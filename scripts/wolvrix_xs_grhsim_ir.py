@@ -24,10 +24,12 @@ GRH_PIPELINE: list[tuple[str, dict]] = [
 ]
 
 CPU_MAPPING_PIPELINE = [
-    "grhsim.classify-event-inputs",
-    "grhsim.lower-edge-detect",
-    "grhsim.extract-output-cones",
-    "grhsim.migrate-timeslot-tasks",
+    # Legacy six-phase CPU mapping (removed in M5d-6): builds the four-branch
+    # tree from the sealed phase attribution and advances it to the
+    # PhaseSchedule stage. Runs exactly once; the old pipeline's
+    # "mapping -> semantic rewrite -> mapping" round trip is abolished
+    # (M5d-5): the partition-stage simplify below subsumes the post-mapping
+    # cleanups, before any mapping exists.
     "cpu.st.split-phases",
     "cpu.st.build-general-nodes",
     "cpu.st.merge-general-supernodes",
@@ -43,26 +45,37 @@ CPU_SEMANTIC_PIPELINE = [
     # matching sees canonical input, recover scalarized tables, pack
     # isomorphic comb lanes and bit registers while raw event_edges are still
     # present, then run the unified whole-graph simplify to a fixed point.
-    # clone-shared-compute stays last: it must follow the final CSE-bearing
-    # simplify (its boundary-aware rework is B7, M5d-5).
     # select-state-stores (M5d-4, A7) closes stage A with the semantic store
-    # classification; downstream old-mapping passes ignore the annotation
-    # (consumption is M5d-5/M5d-6), so behavior is unchanged.
-    "grhsim.canonicalize-compute",
-    "grhsim.reg-to-mem",
-    "grhsim.comb-pack",
-    "grhsim.pack-bit-registers",
-    "grhsim.simplify",
-    "grhsim.clone-shared-compute",
-    "grhsim.select-state-stores",
+    # classification. clone-shared-compute no longer runs here: it is B7 in
+    # the partition stage, after the last CSE-bearing simplify (M5d-5).
+    ("grhsim.canonicalize-compute", {}),
+    ("grhsim.reg-to-mem", {}),
+    ("grhsim.comb-pack", {}),
+    ("grhsim.pack-bit-registers", {}),
+    ("grhsim.simplify", {"scope": "whole"}),
+    ("grhsim.select-state-stores", {}),
 ]
-# The post-mapping semantic cleanups and the second mapping round stay as
-# they were validated (NO00021); pack-bit-registers moved into the
-# pre-mapping stage-A segment (M5d-3) and no longer invalidates a schedule.
+
+CPU_PARTITION_PIPELINE = [
+    # Partition stage B (M5d-5), still pure semantic layer (no CPU mapping):
+    # B1-B4 lower the event/output/timeslot structure, B5 completes the
+    # class-aware phase attribution (P_event/P_general/P_output partitions +
+    # P_mem write duty), B6 simplifies each partition separately, B7 reclones
+    # shared compute only where it eliminates a predicted supernode boundary,
+    # and B8 seals the semantic layer (no semantic rewrite may follow).
+    ("grhsim.classify-event-inputs", {}),
+    ("grhsim.lower-edge-detect", {}),
+    ("grhsim.extract-output-cones", {}),
+    ("grhsim.migrate-timeslot-tasks", {}),
+    ("grhsim.split-phases", {}),
+    ("grhsim.simplify", {"scope": "phase"}),
+    ("grhsim.clone-shared-compute", {}),
+    ("grhsim.verify", {"seal": "semantic"}),
+]
+
 CPU_PIPELINE = (
-    CPU_SEMANTIC_PIPELINE + CPU_MAPPING_PIPELINE
-    + ["grhsim.canonicalize-compute", "grhsim.bitwise-muxes", "grhsim.mux-chain-fold",
-       "grhsim.used-bits"] + CPU_MAPPING_PIPELINE
+    CPU_SEMANTIC_PIPELINE + CPU_PARTITION_PIPELINE
+    + [(name, {}) for name in CPU_MAPPING_PIPELINE]
 )
 
 
@@ -116,16 +129,25 @@ def parse_args() -> argparse.Namespace:
                              "(grhsim.select-state-stores; smaller arrays stay in regLatch)")
     parser.add_argument("--clone-shared-compute", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--clone-shared-compute-max-clones", type=int, default=250000)
-    parser.add_argument("--bitwise-predicates", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--phase-simplify", action=argparse.BooleanOptionalAction, default=True,
+                        help="run the B6 per-partition simplify (grhsim.simplify --scope phase) "
+                             "after grhsim.split-phases")
+    parser.add_argument("--bitwise-predicates", action=argparse.BooleanOptionalAction, default=True,
+                        help="deprecated no-op (M5d-5): bitwise-predicates runs inside "
+                             "grhsim.simplify and no longer has a standalone pipeline step")
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--disable-pack-bit-registers", action="store_true",
-                        help="drop only grhsim.pack-bit-registers from the pipeline, keeping both "
-                             "mapping rounds and every other semantic pass (isolated A/B arm, NO00021)")
-    parser.add_argument("--used-bits", action=argparse.BooleanOptionalAction, default=True)
+                        help="drop only grhsim.pack-bit-registers from the pipeline, keeping every "
+                             "other semantic pass (isolated A/B arm, NO00021)")
+    parser.add_argument("--used-bits", action=argparse.BooleanOptionalAction, default=True,
+                        help="deprecated no-op (M5d-5): used-bits runs inside grhsim.simplify "
+                             "and no longer has a standalone pipeline step")
     parser.add_argument("--dump-post-lower-json", type=Path,
                         help="diagnostic (NO00020): also store the GrhSIM model right after grhsim.verify, before any semantic/mapping pass")
     parser.add_argument("--dump-pre-partition-json", type=Path,
-                        help="diagnostic (NO00020): also store the GrhSIM model after the semantic passes, right before the second cpu.st.split-phases (un-partitioned production form)")
+                        help="diagnostic (NO00020): also store the GrhSIM model after the sealed "
+                             "semantic pipeline (B8), right before the single cpu.st.split-phases "
+                             "mapping run")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--reg-to-mem-report", type=Path)
@@ -239,24 +261,19 @@ def main() -> int:
                 lambda: session.store_grhsim(model="grhsim.main", output=str(dump_path)),
             )
             require_ok(diagnostics, "store post-lower GrhSIM dump")
-        pipeline = list(CPU_PIPELINE)
-        if not args.pack_bit_registers or args.disable_pack_bit_registers:
-            pipeline = [name for name in pipeline if name != "grhsim.pack-bit-registers"]
-        if not args.comb_pack:
-            pipeline = [name for name in pipeline if name != "grhsim.comb-pack"]
-        if not args.select_state_stores:
-            pipeline = [name for name in pipeline if name != "grhsim.select-state-stores"]
-        split_phase_seen = 0
-        for pass_name in pipeline:
-            if pass_name == "grhsim.reg-to-mem" and args.disable_reg_to_mem:
-                continue
-            if pass_name == "grhsim.clone-shared-compute" and not args.clone_shared_compute:
-                continue
-            if pass_name == "grhsim.bitwise-predicates" and not args.bitwise_predicates:
-                continue
-            if pass_name == "grhsim.used-bits" and not args.used_bits:
-                continue
-            pass_options = {}
+        pipeline = [
+            (name, options) for name, options in CPU_PIPELINE
+            if not (name == "grhsim.pack-bit-registers"
+                    and (not args.pack_bit_registers or args.disable_pack_bit_registers))
+            and not (name == "grhsim.comb-pack" and not args.comb_pack)
+            and not (name == "grhsim.select-state-stores" and not args.select_state_stores)
+            and not (name == "grhsim.reg-to-mem" and args.disable_reg_to_mem)
+            and not (name == "grhsim.clone-shared-compute" and not args.clone_shared_compute)
+            and not (name == "grhsim.simplify" and options.get("scope") == "phase"
+                     and not args.phase_simplify)
+        ]
+        for pass_name, base_options in pipeline:
+            pass_options = dict(base_options)
             if pass_name == "grhsim.clone-shared-compute":
                 pass_options["max-clones"] = args.clone_shared_compute_max_clones
             if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_report:
@@ -282,16 +299,14 @@ def main() -> int:
                 pass_options["target_batch_count"] = args.cpu_target_batch_count
             if pass_name == "cpu.st.merge-general-supernodes" and args.max_op_in_compute_supernode is not None:
                 pass_options["max_op_in_compute_supernode"] = args.max_op_in_compute_supernode
-            if pass_name == "cpu.st.split-phases":
-                split_phase_seen += 1
-                if split_phase_seen == 2 and args.dump_pre_partition_json is not None:
-                    dump_path = args.dump_pre_partition_json.resolve()
-                    dump_path.parent.mkdir(parents=True, exist_ok=True)
-                    diagnostics = timed(
-                        f"store pre-partition GrhSIM dump {dump_path}",
-                        lambda: session.store_grhsim(model="grhsim.main", output=str(dump_path)),
-                    )
-                    require_ok(diagnostics, "store pre-partition GrhSIM dump")
+            if pass_name == "cpu.st.split-phases" and args.dump_pre_partition_json is not None:
+                dump_path = args.dump_pre_partition_json.resolve()
+                dump_path.parent.mkdir(parents=True, exist_ok=True)
+                diagnostics = timed(
+                    f"store pre-partition GrhSIM dump {dump_path}",
+                    lambda: session.store_grhsim(model="grhsim.main", output=str(dump_path)),
+                )
+                require_ok(diagnostics, "store pre-partition GrhSIM dump")
             diagnostics = timed(
                 f"GrhSIM CPU pass {pass_name}" + (f" {pass_options}" if pass_options else ""),
                 lambda name=pass_name, options=pass_options: session.run_grhsim_pass(name, model="grhsim.main", **options),

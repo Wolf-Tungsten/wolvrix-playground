@@ -27,10 +27,12 @@ def main() -> None:
                                        top="reg_to_mem_tables", logic_domain="2-state",
                                        keep_origins=True, keep_declared_symbols=True,
                                        consume=True), "lower table RTL")
-        for name in CPU_PIPELINE:
+        for name, base_options in CPU_PIPELINE:
             # Small fixtures exercise transformations regardless of their runtime
             # profitability; production flow retains default cost selection.
-            options = {"report": str(report), "enable_cost_selection": False} if name == "grhsim.reg-to-mem" else {}
+            options = dict(base_options)
+            if name == "grhsim.reg-to-mem":
+                options.update({"report": str(report), "enable_cost_selection": False})
             require_ok(session.run_grhsim_pass(name, model="grhsim.main", **options), name)
         require_ok(session.store_grhsim(model="grhsim.main", output=str(args.output / "model.json")), "store table IR")
         require_ok(session.run_grhsim_pass("cpu.st.emit-cpp", model="grhsim.main",

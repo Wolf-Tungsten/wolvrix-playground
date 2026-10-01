@@ -170,6 +170,8 @@ XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR ?=
 XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT ?= 0
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE ?= 1
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
+# B6 per-partition simplify (M5d-5); disable only for pipeline debugging.
+XS_WOLF_GRHSIM_IR_PHASE_SIMPLIFY ?= 1
 XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES ?= 1
 XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS ?= 1
 XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS ?= 0
@@ -328,6 +330,12 @@ test_grhsim_select_state_stores:
 	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
 	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-select-state-stores-tests -j 2
 	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-select-state-stores-tests$$' --output-on-failure
+
+.PHONY: test_grhsim_split_phases
+test_grhsim_split_phases:
+	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-split-phases-tests -j 2
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-split-phases-tests$$' --output-on-failure
 
 .PHONY: test_transform_simplify
 test_transform_simplify:
@@ -1417,6 +1425,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_SELECT_STATE_STORES)),--no-select-state-stores,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES)),--mem-min-bytes $(XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES),) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE)),--no-clone-shared-compute,--clone-shared-compute --clone-shared-compute-max-clones $(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES)) \
+			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_PHASE_SIMPLIFY)),--no-phase-simplify,) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES)),--no-bitwise-predicates,--bitwise-predicates) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS)),--no-pack-bit-registers,--pack-bit-registers) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS)),--disable-pack-bit-registers,) \

@@ -289,7 +289,7 @@ const-fold -> redundant-elim -> dead-code-elim
 
 ### GrhSIM IR 完整 pass 流水线（目标顺序）
 
-按“图 → 分区 → 映射调度”三段推进，与语义文档的构建顺序一致：A 大图优化与 B 第一轮分解/分区优化全部在纯语义层进行，不建立任何 CPU mapping；B 末尾语义层封板后，C 段建立一次最终 CPU mapping 并单向推进到 emit，不回改语义。旧管线“mapping → 语义改写 → mapping”的往返不再出现。以下为待实施的目标顺序，不代表当前脚本已经采用；“复用/改造/新增”含义同前。构建与测试仍保持暂停。
+按“图 → 分区 → 映射调度”三段推进，与语义文档的构建顺序一致：A 大图优化与 B 第一轮分解/分区优化全部在纯语义层进行，不建立任何 CPU mapping；B 末尾语义层封板后，C 段建立一次最终 CPU mapping 并单向推进到 emit，不回改语义。旧管线“mapping → 语义改写 → mapping”的往返不再出现。M5d-5 起生产脚本已采用 A/B 段目标顺序（A 段 M5d-3/4、B 段 M5d-5），C 段暂由旧六阶段 mapping 单次运行顶替（compat shim 见 M5d-5 节），M5d-6 切换到 C1-C7。“复用/改造/新增”含义同前。
 
 #### 阶段 A：大图优化（纯语义层，无分区、无 mapping）
 
@@ -390,7 +390,7 @@ grhsim.const-fold          # 新增：完整常量运算折叠
 | M5d-7 多 TU 规划与 emit | C8-C10、Makefile 多源构建 | 最终 mapping -> 规模受控且可并行编译链接的 C++ 模型 |
 | M5d-8 入口、回归与整核验收 | 统一工作流、参照差分、资源/性能测量、提交收口 | 目标管线与生成模型 -> 可复现的完整验收证据 |
 
-M5d-1、M5d-2、M5d-3、M5d-4 已完成（见上文）；M5d-5 至 M5d-8 均待实施。下述构建和测试是后续验收要求。
+M5d-1、M5d-2、M5d-3、M5d-4、M5d-5 已完成（见上文）；M5d-6 至 M5d-8 均待实施。下述构建和测试是后续验收要求。
 
 ### M5d-1 声明来源与 GRH/lower 契约（已完成，2026-10-01）
 
@@ -675,13 +675,95 @@ M5d-1、M5d-2、M5d-3、M5d-4 已完成（见上文）；M5d-5 至 M5d-8 均待�
   契约、verifier 规则、JSON 第五元素）；`flows/cpu-st.md` 更新 A 段顺序与旋钮；
   `json.hpp` 格式注释同步。
 
-### M5d-5 第一轮分解与分区优化（未开始，依赖 M5d-4）
+### M5d-5 第一轮分解与分区优化（已完成，2026-10-01）
 
 - 范围：覆盖 B1-B8——接通 B1-B5（classify-event-inputs、lower-edge-detect、extract-output-cones、migrate-timeslot-tasks，新增语义层 split-phases），随后 B6 分区化简、B7 边界感知克隆、B8 封板校验；从旧 cpu.st.split-phases 拆出阶段归属处理，形成 P_event/P_general/P_output 三个计算分区，并确定 P_mem 写入职责。
 - 交付：保持事件/输出锥的自包含、边界接口及副作用归属；PrevEventStore 按事件检测时机更新，不默认经 NBA publish。time-slot 新增监测状态在局部 simplify 前增量分类，保持其监测/提交时机。
 - 分区化简：分别调用 `simplify(scope=phase)`（B6），遵守共享状态需求并集；随后 B7 clone-shared-compute 按归位决议 1 改造为边界感知成本模型——与 build-general-nodes 共享锥吸收预测的 helper，只克隆能消除预测超节点边界的候选，只有边界消减收益成立时启用，未启用或零命中时记录原因与边界消减计数。不得复制 DPI、随机采样和有副作用的系统任务。B8 verify 后语义层封板，本阶段之后不再有任何语义改写。
 - 检查点：三个分区独立 dump/verify，跨分区引用、状态归属、事件沿和 time-slot 生命周期定向测试通过；需要新 emit 的事件/DPI/随机采样/time-slot 运行差分在 M5d-7 接通后完成。此时尚未建立 General supernode 或 CPU mapping。
 - 文档：记录语义分区与 CPU mapping 的新边界、锥复制规则、阶段接口及新历史状态处理。
+
+**交付清单**（wolvrix 子模块 branch `grh/grhsim-ir` + 根仓库脚本/Makefile）：
+
+- B5 `grhsim.split-phases`（新增 `lib/grhsim/pass/split_phases.cpp`，SemanticTransform）：
+  完成全部 `None` 相 op 的归属——edgeDet→Event、output.write→Output（防御性，B2/B3
+  已标记）、mem 写按**目标状态存储分类**定 P_mem 写入职责（`mem` 类→Mem 相、
+  `regLatch` 类→General 相，未分类模型回退旧的全 Mem 归因），其余→General。
+  诊断输出 `attributed/phase_*/mem_writes_reglatch/already_attributed` 计数。
+- B8 封板校验（`grhsim.verify --seal semantic`，`verifyGrhSimSemanticSeal` 导出）：
+  总相位归属（无 None）、无 event_edges 残留（B2 已降级）、P_mem 采样局部性
+  （Mem 相写 op 的 operand 必须产自 General 相）。standing verifier 的
+  `verifyPhaseAttribution` 同步改为类感知（两个方向都拒绝：regLatch 类状态带 Mem 相
+  写、mem 类状态带 General 相写），对中间形态（None 相、未分类）保持兼容。
+- B6 接线与前置修复：生产管线在 B5 后接 `grhsim.simplify --scope phase`（逐分区
+  Event→General→Mem→Output 不动点，共享状态需求并集与 opaque 汇规则既有）。
+  修复 canonicalize-compute 的相位作用域缺口：结果被分区外 op 消费的 op 不再删除
+  （此前 Mem 相消费者不重接会让 compact 抛异常使 pass 失败；分区接口值现完整保留）。
+- B7 边界感知克隆（归位决议 1）：新增共享 helper `predictGeneralBoundaries`
+  （`include/grhsim/pass/general_boundaries.hpp` + `lib/grhsim/pass/general_boundaries.cpp`），
+  静态模拟 build-general-nodes 的锥吸收规则（单消费者吸收、共享值/提交边界断开、
+  规模上限镜像 `--max-op-in-compute-node`）给出预测 node 与边界值集，不建立 mapping；
+  C1 改造（M5d-6）复用同一 helper。`grhsim.clone-shared-compute` 改造为：候选定义不变
+  （廉价双射 + 共享 varying 源），克隆门改为**结果是预测边界且全部存活消费者为同相
+  compute op**（Mem 相写采样、跨相消费、副作用 op 一律阻止克隆——DPI/随机采样/副作用
+  系统任务不可能被复制）；克隆继承源 op 相位。诊断含
+  `boundary_values_predicted/boundary_hits/boundary_values_eliminated/skipped_*` 与
+  `idle_reason`（no_general_ops/no_candidates/no_boundary_candidates/budget_exhausted）。
+- 旧后端兼容 shim（M5d-6 删除）：旧六阶段 mapping 全部 mem 写调度决策从
+  `op.phase == Mem` 改为按 op 类型（Mem 分枝播种、mem 写计划收集、boundary 采样、
+  写参数槽位命名），`build-general-nodes` 把 mem 写类型排除在 node 形成之外，
+  `verifyCpuPhases` 容许 Mem 分枝中的 General 相 mem 写。旧布局仍把全部数组放入单实例
+  memStore，P_mem 原地提交对小数组本就是正确 NBA 机制——**全部生产流程生成代码行为
+  不变**；类感知归属是供给 M5d-6 最终 mapping 的语义契约。`cpu.st.split-phases` 的归因
+  循环保留为遗留兜底（新管线中为 no-op，单测直接驱动旧 pass 时保持可用）。
+- 管线接线（`scripts/wolvrix_xs_grhsim_ir.py`）：`CPU_PIPELINE` 改为
+  A 段（clone-shared-compute 移出，留给 B7）→ B 段（B1-B5 + B6 + B7 + B8）→
+  旧 mapping 段单次运行；**"后置化简 + 第二轮 mapping"往返段拆除**（B6 分区化简在
+  mapping 之前吸收其清理职责）。`--dump-pre-partition-json` 改在唯一一次
+  `cpu.st.split-phases` 前（B8 封板后）落盘；新增 `--phase-simplify/--no-phase-simplify`
+  （Makefile `XS_WOLF_GRHSIM_IR_PHASE_SIMPLIFY ?= 1`）；`--used-bits`/
+  `--bitwise-predicates` 随独立调用段移除成为空操作（两者只在 simplify 固定点内运行）。
+  HDLBits 与 RTL 差分脚本随 CPU_PIPELINE 元组化同步。
+- 测试 `tests/grhsim/test_grhsim_split_phases.cpp`（新目标 `grhsim-split-phases-tests`，
+  Makefile `test_grhsim_split_phases`）：B5 类感知归因/幂等/JSON 往返/遗留兜底/参数
+  拒绝；类感知 verifier 两个方向拒绝 + 正确归属通过；B8 seal 正例与三类负例（None 相
+  残留、event_edges 残留、Mem 操作数产自 Event 相）及参数校验；B6 分区接口保持
+  （assign/CSE 删除护栏，Mem 消费者不重接）；B7 四种定向（跨节点克隆消除边界、单节点
+  不克隆、Mem 采样消费者阻止克隆、未归因空转 idle_reason）；预测边界集与
+  build-general-nodes 实际 node 边界完全一致（无 General 相 mem 写的模型）；分区段
+  解释器等价（事件夹具 raw event_edges / B1-B4 降级形态 / B5-B8 封板形态 64 步轨迹
+  逐拍一致，B5 计数断言 phase_mem=1 且 mem_writes_reglatch=1）；time-slot 生命周期
+  （`__tslot_prev_*` 经 B5-B8 保持 regLatch 类与 Output 相 latchWrite，seal 通过）。
+  既有 `test_grhsim_ir.cpp` 的 clone 测试改为先跑 B5（sink 改用 regWrite，output.write
+  sink 会被 B3 剥离分区），链式/环路/护栏断言不变。
+
+**检查点证据**（均实跑）：
+
+- `make build` 通过；`make test_grhsim_split_phases` 全绿；`make test_wolvrix`
+  56/59，恰为 3 项既有失败（transform-comb-lane-pack、transform-repcut、
+  ingest-write-back-slice SEGFAULT），无新增失败。
+- `make run_all_hdlbits_grhsim_tests_report` 162/162 全绿；
+  `make run_xs_bugcase_grhsim` 24/24；`make test_grhsim_reg_to_mem_rtl` 8192 样本
+  PASS——旧后端经 compat shim 行为不变（log 见 `ptmp/m5d5_*.log`）。xs-bugcase 日志
+  可见 B 段实跑（如 CASE_003：B5 `mem_writes_reglatch=15`，B6 2 轮收敛，B7 克隆 29 /
+  消除边界 10，B8 seal 通过）。
+- XS 整核管线（`make xs_wolf_grhsim_ir`，无 emit，exit 0， checkpoint 字节稳定往返）：
+  B5 实跑 1979ms，归属 3609685 op（General 3587132 / Mem 22553 /
+  `mem_writes_reglatch=14603`，B2-B4 预标记 133094）；B6 分区化简 3 轮收敛；B7 实跑
+  3120ms：候选 35420、预测边界值 868344、命中 31256、克隆 89983、消除边界 31256、
+  跳过 fanout=6/non_compute=71/local=4087/budget=0；B8 seal 通过；随后单次旧 mapping
+  单向推进至 PhaseSchedule（981508 node → 43467 supernode）。状态分类报告
+  `ptmp/m5d5_xs_state_stores.tsv`（与 M5d-4 一致：regLatch 104646 / mem 2101），日志
+  `ptmp/m5d5_xs_pipeline.log`。
+- 事件/DPI/随机采样/time-slot 的运行差分按计划留待 M5d-7 新 emit 接通后验收；XS 整核
+  emu 编译仍按既定决定暂停。
+- 文档：`docs/grhsim_ir/passes/grhsim-split-phases.md` 新增（归因表/类感知规则/B8 seal/
+  旧后端兼容）；`passes/clone-shared-compute.md` 重写为边界感知成本模型；
+  `passes/simplify.md` 补 B6 生产接线与 canonicalize 护栏；`passes/split-phases.md`、
+  `passes/lower-edge-detect.md`、`passes/select-state-stores.md`、`dialects/core.md`
+  同步归因归属变化；`overview.md` 新增 §3.6（计算分区与相位归属、verifier 约束、
+  B8 封板）；`flows/cpu-st.md` 重写 A/B 段叙述、拆除往返段并新增"演进（M5d-5）"节
+  记录 compat shim 与预测 helper 一致性测试。
 
 ### M5d-6 General supernode、最终 mapping 与旧实现清理（未开始，依赖 M5d-5）
 
