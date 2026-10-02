@@ -333,9 +333,9 @@ const-fold -> redundant-elim -> dead-code-elim
 | C5 | `cpu.st.build-mem-write-plan` | 生成大块存储的延迟写入、冲突和提交计划 | 改造 |
 | C6 | `cpu.st.pack-general-functions` | 将 supernode 分批组织为任务/函数粒度（调度的输入与代码组织，非划分） | 改造 |
 | C7 | `cpu.st.build-phase-schedule` | 建立六执行阶段及收敛循环的最终计划 | 改造 |
-| C8 | `cpu.st.plan-translation-units` | 按源码规模拆 TU，覆盖所有阶段、初始化及静态表 | 新增 |
-| C9 | `grhsim.verify` | 校验最终 mapping、布局、调度及 TU 依赖 | 改造 |
-| C10 | `cpu.st.emit-cpp` | 输出多 TU C++、共享头文件及构建清单 | 改造 |
+| C8 | `cpu.st.plan-translation-units` | 按源码规模拆 TU，覆盖所有阶段、初始化及静态表 | 新增（M5d-7 已落地） |
+| C9 | `grhsim.verify` | 校验最终 mapping、布局、调度及 TU 依赖 | 改造（M5d-7：TU 计划校验在 `verifyCpuTranslationUnits` 中按记录上限重放比对，由既有 verify 链路覆盖） |
+| C10 | `cpu.st.emit-cpp` | 输出多 TU C++、共享头文件及构建清单 | 改造（M5d-7 已落地） |
 
 #### 三个归位决议
 
@@ -390,7 +390,7 @@ grhsim.const-fold          # 新增：完整常量运算折叠
 | M5d-7 多 TU 规划与 emit | C8-C10、Makefile 多源构建 | 最终 mapping -> 规模受控且可并行编译链接的 C++ 模型 |
 | M5d-8 入口、回归与整核验收 | 统一工作流、参照差分、资源/性能测量、提交收口 | 目标管线与生成模型 -> 可复现的完整验收证据 |
 
-M5d-1、M5d-2、M5d-3、M5d-4、M5d-5、M5d-6 已完成（见上文）；M5d-7 至 M5d-8 均待实施。下述构建和测试是后续验收要求。
+M5d-1、M5d-2、M5d-3、M5d-4、M5d-5、M5d-6、M5d-7 已完成（见上文）；M5d-8 待实施。下述构建和测试是后续验收要求。
 
 ### M5d-1 声明来源与 GRH/lower 契约（已完成，2026-10-01）
 
@@ -869,13 +869,86 @@ M5d-1、M5d-2、M5d-3、M5d-4、M5d-5、M5d-6 已完成（见上文）；M5d-7 �
   `scripts/grhsim_gsim_module_compare.py` docstring 同步。
 
 
-### M5d-7 多 TU 规划、emit 与并行构建（未开始，最终集成依赖 M5d-6）
+### M5d-7 多 TU 规划、emit 与并行构建（已完成，2026-10-02）
 
-- 可提前并行的范围：基于现有小模型开发 TU 划分、源文件清单和 Makefile 多源编译/链接框架（函数分块属 C6/M5d-6，不在此项）；此项优先推进，但框架通过不代表目标管线或整核已验收。
-- 目标交付：新增 plan-translation-units，消费最终布局/调度；最终 verify 后由 emit-cpp 输出多个规模受控 TU。Input/Event/General/Mem/Publish/Output、初始化与静态表都受单函数/单 TU 规模约束，不保留其他巨大阶段或初始化函数。
-- ABI 与数据移动：明确跨函数参数、局部值生命周期、写入优先级及静态表链接关系；runtime 宽值 helper 沿用指针与调用方缓冲，避免热路径大临时副本。公共头、runtime、DPI 声明与完整源文件清单保持一致，控制公共头体积，实测后决定 PCH。
-- 检查点：小模型跨 TU 生成、Makefile 并行编译和链接及语义差分通过，完成 M5d-3 至 M5d-6 改写后的状态/NBA、事件、DPI/随机采样和 time-slot 定向运行差分；目标管线的完整 XS 模型生成规模受控，构建日志证明实际并行编译且链接完整。记录最大函数/TU 规模、头文件体积、并发数、耗时和峰值内存；CoreMark 运行验收归入 M5d-8。
-- 文档：同步 emit、生成构建清单及 XS/difftest 接线，区分 C++ 编译并行与模拟器执行顺序。
+- 落地内容：新增 C8 `cpu.st.plan-translation-units`
+  （`wolvrix/lib/grhsim/backend/cpu_emit_plan.cpp`）消费 `PhaseSchedule` 终态布局/调度，
+  把固定块流（Core/Init/Event/GeneralScan/Supernode/Mem/Output/Dump）按
+  `--chunk-max-estimated-lines`（2048）与 `--unit-max-estimated-lines`（32768）装箱为
+  `CpuTranslationUnitPlan`（mapping 的 `translationUnits` payload，stage 终态
+  `TranslationUnits`；`PhaseSchedule`/`TranslationUnits` 均 complete，emit 只认后者；
+  C8 重跑按 C1 语义丢弃重计划，reemit 脚本借此兼容旧 checkpoint）。GeneralScan 区间
+  对齐 C6 EmitFunction 边界（单独超限的区间按序号细分）；Supernode 块恰一个超节点，
+  其 C6 helperChunks 块函数同单元。verify 按记录上限重放计划要求完全一致。
+- emit（`cpu_phase_emit.cpp`）多 TU：每单元一个 `<prefix>_<name>.cpp` + 共享
+  `<prefix>.hpp`（端口/store/全部成员与块函数声明/spill 帧/dump 打印助手）+
+  不变的 `_runtime.hpp` 与多源 Makefile（`SOURCES` 承载清单，`make -j` 并行编译归档
+  单一 `lib<prefix>.a`；difftest/hdlbits/xs-bugcase 接线零改动）。块函数：
+  `cpu_init_<k>`/`pEvent_c<k>`/`pGeneral_c<k>`/`pMem_c<k>`/`pOutput_c<k>`/
+  `cpu_dump_<k>`/`sn_<i>__c<j>`，相位 driver 顺序调用；跨块局部值经类内嵌套 spill 帧
+  （`SnFrame<i>`/`EventFrame`/`OutputFrame`，driver 栈上值初始化按引用传递——调用方
+  提供缓冲，无热路径大临时拷贝）。可重读值（常量、input.read、state.read）不进帧；
+  memRead 结果随计算值进帧（其地址操作数的局部值在重放式重读时可能已死——XS 整核
+  实测暴露并修复）；Output 锥把每个锥内生产的 latchWrite 操作数进帧，使暂存提交观察到
+  提交前值（与单函数形态逐值一致）。DPI import 声明不进公共头（测试台可自由定义同名
+  extern "C"），各引用单元文件头自行声明——修复了 xs-bugcase 7 例的
+  `xs_assert_v2`/`difftest_ram_*` 类型冲突。C++ 编译并行与模拟器执行顺序已分离：
+  相位/轮次/块序不变。
+- 测试：`test_cpu_phases.cpp` 新增 `translationUnitsTest`（stage 推进、块流铺满、单元名
+  唯一、上限记录、tiny 上限更多单元、重计划确定性、JSON round-trip、篡改拒绝、非法
+  选项拒绝）；`test_cpu_phase_emit.cpp` 管线接 C8，`compileAndRun` 可断言多 TU（源文件
+  与 Makefile 清单一致），新增 `multiTuTest`（128 位加法链超节点 helperChunks + spill 帧 +
+  12 级 NBA 寄存器链 + 数组 init/dump，tiny 上限下 ≥3 单元实跑差分），counter/glitch/
+  memPriority/monitorEvent/dpiSmoke/randomSystemFunction/regLatchArrayWrite 七个延迟至今的
+  运行差分全部增加 tiny-TU 变体双跑；`test_grhsim_ir.cpp` shell 夹具接 C8 并断言 TU 计划
+  round-trip 字节稳定；`scripts/wolvrix_xs_grhsim_ir.py` 接 C8 与两个上限选项，
+  `reemit_grhsim_ir.py` 在 emit 前无条件重放 C8。
+
+**检查点证据**（均实跑）：
+
+- `make build` 通过；`make test_wolvrix` 54/57——恰为 3 项既有失败
+  （transform-comb-lane-pack、transform-repcut、ingest-write-back-slice SEGFAULT），
+  无新增失败。定向套件全绿：grhsim-cpu-phases/grhsim-cpu-stores/grhsim-cpu-phase-emit/
+  grhsim-ir（含多 TU 双跑变体与 multiTuTest）。
+- `make run_all_hdlbits_grhsim_ir_tests` 162/162 全绿；`make run_xs_bugcase_grhsim`
+  24/24（DPI 冲突修复后）；`make test_grhsim_reg_to_mem_rtl` 8192 样本 PASS。生成模型的
+  编译均走生成的多源 Makefile（测试夹具 `make -j 2`，两份 TU 并行编译日志可查）。日志
+  `ptmp/m5d7_*.log`。
+- XS 整核管线（`make xs_wolf_grhsim_ir` +
+  `XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR=ptmp/m5d7_xs_emit`，exit 0，日志 `ptmp/m5d7_xs_pipeline2.log`）：
+  A/B/C 段计数与 M5d-6 逐项一致（B5 归属 3609685、C1 972398 node、C2 45016 超节点、C3
+  regLatch 104646 / mem 2101、C7 tasks=4006）；C8 `units=1078 chunks=46844
+  max_unit_estimated_lines=32768`（上限满足）；emit 83.6s；checkpoint store/load/store
+  字节稳定（含 TU 计划 payload）；emit 产物与 reemit 重放输出逐字节一致（仅 .o/.a 构建
+  产物存在性差异）。difftest emu 接线验收：`make xs_wolf_grhsim_ir_build_emu`（模型库经
+  生成的多源 Makefile 编译归档）编译 difftest harness 并链接 `libgrhsim_SimTop.a` 出
+  `emu`（exit 0，日志 `ptmp/m5d7_emu_build.log`）——多 TU 库对外契约（单一公共头 +
+  静态库 + Makefile）不变，XS/difftest 零改动。
+- XS 规模实测（ptmp/m5d7_reemit_fixed2，经 reemit 从 M5d-6 checkpoint 重放 C8+emit）：
+  1078 个 TU（unit 上限 32768 估计行全满足，实测最大 49185 行、最小 33 行），
+  46844 个块函数块（最大块 20434 估计行，单个不可分 init 常量表超上限属允许溢出），
+  共享头 843,694 行 / 94.7MB（boundary 683,995 + regLatch 104,646 字段 + 45,016 超节点
+  声明 + 34 个 spill 帧），`.cpp` 合计 15.1M 行。并行编译链接（生成 Makefile，
+  `clang++ -O3 -j32`）：wall 12:17、user 11,240s（≈16.3× 并行度，32 核机上含其他负载）、
+  峰值 RSS 1.29GB、归档 `libgrhsim_SimTop.a` 329MB 完整链接（日志
+  `ptmp/m5d7_xs_model_build_clang3.log`）。
+  - 修复的两个规模病灶（均实测定位）：①init 的 store 值初始化临时量（`store=Store{}`）
+    让编译器为 10 万字段聚合体生成巨型构造体——改为 store 字段去 `{}` 初始化器 +
+    init() memset（含 string 的 boundary store 字段移入独立 `boundaryStrings` 数组保持
+    memset 可行；tu0 从 -O1 不收敛降到 -O3 8.2s）；②g++ 13 对巨型具名 store 头解析
+    超线性（33 行 TU 配 94.7MB 头 >9min 未完成；clang 同件 2.2s）——本项目默认
+    CXX=clang++（根 Makefile 导出，difftest grhsim.mk 继承），g++ 13 病态记录在此，
+    PCH 暂不启用（clang 每 TU 头解析约 2s 占总编译 CPU 约 19%，按实测不值得）。
+- 事件/DPI/随机采样/time-slot/状态 NBA 的定向运行差分已通过上述 tiny-TU 双跑与
+  multiTuTest 在新多 TU emit 上完成验收（M5d-3 至 M5d-6 的延期项就此收口）。PCH 是否
+  启用按公共头体积与重复解析耗时实测决定（见 XS 记录行），当前未启用。CoreMark 运行
+  验收归入 M5d-8。
+- 文档：`docs/grhsim_ir/flows/cpu-st.md`（C1–C8 表、演进节、emit 约束节）、
+  `passes/plan-translation-units.md`（新增）、`passes/pack-general-functions.md`
+  （helperChunks 的 emit 消费）、`passes/build-phase-schedule.md`（终态表述）、
+  `overview.md` §3.7（八 pass 表）、`backends/cpu.md`（§3.1 终态、§3.2 tu_plan serde、
+  新增 §4.2 TU 计划与多 TU emit）同步。
+
 
 ### M5d-8 统一入口、回归与完整 XiangShan 验收（未开始，依赖 M5d-1 至 M5d-7）
 
@@ -883,6 +956,6 @@ M5d-1、M5d-2、M5d-3、M5d-4、M5d-5、M5d-6 已完成（见上文）；M5d-7 �
 - 定向与全量回归：先完成受影响 pass/IR/layout/emit 的定向验证，再复测 HDLBits 162/162、xs-bugcase 24/24 和 Makefile 全量测试。三项既有失败单独对照记录，要求无新增失败，不能将既有 52/55 写成全绿。
 - 黄金差分：使用已有 161 例逐 eval 黄金及覆盖 manifest；DUT=105 使用独立 Verilator 参照补足覆盖，记录黄金来源、采样范围和命令，不将待验收模型自身输出作为黄金。运行既有 baseline 门禁并完成实际覆盖范围内的差分。
 - 完整整核：M5d-7 完成多 TU 编译/链接后运行完整 XiangShan CoreMark，不设置周期截断，启用 NEMU difftest，以无 mismatch、`HIT GOOD TRAP` 和退出码 0 为验收。旧约 100k 周期快照仅用于截断对照和同负载测量，不能替代完整运行。
-- 首个失败：沿用作者已确定的范围，先记录首个失败、命令、退出码、日志及复现证据，再讨论修复；当前仍保持暂停编译。
+- 首个失败：沿用作者已确定的范围，先记录首个失败、命令、退出码、日志及复现证据，再讨论修复；M5d-7 已恢复整核 emu 编译（多 TU 库经 difftest 链接出 `emu`），CoreMark 运行属本条验收。
 - 资源与性能：归档模型操作/状态/数组规模、store 及 publish 字节数、TU/公共头规模、构建耗时/峰值内存和运行性能；同负载、周期范围和环境下对照 M0，判断是否达到旧实现同一量级。存在瓶颈时先记录数据，再确定后续优化，不预设 M6 回填清单。
 - 文档与提交收口：核对语义文档、overview/dialect/backend/flow/pass 文档及本计划一致，生产文档无失效机制；按需同步 AGENTS.md。按验收范围提交 wolvrix 与根仓库修改并同步子模块指针，说明中点名 `ptmp/grhsim_direct_mem_backup_20260930.diff` 提醒属主。此项替代旧 M5b-3/M5b-4 的独立收口任务。

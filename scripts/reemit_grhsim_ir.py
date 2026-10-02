@@ -90,6 +90,9 @@ def main():
             ]
         emit_options = {"model": "grhsim.main", "output": str(flow / "model")}
         for action in actions + [
+            # C8 replans deterministically when the checkpoint already carries
+            # a TU plan, so it is safe to run unconditionally before emit.
+            lambda: session.run_grhsim_pass("cpu.st.plan-translation-units", model="grhsim.main"),
             lambda: session.run_grhsim_pass("cpu.st.emit-cpp", **emit_options),
             lambda: session.store_grhsim(model="grhsim.main", output=str(flow / "xiangshan_grhsim_ir.json")),
         ]:
