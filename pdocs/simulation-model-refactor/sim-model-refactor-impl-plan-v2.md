@@ -55,7 +55,7 @@ v2 三条核心决策（2026-10-03 作者决策，见 plan-v2.md）：
 | V2-M2 ✅(2026-10-03) | 调度与布局改造（去 eventActiveFlag、fanout 收窄、P_event 非 sink 映射、逃逸类） | 调度/layout 校验通过；单测 |
 | V2-M3 ✅(2026-10-03) | emit 三类调用点与体内 guard 规则 | **CASE_025 转绿**；emit 单测编译运行 |
 | V2-M4 ✅(2026-10-03) | 小回归全绿（test_wolvrix、HDLBits、xs-bugcase、黄金差分） | 57 项无新增失败、162/162、25/25、161/161 |
-| V2-M5 | XiangShan 整核复测与完整 CoreMark | emit/编译/链接通过；完整 CoreMark + NEMU difftest 退出码 0 |
+| V2-M5 ✅(2026-10-03) | XiangShan 整核复测与完整 CoreMark | emit/编译/链接通过；完整 CoreMark + NEMU difftest 退出码 0（性能 A/B 经作者决定暂缓，见 §7） |
 | V2-M6 | 文档收口与提交 | 文档一致；wolvrix 与根仓库提交 |
 
 依赖链：`V2-M1 → V2-M2 → V2-M3 → V2-M4 → V2-M5 → V2-M6`。M3 是功能转折点
@@ -439,6 +439,25 @@ M1-M3 期间标注的暂时性失败已确认全部清零：M1 停用的
    同负载同周期范围），记录逃逸类与边界增量的性能影响；达到旧实现同一量级
    为合格，数据归档 `ptmp/`。
 
+### 完成记录（2026-10-03）
+
+行为验收全部通过；性能 A/B（§7 第 5 条）经作者决定暂缓，不计入本次提交
+门禁，待安静窗口另测后补记数据。
+
+| 项 | 结果 | 证据 |
+| --- | --- | --- |
+| 整核 emit | 通过（EXIT 0，约 6.7 min，复用既有 flat GRH；1064 TU / 1.5 GB 源码） | `ptmp/v2m5_logs/xs_wolf_grhsim_ir_v2m5.log` |
+| op/状态/超节点统计归档 | v2 vs v1 对比表已归档；激活映射 event_acts=2 / mapped_supernodes=4 | `ptmp/v2m5_stats/model_stats_compare.md` |
+| 多 TU 编译 + difftest 链接 | 通过（clang -O3 -j32，约 16.8 min，emu 链接 exit 0） | `ptmp/v2m5_emu_build.log` |
+| 15k 周期烟测 | 通过：无断言、无 mismatch（instrCnt=5532 @ cycle 14996，越过 v1 死亡点 9399） | `ptmp/v2m5_logs/xs_wolf_grhsim_v2m5_smoke15k.log` |
+| 完整 CoreMark + NEMU difftest | **通过**：无 mismatch、`HIT GOOD TRAP @ 0x80001ca0`、exit 0；instrCnt=663,688 / cycleCnt=297,291（IPC 2.23），CoreMark 输出完整（Size 666 / 2 iterations / 832 iter/s），全程 13.2 min——v1 在 cycle 9399 的 ICG 死锁彻底消除 | `ptmp/v2m5_logs/xs_wolf_grhsim_v2m5_coremark_full.log` |
+| 性能 A/B 对照 M0 | **暂缓**（2026-10-03 作者决定：行为正确性已满足提交条件，性能对照另择安静窗口执行；已启动的 `ptmp/v2m5_bench` 运行中止，无有效数据） | — |
+
+实测备注：sink 聚类形态与 §9 风险 1/2 的预期有出入，已按实测修正——逃逸
+超节点仅 409 op（ICG 锁存写为主），每轮点火成本可忽略；体量集中在
+{posedge clock} 单签名簇（88.5k op、139 MB 单 TU），编译 16.8 min 可接受，
+保守拆分方向记入 §9 风险 6，当前不实施。
+
 ## 8. V2-M6 文档收口与提交
 
 - 同步 `wolvrix/docs/grhsim_ir/`（overview/backends/cpu/flows/cpu-st/相关 pass
@@ -460,3 +479,11 @@ M1-M3 期间标注的暂时性失败已确认全部清零：M1 停用的
    校验不变式，防止后续划分优化悄悄破坏。
 5. **测试改写面**：test_cpu_phase_emit 多个用例锚定旧门控形态，M3 内逐条改写
    并记录理由，禁止以降低断言强度换取通过。
+6. **单签名巨簇的编译体积**（V2-M5 实测记录）：事件签名只有"哪个边沿"一维，
+   香山全核约 88.5k 个 sink op（74967 寄存器写 + 7188 系统任务 + 6365 断言）
+   共享同一签名 {posedge clock}，聚成单个超节点 sn_34891，emit 为约 78 万行、
+   139 MB 的单 TU（`grhsim_SimTop_tu971.cpp`）；clang -O3 -j32 全量编译
+   16.8 min 可接受，暂不构成瓶颈。逃逸类实测仅 409 op（ICG `rcg_CG_EN` 锁存
+   写为主），体量可忽略，风险 1 的每轮点火成本担忧不成立。若后续编译体积
+   成为问题，可做保守拆分（按 op 序均分 4/8 个子簇，共享同一签名、独立
+   eventActStore 门控，正确性不变，仅增少量门控判断开销），当前不实施。
