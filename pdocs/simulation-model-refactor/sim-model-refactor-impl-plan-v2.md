@@ -496,18 +496,29 @@ M1-M3 期间标注的暂时性失败已确认全部清零：M1 停用的
 拆分待另行立项；实施前 V2-M5 行为验收基线（完整 CoreMark + NEMU difftest
 退出码 0）保持不变，任何一项落地后须按 §7 口径复测。
 
-1. **`grhsim.clone-shared-compute` 移入 C 阶段**。依据
-   `pdocs/simulation-model-refactor/grhsim-ir-pass-flow.md` B7 节的评审记录
-   （2026-10-03）：B7 当前以"预测边界"方式夹在 B6 与封板之间，构成层次倒置
-   （语义层 pass 依赖 C1 划分规则、与 CSE 互为天敌、落点脆弱）。方向是放松
-   "C 段只读语义"的刚性，**允许 C 段 pass 做受控的语义微调**（把廉价双射
-   共享计算就地复制进各消费者节点），并配套 **mapping 局部失效与局部重建**
-   （只重建受影响的超节点/store/调度项，而非整份 mapping），替代 B7 的一次性
-   预测。落地形态二选一：①将这类共享计算计入 C1/C2 的吸收/切分规则，边界
-   从源头不产生；②新增 C 段微调 pass（C1/C2 之后、调度定型之前）统一处理。
-   待设计项：允许哪些语义微调、微调后的验证职责归属、C 段 stage 单向推进
-   语义如何容纳微调、B7/`predictGeneralBoundaries` 的撤除条件。在 C 段微调
-   能力落地前，B7 仍为生产管线的有效一环，不得先行删除。
+1. ~~`grhsim.clone-shared-compute` 移入 C 阶段~~ **已完成（V3-M3，2026-10-04，
+   wolvrix `66000f6`）**。落地形态评审记录：选择了"②新增 C 段微调 pass"的
+   变体——新 pass `cpu.st.clone-shared-boundaries` 插在 **C2 之后 C3 之前
+   （C2.5）**，此时边界是 C2 树决定的**真实超节点边界**
+   （`sixPhaseBoundaryValues` 直接可用），替代 B7 的预测；下游 C3-C8 尚未
+   执行，mapping 无需失效重建，只需就地维护 partition tree。关键机制：克隆
+   粒度收紧为**每消费超节点一份**（B7 是每消费者 op 一份）；克隆 attach 到
+   消费超节点最早消费者之前（本地生产操作数位置否决 `skipped_placement`）；
+   死源经 compact() 删除并同步 op-id remap 树；空 node/超节点壳经稠密
+   partition-id remap 剪除；框架新增 `commitSemanticMicroMutation()`
+   （revision++ 但不清 mapping，唯一注册微调 pass 专用）+ setCpuMapping 重
+   盖戳；pass 后 verify 以全相位归属 + 分区覆盖为硬护栏。B7、
+   `predictGeneralBoundaries` 及其定向测试整体撤除（"预测==实际"定向测试随
+   预测机制失去存在理由）。seal 契约相应放松为"B8 之后仅注册的 C 段微调
+   pass 可改语义"。
+   XS 实测（`ptmp/v3m3_logs/xs_wolf_grhsim_ir_v3m3.log`）：candidates=35420
+   与 B7 相同；boundary_hits=25268（B7 预测 31256，高估 19%）；
+   cloned=40702（B7 89983，-55%）；boundary_values_eliminated=22048；
+   skipped_local=10013——B7 会克隆而 C2 已内部化的候选数，即评审所指的
+   预测式克隆浪费的量化证据。验收（日志 `ptmp/v3m3_*.log`）：test_wolvrix
+   54/57 恰基线三项、HDLBits 162/162、xs-bugcase 25/25、黄金差分 161/161；
+   XS 整核完整 CoreMark + NEMU difftest **HIT GOOD TRAP、exit 0**，与
+   V3-M2 逐拍同迹（instrCnt=663,688 / cycleCnt=297,291 完全一致）。
 2. ~~sink 超节点参与 TU 划分~~ **已完成（V3-M2，2026-10-03，wolvrix
    `ea414cf`）**。实施与评审记录：问题定位比原设想更集中——C6
    `helperChunks` 子切分一直正常（sn_34891 有数百个 `__c` 子函数），瓶颈

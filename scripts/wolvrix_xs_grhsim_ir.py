@@ -28,16 +28,19 @@ CPU_MAPPING_PIPELINE = [
     # the one mapping from the sealed phase attribution (the semantic
     # grhsim.split-phases is B5 above) and forms the General nodes;
     # merge-general-supernodes fixes the supernode ordinals in partition
-    # order (resolution 2); layout/activation-map/mem-plan run at the
-    # supernode stage; pack-general-functions only records supernode
-    # intervals for the emit functions; build-phase-schedule closes the
-    # layout/schedule.
+    # order (resolution 2); clone-shared-boundaries (V3-M3, C2.5) reclones
+    # cheap bijective shared compute against the REAL supernode boundaries —
+    # the C-segment landing of the removed B7 predictive pass — then
+    # layout/activation-map/mem-plan run at the supernode stage;
+    # pack-general-functions only records supernode intervals for the emit
+    # functions; build-phase-schedule closes the layout/schedule.
     # M5d-7 (C8): plan-translation-units appends the emit TU plan; emit-cpp
     # then writes one size-bounded .cpp per unit. Runs exactly once; the old
     # pipeline's "mapping -> semantic rewrite -> mapping" round trip is
     # abolished (M5d-5).
     "cpu.st.build-general-nodes",
     "cpu.st.merge-general-supernodes",
+    "cpu.st.clone-shared-boundaries",
     "cpu.st.layout-named-stores",
     "cpu.st.build-event-activation-map",
     "cpu.st.build-mem-write-plan",
@@ -52,8 +55,9 @@ CPU_SEMANTIC_PIPELINE = [
     # isomorphic comb lanes and bit registers while raw event_edges are still
     # present, then run the unified whole-graph simplify to a fixed point.
     # select-state-stores (M5d-4, A7) closes stage A with the semantic store
-    # classification. clone-shared-compute no longer runs here: it is B7 in
-    # the partition stage, after the last CSE-bearing simplify (M5d-5).
+    # classification. Boundary-aware shared-compute cloning never runs in the
+    # semantic stages: it lives in the C segment as cpu.st.clone-shared-boundaries
+    # (V3-M3, after merge-general-supernodes).
     ("grhsim.canonicalize-compute", {}),
     ("grhsim.reg-to-mem", {}),
     ("grhsim.comb-pack", {}),
@@ -66,16 +70,18 @@ CPU_PARTITION_PIPELINE = [
     # Partition stage B (M5d-5), still pure semantic layer (no CPU mapping):
     # B1-B4 lower the event/output/timeslot structure, B5 completes the
     # class-aware phase attribution (P_event/P_general/P_output partitions +
-    # P_mem write duty), B6 simplifies each partition separately, B7 reclones
-    # shared compute only where it eliminates a predicted supernode boundary,
-    # and B8 seals the semantic layer (no semantic rewrite may follow).
+    # P_mem write duty), B6 simplifies each partition separately, and B8
+    # seals the semantic layer. V3-M3: the predictive B7
+    # (grhsim.clone-shared-compute) is gone — boundary-aware cloning moved
+    # into the mapping stage as cpu.st.clone-shared-boundaries (C2.5), where
+    # real supernode boundaries replace the prediction. After the seal only
+    # registered C-segment micro-adjustment passes may touch the semantics.
     ("grhsim.classify-event-inputs", {}),
     ("grhsim.lower-edge-detect", {}),
     ("grhsim.extract-output-cones", {}),
     ("grhsim.migrate-timeslot-tasks", {}),
     ("grhsim.split-phases", {}),
     ("grhsim.simplify", {"scope": "phase"}),
-    ("grhsim.clone-shared-compute", {}),
     ("grhsim.verify", {"seal": "semantic"}),
 ]
 
@@ -142,7 +148,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mem-min-bytes", type=int,
                         help="minimum linear byte size for the mem store class "
                              "(grhsim.select-state-stores; smaller arrays stay in regLatch)")
-    parser.add_argument("--clone-shared-compute", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--clone-shared-compute", action=argparse.BooleanOptionalAction, default=True,
+                        help="reclone cheap bijective shared compute against real supernode boundaries (cpu.st.clone-shared-boundaries, V3-M3)")
     parser.add_argument("--clone-shared-compute-max-clones", type=int, default=250000)
     parser.add_argument("--phase-simplify", action=argparse.BooleanOptionalAction, default=True,
                         help="run the B6 per-partition simplify (grhsim.simplify --scope phase) "
@@ -286,13 +293,13 @@ def main() -> int:
             and not (name == "grhsim.comb-pack" and not args.comb_pack)
             and not (name == "grhsim.select-state-stores" and not args.select_state_stores)
             and not (name == "grhsim.reg-to-mem" and args.disable_reg_to_mem)
-            and not (name == "grhsim.clone-shared-compute" and not args.clone_shared_compute)
+            and not (name == "cpu.st.clone-shared-boundaries" and not args.clone_shared_compute)
             and not (name == "grhsim.simplify" and options.get("scope") == "phase"
                      and not args.phase_simplify)
         ]
         for pass_name, base_options in pipeline:
             pass_options = dict(base_options)
-            if pass_name == "grhsim.clone-shared-compute":
+            if pass_name == "cpu.st.clone-shared-boundaries":
                 pass_options["max-clones"] = args.clone_shared_compute_max_clones
             if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_report:
                 args.reg_to_mem_report.parent.mkdir(parents=True, exist_ok=True)
