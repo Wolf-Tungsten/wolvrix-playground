@@ -1,7 +1,7 @@
 # GRHSIM IR 仿真模型重构实施计划 v2（六阶段架构调整版）
 
 日期：2026-10-03
-状态：实施中（V2-M1、V2-M2 已完成 2026-10-03）
+状态：实施中（V2-M1、V2-M2、V2-M3 已完成 2026-10-03）
 上游文档：`sim-model-refactor-plan-v2.md`（架构基准）、`pdocs/NO00029-grhsim-ir-icg-activation-deadlock-20261003.md`（旧双重门失效的原理分析）
 
 ## 0. 目标与定位
@@ -53,7 +53,7 @@ v2 三条核心决策（2026-10-03 作者决策，见 plan-v2.md）：
 |---|---|---|
 | V2-M1 ✅(2026-10-03) | sink/非 sink 分类与事件签名聚类（C1/C2 划分改造） | 映射校验新增分类不变式；单测含 ICG 形状的划分形态 |
 | V2-M2 ✅(2026-10-03) | 调度与布局改造（去 eventActiveFlag、fanout 收窄、P_event 非 sink 映射、逃逸类） | 调度/layout 校验通过；单测 |
-| V2-M3 | emit 三类调用点与体内 guard 规则 | **CASE_025 转绿**；emit 单测编译运行 |
+| V2-M3 ✅(2026-10-03) | emit 三类调用点与体内 guard 规则 | **CASE_025 转绿**；emit 单测编译运行 |
 | V2-M4 | 小回归全绿（test_wolvrix、HDLBits、xs-bugcase、黄金差分） | 57 项无新增失败、162/162、25/25、161/161 |
 | V2-M5 | XiangShan 整核复测与完整 CoreMark | emit/编译/链接通过；完整 CoreMark + NEMU difftest 退出码 0 |
 | V2-M6 | 文档收口与提交 | 文档一致；wolvrix 与根仓库提交 |
@@ -284,11 +284,11 @@ v2 三条核心决策（2026-10-03 作者决策，见 plan-v2.md）：
 
 **后续里程碑关注项**：
 
-- V2-M3 剩余工作收窄为：sink 超节点体内 per-op `actGuard` 删除（边界③；
+- ~~V2-M3 剩余工作收窄为：sink 超节点体内 per-op `actGuard` 删除（边界③；
   写 op 的 `if(eventActStore[act])` 包裹去除，en/地址等数据条件保留）、
   emit 侧 ICG 夹具（latch 门控 SRAM 形状的写-读回断言）。CASE_025 与
   dpiSmokeTest 已分别于 M1/M2 提前转绿，M3 验收改为"保持绿 + guard 删除后
-  回归不褪色"。
+  回归不褪色"。~~（已于 V2-M3 完成，见 §5 完成记录）
 - V2-M5 性能 A/B 时关注：逃逸类每轮点火的成本（plan §9 风险 1）与
   boundary 流量增长（风险 2）的实测归档。
 - 整核（XS）上的激活映射规模：SRAM 同步读等带事件非 sink op 的条目数，
@@ -332,6 +332,51 @@ v2 三条核心决策（2026-10-03 作者决策，见 plan-v2.md）：
 - **`make -C testcase/xs-bugcase/CASE_025 run` 通过**（合并粒度默认；即 NO00029
   的最小复现从已知失败转为常驻回归）。
 - emit 单测编译并运行通过；`make test_grhsim_cpu_phase_emit` 全绿。
+
+### 完成记录（2026-10-03）
+
+**实现**（`wolvrix/lib/grhsim/backend/cpu_phase_emit.cpp`）：
+
+- 新增 `bodyGuard(op, current)`：`current` 为 P_general 超节点序号时查
+  `supernodeCategory`——sink（SinkEvent/SinkEscape）返回 `"true"`（SinkEvent
+  全体 op 与超节点签名同集，调用点签名门控已覆盖，结构性不变式见
+  `cpu.st.merge-general-supernodes` 的 mixed-signature 抛出；SinkEscape op 本就
+  无事件）；非 sink 与 `current == ~0u`（P_event/P_output op 列表）回落
+  `actGuard`。
+- sink 体内 per-op guard 删除落点：`emitRegWrite`、`emitGeneralMemWrite`、
+  `emitSystemTask`（签名补 `current` 参数）、`emitDpiCall` 四处由 `actGuard`
+  改 `bodyGuard`；en、地址等数据条件原样保留。**P_mem 的 `emitMemWrite` 保持
+  `actGuard`**（P_mem 不在超节点体内，无调用点门控兜底）；Output 相路径不经
+  `actGuard`，不受影响。
+
+**测试**：
+
+- `test_cpu_phase_emit.cpp` 新增 **`icgGatedSramTest`**（CASE_025 同构 ICG
+  夹具）：透明低 latch 在 clk 低时捕获请求使能，`gclk = clk & EN`，三个
+  posedge-gclk 写（raddr_d/ren_d regWrite + Memory memWrite）聚为一个
+  SinkEvent 超节点。断言三层：(a) 结构——regLatch 类写不进 P_mem 计划
+  （`memWritePlan` 为空）、无非 sink 事件载体（`eventActivation` 为空）；
+  (b) 源码——全源中 guard 形态的 act 位读取恰好 1 处（SinkEvent 调用点
+  签名门控；dumpState 的位读取按 `static_cast<unsigned>(` 前缀排除，M3 前
+  为 4 处）；(c) 功能——13 步驱动覆盖死锁复现（使能在 clk 低时发布、
+  gclk 随 clk 上升、宏寄存器更新）、门控保持（EN=0 时 clk 翻转无扰动）、
+  写使能保留（读周期 posedge 不写 Memory）与 latch 透明性（clk 高时使能
+  变化不穿透）。无既有断言改写（本里程碑纯新增）。
+
+**验证结果**（日志 `ptmp/v2m3_*.log`）：
+
+- `make build` 通过；`make test_grhsim_cpu_phase_emit` 全绿（含
+  `icgGatedSramTest`）；`make test_wolvrix` 54/57（transform-comb-lane-pack、
+  transform-repcut、ingest-write-back-slice(SEGFAULT) 为基线已知失败，与
+  M2 相同）。
+- xs-bugcase **25/25**（含 CASE_025 常驻绿）；HDLBits **162/162**；黄金差分
+  **161/161** 逐 eval 与 M0 黄金一致——guard 删除后回归不褪色，M3 验收闭环。
+
+**后续里程碑关注项**：
+
+- V2-M4 按 §6 口径全量复跑并归档（本里程碑已按同口径验证，M4 补 DUT=105
+  双参照项）。
+- V2-M5 关注项（逃逸类成本、boundary 流量、XS 激活映射规模统计）不变。
 
 ## 6. V2-M4 小回归全绿
 
