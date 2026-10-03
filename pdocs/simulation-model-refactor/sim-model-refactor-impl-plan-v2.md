@@ -508,15 +508,25 @@ M1-M3 期间标注的暂时性失败已确认全部清零：M1 停用的
    待设计项：允许哪些语义微调、微调后的验证职责归属、C 段 stage 单向推进
    语义如何容纳微调、B7/`predictGeneralBoundaries` 的撤除条件。在 C 段微调
    能力落地前，B7 仍为生产管线的有效一环，不得先行删除。
-2. **sink 超节点参与 TU 划分**。当前一个超节点的函数体是不可拆的 chunk
-   分配单元，{posedge clock} 单签名簇因此 emit 为 139 MB 单 TU（§9 风险 6）。
-   方向：C6 函数打包 / C8 TU 规划允许把**单个 sink 超节点的 op 序列切分为
-   多个可独立编译的片段**（同一事件签名、各自带 eventActStore 门控入口或
-   由调用方统一门控后顺序调用），分配到不同 TU，消除单 TU 体积上限对 sink
-   簇规模的约束。约束：切分不得改变同簇 op 的相对执行序（同签名 sink 之间
-   无数据依赖，但断言/fwrite 等副作用 op 的输出顺序应保持现状语义）；逃逸
-   超节点（每轮无条件点火）同样适用；非 sink 超节点是否一并放开待评估
-   （非 sink 侧当前最大 TU 体积不显著，可暂不动）。
+2. ~~sink 超节点参与 TU 划分~~ **已完成（V3-M2，2026-10-03，wolvrix
+   `ea414cf`）**。实施与评审记录：问题定位比原设想更集中——C6
+   `helperChunks` 子切分一直正常（sn_34891 有数百个 `__c` 子函数），瓶颈
+   只在 C8 把"超节点=1 chunk"作为不可分单元。落地形态：估算超 unit 上限
+   且 helperChunks≥2 的超节点拆为 wrapper-only `Supernode` chunk + 若干
+   `SupernodePart` chunk（offset=序号、count=part 序号），TU 打包器把
+   part 摊到多个 TU；part→helper 区间由共享 helper
+   `cpuSupernodePartRanges`（`cpu_phase_common.hpp`）以 unit 上限在 C8 与
+   emit 双侧确定性重放，emit 侧校验 part 密铺，verifier replan-compare
+   兜底。非 sink 超节点同规则适用（体量小，实际不触发）。副作用 op 顺序
+   不变（part 按 helperChunks 原序划分、wrapper 顺序调用）。
+   验收（日志 `ptmp/v3m2_*.log`）：test_wolvrix 54/57 恰基线三项、HDLBits
+   162/162、xs-bugcase 25/25、黄金差分 161/161；XS 整核完整 CoreMark +
+   NEMU difftest **HIT GOOD TRAP、exit 0**，与 V3-M1 逐拍同迹
+   （instrCnt=663,688 / cycleCnt=297,291 完全一致）。实测收益
+   （`ptmp/v3m2_logs/xs_wolf_grhsim_ir_v3m2.log`）：max_unit_estimated_lines
+   782347→32768（tu971 巨 TU 消除）、TU 1064→1091、最大 TU 文件
+   139 MB→7.5 MB、全量编译 16.8→14.5 min、完整 CoreMark 宿主时间
+   654.9s→637.6s（再 -2.6%）。
 3. ~~dataActiveFlag 位图化与压缩检测（对齐 gsim）~~ **已完成（V3-M1，
    2026-10-03，wolvrix `3f78930`）**。方向与实施记录：①存储改
    bit-per-supernode（`Array(UInt64, ceil(N/64))`，aux 保留 N）；②P_general
