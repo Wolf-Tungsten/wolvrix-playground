@@ -28,9 +28,10 @@ CPU_MAPPING_PIPELINE = [
     # the one mapping from the sealed phase attribution (the semantic
     # grhsim.split-phases is B5 above) and forms the General nodes;
     # merge-general-supernodes fixes the supernode ordinals in partition
-    # order (resolution 2); layout/bitmaps/mem-plan run at the supernode
-    # stage; pack-general-functions only records supernode intervals for the
-    # emit functions; build-phase-schedule closes the layout/schedule.
+    # order (resolution 2); layout/activation-map/mem-plan run at the
+    # supernode stage; pack-general-functions only records supernode
+    # intervals for the emit functions; build-phase-schedule closes the
+    # layout/schedule.
     # M5d-7 (C8): plan-translation-units appends the emit TU plan; emit-cpp
     # then writes one size-bounded .cpp per unit. Runs exactly once; the old
     # pipeline's "mapping -> semantic rewrite -> mapping" round trip is
@@ -38,7 +39,7 @@ CPU_MAPPING_PIPELINE = [
     "cpu.st.build-general-nodes",
     "cpu.st.merge-general-supernodes",
     "cpu.st.layout-named-stores",
-    "cpu.st.build-event-bitmaps",
+    "cpu.st.build-event-activation-map",
     "cpu.st.build-mem-write-plan",
     "cpu.st.pack-general-functions",
     "cpu.st.build-phase-schedule",
@@ -120,7 +121,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--resume-from-flat-grh", action="store_true")
     parser.add_argument("--keep-origins", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--emit-cpp-dir", type=Path)
+    parser.add_argument("--emit-waveform", action="store_true",
+                        help="emit the CPU model with FST waveform capture for declared symbols "
+                             "(cpu.st.emit-cpp --waveform declared-symbols)")
     parser.add_argument("--cpu-target-batch-count", type=int)
+    parser.add_argument("--cpu-helper-max-estimated-lines", type=int,
+                        help="C6 per-function helper-chunk cap; huge values disable supernode chunking")
     parser.add_argument("--cpu-chunk-max-estimated-lines", type=int,
                         help="M5d-7 C8: per-function estimated-lines cap for the emit TU plan")
     parser.add_argument("--cpu-unit-max-estimated-lines", type=int,
@@ -307,8 +313,11 @@ def main() -> int:
             if pass_name == "grhsim.pack-bit-registers" and args.pack_bit_registers_report:
                 args.pack_bit_registers_report.parent.mkdir(parents=True, exist_ok=True)
                 pass_options["report"] = str(args.pack_bit_registers_report.resolve())
-            if pass_name == "cpu.st.pack-general-functions" and args.cpu_target_batch_count is not None:
-                pass_options["target_batch_count"] = args.cpu_target_batch_count
+            if pass_name == "cpu.st.pack-general-functions":
+                if args.cpu_target_batch_count is not None:
+                    pass_options["target_batch_count"] = args.cpu_target_batch_count
+                if args.cpu_helper_max_estimated_lines is not None:
+                    pass_options["helper_max_estimated_lines"] = args.cpu_helper_max_estimated_lines
             if pass_name == "cpu.st.plan-translation-units":
                 if args.cpu_chunk_max_estimated_lines is not None:
                     pass_options["chunk_max_estimated_lines"] = args.cpu_chunk_max_estimated_lines
@@ -337,6 +346,8 @@ def main() -> int:
                 "model": "grhsim.main",
                 "output": str(emit_cpp_dir),
             }
+            if args.emit_waveform:
+                emit_options["waveform"] = "declared-symbols"
             diagnostics = timed(
                 f"emit CPU C++ model {emit_cpp_dir}",
                 lambda: session.run_grhsim_pass("cpu.st.emit-cpp", **emit_options),

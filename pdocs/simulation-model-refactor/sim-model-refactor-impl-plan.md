@@ -950,7 +950,7 @@ M5d-1、M5d-2、M5d-3、M5d-4、M5d-5、M5d-6、M5d-7 已完成（见上文）�
   新增 §4.2 TU 计划与多 TU emit）同步。
 
 
-### M5d-8 统一入口、回归与完整 XiangShan 验收（未开始，依赖 M5d-1 至 M5d-7）
+### M5d-8 统一入口、回归与完整 XiangShan 验收（实施中，依赖 M5d-1 至 M5d-7）
 
 - 入口统一：XS、HDLBits、xs-bugcase 和本地 benchmark 入口消费同一目标 pass 顺序；可随前序阶段逐步接线，最终核对不含“mapping -> 语义改写 -> mapping”。big-comb/xs-components 做入口适配与小规模验证，完整 benchmark 继续暂缓；不新增 openc910 GrhSIM 工作流。
 - 定向与全量回归：先完成受影响 pass/IR/layout/emit 的定向验证，再复测 HDLBits 162/162、xs-bugcase 24/24 和 Makefile 全量测试。三项既有失败单独对照记录，要求无新增失败，不能将既有 52/55 写成全绿。
@@ -959,3 +959,75 @@ M5d-1、M5d-2、M5d-3、M5d-4、M5d-5、M5d-6、M5d-7 已完成（见上文）�
 - 首个失败：沿用作者已确定的范围，先记录首个失败、命令、退出码、日志及复现证据，再讨论修复；M5d-7 已恢复整核 emu 编译（多 TU 库经 difftest 链接出 `emu`），CoreMark 运行属本条验收。
 - 资源与性能：归档模型操作/状态/数组规模、store 及 publish 字节数、TU/公共头规模、构建耗时/峰值内存和运行性能；同负载、周期范围和环境下对照 M0，判断是否达到旧实现同一量级。存在瓶颈时先记录数据，再确定后续优化，不预设 M6 回填清单。
 - 文档与提交收口：核对语义文档、overview/dialect/backend/flow/pass 文档及本计划一致，生产文档无失效机制；按需同步 AGENTS.md。按验收范围提交 wolvrix 与根仓库修改并同步子模块指针，说明中点名 `ptmp/grhsim_direct_mem_backup_20260930.diff` 提醒属主。此项替代旧 M5b-3/M5b-4 的独立收口任务。
+
+**阶段证据（已落实部分，其余随验收推进补记）**：
+
+- 入口核对：XS（`Makefile:1391` 经 `scripts/wolvrix_xs_grhsim_ir.py`）、HDLBits
+  （`scripts/wolvrix_hdlbits_grhsim.py` import `CPU_PIPELINE`）、xs-bugcase 24 例
+  （各 Makefile 均指同一脚本）、本地 benchmark（`scripts/benchmark_grhsim_ir.py` 经根
+  Makefile XS 流程间接消费）共用同一 `CPU_PIPELINE`（A 段 6 + B 段 8 + C 段 8）；
+  `scripts/reemit_grhsim_ir.py` 的语义 flag + 重跑 mapping 形态是诊断筛查工具
+  （docstring 与运行时均标注 CHECKPOINT SCREENING ONLY），非生产入口，保留不动；
+  无其他 "mapping -> 语义改写 -> mapping" 残留（scripts/*.py 全量 grep 核对）。
+  openc910 无 grhsim 流程，维持边界。
+- 黄金差分：`make check_sim_refactor_baseline` 全绿——161/161 例逐 eval 与 M0 黄金
+  trace 一致（`ptmp/sim-refactor-baseline/hdlbits`，format grhsim-ir-trace.v1，合计
+  142164 evals；日志 `ptmp/m5d8_golden_check.log`）。DUT=105 独立参照（黄金缺失，
+  M0 采集时 used-bits bug 所致，M5b-1 已修）：`make -C testcase/hdlbits run_tb DUT=105`
+  （Verilator，coverage 90.91%，采样=逐周期 tb 内建检查，日志
+  `ptmp/m5d8_dut105_verilator.log`）与 `make run_hdlbits_grhsim DUT=105`（grhtb_105
+  内建 C++ 软模型逐周期自检，独立于待验收模型，日志 `ptmp/m5d8_dut105_grhsim.log`）
+  均通过——两条参照链均不来自新实现自身输出。
+- 回归复测（最终代码 M5d-7 commit 58711e8/9946bb9）：`make test_wolvrix` 54/57，恰
+  transform-comb-lane-pack、transform-repcut、ingest-write-back-slice SEGFAULT 三项
+  既有失败，无新增（日志 `ptmp/m5d8_test_wolvrix.log`）；
+  `make run_all_hdlbits_grhsim_ir_tests` 162/162（`ptmp/m5d8_hdlbits.log`）；
+  `make run_xs_bugcase_grhsim` 24/24（`ptmp/m5d8_xsbug.log`）。
+- FST 波形能力（首个失败定位的基础设施，本条验收前补建）：六相 emitter 恢复
+  `cpu.st.emit-cpp --waveform declared-symbols`（旧 emitter 的同名模式），Python 流程经
+  `scripts/wolvrix_xs_grhsim_ir.py --emit-waveform`、根流程经 `WOLVRIX_GRHSIM_WAVEFORM=1`
+  开启。信号集为 declared symbols 中可回读者（接口端口、RegLatch 状态、实体化
+  boundary 值；mem 状态/字符串/四态/无 live object/超 512B 数组跳过），eval 边界变化
+  检测写 FST；注册表 `<prefix>_wave_<g>.cpp` 不进 C8 TU 计划，Makefile 编译 vendored
+  libfst 三件，消费方链接 `-lz`（difftest `grhsim.mk` 已按宏追加）。XS 整核实测：
+  309807 个信号、10 个 wave TU，difftest emu `--dump-wave` 12k guest 周期产出 8.1MB
+  FST（`ptmp/m5d8_wave/wave.fst`），断言同点复现（DCache.sv:2015）。关键调试信号携带
+  完整 Chisel 层级名（`cpu$l_soc$...$mainPipe$s3_coh_state`）。配套读取/对比工具
+  `tools/fst_tools/fst_diff`（`make build_fst_diff`；signals/get/diff 子命令，vendored
+  libfst 读端，支持双侧重命名/时间尺度归一）；difftest `verilator.mk` 的 FST 块补
+  vendored lz4 头与版本化运行库链接（本机无 lz4 dev 包），Verilator 参照 FST 走
+  `make xs_ref_emu XS_WAVEFORM=1` + `make run_xs_ref_emu XS_WAVEFORM=1`。
+- 首个失败（定位全过程与根因，修复另案讨论）：
+  - 现象：`make run_xs_wolf_grhsim_ir_emu`（coremark-2-iteration.bin + NEMU difftest）在
+    instrCnt=238 / guest cycle 9399 触发 `RunAssertion failed at build/xs/rtl/rtl/DCache.sv:2015`
+    （DCacheWrapper.scala:1688：wb release 地址须 `(|addr[47:31]) && addr < 48'h80000000000`），
+    确定性复现；M0 存档 emu 同负载干净。
+  - 二分（`ptmp/m5d8_bisect_*`，复用 flat GRH 重建管线）：`--disable-reg-to-mem`、
+    全语义优化关闭、数组全 mem、关闭块/帧机制均仍挂；`--max-op-in-compute-supernode 1`
+    （1-op 超节点）干净 ⇒ 罪魁在**合并超节点的门控/激活语义**。
+  - 波形定位（本节新增的 FST 能力 + `fst_diff`，Verilator 参照
+    `build/logs/xs/xs_ref_m5d8_ref2.fst`，全窗口 `-b 0 -e 12000`）：两 run 的 mainPipe
+    请求流逐拍一致（约 88 周期滞后对齐）；参照中 `io_wb_valid` 全程不置位，grhsim 在
+    eval 18890 幻影置位、victim tag=0/coh=2。逐级回溯：4 个 tag bank 的
+    `io_r_resp_data_0/1` 恒 0、`_RW0_raddr_d0` 恒 0、填充永不落盘（宏寄存器全冻结）。
+  - 根因（证据链闭环）：XS SRAM 宏的寄存器时钟 = `_rcg_out_clock = clock & EN`
+    （`ClockGate` 锁存式 ICG，`always_latch if(!CK) EN = TE|E`）。使能
+    `rcg_E = rckEn | wckEn` 由超节点 `sn_12848` 发布，而**同一超节点**含有按
+    event act 222 门控的写——act 222 正是 `rcg$CG$Q`（该门控时钟自身）的 posedge
+    （checkpoint op 2455886 → edgeDet 实锤）。超节点属 eventGated_（双重门
+    `eventActive && dataActive`）：act 222 永不触发（Q 恒 0）⇒ 超节点永不运行 ⇒
+    `rcg_E` 永不发布 ⇒ 锁存器永不置位 ⇒ Q 永不上升，**循环自锁**。整片按访问门控的
+    SRAM（tag/data/meta/L2…）同形态全冻结，表现为全 miss、IPC 0.025、最终幻影 wb。
+    1-op 超节点时 `rcg_E` 的组合生产者独立成数据驱动超节点，门控正常打开（sn1 state
+    dump `raddr_d0=0xbb` 实证）。移位/符号/位扩展类嫌疑沿途逐项排除（concat、
+    packed-bits 位序、slice 位选与 FST 值全部吻合）。
+  - 最小复现（已入 xs-bugcase）：`testcase/xs-bugcase/CASE_025`（GatedSram：latch ICG
+    + `ren_d <= read|write` 使同一表达式兼任门控使能与门控写数据，C2 合并即构成
+    自锁超节点）。默认（合并）：`[MISMATCH] cycle=7 phase=high resp_data ref=0xabcd
+    grhsim=0x0000`；`--max-op-in-compute-supernode 1`：PASS。根 Makefile
+    `run_xs_bugcase_grhsim` 已扩为 25 例。
+  - 修复方向（另案，本节不预设）：A. emitter 双重门拆分——eventGated 超节点内
+    event-free 组合输出照常数据驱动发布，仅 event-carrying 写等边沿；B. C2 合并
+    约束——禁止把事件 act 的 edgeDet 事件值之组合锥并入被该 act 门控的超节点。
+    原理性研判全文见 `pdocs/NO00029-grhsim-ir-icg-activation-deadlock-20261003.md`
+    （含依赖方程、六相模型失效前提分析、修复方向评估）。

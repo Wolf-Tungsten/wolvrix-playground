@@ -2,8 +2,9 @@ SHELL := /bin/bash
 REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 FST_ROI_DISCOVERY_GOALS := build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery
+FST_DIFF_GOALS := build_fst_diff clean_fst_diff
 VRT_GOALS := run_vrt_selftest clean_vrt_selftest vrt_inbox
-ifneq ($(filter $(FST_ROI_DISCOVERY_GOALS) $(VRT_GOALS),$(MAKECMDGOALS)),)
+ifneq ($(filter $(FST_ROI_DISCOVERY_GOALS) $(FST_DIFF_GOALS) $(VRT_GOALS),$(MAKECMDGOALS)),)
 SKIP_WOLF_ENV_CHECK := 1
 endif
 
@@ -293,6 +294,14 @@ test_fst_roi_discovery:
 
 clean_fst_roi_discovery:
 	@$(MAKE) --no-print-directory -C $(FST_ROI_DISCOVERY_DIR) clean
+
+FST_DIFF_DIR := $(REPO_ROOT)/tools/fst_tools/fst_diff
+
+build_fst_diff:
+	@$(MAKE) --no-print-directory -C $(FST_DIFF_DIR) all
+
+clean_fst_diff:
+	@$(MAKE) --no-print-directory -C $(FST_DIFF_DIR) clean
 
 $(WOLVRIX_APP): build
 
@@ -1105,7 +1114,7 @@ run_xs_bugcase_grhsim: py_install
 	  export CCACHE_DIR="$(REPO_ROOT)/ptmp/xs-bugcase-grhsim/ccache"; \
 	  summary="$(REPO_ROOT)/ptmp/xs-bugcase-grhsim/summary.txt"; \
 	  : > "$$summary"; \
-	  for index in $$(seq 1 24); do \
+	  for index in $$(seq 1 25); do \
 	    case_tag=$$(printf 'CASE_%03d' "$$index"); \
 	    target=run; if [ "$$index" -le 5 ]; then target=run_grhsim; fi; \
 	    log="$(REPO_ROOT)/ptmp/xs-bugcase-grhsim/$${case_tag}.log"; \
@@ -1116,7 +1125,7 @@ run_xs_bugcase_grhsim: py_install
 	      echo "FAIL $$case_tag ($$log)" | tee -a "$$summary"; failed=$$((failed + 1)); \
 	    fi; \
 	  done; \
-	  echo "Result: $$passed/24 passed, $$failed failed" | tee -a "$$summary"; \
+	  echo "Result: $$passed/25 passed, $$failed failed" | tee -a "$$summary"; \
 	  test "$$failed" -eq 0
 
 $(HDLBITS_EMITTED_DUT) $(HDLBITS_EMITTED_JSON): $(HDLBITS_DUT_SRC) $(HDLBITS_WOLVRIX_SCRIPT) check_id
@@ -1423,6 +1432,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_OR_WRITE_MERGE)),--reg-to-mem-or-write-merge,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",) \
+			$(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),--emit-waveform,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON)),--dump-post-lower-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON))",) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON)),--dump-pre-partition-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON))",) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT)),--pack-bit-registers-report "$(abspath $(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT))",) \
