@@ -1,7 +1,7 @@
 # GRHSIM IR 仿真模型重构实施计划 v2（六阶段架构调整版）
 
 日期：2026-10-03
-状态：实施中（V2-M1、V2-M2、V2-M3 已完成 2026-10-03）
+状态：实施中（V2-M1..V2-M4 已完成 2026-10-03）
 上游文档：`sim-model-refactor-plan-v2.md`（架构基准）、`pdocs/NO00029-grhsim-ir-icg-activation-deadlock-20261003.md`（旧双重门失效的原理分析）
 
 ## 0. 目标与定位
@@ -54,7 +54,7 @@ v2 三条核心决策（2026-10-03 作者决策，见 plan-v2.md）：
 | V2-M1 ✅(2026-10-03) | sink/非 sink 分类与事件签名聚类（C1/C2 划分改造） | 映射校验新增分类不变式；单测含 ICG 形状的划分形态 |
 | V2-M2 ✅(2026-10-03) | 调度与布局改造（去 eventActiveFlag、fanout 收窄、P_event 非 sink 映射、逃逸类） | 调度/layout 校验通过；单测 |
 | V2-M3 ✅(2026-10-03) | emit 三类调用点与体内 guard 规则 | **CASE_025 转绿**；emit 单测编译运行 |
-| V2-M4 | 小回归全绿（test_wolvrix、HDLBits、xs-bugcase、黄金差分） | 57 项无新增失败、162/162、25/25、161/161 |
+| V2-M4 ✅(2026-10-03) | 小回归全绿（test_wolvrix、HDLBits、xs-bugcase、黄金差分） | 57 项无新增失败、162/162、25/25、161/161 |
 | V2-M5 | XiangShan 整核复测与完整 CoreMark | emit/编译/链接通过；完整 CoreMark + NEMU difftest 退出码 0 |
 | V2-M6 | 文档收口与提交 | 文档一致；wolvrix 与根仓库提交 |
 
@@ -395,6 +395,29 @@ v2 三条核心决策（2026-10-03 作者决策，见 plan-v2.md）：
   `make -C testcase/hdlbits run_tb DUT=105` 与 `make run_hdlbits_grhsim DUT=105`
   双参照通过。
 - 日志落 `ptmp/`（命名 `v2m4_*.log`），逐项记录入档。
+
+### 完成记录（2026-10-03）
+
+自 V2-M3 提交（wolvrix `66c5024`）起无代码改动，本轮为 §6 口径的全量复跑
+确认（日志 `ptmp/v2m4_*.log`）：
+
+| 项 | 结果 | 日志 |
+| --- | --- | --- |
+| `make test_wolvrix` | 54/57，失败恰为基线三项（transform-comb-lane-pack、transform-repcut、ingest-write-back-slice SEGFAULT），无新增 | `v2m4_test_wolvrix.log` |
+| `make run_all_hdlbits_grhsim_ir_tests` | 162/162（162 个 RUN、0 fail/mismatch/error） | `v2m4_hdlbits.log` |
+| `make run_xs_bugcase_grhsim` | 25/25（含 CASE_025 常驻绿） | `v2m4_xs_bugcase.log` |
+| `make check_sim_refactor_baseline` | 161/161 逐 eval 与 M0 黄金一致 | `v2m4_golden.log` |
+| `make -C testcase/hdlbits run_tb DUT=105` | 通过（Verilator 参照，exit 0） | `v2m4_dut105_verilator.log` |
+| `make run_hdlbits_grhsim DUT=105` | 通过（`dut_105 passed: 4-digit BCD counter with enables`） | `v2m4_dut105_grhsim.log` |
+
+M1-M3 期间标注的暂时性失败已确认全部清零：M1 停用的
+`memSinkBitmapTest`（M2 重写为 `eventActivationCoverageTest` 恢复）与
+`dpiSmokeTest` 两个 TU 变体（M2 恢复）均在绿；无遗留标注项。
+
+**后续里程碑关注项**：
+
+- V2-M5 整核复测：逃逸类每轮点火成本、boundary 流量增长、XS 激活映射
+  规模统计（SRAM 同步读等带事件非 sink op 的条目数）按 §7 口径归档。
 
 ## 7. V2-M5 XiangShan 整核复测与完整 CoreMark 验收
 
