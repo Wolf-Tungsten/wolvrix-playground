@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shlex
 import sys
 import time
@@ -49,6 +50,45 @@ CPU_MAPPING_PIPELINE = [
     "cpu.st.plan-translation-units",
 ]
 
+
+def sink_guard_min_size() -> int:
+    # A1 sink enable-guard subdivision knob (same env-switch pattern as
+    # XS_WOLF_GRHSIM_IR_PHASE_SIMPLIFY, read here so both this flow and the
+    # HDLBits entry pick it up through CPU_PIPELINE): minimum shared-enable
+    # group size for cpu.st.merge-general-supernodes to carve out a
+    # guard-gated SinkEvent supernode. Default 0 (disabled): the A/B on XS
+    # measured +0.5% host time (recorded in
+    # pdocs/perf-optimization/20261004-sink-enable-guard.md); set a positive
+    # integer (e.g. "8") to enable the subdivision.
+    raw = os.environ.get("XS_WOLF_GRHSIM_IR_SINK_GUARD_MIN", "0").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        raise RuntimeError(
+            f"XS_WOLF_GRHSIM_IR_SINK_GUARD_MIN must be a nonnegative integer, got {raw!r}"
+        ) from None
+    if value < 0:
+        raise RuntimeError(
+            f"XS_WOLF_GRHSIM_IR_SINK_GUARD_MIN must be a nonnegative integer, got {raw!r}"
+        )
+    return value
+
+def mem_enable_bitmap() -> str:
+    # P_mem enable shadow-bitmap knob (cpu.st.emit-cpp --mem-enable-bitmap):
+    # dense per-port enable bits mirrored from their boundary fields replace the
+    # per-round scattered boundary reads in the P_mem write-port scan. Default
+    # on; set XS_WOLF_GRHSIM_IR_MEM_ENABLE_BITMAP=0 to fall back to the plain
+    # per-port boundary reads.
+    raw = os.environ.get("XS_WOLF_GRHSIM_IR_MEM_ENABLE_BITMAP", "1").strip()
+    if raw in ("0", "off"):
+        return "off"
+    if raw in ("1", "on"):
+        return "on"
+    raise RuntimeError(
+        f"XS_WOLF_GRHSIM_IR_MEM_ENABLE_BITMAP must be 0/1/on/off, got {raw!r}"
+    )
+
+
 CPU_SEMANTIC_PIPELINE = [
     # Whole-graph stage-A pipeline (M5d-3): normalize first so pattern
     # matching sees canonical input, recover scalarized tables, pack
@@ -87,7 +127,11 @@ CPU_PARTITION_PIPELINE = [
 
 CPU_PIPELINE = (
     CPU_SEMANTIC_PIPELINE + CPU_PARTITION_PIPELINE
-    + [(name, {}) for name in CPU_MAPPING_PIPELINE]
+    + [
+        (name, {"sink_enable_guard_min_size": sink_guard_min_size()}
+         if name == "cpu.st.merge-general-supernodes" else {})
+        for name in CPU_MAPPING_PIPELINE
+    ]
 )
 
 
@@ -172,6 +216,9 @@ def parse_args() -> argparse.Namespace:
                              "mapping run")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap (activity granularity)")
+    parser.add_argument("--sink-enable-guard-min-size", type=int,
+                        help="override the A1 sink enable-guard group threshold "
+                             "(default: XS_WOLF_GRHSIM_IR_SINK_GUARD_MIN or 8; 0 disables)")
     parser.add_argument("--reg-to-mem-report", type=Path)
     parser.add_argument("--pack-bit-registers-report", type=Path,
                         help="diagnostic (NO00026): dump the packed_bits member list TSV from grhsim.pack-bit-registers")
@@ -189,6 +236,8 @@ def parse_args() -> argparse.Namespace:
             parser.error(f"--{caps.replace('_', '-')} must be positive")
     if args.max_op_in_compute_supernode is not None and args.max_op_in_compute_supernode <= 0:
         parser.error("--max-op-in-compute-supernode must be positive")
+    if args.sink_enable_guard_min_size is not None and args.sink_enable_guard_min_size < 0:
+        parser.error("--sink-enable-guard-min-size must be nonnegative")
     if args.clone_shared_compute_max_clones <= 0:
         parser.error("--clone-shared-compute-max-clones must be positive")
     if args.mem_min_bytes is not None and args.mem_min_bytes < 0:
@@ -332,6 +381,8 @@ def main() -> int:
                     pass_options["unit_max_estimated_lines"] = args.cpu_unit_max_estimated_lines
             if pass_name == "cpu.st.merge-general-supernodes" and args.max_op_in_compute_supernode is not None:
                 pass_options["max_op_in_compute_supernode"] = args.max_op_in_compute_supernode
+            if pass_name == "cpu.st.merge-general-supernodes" and args.sink_enable_guard_min_size is not None:
+                pass_options["sink_enable_guard_min_size"] = args.sink_enable_guard_min_size
             if pass_name == "cpu.st.build-general-nodes" and args.dump_pre_partition_json is not None:
                 dump_path = args.dump_pre_partition_json.resolve()
                 dump_path.parent.mkdir(parents=True, exist_ok=True)
@@ -352,6 +403,7 @@ def main() -> int:
             emit_options = {
                 "model": "grhsim.main",
                 "output": str(emit_cpp_dir),
+                "mem_enable_bitmap": mem_enable_bitmap(),
             }
             if args.emit_waveform:
                 emit_options["waveform"] = "declared-symbols"

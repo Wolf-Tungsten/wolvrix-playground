@@ -6,7 +6,7 @@ from pathlib import Path
 
 import wolvrix
 
-from wolvrix_xs_grhsim_ir import CPU_PIPELINE
+from wolvrix_xs_grhsim_ir import CPU_PIPELINE, mem_enable_bitmap
 
 
 TOP_NAME = "top_module"
@@ -73,7 +73,8 @@ def run_pipeline(dut_path: Path, out_dir: Path, waveform_mode: str | None, perf_
         sess.run_grhsim_pass("grhsim.verify", model="grhsim.main")
         for pass_name, pass_options in CPU_PIPELINE:
             sess.run_grhsim_pass(pass_name, model="grhsim.main", **pass_options)
-        emit_options = {"model": "grhsim.main", "output": str(out_dir)}
+        emit_options = {"model": "grhsim.main", "output": str(out_dir),
+                        "mem_enable_bitmap": mem_enable_bitmap()}
         if waveform_mode and waveform_mode != "off":
             emit_options["waveform"] = waveform_mode
         if perf_mode and perf_mode != "off":

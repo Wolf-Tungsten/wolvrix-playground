@@ -5,7 +5,7 @@ from pathlib import Path
 
 import wolvrix
 
-from wolvrix_xs_grhsim_ir import CPU_MAPPING_PIPELINE
+from wolvrix_xs_grhsim_ir import CPU_MAPPING_PIPELINE, mem_enable_bitmap
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -88,7 +88,8 @@ def main():
                 lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
                 for name in CPU_MAPPING_PIPELINE
             ]
-        emit_options = {"model": "grhsim.main", "output": str(flow / "model")}
+        emit_options = {"model": "grhsim.main", "output": str(flow / "model"),
+                        "mem_enable_bitmap": mem_enable_bitmap()}
         for action in actions + [
             # C8 replans deterministically when the checkpoint already carries
             # a TU plan, so it is safe to run unconditionally before emit.
