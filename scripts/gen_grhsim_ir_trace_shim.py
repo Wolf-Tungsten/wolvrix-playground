@@ -39,7 +39,8 @@ SCALAR_TYPES = {
     "double",
 }
 ARRAY_RE = re.compile(r"^std::array<\s*(?:std::)?u?int(?:8|16|32|64)_t\s*,\s*(\d+)\s*>$")
-MEMBER_RE = re.compile(r"^\s*([A-Za-z_:][A-Za-z0-9_:<> ,]*?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\{\})?\s*;\s*$")
+BITINT_RE = re.compile(r"^unsigned _BitInt\(\s*(\d+)\s*\)$")
+MEMBER_RE = re.compile(r"^\s*([A-Za-z_:][A-Za-z0-9_:<> ,()]*?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\{\})?\s*;\s*$")
 
 
 ALIAS_RE = re.compile(r"^\s*using\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*([A-Za-z_][A-Za-z0-9_]*)\s*;\s*$")
@@ -107,7 +108,7 @@ def parse_ports_direct(header: Path, class_name: str) -> list[tuple[str, str]]:
             break
         type_name = re.sub(r"\s+", " ", match.group(1).strip())
         name = match.group(2)
-        if type_name in SCALAR_TYPES or ARRAY_RE.match(type_name):
+        if type_name in SCALAR_TYPES or ARRAY_RE.match(type_name) or BITINT_RE.match(type_name):
             ports.append((type_name, name))
         else:
             raise SystemExit(
@@ -201,6 +202,15 @@ def render_shim(include_header: str, macro_name: str, base_class: str, traced_cl
         "            static_assert(sizeof(bits) == sizeof(value));",
         "            std::memcpy(&bits, &value, sizeof(bits));",
         "            std::fprintf(stream, \"%016llx\", static_cast<unsigned long long>(bits));",
+        "        }",
+        "        else if constexpr (sizeof(T) > 8)",
+        "        {",
+        "            // Wide C23 _BitInt ports: print the u64-word image,",
+        "            // most-significant word first (same text the std::array",
+        "            // overload produced for word-array ports).",
+        "            const auto *words = reinterpret_cast<const std::uint64_t *>(&value);",
+        "            for (std::size_t i = sizeof(T) / 8; i-- > 0;)",
+        "                std::fprintf(stream, \"%016llx\", static_cast<unsigned long long>(words[i]));",
         "        }",
         "        else",
         "        {",

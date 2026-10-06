@@ -58,7 +58,7 @@ def sink_guard_min_size() -> int:
     # group size for cpu.st.merge-general-supernodes to carve out a
     # guard-gated SinkEvent supernode. Default 0 (disabled): the A/B on XS
     # measured +0.5% host time (recorded in
-    # pdocs/perf-optimization/20261004-sink-enable-guard.md); set a positive
+    # pdocs/perf-optimization/20261004-113053-sink-enable-guard.md); set a positive
     # integer (e.g. "8") to enable the subdivision.
     raw = os.environ.get("XS_WOLF_GRHSIM_IR_SINK_GUARD_MIN", "0").strip()
     try:
@@ -72,6 +72,84 @@ def sink_guard_min_size() -> int:
             f"XS_WOLF_GRHSIM_IR_SINK_GUARD_MIN must be a nonnegative integer, got {raw!r}"
         )
     return value
+
+def segment_penalty() -> int:
+    # DP segmentation penalty knob (cpu.st.merge-general-supernodes
+    # --segment-penalty): per-segment cost in the boundary-minimizing DP.
+    # Default 1 (legacy uniform objective: distinct incoming activation
+    # values + 1 per segment); larger values bias toward fewer, larger
+    # non-sink supernodes (boundary-reduction exploration).
+    raw = os.environ.get("XS_WOLF_GRHSIM_IR_SEGMENT_PENALTY", "1").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        raise RuntimeError(
+            f"XS_WOLF_GRHSIM_IR_SEGMENT_PENALTY must be a nonnegative integer, got {raw!r}"
+        ) from None
+    if value < 0:
+        raise RuntimeError(
+            f"XS_WOLF_GRHSIM_IR_SEGMENT_PENALTY must be a nonnegative integer, got {raw!r}"
+        )
+    return value
+
+def semantic_nodes() -> int:
+    # S1 semantic node formation knob (cpu.st.build-general-nodes
+    # --semantic-nodes): 1 = declared signals (DeclProvenance Value slices)
+    # anchor their own nodes and the 128-op node size cap is dropped, so node
+    # shape follows declaration boundaries; 0 (default) = legacy cone
+    # absorption with the size cap. Boundary-reduction exploration, see
+    # pdocs/perf-optimization/20261005-170704-nonsink-semantic-partition-plan.md.
+    raw = os.environ.get("XS_WOLF_GRHSIM_IR_SEMANTIC_NODES", "0").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        raise RuntimeError(
+            f"XS_WOLF_GRHSIM_IR_SEMANTIC_NODES must be 0 or 1, got {raw!r}"
+        ) from None
+    if value not in (0, 1):
+        raise RuntimeError(
+            f"XS_WOLF_GRHSIM_IR_SEMANTIC_NODES must be 0 or 1, got {raw!r}"
+        )
+    return value
+
+def semantic_node_max_op() -> int:
+    # Semantic-mode cone cap knob (cpu.st.build-general-nodes
+    # --semantic-node-max-op): in semantic node mode, bound the op count a
+    # node may reach through cone absorption. 0 (default) = uncapped (pure
+    # S1); positive values bound giant declared cones for compile-time
+    # control. Same plan doc as XS_WOLF_GRHSIM_IR_SEMANTIC_NODES.
+    raw = os.environ.get("XS_WOLF_GRHSIM_IR_SEMANTIC_NODE_MAX_OP", "0").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        raise RuntimeError(
+            f"XS_WOLF_GRHSIM_IR_SEMANTIC_NODE_MAX_OP must be a nonnegative integer, got {raw!r}"
+        ) from None
+    if value < 0:
+        raise RuntimeError(
+            f"XS_WOLF_GRHSIM_IR_SEMANTIC_NODE_MAX_OP must be a nonnegative integer, got {raw!r}"
+        )
+    return value
+
+def coarsen_max_op() -> int:
+    # S2 coarsen merge weight cap knob (cpu.st.merge-general-supernodes
+    # --coarsen-max-op): cap on the combined op weight of a merged coarsen
+    # cluster. 0 (default) = follow --max-op-in-compute-supernode (legacy);
+    # a large value (e.g. 1000000000) effectively lifts the cap. Same plan
+    # doc as XS_WOLF_GRHSIM_IR_SEMANTIC_NODES.
+    raw = os.environ.get("XS_WOLF_GRHSIM_IR_COARSEN_MAX_OP", "0").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        raise RuntimeError(
+            f"XS_WOLF_GRHSIM_IR_COARSEN_MAX_OP must be a nonnegative integer, got {raw!r}"
+        ) from None
+    if value < 0:
+        raise RuntimeError(
+            f"XS_WOLF_GRHSIM_IR_COARSEN_MAX_OP must be a nonnegative integer, got {raw!r}"
+        )
+    return value
+
 
 def mem_enable_bitmap() -> str:
     # P_mem enable shadow-bitmap knob (cpu.st.emit-cpp --mem-enable-bitmap):
@@ -125,11 +203,29 @@ CPU_PARTITION_PIPELINE = [
     ("grhsim.verify", {"seal": "semantic"}),
 ]
 
+def _cpu_mapping_options(name: str) -> dict:
+    # Default-valued knobs stay unpassed so older wolvrix builds (which
+    # reject unknown options) keep working; the skipped values equal the
+    # engines' built-in defaults in every case.
+    options = {}
+    if name == "cpu.st.build-general-nodes":
+        if value := semantic_nodes():
+            options["semantic_nodes"] = value
+        if value := semantic_node_max_op():
+            options["semantic_node_max_op"] = value
+    if name == "cpu.st.merge-general-supernodes":
+        if (value := sink_guard_min_size()) != 0:
+            options["sink_enable_guard_min_size"] = value
+        if (value := segment_penalty()) != 1:
+            options["segment_penalty"] = value
+        if value := coarsen_max_op():
+            options["coarsen_max_op"] = value
+    return options
+
 CPU_PIPELINE = (
     CPU_SEMANTIC_PIPELINE + CPU_PARTITION_PIPELINE
     + [
-        (name, {"sink_enable_guard_min_size": sink_guard_min_size()}
-         if name == "cpu.st.merge-general-supernodes" else {})
+        (name, _cpu_mapping_options(name))
         for name in CPU_MAPPING_PIPELINE
     ]
 )

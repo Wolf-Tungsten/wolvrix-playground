@@ -1,6 +1,6 @@
-# YYYYMMDD <优化题目>
+# YYYYMMDD-hhmmss <优化题目>
 
-> 从本模板复制为 `YYYYMMDD-<短题>.md` 填写；写不出来的章节就是还没做，不许留空话。
+> 从本模板复制为 `YYYYMMDD-hhmmss-<短题>.md` 填写（hhmmss = 创建时刻）；写不出来的章节就是还没做，不许留空话。
 
 ## 元信息
 

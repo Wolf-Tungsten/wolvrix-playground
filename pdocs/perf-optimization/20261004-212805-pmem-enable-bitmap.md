@@ -4,9 +4,9 @@
 
 - 日期：2026-10-04 / 作者：kimi
 - wolvrix commit：`66000f6` + 未提交工作树（V3-M3 + A1 sink-enable-guard 机制
-  （默认关闭）+ 本项改动；A1 机制见 `20261004-sink-enable-guard.md`）
+  （默认关闭）+ 本项改动；A1 机制见 `20261004-113053-sink-enable-guard.md`）
 - 根仓 commit：`1b94a8d` + 未提交工作树
-- 上游基线记录：`20261004-v3-sixphase-baseline.md`（V3-M3，223.4s）
+- 上游基线记录：`20261004-075148-v3-sixphase-baseline.md`（V3-M3，223.4s）
 - 说明：benchmark 的 old/new 流目录均在 `ptmp/grhsim-ir-memenable-bitmap/`
   （old-flow = 本项前构建归档，new-flow = 本项构建）；采纳后已把 new-flow 的
   model/ 与 emu 同步回默认工作目录 `build/xs/grhsim-ir`（默认目标

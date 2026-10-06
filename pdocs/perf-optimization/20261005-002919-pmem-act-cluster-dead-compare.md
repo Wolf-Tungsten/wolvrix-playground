@@ -6,8 +6,8 @@
 - wolvrix commit：`66000f6` + 未提交工作树（V3-M3 + A1 机制 + memEnableBits +
   本项改动）
 - 根仓 commit：`1b94a8d` + 未提交工作树
-- 上游基线记录：`20261004-pmem-enable-bitmap.md`（204.1s）；
-  顶层基线 `20261004-v3-sixphase-baseline.md`（V3-M3，223.4s）
+- 上游基线记录：`20261004-212805-pmem-enable-bitmap.md`（204.1s）；
+  顶层基线 `20261004-075148-v3-sixphase-baseline.md`（V3-M3，223.4s）
 
 ## 基线性能
 
@@ -110,7 +110,7 @@
 - 六阶段占比（本项后）：P_general 92.4% / P_publish 3.1% / P_mem 3.0% /
   P_event 0.9% / P_output+P_input <0.1%。下一大头只剩 P_general：
   sink 簇与 3.6 万小超节点长尾（见
-  `20261004-pmem-enable-bitmap.md` 的 perf 解剖）。
+  `20261004-212805-pmem-enable-bitmap.md` 的 perf 解剖）。
 - P_publish 的 529KB 每轮 memcpy（~3%）与 scan 的字扫描（P_general 内
   ~4.7pp）是已知小项；每 eval 轮数仍待 WOLVRIX_GRHSIM_PERF=1 实测。
 - 评审明确不做（语义不干净）：恒 1 端口 data 脏位门控、恒 1 端口退化

@@ -391,7 +391,18 @@ profile_grhsim_ir:
 .PHONY: reemit_grhsim_ir
 GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT ?= 0
 reemit_grhsim_ir: py_install
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,) $(if $(filter 1,$(GRHSIM_REEMIT_REMAP)),--remap,) $(if $(filter 1,$(GRHSIM_REEMIT_BITWISE_MUXES)),--bitwise-muxes,) $(if $(filter 1,$(GRHSIM_REEMIT_MUX_CHAIN_FOLD)),--mux-chain-fold,) $(if $(filter 1,$(GRHSIM_REEMIT_USED_BITS)),--used-bits,) $(if $(filter 1,$(GRHSIM_REEMIT_CANONICALIZE_COMPUTE)),--canonicalize-compute,) $(if $(strip $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE),)
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,) $(if $(filter 1,$(GRHSIM_REEMIT_REMAP)),--remap,) $(if $(filter 1,$(GRHSIM_REEMIT_BITWISE_MUXES)),--bitwise-muxes,) $(if $(filter 1,$(GRHSIM_REEMIT_MUX_CHAIN_FOLD)),--mux-chain-fold,) $(if $(filter 1,$(GRHSIM_REEMIT_USED_BITS)),--used-bits,) $(if $(filter 1,$(GRHSIM_REEMIT_CANONICALIZE_COMPUTE)),--canonicalize-compute,) $(if $(strip $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE),) $(if $(strip $(GRHSIM_REEMIT_SEGMENT_PENALTY)),--segment-penalty $(GRHSIM_REEMIT_SEGMENT_PENALTY),) $(if $(strip $(GRHSIM_REEMIT_SINK_GUARD_MIN_SIZE)),--sink-enable-guard-min-size $(GRHSIM_REEMIT_SINK_GUARD_MIN_SIZE),) $(if $(strip $(GRHSIM_REEMIT_HELPER_MAX_ESTIMATED_LINES)),--helper-max-estimated-lines $(GRHSIM_REEMIT_HELPER_MAX_ESTIMATED_LINES),) $(if $(strip $(GRHSIM_REEMIT_SEMANTIC_NODES)),--semantic-nodes $(GRHSIM_REEMIT_SEMANTIC_NODES),) $(if $(strip $(GRHSIM_REEMIT_SEMANTIC_NODE_MAX_OP)),--semantic-node-max-op $(GRHSIM_REEMIT_SEMANTIC_NODE_MAX_OP),) $(if $(strip $(GRHSIM_REEMIT_COARSEN_MAX_OP)),--coarsen-max-op $(GRHSIM_REEMIT_COARSEN_MAX_OP),)
+
+.PHONY: grhsim_tu_trace
+# Diagnostic: compile ONE generated model TU with -ftime-trace to locate the
+# -O3 hot pass. GRHSIM_TRACE_TU = path to grhsim_SimTop_tuN.cpp; artifacts
+# (object + trace json) land in ptmp/grhsim-tu-trace/.
+grhsim_tu_trace:
+	@test -n "$(GRHSIM_TRACE_TU)" && test -f "$(GRHSIM_TRACE_TU)" || { echo "[FAIL] set GRHSIM_TRACE_TU=<model dir>/grhsim_SimTop_tuN.cpp"; exit 1; }
+	@mkdir -p ptmp/grhsim-tu-trace
+	cd "$(dir $(GRHSIM_TRACE_TU))" && $${CXX:-clang++} -std=c++20 -O3 $(GRHSIM_TRACE_FLAGS) -ftime-trace -c "$(notdir $(GRHSIM_TRACE_TU))" -o "$(CURDIR)/ptmp/grhsim-tu-trace/$(notdir $(GRHSIM_TRACE_TU)).o"
+	@mv "$(CURDIR)/ptmp/grhsim-tu-trace/$(notdir $(GRHSIM_TRACE_TU)).json" "$(CURDIR)/ptmp/grhsim-tu-trace/$(notdir $(GRHSIM_TRACE_TU) .cpp).json" 2>/dev/null || true
+	@ls -la ptmp/grhsim-tu-trace/
 
 GRHSIM_IR_BENCH_CPU ?= 2
 GRHSIM_IR_BENCH_PAIRS ?= 3

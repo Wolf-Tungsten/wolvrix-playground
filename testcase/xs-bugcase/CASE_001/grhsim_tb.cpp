@@ -1,4 +1,3 @@
-#include <array>
 #include <cstdint>
 #include <cstdio>
 
@@ -24,23 +23,25 @@ static void set_w76(VlWide<3> &dst, std::uint64_t lo, std::uint32_t hi) {
     dst[2] = hi & 0x0fffU;
 }
 
-static void set_w76(std::array<std::uint64_t, 2> &dst, std::uint64_t lo, std::uint32_t hi) {
-    dst[0] = lo;
-    dst[1] = hi & 0x0fffU;
+static void set_w76(unsigned _BitInt(128) &dst, std::uint64_t lo, std::uint32_t hi) {
+    dst = static_cast<unsigned _BitInt(128)>(lo) |
+          (static_cast<unsigned _BitInt(128)>(hi & 0x0fffU) << 64);
 }
 
 static int compare_step(const VRef &ref, const GrhSIM_xs_bugcase_tb &grhsim, int cycle) {
     const std::uint64_t ref_lo = static_cast<std::uint64_t>(ref.RW0_rdata[0]) |
                                  (static_cast<std::uint64_t>(ref.RW0_rdata[1]) << 32);
     const std::uint32_t ref_hi = ref.RW0_rdata[2] & 0x0fffU;
-    if (ref_lo == grhsim.RW0_rdata[0] && ref_hi == (grhsim.RW0_rdata[1] & 0x0fffU)) {
+    const std::uint64_t grhsim_lo = static_cast<std::uint64_t>(grhsim.RW0_rdata);
+    const std::uint64_t grhsim_hi = static_cast<std::uint64_t>(grhsim.RW0_rdata >> 64) & 0x0fffU;
+    if (ref_lo == grhsim_lo && ref_hi == grhsim_hi) {
         return 0;
     }
     std::fprintf(stderr,
                  "[MISMATCH] cycle=%d rdata ref=%03x_%016llx grhsim=%03llx_%016llx\n",
                  cycle, ref_hi, static_cast<unsigned long long>(ref_lo),
-                 static_cast<unsigned long long>(grhsim.RW0_rdata[1] & 0x0fffU),
-                 static_cast<unsigned long long>(grhsim.RW0_rdata[0]));
+                 static_cast<unsigned long long>(grhsim_hi),
+                 static_cast<unsigned long long>(grhsim_lo));
     return 1;
 }
 

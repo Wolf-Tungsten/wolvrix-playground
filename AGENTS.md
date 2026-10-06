@@ -28,6 +28,7 @@
 - Runtime helpers, especially generated C++ helpers for wide values, must follow the established legacy route as the performance reference.
 - Prefer pointer-based, caller-provided output buffers (and local frame/boundary buffers where applicable). Avoid return-by-value `std::array` helpers and avoid creating large temporary wide-value copies in hot paths.
 - Before adding a new helper or changing its ABI, inspect the corresponding legacy implementation and preserve its allocation, aliasing, and data-movement strategy unless a measured reason justifies a deviation.
+- Exception (measured, 2026-10-06): two-state wide (>64-bit) values are single C23 `unsigned _BitInt` objects and wide ops are emitted as native expressions, not word-loop helpers — the word-loop helper chains were the measured -O3 inliner/SLP compile-time hotspot (see `pdocs/perf-optimization/20261006-101609-bitint-wide-value.md`). The pointer-based helper guidance above still applies to any remaining runtime helper (four-state values, task/FST support).
 
 ## Coding Style & Naming Conventions
 - C++20 code with 4-space indentation and braces on the same line as control statements; keep includes ordered and minimal.

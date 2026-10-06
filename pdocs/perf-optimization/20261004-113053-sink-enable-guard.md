@@ -7,7 +7,7 @@
 
 - 日期 / 作者：2026-10-04 / kimi（方案经作者逐轮评审定稿；结论经作者确认收档）
 - wolvrix commit / 根仓 commit：`66000f6`（V3-M3）+ A1 实施改动（未提交工作区）/ `1b94a8d`
-- 上游基线记录：[20261004-v3-sixphase-baseline.md](20261004-v3-sixphase-baseline.md)
+- 上游基线记录：[20261004-075148-v3-sixphase-baseline.md](20261004-075148-v3-sixphase-baseline.md)
 - 对应 backlog：README 优化候选 #1（sink 簇内按使能锥细分）
 
 ## 基线性能
