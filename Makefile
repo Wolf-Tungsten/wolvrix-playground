@@ -157,7 +157,7 @@ XS_WOLF_GRHSIM_IR_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_grhsim_ir.json
 XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_grhsim_ir_roundtrip.json
 XS_WOLF_GRHSIM_IR_REG_TO_MEM ?= 1
 XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT ?= $(XS_GRHSIM_IR_BUILD)/reg_to_mem.tsv
-XS_WOLF_GRHSIM_IR_COMB_PACK ?= 1
+XS_WOLF_GRHSIM_IR_COMB_PACK ?= 0
 XS_WOLF_GRHSIM_IR_COMB_PACK_REPORT ?=
 XS_WOLF_GRHSIM_IR_SELECT_STATE_STORES ?= 1
 XS_WOLF_GRHSIM_IR_STATE_STORE_REPORT ?=
@@ -174,6 +174,8 @@ XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
 # B6 per-partition simplify (M5d-5); disable only for pipeline debugging.
 XS_WOLF_GRHSIM_IR_PHASE_SIMPLIFY ?= 1
 XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES ?= 1
+XS_WOLF_GRHSIM_IR_ROW_CONSTANT_FILL ?= 1
+XS_WOLF_GRHSIM_IR_OR_WRITE_MERGE ?= 1
 XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS ?= 1
 XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS ?= 0
 XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT ?=
@@ -1429,7 +1431,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON)),--resume-from-flat-grh,) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_KEEP_ORIGINS)),--keep-origins,) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_REG_TO_MEM)),--disable-reg-to-mem,) \
-			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_COMB_PACK)),--no-comb-pack,) \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_COMB_PACK)),--comb-pack,--no-comb-pack) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_SELECT_STATE_STORES)),--no-select-state-stores,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES)),--mem-min-bytes $(XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES),) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE)),--no-clone-shared-compute,--clone-shared-compute --clone-shared-compute-max-clones $(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES)) \
@@ -1439,8 +1441,8 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS)),--disable-pack-bit-registers,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE),) \
 			--reg-to-mem-report "$(XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT)" \
-			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_ROW_CONSTANT_FILL)),--reg-to-mem-row-constant-fill,) \
-			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_OR_WRITE_MERGE)),--reg-to-mem-or-write-merge,) \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_ROW_CONSTANT_FILL)),--reg-to-mem-row-constant-fill,--no-reg-to-mem-row-constant-fill) \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_OR_WRITE_MERGE)),--reg-to-mem-or-write-merge,--no-reg-to-mem-or-write-merge) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",) \
 			$(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),--emit-waveform,) \

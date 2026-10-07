@@ -278,7 +278,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cpu-unit-max-estimated-lines", type=int,
                         help="M5d-7 C8: per-translation-unit estimated-lines cap for the emit TU plan")
     parser.add_argument("--disable-reg-to-mem", action="store_true")
-    parser.add_argument("--comb-pack", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--comb-pack", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--comb-pack-report", type=Path,
                         help="diagnostic (M5d-3): dump the group list TSV from grhsim.comb-pack")
     parser.add_argument("--select-state-stores", action=argparse.BooleanOptionalAction, default=True)
@@ -318,12 +318,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--reg-to-mem-report", type=Path)
     parser.add_argument("--pack-bit-registers-report", type=Path,
                         help="diagnostic (NO00026): dump the packed_bits member list TSV from grhsim.pack-bit-registers")
-    parser.add_argument("--reg-to-mem-or-write-merge", action="store_true",
+    parser.add_argument("--reg-to-mem-or-write-merge", action=argparse.BooleanOptionalAction, default=True,
                         help="recover decoded OR-of-zero-mux writes with shared same-address data merging")
-    parser.add_argument("--reg-to-mem-row-constant-fill", action="store_true",
+    parser.add_argument("--reg-to-mem-row-constant-fill", action=argparse.BooleanOptionalAction, default=True,
                         help="let grhsim.reg-to-mem merge write families whose fill branch data is a "
-                             "per-row constant, expanding the fill to static-address sequence triples "
-                             "(off by default: NO00022 candidate mechanism)")
+                             "per-row constant, expanding the fill to static-address sequence triples")
     args = parser.parse_args()
     if args.cpu_target_batch_count is not None and args.cpu_target_batch_count < 0:
         parser.error("--cpu-target-batch-count must be nonnegative")
@@ -449,10 +448,9 @@ def main() -> int:
             if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_report:
                 args.reg_to_mem_report.parent.mkdir(parents=True, exist_ok=True)
                 pass_options["report"] = str(args.reg_to_mem_report.resolve())
-            if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_row_constant_fill:
-                pass_options["enable_row_constant_fill"] = True
-            if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_or_write_merge:
-                pass_options["enable_or_write_merge"] = True
+            if pass_name == "grhsim.reg-to-mem":
+                pass_options["enable_row_constant_fill"] = args.reg_to_mem_row_constant_fill
+                pass_options["enable_or_write_merge"] = args.reg_to_mem_or_write_merge
             if pass_name == "grhsim.comb-pack" and args.comb_pack_report:
                 args.comb_pack_report.parent.mkdir(parents=True, exist_ok=True)
                 pass_options["report"] = str(args.comb_pack_report.resolve())
