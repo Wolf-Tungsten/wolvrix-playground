@@ -30,6 +30,12 @@
 `20261004-075148-v3-sixphase-baseline.md`：M0 存档 85.9s vs 当前（V3-M3）223.4s
 （100k CoreMark 周期）= 2.60× 回退。**所有后续优化以缩小此差距为目标。**
 
+20261007 增补：`20261007-030220-disable-comb-pack.md` 起 comb-pack 默认关闭
+（112.06s → 105.73s）；`20261007-063559-reg-to-mem-rcf-orm.md` 起
+row-constant-fill + or-write-merge 默认开（105.73s → **99.87s**）；
+跨模拟器对照见 `20261007-011318-gsim-vs-grhsim-ir-100k-coremark.md`
+（vs gsim SN=15 2.12×）。
+
 ## 优化候选 backlog（按预期收益排序，2026-10-04 评审）
 
 1. ~~**sink 簇内按使能锥细分**~~：**已实测不采纳（2026-10-04）**。{posedge clock}
