@@ -291,7 +291,7 @@ emit 约 6.7 min、clang -O3 -j32 编译约 14.5 min）：
 
 ## 8. 已知性能差距与优化方向
 
-当前唯一性能基线（`pdocs/perf-optimization/20261004-v3-sixphase-baseline.md`）：
+当前唯一性能基线（`pdocs/perf-optimization/20261004-075148-v3-sixphase-baseline.md`）：
 M0 存档 85.9s vs V3-M3 223.4s（100k CoreMark 周期，3+3 交替同口径）= **2.60× 回退**。
 回退源自 v2 六阶段架构本身，不是 V3 三项（V3 相对 v2 净提速 18%）。两大成本项：
 

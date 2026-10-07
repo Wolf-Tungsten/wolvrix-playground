@@ -23,12 +23,37 @@ def main():
                         help="run grhsim.canonicalize-compute (incl. concat-of-slices folds), then remap")
     parser.add_argument("--max-op-in-compute-supernode", type=int,
                         help="override the compute supernode op cap during remapping")
+    parser.add_argument("--segment-penalty", type=int,
+                        help="override the DP segment penalty during remapping")
+    parser.add_argument("--sink-enable-guard-min-size", type=int,
+                        help="override the sink enable-guard group size during remapping")
+    parser.add_argument("--helper-max-estimated-lines", type=int,
+                        help="override the helper chunk line cap during remapping")
+    parser.add_argument("--semantic-nodes", type=int,
+                        help="override semantic node formation (0/1) during remapping")
+    parser.add_argument("--semantic-node-max-op", type=int,
+                        help="cap semantic-mode cone absorption size (0 = uncapped)")
+    parser.add_argument("--coarsen-max-op", type=int,
+                        help="override the coarsen merge weight cap during remapping "
+                             "(0 = follow the supernode cap)")
     parser.add_argument("--cpu-target-batch-count", type=int, default=0)
     args = parser.parse_args()
     if args.cpu_target_batch_count < 0:
         parser.error("cpu target batch count must be nonnegative")
     if args.max_op_in_compute_supernode is not None and args.max_op_in_compute_supernode <= 0:
         parser.error("max op in compute supernode must be positive")
+    if args.segment_penalty is not None and args.segment_penalty < 0:
+        parser.error("segment penalty must be nonnegative")
+    if args.sink_enable_guard_min_size is not None and args.sink_enable_guard_min_size < 0:
+        parser.error("sink enable guard min size must be nonnegative")
+    if args.helper_max_estimated_lines is not None and args.helper_max_estimated_lines <= 0:
+        parser.error("helper max estimated lines must be positive")
+    if args.semantic_nodes is not None and args.semantic_nodes not in (0, 1):
+        parser.error("semantic nodes must be 0 or 1")
+    if args.semantic_node_max_op is not None and args.semantic_node_max_op < 0:
+        parser.error("semantic node max op must be nonnegative")
+    if args.coarsen_max_op is not None and args.coarsen_max_op < 0:
+        parser.error("coarsen max op must be nonnegative")
     root = Path(__file__).resolve().parents[1]
     flow = args.flow.resolve()
     if not flow.is_relative_to(root / "ptmp") or (flow / "model").exists():
@@ -46,8 +71,22 @@ def main():
             options = {}
             if name == "cpu.st.pack-general-functions":
                 options["target_batch_count"] = args.cpu_target_batch_count
-            if name == "cpu.st.merge-general-supernodes" and args.max_op_in_compute_supernode is not None:
-                options["max_op_in_compute_supernode"] = args.max_op_in_compute_supernode
+                if args.helper_max_estimated_lines is not None:
+                    options["helper_max_estimated_lines"] = args.helper_max_estimated_lines
+            if name == "cpu.st.build-general-nodes":
+                if args.semantic_nodes is not None:
+                    options["semantic_nodes"] = args.semantic_nodes
+                if args.semantic_node_max_op is not None:
+                    options["semantic_node_max_op"] = args.semantic_node_max_op
+            if name == "cpu.st.merge-general-supernodes":
+                if args.max_op_in_compute_supernode is not None:
+                    options["max_op_in_compute_supernode"] = args.max_op_in_compute_supernode
+                if args.segment_penalty is not None:
+                    options["segment_penalty"] = args.segment_penalty
+                if args.sink_enable_guard_min_size is not None:
+                    options["sink_enable_guard_min_size"] = args.sink_enable_guard_min_size
+                if args.coarsen_max_op is not None:
+                    options["coarsen_max_op"] = args.coarsen_max_op
             return options
 
         if args.pack_bit_registers:
