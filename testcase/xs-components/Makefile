@@ -112,6 +112,12 @@ KIND_XsReal097FuSrt16DividerLarge := backend-fu-srt16divider
 KIND_XsReal098LsqueueVirtualloadqueueLarge := mem-lsqueue-virtualloadqueue
 KIND_XsReal099PrefetchPrefetchermonitorLarge := mem-prefetch-prefetchermonitor
 KIND_XsReal100BackendNfmappedelemidxSmall := backend-nfmappedelemidx
+# Synthetic CAM-match isolation case (not in CASES; run via CASE=CamMatchSynthLarge)
+KIND_CamMatchSynthLarge := synth-cam-match
+# Synthetic WB-merge-array isolation cases (gsim giant-supernode repro)
+KIND_WbMergeArrayDyn := synth-wb-merge
+KIND_DynArrayWrite := synth-dyn-array-write
+KIND_WbMergeArrayStatic := synth-wb-merge
 SCALE_XsReal000PipelineLoadunitLarge := large
 SCALE_XsReal001RobRobLarge := large
 SCALE_XsReal002MemMemblockLarge := large
@@ -213,6 +219,10 @@ SCALE_XsReal097FuSrt16DividerLarge := large
 SCALE_XsReal098LsqueueVirtualloadqueueLarge := large
 SCALE_XsReal099PrefetchPrefetchermonitorLarge := large
 SCALE_XsReal100BackendNfmappedelemidxSmall := small
+SCALE_CamMatchSynthLarge := large
+SCALE_WbMergeArrayDyn := large
+SCALE_DynArrayWrite := large
+SCALE_WbMergeArrayStatic := large
 
 CASE ?= XsReal000PipelineLoadunitLarge
 KIND := $(KIND_$(CASE))

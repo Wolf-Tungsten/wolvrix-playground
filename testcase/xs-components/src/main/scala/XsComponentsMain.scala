@@ -108,6 +108,10 @@ object XsComponentsMain extends App {
     "XsReal098LsqueueVirtualloadqueueLarge" -> (() => new XsReal098LsqueueVirtualloadqueueLarge),
     "XsReal099PrefetchPrefetchermonitorLarge" -> (() => new XsReal099PrefetchPrefetchermonitorLarge),
     "XsReal100BackendNfmappedelemidxSmall" -> (() => new XsReal100BackendNfmappedelemidxSmall),
+    "CamMatchSynthLarge" -> (() => new CamMatchSynthLarge),
+    "WbMergeArrayDyn" -> (() => new WbMergeArrayDyn),
+    "DynArrayWrite" -> (() => new DynArrayWrite),
+    "WbMergeArrayStatic" -> (() => new WbMergeArrayStatic),
     "XsRealFtqMetaQueueResolve" -> (() => new XsRealFtqMetaQueueResolve)
   )
 
