@@ -9,7 +9,7 @@ VSCode 终端可直接点击跳转，或在 Quick Open（Ctrl+P）里粘贴。
 - 被剖析对象：`ptmp/xs-components-rob/grhsim-model/`（XiangShan Rob 模块，由 wolvrix emitter 生成）
 - 发射器源码：`wolvrix/lib/grhsim/backend/cpu_emit.cpp`（约 7.0k 行，所有生成文本的出处）
 - 设计文档（机制语义细节）：`wolvrix/docs/grhsim_ir/backends/cpu.md`
-- 性能背景：`pdocs/rob_standalone/rob-trace-replay-bench-20260929.md`（trace 激励下 grhsim 比 gsim 慢 2.25× 的全部数据）
+- 性能背景：`pdocs/rob_standalone/rob-trace-replay-bench-20261007.md`（新路线 trace 口径 3.18×；本文剖析语境为 2026-09-29 旧 per-task eval 路线，彼时 2.25×）
 - 待办与已办清单：`pdocs/rob_standalone/TODO.md`（六项 emitter 修改的实施结论）
 
 > 注意：`ptmp/` 下的生成产物可能被清理。重新生成：`make -C testcase/xs-components -f rob.mk rob-grhsim-model`
@@ -87,7 +87,7 @@ ptmp/xs-components-rob/grhsim-model/grhsim_Rob.hpp:13，memcpy 实现对齐安�
 
 > 历史注：打包前该区间的二进制体积几乎没变小（`eval()` 234,690 B → 231,803 B，本轮实测仍为此值）——
 > clang 本来就把连续字节 OR 自动合并成宽操作，且未变化口的扇出体被 cold-block 放置跳过；
-> 实测性能收益在噪声级（bench 文档 §4），证实这段不是热点。
+> 实测性能收益在噪声级（2026-09-29 旧路线实测），证实这段不是热点。
 
 ### 3.2 边沿分类（58647–58655）
 
@@ -203,7 +203,7 @@ wolvrix/lib/grhsim/backend/cpu_emit.cpp:6361 起：事件快照 → stable scan 
 
 另有 64 口一组的 compact walk 发射形态（描述符表 + ctz 遍历武装位），Rob 未命中资格，生成代码 0 处。
 另有 **内存写直写**（`cpu_write_cell_direct[_f]` + `planDirectMemories`）：机制已实现但 Rob 实测
-净亏损（−5~6%，全配置见 bench 文档 §4 末），**默认关闭**，实验开关 `GRHSIM_DIRECT_MEM=1`。
+净亏损（−5~6%，全配置见 `pdocs/rob_standalone/TODO.md` TODO-6 实施结论），**默认关闭**，实验开关 `GRHSIM_DIRECT_MEM=1`。
 
 ### 4.4 武装与分派：commit 任务何时跑
 
@@ -275,7 +275,7 @@ void GrhSIM_Rob::cpu_task_68(){
 这套机制保证同一 round 内读到的是旧值、写入互不干扰（NBA 语义），同时把"变化→激活下游"
 做成查表。TODO-6 的直写实验（跳过 shadow/pending/publish）已实测为净亏损并默认关闭：
 publish 的批处理回拷与 gsim 的 `$NEXT` 整组回拷同构，是该结构的优点而非负担（数据见
-`pdocs/rob_standalone/rob-trace-replay-bench-20260929.md` §4 末）。
+`pdocs/rob_standalone/TODO.md` TODO-6 实施结论）。
 
 ## 7. 静态规模一览（Rob，TODO 六项落地后）
 
