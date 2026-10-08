@@ -270,6 +270,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--emit-waveform", action="store_true",
                         help="emit the CPU model with FST waveform capture for declared symbols "
                              "(cpu.st.emit-cpp --waveform declared-symbols)")
+    parser.add_argument("--mem-write-activate", choices=["on-change", "on-write"], default="on-write",
+                        help="P_mem reader activation mode (cpu.st.emit-cpp --mem-write-activate): "
+                             "on-write activates the array's readers once per enable-word run "
+                             "(write-occurs, gsim-style); on-change keeps the per-cell change compare")
     parser.add_argument("--cpu-target-batch-count", type=int)
     parser.add_argument("--cpu-helper-max-estimated-lines", type=int,
                         help="C6 per-function helper-chunk cap; huge values disable supernode chunking")
@@ -291,6 +295,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--clone-shared-compute", action=argparse.BooleanOptionalAction, default=True,
                         help="reclone cheap bijective shared compute against real supernode boundaries (cpu.st.clone-shared-boundaries, V3-M3)")
     parser.add_argument("--clone-shared-compute-max-clones", type=int, default=250000)
+    parser.add_argument("--clone-shared-compute-lossy-compare", action=argparse.BooleanOptionalAction, default=True,
+                        help="also clone eq/ne-against-constant shared values (lossy: drops their change-filter; "
+                             "cpu.st.clone-shared-boundaries --lossy-compare 1; default on)")
     parser.add_argument("--phase-simplify", action=argparse.BooleanOptionalAction, default=True,
                         help="run the B6 per-partition simplify (grhsim.simplify --scope phase) "
                              "after grhsim.split-phases")
@@ -445,6 +452,8 @@ def main() -> int:
             pass_options = dict(base_options)
             if pass_name == "cpu.st.clone-shared-boundaries":
                 pass_options["max-clones"] = args.clone_shared_compute_max_clones
+                if args.clone_shared_compute_lossy_compare:
+                    pass_options["lossy-compare"] = 1
             if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_report:
                 args.reg_to_mem_report.parent.mkdir(parents=True, exist_ok=True)
                 pass_options["report"] = str(args.reg_to_mem_report.resolve())
@@ -498,6 +507,7 @@ def main() -> int:
                 "model": "grhsim.main",
                 "output": str(emit_cpp_dir),
                 "mem_enable_bitmap": mem_enable_bitmap(),
+                "mem_write_activate": args.mem_write_activate,
             }
             if args.emit_waveform:
                 emit_options["waveform"] = "declared-symbols"
