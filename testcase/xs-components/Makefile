@@ -301,6 +301,10 @@ $(GSIM_BUILD_STAMP): $(GSIM_MODEL_DIR)/$(CASE)0.cpp
 
 gsim: $(GSIM_BUILD_STAMP)
 
+# Extra flags appended to the grhsim-ir emit invocation, e.g.
+# GRHSIM_EXTRA_FLAGS="--max-op-in-compute-supernode 512" for A/B arms.
+GRHSIM_EXTRA_FLAGS ?=
+
 $(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_IR_JSON) &: $(SV) $(WOLVRIX_GRHSIM_IR_SCRIPT)
 	@mkdir -p $(GRHSIM_MODEL_DIR)
 	@find "$(abspath $(SV_DIR))" -maxdepth 1 -name '*.sv' -print | sort > "$(GRHSIM_DIR)/rtl.f"
@@ -308,7 +312,7 @@ $(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_IR_JSON) &: $(SV) $(WOLVRIX_GRHSIM_IR_SCRI
 	set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(WOLVRIX_PYTHON) $(WOLVRIX_GRHSIM_IR_SCRIPT) \
 		"$(GRHSIM_DIR)/rtl.f" $(CASE) "$(GRHSIM_DIR)/flat_grh.json" \
 		"$(GRHSIM_IR_JSON)" "$(GRHSIM_DIR)/roundtrip.json" \
-		"$(GRHSIM_DIR)/read_args.txt" info --emit-cpp-dir "$(GRHSIM_MODEL_DIR)" \
+		"$(GRHSIM_DIR)/read_args.txt" info $(GRHSIM_EXTRA_FLAGS) --emit-cpp-dir "$(GRHSIM_MODEL_DIR)" \
 		2>&1 | tee "$(GRHSIM_DIR)/emit.log"
 	test -f $(GRHSIM_MODEL_DIR)/Makefile
 	test -f $(GRHSIM_MODEL_DIR)/grhsim_$(CASE).hpp

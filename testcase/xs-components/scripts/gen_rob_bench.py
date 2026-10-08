@@ -1276,17 +1276,31 @@ int main(int argc, char **argv)
                 });
         }
         if (model_selection == "both" || model_selection == "grhsim") {
+            GrhSIM_TOP *perf_dump_model = nullptr;
             rob_bench::run_benchmark_trace(
                 "grhsim",
-                [] {
+                [&] {
                     auto model = std::make_unique<GrhSIM_TOP>();
                     model->init();
+                    perf_dump_model = model.get();
                     return model;
                 },
                 tf, vectors, repeat,
                 [](GrhSIM_TOP &dut, const std::uint64_t *rec, std::uint64_t acc) {
                     return rob_bench::eval_grhsim_trace(dut, rec, acc);
                 });
+#if WOLVRIX_GRHSIM_PERF
+            if (perf_dump_model) {
+                const auto pc = perf_dump_model->perf_counters();
+                std::cout << "[PERF] model=grhsim stimulus=trace evalCount=" << pc.evalCount
+                          << " round1Count=" << pc.round1Count << " round2Count=" << pc.round2Count
+                          << " totalRoundCount=" << pc.totalRoundCount
+                          << " computeBatchExecCount=" << pc.computeBatchExecCount
+                          << " commitBatchExecCount=" << pc.commitBatchExecCount
+                          << " touchedStateShadowCount=" << pc.touchedStateShadowCount
+                          << " touchedWriteCount=" << pc.touchedWriteCount << "\\n";
+            }
+#endif
         }
         rob_bench::close_trace(tf);
         std::cout << "[ASSERT] xs_assert_v2_stub_count=" << g_assert_count << "\\n";
@@ -1316,6 +1330,18 @@ int main(int argc, char **argv)
             [](GrhSIM_TOP &dut, const std::uint64_t *rec, std::uint64_t acc) {
                 return rob_bench::eval_grhsim_bench(dut, rec, acc);
             });
+#if WOLVRIX_GRHSIM_PERF
+        {
+            const auto pc = grhsim->perf_counters();
+            std::cout << "[PERF] model=grhsim stimulus=random evalCount=" << pc.evalCount
+                      << " round1Count=" << pc.round1Count << " round2Count=" << pc.round2Count
+                      << " totalRoundCount=" << pc.totalRoundCount
+                      << " computeBatchExecCount=" << pc.computeBatchExecCount
+                      << " commitBatchExecCount=" << pc.commitBatchExecCount
+                      << " touchedStateShadowCount=" << pc.touchedStateShadowCount
+                      << " touchedWriteCount=" << pc.touchedWriteCount << "\\n";
+        }
+#endif
     }
     std::cout << "[ASSERT] xs_assert_v2_stub_count=" << g_assert_count << "\\n";
     return 0;

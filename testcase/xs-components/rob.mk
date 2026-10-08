@@ -90,6 +90,9 @@ ifneq ($(wildcard $(ROB_WORK)/grhsim/flat_grh.json),)
 ROB_GRHSIM_FLAT_GRH := $(ROB_WORK)/grhsim/flat_grh.json
 ROB_GRHSIM_RESUME := --resume-from-flat-grh
 endif
+# Extra flags appended to the grhsim-ir emit invocation, e.g.
+# ROB_GRHSIM_EXTRA_FLAGS=--disable-pack-bit-registers for A/B arms.
+ROB_GRHSIM_EXTRA_FLAGS ?=
 
 .PHONY: rob-gsim-model rob-grhsim-model rob-bench
 
@@ -142,6 +145,7 @@ $(ROB_GRHSIM_MODEL_DIR)/Makefile: $(ROB_WORK)/rtl.f $(ROB_WORK)/read_args.txt
 		"$(ROB_WORK)/emit_grhsim.json" "$(ROB_WORK)/emit_roundtrip.json" \
 		"$(ROB_WORK)/read_args.txt" info --no-keep-origins $(ROB_GRHSIM_RESUME) \
 		--reg-to-mem-row-constant-fill --reg-to-mem-or-write-merge \
+		$(ROB_GRHSIM_EXTRA_FLAGS) \
 		--emit-cpp-dir "$(ROB_GRHSIM_MODEL_DIR)" \
 		> "$(ROB_WORK)/grhsim_model_gen.log" 2>&1; \
 	rc=$$?; end=$$(date +%s); \
