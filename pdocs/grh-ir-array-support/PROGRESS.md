@@ -87,13 +87,19 @@
 
 ### S4 — ingest 聚合保留（stage-04-ingest-aggregate.md）
 
-- 状态：未开始
-- 合入单元（stage-04 §7 已拆）：(a) kRegister 数组端口族 + 访问路径 ☐
+- 状态：进行中
+- 合入单元（stage-04 §7 已拆）：(a) kRegister 数组端口族 + 访问路径 ☑（2026-10-09，
+  状态数组多维化：声明 shape、多索引端口、whole 读写直连、合并机制退役、grhsim 过渡承接）
   (b) net/packed 数组 shape 化 ☐ (c) struct 字段级拆分 ☐
-- 门禁快照：—
-- 豁免/破坏：—（权威登记：stage-04 §7；预期 HDLBits/xs-bugcase 用例级差异集中在此爆发）
-- 文档同步：wolvrix/docs/ingest/ ☐ grh-ir.md §2.3 ☐
-- 新增问题：无
+- 门禁快照：2026-10-09 S4-a 合入点 ctest 56/58（基线 2 例持平）、hdlbits 162/162、
+  xsbug 25/25、baseline 162/162；=vec split 2119 文件 smoke 1237 OK/766 依赖 SKIP/
+  真失败 2（1 属 S4-b、1 为 HEAD 既有崩溃）
+- 豁免/破坏：0（权威登记：stage-04 §7；同地址写合并退役为计划内破坏，xsbug 25/25 证明
+  声明顺序优先级语义等价）
+- 文档同步：wolvrix/docs/ingest/ ☐ grh-ir.md §2.3 ☐（S4 全部合入后统一落）
+  实施记录：stage-04-implementation-notes.md（随实施滚动）
+- 新增问题：无（开放登记：`'{...}` assignment pattern 表达式既有不支持——S7 关键路径
+  待评估；Phr emitExpr 组合环栈溢出为 HEAD 既有）
 
 ### S5 — comb-loop-elim 片段化（stage-05-comb-loop-elim.md）
 
