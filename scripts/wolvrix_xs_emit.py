@@ -72,7 +72,6 @@ with wolvrix.Session() as sess:
         ("blackbox-guard", {}),
         ("latch-transparent-read", {}),
         ("hier-flatten", {}),
-        ("comb-lane-pack", {"enable_declared_roots": False}),
         ("comb-loop-elim", {}),
         ("simplify", {"semantics": "2state"}),
         ("memory-init-check", {}),
