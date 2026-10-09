@@ -21,7 +21,7 @@
 | S1 IR 数组类型 | 已合入 | 1/1 | 2026-10-09 全绿 | 0 | S2/S3 可开工 |
 | S2 kSliceArray 重定义 | 已合入 | 1/1 | 2026-10-09 全绿 | 0 | S3/S5 可开工（S5 等 S2 已满足） |
 | S3 kRegister 端口族 | 已合入 | 1/1 | 2026-10-09 全绿 | 0 | S4/S6 可开工 |
-| S4 ingest 聚合保留 | 进行中 | 3/3 | 2026-10-09 全绿 | 0 | 收官验证（全量设计编译） |
+| S4 ingest 聚合保留 | 已完成 | 3/3 | 2026-10-09 全绿（含全量设计校验） | 0 | S5/S6/S7 可开工 |
 | S5 comb-loop-elim | 未开始 | 0/? | — | 0 | 等 S2 |
 | S6 grhsim 承接 | 未开始 | 0/? | — | 0 | 等 S1/S3 |
 | S7 preserve-aggregate 端到端 | 未开始 | 0/3 | — | 0 | 等 S4/S5/S6 |
@@ -87,22 +87,26 @@
 
 ### S4 — ingest 聚合保留（stage-04-ingest-aggregate.md）
 
-- 状态：进行中（a/b/c 三个单元均已合入，收官验证中）
-- 合入单元（stage-04 §7 已拆）：(a) kRegister 数组端口族 + 访问路径 ☑（2026-10-09，
-  状态数组多维化：声明 shape、多索引端口、whole 读写直连、合并机制退役、grhsim 过渡承接）
-  (b) net/packed 数组 shape 化 ☑（2026-10-09：声明 shape 回填、多索引 kSliceArray、
-  svPackedArray 退役、flatten/inline/XMR shape 适配）(c) struct 字段级拆分 ☑
-  （2026-10-09：SoA 拆分 c__DOT__f__DOT__x、聚合表达式子系统、struct 端口逐叶连接、
-  slang 关键字名字修复 wolvrix/keyword-member-names）
-- 门禁快照：2026-10-09 S4-c 合入点 ctest 56/58（基线 2 例持平）、hdlbits 162/162、
-  xsbug 25/25、baseline 162/162；**=all split 2115 文件 smoke：1190 OK / 925 依赖
-  SKIP / 0 FAIL / 0 CRASH**；=vec split 2119 文件 1319 OK / 766 SKIP / 0 真失败
-- 豁免/破坏：0（权威登记：stage-04 §7；同地址写合并退役为计划内破坏，xsbug 25/25 证明
-  声明顺序优先级语义等价）
-- 文档同步：wolvrix/docs/ingest/ ☐ grh-ir.md §2.3 ☐（S4 全部合入后统一落）
-  实施记录：stage-04-implementation-notes.md（随实施滚动）
-- 新增问题：无（开放登记：全量设计编译与 xs_assert_v2 处理——assert_dpi.sv 式 DPI
-  import 声明（bugcase 用法）或 -D SYNTHESIS 剥离（综合形态），S7 定管线口径）
+- 状态：已完成（2026-10-09，含 XiangShan preserve-aggregate 全量设计校验）
+- 合入单元（stage-04 §7 已拆）：(a) kRegister 数组端口族 + 访问路径 ☑（`51f9b5d`：
+  状态数组多维化）(b) net/packed 数组 shape 化 ☑（`24fb91e`）(c) struct 字段级拆分 ☑
+  （`8026985`：SoA 拆分、聚合表达式子系统、struct 端口逐叶连接、slang 关键字名
+  修复分支 wolvrix/keyword-member-names）；收官健壮性 `1426789`（并行 static 池
+  thread_local + O(n²) 哈希化）、`e1f0b27`（WriteBackPass 跨递归悬空引用按值拷贝
+  ——治愈 HEAD 基线 ingest-write-back-slice SEGFAULT；emitExpr 环守卫；worker
+  512MiB 栈）；文档 `a3a2615`（aggregate-types.md 新建 + grh-ir.md §2.3）
+- 门禁快照：ctest 57/58（余 transform-repcut 为 HEAD 既有）、hdlbits 162/162、
+  xsbug 25/25、baseline 全过；=all smoke 1190 OK / 925 SKIP / 0 FAIL / 0 CRASH、
+  =vec smoke 1320 OK / 766 SKIP / 0 FAIL / 0 CRASH；**XS preserve-aggregate=all
+  全量设计（SimTop，2115 文件 + sim 顶层）：read_sv 139.4s + grh.verify 3.8s +
+  store_json 14.5s（6.17GB JSON），0 error 诊断**
+- 豁免/破坏：0（权威登记：stage-04 §7 与实施记录偏差清单；环境级 scratch 补丁 4 处
+  登记在案，S7 接入正式管线时复核）
+- 文档同步：wolvrix/docs/ingest/aggregate-types.md ☑ grh-ir.md §2.3 ☑
+  stage-04 头部实施记录 ☑ 实施滚动日志 stage-04-implementation-notes.md ☑
+- 新增问题（登记，归后续阶段）：emitExpr 迭代化（S5）、WriteBackPass 大 stmt 数组
+  二次扫描（S6/S7）、XMR 读数组寄存器（S6）、always 块内 `'{...}` 赋值模式（S7）、
+  xs_assert_v2 管线口径（S7 定 -D SYNTHESIS 或 assert_dpi 路线）
 
 ### S5 — comb-loop-elim 片段化（stage-05-comb-loop-elim.md）
 
@@ -158,3 +162,9 @@
   既有 mem*/regWrite（无 mask 形态合成全 1 mask，mem* 退役归 S6）。门禁全绿：
   ctest 56/58（2 例既有失败）、hdlbits 162/162、xs-bugcase 25/25、基线 162/162、
   XS CoreMark 663,688/297,291 与基线逐位一致。详见 stage-03 实施记录（7 条偏差）。
+- 2026-10-09（晚）：S4 完成。XS preserve-aggregate=all 全量设计（SimTop）编译链路
+  read_sv + grh.verify + store_json 全过（6.17GB JSON、0 error）；全量校验驱动四轮
+  健壮性修复合入（并行 static 池 thread_local、O(n²) 哈希化、WriteBackPass 跨递归
+  悬空引用按值拷贝——顺带治愈基线 ingest-write-back-slice SEGFAULT、emitExpr 环
+  守卫、worker 512MiB 栈）。门禁 ctest 57/58（余 transform-repcut 基线）、其余全绿；
+  =all/=vec smoke 双 0 FAIL 0 CRASH。S5/S6 可开工。

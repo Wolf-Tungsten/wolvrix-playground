@@ -278,3 +278,102 @@ firtool 会用 SV 关键字当字段名（`from`/`until`，Chisel 源信号名�
 1190 OK / 925 SKIP（跨文件模块依赖+xs_assert 宏）/ **0 FAIL / 0 CRASH**。
 Phr.sv 也已随修复通过（此前的 HEAD 既有崩溃消失——系组合环相关路径改变后不再触发，
 待全量编译复核）。
+
+### 全量设计编译（filelist.full2.f，SimTop 顶层）驱动的两轮修复（2026-10-09）
+- **并行崩溃（SIGSEGV/SIGBUS）**：applyReadSlices 的 SignalInfo shrunk 池是
+  函数级 `static std::deque`（非 thread_local），并行 ingest worker 并发
+  push_back 破坏 deque 内部块指针；Rob 闭包（12 模块）与全量编译分别表现为
+  SIGSEGV（intern/deque 空块写）与 SIGBUS。修复：与文件内另两处池点一致改
+  `static thread_local`。教训：ingest 并行化后函数级 static 可变容器一律
+  thread_local，审计确认 ingest.cpp 无其它遗漏点。
+- **O(n²) 扫描消除**（全量编译 25min+ 卡死 → 正常推进）：
+  MemoryPortLowererPass 读去重（readUseBuckets 结构哈希桶 + 桶内全等校验）、
+  降级后 hash 版 re-dedup、两个降级检查改 per-memory 可达集
+  （writeReachByMemory）、GraphAssembler findReusableMemoryRead 改
+  emittedReadBuckets_ 结构哈希。
+- 提交：wolvrix 仓 `1426789`（代码）、`a3a2615`（文档：aggregate-types.md 新建
+  + grh-ir.md §2.3 ingest 视角——此前 S4-c 提交遗漏）。
+
+### 终版复测（2026-10-09，thread_local 修复后）
+- 门禁链：ctest 56/58（transform-repcut、ingest-write-back-slice 为 HEAD 既有失败）、
+  hdlbits 162/162、xs-bugcase 25/25、sim-refactor 基线全过。
+- =all smoke：1190 OK / 925 SKIP / 0 FAIL / 0 CRASH（与修复前终态一致）。
+- =vec smoke：1319 OK / 766 SKIP / 0 FAIL / 1 CRASH——Phr.sv（=vec 档）rc=139，
+  系 HEAD 既有 emitExpr 组合环无限递归栈溢出（S4-a/S4-b 历次 =vec smoke 均同点
+  崩溃，已验证未改动 slang 的 HEAD 同现），与 S4 无关，归 stage-05 comb-loop-elim
+  范畴处理；=all 档 Phr.sv 为 SKIP（跨文件依赖分类），不发生。
+
+### 全量设计编译深入（2026-10-09 晚，三连定位）
+- **崩溃根因三独立问题，前两个已解**：(1) 并行 worker 共享 static deque（已修，
+  1426789）；(2) Phr emitExpr 组合环无限递归（HEAD 既有，=all/=vec 单文件
+  `--top Phr -D SYNTHESIS` 均确定性复现，栈溢出点函数/偏移完全一致）——该问题
+  在全量编译中表现为**掷骰子**：某次运行 28min 单线程自旋后 SIGSEGV（日志停在
+   slang 阶段尾部——ingest 的百万级诊断在 stdout 块缓冲里随崩溃丢失），下一次
+  40s 全过。判定依据：run 日志出生/修改时间差 19s 证明 slang 仅数秒级，
+  其余时间单线程 100% CPU。归 stage-05 comb-loop-elim 范畴。
+- **design 未落盘的假象**：read_sv 不抛异常（diagnostics_raise_min_level=none）
+  但 grh.verify 报 `design key not found: design.main`——ingest 有 error 级诊断
+  时 read_sv 返回 success=false、design 不存。错误普查：2,097,153 条
+  "Unsupported expression kind" + 2 条杂项**全部来自 Mem1R1WHelper.v**
+  （诊断缓冲约 2M 封顶）。该文件在 -D SYNTHESIS 下走 `DISABLE_DIFFTEST_RAM_DPIC`
+  分支，仿真专用的 initial 块（foreach + $fread + $value$plusargs + break）
+  为 ingest 合法不支持项；foreach 对 13.1 万项 memory 的展开尝试 × 多实例
+  放大到百万级报错。
+- **处置（scratch 补丁，登记第三处）**：ptmp/xs-aggr-build/rtl/Mem1R1WHelper.v
+  删 initial 预载块（仿真专用，与 DUT 及聚合校验无关；前两处补丁为
+  DifftestMem1R1W RAM_SIZE ×4 与 parameter [63:0]）。基线流程无此问题：
+  不定义 SYNTHESIS 时该文件走 DPI 分支，根本不含这段代码——但 aggr 全量必须
+  SYNTHESIS 来剥离 xs_assert_v2 裸实例（`ifndef SYNTHESIS` 守卫，已现场确认）。
+
+### Phr 崩溃最终定性与修复（2026-10-09 深夜）
+- **定性翻案：不是组合环，是超深但有限的表达式链**。`ulimit -s 2G` 下单文件
+  Phr（=all/=vec）均 ZYGO_OK；默认 8MiB pthread 栈确定性 SIGSEGV。全量编译的
+  "掷骰子"实为不同 elaboration/dedup 结果下链深是否超过栈容量。
+- **修复一（健壮性）**：emitExpr 加 in-flight 守卫——操作数递归前先记忆化
+  （valueByExpr_），重访在飞节点即真组合环，报 "Combinational cycle in
+  expression graph" 干净诊断而非栈溢出（守卫仅影响原本必崩的输入，门禁无回归）。
+- **修复二（根因）**：runPlanQueueParallel 的 worker 线程改用
+  pthread_attr_setstacksize(512MiB)（惰性提交，空闲 worker 零开销；非 unix
+  平台回退 std::thread）。修复后单文件 Phr 与全量 read_sv 在默认环境下通过。
+- 遗留：emitExpr 迭代化（显式工作栈）才是彻底解，归 stage-05 comb-loop-elim
+  一并评估；单线程模式（singleThread）下主线程栈仍受 ulimit 约束，已记录。
+
+### WriteBackPass 二次热点与 FlashHelper（scratch 补丁 #4）
+- 栈修复后全量 read_sv 仍现单线程长磨：perf 定位 WriteBackPass::lower 内
+  unordered_set<uint> 插入循环（二次扫描形态）。临时 WBProbe 探针（入门打印
+  模块+规模，待移除）锁定 **FlashHelper.v**：SYNTHESIS 下走非 DPI 分支，4MB
+  flash_mem 的 initial 预载循环被前端展开为 13.1 万条语句（signals=11 /
+  stmts=131097），WriteBackPass 在其上二次扫描。仿真专用代码，补丁删除
+  （登记 scratch 补丁 #4；SDCardHelper 在 SYNTHESIS 下为空体，无需处理）。
+- 附带：RAM_SIZE scratch 补丁由 1048576 进一步降为 65536（difftest 助手
+  memory 深度与聚合校验无关，减小无关负载）。
+- WriteBackPass 对大 stmt 数组的二次扫描登记为性能遗留（S6/S7 评估；
+  真实 DUT 模块 Ftq 61k / LogPerfEndpoint 92k stmts 需复核是否同样命中）。
+
+### WriteBackPass 悬空引用修复（2026-10-09 深夜，= HEAD 基线 ingest-write-back-slice SEGFAULT 同根因）
+- v3 全量 27s 即 SIGSEGV：栈底采样证明**不是**栈溢出（rsp 距 512MiB 栈顶仅
+  ~15KB），而是 `mov 0x4(%rcx)` 野指针读。定位：WriteBackPass 的
+  replaceTargetStaticSlicesWithProjection / replaceStaticSlicesForSymbolSet
+  两个 lambda 族（projectRange/replace 共 4 处）把
+  `const ExprNode& node = lowering.values[id]` 持有**跨过递归**——递归内
+  builder.makeConcat/makeSliceDynamic/makeOperationWithWidth → registerExprNode
+  → lowering.values push_back → vector 重新分配 → node 悬空；kConcat 分支
+  循环里 `node.operands[i]` 二次读即崩（反汇编逐指令吻合：读 operands[0] OK、
+  递归、读 operands[1] 崩）。kMux/kNot/kAndOrXor 分支的 `node.op/node.location`
+  收尾读同属此型。
+- 修复：4 处全部改为按值拷贝 `const ExprNode node = lowering.values[id]`（操作数
+  vector 随节点一并拷贝，递归重分配不再影响当前帧）。
+- 该根因与 HEAD 基线 ctest 失败 `ingest-write-back-slice`（SEGFAULT，
+  testWriteBackPackedArraySelfSliceAcyclic）同源——修复后该基线失败应一并消除
+  （待 ctest 复核）。
+
+### 收官（2026-10-09 深夜）
+- **XS preserve-aggregate=all 全量设计（SimTop）read_sv 139.4s + grh.verify 3.8s +
+  store_json 14.5s 全部通过，0 error 诊断**，产出 6.17GB simtop_aggr.json。
+  过程确认：此前 40s 的"好局"实为 error 模块早退、design 未落盘的假象；
+  真全量在 WriteBackPass 悬空引用修复后一次性通过、无掷骰子路径。
+- 门禁：ctest 57/58（ingest-write-back-slice 治愈，余 transform-repcut 基线）、
+  hdlbits 162/162、xsbug 25/25、baseline 全过；=all/=vec smoke 双 0 FAIL 0 CRASH
+  （=vec Phr 转 OK，1320/766）。
+- 提交：wolvrix 仓 e1f0b27（WriteBackPass 修复 + emitExpr 守卫 + worker 大栈）。
+- stage-04 文档头部实施记录、PROGRESS S4 区段已同步，S4 标记完成。

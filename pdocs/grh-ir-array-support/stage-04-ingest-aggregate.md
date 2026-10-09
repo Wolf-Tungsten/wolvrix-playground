@@ -1,10 +1,66 @@
 # Stage 04 — ingest 聚合保留（多维数组与结构体）
 
 - 日期：2026-10-08（2026-10-08 晚修订：struct 改为字段级拆分；2026-10-08 三修：
-  Q3 附 kArrayInsert 备选设计，第一版不引入）
-- 状态：计划草案
+  Q3 附 kArrayInsert 备选设计，第一版不引入；2026-10-09 实施完成，实施偏差见下）
+- 状态：已实施（2026-10-09）
 - 依赖：stage-01（shape）、stage-02（新 kSliceArray）、stage-03（多索引 mem port）
 - 对应总目标：#6
+
+## 实施记录（2026-10-09）
+
+分三个单元合入（wolvrix 仓）：S4-a 状态数组多维化（`51f9b5d`：声明 shape 化、
+多索引端口族、whole 读写直连、mergeSameAddress/mergeIndexed 写合并退役、grhsim
+过渡承接）；S4-b net/packed 数组 shape 化（`24fb91e`：net/端口 value 带 shape、
+unpacked net 读多索引 kSliceArray、svPackedArray.* 注解移除、克隆与端口 shape
+传播）；S4-c struct 字段级拆分（`8026985`：SoA `c__DOT__f` 命名、own/outer
+packed 边界、聚合表达式子系统、struct 端口逐叶实例连接、slang 关键字成员名
+修复分支 `wolvrix/keyword-member-names`）。随后全量设计校验驱动四轮健壮性修复：
+`1426789`（并行 worker 共享 static 池崩溃 thread_local 化 + 四处 O(n²) 扫描
+哈希化）、`e1f0b27`（WriteBackPass 跨递归悬空引用按值拷贝——顺带治愈 HEAD 基线
+ingest-write-back-slice SEGFAULT；emitExpr 组合环守卫；worker 512MiB 栈）。
+文档：`wolvrix/docs/ingest/aggregate-types.md`（新建）、grh-ir.md §2.3 ingest 视角
+（`a3a2615`）。滚动细节见 stage-04-implementation-notes.md。
+
+**验收清单（全绿）**：
+
+- 门禁：ctest 57/58（余 transform-repcut 为 HEAD 既有；ingest-write-back-slice
+  SEGFAULT 治愈）、hdlbits 162/162、xs-bugcase 25/25、sim-refactor 基线全过。
+- 逐文件 smoke（ingest+grh.verify，子进程隔离）：=all 档 2115 文件
+  1190 OK / 925 SKIP（跨文件依赖+xs_assert 宏）/ 0 FAIL / 0 CRASH；
+  =vec 档 1320 OK / 766 SKIP / 0 FAIL / 0 CRASH。
+- **XiangShan preserve-aggregate=all 全量设计**（2115 文件 + XiangShanSim +
+  SimJTAG，`--top SimTop -D SYNTHESIS`）：read_sv 139.4s → grh.verify 3.8s →
+  store_json 14.5s，产出 6.17GB 设计 JSON（`ptmp/stage04/simtop_aggr.json`），
+  0 error 级诊断。
+
+与 §3/§4 清单的实施偏差：
+
+1. **kArrayInsert 未引入**（§3 既定备选，第一版不做）；数组 value 的部分更新在
+   ingest 内部分解为 concat/slice 组合。
+2. **struct 叶子阈值放宽**为 shape.front()>1：1-bit 元素的 struct 叶子也进数组态
+   （成员链访问需要数组视图；无旧行为兼容负担）。packed 多维变量的标量门槛保持
+   旧值（shape.front()>1 && 元素宽>1）。
+3. **own/outer packed 边界**：walk 在每个 struct 层级记录边界，只有叶子自身声明的
+   packed 维可降级为元素位宽——否则 `logic [4:0] ssid` 的 [5] 会被外层数组维吃掉。
+4. **slang 切自有分支**（`wolvrix/keyword-member-names`，976f2b2f7）：firtool 用 SV
+   关键字当字段名（`from`/`until`），修复声明名/点分名段/成员访问/赋值模式键名
+   的关键字接受（与上游 Unique/And/Or/Xor 特例同理）。
+5. **mergeSameAddress/mergeIndexed 写合并退役**：S3 声明顺序=优先级语义下冗余
+   （xsbug 25/25 证明等价）。
+6. **超出计划范围的健壮性修复**（全量校验驱动，见上 `1426789`/`e1f0b27`）：
+   ingest 并行化后函数级 static 可变容器一律 thread_local；MemoryPortLowerer/
+   GraphAssembler 读去重与可达集哈希化；emitExpr 环守卫；worker 大栈。
+7. **环境级 scratch 补丁**（ptmp 语料侧，不入库，S7 接入正式管线时复核）：
+   DifftestMem1R1W.sv RAM_SIZE ×4（52'd8793945538560 → 52'd65536，巨型数组超
+   slang int32 维界限的上游既有问题）、Mem1R1WHelper.v parameter 类型标注 +
+   删仿真专用 initial 预载块、FlashHelper.v 删仿真专用 initial 预载块
+   （4MB 数组常量循环前端展开 13.1 万语句）。xs_assert_v2 裸实例经 -D SYNTHESIS
+   的 `ifndef SYNTHESIS` 守卫剥离。
+
+环境级遗留（登记）：`'{...}` 赋值模式在 always 块内为既有不支持项（S7 关键路径
+评估）；XMR 读数组寄存器未支持（S6）；verify 的 kInstance shape mismatch 保持
+warning；emitExpr 迭代化（显式工作栈）与 WriteBackPass 大 stmt 数组二次扫描
+优化归 S5/S6 评估；单线程模式下主线程栈仍受 ulimit 约束。
 
 ## 1. 目标
 
