@@ -207,3 +207,74 @@ hdlbits 162/162；xsbug 25/25；baseline 162/162。
 2. 赋值模式 `'{...}` 与整体 struct 写
 3. 整体操作展开（eq/mux/cast）+ 端口/实例连接
 4. XS =all smoke 逐项清零（73090 处 struct packed）
+
+## S4-c 实施日志（2026-10-09，struct 字段级拆分）
+
+### 架构落地
+- **拆分器**：`splitStructType`（类型树走查，PackedStruct/UnpackedStruct 递归 FieldSymbol，
+  数组维度（unpacked+packed）迁移到叶子；union/动态数组报错）；`analyzeStructLeafType`
+  （analyzePackedPart + outer-packed 预置参数）。字段信号名 `c__DOT__f__DOT__x`。
+- **注册表**：`ModulePlan::structsBySymbol`（root symbol → StructTypeInfo{fields 按声明序}）。
+- **声明**：collectNet/collectVariable/collectPorts 的 splitStructDecl 钩子；叶子信号是
+  普通 SignalInfo（S4-a 分类直接生效：SoA 形态 robEntries__DOT__wflags[352] 自然落地）；
+  struct 端口拆成叶子端口（inout struct 端口报错）。
+- **表达式**（StmtLowererState 聚合子系统）：lowerAggregateValues（named/member 投影/
+  element-select 逐叶/ternary 逐叶 kMux/implicit conversion/`'{...}` 模式走查/'0/'1 字面量/
+  扁平回退切片）；主 lowerExpression 对 struct 类型表达式一律 aggregate→flatten
+  （布局 kConcat）——一切标量上下文天然兼容；标量成员访问经 memberPath 线程的
+  resolveLValueSymbol 解析到叶子信号 + 读 slices。
+- **赋值**：handleStructAssignment（LHS 逐叶 resolveStructLValueLeaves + RHS 逐叶
+  （模式/聚合/扁平回退三态）+ 按寻址宽度 resize）；数组模式 lowerArrayPatternValue
+  （packed 位置序、unpacked 反序拼接）；analyzePackedPart 标量宽修正（外层 packed 维
+  参与元素宽判定）。
+- **端口/实例**：collectPorts 叶子端口；emitInstances struct 分支（输入=扁平连接+
+  静态切片；输出=逐叶 result + resolveStructOutBindings 绑定到父侧叶子——slang 会把
+  输出连接包成 AssignmentExpression，需解包 left()）；ConnectionExprLowerer 独立实现
+  struct 扁平化（连接侧）。
+- **提升共享**：countStructLeaves/peelToStructScope/structMemberLeafRange/
+  structLeafFlatWidth 提为自由函数；GraphAssemblyState 的 makeSliceStatic/makeZero/
+  makeReplicate/resizeValueToWidth 由 lambda 提升为成员函数。
+
+### 排雷记录
+- slang 语法陷阱：`table` 是 SV 关键字（UDP），探针命名撞车（非解析 bug）。
+- analyzeStructLeafType 裸标量叶子宽度错（outer packed 维未参与）→ analyzePackedPart
+  预置参数重构。
+- memberPath 线程必须贯穿 ElementSelect/RangeSelect 分支并在选择符前解析叶子。
+- 扁平回退（'0 等无类型字面量）必须先 resize 到结构总宽再切片。
+
+### 探针
+- mini6：SoA 拆分（ent__DOT__lanes → kRegister shape=[2] w=16）+ WriteArrayPort。
+- struct_probe：字段数组/嵌套 struct/struct 数组/`'{...}` 模式/整体赋值/flatten/
+  ternary/eq——read+verify+emit 全过。
+- struct_port_probe：拆分端口声明与实例连接（in_entry__DOT__tag 等名字两侧匹配）——
+  read+verify+emit 全过，发射 SV 正确。
+
+## S4-c 收官（2026-10-09）
+
+### slang 修复（wolvrix/keyword-member-names 分支，976f2b2f7）
+firtool 会用 SV 关键字当字段名（`from`/`until`，Chisel 源信号名），slang 按关键字严格
+拒绝。在自有分支修复（与上游 Unique/And/Or/Xor 成员名特例同理，语法位置本无歧义）：
+- parseDeclarator/parseDeclarators：关键字可当声明名（新谓词
+  isIdentifierOrCommaOrKeyword/isNotIdOrCommaOrKeyword + Parser::expectIdentifier）；
+- parseNamePart：点分名段接受关键字；parseMemberAccess 成员名同；
+- 结构化赋值模式：首键/后续键接受关键字键名（isPossibleAssignmentKeyOrCommaOrDefault）。
+
+### 关键 bug 修复（=all smoke 驱动）
+- 数组-of-struct 的赋值模式（`queue <= '{'{...}, '{...}}` ROB 复位形态）：
+  lowerArrayOfStructPattern 逐索引逐叶拼接；
+- 成员链解析：ElementSelect/RangeSelect 只在叶子位置解析 memberPath
+  （`io_in.tdata1Vec[2'h1].DATA[11]`）；
+- 结构整体初始化（`wire struct x = '{...}` 与变量声明初始化）走
+  handleStructRootInitializer（net/variable initializer 此前直达无值根符号）；
+- **own/outer packed 边界**：walk 在每个 struct 层级记录边界，只有叶子自身声明的
+  packed 维可降级为元素位宽——`logic [4:0] ssid` 的 [5] 不再被外层数组维吃掉，
+  `logic flag` 的 [3:0] 外层维不再被当元素宽（robIdxVec__DOT__flag shape=[32,4] elem 1）；
+- 叶子阈值放宽为 shape.front()>1（struct 叶子 1-bit 元素也进数组态——成员链访问
+  要数组视图，无旧行为兼容负担）；
+- 折回叶子元素宽保留（SignalInfo.elementWidth）+ 折回叶子的元素选择走子数组位切片；
+- struct 数组的元素范围选择（`arr[base +: n]`）→ 逐叶子数组范围切片。
+
+### =all smoke 终态（2115 文件逐文件 ingest + grh.verify）
+1190 OK / 925 SKIP（跨文件模块依赖+xs_assert 宏）/ **0 FAIL / 0 CRASH**。
+Phr.sv 也已随修复通过（此前的 HEAD 既有崩溃消失——系组合环相关路径改变后不再触发，
+待全量编译复核）。

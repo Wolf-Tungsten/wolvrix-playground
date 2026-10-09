@@ -21,7 +21,7 @@
 | S1 IR 数组类型 | 已合入 | 1/1 | 2026-10-09 全绿 | 0 | S2/S3 可开工 |
 | S2 kSliceArray 重定义 | 已合入 | 1/1 | 2026-10-09 全绿 | 0 | S3/S5 可开工（S5 等 S2 已满足） |
 | S3 kRegister 端口族 | 已合入 | 1/1 | 2026-10-09 全绿 | 0 | S4/S6 可开工 |
-| S4 ingest 聚合保留 | 未开始 | 0/3 | — | 0 | 等 S1/S2/S3 |
+| S4 ingest 聚合保留 | 进行中 | 3/3 | 2026-10-09 全绿 | 0 | 收官验证（全量设计编译） |
 | S5 comb-loop-elim | 未开始 | 0/? | — | 0 | 等 S2 |
 | S6 grhsim 承接 | 未开始 | 0/? | — | 0 | 等 S1/S3 |
 | S7 preserve-aggregate 端到端 | 未开始 | 0/3 | — | 0 | 等 S4/S5/S6 |
@@ -87,19 +87,22 @@
 
 ### S4 — ingest 聚合保留（stage-04-ingest-aggregate.md）
 
-- 状态：进行中
+- 状态：进行中（a/b/c 三个单元均已合入，收官验证中）
 - 合入单元（stage-04 §7 已拆）：(a) kRegister 数组端口族 + 访问路径 ☑（2026-10-09，
   状态数组多维化：声明 shape、多索引端口、whole 读写直连、合并机制退役、grhsim 过渡承接）
-  (b) net/packed 数组 shape 化 ☐ (c) struct 字段级拆分 ☐
-- 门禁快照：2026-10-09 S4-a 合入点 ctest 56/58（基线 2 例持平）、hdlbits 162/162、
-  xsbug 25/25、baseline 162/162；=vec split 2119 文件 smoke 1237 OK/766 依赖 SKIP/
-  真失败 2（1 属 S4-b、1 为 HEAD 既有崩溃）
+  (b) net/packed 数组 shape 化 ☑（2026-10-09：声明 shape 回填、多索引 kSliceArray、
+  svPackedArray 退役、flatten/inline/XMR shape 适配）(c) struct 字段级拆分 ☑
+  （2026-10-09：SoA 拆分 c__DOT__f__DOT__x、聚合表达式子系统、struct 端口逐叶连接、
+  slang 关键字名字修复 wolvrix/keyword-member-names）
+- 门禁快照：2026-10-09 S4-c 合入点 ctest 56/58（基线 2 例持平）、hdlbits 162/162、
+  xsbug 25/25、baseline 162/162；**=all split 2115 文件 smoke：1190 OK / 925 依赖
+  SKIP / 0 FAIL / 0 CRASH**；=vec split 2119 文件 1319 OK / 766 SKIP / 0 真失败
 - 豁免/破坏：0（权威登记：stage-04 §7；同地址写合并退役为计划内破坏，xsbug 25/25 证明
   声明顺序优先级语义等价）
 - 文档同步：wolvrix/docs/ingest/ ☐ grh-ir.md §2.3 ☐（S4 全部合入后统一落）
   实施记录：stage-04-implementation-notes.md（随实施滚动）
-- 新增问题：无（开放登记：`'{...}` assignment pattern 表达式既有不支持——S7 关键路径
-  待评估；Phr emitExpr 组合环栈溢出为 HEAD 既有）
+- 新增问题：无（开放登记：全量设计编译与 xs_assert_v2 处理——assert_dpi.sv 式 DPI
+  import 声明（bugcase 用法）或 -D SYNTHESIS 剥离（综合形态），S7 定管线口径）
 
 ### S5 — comb-loop-elim 片段化（stage-05-comb-loop-elim.md）
 
