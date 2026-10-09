@@ -1,10 +1,59 @@
 # Stage 03 — kRegister 数组端口族（多索引、优先级语义、kMemory 退役）
 
 - 日期：2026-10-08（2026-10-08 晚二修：统一为 kRegister 端口族，kMemory 废除；
-  2026-10-08 三修：Q3 位掩码定稿；2026-10-08 四修：grhsim 承接 op 名同步——mem* 退役）
-- 状态：计划草案
+  2026-10-08 三修：Q3 位掩码定稿；2026-10-08 四修：grhsim 承接 op 名同步——mem* 退役；
+  2026-10-09 实施完成，六处实施偏差见下）
+- 状态：已实施（2026-10-09）
 - 依赖：stage-01（shape）
 - 对应总目标：#4（多索引读写）、#5（写端口优先级语义）
+
+## 实施记录（2026-10-09）
+
+已合入：kMemory/kMemoryReadPort/kMemoryWritePort/kMemoryFillPort 四个 OpKind 删除，
+数组状态统一为 kRegister + `shape` attr（width=总位宽、shape=[行数]）；新增端口族
+kRegisterReadArrayPort / kRegisterWriteMaskPort / kRegisterWriteArrayPort /
+kRegisterWriteArrayMaskPort / kRegisterFillPort（操作数布局与 §3.2 逐字一致）；
+写端口优先级 = 同 regSymbol 唯一组 + 声明顺序（priorityGroup/priority 属性常量与
+全部生产/消费点删除）；`firstEventOperandIndex` / `arrayPortIndexCount` /
+`isRegisterReadPortKind` / `isRegisterWritePortKind` helper 进 grh 核心；
+ingest 最小适配（kMemory 产出改 kRegister+shape，写口按全写/掩码拆分）；
+grh.verify 端口族校验（regSymbol 反查声明、索引数 vs rank、子数组宽度、eventEdge 与
+操作数尾匹配、updateCond 1-bit）；SV emit 全端口族发射；activity_schedule /
+dead_code_elim / repcut / xmr_resolve / hier_flatten / instance_inline /
+memory_read_retime / memory_init_check / redundant_elim / demo_stats / comb_loop_elim
+适配；grh_to_grhsim 过渡映射（见偏差 3）。
+
+与 §3/§4 清单的偏差：
+
+1. **firstEventOperandIndex 不按 regSymbol 反查 rank**：§3.2 原写"按 regSymbol 反查
+   rank"，但部分索引（k<rank）下声明 rank 无法唯一确定索引数——实施改为按 `eventEdge`
+   attr 数量反推边界（op 自足、无需图级反查），rank 一致性由 grh.verify 交叉校验。
+2. **SV emit 数组声明用 unpacked 而非 §3.5 示例的 packed**：`logic [elemW-1:0] r [0:R-1];`
+   与 stage-02 拍板的扁平/线性化呈现哲学一致，且 (a) $readmemh 目标天然合法；
+   (b) 旧 kMemory 发射文本逐字保留 → rank=1 门禁路径 SV 输出零差异；(c) 整体读写经
+   行主序 concat/嵌套循环展开，绕开 Verilator packed 扁平 part-select 语义陷阱
+   （stage-02 §8 Q1 实证）。§3.5 示例仅作 IR 语义示意，不代表发射形态。
+3. **grhsim 承接为过渡形态**：新端口族映射到既有 memRead/memWrite/memFill/regWrite
+   op（mem* 一族退役与 core.array 退役均归 stage-06）；kRegisterWritePort /
+   kRegisterWriteArrayPort 的无 mask 形态由转换器按数据宽合成全 1 mask 常量值。
+4. **activity_schedule 的 priority 机制整段删除**（validate/order/atomic-unit/guard-key
+   分支）——该机制在全库无生产者（仅测试构造），是死代码；声明顺序优先级由既有通道
+   兑现：SV emit 按 op 声明序排列、grhsim cpu_schedule 同 state 写按 op id 升序。
+   kRegisterFillPort 在 normalizedSinkEventKey 中保持 "opaque" 桶（对齐旧
+   kMemoryFillPort 行为，登记为 stage-06 评估项）。
+5. **ingest 双写路径声明去重**：同 symbol 同时存在整体写（storage 路径）与索引访问
+   （memory 路径）时复用同一 kRegister（宽度一致前提下），回填 shape attr 与已建
+   whole-read value 的 value shape。`emitPackedAggregateWholeRead` 保持逐行
+   ReadArrayPort + concat 结构（IR/SV 与旧形态一致），简化归 stage-04。
+6. **comb_loop_elim 边界表即时生效**：kRegisterReadArrayPort 作为状态读加入边界 op
+   表（§3.6 既定修正；旧 kMemoryReadPort 不在表中，新分类更正确）。
+7. repcut 顺带修正：kRegisterFillPort 补入 isSinkOpKind（对齐其他 pass 既有归类，
+   旧表遗漏 kMemoryFillPort）。demo_stats：kRegister+shape 并入 memory 统计族。
+   XMR 寄存器写固定产 kRegisterWriteMaskPort（驱动布局 [cond,data,mask,events] 直传，
+   与旧 kRegisterWritePort 发射文本一致）。
+8. 文档补记（2026-10-09 用户指出）：grh-ir.md §1.1 Value 字段清单漏列 `shape`
+   （stage-01 遗留）、§2.3 shape 推导惯例未覆盖 kRegisterReadArrayPort 的 result
+   shape 规则（k==rank → 标量；k<rank → 剩余维）——均已补上。
 
 ## 1. 目标
 

@@ -167,10 +167,8 @@ function fitGraphToNodes(
   const primaryOps = nodes.filter(
     (node) =>
       node.role === 'op' &&
-      node.kind !== 'kRegisterReadPort' &&
-      node.kind !== 'kLatchReadPort' &&
-      node.kind !== 'kRegisterWritePort' &&
-      node.kind !== 'kLatchWritePort',
+      !isReadPortNode(node) &&
+      !isWritePortNode(node),
   )
   const fallbackOps = nodes.filter((node) => node.role === 'op')
   const sourceNodes = primaryOps.length > 0 ? primaryOps : fallbackOps.length > 0 ? fallbackOps : nodes
@@ -307,12 +305,22 @@ function nodeFill(node: SchematicNode, emphasis: number): string {
   return mixHex(palette.light, palette.dark, deepen)
 }
 
+const READ_PORT_KINDS = new Set(['kRegisterReadPort', 'kRegisterReadArrayPort', 'kLatchReadPort'])
+const WRITE_PORT_KINDS = new Set([
+  'kRegisterWritePort',
+  'kRegisterWriteMaskPort',
+  'kRegisterWriteArrayPort',
+  'kRegisterWriteArrayMaskPort',
+  'kRegisterFillPort',
+  'kLatchWritePort',
+])
+
 function isReadPortNode(node: SchematicNode): boolean {
-  return node.role === 'op' && (node.kind === 'kRegisterReadPort' || node.kind === 'kLatchReadPort')
+  return node.role === 'op' && READ_PORT_KINDS.has(node.kind)
 }
 
 function isWritePortNode(node: SchematicNode): boolean {
-  return node.role === 'op' && (node.kind === 'kRegisterWritePort' || node.kind === 'kLatchWritePort')
+  return node.role === 'op' && WRITE_PORT_KINDS.has(node.kind)
 }
 
 function collapsedPortGroupId(node: SchematicNode, expansion: PortExpansionState): string | null {

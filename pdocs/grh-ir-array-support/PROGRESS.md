@@ -20,7 +20,7 @@
 |------|------|----------|----------|------|--------|
 | S1 IR 数组类型 | 已合入 | 1/1 | 2026-10-09 全绿 | 0 | S2/S3 可开工 |
 | S2 kSliceArray 重定义 | 已合入 | 1/1 | 2026-10-09 全绿 | 0 | S3/S5 可开工（S5 等 S2 已满足） |
-| S3 kRegister 端口族 | 未开始 | 0/? | — | 0 | 等 S1 |
+| S3 kRegister 端口族 | 已合入 | 1/1 | 2026-10-09 全绿 | 0 | S4/S6 可开工 |
 | S4 ingest 聚合保留 | 未开始 | 0/3 | — | 0 | 等 S1/S2/S3 |
 | S5 comb-loop-elim | 未开始 | 0/? | — | 0 | 等 S2 |
 | S6 grhsim 承接 | 未开始 | 0/? | — | 0 | 等 S1/S3 |
@@ -65,12 +65,25 @@
 
 ### S3 — kRegister 端口族（stage-03-memory-ports.md）
 
-- 状态：未开始
-- 合入单元：—（kMemory 族删除 + 端口族 + 声明顺序优先级，建议按 §4 表分组）
-- 门禁快照：—
-- 豁免/破坏：—（权威登记：stage-03 §7）
-- 文档同步：grh-ir.md §6.4 重写 ☐ §6.5 删除 ☐
-- 新增问题：无
+- 状态：已合入
+- 合入单元：2026-10-09 kMemory 族 4 OpKind 删除 + kRegister 数组端口族（5 新 kind）
+  + 声明顺序优先级 + 全消费端适配（工作树未提交，分支 grh/grhsim-ir）
+- 门禁快照：2026-10-09 ctest 58 项 56 过（2 例既有失败：transform-repcut /
+  ingest-write-back-slice SEGFAULT）；run_all_hdlbits_grhsim_ir_tests 162/162；
+  run_xs_bugcase_grhsim 25/25；check_sim_refactor_baseline 162/162；
+  XS CoreMark 轨迹 instrCnt=663,688 / cycleCnt=297,291（与基线逐位一致，
+  证明被删的 priority 机制确为无生产者死代码）
+- 豁免/破坏：0（权威登记：stage-03 §7；kMemory 族删除为计划内破坏，旧 JSON 产物
+  重新生成即可；rank=1 路径行为与现状等价已由门禁证实）
+- 文档同步：grh-ir.md §6.4 整体重写 ☑ §6.5 删除 ☑ grh-json-spec.md（端口族 +
+  op 顺序语义化条款）☑ grhsim_ir/dialects/core.md 映射表 ☑（标注 stage-06 过渡形态）
+  ingest/initial-block-support.md ☑ transform/{memory-init-check,dead-code-elim,
+  xmr-resolve}.md ☑ emit/{grhsim-emit-combines,grhsim-scheduling}.md ☑
+  grh-ir-visualize 端口族 kind 表 ☑（tsc 通过；vite 构建受 Node 18 环境限制无法验证，
+  与 stage-01/02 顺延项同一性质）
+- 新增问题：无（实施偏差 7 条已记入 stage-03 头部"实施记录"，含
+  firstEventOperandIndex 按 eventEdge 反推、SV emit 用 unpacked 声明、grhsim 过渡映射）
+- 顺手修复：repcut isSinkOpKind 补 kRegisterFillPort（旧表遗漏 kMemoryFillPort）
 
 ### S4 — ingest 聚合保留（stage-04-ingest-aggregate.md）
 
@@ -126,3 +139,13 @@
   实证推翻 stage-02 §8 Q1（packed 声明下扁平位选择语义错误），emit 保持扁平声明 +
   行主序线性化。门禁：ctest 56/58（2 例既有失败）、hdlbits 162/162、xs-bugcase 25/25、
   基线 162/162。详见 stage-02 实施记录。
+- 2026-10-09：S3 实施完成并合入（工作树）：kMemory 族 4 OpKind 删除，数组状态统一为
+  kRegister+shape；端口族 kRegisterReadArrayPort/WriteMaskPort/WriteArrayPort/
+  WriteArrayMaskPort/FillPort 落地（多索引、部分索引=子数组，与 kSliceArray 对齐）；
+  写端口优先级改为同 regSymbol 唯一组+声明顺序（priority 属性与 activity_schedule/emit
+  两侧死代码机制整段删除）；firstEventOperandIndex/arrayPortIndexCount helper 进 grh 核心
+  （按 eventEdge 反推事件边界）；ingest 最小适配 + 双写路径声明去重；grh.verify 端口族
+  校验；SV emit 全端口族（unpacked 声明，rank=1 文本零差异）；grh_to_grhsim 过渡映射到
+  既有 mem*/regWrite（无 mask 形态合成全 1 mask，mem* 退役归 S6）。门禁全绿：
+  ctest 56/58（2 例既有失败）、hdlbits 162/162、xs-bugcase 25/25、基线 162/162、
+  XS CoreMark 663,688/297,291 与基线逐位一致。详见 stage-03 实施记录（7 条偏差）。
