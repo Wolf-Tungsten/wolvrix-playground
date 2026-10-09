@@ -1,9 +1,60 @@
 # Stage 05 — comb-loop-elim：组合环的片段化切断
 
-- 日期：2026-10-08（2026-10-08 修订：Q1 定稿——comb-lane-pack 退役）
-- 状态：计划草案
+- 日期：2026-10-08（2026-10-08 修订：Q1 定稿——comb-lane-pack 退役；2026-10-10 实施完成，实施偏差见下）
+- 状态：已实施（2026-10-10）
 - 依赖：stage-02（数组一等访问；kSliceArray 不再是分析盲区）
 - 对应总目标：#7
+
+## 实施记录（2026-10-10）
+
+单单元实施（工作树，分支 grh/grhsim-ir）：`comb_loop_elim.cpp` 数组感知化
+（kSliceArray 位段分析 + 动态读整区间归一化 + 分裂重写的数组适配 + shape 传播），
+options/CLI/pybind 接线（`enableArrayFragmentation` / `maxFragmentsPerValue=4096` /
+`fixDynamicArrayLoops`），6 个数组环单测（常量/动态假环修复、动态/常量真环报警、
+片段上限、开关回退），文档 comb-loop-elim.md"Array Values And Fragmentation"章节。
+
+与 §3/§4/§5 清单的实施偏差：
+
+1. **片段模型落地为既有位段机制的数组扩展，而非独立的 leading-维片段框架**
+   （§3.1）：shape 是扁平位上的纯结构视图（grh-ir.md §2.3 核心原则"shape 不改变
+   任何 op 语义"），既有 bit-range 切段在常量索引下天然落在元素边界上
+   （kSliceArray 常量边产生元素对齐切点）。§3.1 重建表的"kConcat 同形数组拼接 →
+   第 i 片段 = 操作数 i（零新 op）"按既有 kConcat 重写路径实现为逐段 kAssign
+   （语义等价，下游 simplify 吸收）。新增的只是：整值片段/重组视图传播原 value 的
+   shape（kSliceArray 基/结果、端口绑定的 verifier 合法性所必需）。
+2. **动态索引"整值单区间"的实现形态**（§3.2）：动态（或越界常量）索引
+   kSliceArray 在分析侧把基数组的所有位段节点归一化为整值单区间
+   （whole-interval normalization），索引操作数若在环上也补全宽依赖边；
+   环判定追加守卫：含动态数组读的环，位段图必须完全无环才认假环（任何残余
+   位段 SCC = 不可判定 → 真环桶，报警带 `dynamic-array-read` 注释）。分裂侧该
+   结果 value 保持整值单片段（unsplittable，切点插入对其关闭），读 op 重定向到
+   基数组的重组全视图（§3.1 表的"整值单片段 + 动态读合并"）。
+3. **终止性论证修正**（§3.3）：位段分析对 kAssign 全宽边与 kConcat 子段边存在
+   既有建模缝隙（同 value 的不同 range 节点互不连通），真环首轮可能误判为
+   false-candidate 并被分裂一次；但分裂是等价变换，残余环在下一轮复检中必被
+   检出——动态读环归一化后第二轮必现 SCC（升级真环报警），标量/常量环则因
+   valuesSplit=0 无法再分裂而终止。严格格点细化论证在动态读路径上不成立，实际
+   终止性由"分裂等价 + 逐迭代复检 + maxFixIterations=100 上限"保证。
+4. **maxFragmentsPerValue 超限语义**（§5）：实施为"超限时放弃该环本次切分"
+   （等效整值保留、记 `frag-capped` 统计、按未解假环报警），而非逐值钳制——
+   单值钳制会在跨段读时与 getFragment 的逐段切片冲突，实际效果与放弃一致且
+   更安全（切分在突变前预检，无部分重写残留）。
+5. **边界表无需改动**（§8 Q2 落点）：`kRegisterReadArrayPort` 已在
+   `comb_loop_elim.cpp:isBoundaryOp`（stage-03 期间加入），本阶段仅确认。
+6. **诊断/报告扩展**（§5）：LoopInfo 增加 `hasDynamicArrayRead`；报警分析注释
+   新增 `dynamic-array-read`；统计行新增 `dyn-array=` 与 `frag-capped=`（既有键
+   不变，日志解析向后兼容）。CLI：`-enable-array-fragmentation` /
+   `-no-array-fragmentation`、`-fix-dynamic-array-loops` /
+   `-no-fix-dynamic-array-loops`、`-max-fragments-per-value`；pybind 同名 kwargs
+   （snake_case）。
+
+**验收清单**：ctest 57/58（余 transform-repcut 为 HEAD 既有，与 S4 同）；
+hdlbits grhsim-ir 162/162；xs-bugcase grhsim 25/25；sim-refactor 基线 162/162；
+新增 transform-comb-loop-elim 数组用例 6 例全过（含 grh.verify 复检）。
+探针实证（`ptmp/s5-probe/`）：动态索引假环（dyn_loop.sv，2026-10-08 前
+analysis=incomplete 黑洞）现修复且 grh.verify 通过；真环（dyn_true.sv）分裂一次
+后残余环按 `status=true dynamic-array-read` 报警；`-no-array-fragmentation` 精确
+回到旧行为。
 
 ## 1. 目标
 

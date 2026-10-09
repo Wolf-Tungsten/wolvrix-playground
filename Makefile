@@ -354,6 +354,12 @@ test_transform_simplify:
 	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-simplify -j 2
 	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-simplify$$' --output-on-failure
 
+.PHONY: test_transform_comb_loop_elim
+test_transform_comb_loop_elim:
+	mkdir -p $(CURDIR)/ptmp/ctest_tmp $(CURDIR)/ptmp/ctest_ccache
+	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-comb-loop-elim -j 2
+	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-comb-loop-elim$$' --output-on-failure
+
 .PHONY: test_transform_memory_read_retime
 test_transform_memory_read_retime:
 	mkdir -p $(CURDIR)/ptmp/ctest_tmp $(CURDIR)/ptmp/ctest_ccache

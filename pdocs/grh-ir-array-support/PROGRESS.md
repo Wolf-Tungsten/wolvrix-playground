@@ -22,7 +22,7 @@
 | S2 kSliceArray 重定义 | 已合入 | 1/1 | 2026-10-09 全绿 | 0 | S3/S5 可开工（S5 等 S2 已满足） |
 | S3 kRegister 端口族 | 已合入 | 1/1 | 2026-10-09 全绿 | 0 | S4/S6 可开工 |
 | S4 ingest 聚合保留 | 已完成 | 3/3 | 2026-10-09 全绿（含全量设计校验） | 0 | S5/S6/S7 可开工 |
-| S5 comb-loop-elim | 未开始 | 0/? | — | 0 | 等 S2 |
+| S5 comb-loop-elim | 已实施 | 1/1 | 2026-10-10 全绿 | 0 | S7 等 S5/S6 |
 | S6 grhsim 承接 | 未开始 | 0/? | — | 0 | 等 S1/S3 |
 | S7 preserve-aggregate 端到端 | 未开始 | 0/3 | — | 0 | 等 S4/S5/S6 |
 
@@ -110,12 +110,19 @@
 
 ### S5 — comb-loop-elim 片段化（stage-05-comb-loop-elim.md）
 
-- 状态：未开始
-- 合入单元：—（`enableArrayFragmentation` 开关默认开，stage-05 §7）
-- 门禁快照：—
-- 豁免/破坏：—（权威登记：stage-05 §7；trace 基线 diff 逐例核对）
-- 文档同步：comb-loop-elim 文档 ☐
+- 状态：已实施（2026-10-10，工作树，分支 grh/grhsim-ir）
+- 合入单元：1/1（`e03e33f`：kSliceArray 位段分析 + 动态读整区间归一化 + 分裂重写
+  数组适配 + shape 传播；options/CLI/pybind 接线；6 数组环单测；文档章节）
+- 门禁快照：2026-10-10 ctest 57/58（余 transform-repcut 为 HEAD 既有，与 S4 同）；
+  run_all_hdlbits_grhsim_ir_tests 162/162；run_xs_bugcase_grhsim 25/25；
+  check_sim_refactor_baseline 162/162（trace 无 diff）
+- 豁免/破坏：0（权威登记：stage-05 §7 + 实施记录；统计行新增 dyn-array=/frag-capped=
+  两键，既有键不变；无脚本依赖这些键）
+- 文档同步：comb-loop-elim.md ☑（"Array Values And Fragmentation"章节 + 选项表）
+  stage-05 头部实施记录 ☑（偏差 6 条：位段机制扩展而非独立框架、动态读归一化实现、
+  终止性论证修正、上限语义、边界表已在 S3 落地、诊断扩展）
 - 新增问题：无
+- 顺手新增：Makefile `test_transform_comb_loop_elim` 单测目标
 
 ### S6 — grhsim 承接（stage-06-grhsim-backend.md）
 
@@ -168,3 +175,13 @@
   悬空引用按值拷贝——顺带治愈基线 ingest-write-back-slice SEGFAULT、emitExpr 环
   守卫、worker 512MiB 栈）。门禁 ctest 57/58（余 transform-repcut 基线）、其余全绿；
   =all/=vec smoke 双 0 FAIL 0 CRASH。S5/S6 可开工。
+- 2026-10-10：S5 实施完成（工作树，分支 grh/grhsim-ir）：comb-loop-elim 数组感知化——
+  kSliceArray 位段分析替换 880 行盲区（常量索引行主序精确位段；动态/越界索引把基数组
+  归一化为整值单区间并补索引依赖边；含动态读的环要求位段图完全无环才认假环，否则
+  不可判定报警带 dynamic-array-read 注释）；分裂重写数组适配（常量索引逐段复制、动态
+  读整值单片段+全视图重定向、整值片段与重组视图传播 shape 保 verifier 合法性、
+  maxFragmentsPerValue=4096 超限放弃切分）；options/CLI/pybind 三开关接线；6 数组环
+  单测全过（含 grh.verify 复检）；comb-loop-elim.md 新增数组章节。门禁：ctest 57/58
+  （余 transform-repcut 为 HEAD 既有）、hdlbits 162/162、xs-bugcase 25/25、基线
+  162/162。探针实证：dyn_loop 假环从 analysis=incomplete 黑洞变为修复。详见
+  stage-05 实施记录（6 条偏差，含终止性论证修正）。S6/S7 可开工（S5 依赖已清）。
