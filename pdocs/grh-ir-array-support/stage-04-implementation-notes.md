@@ -144,3 +144,66 @@ hdlbits 162/162；xsbug 25/25；baseline 162/162。
 组合域 memory 写跳过（ICacheReplacer/IntFile）。
 =all 无结构体子集 529 文件：361 OK / 164 依赖 SKIP / 1 既有告警 / 4 崩溃已修
 （packedDims 空时 analyzePackedPart 越界——`reg Memory[0:N]` 无 packed 维元素）。
+
+## S4-b 实施日志（2026-10-09）
+
+- 声明 shape 回填：createSignalValues（net/变量数组 value）、createInoutSignalValues、
+  createPortValues 输入/输出分支——数组 value 携带声明 shape（纯结构视图）。
+- unpacked net 数组元素读 → 多索引 kSliceArray（buildNetArrayIndices，逐维归一化索引，
+  不再位偏移线性化）；emitExpr kSliceArray 支持 1..k 索引（全常量折叠为 kSliceStatic，
+  部分索引=子数组 baseShape[k:]）；写路径 buildNetArraySlice 行宽修正（元素宽×packed 维）。
+- grh_to_grhsim：多索引 kSliceArray → 线性化 lane + sliceDynamic（单索引保持 sliceArray
+  过渡形态零差异）。
+- svPackedArray.* 注解整体移除（写入点 annotatePackedArrayConcatDefop、调用点、3 个测试
+  文件的断言——slice 测试改断言声明 shape，grh/grh_clone 测试删除冗余 attr 段）。
+- 下游适配（探索子代理缺口清单）：hier_flatten/instance_inline 克隆 value 传 shape +
+  端口映射 shape 传播（propagatePortShape：child 有 shape、parent 无且同宽 → 回填）；
+  xmr_resolve 的 ensureInputPort/ensureInstanceOutput/PendingPort/forceSingleDriver/
+  rebind_output 线程 shape。XMR 读数组寄存器仍不支持（登记 S6）；verify 的 kInstance
+  shape mismatch 保持 warning（登记，暂不提 error）。
+- 门禁：ctest 56/58（基线）、hdlbits 162/162、xsbug 25/25、baseline 162/162。
+- smoke：=vec 2119 文件 1319 OK / 766 依赖 SKIP / 1 HEAD 既有崩溃（Phr）；=all 无结构体
+  子集 366 OK / 163 依赖 SKIP / 0 真失败。DstMgu 已随 shape 回填自愈。
+
+## S4-c 设计定稿（2026-10-09，struct 字段级拆分）
+
+### 类型树展开
+- 拆分器：`splitStructType(type, baseName) -> [{fieldPath, TypeResolution}]`，递归展开
+  PackedStructType/UnpackedStructType 的 FieldSymbol（按声明序）；数组维度（unpacked+packed）
+  迁移到每个叶子字段信号（外层维度在前、字段自身维度在后）；叶子字段走 analyzePackedPart
+  判定 shape/宽度。命名：`c__DOT__a`、`c__DOT__f__DOT__x`（DOT 编码，gsim/Verilator 惯例）。
+- 非位类型字段（Real/String/事件）→ ConvertDiagnostics error；union 首版报错
+  （packed union 也是 integral，但字段重叠语义与拆分不兼容，留待评估）。
+- ModulePlan 增加 struct 注册表：struct symbol → 字段列表（fieldPath + PlanSymbolId +
+  叶子 TypeResolution），供表达式投影与整体操作枚举。
+
+### 表达式表示
+- 新增 AggregateValue = 按声明序的 {fieldPath, ExprNodeId} 列表（ingest 内部表示，
+  不进入 GRH）。struct 类型表达式经 lowerAggregateExpression 产 AggregateValue；
+  主 lowerExpression 保持标量-only。
+- NamedValue(struct symbol) → 逐字段 value 引用；MemberAccess → 子组投影；
+  ElementSelect(struct array) → 逐字段 kSliceArray/数组端口；`'{f: v}` / `'{v, ...}` →
+  逐字段 RHS（default → 广播；嵌套递归）。
+- 需要扁平位布局的场合（cast 为整型/算术/$bits/streaming/整体 XMR）：按声明序
+  kConcat 现场重建（布局是类型的纯函数）。
+- 整体操作逐字段展开：赋值=逐字段连接；相等=逐字段 kEq 后 kAnd 归约（不等=kOr）；
+  mux/ternary=同 cond 逐字段 kMux；端口连接=按布局匹配的逐字段连接。
+
+### 端口与实例
+- struct 端口同样字段级拆分（PortInfo 叶子条目，名字 `io__DOT__bits__DOT__...`）；
+  模块端口列表 = 拆分后叶子端口；kInstance 连接处（emitInstances）对 struct 端口生成
+  逐字段连接（两侧同一拆分算法，名字天然匹配）。
+- hier_flatten/instance_inline 的 propagatePortShape（S4-b）已承接拆分后端口。
+
+### 写路径
+- struct lvalue：resolveLValueSymbol 遇到 MemberSelect → 解析到字段信号 + 剩余 slice
+  （替换 resolveMemberSlice 的位段路径）；整体 struct 写 → 逐字段 WriteIntent；
+  struct 数组元素动态写 → 字段数组的 WriteArrayPort 族（S4-a 机制直接复用）。
+- 存储分类：字段信号各自独立走 S4-a 决策（kRegister+shape / 标量），ROB 形态
+  （robEntries__DOT__wflags[352] 等）自然落地。
+
+### 渐进实施顺序
+1. 拆分器 + 声明/注册表 + 读路径（NamedValue/MemberAccess/ElementSelect/投影）
+2. 赋值模式 `'{...}` 与整体 struct 写
+3. 整体操作展开（eq/mux/cast）+ 端口/实例连接
+4. XS =all smoke 逐项清零（73090 处 struct packed）
