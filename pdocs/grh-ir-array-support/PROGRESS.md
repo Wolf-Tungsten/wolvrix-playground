@@ -205,6 +205,15 @@
   （余 transform-repcut 为 HEAD 既有）、hdlbits 162/162、xs-bugcase 25/25、基线
   162/162。探针实证：dyn_loop 假环从 analysis=incomplete 黑洞变为修复。详见
   stage-05 实施记录（6 条偏差，含终止性论证修正）。S6/S7 可开工（S5 依赖已清）。
+- 2026-10-10（深夜）：S7 开工。7a/7b/7c 落地并全绿（`xs_rtl_aggregate` 375s/2148 文件；
+  reg-to-mem 全退役：wolvrix −3234 行 + 外层管线/Makefile/脚本清理；trace 基线实证
+  免重钉）。编译期攻坚：GRH simplify 在聚合设计（18.7M values）超线性爆炸，实证修复
+  topo_guard 拓扑守卫（simplifySlices 700s→127s）+ 三 pass lean 化；shape 根因闭环
+  （Graph::replaceAllUses/replaceResult 核心守卫 + verifier tiling 放宽 + RE/CSE 别名
+  预检）。门禁：ctest 56/57（余 repcut 既有）、hdlbits 162/162、xsbug 25/25、trace
+  162/162。**7d 卡在 cpu.st.build-general-nodes 组合环**——aggregate 独有的 8 个
+  值级假环（struct 端口束 pack/slice 往返 + 动态状态数组读回馈；基线标量化零环已复核，
+  排除 S5 回归）；逐边证据与方向见 stage-07 头部"当前阻塞"节。三仓库已提交中间态。
 - 2026-10-10：S6 实施完成（工作树，分支 grh/grhsim-ir）：GrhSIM 类型系统 width+shape 化
   （arrayType/TypeKind::Array/DeclProvenance.shape 退役，logicType 带 shape intern）；
   state 访问 op 族统一 read/readArray/write/writeArray/fill（mem* 六名整体退役，

@@ -118,6 +118,42 @@ B8 seal 通过；**失败点 = `cpu.st.build-general-nodes`：compute graph 存�
    把动态读以单值端口形式保留，值级环出现。**环问题与 reg-to-mem 退役是纠缠的**。
 4. comb-loop-elim 的 S5 既定保守分支（含动态读的环不可判定时保留）按设计工作，
    不是 bug。
+5. **环的两个具体形态**（flat GRH 逐边提取实证）：
+   - **struct 端口束的 pack→slice 往返**：模块边界上 struct 类型端口被打包成一个
+     巨型 kConcat（实测一例 120+ 字段整束打包），对侧再逐字段 kSliceStatic 切回；
+     束内字段间经真实逻辑互依（如 crossPageWithHit 依赖 sqPtr 字段），值级图上
+     共享束节点形成假环（位级无环，Verilator 无 UNOPTFLAT 豁免需求）。
+     baseline 无此问题是因为 firtool 默认把 struct 端口也摊平成逐字段标量端口。
+   - **动态状态数组读回馈**（replacer stateBank：读索引组合依赖读结果）。
+6. 首轮修复方向由此明确：消灭 struct 端口束的 pack/slice 往返（逐叶连接直通），
+   让共享束节点不出现；动态读环另行处理。
+
+### 更深的根因（2026-10-11 凌晨实证，优先级最高）
+
+环分析 bail 的直接原因不是动态读——**8 个环全部 bail 在同一个 kConcat 上**：
+该 concat 的结果宽度错（= 操作数个数而非位宽和，如 136 操作数 1350 位却只给
+136 位）。这是 ingest 聚合表达体系的**普遍宽度簿记 bug**：`grh.verify` 新增
+kConcat 宽度校验后，ingest 后直接报 **58247 处**错宽 concat（Rob/
+RenameTableWrapper/LoadQueueReplay/AheadBtb 等聚合 pattern 密集模块）。
+
+- 该 bug 自 S4 起隐性存在（聚合设计从未跑过仿真；当时的 verify 不查 concat
+  宽度）。它不只是环分析的障碍——错宽值的切片读出界，是真实的仿真正确性 bug。
+- 已修三处 hint 默认点（lowerArrayPatternValue / concatArrayElements /
+  flattenStructExpr：宽度兜底从 `: 1` 改为元素/叶子类型宽度），58247 → 45524。
+  残余为另一些产生路径（TPmeta 式"数组 of struct 动态读重组"、二操作数
+  `sum = 2×result − 1` 形态——结果取了首操作数宽度，疑似某条不经 emitExpr
+  kConcat 重算的发射路径）。
+- 正确方向：GRH 物化层对 kConcat 结果宽度一律按操作数实际宽度重算
+  （emitExpr 的 kConcat 分支本就如此），逐条找出绕开它的发射路径并统一；
+  校验器已有 kConcat 宽度硬校验（verify.cpp），此类 bug 今后在产生处即报。
+
+结论：需要"动态读环断路"能力（S5 扩展或专项 pass），属 stage-08 级设计工作。
+候选方向：(a) comb-loop-elim 对含动态读环的片段化扩展；(b) 专项 pass 把环内
+动态状态数组读改写为逐元素读口 + 选择树（局部重建元素级无环结构——注意：
+读侧展开成 mux 树后"结果→索引→mux 选择→结果"的值级环仍在，需先验证断环
+位置在写口/边界侧）；(c) CPU 映射侧把状态读作为合法断环边界（语义风险，
+需论证读旧值的 NBA 语义）。决定前先小用例验证（TAGE/replacer 形态，
+CASE_021/022 族）。
 
 结论：需要"动态读环断路"能力（S5 扩展或专项 pass），属 stage-08 级设计工作。
 候选方向：(a) comb-loop-elim 对含动态读环的片段化扩展；(b) 专项 pass 把环内
