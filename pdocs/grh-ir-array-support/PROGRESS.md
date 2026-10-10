@@ -23,7 +23,7 @@
 | S3 kRegister 端口族 | 已合入 | 1/1 | 2026-10-09 全绿 | 0 | S4/S6 可开工 |
 | S4 ingest 聚合保留 | 已完成 | 3/3 | 2026-10-09 全绿（含全量设计校验） | 0 | S5/S6/S7 可开工 |
 | S5 comb-loop-elim | 已实施 | 1/1 | 2026-10-10 全绿 | 0 | S7 等 S5/S6 |
-| S6 grhsim 承接 | 未开始 | 0/? | — | 0 | 等 S1/S3 |
+| S6 grhsim 承接 | 已实施 | 1/1 | 2026-10-10 全绿 | 0 | S7 等 S5/S6 |
 | S7 preserve-aggregate 端到端 | 未开始 | 0/3 | — | 0 | 等 S4/S5/S6 |
 
 依赖图见 README §4：S2∥S3，S5∥S6，S4 是 S7 最大前置。
@@ -126,12 +126,28 @@
 
 ### S6 — grhsim 承接（stage-06-grhsim-backend.md）
 
-- 状态：未开始
-- 合入单元：—（width+shape 类型化 / op 族 mem* 退役 / CPU 后端 / JSON，建议按此拆）
-- 门禁快照：—
-- 豁免/破坏：—（权威登记：stage-06 §7；单维路径必须保持全绿）
-- 文档同步：core.md ☐ cpu.md ☐ cpu-st.md ☐ overview.md ☐
-- 新增问题：无
+- 状态：已实施（2026-10-10，工作树，分支 grh/grhsim-ir）
+- 合入单元：width+shape 类型化（Type.shape、arrayType/TypeKind::Array 退役）+
+  op 族 mem* 退役（read/readArray/write/writeArray/fill/latchWrite，memWriteSeq 删除、
+  声明顺序优先级）+ verifier/JSON v3（格式串与 core.v2 指纹）/grh_to_grhsim 1:1 承接 +
+  CPU 后端多维化（布局摊平/schedule staticRow 折叠/emit 多索引/FST 逐元素）+
+  pass 全适配（含 reg_to_mem 空转闸门）。
+- 门禁快照：2026-10-10 ctest 57/58（余 transform-repcut 为 HEAD 既有，与 S4/S5 同）；
+  run_all_hdlbits_grhsim_ir_tests 162/162；run_xs_bugcase_grhsim 25/25；
+  check_sim_refactor_baseline 162/162（trace 无 diff）；**XS CoreMark 全量 difftest
+  `HIT GOOD TRAP`，instrCnt=663,688 / cycleCnt=297,291 与基线逐位一致，主机时间
+  285.3s 与基线 281.5s 持平**（首轮实现曾因 sliceArray 打包-切片发射形状退化至 3929s，
+  经 rowBackedArrayText 直达行索引修复；日志
+  `build/logs/xs/xs_wolf_grhsim_20261010_083619.log` 与复跑日志）。
+- 豁免/破坏：0（权威登记：stage-06 §7；mem* op 退役与 grhsim v2 checkpoint 失效为
+  计划内破坏，旧 checkpoint 重新生成即可；单维路径门禁全绿已证实）
+- 文档同步：core.md ☑（§2/§5/§8/§10 重写 + 契约翻转）cpu-st.md ☑ cpu.md ☑
+  overview.md ☑ passes/ 15 篇 ☑
+- 新增问题：无（实施偏差 10 条 + 顺手修复 5 条见 stage-06 头部"实施记录"；
+  scripts/ 若干 census 脚本引用旧 op 名未更新，非门禁项）
+- 顺手修复：GRH const_fold 常量 shape 传播（CASE_005 实证）；used-bits 非跟踪值
+  cone pinning + pinned 单调标记（CASE_003 挂起/CASE_021 死写误删实证）；emit rowOf
+  单动态索引补 stride；emit state.read 分派按 state 类型 shape 判定。
 
 ### S7 — preserve-aggregate 端到端（stage-07-preserve-aggregate-e2e.md）
 
@@ -185,3 +201,16 @@
   （余 transform-repcut 为 HEAD 既有）、hdlbits 162/162、xs-bugcase 25/25、基线
   162/162。探针实证：dyn_loop 假环从 analysis=incomplete 黑洞变为修复。详见
   stage-05 实施记录（6 条偏差，含终止性论证修正）。S6/S7 可开工（S5 依赖已清）。
+- 2026-10-10：S6 实施完成（工作树，分支 grh/grhsim-ir）：GrhSIM 类型系统 width+shape 化
+  （arrayType/TypeKind::Array/DeclProvenance.shape 退役，logicType 带 shape intern）；
+  state 访问 op 族统一 read/readArray/write/writeArray/fill（mem* 六名整体退役，
+  memWriteSeq 改为声明顺序多 write op）；verifier 全族几何校验（state 边界按总位宽契约，
+  实证 GRH 扁平/shape 混合形态）；JSON `wolvrix.grhsim.v3` + 指纹 `wolvrix.grhsim.core.v2`；
+  grh_to_grhsim 1:1 承接（过渡线性化/展开代码删除）；CPU 后端布局/schedule/emit/FST 多维化
+  （物理平坦行数组 + 发射端行主序线性化 + FST 逐元素 512B 阈值）；pass 全适配。门禁：
+  ctest 57/58（余 transform-repcut 为 HEAD 既有）、hdlbits 162/162、xs-bugcase 25/25、
+  baseline 162/162（trace 无 diff）、**XS CoreMark 全量 difftest HIT GOOD TRAP、
+  instrCnt=663,688 / cycleCnt=297,291 与基线逐位一致**。实证修复：GRH const_fold 常量
+  shape 传播、used-bits 非跟踪值 cone pinning（pinned 单调标记）、emit rowOf 动态单索引
+  stride、state.read 按 state shape 分派、kSliceArray 扁平基值转换层兜底（单索引
+  1-D 视图）。详见 stage-06 实施记录（偏差 11 条）。S7 可开工（S5/S6 依赖已清）。

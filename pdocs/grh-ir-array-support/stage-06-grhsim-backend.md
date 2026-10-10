@@ -7,10 +7,113 @@
   read/readArray/write/writeArray/fill（Array 后缀 = 索引变体），memWriteSeq 退役改为
   声明顺序语义；2026-10-09：Q2 宽元素×多维定稿为必须支持；Q3 FST 定稿为逐元素 +
   阈值排除（摊平方案废弃，含格式层证据）；Q4 read/write 支持带 shape state/value
-  定稿为必须支持——§8 全部关闭）
-- 状态：计划草案
+  定稿为必须支持——§8 全部关闭；2026-10-10 实施完成，实施记录见下）
+- 状态：已实施（2026-10-10，工作树，分支 grh/grhsim-ir）
 - 依赖：stage-01（GRH shape）、stage-03（kRegister 数组端口族与新优先级语义）
 - 对应总目标：#8（grhsim 数组承接）、#9/#10（基础设施与文档联动）
+
+## 实施记录（2026-10-10）
+
+已实施（工作树，分支 grh/grhsim-ir）：
+
+- **类型系统 width+shape 化**：`Type` 删 `elementType`/`count`、增 `shape:int64[]`
+  （空=标量；`TypeKind::Array` 与 `GrhSimModel::arrayType` 退役；`logicType` 带 shape
+  形参并 intern）；新增 `shapeElementCount`/`typeElementWidth` helper；
+  `DeclProvenance.shape` 退役（`width` 改为声明总线性位宽）。
+- **state 访问 op 族**：`read`/`readArray`/`write`/`writeArray`/`fill`/`latchWrite`
+  六名注册（regWrite/memRead/memWrite/memFill/memAssign/memWriteSeq 整体退役）；
+  同 state 写 op 声明顺序=优先级（reg_to_mem 的 memWriteSeq 产出改为逐 triple 一个
+  writeArray、按序发射、共享全 1 mask）。
+- **verifier**：类型 shape 规则（各维>0、∏ 不溢出、整除、仅 Logic）与 GRH verify 同构；
+  read/readArray/write/writeArray/fill/latchWrite/sliceArray 全族操作数布局与几何校验
+  （索引数 1..rank、索引标量 logic、mask 宽=数据总位宽、fill 广播/打包两形态）；
+  storeClass 规则重写（mem 类要求带 shape logic state；latchWrite 不得指向 mem 类）；
+  相位归类 class-aware（未分类按 shape 兜底）。**偏差 1**。
+- **JSON**：格式演进 `wolvrix.grhsim.v3`（类型条目 [id, typeRef, kind, width, isSigned,
+  domain, shape[]]；declProvenance 删 shape 项；v2 checkpoint 拒绝）；方言指纹
+  `wolvrix.grhsim.core.v2`。
+- **lowering**：GRH→GrhSIM 逐 op 1:1 承接（端口族映射表见 §3.4），全部 stage-04 过渡
+  线性化/展开代码删除；kSliceArray 任意索引数直通（sliceWidth 参数退役）；无 mask 写口
+  补全 1 常量。
+- **CPU 后端**：布局按 shape 行主序摊平（物理平坦 `Array(元素物理, ∏shape)`，字节布局与
+  旧一维逐字节一致；宽元素×多维支持）；memWritePlan 顺序=声明顺序、staticRow=全常量满秩
+  索引行主序折叠；emit 多维化（readArray/writeArray 发射端线性化、k<rank 子数组行块、
+  整体读写打包/切片循环、fill 两形态）；FST 逐元素注册（`arr[i0][i1]`）+512B 阈值排除。
+- **pass 适配**：reg_to_mem（shaped 产出+闸门空转）、select_state_stores（总字节阈值）、
+  split_phases、lower_edge_detect、used_bits、canonicalize_compute、const_fold（多索引
+  常量折叠）、comb_pack、pack_bit_registers、cone_extract、migrate_timeslot_tasks 等。
+- **文档**：core.md（§2 类型/§5 op 族/§8 映射/§10 校验重写+契约翻转）、cpu-st.md、
+  cpu.md、overview.md、passes/ 15 篇机械同步。
+- **测试**：8 个 IR/pass 套件 + 3 个后端套件适配；新增多维用例（双索引读写×两存储类、
+  k<rank 子数组、声明顺序优先级、96 位宽元素×[2,3]、FST 逐元素+阈值排除、多维布局断言、
+  整体读写等价）、verifier 规则正/负例、JSON roundtrip 带 shape、reg-to-mem 空转
+  （`shapedStateIdleTest`）。
+
+与 §3/§4 清单的偏差：
+
+1. **verifier 的 state 边界类型契约按总位宽判定，shape 可不一致或缺席**：实证
+   xs-bugcase 中 GRH 产生"扁平值↔带 shape state"双向混合（整体写 data 扁平、整体读
+   result 扁平、写扁平 state 的 data 带 shape）。shape 是纯结构视图（stage-01），位宽
+   相等即位语义等价；非 logic state 保持类型同一。索引数/rank 与宽度几何仍强校验。
+2. **CpuType 物理类型系统保留不动**（CpuTypeKind::Array/elementType/count）：它是四态
+   word 数组、activeFlags 等纯物理构造；带 shape 语义 state 映射为平坦
+   `Array(元素物理, ∏shape)`，与旧一维字节布局逐字节一致。
+3. **带 shape 值 = 总位宽扁平位向量**（不立 std::array 值；compute op 发射对 shape 透明），
+   state/boundary 存储为平坦行数组；边界桥接（读打包/写解包）是设计文档三处 shape 感知点
+   之外的第四处，emit 端实现。
+4. **write 数组整体写的全 1 mask 由转换层合成**；emit 端 `isAllOnesConstant` 识别（含
+   >64 位 SVInt 解析）后省略掩码逐位与——避免大数组的超宽常量字面量进入热路径。
+5. **FST 逐元素注册仅覆盖 state/boundary**；shaped 端口（无逐行存储）注册为单个总位宽
+   var。阈值按物理字节（rows×元素字节）判定。
+6. **staticRow 仅在 k==rank 且全索引常量时折叠**（行主序线性行号）；k<rank 或任一非常量
+   → 动态读者。子数组写动态基址按"整块越界丢弃"做运行期保护（索引合法性是 verifier 契约）。
+7. **memWritePlan.priority 字段保留**（=声明顺序位次，调试/校验可读性），JSON 编码不变。
+8. **reg-to-mem 空转**靠族发现/资格判定的 shape.empty() 闸门自然实现（带 shape 输入无
+  可恢复族），加 `shapedStateIdleTest` 钉死；多维族恢复按 §3.6 不扩展。
+9. **split_phases 的 mem_writes_reglatch 计数器收窄回"数组写走 regLatch 路径"口径**
+   （标量 write 计入 attributedGeneral，与旧 regWrite 一致）；未分类模型按 shape 兜底路由，
+   与 verifier 的 verifyPhaseAttribution 未分类分支逐条对齐。
+10. **子数组/多维写的越界钳位**：常量折叠在 emit 端带溢出守卫（溢出回退动态文本，运行时
+    回绕语义一致）。
+11. **kSliceArray 扁平基值兜底（转换层）**：XS 全量实证——GRH 折叠/别名产物可使
+    kSliceArray 基值丢失 shape（firtool 生成代码经 ingest 常量折叠后 `_GEN_x` 与扁平
+    常量同值合并；32/11407 例）。转换层对单索引扁平基值补一个 shape=[baseW/resultW]
+    的 assign 视图（位语义不变），多索引扁平基值仍报错（几何不可恢复）。GRH 侧按
+    stage-02 契约 grh.verify 本就该拒绝扁平基值——根因修复（别名/折叠代表元必须携带
+    shape）归 S7 复核。
+
+门禁快照（2026-10-10）：ctest 57/58（余 transform-repcut 为 HEAD 既有）、
+run_all_hdlbits_grhsim_ir_tests 162/162、run_xs_bugcase_grhsim 25/25、
+check_sim_refactor_baseline 162/162（trace 无 diff）、XS CoreMark 全量 difftest
+HIT GOOD TRAP、instrCnt=663,688 / cycleCnt=297,291 与基线逐位一致（日志
+`build/logs/xs/xs_wolf_grhsim_20261010_083619.log`）。
+
+顺手修复（实施中实证的既有/过渡缺陷）：
+
+- **GRH const_fold 折叠常量丢 shape**（xs-bugcase CASE_005 实证：kConcat 折叠产物无
+  shape，下游 kSliceArray 基值非法）——`createConstant`/`createConstantClone` 传播
+  resultValue.shape，ConstantKey 纳入 shape。
+- **used-bits 对非跟踪值（shaped/real/string）的 cone 保护**：shaped 结果的 op 不被死扫
+  但其扁平输入锥会被误扫（CASE_003/007/008 dangling），且 state.read 的 pinned 结果不抬
+  usedState 导致整寄存器写被当死写删除（CASE_021 实证）——新增 pinned 单调标记 +
+  cone-pinning 规则 + stateRead pinned 语义。
+- **emit rowOf 单动态索引丢 stride**（rank≥2 的 k=1 子数组写基址错误；测试评审发现）——
+  单索引动态路径补外维 stride。
+- **emit 的 state.read 分派改按 state 类型 shape 判定**（result 值可合法携带扁平视图），
+  input.read 同理按 input 类型。
+- **性能实证与修复**：首版实现 XS CoreMark 主机时间从 ~281s 退化到 ~3929s（~14×）。
+  perf 定位：sliceArray 对逐行存储的 shape 值（state/boundary）先打包整个总位宽向量
+  再移位读取（某 rob/rab 超节点 512 行×512 次打包约占 10%）。修复：
+  `rowBackedArrayText` 快路径——sliceArray 基值有逐行存储时直接按行索引（O(1)），越界读
+  保持 legacy 钳位为 0 语义（k<rank 子块逐行钳位，packStoreRows 增 rowCount 上限）。
+  修复后 XS CoreMark 主机时间 285.3s（与基线 281.5s 持平，+1.4% 噪声级），轨迹逐位一致。
+  教训：**"值=扁平向量、存储=逐行数组"的双表示在桥接点必须就近索引，不得先打包再切片**。
+- **dialect op 注册表长度修正**（47 项）。
+- **verifier 报文带 op 名与几何细节**（unknown dialect reference / write 形状不符）。
+
+已知影响（非门禁）：`scripts/` 下若干分析普查脚本引用旧 op 名（memRead/memWriteSeq 等）
+未更新，待使用时适配；`ptmp/sim-refactor-baseline` 黄金 trace 归 stage-07 重钉（本阶段
+单维路径行为不变）。
 
 ## 1. 目标
 
