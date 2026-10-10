@@ -20,7 +20,12 @@ GRH_PIPELINE: list[tuple[str, dict]] = [
     ("latch-transparent-read", {}),
     ("hier-flatten", {}),
     ("comb-loop-elim", {}),
+    # Stage-07 hardening: verify shape/op invariants before and after the
+    # simplify fixed point (cheap, ~4s on XiangShan) instead of discovering
+    # geometry violations deep inside const-fold or at the grhsim boundary.
+    ("grh.verify", {}),
     ("simplify", {"semantics": "2state"}),
+    ("grh.verify", {}),
     ("memory-init-check", {}),
 ]
 
@@ -169,15 +174,19 @@ def mem_enable_bitmap() -> str:
 
 CPU_SEMANTIC_PIPELINE = [
     # Whole-graph stage-A pipeline (M5d-3): normalize first so pattern
-    # matching sees canonical input, recover scalarized tables, pack
-    # isomorphic comb lanes and bit registers while raw event_edges are still
-    # present, then run the unified whole-graph simplify to a fixed point.
-    # select-state-stores (M5d-4, A7) closes stage A with the semantic store
-    # classification. Boundary-aware shared-compute cloning never runs in the
-    # semantic stages: it lives in the C segment as cpu.st.clone-shared-boundaries
-    # (V3-M3, after merge-general-supernodes).
+    # matching sees canonical input, pack isomorphic comb lanes and bit
+    # registers while raw event_edges are still present, then run the unified
+    # whole-graph simplify to a fixed point. select-state-stores (M5d-4, A7)
+    # closes stage A with the semantic store classification. Boundary-aware
+    # shared-compute cloning never runs in the semantic stages: it lives in
+    # the C segment as cpu.st.clone-shared-boundaries (V3-M3, after
+    # merge-general-supernodes).
+    # Stage-07: grhsim.reg-to-mem is retired — with preserve-aggregate RTL the
+    # array structure arrives declared (S4/S6), so the scalarized-table
+    # recovery it performed has no input left. The negative-result knowledge
+    # (why a scalarized front-end needed it) is kept in
+    # wolvrix/docs/grhsim_ir/passes/reg-to-mem.md as a historical record.
     ("grhsim.canonicalize-compute", {}),
-    ("grhsim.reg-to-mem", {}),
     ("grhsim.comb-pack", {}),
     ("grhsim.pack-bit-registers", {}),
     ("grhsim.simplify", {"scope": "whole"}),
@@ -281,7 +290,6 @@ def parse_args() -> argparse.Namespace:
                         help="M5d-7 C8: per-function estimated-lines cap for the emit TU plan")
     parser.add_argument("--cpu-unit-max-estimated-lines", type=int,
                         help="M5d-7 C8: per-translation-unit estimated-lines cap for the emit TU plan")
-    parser.add_argument("--disable-reg-to-mem", action="store_true")
     parser.add_argument("--comb-pack", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--comb-pack-report", type=Path,
                         help="diagnostic (M5d-3): dump the group list TSV from grhsim.comb-pack")
@@ -313,6 +321,9 @@ def parse_args() -> argparse.Namespace:
                              "and no longer has a standalone pipeline step")
     parser.add_argument("--dump-post-lower-json", type=Path,
                         help="diagnostic (NO00020): also store the GrhSIM model right after grhsim.verify, before any semantic/mapping pass")
+    parser.add_argument("--dump-pre-simplify-json", type=Path,
+                        help="diagnostic (stage-07 compile-time): also store the flat GRH "
+                             "checkpoint right before the GRH simplify pass")
     parser.add_argument("--dump-pre-partition-json", type=Path,
                         help="diagnostic (NO00020): also store the GrhSIM model after the sealed "
                              "semantic pipeline (B8), right before the single cpu.st.build-general-nodes "
@@ -322,14 +333,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sink-enable-guard-min-size", type=int,
                         help="override the A1 sink enable-guard group threshold "
                              "(default: XS_WOLF_GRHSIM_IR_SINK_GUARD_MIN or 8; 0 disables)")
-    parser.add_argument("--reg-to-mem-report", type=Path)
     parser.add_argument("--pack-bit-registers-report", type=Path,
                         help="diagnostic (NO00026): dump the packed_bits member list TSV from grhsim.pack-bit-registers")
-    parser.add_argument("--reg-to-mem-or-write-merge", action=argparse.BooleanOptionalAction, default=True,
-                        help="recover decoded OR-of-zero-mux writes with shared same-address data merging")
-    parser.add_argument("--reg-to-mem-row-constant-fill", action=argparse.BooleanOptionalAction, default=True,
-                        help="let grhsim.reg-to-mem merge write families whose fill branch data is a "
-                             "per-row constant, expanding the fill to static-address sequence triples")
     args = parser.parse_args()
     if args.cpu_target_batch_count is not None and args.cpu_target_batch_count < 0:
         parser.error("--cpu-target-batch-count must be nonnegative")
@@ -393,6 +398,16 @@ def main() -> int:
             )
             require_ok(diagnostics, "ingest XiangShan RTL")
             for pass_name, pass_options in GRH_PIPELINE:
+                if pass_name == "simplify" and args.dump_pre_simplify_json is not None:
+                    dump_path = args.dump_pre_simplify_json.resolve()
+                    dump_path.parent.mkdir(parents=True, exist_ok=True)
+                    diagnostics = timed(
+                        f"store pre-simplify GRH checkpoint {dump_path}",
+                        lambda path=dump_path: session.store_json(
+                            design="design.main", output=str(path), top=[args.top]
+                        ),
+                    )
+                    require_ok(diagnostics, "store pre-simplify GRH checkpoint")
                 # Declared-symbol retention must stay on through the whole GRH
                 # pipeline: the lowered declProvenance association depends on it.
                 options_with_retention = {"keep_declared_symbols": True, **pass_options}
@@ -443,7 +458,6 @@ def main() -> int:
                     and (not args.pack_bit_registers or args.disable_pack_bit_registers))
             and not (name == "grhsim.comb-pack" and not args.comb_pack)
             and not (name == "grhsim.select-state-stores" and not args.select_state_stores)
-            and not (name == "grhsim.reg-to-mem" and args.disable_reg_to_mem)
             and not (name == "cpu.st.clone-shared-boundaries" and not args.clone_shared_compute)
             and not (name == "grhsim.simplify" and options.get("scope") == "phase"
                      and not args.phase_simplify)
@@ -454,12 +468,6 @@ def main() -> int:
                 pass_options["max-clones"] = args.clone_shared_compute_max_clones
                 if args.clone_shared_compute_lossy_compare:
                     pass_options["lossy-compare"] = 1
-            if pass_name == "grhsim.reg-to-mem" and args.reg_to_mem_report:
-                args.reg_to_mem_report.parent.mkdir(parents=True, exist_ok=True)
-                pass_options["report"] = str(args.reg_to_mem_report.resolve())
-            if pass_name == "grhsim.reg-to-mem":
-                pass_options["enable_row_constant_fill"] = args.reg_to_mem_row_constant_fill
-                pass_options["enable_or_write_merge"] = args.reg_to_mem_or_write_merge
             if pass_name == "grhsim.comb-pack" and args.comb_pack_report:
                 args.comb_pack_report.parent.mkdir(parents=True, exist_ok=True)
                 pass_options["report"] = str(args.comb_pack_report.resolve())

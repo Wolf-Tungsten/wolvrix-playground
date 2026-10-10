@@ -16,14 +16,19 @@
 
 ## 正确性门槛（任何性能优化提交前必须全绿）
 
-1. `make test_wolvrix`：无新增失败（基线三项 transform-comb-lane-pack、
-   transform-repcut、ingest-write-back-slice SEGFAULT）；
+1. `make test_wolvrix`：无新增失败（基线仅余 transform-repcut 一项既有失败；
+   transform-comb-lane-pack 已于 stage-02 随 pass 删除消失，
+   ingest-write-back-slice SEGFAULT 已于 stage-04 治愈）；
 2. `make run_all_hdlbits_grhsim_ir_tests`：162/162；
 3. `make run_xs_bugcase_grhsim`：25/25；
-4. `make check_sim_refactor_baseline`：161/161 逐 eval 与黄金一致；
+4. `make check_sim_refactor_baseline`：逐 eval 与黄金一致（stage-07 起黄金
+   按无 reg-to-mem 管线重钉，数量以 MANIFEST 为准）；
 5. XS 完整 CoreMark + NEMU difftest：`HIT GOOD TRAP`、exit 0，且逐拍轨迹
    instrCnt=663,688 / cycleCnt=297,291 一致（除非本项优化有意改变调度语义，
-   此时必须重钉轨迹并说明）。
+   此时必须重钉轨迹并说明）。stage-07 起标准链路为 preserve-aggregate：
+   `make xs_wolf_grhsim_ir_aggregate_emu` + `make run_xs_wolf_grhsim_ir_aggregate_emu`
+   （RTL 由 `make xs_rtl_aggregate` 生成）；legacy（标量化 SV）链路降级为
+   HDLBits/小用例维护模式，不再是 XS 规模门禁。
 
 ## 当前基线
 

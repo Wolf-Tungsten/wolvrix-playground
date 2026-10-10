@@ -151,12 +151,16 @@
 
 ### S7 — preserve-aggregate 端到端（stage-07-preserve-aggregate-e2e.md）
 
-- 状态：未开始
-- 合入单元：7a（firtool 链路接入）☐ 7b（Makefile/管线接入）☐ 7c（reg-to-mem 退役三步）☐
-- 门禁快照：—（终极验收：全部豁免清零 + CoreMark 轨迹钉死 + 性能不回退）
-- 豁免/破坏：—
-- 文档同步：README §6 门禁表更新 ☐
-- 新增问题：无
+- 状态：进行中（7a/7b/7c 已落地并全绿；7d 卡在组合环阻塞，见 stage-07 头部"当前阻塞"节）
+- 合入单元：7a（firtool 链路接入）☑ 7b（Makefile/管线接入）☑ 7c（reg-to-mem 退役三步）☑ 7d（验收）☐
+- 门禁快照：2026-10-10 ctest 56/57（余 transform-repcut 既有）、hdlbits 162/162、
+  xsbug 25/25、trace 基线 162/162 无 diff（reg-to-mem 在 HDLBits 零触发，免重钉）
+- 豁免/破坏：0（reg-to-mem 移除为计划内破坏）
+- 文档同步：perf-optimization README 门禁改 aggregate 口径 ☑ pass-flow/architecture
+  退役注记 ☑ reg-to-mem.md 转 RETIRED ☑ grh-ir.md kRegisterReadPort shape 契约修订 ☑
+- 新增问题（实证后登记）：编译期超线性（已修：topo_guard 拓扑守卫 + lean 化）；
+  shape 别名根因（已修：核心 guardShapeAlias）；**组合环阻塞**（未决，归 stage-08 候选）
+- 顺手修复：mill 调用的 JDK17/PATH 环境自包含（XS_MILL_ENV）；simplify 迭代计时日志
 
 ## 日志
 

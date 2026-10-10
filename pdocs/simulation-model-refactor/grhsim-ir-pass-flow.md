@@ -156,6 +156,12 @@ op 上：`core.state.regWrite` 写寄存器，`core.state.memWrite` 写 memory �
 
 ### A2 `grhsim.reg-to-mem` —— 把打散的寄存器族恢复成表
 
+> **已于 2026-10-10 退役（stage-07 7c）**：preserve-aggregate RTL 使数组结构
+> 从声明侧直达 GrhSIM IR，"标量族恢复"不再有输入来源；pass 代码、测试与
+> 管线注册点整体移除。本节保留作历史记录——负结果知识（为什么标量化前端
+> 必须配 reg-to-mem）同时留在
+> `pdocs/perf-optimization/20261007-040954-reg-to-mem-off-negative.md`。
+
 - **职能**：RTL 前端常把"按地址读写的一组寄存器"（寄存器堆、小表）综合成一堆
   独立标量寄存器加一串地址译码 mux。该 pass 反向识别这类模式：地址译码 guard
   （`enable && addr==i`）、零回退 mux、全 1 掩码，把兼容的标量状态族重新合并成
@@ -484,7 +490,7 @@ P_output：收敛后执行一次，刷新对外输出、跑时隙任务（B3/B4 
 | --- | --- | --- | --- | --- | --- |
 | 入口 | — | `lower_grhsim` + `grhsim.verify` | 转换/分析 | 平坦 GRH 图 | 合法的初始 GrhSimModel |
 | A | A1 | `grhsim.canonicalize-compute` | 语义 | 初始模型 | 归一化图（链消除/CSE/恒等式/concat 折叠） |
-| A | A2 | `grhsim.reg-to-mem` | 语义 | A1 | 寄存器族恢复为数组 + mem 系写 op |
+| A | ~~A2~~ | ~~`grhsim.reg-to-mem`~~（2026-10-10 退役，stage-07 7c） | 语义 | A1 | 寄存器族恢复为数组 + mem 系写 op |
 | A | A3 | `grhsim.comb-pack` | 语义 | A2 | 同构组合 lane 打包成宽逻辑 |
 | A | A4 | `grhsim.pack-bit-registers` | 语义 | A3（事件注解仍内联） | 一位寄存器打包成字 |
 | A | A5 | `grhsim.simplify(scope=whole)` | 语义 | A4 | 全图化简到不动点 |

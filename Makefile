@@ -113,6 +113,18 @@ XS_EMU_THREADS ?= 2
 XS_VM_BUILD_JOBS ?= $(shell nproc)
 XS_SIM_TOP ?= SimTop
 XS_RTL_SUFFIX ?= sv
+# firtool --preserve-aggregate level forwarded to testcase/xiangshan/Makefile
+# (empty = firtool default "none"; the xs_*_aggregate targets set it via
+# XS_AGGR_LEVEL). Applies to the $(XS_SIM_TOP_V) / xs_gsim_rtl mill builds.
+XS_PRESERVE_AGGREGATE ?=
+# mill 0.12.15 (testcase/xiangshan/.mill-version) needs JDK 17 and the repo-root
+# mill launcher on PATH; empty XS_JAVA_HOME = rely on the ambient environment.
+XS_JAVA_HOME ?= $(firstword $(wildcard /usr/lib/jvm/java-17-openjdk-amd64))
+ifneq ($(strip $(XS_JAVA_HOME)),)
+XS_MILL_ENV := JAVA_HOME="$(XS_JAVA_HOME)" PATH="$(XS_JAVA_HOME)/bin:$(CURDIR):$$PATH"
+else
+XS_MILL_ENV := PATH="$(CURDIR):$$PATH"
+endif
 XS_WITH_CHISELDB ?= 0
 XS_WITH_CONSTANTIN ?= 0
 XS_ZERO_INIT ?= 0
@@ -144,6 +156,12 @@ XS_WOLF_BUILD ?= $(XS_WORK_BASE)/wolf
 XS_GRHSIM_BUILD ?= $(XS_WORK_BASE)/grhsim
 XS_GRHSIM_IR_BUILD ?= $(XS_WORK_BASE)/grhsim-ir
 XS_REPCUT_BUILD ?= $(XS_WORK_BASE)/repcut
+# Stage-07 preserve-aggregate flow: independent RTL/build dirs so the baseline
+# (scalarized) chain stays untouched. XS_AGGR_LEVEL feeds firtool
+# --preserve-aggregate=$(XS_AGGR_LEVEL) through XS_PRESERVE_AGGREGATE.
+XS_AGGR_LEVEL ?= all
+XS_AGGR_RTL_BUILD ?= $(XS_WORK_BASE)/rtl-aggr
+XS_AGGR_GRHSIM_IR_BUILD ?= $(XS_WORK_BASE)/grhsim-ir-aggr
 XS_RTL_DIR := $(XS_RTL_BUILD)/rtl
 XS_VSRC_DIR ?= $(XS_ROOT)/difftest/src/test/vsrc/common
 XS_WOLF_EMIT_DIR ?= $(XS_WOLF_BUILD)/wolf_emit
@@ -155,8 +173,6 @@ XS_WOLF_HIER_JSON_SKIP_SAFE_PASSES ?= 0
 XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_flat_grh.json
 XS_WOLF_GRHSIM_IR_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_grhsim_ir.json
 XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_grhsim_ir_roundtrip.json
-XS_WOLF_GRHSIM_IR_REG_TO_MEM ?= 1
-XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT ?= $(XS_GRHSIM_IR_BUILD)/reg_to_mem.tsv
 XS_WOLF_GRHSIM_IR_COMB_PACK ?= 0
 XS_WOLF_GRHSIM_IR_COMB_PACK_REPORT ?=
 XS_WOLF_GRHSIM_IR_SELECT_STATE_STORES ?= 1
@@ -174,8 +190,6 @@ XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
 # B6 per-partition simplify (M5d-5); disable only for pipeline debugging.
 XS_WOLF_GRHSIM_IR_PHASE_SIMPLIFY ?= 1
 XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES ?= 1
-XS_WOLF_GRHSIM_IR_ROW_CONSTANT_FILL ?= 1
-XS_WOLF_GRHSIM_IR_OR_WRITE_MERGE ?= 1
 XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS ?= 1
 XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS ?= 0
 XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT ?=
@@ -251,7 +265,7 @@ HDLBITS_GRHTB_SOURCES := $(wildcard $(HDLBITS_ROOT)/grhtb/grhtb_*.cpp)
 HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS_GRHTB_SOURCES)))))
 
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
-	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_ir xs_ref_emu xs_gsim_emu xs_wolf_emu run_xs_json_test \
+	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_rtl_aggregate xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_ir xs_ref_emu xs_gsim_emu xs_wolf_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_diff \
 	xs_gsim_emu_pgo xs_gsim_emu_rtprof xs_gsim_export_precoarsen \
 	xs_wolf_grhsim_ir_emu xs_wolf_grhsim_ir_build_emu xs_wolf_grhsim_ir_emu_pgo xs_wolf_grhsim_ir_build_emu_pgo \
@@ -1055,77 +1069,14 @@ analyze_grhsim_activity_guards:
 	@test -n "$(GRHSIM_ACTIVITY_MODEL)" || { echo "Set GRHSIM_ACTIVITY_MODEL to the generated model .cpp"; exit 1; }
 	$(PYTHON) $(CURDIR)/scripts/grhsim_activity_guard_stats.py --model "$(GRHSIM_ACTIVITY_MODEL)"
 
-.PHONY: test_grhsim_reg_to_mem inspect_grhsim_reg_to_mem
-test_grhsim_reg_to_mem:
-	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
-	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
-	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-reg-to-mem-tests -j 2
-	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-reg-to-mem-tests$$' --output-on-failure
-
-inspect_grhsim_reg_to_mem: test_grhsim_reg_to_mem
-	$(WOLVRIX_BUILD_DIR)/bin/grhsim-reg-to-mem-tests --inspect "$(GRHSIM_AUDIT_MODEL)" "$(GRHSIM_AUDIT_PATTERN)"
-
-.PHONY: analyze_grhsim_reg_to_mem
-analyze_grhsim_reg_to_mem: test_grhsim_reg_to_mem
-	$(WOLVRIX_BUILD_DIR)/bin/grhsim-reg-to-mem-tests --analyze "$(GRHSIM_AUDIT_MODEL)" "$(GRHSIM_REG_TO_MEM_REPORT)"
-
-.PHONY: rewrite_grhsim_reg_to_mem
-rewrite_grhsim_reg_to_mem: test_grhsim_reg_to_mem
-	$(WOLVRIX_BUILD_DIR)/bin/grhsim-reg-to-mem-tests --rewrite "$(GRHSIM_AUDIT_MODEL)" "$(GRHSIM_REG_TO_MEM_REPORT)"
-
-.PHONY: summarize_grhsim_reg_to_mem
-summarize_grhsim_reg_to_mem: test_grhsim_reg_to_mem
-	$(WOLVRIX_BUILD_DIR)/bin/grhsim-reg-to-mem-tests --summarize "$(GRHSIM_AUDIT_MODEL)" > "$(GRHSIM_REG_TO_MEM_REPORT)"
-
-.PHONY: test_grhsim_reg_to_mem_generated
-test_grhsim_reg_to_mem_generated: test_grhsim_reg_to_mem
-	$(WOLVRIX_BUILD_DIR)/bin/grhsim-reg-to-mem-tests --emit-checks "$(CURDIR)/ptmp/reg_to_mem/generated_checks"
-	@for shape in writes reads windows shifted_windows edge_window overlap multi_bit_window multi_bit_shift row_constant_fill row_constant_fill_overlap or_writes or_global or_feedback or_word64; do \
-		TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp $(MAKE) --no-print-directory -C "$(CURDIR)/ptmp/reg_to_mem/generated_checks/$$shape" \
-		-f "$(WOLVRIX_DIR)/tests/grhsim/data/reg_to_mem_generated.mk" -j 2 check \
-		CXX="$(CXX)" CXXFLAGS='-std=c++20 -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all' || exit $$?; \
-	done
-
-.PHONY: test_grhsim_reg_to_mem_rtl
-test_grhsim_reg_to_mem_rtl:
-	@mkdir -p "$(CURDIR)/ptmp/reg_to_mem"
-	@set -e; rtm_dir=$$(mktemp -d "$(CURDIR)/ptmp/reg_to_mem/rtl.XXXXXX"); \
-	$(PYTHON) scripts/test_grhsim_reg_to_mem_rtl.py "$(WOLVRIX_DIR)/tests/grhsim/data/reg_to_mem_tables.sv" "$$rtm_dir"; \
-	$(MAKE) --no-print-directory -C "$$rtm_dir/model" -j 2 CXX="$(CXX)" CXXFLAGS='-std=c++20 -O1 -fsanitize=undefined -fno-sanitize-recover=all'; \
-	CCACHE_DIR="$(CURDIR)/ptmp/cpu_emit_ccache" $(VERILATOR) --cc --exe --build -j 2 --top-module reg_to_mem_tables --Mdir "$$rtm_dir/verilator" \
-	-Wno-fatal --x-initial 0 --x-assign 0 "$(WOLVRIX_DIR)/tests/grhsim/data/reg_to_mem_tables.sv" \
-	"$(WOLVRIX_DIR)/tests/grhsim/data/reg_to_mem_tables_main.cpp" \
-	-CFLAGS "-std=c++20 -O1 -I$$rtm_dir/model -fsanitize=undefined -fno-sanitize-recover=all" \
-	-LDFLAGS "$$rtm_dir/model/libgrhsim_reg_to_mem_tables.a -fsanitize=undefined"; \
-	"$$rtm_dir/verilator/Vreg_to_mem_tables"
-
-GRHSIM_REG_TO_MEM_BENCH_CPU ?= 2
-GRHSIM_REG_TO_MEM_BENCH_REPETITIONS ?= 2
-GRHSIM_REG_TO_MEM_BENCH_OUTPUT ?= $(CURDIR)/ptmp/reg_to_mem/benchmark
-GRHSIM_REG_TO_MEM_BENCH_ENABLED ?= $(CURDIR)/ptmp/reg_to_mem/xs_final
-GRHSIM_REG_TO_MEM_BENCH_DISABLED ?= $(CURDIR)/ptmp/reg_to_mem/xs_off
-GRHSIM_REG_TO_MEM_BUILD_METRICS ?= $(CURDIR)/ptmp/reg_to_mem/build_metrics
-.PHONY: measure_grhsim_reg_to_mem_build
-measure_grhsim_reg_to_mem_build:
-	@test ! -e "$(GRHSIM_REG_TO_MEM_BUILD_METRICS)" || { echo "[FAIL] build metrics directory already exists"; exit 1; }
-	@mkdir -p "$(GRHSIM_REG_TO_MEM_BUILD_METRICS)"
-	@set -e; for mode in disabled enabled; do \
-		source_dir="$(GRHSIM_REG_TO_MEM_BENCH_DISABLED)/model"; \
-		if [ "$$mode" = enabled ]; then source_dir="$(GRHSIM_REG_TO_MEM_BENCH_ENABLED)/model"; fi; \
-		destination="$(GRHSIM_REG_TO_MEM_BUILD_METRICS)/$$mode"; \
-		mkdir -p "$$destination"; \
-		cp "$$source_dir"/*.cpp "$$source_dir"/*.hpp "$$source_dir/Makefile" "$$destination/"; \
-		echo "[BUILD METRICS] $$mode start"; \
-		/usr/bin/time -v -o "$$destination/time.txt" $(MAKE) --no-print-directory -C "$$destination" -j 4 CXX="$(CXX)" \
-			> "$$destination/build.log" 2>&1; \
-		echo "[BUILD METRICS] $$mode done"; \
-	done
-.PHONY: benchmark_grhsim_reg_to_mem
-benchmark_grhsim_reg_to_mem:
-	@test -x "$(GRHSIM_REG_TO_MEM_BENCH_ENABLED)/emu/emu" && test -x "$(GRHSIM_REG_TO_MEM_BENCH_DISABLED)/emu/emu"
-	$(PYTHON) scripts/benchmark_grhsim_reg_to_mem.py --enabled "$(GRHSIM_REG_TO_MEM_BENCH_ENABLED)" \
-	--disabled "$(GRHSIM_REG_TO_MEM_BENCH_DISABLED)" --output "$(GRHSIM_REG_TO_MEM_BENCH_OUTPUT)" \
-	--cpu "$(GRHSIM_REG_TO_MEM_BENCH_CPU)" --repetitions "$(GRHSIM_REG_TO_MEM_BENCH_REPETITIONS)"
+# Stage-07 7c: the reg-to-mem pass, its test/analysis targets
+# (test_grhsim_reg_to_mem*, inspect/analyze/rewrite/summarize_grhsim_reg_to_mem,
+# measure_grhsim_reg_to_mem_build, benchmark_grhsim_reg_to_mem) and the
+# companion scripts (scripts/benchmark_grhsim_reg_to_mem.py,
+# scripts/test_grhsim_reg_to_mem_rtl.py) are retired — preserve-aggregate RTL
+# carries the array structure the pass used to recover. The rationale and the
+# negative-result knowledge stay in wolvrix/docs/grhsim_ir/passes/reg-to-mem.md
+# (historical record) and pdocs/perf-optimization/20261007-040954-reg-to-mem-off-negative.md.
 
 .PHONY: py_install
 py_install:
@@ -1331,13 +1282,20 @@ $(XS_SIM_TOP_V):
 	@$(eval LOG_FILE := $(XS_LOG_DIR_ABS)/xs_simverilog_$(RUN_ID).log)
 	@echo "[LOG] Recording sim-verilog command to: $(LOG_FILE)"
 	@printf '' > "$(LOG_FILE)"
-	@echo "[CMD] $(MAKE) -C $(XS_ROOT) sim-verilog BUILD_DIR=$(XS_RTL_BUILD_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX)" | tee -a "$(LOG_FILE)"
-	NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT) sim-verilog \
+	@echo "[CMD] $(XS_MILL_ENV) $(MAKE) -C $(XS_ROOT) sim-verilog BUILD_DIR=$(XS_RTL_BUILD_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) PRESERVE_AGGREGATE=$(XS_PRESERVE_AGGREGATE)" | tee -a "$(LOG_FILE)"
+	$(XS_MILL_ENV) NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT) sim-verilog \
 		BUILD_DIR=$(XS_RTL_BUILD_ABS) \
 		NUM_CORES=$(XS_NUM_CORES) \
-		RTL_SUFFIX=$(XS_RTL_SUFFIX)
+		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
+		PRESERVE_AGGREGATE="$(XS_PRESERVE_AGGREGATE)"
 
 xs_rtl: $(XS_SIM_TOP_V)
+
+# Stage-07: preserve-aggregate XiangShan RTL in an independent build dir.
+xs_rtl_aggregate:
+	@$(MAKE) --no-print-directory xs_rtl \
+		XS_RTL_BUILD="$(XS_AGGR_RTL_BUILD)" \
+		XS_PRESERVE_AGGREGATE="$(XS_AGGR_LEVEL)"
 
 xs_gsim_rtl:
 	@echo "[RUN] Generating XiangShan GSIM sim-verilog into $(XS_RTL_BUILD_ABS)..."
@@ -1347,8 +1305,8 @@ xs_gsim_rtl:
 	@echo "[LOG] Recording GSIM sim-verilog command to: $(LOG_FILE)"
 	@printf '' > "$(LOG_FILE)"
 	@FORCE_FLAG="$(if $(wildcard $(XS_DIFFTEST_GSIM_EXTMODULE)),,-B)"; \
-		echo "[CMD] $(MAKE) $$FORCE_FLAG -C $(XS_ROOT) sim-verilog BUILD_DIR=$(XS_RTL_BUILD_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) GSIM=1" | tee -a "$(LOG_FILE)"; \
-		NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) $$FORCE_FLAG -C "$(XS_ROOT)" sim-verilog \
+		echo "[CMD] $(XS_MILL_ENV) $(MAKE) $$FORCE_FLAG -C $(XS_ROOT) sim-verilog BUILD_DIR=$(XS_RTL_BUILD_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) GSIM=1" | tee -a "$(LOG_FILE)"; \
+		$(XS_MILL_ENV) NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) $$FORCE_FLAG -C "$(XS_ROOT)" sim-verilog \
 			BUILD_DIR="$(XS_RTL_BUILD_ABS)" \
 			NUM_CORES="$(XS_NUM_CORES)" \
 			RTL_SUFFIX="$(XS_RTL_SUFFIX)" \
@@ -1442,7 +1400,6 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			"$(WOLF_LOG)" \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON)),--resume-from-flat-grh,) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_KEEP_ORIGINS)),--keep-origins,) \
-			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_REG_TO_MEM)),--disable-reg-to-mem,) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_COMB_PACK)),--comb-pack,--no-comb-pack) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_SELECT_STATE_STORES)),--no-select-state-stores,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES)),--mem-min-bytes $(XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES),) \
@@ -1452,9 +1409,6 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS)),--no-pack-bit-registers,--pack-bit-registers) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS)),--disable-pack-bit-registers,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE),) \
-			--reg-to-mem-report "$(XS_WOLF_GRHSIM_IR_REG_TO_MEM_REPORT)" \
-			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_ROW_CONSTANT_FILL)),--reg-to-mem-row-constant-fill,--no-reg-to-mem-row-constant-fill) \
-			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_OR_WRITE_MERGE)),--reg-to-mem-or-write-merge,--no-reg-to-mem-or-write-merge) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",) \
 			$(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),--emit-waveform,) \
@@ -2071,6 +2025,34 @@ run_xs_wolf_grhsim_ir_emu:
 			$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) \
 			$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$GRHSIM_WAVEFORM,) \
 		2>&1 | tee "$$GRHSIM_LOG"
+
+# ---------------------------------------------------------------------------
+# Stage-07 preserve-aggregate GrhSIM IR flow. Same pipeline as
+# xs_wolf_grhsim_ir with the aggregate RTL as input (the CPU pipeline no
+# longer contains reg-to-mem — stage-07 7c: aggregate declarations carry the
+# array structure reg-to-mem used to recover). All artifacts stay under the
+# XS_AGGR_* dirs; the baseline targets above are untouched.
+# ---------------------------------------------------------------------------
+XS_WOLF_GRHSIM_IR_AGGR_OVERRIDES = \
+	XS_RTL_BUILD="$(XS_AGGR_RTL_BUILD)" \
+	XS_PRESERVE_AGGREGATE="$(XS_AGGR_LEVEL)" \
+	XS_GRHSIM_IR_BUILD="$(XS_AGGR_GRHSIM_IR_BUILD)" \
+	XS_WOLF_FILELIST="$(XS_AGGR_GRHSIM_IR_BUILD)/xs_wolf_aggr.f" \
+	XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR="$(XS_AGGR_GRHSIM_IR_BUILD)/model"
+
+.PHONY: xs_wolf_grhsim_ir_aggregate xs_wolf_grhsim_ir_aggregate_emu \
+	xs_wolf_grhsim_ir_aggregate_build_emu run_xs_wolf_grhsim_ir_aggregate_emu
+xs_wolf_grhsim_ir_aggregate:
+	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir $(XS_WOLF_GRHSIM_IR_AGGR_OVERRIDES)
+
+xs_wolf_grhsim_ir_aggregate_emu: xs_wolf_grhsim_ir_aggregate
+	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir_aggregate_build_emu
+
+xs_wolf_grhsim_ir_aggregate_build_emu:
+	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir_build_emu $(XS_WOLF_GRHSIM_IR_AGGR_OVERRIDES)
+
+run_xs_wolf_grhsim_ir_aggregate_emu:
+	@$(MAKE) --no-print-directory run_xs_wolf_grhsim_ir_emu $(XS_WOLF_GRHSIM_IR_AGGR_OVERRIDES)
 
 run_xs_json_test:
 	@RUN_ID="$$(date +%Y%m%d_%H%M%S)"; \

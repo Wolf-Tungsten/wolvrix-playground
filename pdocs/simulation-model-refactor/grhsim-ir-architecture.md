@@ -105,7 +105,8 @@ assign Q = CK & EN;        // Q = 该实例自己的门控时钟输出
 2. **declaredSymbol 贯穿两侧 IR 流水线**：GRH simplify 保留声明来源，lower 后
    继续维护，用于状态同族识别、数组恢复、打包优化与最终命名；折叠/合并/拆分后
    保留来源映射。
-3. **分而治之的优化顺序**：先全图优化（reg-to-mem、comb-pack 等）再全图
+3. **分而治之的优化顺序**：先全图优化（~~reg-to-mem、~~comb-pack 等，
+   reg-to-mem 已于 stage-07 退役）再全图
    simplify；第一轮分解出计算分区后各分区独立 simplify；第二轮只在 P_general
    内划分超节点；最后才做 CPU mapping。
 4. **性能优先，允许改变状态形态**：允许折叠、合并、打包、数组化状态，数组是
@@ -118,8 +119,9 @@ assign Q = CK & EN;        // Q = 该实例自己的门控时钟输出
 ```text
 SystemVerilog → GRH IR（层次化） → 平坦 GRH
   → lower_grhsim → GrhSimModel（语义图）
-  → A 段：全图优化（canonicalize / reg-to-mem / comb-pack / pack-bit-registers /
-          simplify(whole) / select-state-stores）
+  → A 段：全图优化（canonicalize / comb-pack / pack-bit-registers /
+          simplify(whole) / select-state-stores；reg-to-mem 已于
+          stage-07 2026-10-10 退役）
   → B 段：相位分区（classify-event-inputs / lower-edge-detect /
           extract-output-cones / migrate-timeslot-tasks / split-phases /
           simplify(phase) / verify --seal semantic）

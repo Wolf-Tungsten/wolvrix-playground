@@ -37,8 +37,6 @@ rob-grhsim-ir:
 		"$(ROB_WORK)/rtl.f" Rob "$(ROB_WORK)/grhsim/flat_grh.json" \
 		"$(ROB_WORK)/grhsim/final.json" "$(ROB_WORK)/grhsim/roundtrip.json" \
 		"$(ROB_WORK)/read_args.txt" info --keep-origins \
-		--reg-to-mem-row-constant-fill --reg-to-mem-or-write-merge \
-		--reg-to-mem-report "$(ROB_WORK)/grhsim/reg_to_mem.tsv" \
 		--pack-bit-registers-report "$(ROB_WORK)/grhsim/pack_members.tsv" \
 		--dump-post-lower-json "$(ROB_WORK)/grhsim/post_lower.json" \
 		--dump-pre-partition-json "$(ROB_WORK)/grhsim/pre_partition.json" \
@@ -144,7 +142,6 @@ $(ROB_GRHSIM_MODEL_DIR)/Makefile: $(ROB_WORK)/rtl.f $(ROB_WORK)/read_args.txt
 		"$(ROB_WORK)/rtl.f" Rob "$(ROB_GRHSIM_FLAT_GRH)" \
 		"$(ROB_WORK)/emit_grhsim.json" "$(ROB_WORK)/emit_roundtrip.json" \
 		"$(ROB_WORK)/read_args.txt" info --no-keep-origins $(ROB_GRHSIM_RESUME) \
-		--reg-to-mem-row-constant-fill --reg-to-mem-or-write-merge \
 		$(ROB_GRHSIM_EXTRA_FLAGS) \
 		--emit-cpp-dir "$(ROB_GRHSIM_MODEL_DIR)" \
 		> "$(ROB_WORK)/grhsim_model_gen.log" 2>&1; \
