@@ -302,6 +302,17 @@ readTrees=0（读侧 mux 树在真实设计里都属于写译码链内部，无�
 swept≈58 万 ops。效果：simplify **1335s+（首轮）→ 368s**，hier-flatten 88s→68s，
 CPU 段图量 -6%（partitions 176 万→165 万，TU 1398→1342）。
 
+**功能验证**（ptmp/mux-fold-repro/，gen.py 生成 + ab_test.py 双管线 A/B）：
+- fold 开/关两条完整管线（read_sv→GRH→lower→CPU→emit→编译→跑自校验 driver），
+  输出逐位一致（`[ab] IDENTICAL`），且 fold 变体全部检查通过——覆盖：写译码
+  hold 尾/优先级/同址碰撞（port 声明序=优先级的实证）、const 尾（zero-default
+  fill 端口）、读 mux 树、pad 拼接读钳位。
+- 2-D packed struct 数组动态写读（ab2_test.py/top2）全过；嵌套 struct（3 层）
+  数组成员链动态读（ab3/top3）全过。
+- 教训记录：repro 初版把 pack 多维数组当顶层输入端口，暴露了"顶层数组输入端口
+  建模为 kRegister 但无写口"的**既有** ingest 缝隙（非本 pass）——测试改用扁平
+  端口绕过（真实设计顶层输入均扁平，不受影响）。
+
 **ingest 元素读 widthHint 根修**（mux-tree-fold 的 P 匹配连带挖出的**潜在功能
 bug**，比编译期更严重）：
 
@@ -318,6 +329,30 @@ bug**，比编译期更严重）：
   iso1/iso2 + 全管线通过）。
 - 该 bug 自 stage-04 SoA 引入起即存在，aggregate 流从未跑过功能验证所以潜伏；
   标量化流（无 packed struct 数组）免疫。**它是 emu/difftest 的前置必修项。**
+
+**实例端口连接静默丢实例根修**（2026-10-12，CoreMark IFU 断言的真根因）：
+
+- 症状：aggregate CoreMark 在 cycle ~521 触发 `On ICache resp.valid, VAddr must
+  match IFU fetchBlock.VAddr`（instrCnt=0，首个取指就错），根因是启动地址为 0。
+- 实锤链路：启动地址是常量 `'{48'h10000000}`（XiangShanSim `_GEN`）→ 驱动
+  XSTop 的 `io_riscv_rst_vec[0]`（`[0:0][47:0]` 数组输入端口元素读）→ 接到内核
+  的 `io_reset_vector`（**47 位 struct 端口**）。48→47 位宽失配时 slang 给连接
+  包一个 ConversionExpression（目标类型 = struct 端口类型）；连接 lowering 先查
+  `isStructTyped(expr.type)` 就把转换节点送进了结构体展平器，展平器看不穿转换
+  → 返回 invalid → **整个实例端口连接被静默丢弃**（无任何诊断）→
+  io_reset_vector 悬空为 0 → 启动地址 0 → IFU 断言。
+- 修复：`ConnectionExprLowerer::lowerExpression` 在结构体类型检查**之前**先解包
+  隐式 ConversionExpression（原有 24190 的解包位保持不变）；结构体输入端口连接
+  路径上的静默 bail 点全部补上真实 error 诊断。复现：`ptmp/mux-fold-repro/
+  top12.sv`（扁平 48 → struct 47 跨模块端口连接，修复前读出 0，修复后
+  0x10000000）。
+- 教训：**静默丢实例是致命失败形态**——连接路径的任何 bail 都必须有诊断；
+  宽失配连接的转换包装是 firtool 输出的常态，必须在 lowering 里处理。
+- **当前状态**：连接修复后 CoreMark 仍在 cycle 521 触发同一 IFU 断言——
+  复位向量是其中一个真 bug 但**不是这个断言的唯一原因**；前端形态里还有
+  至少一个潜伏 bug（Ifu/ICache/FTQ 均无折叠点，与 mux-tree-fold 无关；
+  fold/widthHint/连接修复均已在 ptmp/mux-fold-repro/ 小设计上穷尽验证）。
+  下一步 = 波形抓取（WOLVRIX_GRHSIM_WAVEFORM=1 + FST）逐拍对比定位。
 
 **待办/回归登记**：
 
@@ -345,11 +380,16 @@ bug**，比编译期更严重）：
   条件与 OR-of-ANDs 同列待办。折叠收益集中在 LoadQueueReplay(141)/
   LoadQueueRAR(129)/TLBFA(30×2)/RenameBuffer(10)/L2TLB(2) 等。
 - 端到端时间（本轮实测）：GRH 段 ~21min（xmr 110s / fold 7.2s / flatten 68s /
-  CLE 672s / simplify 368s），lower+CPU+emit ~15min，model clang（1342 TU,
-  -O3 -fno-strict-aliasing + PCH）主体 ~7min 编完，**尾部 2-3 个宽值密集 TU
-  （_BitInt(16896) ×900 级，调度器 ComputeHeight + KnownBits::shl 热点）各卡
-  ~20-35min**——尾部 TU 是 stage-08 emit 形态（按 store/宽 op 密度拆函数）的
-  头号对象。
+  CLE 672s→**83s**（零拷贝+向量化 Tarjan，本轮已修，replay 校验 stats 逐项一致）
+  / simplify 368s），lower+CPU+emit ~15min，model clang（1342 TU,
+  -O3 -fno-strict-aliasing + PCH）主体 ~7min 编完，**尾部 2-3 个 store 密集 TU
+  各卡 ~20-70min**。尾部 TU 根因（perf 实证 tu271/tu272）：`DAGCombiner::visitSTORE`
+  ~94%——每函数 ~3800 条 store，且同一 flag 词的 `|=` 互相触发 worklist 重排队。
+  **已修（fanout 合写）**：激活旗标写在函数内累积到局部变量、函数尾每词一次
+  `|=` 写回（函数内对这些数组只写不读，语义等价；`activateOrdinals(Cond)` 在
+  supernode 体/助手函数级开累积，相位函数保持直写）。tu271 实测 70min+ → 364s，
+  perf 形态恢复常态（getNode/hash/TypeLegalizer 均匀分布，无单点病理）。
+  残余成本 = 每函数 ~1200 条边界成员 store（无 flag 重排队后 visitSTORE 正常）。
 
 ### 门禁与验收
 
