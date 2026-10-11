@@ -128,7 +128,7 @@ B8 seal 通过；**失败点 = `cpu.st.build-general-nodes`：compute graph 存�
 6. 首轮修复方向由此明确：消灭 struct 端口束的 pack/slice 往返（逐叶连接直通），
    让共享束节点不出现；动态读环另行处理。
 
-### 更深的根因（2026-10-11 凌晨实证，优先级最高）
+### 更深的根因（2026-10-11 凌晨实证，优先级最高）——已修复
 
 环分析 bail 的直接原因不是动态读——**8 个环全部 bail 在同一个 kConcat 上**：
 该 concat 的结果宽度错（= 操作数个数而非位宽和，如 136 操作数 1350 位却只给
@@ -138,30 +138,218 @@ RenameTableWrapper/LoadQueueReplay/AheadBtb 等聚合 pattern 密集模块）。
 
 - 该 bug 自 S4 起隐性存在（聚合设计从未跑过仿真；当时的 verify 不查 concat
   宽度）。它不只是环分析的障碍——错宽值的切片读出界，是真实的仿真正确性 bug。
-- 已修三处 hint 默认点（lowerArrayPatternValue / concatArrayElements /
-  flattenStructExpr：宽度兜底从 `: 1` 改为元素/叶子类型宽度），58247 → 45524。
-  残余为另一些产生路径（TPmeta 式"数组 of struct 动态读重组"、二操作数
-  `sum = 2×result − 1` 形态——结果取了首操作数宽度，疑似某条不经 emitExpr
-  kConcat 重算的发射路径）。
-- 正确方向：GRH 物化层对 kConcat 结果宽度一律按操作数实际宽度重算
-  （emitExpr 的 kConcat 分支本就如此），逐条找出绕开它的发射路径并统一；
-  校验器已有 kConcat 宽度硬校验（verify.cpp），此类 bug 今后在产生处即报。
+- 修复序列（每层修完下一层才可见，逐层剥洋葱）：
+  1. plan 层三处 hint 默认点（lowerArrayPatternValue/concatArrayElements/
+     flattenStructExpr）：未知元素宽度兜底从 `: 1` 改为元素/叶子类型宽度；
+  2. **emit 层决定性修复**：emitExpr 的 kConcat 结果宽度原只在
+     `widthHint<=0` 时才按操作数重算——改为**无条件重算**（hint 只做参考）。
+     仅此一条，58247 → 0；
+  3. 写侧数据宽度按寄存器声明归一（emitMemoryWrites/emitWriteBack：
+     写口数据 resize 到被寻址子数组宽度）——kRegisterWriteArrayPort 4979 → 0；
+  4. 实例输入端口连接按端口声明宽度 resize（IntRegFile 的 [3:0][5:0] 打包数组
+     端口被 4 位驱动需要零扩展）——kInstance 宽度错清零。
+- 最终 **verify-after-ingest 0 错误**（5689→12→0）。环的范围分析不再需要
+  bail 于畸形 concat；CLE/CPU 映射的表现由全管线复跑验证。
 
-结论：需要"动态读环断路"能力（S5 扩展或专项 pass），属 stage-08 级设计工作。
-候选方向：(a) comb-loop-elim 对含动态读环的片段化扩展；(b) 专项 pass 把环内
-动态状态数组读改写为逐元素读口 + 选择树（局部重建元素级无环结构——注意：
-读侧展开成 mux 树后"结果→索引→mux 选择→结果"的值级环仍在，需先验证断环
-位置在写口/边界侧）；(c) CPU 映射侧把状态读作为合法断环边界（语义风险，
-需论证读旧值的 NBA 语义）。决定前先小用例验证（TAGE/replacer 形态，
-CASE_021/022 族）。
+### 环分析收口（2026-10-11）——kSliceDynamic 动态索引建模，无需 stage-08 断环
 
-结论：需要"动态读环断路"能力（S5 扩展或专项 pass），属 stage-08 级设计工作。
-候选方向：(a) comb-loop-elim 对含动态读环的片段化扩展；(b) 专项 pass 把环内
-动态状态数组读改写为逐元素读口 + 选择树（局部重建元素级无环结构——注意：
-读侧展开成 mux 树后"结果→索引→mux 选择→结果"的值级环仍在，需先验证断环
-位置在写口/边界侧）；(c) CPU 映射侧把状态读作为合法断环边界（语义风险，
-需论证读旧值的 NBA 语义）。决定前先小用例验证（TAGE/replacer 形态，
-CASE_021/022 族）。
+8 环经宽度修复溶掉 3 个小的后，剩 5 个大环（18337/21070/8546/9062/11847 ops，
+srcLoc 均为 `transform:xmr-resolve:instance_out`）全部 bail 在 buildRangeGraph 的
+**kSliceDynamic 处理器**：索引非常量时直接 `uncertain=true` 放弃，而非建模。
+
+修复（`wolvrix/lib/transform/comb_loop_elim.cpp` kSliceDynamic 分支）：动态索引时
+不再 bail，加保守全区间边 `base(full)→result(full)` + `index(full)→result(full)`
+（仅当两端在 loopSet 内），与 kSliceArray 动态读的全区间归一化同精神，交由 range
+SCC 判定真假环。
+
+实证（pre-CLE checkpoint 复放，`WOLVRIX_CLE_DEBUG=1`）：
+**loops=48 true=0 false=48 false-fixed=48**（修复前 true=5）——所有残留环均被
+range SCC 证伪，无一需要断环。上文"动态读环断路属 stage-08 级工作"的旧结论
+作废：那些环不是真环，只是分析盲区。
+
+连带测试更新：`test_grhsim_ir.cpp` 的 readArray shaped-index 用例从"拒绝"改为
+"接受"（stage-07 packed-first 契约下索引按扁平整数读，shape 视图良性）。
+
+### 最后一里的真根因（2026-10-11 下午）——SoA 叶切片布局错位，非环问题
+
+CLE 清零后全管线仍死于 `cpu.st.build-general-nodes`（"six-phase flat branch
+contains a dependency cycle"）。逐层实证（诊断设施：新增
+`WOLVRIX_CPU_PARTITION_CYCLE_DUMP=<path>` 环境变量，在 throw 前倒出环成员的
+op/类型/名字/依赖；pre-partition GrhSIM checkpoint 可经
+`XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON` + `..._RESUME_FROM_FLAT_GRH_JSON=1`
+在 ~5min 内复现）：
+
+1. Event flat 分支残留 240 个不可调度 op = 两个 30 元 SCC（mbtb alignBanks_0/1
+   镜像）+ 下游粘连。SCC 核心：`state.readArray(stateBank$states)` 的读索引
+   `io_trainReadSetIdx` 经 LruStateGen/wayMask 锥依赖读结果 `io_trainReadState`。
+2. 但源 RTL（`MainBtbAlignBank.sv`/`MainBtbReplacer.sv`）**无此环**：
+   `io_trainReadSetIdx = io_touch[1].bits.setIdx`，`_GEN_31.bits.setIdx =
+   s3_replacerSetIdx`（寄存器），train 触摸的 wayMask 才来自 victim 逻辑。
+   基线标量化设计 CLE loops=0 也佐证源级无环。
+3. 位级核算定案：`io_touch` 是 `struct packed {valid, bits:{setIdx[7:0],
+   wayMask[3:0]}}[1:0]`（26 位，元素主序）。`io_touch[1].bits.setIdx` 应为
+   bundle `[24:17]`，而 flat GRH 实际接的是 `[23:16]`——**整整偏 1 位**
+   （`valid` 字段宽度），把 `wayMask` 的位接进了读索引，凭空造出环。
+4. 根因：stage-04 SoA 叶拆分内部约定"字段主序"（同一字段的所有元素连续，
+   `aggregateLeafOffsets`/`structLeafOffsets`），而 SV 打包布局是"元素主序"。
+   两者在**带外层的 packed struct 数组**上不一致。凡是"裸扁平值 ↔ 叶值"
+   的翻译点都用字段主序偏移切/拼，遇到 struct 数组端口/表达式即错位：
+   - 实例输入端口连接（`ingest.cpp` emitInstances 的 struct 端口分支）——
+     本 bug 的肇事现场；
+   - `lowerStructRhsValues` 扁平 RHS 路径、`lowerPatternComponent` 扁平路径、
+     struct 整型字面量切片（同法切片方向）；
+   - `flattenAggregateValues`/`flattenStructExpr`（反方向的字段主序 concat）。
+   纯 struct（无外层数组维）时两种布局相同，所以 bug 只在 struct 数组上出现。
+5. 修复：新增 `collectSvLeafSegments`（ingest.cpp，类型递归走 SV 打包布局，
+   产出每叶逐元素段表 `{flatOffset, leafOffset, width}`；unpacked 维/union
+   无打包布局，返回失败走旧路径兜底），上述六个现场全部改为按段表
+   gather/scatter；平凡布局（无外交错维）保持旧单切片/整叶 concat 快路径不变。
+   建值方向（concat 叶值）按段表降序 flatOffset 拼。
+6. 最小复现（`ptmp/aggr-layout-repro/top.sv`）：packed struct `[1:0]` 端口 +
+   concat 驱动 + 动态数组读。修复前 setIdx 叶 = `slice [23:8]`（错），修复后 =
+   `concat(bundle[24:17], bundle[11:4])`（对）；全 GRH 管线 CLE loops=0。
+
+影响面评估：这不只是调度障碍——错位接线本身是**仿真数据错误**（读索引接到了
+wayMask/valid 的位上）。凡 preserve-aggregate 下 packed struct 数组端口用扁平
+表达式（concat/字面量/整束引用）驱动的设计都受影响；基线标量化流无此类端口，
+门禁全绿不受影响。
+
+### 配套修复（同日）：CLE 看穿寄存器数组读的索引边 + 单体 op 分裂重写
+
+布局修复后，replacer 环退化为**值级假环**（位级已无环：`setIdx`/`wayMask` 位段
+不相交），但它穿过 `kRegisterReadArrayPort`——CLE 的 boundary op 把整个读端口
+（含索引边）排除在分析外，假环永远不可见，GrhSIM 扁平分支（值级拓扑）照旧卡死。
+
+修复（`wolvrix/lib/transform/comb_loop_elim.cpp`）：
+
+1. 扁平图与范围图都放行 `kRegisterReadArrayPort`，但只建 `index(full)→result(full)`
+   边（状态内容不进图，仍是边界语义）；范围 SCC 由此能把这类假环证伪。
+2. 假环分裂器此前遇非拷贝映射 op（kShl/kSub/…/kRegisterReadArrayPort）直接
+   `return false` 放弃（`false-unresolved=2` 即这两个 replacer 环）。新增
+   `isMonolithicLoopOp`：此类 op 结果强制整值单段（unsplittable）、操作数以
+   full-view 重组、原位改写——与 compare/kSliceArray 的既有单体路径同型。
+   实测 **loops=49 true=0 false=49 false-unresolved=0 false-fixed=49**
+   （比上轮多 1 个环正是新看见并溶掉的 readArray 环）。
+
+遗留语义备注：若未来出现**位级真**的 `idx = f(state[idx])` 环，CLE 会如实报
+true loop，CPU 映射器仍会拒绝——那是真实的组合环，需要 mem 化或迭代调度语义，
+届时再议（本阶段 XS 全核未出现）。
+
+### 同族宽度簿记 bug 第二批（emit 段才暴露，最小复现 `ptmp/aggr-layout-repro/tlb_repro.sv`）
+
+布局修复后管线首次抵达 emit，又剥出两层：
+
+1. **emit 校验过严**：`cpu_phase_emit.cpp` 的 system task 校验拒绝一切带 shape
+   的实参——按 packed-first 契约放宽：shaped logic 按整宽扁平整数打印（SV 对
+   packed 数组本就整体打印），非 logic 的 shaped 实参仍拒绝。
+2. **叶子元素选择的宽度双重计数**（`applyReadSlices`，读路径）：折叠叶
+   （shape 清空）上 `arr[i]` 的位宽算成 `elementWidth × ∏剩余维`，而
+   `packedDimInfos` 已含叶子自身宽度维——实测 `req_out[1'h0]`（[0:0] 外层维）
+   读出 2500 位（50×50）。改为**扁平宽 ÷ 被消费维 extent**（与连接侧
+   `elementSelectOnLeafConn` 的既有公式一致）。
+3. **写路径同族**（`resolveSliceSelection` 的 BitSelect 分支）：叶子类型不含
+   外层维（在 SignalInfo 元数据里），`getPackedArrayElementSlice(叶类型)` 为空
+   → 宽度兜底成 1——整元素写 `req_out[1'h0] <= '{...}` 的掩码变成只写 bit 0！
+   修复：类型查不到时查目标 SignalInfo 的 `packedDimInfos`，同样用
+   扁平宽 ÷ extent。修后整元素写正确地变为无掩码 `kRegisterWritePort`。
+   （连带修复：叶路径命中后不再重复扣 packedOffset——否则普通 `[3:1]` 寄存器
+   位写会双重减偏移，HDLBits dut_059 曾因此回归。）
+
+### emit 段修复（宽常量 parser 栈溢出）
+
+- `cpu_phase_emit.cpp::literal` 的宽常量按每字一对括号左嵌套，数千词的 init
+  常量（聚合存储的零填充）把 clang parser 递归栈撑爆（tu13 段错误）。
+  修复：>16 词改走语句形式 lambda（与既有大 concat statement form 同模式），
+  全零常量直接 `(wide_t)0`。
+- **编译期体量警示**：aggregate 模型 emit 出 7463 个 TU（基线 1091），
+  `clang -O3 -j32` 全量编译约 95 min——约 7× 于基线。这是 preserve-aggregate
+  保留宽向量/大 concat 的直接代价，是后续编译期优化的头号对象（估算行数
+  启发式对宽 op 的成本模型、TU 装箱粒度都还没适配）。
+
+### 图瘦身主修复（2026-10-11）：mux-tree-fold pass + ingest 元素读 widthHint 根修
+
+背景：aggregate 首轮编译期失控（GRH simplify 超线性 + emit 7463 TU / clang 95min+），
+用户明确要求"必须先做 mux 树折叠"——把 firtool `--preserve-aggregate` 展开的三个
+常量索引形态逆向恢复为动态数组访问，在图最小的模块级阶段（xmr-resolve 之后）
+直接缩小后续所有 pass 与 emit 的输入。
+
+**新 pass `mux-tree-fold`**（`wolvrix/lib/transform/mux_tree_fold.cpp`，GRH 流水线
+第 2 位，xmr-resolve 之后、memory-read-retime 之前）：
+
+- **读 mux 树 → 动态读**：`idx==c0 ? arr[c0] : ... : arr[cN-1]` 全覆盖（条件 =
+  同一下标值与常量比较、叶子 = 同寄存器常量索引元素读、下标集合精确铺满
+  [0,N)）折叠为 `kRegisterReadArrayPort(arr, idx)`；下标可能越界时补
+  `mux(lt(idx,N), idx, tailIdx)` 钳位（保持树尾部语义）。
+- **逐元素写译码 → 动态写口**：每 entry 一条 `arr[e] <= chain_e`，链 =
+  `hit_i ? d_i : ... : arr[e]`（hit_i = en_i & (ptr_i==e)，兜底自读保持）或
+  常量兜底，全 entry 结构一致（同一 ptr/data/enable 表达式，结构等价比较
+  `sameValue`）时折叠为每源一条动态 `kRegisterWriteArrayPort(en_i, ptr_i, d_i)`
+  ——优先级 = 链嵌套序（最外层最高），按 op 声明顺序排放（IR 写口优先级语义）；
+  常量兜底加一条低优先 `kRegisterFillPort`，统一常量复位写折叠为高优先 fill。
+  OR-of-ANDs 形态（条件可重叠，优先语义不等价）**保守不折**。
+- **pad 拼接读 → 钳位动态读**：`kSliceArray(concat(replicate(arr[p])…, arr…), idx)`
+  （firtool 的 `{160{e0}, arr}[idx]` 补长形态）折叠为
+  `arr[idx < N ? idx : p]`（元素 pad）或 `idx < N ? arr[idx] : const`（常量 pad），
+  消灭最宽的 _BitInt 物化（robEntries 案例：160×470=75200 位 replicate +
+  512×470=240640 位 concat）。
+- 折叠后接工作清单驱动的死锥清扫：纯组合 op 结果无使用者即删（含
+  declared-symbol 线网——pass 位于 xmr-resolve 之后，跨模块引用已解析，
+  这些线网是被折叠语义完整替代的临时产物）。全图扫描 + 可重入工作清单
+  （不用 visited 集——使用者后死必须可复检）。
+
+实测（XS aggregate 一轮）：fold 本体 **7.2s**；writeGroups=408、padReads=2138、
+readTrees=0（读侧 mux 树在真实设计里都属于写译码链内部，无独立全覆盖读树）、
+swept≈58 万 ops。效果：simplify **1335s+（首轮）→ 368s**，hier-flatten 88s→68s，
+CPU 段图量 -6%（partitions 176 万→165 万，TU 1398→1342）。
+
+**ingest 元素读 widthHint 根修**（mux-tree-fold 的 P 匹配连带挖出的**潜在功能
+bug**，比编译期更严重）：
+
+- 症状：packed struct 数组的**整元素读**（`entries[3'h0]`、`{160{robEntries[0]}}`
+  的 replicate 操作数）装配成 `{63'b0, data0, 7'b0, tag0}` 这类带
+  "字段宽−1 个零"填充的错误 concat（142 位值驱动 72 位目标）。
+- 根因：`elementSelectOnLeaf`/`applyReadSlices` 对 packed 维选择给
+  `makeSliceArray/makeSliceDynamic` 传 widthHint=1，graph 层元素读实际宽度是
+  元素宽（64）；`resizeValueToWidth` 信任 widthHint=1 → 补 63 个零。
+  修复：widthHint 改为 `flatWidth/extent`（与连接侧 `elementSelectOnLeafConn`
+  调用方既有公式一致）；`SignalInfo.width` 口径为元素宽、`shape` 为维，
+  `applyReadSlices` 统一用 `signalTotalWidth(info)/extent`，选择收缩跟踪
+  同步擦 `shape` 首维。复现/验证资产：`ptmp/mux-fold-repro/`（gen/dump/verify/
+  iso1/iso2 + 全管线通过）。
+- 该 bug 自 stage-04 SoA 引入起即存在，aggregate 流从未跑过功能验证所以潜伏；
+  标量化流（无 packed struct 数组）免疫。**它是 emu/difftest 的前置必修项。**
+
+**待办/回归登记**：
+
+- comb-loop-elim 在本轮回退 **142s → 672s**（loops=49 同前、dyn-array=0、
+  split-values=3636、split-ops=152442、fix-iters=2）——**归因更正**：时间线复核
+  （10-11 各轮日志）显示回退发生在 09:12 轮（retargeted-slices 7440→34627，
+  165s→737s），早于 mux-tree-fold，是当天凌晨 SoA 叶布局修复使更多切片可
+  retarget 所致，与本 pass 无关；本 pass 轮 CLE 672s 持平略优。perf 叶符号：
+  ~50% 在 Value/Operation/SrcLoc 按值物化（`SrcLoc` 拷贝、`valueFromBuilder`、
+  `operationFromBuilder`）+ ValueId 哈希插入，驱动点是
+  `retargetLoopSliceEntrances` 的 while 不动点对 loopOps 全扫 × 每次 10-15 个
+  按值拷贝。优化已立项（零拷贝访问器 + 单遍链式解析取代不动点）。
+- 读 mux 树零命中：探针 §7.5 里"读侧树"实证均在写译码链内部，R 匹配器暂为
+  预埋能力。
+- emit/clang 体量只降 ~10%：emit 1342 TU / 19.2M 行 / 2.4GB（前轮 7463 TU /
+  21.2M 行 / 2.7GB，估算器修正前轮为 1389 TU）；17M ops 的大头（常量/切片
+  机器、struct 端口束 pack/slice 往返等）不在本次三个形态内，归 stage-08 候选。
+- **ROB 本体未折叠**（零 writeGroups 命中，WOLVRIX_MUXFOLD_DEBUG 在 pre-CLE
+  checkpoint 上复核）：robEntries 系（debug_exuData 等，352 entry 全覆盖链）
+  尾部是 `valid ? T2 : uopNum` 条件尾（非自读保持）——稀疏写口不能表达"无命中
+  时按条件写回"，匹配器正确放弃；更大头的 TAGE usefulCtrs(4097 写)/
+  intFreeList(1249)/fpFreeList(1247)/RAT difftest_table/busPMU latencyRecord/
+  dcache 各 bank 组里**混有 kRegisterWritePort 整体写**（复位/批量更新），v1 对
+  混合组整组保守放弃（stage-08 候选：剥离整体写、只折叠译码子集）；enqOH 位选
+  条件与 OR-of-ANDs 同列待办。折叠收益集中在 LoadQueueReplay(141)/
+  LoadQueueRAR(129)/TLBFA(30×2)/RenameBuffer(10)/L2TLB(2) 等。
+- 端到端时间（本轮实测）：GRH 段 ~21min（xmr 110s / fold 7.2s / flatten 68s /
+  CLE 672s / simplify 368s），lower+CPU+emit ~15min，model clang（1342 TU,
+  -O3 -fno-strict-aliasing + PCH）主体 ~7min 编完，**尾部 2-3 个宽值密集 TU
+  （_BitInt(16896) ×900 级，调度器 ComputeHeight + KnownBits::shl 热点）各卡
+  ~20-35min**——尾部 TU 是 stage-08 emit 形态（按 store/宽 op 密度拆函数）的
+  头号对象。
 
 ### 门禁与验收
 

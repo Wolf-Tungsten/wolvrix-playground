@@ -14,6 +14,11 @@ import wolvrix
 
 GRH_PIPELINE: list[tuple[str, dict]] = [
     ("xmr-resolve", {}),
+    # Stage-07 编译期主修复：firtool preserve-aggregate 把字段级动态访问展开成
+    # 常量索引 mux 树/逐元素写译码/pad 拼接读；在图最小的模块级阶段逆向折叠回
+    # 动态数组访问，显著缩小后续 pass（尤其 simplify）与 emit 的图规模。
+    # XS_WOLF_MUX_TREE_FOLD=0 可临时禁用（A/B 回归分析用）。
+    *( [] if os.environ.get("XS_WOLF_MUX_TREE_FOLD", "1").strip() == "0" else [("mux-tree-fold", {})] ),
     ("memory-read-retime", {}),
     ("multidriven-guard", {}),
     ("blackbox-guard", {}),
