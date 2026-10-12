@@ -398,6 +398,18 @@ bug**，比编译期更严重）：
   computeFixedWidth(leaf.type) 当字段宽的地方都是错的；用
   structLeafElementWidth（已修）或 analyzeStructLeafType。
 
+**第四个 bug 定位中（未收口，2026-10-12）**：前三个修复后 CoreMark 推进到
+首条指令执行（instrCnt=1）——`addiw t0, x0, 1`（pc=0x10000000）写回 t0=0
+（REF=1）。已排除：取指/译码/dispatch 全对（dispatch 的 imm=1、fuType=0x40、
+fuOpType=0x10、srcType=1 与基线一致）；**imm 在 dispatch→issue-queue 段丢
+失**（dispatch 输出 imm=1，issue 吐给 ALU 的 payload imm=0）。链路：
+renamePipeDispatch.dataVec.imm（256 位 [8] 寄存器数组，结构正常）→
+dispatch.updateUop mux 树（NewDispatch.sv:1660+，`oh_IQSelUop` 一热选择
+`fromRenameUpdate[i]`）→ io_toIssueQueues → issue queue entryReg。疑似
+updateUop/entryReg 段的 struct 叶读写问题（与今日修的端口/叶宽度同族），
+待下一轮定位。注意 issue queue 的 entryReg 已是逐 entry 标量寄存器
+（enqEntries_K$entryReg...imm，32 位无 shape，1 写 1 读），结构本身正常。
+
 **待办/回归登记**：
 
 - comb-loop-elim 在本轮回退 **142s → 672s**（loops=49 同前、dyn-array=0、
