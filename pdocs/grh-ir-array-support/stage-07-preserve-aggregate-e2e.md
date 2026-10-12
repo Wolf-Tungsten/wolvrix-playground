@@ -354,6 +354,50 @@ bug**，比编译期更严重）：
   fold/widthHint/连接修复均已在 ptmp/mux-fold-repro/ 小设计上穷尽验证）。
   下一步 = 波形抓取（WOLVRIX_GRHSIM_WAVEFORM=1 + FST）逐拍对比定位。
 
+**IFU 断言第二根因修复**（2026-10-12，FST 波形定位 + flat GRH 回溯）：
+
+- 定位链：带波形重跑（断言在 cycle 521，FST 覆盖）→ `icache.s1_vAddr` =
+  0x8000000（预期取指地址，基线语义下 `_memBlock_io_inner_reset_vector[47:1]`
+  即 0x10000000>>1，基线同样如此——**不是 bug**）而 `ifu.s1_fetchBlock`
+  恒 0 → flat GRH 回溯发现 `s1_fetchBlock__DOT__startVAddr__DOT__addr` 的
+  读口挂在**无名幽灵寄存器**（`_op_1611893`，98 位 shape=[2]，0 写 4 读，
+  恒 0）上，写口挂在同名有名寄存器上（裂脑）。
+- 真根因：**struct 数组输入端口的叶信号被当成数组状态**。slang 对带显式
+  类型的非 var input 端口（`input Fetch [1:0] req_bits`）生成
+  VariableSymbol 内部符号（PortSymbols.cpp:527）；collectVariable 把它按
+  Variable 收进 plan.signals，打包维 [2] 又给了 memoryRows=2 → 元素读走了
+  "寄存器数组读"路径，ensureMemoryOp 撞名（端口值已存在）后建了永不写的
+  幽灵寄存器。修复：collectSignals 先用 `PortSymbol::internalSymbol` 建
+  input 端口内部符号集，collectVariable 对其中符号按 **Net** kind 收叶
+  （端口只读，数组状态路径全部跳过）——读变成端口值上的 kSliceArray。
+- 次生修复（同轮）：`Graph::guardShapeAlias` 回填别名 shape 前加可整除检查
+  ——端口修复后 L3 的 kSliceArray 结果带 shape，comb-loop-elim 把整组结果
+  重写为元素宽 fragment 时 replaceResult 触发"shape 维积必须整除宽度"异常；
+  现在不可整除时跳过回填（fragment 重写本来就改变形状）。
+- 回归 fixture：`tests/ingest/ingest_port_array_elem_read`（struct 数组输入
+  端口元素读必须产出端口值上的 kSliceArray，且不得创建任何寄存器）。
+- 复现资产：`ptmp/stage071-repro/`（top.sv/ifudup2.sv/check*.py/xs_scan.py/
+  bisect_dup.py + aggr_ifu.fst）。
+
+**IFU 断言第三根因修复**（2026-10-12，takenCfiOffset 断言 Ifu.sv:2388）：
+
+- 端口修复后断言从 2396（VAddr）挪到 2388（`takenCfiOffset.bits !=
+  fetchBlockRange`，cycle 522）。波形差分（aggregate vs 基线）：FTQ
+  `predictionPtr` 振荡 0↔1（基线递增）→ entryQueue 只写进 0/1 两项 →
+  后续取指读空项 → 请求内容归零 → 断言。
+- 真根因：**折叠标量叶的元素读宽度错**。`bpuPtr.ptrs` 是 `[0:0]` 上行
+  单元素 packed 数组 of struct——叶 `bpuPtr__DOT__ptrs__DOT__value` 被
+  折成标量（shape 清空）；`elementSelectOnLeaf` 的折叠标量分支用
+  `structLeafElementWidth(leaf)` 取元素宽，而它返回
+  `computeFixedWidth(leaf.type)`——但 splitStructType 存的 leaf.type 是
+  **剥光后的最内层标量**（`logic`，1 位），`logic [5:0]` 的 [5:0] 维在
+  `ownPackedDimInfos` 里。于是元素宽=1、切片 [0:0]——predictionPtr 只读到
+  bpuPtr 的 bit0（0,1,0,1…振荡）。修复：`structLeafElementWidth` 乘回
+  ownPackedDimInfos 各维。
+- 教训：splitStructType 的 leaf.type 是剥后标量不是字段类型——任何用
+  computeFixedWidth(leaf.type) 当字段宽的地方都是错的；用
+  structLeafElementWidth（已修）或 analyzeStructLeafType。
+
 **待办/回归登记**：
 
 - comb-loop-elim 在本轮回退 **142s → 672s**（loops=49 同前、dyn-array=0、

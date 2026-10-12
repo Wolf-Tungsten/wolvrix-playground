@@ -24,8 +24,8 @@
 | S4 ingest 聚合保留 | 已完成 | 3/3 | 2026-10-09 全绿（含全量设计校验） | 0 | S5/S6/S7 可开工 |
 | S5 comb-loop-elim | 已实施 | 1/1 | 2026-10-10 全绿 | 0 | S7 等 S5/S6 |
 | S6 grhsim 承接 | 已实施 | 1/1 | 2026-10-10 全绿 | 0 | S7 等 S5/S6 |
-| S7 preserve-aggregate 端到端 | 进行中 | 2/3 | 门禁全绿；CoreMark difftest 红（IFU 断言）；单 TU 编译超时待收 | 0 | S7.1 已立项 |
-| S7.1 ingest 表达式层逐字段化 | 已实施 | 2/2 | 门禁全绿；XS 护栏 68→0；ingest 190→45s | 0 | emit TU 时长 + CoreMark difftest 待复验 |
+| S7 preserve-aggregate 端到端 | 进行中 | 2/3 | 门禁全绿；单 TU ≤15min 已收（最差 69s）；CoreMark 推进到首条指令执行（IFU 断言全消），difftest 仍红（写回值错，stage-07 待收口） | 0 | 见 S7.1 与 S7 实施记录 |
+| S7.1 ingest 表达式层逐字段化 | 已实施 | 2/2 | 门禁全绿；XS 护栏 68→0；ingest 190→45s；最差 TU 69s | 0 | CoreMark 剩写回 bug（stage-07 收口项，非本阶段回归） |
 
 依赖图见 README §4：S2∥S3，S5∥S6，S4 是 S7 最大前置。
 
@@ -180,6 +180,14 @@
 
 ## 日志
 
+- 2026-10-12：S7.1 全部落地并复验。**三个 CoreMark 前端 bug 根治**（详见
+  stage-07 实施记录）：input 端口叶幽灵寄存器（Net kind 修复）、
+  guardShapeAlias 可整除回填、`structLeafElementWidth` 漏乘自有 packed 维
+  （folded-scalar 叶元素宽塌陷为 1）。aggregate CoreMark 从"复位即断言"
+  推进到**首条指令执行**（instrCnt 0→1，IFU 断言全消）；剩余：写回值错
+  （addiw t0=0，stage-07 收口项，非本阶段回归）。门禁：ctest 59/60
+  （transform-repcut 既有）、A/B 16/16、HDLBits 162/162、xsbug 25/25、
+  trace 162/162、XS 护栏 68→0、最差 TU 69s ≪ 15min。
 - 2026-10-12：S7.1 实施完成。`lowerStructRhsFieldWise` 统一 part 降低
   （struct/单元素 concat/replicate 三种 part，逐叶 kReplicate/kConcat，
   ingest.cpp `db26c6c`）；mux-tree-fold 新增 P2 数组宽 pad-concat 读折叠
