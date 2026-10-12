@@ -414,10 +414,10 @@ bug4 已排除的假设（小复现逐一验证全部正常）：struct 数组�
 `[0:0]`/`[1:0]` 折叠标量叶元素读、二维 packed 寄存器 `reg [7:0][18:0]`
 动态/常量两级读、三维 packed 线网 `[7:0][18:0][3:0]` 常量两级读、
 `[1:0][63:0]` packed 数组端口元素读、8 路一热 struct mux（updateUop 形态）。
-运行时数据：renamePipeDispatch.dataVec.imm[0]=1（对）、updateUop.bits.imm=0
-（错）、enqEntries_0/1 entryReg.imm=0（未写）——丢失点在 updateUop 的
-一热选择或其后。下一步：给模型在 dispatch→issue-queue 边界加打印探针
-（重发 ~25min/轮），或 grhsim IR 级跟踪 updateUop 的 select/臂取值。
+运行时数据：renamePipeDispatch.dataVec.imm[0]=1 ✓、IQ5（AluMul 队列）的
+issue payload imm=1 ✓——**imm 其实到达了 ALU**。剩余嫌疑收窄到 ALU 执行/
+写回段（`addiw` 的 W 截断 / 写回 preg 写口），下一轮在 AluMul 的
+io_out/写回总线上取运行值定位。
 
 **待办/回归登记**：
 
