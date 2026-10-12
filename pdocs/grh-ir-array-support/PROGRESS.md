@@ -24,7 +24,8 @@
 | S4 ingest 聚合保留 | 已完成 | 3/3 | 2026-10-09 全绿（含全量设计校验） | 0 | S5/S6/S7 可开工 |
 | S5 comb-loop-elim | 已实施 | 1/1 | 2026-10-10 全绿 | 0 | S7 等 S5/S6 |
 | S6 grhsim 承接 | 已实施 | 1/1 | 2026-10-10 全绿 | 0 | S7 等 S5/S6 |
-| S7 preserve-aggregate 端到端 | 未开始 | 0/3 | — | 0 | 等 S4/S5/S6 |
+| S7 preserve-aggregate 端到端 | 进行中 | 2/3 | 门禁全绿；CoreMark difftest 红（IFU 断言）；单 TU 编译超时待收 | 0 | S7.1 已立项 |
+| S7.1 ingest 表达式层逐字段化 | 已实施 | 2/2 | 门禁全绿；XS 护栏 68→0；ingest 190→45s | 0 | emit TU 时长 + CoreMark difftest 待复验 |
 
 依赖图见 README §4：S2∥S3，S5∥S6，S4 是 S7 最大前置。
 
@@ -162,8 +163,36 @@
   shape 别名根因（已修：核心 guardShapeAlias）；**组合环阻塞**（未决，归 stage-08 候选）
 - 顺手修复：mill 调用的 JDK17/PATH 环境自包含（XS_MILL_ENV）；simplify 迭代计时日志
 
+### S7.1 — ingest 表达式层逐字段化（stage-07.1-ingest-expression-fieldwise.md）
+
+- 状态：**已实施**（2026-10-12，wolvrix 子模块 `db26c6c` + `de30748` + `3990ccf`）
+- 立项事由：aggregate 管线 emit 出 `_BitInt(138240)`（robEntries 案例：
+  `{160{864位struct}}` replicate），clang 单 TU 60–90min 违反 ≤15min 约束；
+  根因 = ingest 表达式层聚合→扁平物化逃生口（lowerExpression struct 兜底
+  flatten，ingest.cpp:9817-9830 等 6 处），mux-tree-fold 对位-blast 形态失配
+- 合入单元：2/2（ingest 逐字段化+护栏 `db26c6c`；fold P2 数组宽 pad-concat
+  `de30748`；fixture `3990ccf`）
+- 门禁快照：ctest 57/58（transform-repcut 既有失败）、A/B 16/16、HDLBits
+  162/162、xsbug 25/25、trace 162/162；XS 护栏告警 68→0、ingest 190→45s、
+  flat GRH >4096 位 value 287→238（残余全为既有非聚合形态：测试台大常量/
+  endpoint 拼接/整组读口/1 个纯位向量 pad-concat——§3.5 明记残余）
+- 豁免/破坏：0（计划内破坏：旧 GRH JSON 产物重生）
+
 ## 日志
 
+- 2026-10-12：S7.1 实施完成。`lowerStructRhsFieldWise` 统一 part 降低
+  （struct/单元素 concat/replicate 三种 part，逐叶 kReplicate/kConcat，
+  ingest.cpp `db26c6c`）；mux-tree-fold 新增 P2 数组宽 pad-concat 读折叠
+  （`de30748`，顺手修临时 Operation operands() 悬空 span 崩溃）；fixture
+  `ingest-struct-array-fieldwise`（`3990ccf`）。XS 实测：护栏告警 68→0、
+  ingest 190.4s→45.2s、flat GRH >4096 位 value 287→238（残余均为既有非聚合
+  形态）；门禁 ctest 57/58（repcut 既有）、A/B 16/16、HDLBits 162/162、
+  xsbug 25/25、trace 162/162。Q1/Q3/Q4 回填（见 stage-07.1 §9.3）。
+- 2026-10-12：S7.1 立项。S7 进展补记：mux-tree-fold pass（fold 7.2s，simplify
+  1335s+→368s）、ingest 元素读 widthHint 根修、CLE 零拷贝（672s→83s）、fanout
+  合写 + 连接隐式转换根修均已落地，门禁全绿（ctest 57/58、hdlbits 162/162、
+  xsbug 25/25、trace 162/162）；未收口：CoreMark difftest 红（IFU 断言，
+  前端潜伏 bug 待波形定位）、尾部 TU 编译超时（根因即 S7.1 要消灭的超宽物化）。
 - 2026-10-09：进展跟踪格式约定建立。设计已全部定稿（stage-01~07 共 17 条开放问题清零）；
   探针完成（`20261008-preserve-aggregate-probe.md`：preserve-aggregate=all 产物
   100% packed 聚合、维度普查、保真度普查、gsim 对照）。S1 可开工。
