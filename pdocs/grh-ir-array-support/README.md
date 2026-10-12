@@ -73,6 +73,7 @@ firtool 提供 `--preserve-aggregate` 选项（取值 `none`/`1d`/`all`，circt 
 | S5 | [stage-05-comb-loop-elim.md](stage-05-comb-loop-elim.md) | S2 | 组合环按元素/片段切开，数组感知的假环修复 |
 | S6 | [stage-06-grhsim-backend.md](stage-06-grhsim-backend.md) | S1, S3 | GrhSIM IR 多维数组承接、mem op 多索引、CPU 后端与 JSON schema 演进 |
 | S7 | [stage-07-preserve-aggregate-e2e.md](stage-07-preserve-aggregate-e2e.md) | S4, S5, S6 | firtool preserve-aggregate 链路、reg-to-mem 退役、终极验收 |
+| S7.1 | [stage-07.1-ingest-expression-fieldwise.md](stage-07.1-ingest-expression-fieldwise.md) | S7（mux-tree-fold） | ingest 表达式层逐字段化：消灭聚合→扁平物化逃生口，struct 永不成为 GRH value |
 
 依赖图（`──>` 表示"阻塞"）：
 
