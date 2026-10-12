@@ -1,5 +1,6 @@
 env.sh
 build/
+/compile_clang23_o3.log
 .metals/
 .scala-build/
 .vscode/
