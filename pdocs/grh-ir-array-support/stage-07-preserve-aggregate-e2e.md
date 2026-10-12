@@ -414,10 +414,15 @@ bug4 已排除的假设（小复现逐一验证全部正常）：struct 数组�
 `[0:0]`/`[1:0]` 折叠标量叶元素读、二维 packed 寄存器 `reg [7:0][18:0]`
 动态/常量两级读、三维 packed 线网 `[7:0][18:0][3:0]` 常量两级读、
 `[1:0][63:0]` packed 数组端口元素读、8 路一热 struct mux（updateUop 形态）。
-运行时数据：renamePipeDispatch.dataVec.imm[0]=1 ✓、IQ5（AluMul 队列）的
-issue payload imm=1 ✓——**imm 其实到达了 ALU**。剩余嫌疑收窄到 ALU 执行/
-写回段（`addiw` 的 W 截断 / 写回 preg 写口），下一轮在 AluMul 的
-io_out/写回总线上取运行值定位。
+运行时数据：IQ5（AluMul 队列）的 issue payload imm=1 ✓、fuOpType=0x10 ✓
+——**imm 与 fuOpType 都正确到达 issue queue**。但 AluMul 的
+`aluModule.miscResSel.io_func` 恒 0：issue→exe 段的 fuOpType 写入
+`pipeToALU5$data_ctrl.fuOpType` 流水线寄存器，链路 `issueQueue.deq →
+intDataPath.s1_toExuData → pipeToALU5 → aluModule.io_func` 结构完整、
+entryReg 叶拆分 + deq 读拼装布局一致（fuOpType@[810:818] 写读吻合）。
+**嫌疑收窄到 issue→exe 的流水线 valid/时序**：要么指令根本没从 issue
+queue 发出（io_func 恒 0 = 空闲），要么 commit 抢在写回前读 preg。
+下一轮：读 s1_toExuData_5 的 valid/fuOpType 运行值，确认指令是否发出。
 
 **待办/回归登记**：
 
