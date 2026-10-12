@@ -677,9 +677,21 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_FULL_ACTIVE_WORD_CONSUME",
         default=False,
     )
+    full_active_word_profile = env_flag(
+        "WOLVRIX_XS_GRHSIM_FULL_ACTIVE_WORD_PROFILE",
+        default=False,
+    )
     direct_single_writer_state_reads = env_optional_flag(
         "WOLVRIX_XS_GRHSIM_DIRECT_SINGLE_WRITER_STATE_READS",
         "WOLVRIX_GRHSIM_DIRECT_SINGLE_WRITER_STATE_READS",
+    )
+    proved_zero_value_elision = env_optional_flag(
+        "WOLVRIX_XS_GRHSIM_PROVED_ZERO_VALUE_ELISION",
+        "WOLVRIX_GRHSIM_PROVED_ZERO_VALUE_ELISION",
+    )
+    producer_dirty_words = env_optional_flag(
+        "WOLVRIX_XS_GRHSIM_PRODUCER_DIRTY_WORDS",
+        "WOLVRIX_GRHSIM_PRODUCER_DIRTY_WORDS",
     )
     pure_event_compute_word_bypass = env_optional_flag(
         "WOLVRIX_XS_GRHSIM_PURE_EVENT_COMPUTE_WORD_BYPASS",
@@ -778,7 +790,10 @@ def main() -> int:
         f"local_shared_compute_common_owner_max_cloned_op_ppm="
         f"{format_native_default_option(sparse_options, 'local_shared_compute_common_owner_max_cloned_op_ppm')} "
         f"full_active_word_consume={full_active_word_consume} "
+        f"full_active_word_profile={full_active_word_profile} "
         f"direct_single_writer_state_reads={format_optional_flag(direct_single_writer_state_reads)} "
+        f"proved_zero_value_elision={format_optional_flag(proved_zero_value_elision)} "
+        f"producer_dirty_words={format_optional_flag(producer_dirty_words)} "
         f"pure_event_compute_word_bypass={format_optional_flag(pure_event_compute_word_bypass)} "
         f"pure_event_compute_word_profile={pure_event_compute_word_profile} "
         f"pure_event_word_pack_policy={pure_event_word_pack_policy} "
@@ -1066,7 +1081,10 @@ def main() -> int:
             waveform=args.waveform,
             perf=args.perf,
             full_active_word_consume=full_active_word_consume,
+            full_active_word_profile=full_active_word_profile,
             direct_single_writer_state_reads=direct_single_writer_state_reads,
+            proved_zero_value_elision=proved_zero_value_elision,
+            producer_dirty_words=producer_dirty_words,
             pure_event_compute_word_bypass=pure_event_compute_word_bypass,
             pure_event_compute_word_profile=pure_event_compute_word_profile,
             pure_event_word_pack_policy=pure_event_word_pack_policy,

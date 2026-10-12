@@ -1327,6 +1327,87 @@ B 层通常可以在 `system_verilog.cpp` 输出 SV 的同时统计，不需要�
 `part_26/11/7` 这类尾部，以及训练下一轮通用的 backend cost 模型；但它们不会
 自动改变已经完成的 assignment。
 
+## 14. `verilator-lowered-v1` 非默认评估（2026-09-23）
+
+### 14.1 实现范围
+
+新增 `RepcutCostModel::kVerilatorLoweredV1`，通过
+`-cost-model=verilator-lowered-v1` 或 `XS_REPCUT_COST_MODEL=verilator-lowered-v1`
+显式启用；`RepcutOptions`、Python binding 和 XiangShan Make 默认仍为 `legacy`。
+本轮没有改变 emitter 的行为，也没有把该模型设为默认。
+
+该模型只使用分区前可知的静态 lowering 近似：
+
+- 常量 shift 采用固定 shift 路径的较低成本；
+- constant-mask memory/register write 识别连续 `1` run，单 run 近似为一个
+  part-select NBA；
+- 动态/未知 mask 继续采用保守估计或 legacy fallback；
+- 其余操作沿用 `verilator-v1` 的规则。
+
+它不是完整 Verilator C++/机器码 manifest，也不包含运行时 activity；因此它适合
+作为预分区候选，而不是被解释成精确的 backend 计时模型。
+
+### 14.2 功能和构建门禁
+
+以下检查通过：
+
+```text
+transform-repcut
+transform-repcut-cost-model
+```
+
+测试覆盖默认模型仍为 `legacy`、新模型名称和 CLI/Python 选项校验、baseline 与
+closure-aware 两种 weight mode，以及连续 constant-mask write 的新计价。候选
+XiangShan 包在不绑核的普通构建流程中完成编译；C=100 两臂 smoke 和后续 C=30000
+长跑均通过 Difftest。
+
+### 14.3 C=30000、K=N=32、all-spin
+
+在 node030 CPU96–127 上只对实际仿真命令做 CPU/NUMA 绑定；分区、emitter 和 C++
+编译均未绑核。8 对交错 AB/BA 的完整结果见
+[`interleave8_lowered_v1_c30000`](../../build/repcut_cost_model_20260922/interleave8_lowered_v1_c30000/summary.json)。
+
+| 指标 | `verilator-v1` | `verilator-lowered-v1` | 配对中位变化 |
+| --- | ---: | ---: | ---: |
+| Host | 9.8895 s | 8.6115 s | -12.91% |
+| walltime | 9.9750 s | 8.6950 s | -12.84% |
+| eval | 134.0805 us | 109.5295 us | -18.28% |
+| max partition eval | 126.2630 us | 103.8645 us | -17.74% |
+| update | 23.1075 us | 26.7475 us | +15.17% |
+| sum partition eval | 1348.3810 us | 1271.6485 us | -5.61% |
+| sum update push | 245.345 us | 339.5715 us | +38.29% |
+
+候选在 8/8 对中 walltime、Host、eval 和最大分区 eval 均胜出。通信代价同时上升：
+
+| 静态通信指标 | `verilator-v1` | `verilator-lowered-v1` | 变化 |
+| --- | ---: | ---: | ---: |
+| assignments | 5286 | 6407 | +21.2% |
+| logical bits | 3640312 | 4199183 | +15.4% |
+| storage bytes | 460647 | 531468 | +15.4% |
+
+这说明新模型确实把后端敏感的大 ASC 重新分配了：原模型最大估算 part 是
+`part_3=636320`，新模型最大估算 part 是 `part_24=631040`；新模型的实际最大
+eval 也落在 `part_24`，而旧模型的最大估算 part 与实际最大 eval 并不一致。
+但新模型牺牲了跨分区通信和 update，因此不能仅凭 walltime 收益就替换默认。
+
+### 14.4 相关性和决策
+
+同批 8 对数据的静态权重与 eval 相关性为：
+
+| 模型 | Pearson | Spearman | 去掉最大权重 part 后 Pearson | eval top-4 命中 |
+| --- | ---: | ---: | ---: | ---: |
+| `verilator-v1` | 0.7006 | 0.5671 | 0.6705 | 50% |
+| `verilator-lowered-v1` | 0.7734 | 0.4051 | 0.3381 | 25% |
+
+新模型的 Pearson 和最大分区预测改善，但 Spearman、去最大点 Pearson 和 top-4
+命中没有同步改善。这再次说明全体 Pearson 仍受一个大 ASC 主导，不能作为唯一
+接受标准。
+
+当前结论：`verilator-lowered-v1` 作为**非默认候选**是有效的，能显著降低本次
+XiangShan workload 的 walltime；但它还不是可直接替换 `legacy`/`verilator-v1`
+的通用模型。下一步应把通信惩罚显式加入 lowered cost 的局部 refine，或在相同
+静态成本下寻找通信更低的 assignment，再用第二 workload/其他仿真器做交叉验证。
+
 ### 13.6 四阶段单步仿真时空图（2026-09-22）
 
 为直观看出三次连续后端优化的阶段工作量，按“第一次优化的 baseline + 后续三次优化”
@@ -1378,6 +1459,29 @@ update 基本不变。若看每个相邻实验批次内的 paired AB/BA 结果�
 - [分区阶段明细 CSV](../../build/repcut_cost_model_20260922/four_stage_timeline/four_stage_part_durations.csv)
 - [完整 JSON 数据及来源 SHA](../../build/repcut_cost_model_20260922/four_stage_timeline/four_stage_timeline_data.json)
 - [生成脚本](../../build/repcut_cost_model_20260922/four_stage_timeline.py)
+
+### 15. baseline / candidate 单步时空图（2026-09-23）
+
+针对本节 `verilator-v1` baseline 与 `verilator-lowered-v1` candidate 的同一批
+C=30000、K=N=32、all-spin、node030 CPU96--127、8 对 AB/BA 结果，生成了两臂
+对照时空图。每个阶段和分区条块都是 8 次运行中“每次均值”的中位数；这是相位对齐
+重建图，不是逐事件 trace。灰色表示该阶段尚未细分的剩余量，不能解释为 CPU 空闲。
+
+| | baseline (`verilator-v1`) | candidate (`verilator-lowered-v1`) |
+| --- | ---: | ---: |
+| Host / walltime | 9.8895 / 9.975 s | 8.6115 / 8.695 s |
+| input + eval + update | 3.608 + 134.081 + 23.108 us | 3.784 + 109.530 + 26.748 us |
+| 最慢分区 eval | `part_6`, 126.263 us | `part_24`, 103.8645 us |
+
+HTML 支持切换完整单步、仅 eval、仅 update，按分区编号或耗时排序，分别隐藏两臂
+以及缩放横轴；图中只读已有运行产物，生成过程未启动仿真、编译、分区，也未绑核。
+
+- [交互式 HTML 时空图](../../build/repcut_cost_model_20260922/interleave8_lowered_v1_c30000/baseline_candidate_timeline/baseline_candidate_timeline.html)
+- [PNG](../../build/repcut_cost_model_20260922/interleave8_lowered_v1_c30000/baseline_candidate_timeline/baseline_candidate_timeline.png)
+- [SVG](../../build/repcut_cost_model_20260922/interleave8_lowered_v1_c30000/baseline_candidate_timeline/baseline_candidate_timeline.svg)
+- [数据 JSON](../../build/repcut_cost_model_20260922/interleave8_lowered_v1_c30000/baseline_candidate_timeline/data.json)
+- [分区明细 CSV](../../build/repcut_cost_model_20260922/interleave8_lowered_v1_c30000/baseline_candidate_timeline/part_durations.csv)
+- [生成脚本](../../build/repcut_cost_model_20260922/make_baseline_candidate_timeline.py)
 
 ### 12.11 三组数据同批重跑（2026-09-24）
 

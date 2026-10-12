@@ -50,15 +50,21 @@ REPCUT_IMBALANCE_FACTOR = "0.015"
 REPCUT_PARTITIONER = "mt-kahypar"
 REPCUT_MTKAHYPAR_PRESET = "quality"
 REPCUT_MTKAHYPAR_THREADS = "0"
+REPCUT_BACKEND = os.environ.get("XS_REPCUT_BACKEND", "verilator").strip().lower()
+if REPCUT_BACKEND not in {"verilator", "grhsim"}:
+    raise RuntimeError("XS_REPCUT_BACKEND must be one of: verilator, grhsim")
 REPCUT_WEIGHT_MODE = os.environ.get("XS_REPCUT_WEIGHT_MODE", "closure-aware")
-REPCUT_COST_MODEL = os.environ.get("XS_REPCUT_COST_MODEL", "verilator-v1")
+REPCUT_COST_MODEL = os.environ.get(
+    "XS_REPCUT_COST_MODEL", "legacy" if REPCUT_BACKEND == "grhsim" else "verilator-v1"
+)
 REPCUT_KEEP_INTERMEDIATE_FILES = True
 REPCUT_ENABLE_MEMORY_WRITE_COALESCE = _env_bool(
     "XS_REPCUT_MEMORY_WRITE_COALESCE", True
 )
 REPCUT_ENABLE_REG_TO_MEM = _env_bool("XS_REPCUT_REG_TO_MEM", True)
 REPCUT_REG_TO_MEM_PROFITABILITY_FILTER = os.environ.get(
-    "XS_REPCUT_REG_TO_MEM_PROFITABILITY_FILTER", "verilator-v1"
+    "XS_REPCUT_REG_TO_MEM_PROFITABILITY_FILTER",
+    "none" if REPCUT_BACKEND == "grhsim" else "verilator-v1",
 ).strip().lower()
 
 if REPCUT_WEIGHT_MODE not in {"baseline", "closure-aware"}:
@@ -66,9 +72,9 @@ if REPCUT_WEIGHT_MODE not in {"baseline", "closure-aware"}:
         "XS_REPCUT_WEIGHT_MODE must be one of: baseline, closure-aware"
     )
 
-if REPCUT_COST_MODEL not in {"legacy", "verilator-v1"}:
+if REPCUT_COST_MODEL not in {"legacy", "verilator-v1", "verilator-lowered-v1"}:
     raise RuntimeError(
-        "XS_REPCUT_COST_MODEL must be one of: legacy, verilator-v1"
+        "XS_REPCUT_COST_MODEL must be one of: legacy, verilator-v1, verilator-lowered-v1"
     )
 
 if REPCUT_REG_TO_MEM_PROFITABILITY_FILTER not in {"none", "verilator-v1"}:
@@ -103,7 +109,7 @@ with wolvrix.Session() as sess:
     start = time.perf_counter()
     log(
         f"pass repcut start path={REPCUT_PATH} "
-        f"weight_mode={REPCUT_WEIGHT_MODE} cost_model={REPCUT_COST_MODEL}"
+        f"backend={REPCUT_BACKEND} weight_mode={REPCUT_WEIGHT_MODE} cost_model={REPCUT_COST_MODEL}"
     )
     repcut_work_dir.mkdir(parents=True, exist_ok=True)
     repcut_kwargs = _build_repcut_kwargs(repcut_work_dir)
@@ -147,22 +153,28 @@ with wolvrix.Session() as sess:
     sess.read_json_file(str(json_out), out_design="design.main", replace=True)
     log(f"read_json done (roundtrip) {int((time.perf_counter() - start) * 1000)}ms")
 
-    start = time.perf_counter()
-    sv_out_arg = json_out.with_suffix(".sv")
-    sv_out_dir = sv_out_arg.with_suffix("") if sv_out_arg.suffix == ".sv" else sv_out_arg
-    log(f"write_sv start {sv_out_dir}")
-    sess.emit_sv(design="design.main", output=str(sv_out_dir), top=[TOP_MODULE_PATH], split_modules=True)
-    log(f"write_sv done {int((time.perf_counter() - start) * 1000)}ms")
+    if REPCUT_BACKEND == "verilator":
+        start = time.perf_counter()
+        sv_out_arg = json_out.with_suffix(".sv")
+        sv_out_dir = sv_out_arg.with_suffix("") if sv_out_arg.suffix == ".sv" else sv_out_arg
+        log(f"write_sv start {sv_out_dir}")
+        sess.emit_sv(design="design.main", output=str(sv_out_dir), top=[TOP_MODULE_PATH], split_modules=True)
+        log(f"write_sv done {int((time.perf_counter() - start) * 1000)}ms")
 
     if package_out_dir is not None:
         start = time.perf_counter()
-        log(f"write_verilator_repcut_package start {package_out_dir}")
+        log(f"write_{REPCUT_BACKEND}_repcut_package start {package_out_dir}")
         package_out_dir.mkdir(parents=True, exist_ok=True)
-        sess.emit_verilator_repcut_package(
+        emit_package = (
+            sess.emit_grhsim_repcut_package
+            if REPCUT_BACKEND == "grhsim"
+            else sess.emit_verilator_repcut_package
+        )
+        emit_package(
             design="design.main",
             output=str(package_out_dir),
             top=[TOP_MODULE_PATH],
         )
-        log(f"write_verilator_repcut_package done {int((time.perf_counter() - start) * 1000)}ms")
+        log(f"write_{REPCUT_BACKEND}_repcut_package done {int((time.perf_counter() - start) * 1000)}ms")
 
     log(f"total done {int((time.perf_counter() - total_start) * 1000)}ms")

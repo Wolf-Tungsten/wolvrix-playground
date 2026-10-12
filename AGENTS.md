@@ -17,6 +17,7 @@
 - Generated outputs land in `wolvrix/build/bin` (wolvrix binaries) and `build/hdlbits` (HDLBits sims); avoid committing these.
 
 ## Build, Test, and Development Commands
+- If `sed`, `rg`, or similar commands report `No such file or directory`, immediately retry the command once before concluding the file is missing; this may be a transient NFS error.
 - Configure: `cmake -S wolvrix -B wolvrix/build` (requires CMake 3.20+ and a C++20 compiler).
 - Build: `cmake --build wolvrix/build -j$(nproc)`; builds the core library, CLI, and tests. Python installation is handled via `pip` + `scikit-build-core`.
 - Python package: `python3 -m pip install --no-build-isolation -e wolvrix` (provides importable bindings via scikit-build-core).

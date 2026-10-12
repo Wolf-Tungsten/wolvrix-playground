@@ -183,11 +183,13 @@ XS_WOLF_GRHSIM_SCHED_BATCH_TARGET_COUNT ?= 64
 XS_WOLF_GRHSIM_SCHED_BATCHES_PER_CPP ?= 1
 XS_WOLF_GRHSIM_EMIT_PARALLELISM ?= 4
 XS_WOLF_REPCUT_JSON ?= $(XS_REPCUT_BUILD)/xs_wolf_repcut.json
+XS_REPCUT_BACKEND ?= verilator
+export XS_REPCUT_BACKEND
 XS_REPCUT_WEIGHT_MODE ?= closure-aware
-XS_REPCUT_COST_MODEL ?= verilator-v1
+XS_REPCUT_COST_MODEL ?= $(if $(filter grhsim,$(XS_REPCUT_BACKEND)),legacy,verilator-v1)
 XS_REPCUT_MEMORY_WRITE_COALESCE ?= 1
 XS_REPCUT_REG_TO_MEM ?= 1
-XS_REPCUT_REG_TO_MEM_PROFITABILITY_FILTER ?= verilator-v1
+XS_REPCUT_REG_TO_MEM_PROFITABILITY_FILTER ?= $(if $(filter grhsim,$(XS_REPCUT_BACKEND)),none,verilator-v1)
 XS_WOLF_REPCUT_EMIT_DIR ?= $(XS_WOLF_REPCUT_JSON:.json=)
 XS_WOLF_REPCUT_EMIT ?= $(XS_WOLF_REPCUT_EMIT_DIR)/$(XS_SIM_TOP).sv
 XS_REPCUT_PACKAGE_ROOT ?= $(XS_REPCUT_BUILD)/package
@@ -205,6 +207,22 @@ XS_WOLF_REPCUT_PACKAGE_DIR_ABS := $(abspath $(XS_WOLF_REPCUT_PACKAGE_DIR))
 XS_JSON_ROUNDTRIP ?= 0
 XS_REPCUT_LOG_DIR ?= $(BUILD_DIR)/logs/xs-repcut
 XS_REPCUT_LOG_DIR_ABS := $(abspath $(XS_REPCUT_LOG_DIR))
+# Keep the two backends' generated packages and emulator builds independent.
+XS_REPCUT_GRHSIM_BUILD ?= $(XS_WORK_BASE)/repcut-grhsim
+XS_REPCUT_GRHSIM_JSON ?= $(XS_REPCUT_GRHSIM_BUILD)/xs_wolf_repcut.json
+XS_REPCUT_GRHSIM_PACKAGE_DIR ?= $(XS_REPCUT_GRHSIM_BUILD)/package
+XS_REPCUT_GRHSIM_WORK_DIR ?= $(XS_REPCUT_GRHSIM_BUILD)/work
+XS_REPCUT_GRHSIM_EMU_BUILD ?= $(XS_REPCUT_GRHSIM_BUILD)/partitioned-emu
+# Optimize for the build CPU; clear MARCH for a portable generated model.
+XS_REPCUT_GRHSIM_MARCH ?= native
+ifeq ($(origin GRHSIM_MODEL_CXXFLAGS), undefined)
+XS_REPCUT_GRHSIM_MODEL_CXXFLAGS ?= -std=c++20 -O3 $(if $(strip $(XS_REPCUT_GRHSIM_MARCH)),-march=$(XS_REPCUT_GRHSIM_MARCH))
+else
+XS_REPCUT_GRHSIM_MODEL_CXXFLAGS ?= $(GRHSIM_MODEL_CXXFLAGS)
+endif
+XS_REPCUT_GRHSIM_PACKAGE_DIR_ABS := $(abspath $(XS_REPCUT_GRHSIM_PACKAGE_DIR))
+XS_REPCUT_GRHSIM_WORK_DIR_ABS := $(abspath $(XS_REPCUT_GRHSIM_WORK_DIR))
+XS_REPCUT_GRHSIM_EMU_BUILD_ABS := $(abspath $(XS_REPCUT_GRHSIM_EMU_BUILD))
 
 XS_DIFFTEST_GEN_DIR ?= $(XS_ROOT)/build/generated-src
 XS_DIFFTEST_GEN_DIR_ABS := $(abspath $(XS_DIFFTEST_GEN_DIR))
@@ -234,6 +252,7 @@ HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
+	build_xs_repcut_grhsim run_xs_repcut_grhsim build_xs_repcut_sim run_xs_repcut_sim \
 	xs_no0076_stats clean
 
 all: build
@@ -678,6 +697,21 @@ run_xs_repcut_partitioned_smoke: py_install
 	@set -o pipefail; "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/build/partitioned-smoke" \
 		2>&1 | tee -a "$(XS_REPCUT_PACKAGE_RUN_LOG_FILE)"
 
+run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator: override XS_REPCUT_BACKEND := verilator
+build_xs_repcut_grhsim run_xs_repcut_grhsim: override XS_REPCUT_BACKEND := grhsim
+
+build_xs_repcut_sim:
+	@case "$(XS_REPCUT_BACKEND)" in \
+		verilator|grhsim) $(MAKE) --no-print-directory build_xs_repcut_$(XS_REPCUT_BACKEND) ;; \
+		*) echo "[FAIL] XS_REPCUT_BACKEND must be verilator or grhsim"; exit 1 ;; \
+	esac
+
+run_xs_repcut_sim:
+	@case "$(XS_REPCUT_BACKEND)" in \
+		verilator|grhsim) $(MAKE) --no-print-directory run_xs_repcut_$(XS_REPCUT_BACKEND) ;; \
+		*) echo "[FAIL] XS_REPCUT_BACKEND must be verilator or grhsim"; exit 1 ;; \
+	esac
+
 build_xs_repcut_verilator:
 	@echo "[RUN] Installing Wolvrix for XiangShan repcut emu via scikit-build-core..."
 	@$(MAKE) --no-print-directory py_install
@@ -753,6 +787,90 @@ run_xs_repcut_verilator:
 		echo "[LOG] xs verilator repcut timing: $$REPCUT_TIMING_JSONL"; \
 		echo "[CMD] cd $(XS_REPCUT_EMU_BUILD_ABS) && XS_EMU_THREADS=$(XS_EMU_THREADS) XS_REPCUT_STEP_TIMING=$(XS_REPCUT_STEP_TIMING) WOLVI_REPCUT_TIMING_JSONL=$$REPCUT_TIMING_JSONL $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b 0 -e 0 $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS)"; \
 		set -o pipefail; cd "$(XS_REPCUT_EMU_BUILD_ABS)" && XS_EMU_THREADS="$(XS_EMU_THREADS)" XS_REPCUT_STEP_TIMING="$(XS_REPCUT_STEP_TIMING)" WOLVI_REPCUT_TIMING_JSONL="$$REPCUT_TIMING_JSONL" $(XS_EMU_PREFIX) ./emu \
+			-i "$(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin" \
+			--diff "$(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so" \
+			-b 0 \
+			-e 0 \
+			$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) \
+			$(XS_RAM_TRACE_ARGS) \
+			2>&1 | tee "$$REPCUT_RUN_LOG"
+
+build_xs_repcut_grhsim:
+	@if [ "$(XS_WAVEFORM)" != "0" ] || [ "$(XS_WAVEFORM_FULL)" != "0" ] || [ "$(WOLVRIX_GRHSIM_WAVEFORM)" != "0" ]; then \
+		echo "[FAIL] xs grhsim repcut: waveform is not supported in partitioned backend yet"; \
+		exit 1; \
+	fi
+	@if [ "$(WOLVRIX_GRHSIM_PERF)" != "0" ]; then \
+		echo "[FAIL] xs grhsim repcut: per-model perf is unsupported; use RepCut timing JSONL"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(XS_WOLF_JSON)" ]; then \
+		echo "[FAIL] xs grhsim repcut: missing json $(XS_WOLF_JSON)"; \
+		exit 1; \
+	fi
+	@$(MAKE) --no-print-directory py_install
+	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
+	@echo "[CLEAN] Removing stale GrhSIM repcut package/work/emu build dirs"
+	@rm -rf "$(XS_REPCUT_GRHSIM_PACKAGE_DIR_ABS)" \
+		"$(XS_REPCUT_GRHSIM_WORK_DIR_ABS)" \
+		"$(XS_REPCUT_GRHSIM_EMU_BUILD_ABS)"
+	@mkdir -p "$(XS_REPCUT_GRHSIM_PACKAGE_DIR_ABS)" \
+		"$(XS_REPCUT_GRHSIM_WORK_DIR_ABS)" \
+		"$(XS_REPCUT_GRHSIM_EMU_BUILD_ABS)"
+	@$(eval XS_REPCUT_GRHSIM_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_grhsim_repcut_$(RUN_ID).log)
+	@echo "[RUN] xs grhsim repcut package"
+	@echo "[LOG] xs grhsim repcut: $(XS_REPCUT_GRHSIM_LOG_FILE)"
+	@echo "[CMD] XS_REPCUT_BACKEND=grhsim XS_REPCUT_WEIGHT_MODE=$(XS_REPCUT_WEIGHT_MODE) XS_REPCUT_COST_MODEL=$(XS_REPCUT_COST_MODEL) XS_REPCUT_MEMORY_WRITE_COALESCE=$(XS_REPCUT_MEMORY_WRITE_COALESCE) XS_REPCUT_REG_TO_MEM=$(XS_REPCUT_REG_TO_MEM) XS_REPCUT_REG_TO_MEM_PROFITABILITY_FILTER=$(XS_REPCUT_REG_TO_MEM_PROFITABILITY_FILTER) $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) $(XS_WOLF_JSON) $(XS_REPCUT_GRHSIM_JSON) $(XS_REPCUT_GRHSIM_WORK_DIR_ABS) $(WOLF_LOG) $(XS_REPCUT_GRHSIM_PACKAGE_DIR_ABS)"
+	@set -o pipefail; XS_REPCUT_BACKEND=grhsim XS_REPCUT_WEIGHT_MODE="$(XS_REPCUT_WEIGHT_MODE)" XS_REPCUT_COST_MODEL="$(XS_REPCUT_COST_MODEL)" XS_REPCUT_MEMORY_WRITE_COALESCE="$(XS_REPCUT_MEMORY_WRITE_COALESCE)" XS_REPCUT_REG_TO_MEM="$(XS_REPCUT_REG_TO_MEM)" XS_REPCUT_REG_TO_MEM_PROFITABILITY_FILTER="$(XS_REPCUT_REG_TO_MEM_PROFITABILITY_FILTER)" $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) \
+		$(XS_WOLF_JSON) \
+		$(XS_REPCUT_GRHSIM_JSON) \
+		$(XS_REPCUT_GRHSIM_WORK_DIR_ABS) \
+		$(WOLF_LOG) \
+		$(XS_REPCUT_GRHSIM_PACKAGE_DIR_ABS) \
+		2>&1 | tee "$(XS_REPCUT_GRHSIM_LOG_FILE)"
+	@$(eval XS_REPCUT_GRHSIM_BUILD_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_grhsim_repcut_build_$(RUN_ID).log)
+	@echo "[RUN] Building XiangShan repcut GrhSIM emu..."
+	@echo "[LOG] xs grhsim repcut build: $(XS_REPCUT_GRHSIM_BUILD_LOG_FILE)"
+	@echo "[CXXFLAGS] GrhSIM model: $(XS_REPCUT_GRHSIM_MODEL_CXXFLAGS)" | tee -a "$(XS_REPCUT_GRHSIM_BUILD_LOG_FILE)"
+	@set -o pipefail; NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
+		BUILD_DIR=$(XS_REPCUT_GRHSIM_EMU_BUILD_ABS) \
+		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
+		NUM_CORES=$(XS_NUM_CORES) \
+		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
+		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
+		GRHSIM=1 \
+		GRHSIM_MODEL_DIR=$(XS_REPCUT_GRHSIM_PACKAGE_DIR_ABS) \
+		GRHSIM_MODEL_CXXFLAGS="$(XS_REPCUT_GRHSIM_MODEL_CXXFLAGS)" \
+		GRHSIM_MODEL_BUILD_JOBS=$(XS_VM_BUILD_JOBS) \
+		GRHSIM_LDFLAGS='$$(SIM_LDFLAGS) -ldl $$(PGO_LDFLAGS) -pthread' \
+		WOLVRIX_GRHSIM_WAVEFORM=0 \
+		2>&1 | tee -a "$(XS_REPCUT_GRHSIM_BUILD_LOG_FILE)"
+	@if [ ! -x "$(XS_REPCUT_GRHSIM_EMU_BUILD_ABS)/emu" ]; then \
+		echo "[FAIL] xs grhsim repcut: emu build did not produce executable $(XS_REPCUT_GRHSIM_EMU_BUILD_ABS)/emu"; \
+		exit 1; \
+	fi
+
+run_xs_repcut_grhsim:
+	@if [ "$(XS_WAVEFORM)" != "0" ] || [ "$(XS_WAVEFORM_FULL)" != "0" ] || [ "$(WOLVRIX_GRHSIM_WAVEFORM)" != "0" ]; then \
+		echo "[FAIL] xs grhsim repcut: waveform is not supported in partitioned backend yet"; \
+		exit 1; \
+	fi
+	@if [ "$(WOLVRIX_GRHSIM_PERF)" != "0" ]; then \
+		echo "[FAIL] xs grhsim repcut: per-model perf is unsupported; use RepCut timing JSONL"; \
+		exit 1; \
+	fi
+	@if [ ! -x "$(XS_REPCUT_GRHSIM_EMU_BUILD_ABS)/emu" ]; then \
+		echo "[FAIL] xs grhsim repcut: missing emu $(XS_REPCUT_GRHSIM_EMU_BUILD_ABS)/emu; run 'make build_xs_repcut_grhsim' first"; \
+		exit 1; \
+	fi
+	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
+	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
+		REPCUT_RUN_LOG="$(XS_REPCUT_LOG_DIR_ABS)/xs_grhsim_repcut_$${RUN_ID}.log"; \
+		REPCUT_TIMING_JSONL="$(XS_REPCUT_LOG_DIR_ABS)/xs_grhsim_repcut_$${RUN_ID}.timing.jsonl"; \
+		echo "[RUN] xs grhsim repcut emu: XS_EMU_THREADS=$(XS_EMU_THREADS) XS_REPCUT_STEP_TIMING=$(XS_REPCUT_STEP_TIMING)"; \
+		echo "[LOG] xs grhsim repcut run: $$REPCUT_RUN_LOG"; \
+		echo "[LOG] xs grhsim repcut timing: $$REPCUT_TIMING_JSONL"; \
+		set -o pipefail; cd "$(XS_REPCUT_GRHSIM_EMU_BUILD_ABS)" && XS_EMU_THREADS="$(XS_EMU_THREADS)" XS_REPCUT_STEP_TIMING="$(XS_REPCUT_STEP_TIMING)" WOLVI_REPCUT_TIMING_JSONL="$$REPCUT_TIMING_JSONL" $(XS_EMU_PREFIX) ./emu \
 			-i "$(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin" \
 			--diff "$(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so" \
 			-b 0 \

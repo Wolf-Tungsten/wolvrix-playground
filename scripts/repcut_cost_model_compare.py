@@ -51,6 +51,10 @@ def load_analyzer():
         "pc": "0x80000442", "instructions": 27809, "cycles": 29996,
         "guest_cycles": 30001, "steps": 60102,
     }
+    module.SIGNATURES[100000] = {
+        "pc": "0x80000c0c", "instructions": 240349, "cycles": 99996,
+        "guest_cycles": 100001, "steps": 200102,
+    }
     return module
 
 
@@ -117,7 +121,7 @@ def main() -> None:
     parser.add_argument("--candidate-package", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--pairs", type=int, default=6)
-    parser.add_argument("--cycles", type=int, choices=(10000, 30000), default=10000)
+    parser.add_argument("--cycles", type=int, choices=(10000, 30000, 100000), default=10000)
     parser.add_argument("--dry-run", action="store_true",
                         help="print the fixed schedule without executing or writing anything")
     args = parser.parse_args()
@@ -152,7 +156,14 @@ def main() -> None:
         if shutil.which(tool) is None:
             parser.error(f"required tool missing: {tool}")
     analyzer = load_analyzer()
-    transfers = {variant: analyzer.communication(package) for variant, package in packages.items()}
+    transfers = {
+        variant: (analyzer.communication(package) if (package / "sv").is_dir() else {
+            "available": False,
+            "reason": "Verilator SV wrapper not present in this package",
+            "package": str(package),
+        })
+        for variant, package in packages.items()
+    }
     artifacts = {f"{variant}_elf": path for variant, path in binaries.items()}
     artifacts.update(image=IMAGE, nemu=NEMU)
     before = {name: identity(path) for name, path in artifacts.items()}
