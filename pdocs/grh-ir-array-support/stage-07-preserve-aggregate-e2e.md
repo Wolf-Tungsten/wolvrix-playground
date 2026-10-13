@@ -1,7 +1,7 @@
 # Stage 07 — preserve-aggregate 端到端与 reg-to-mem 退役
 
 - 日期：2026-10-08（2026-10-08 修订：comb-lane-pack 移除由评估项改为既定项）
-- 状态：进行中（2026-10-10 开工；7a/7b 已落地，7c/7d 进行中）
+- 状态：进行中（2026-10-10 开工；7a/7b/7c 已落地，7d 正确性与性能验收未收口）
 - 依赖：stage-04（ingest 聚合保留）、stage-05（comb-loop-elim）、stage-06（grhsim 承接）
 - 对应总目标：#10 终极目标
 
@@ -98,7 +98,7 @@ carry a shape` 失败。逐层归因与修复（全部实证驱动）：
   显性热点——本次未动（涉及核心 IR 布局，留作后续编译期优化候选）。
 - XS 管线新增 grh.verify 两步是行为加固（只读 pass，只报不改）。
 
-### 当前阻塞（2026-10-10 深夜，aggregate 链路最后一里）
+### 历史阻塞（2026-10-10 深夜，后续已解除）
 
 门禁全绿、GRH 段全过（含新增 grh.verify 两步）、lowering 与 GrhSIM 语义段全过、
 B8 seal 通过；**失败点 = `cpu.st.build-general-nodes`：compute graph 存在组合环**。
@@ -398,31 +398,133 @@ bug**，比编译期更严重）：
   computeFixedWidth(leaf.type) 当字段宽的地方都是错的；用
   structLeafElementWidth（已修）或 analyzeStructLeafType。
 
-**第四个 bug 定位中（未收口，2026-10-12）**：前三个修复后 CoreMark 推进到
+**第四个 bug 已收口（2026-10-12）**：前三个修复后 CoreMark 推进到
 首条指令执行（instrCnt=1）——`addiw t0, x0, 1`（pc=0x10000000）写回 t0=0
 （REF=1）。已排除：取指/译码/dispatch 全对（dispatch 的 imm=1、fuType=0x40、
-fuOpType=0x10、srcType=1 与基线一致）；**imm 在 dispatch→issue-queue 段丢
-失**（dispatch 输出 imm=1，issue 吐给 ALU 的 payload imm=0）。链路：
-renamePipeDispatch.dataVec.imm（256 位 [8] 寄存器数组，结构正常）→
-dispatch.updateUop mux 树（NewDispatch.sv:1660+，`oh_IQSelUop` 一热选择
-`fromRenameUpdate[i]`）→ io_toIssueQueues → issue queue entryReg。疑似
-updateUop/entryReg 段的 struct 叶读写问题（与今日修的端口/叶宽度同族），
-待下一轮定位。注意 issue queue 的 entryReg 已是逐 entry 标量寄存器
-（enqEntries_K$entryReg...imm，32 位无 shape，1 写 1 读），结构本身正常。
+fuOpType=0x10、srcType=1 与基线一致）；IQ5（AluMul 队列）的 issue payload
+imm=1 ✓、fuOpType=0x10 ✓ ——两字段都正确到达 issue queue。真凶：
+**degenerate `{1{struct}}` replicate 输出宽塌陷为 1**。
+EntriesAluMul.sv:25629 的 `io_deqOg1Payload.fuOpType` assign 的输入是
+`_val_6283333`：`kReplicate rep=1`、输出 w=1、输入是 9 位 fuOpType 切片
+[810:818]——9 位被压成 1 位（0x10 & 1 = 0）→ ALU `io_func`=0 → 算错 →
+写回 0。机制：`lowerStructRhsFieldWise::lowerOnePart` 的 replicate 路径用
+`widthHintOf(leafValue)` 设 `node.widthHint`，但叶值是裸符号引用时
+（`makeSymbolExpr` 不设 widthHint）sourceWidth=0 → widthHint 保持 0 →
+装配段 `normalizeWidth(0)=1`。最小复现 `ptmp/stage071-repro/repl1.sv`
+（`p = {1{in_payload}}`，raw GRH 即现 w=1 kReplicate）。修复（双层）：
+plan 段 replicate 路径在 widthHint 缺失时回填
+`aggregateLeafFlatWidth(leafTypes[i])`；装配段 kReplicate 在 widthHint<=0
+时按 `rep × 输入值宽` 兜底（与 kConcat 的操作数求和同构——widthHint 只是
+plan 段缓存，永远不该是唯一真源）。
 
 bug4 已排除的假设（小复现逐一验证全部正常）：struct 数组输入端口元素读、
 `[0:0]`/`[1:0]` 折叠标量叶元素读、二维 packed 寄存器 `reg [7:0][18:0]`
 动态/常量两级读、三维 packed 线网 `[7:0][18:0][3:0]` 常量两级读、
 `[1:0][63:0]` packed 数组端口元素读、8 路一热 struct mux（updateUop 形态）。
 运行时数据：IQ5（AluMul 队列）的 issue payload imm=1 ✓、fuOpType=0x10 ✓
-——**imm 与 fuOpType 都正确到达 issue queue**。但 AluMul 的
-`aluModule.miscResSel.io_func` 恒 0：issue→exe 段的 fuOpType 写入
-`pipeToALU5$data_ctrl.fuOpType` 流水线寄存器，链路 `issueQueue.deq →
-intDataPath.s1_toExuData → pipeToALU5 → aluModule.io_func` 结构完整、
-entryReg 叶拆分 + deq 读拼装布局一致（fuOpType@[810:818] 写读吻合）。
-**嫌疑收窄到 issue→exe 的流水线 valid/时序**：要么指令根本没从 issue
-queue 发出（io_func 恒 0 = 空闲），要么 commit 抢在写回前读 preg。
-下一轮：读 s1_toExuData_5 的 valid/fuOpType 运行值，确认指令是否发出。
+——**imm 与 fuOpType 都正确到达 issue queue**。AluMul 的
+`aluModule.miscResSel.io_func` 恒 0 曾疑似 issue→exe 流水线 valid/时序
+问题，实为上述 kReplicate 宽度塌陷的下游表象（fuOpType 出 issue queue 时
+被压成 LSB=0，io_func 自然恒 0），非独立 bug。
+
+**bug4 修复验证（2026-10-12，wolvrix 改动待提交）**：
+
+- 最小复现 `ptmp/stage071-repro/repl1.sv`（`p = {1{in_payload}}`）：修复前
+  raw GRH 即现 `kReplicate rep=1 w=1`（输入 9 位），修复后 w=9/w=64，flat
+  GRH 中 replicate 直挂输出端口且宽度正确。
+- 回归测试：fixture `ingest_struct_array_fieldwise.sv` 增加
+  `{1{single}}`（**裸符号路径**——此前的 `{1{uop[6'h0]}}` 是元素选择路径，
+  叶值带 widthHint，不触发本 bug）；测试新增 kReplicate 通用不变量断言
+  （result width == rep × operand width），覆盖所有 replicate 而非单点宽度。
+- 门禁全绿：ctest 59/60（唯一失败为既有 transform-repcut）、黄金 trace
+  162/162、xs-bugcase 25/25。
+- HDLBits Verilator 流在 DUT 042 处 tb 编译失败（`get_bit_u100` 收
+  `VlWide<4>`，Verilator 5.051 生成头类型与 tb_042.cpp 不兼容）——stash
+  对照实验证明**改动前同样失败，是既有问题**；该 DUT 无 struct/replicate，
+  与本链路无关。聚合管线的 HDLBits 验收门禁是黄金 trace（grhsim-ir 后端），
+  已全绿。
+- XS 全量管线（ingest→passes→flat GRH store）修复版重跑成功（~13.7min）：
+  >4096 位 value 238 个，与修复前持平（榜首均为内存初始化 kConstant 大块，
+  非聚合拍平）；aggregate-flatten 护栏告警保持 0。
+- 后续全链路复验继续推进到 instrCnt=201 / cycleCnt=8798，暴露了下一处
+  DCache load 写回失配；根因与修复见下节。
+
+**第五个功能 bug（2026-10-13）：split struct 叶动态索引的位偏移乘法截断**：
+
+- 失配指令从地址 `0x80002eb1` 读字节，REF 得 `0x75`，DUT 写回 0。
+  FST 中 DCache bank 6、way 0 的数据为 `0x20676e696e6e7552`，对应地址的
+  字节确为 `0x75`；存储内容正确，问题在 bank/way 选择后的读路径。
+- flat GRH 回溯到 `BankedDataArray.sv:5111`：`bankIndex * 256` 的结果
+  只有 3 位，`wayIndex * 64` 的结果只有 2 位。生成 C++ 将 256/64 常量
+  按结果宽度截为 0，动态位切片因此总从 bit 0 读。
+- `ingest.cpp` 三处 split struct 叶动态索引路径改用已有
+  `scalePackedElementLaneIndex`，按索引宽度和元素宽度生成足够宽的乘法结果。
+  新 flat GRH 中两处结果分别为 12 位和 9 位，原输入索引仍为 3 位和 2 位。
+- `ingest_struct_array_fieldwise` fixture 增加 2048→256 的动态 bank 切片及
+  256→64 的 way 读，测试断言位偏移可覆盖最高 bank/way。
+- 本轮门禁：`make test_wolvrix` 61/61、HDLBits IR 162/162、xs-bugcase
+  25/25、黄金 trace 162/162 通过（xs-bugcase 重跑显式指定
+  `VERILATOR=/usr/local/bin/verilator`，避免本机嵌套 Make 的可执行路径权限
+  错误）。XS aggregate 模型发射 1299 个 C++ TU，
+  构建和 GrhSIM checkpoint round-trip 通过。CoreMark + NEMU difftest
+  无失配跑到 `cycles=100000`，随后主动中断无限长跑（退出码 130）；
+  **完整终点 instrCnt=663688 / cycleCnt=297291 尚未验证**。日志与产物在
+  `ptmp/stage07-accept/`（长跑日志 `coremark-bug6.log`）。
+
+**7d 性能阻塞（2026-10-13）**：本轮无限长跑从日志创建（02:48:37）到
+`cycles=100000` 标记（03:44:33）用时约 **3356 秒**。历史标量化基线的
+标准 100k 成绩为 99.87 秒，5% 门槛约 104.86 秒。此处是墙钟进度观察，
+并非标准 A/B：早期并行跑了小用例门禁，且历史基线用 CPU 4、本轮用 CPU 2；
+但数十倍量级差距已明确阻止 7d 性能验收，不能将本轮视为通过。静态线索：
+aggregate 模型 `mem_writes=157481`、`mem_readers=173271402`，对照旧基线
+`22553`、`538164`；写计划为每个 Mem 写口展开读者激活表。不过 **10k
+周期原生 CPU 采样推翻了“P_mem 是首要运行时热点”的猜测**：14085 个样本中
+P_general 超节点占 92.74%，P_mem chunk/调度合计 5.36%；两个超节点
+`sn_8741__op_10015507`（ROB renameBuffer 锥）与
+`sn_1401__op_12385214`（sbuffer/prefetcher 锥）分别占 28.05%、23.15%。
+样本在函数内分散，后续应先分析两条大计算锥的活动门控、跨边界数据搬运与
+重复 pack/slice，再在更靠后的 CoreMark 区间复采，勿仅据写计划静态体量
+优化 P_mem。10k 限时运行的 Host time 为 69.69s，phase timing 中模型
+`eval()` 约 69.66s、difftest 约 15ms。原生 profile 与解析输出位于
+`ptmp/stage07-accept/cpu-profile10k.prof_16` / `cpu-profile10k-analysis.log`；
+`scripts/grhsim_cpu_profile.py` 已补六阶段函数分类
+（`make test_grhsim_cpu_profile` 3/3）。性能改善后重跑完整 CoreMark 和同 CPU 的
+3+3 A/B。
+
+**常量数组索引保留实验（2026-10-13）**：ingest 和 `slice-index-const`
+不再把全常量下标的 `kSliceArray` 转成 `kSliceStatic`；本 XS 管线未调用独立的
+`slice-index-const` pass，因此以下对照主要衡量 ingest 改动。计划用 CPU 2、
+CoreMark difftest、无采样、10k 周期设置对照；旧 bug6 二进制实测
+**68.939s**（instrCnt=458、cycleCnt=9996）；新模型未能编译到可运行二进制：
+`comb-loop-elim` 对 `LsqWrapper.sv:2202` 的 53 个假环留下 1 个 unresolved，
+随后 `cpu.st.build-general-nodes` 报组合环。不能据此判断运行时是否加速。
+单次 GRH simplify 测量为 **376.175s → 443.849s**（+18.0%）；
+post-simplify flat GRH 的 `kSliceArray` **8,676 → 154,019**，
+`kSliceStatic` **518,085 → 504,057**。对照日志与新 checkpoint 位于
+`ptmp/stage07-slice-array-perf-before.log`、
+`ptmp/stage07-slice-array-perf-after-build.log` 和
+`ptmp/stage07-slice-array-perf/grhsim-after/`。需先定位未消除的 LSQ 假环，
+生成新二进制后再做同口径运行时 A/B。
+
+**LSQ 假环修复与新模型复测（2026-10-13）**：CLE 仅在已确认的假环入口处理
+常量 `kSliceArray`：同 shape 别名可直接重定向，concat 可直接选中对应元素；
+若扁平别名使数组 shape 无法继续传递，则在该假环内转成等价位区间的
+`kSliceStatic`，交给现有切片消环逻辑。ingest 和独立 `slice-index-const` pass
+仍保留非必要的 `kSliceArray`。新增 selected-operand 反馈与 flat-alias 回归，
+`make test_wolvrix` **62/62**。完整 aggregate 重建中 CLE
+**loops=53 / false-fixed=53 / false-unresolved=0**，`cpu.st.build-general-nodes`、
+GrhSIM checkpoint round-trip、1343 TU 的 emu 编译均通过。相同 CPU 2、NEMU
+difftest、无采样、10k 周期设置下，新模型 `instrCnt=458 / cycleCnt=9996`，
+Host time **49.159s**（外层 wall 49.19s）；旧 bug6 二进制为 68.939s，
+改善 **28.7%**。新 flat GRH 仍保留 **153,947** 个 `kSliceArray`。
+完整无周期上限 CoreMark + NEMU difftest **HIT GOOD TRAP**，
+`instrCnt=663,683 / cycleCnt=297,549`，CRC `0x72be` 与标量基线一致；
+Host time **6,940.951s**（外层 wall 6,940.98s）。标量基线稳定为
+`663,688 / 297,291`、Host time 291.262s：本轮少 5 条指令、多 258 周期，
+CoreMark 报告时间 2399ms 对基线 2402ms。故 difftest/终点已跑通，
+但 7d 的**精确计数门禁未满足**；全程 Host time 约为标量基线的 **23.8 倍**，
+5% 性能门槛也未满足。完整运行日志为
+`ptmp/stage07-slice-array-perf/xs_wolf_grhsim_slice_array_full.log`。
 
 **待办/回归登记**：
 

@@ -16,13 +16,12 @@
 
 ## 正确性门槛（任何性能优化提交前必须全绿）
 
-1. `make test_wolvrix`：无新增失败（基线仅余 transform-repcut 一项既有失败；
-   transform-comb-lane-pack 已于 stage-02 随 pass 删除消失，
-   ingest-write-back-slice SEGFAULT 已于 stage-04 治愈）；
+1. `make test_wolvrix`：61/61（2026-10-13 stage-07 快照；此前的
+   transform-repcut 失败已修复）；
 2. `make run_all_hdlbits_grhsim_ir_tests`：162/162；
 3. `make run_xs_bugcase_grhsim`：25/25；
-4. `make check_sim_refactor_baseline`：逐 eval 与黄金一致（stage-07 起黄金
-   按无 reg-to-mem 管线重钉，数量以 MANIFEST 为准）；
+4. `make check_sim_refactor_baseline`：逐 eval 与黄金一致（stage-07 移除
+   reg-to-mem 后仍为 162/162 逐字节一致，无需重钉）；
 5. XS 完整 CoreMark + NEMU difftest：`HIT GOOD TRAP`、exit 0，且逐拍轨迹
    instrCnt=663,688 / cycleCnt=297,291 一致（除非本项优化有意改变调度语义，
    此时必须重钉轨迹并说明）。stage-07 起标准链路为 preserve-aggregate：
@@ -40,6 +39,12 @@
 row-constant-fill + or-write-merge 默认开（105.73s → **99.87s**）；
 跨模拟器对照见 `20261007-011318-gsim-vs-grhsim-ir-100k-coremark.md`
 （vs gsim SN=15 2.12×）。
+
+2026-10-13 stage-07 preserve-aggregate 首轮正确性长跑在前 100k 周期无失配，
+但到该进度点的墙钟时间约 3356s，远超上述基线的 105% 门槛。该数值包含早期
+并行门禁且使用不同 CPU，不是标准 A/B 成绩；stage-07 性能验收保持未通过，
+运行时归因与同 CPU 复测见
+[stage-07 实施记录](../grh-ir-array-support/stage-07-preserve-aggregate-e2e.md)。
 
 ## 优化候选 backlog（按预期收益排序，2026-10-04 评审）
 

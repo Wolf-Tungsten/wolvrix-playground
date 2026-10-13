@@ -1,7 +1,7 @@
 import struct
 import unittest
 
-from grhsim_cpu_profile import read_profile
+from grhsim_cpu_profile import read_profile, six_phase_category
 
 
 class ProfileReaderTests(unittest.TestCase):
@@ -23,6 +23,21 @@ class ProfileReaderTests(unittest.TestCase):
                     data[:120] + b"not a mapping\n"):
             with self.subTest(size=len(bad)), self.assertRaises(ValueError):
                 read_profile(bad)
+
+    def test_six_phase_function_categories(self):
+        cases = {
+            "GrhSIM_SimTop::sn_42_data()": "general_supernode",
+            "GrhSIM_SimTop::sn_42_data__c1(GrhSIM_SimTop::Frame&)": "general_supernode",
+            "GrhSIM_SimTop::pGeneral_c7()": "general_chunk",
+            "GrhSIM_SimTop::pMem_c9()": "mem_chunk",
+            "GrhSIM_SimTop::pMem()": "mem_schedule",
+            "GrhSIM_SimTop::pPublish()": "publication",
+            "GrhSIM_SimTop::eval()": "evaluator",
+            "grhsim_helper()": "main_other",
+        }
+        for name, expected in cases.items():
+            with self.subTest(name=name):
+                self.assertEqual(six_phase_category(name), expected)
 
 
 if __name__ == "__main__":

@@ -24,8 +24,8 @@
 | S4 ingest 聚合保留 | 已完成 | 3/3 | 2026-10-09 全绿（含全量设计校验） | 0 | S5/S6/S7 可开工 |
 | S5 comb-loop-elim | 已实施 | 1/1 | 2026-10-10 全绿 | 0 | S7 等 S5/S6 |
 | S6 grhsim 承接 | 已实施 | 1/1 | 2026-10-10 全绿 | 0 | S7 等 S5/S6 |
-| S7 preserve-aggregate 端到端 | 进行中 | 2/3 | 门禁全绿；单 TU ≤15min 已收（最差 69s）；CoreMark 推进到首条指令执行（IFU 断言全消），difftest 仍红（写回值错，stage-07 待收口） | 0 | 见 S7.1 与 S7 实施记录 |
-| S7.1 ingest 表达式层逐字段化 | 已实施 | 2/2 | 门禁全绿；XS 护栏 68→0；ingest 190→45s；最差 TU 69s | 0 | CoreMark 剩写回 bug（stage-07 收口项，非本阶段回归） |
+| S7 preserve-aggregate 端到端 | 进行中 | 2/3 | 2026-10-13 ctest 62/62；XS CoreMark difftest HIT GOOD TRAP，但精确计数和性能门槛未满足 | 0 | 定位 5 指令/258 周期差异，优化 P_general 热点并复采 |
+| S7.1 ingest 表达式层逐字段化 | 已实施 | 2/2 | 门禁全绿；XS 护栏 68→0；ingest 190→45s；最差 TU 69s | 0 | S7 完整验收 |
 
 依赖图见 README §4：S2∥S3，S5∥S6，S4 是 S7 最大前置。
 
@@ -152,15 +152,22 @@
 
 ### S7 — preserve-aggregate 端到端（stage-07-preserve-aggregate-e2e.md）
 
-- 状态：进行中（7a/7b/7c 已落地并全绿；7d 卡在组合环阻塞，见 stage-07 头部"当前阻塞"节）
+- 状态：进行中（7a/7b/7c 已落地；7d difftest 终点已过，精确计数和性能门槛未收口）
 - 合入单元：7a（firtool 链路接入）☑ 7b（Makefile/管线接入）☑ 7c（reg-to-mem 退役三步）☑ 7d（验收）☐
-- 门禁快照：2026-10-10 ctest 56/57（余 transform-repcut 既有）、hdlbits 162/162、
-  xsbug 25/25、trace 基线 162/162 无 diff（reg-to-mem 在 HDLBits 零触发，免重钉）
+- 门禁快照：2026-10-13 本轮 ctest 62/62；前轮 HDLBits IR 162/162、
+  xsbug 25/25、trace 基线 162/162 无 diff（免重钉）。aggregate XS CoreMark
+  + NEMU difftest HIT GOOD TRAP，CRC 与基线一致；`663,683 / 297,549`
+  对基线 `663,688 / 297,291`，精确计数未过。10k 同 CPU A/B
+  68.939s→49.159s（改善 28.7%），完整 Host time 6,940.951s，
+  仍远超标量基线 291.262s 的 5% 门槛（详见 stage-07）。
 - 豁免/破坏：0（reg-to-mem 移除为计划内破坏）
 - 文档同步：perf-optimization README 门禁改 aggregate 口径 ☑ pass-flow/architecture
   退役注记 ☑ reg-to-mem.md 转 RETIRED ☑ grh-ir.md kRegisterReadPort shape 契约修订 ☑
 - 新增问题（实证后登记）：编译期超线性（已修：topo_guard 拓扑守卫 + lean 化）；
-  shape 别名根因（已修：核心 guardShapeAlias）；**组合环阻塞**（未决，归 stage-08 候选）
+  shape 别名根因（已修：核心 guardShapeAlias）；组合环误判（已修：动态索引范围
+  建模、SoA 叶布局和寄存器数组读索引边）；split struct 叶动态索引的位偏移
+  乘法截断（已修）；运行时性能门槛失败（10k 原生采样：P_general 92.74%，
+  P_mem 5.36%，大计算锥归因待细化）。
 - 顺手修复：mill 调用的 JDK17/PATH 环境自包含（XS_MILL_ENV）；simplify 迭代计时日志
 
 ### S7.1 — ingest 表达式层逐字段化（stage-07.1-ingest-expression-fieldwise.md）
@@ -180,6 +187,23 @@
 
 ## 日志
 
+- 2026-10-13：S7 常量数组索引保留实验收口到完整仿真：CLE 仅在假环入口
+  消除 LSQ 假环（53/53 fixed、unresolved=0），CPU 映射、1343 TU emu
+  构建及 checkpoint round-trip 均通过；ctest 62/62。10k CoreMark
+  difftest 计数一致，Host time 68.939s→49.159s。完整 CoreMark
+  `HIT GOOD TRAP`、CRC 一致，但 `663,683 / 297,549` 对基线
+  `663,688 / 297,291`，且 6,940.951s 远超性能门槛；7d 继续进行中。
+- 2026-10-13：S7 修复 DCache bank/way 动态读位偏移乘法截断，新增 2048→256→64
+  split struct 叶回归。aggregate 全链路发射 1299 TU、构建及 checkpoint
+  round-trip 通过；ctest 61/61、HDLBits IR 162/162、xsbug 25/25、黄金 trace
+  162/162。CoreMark 前 100k 无失配（旧失配点 instrCnt=201 / cycleCnt=8798），
+  用时约 3356s 后中断无限长跑；完整 difftest 未测，性能门槛失败。
+  工作树位于 `grh/grhsim-ir-gap-driven`，详见 stage-07 实施记录。
+- 2026-10-13：S7 性能归因补记：10k 限时样本的 14085 个 CPU 采样中，
+  P_general 超节点 92.74%、P_mem 5.36%，前两个超节点合计 51.20%。
+  `scripts/grhsim_cpu_profile.py` 增加六阶段函数分类，分析工具测试 3/3；
+  热点函数与样本路径见 stage-07。下一步优先检查 ROB renameBuffer 与
+  sbuffer/prefetcher 的大计算锥（`grh/grhsim-ir-gap-driven` 工作树）。
 - 2026-10-12：S7.1 全部落地并复验。**三个 CoreMark 前端 bug 根治**（详见
   stage-07 实施记录）：input 端口叶幽灵寄存器（Net kind 修复）、
   guardShapeAlias 可整除回填、`structLeafElementWidth` 漏乘自有 packed 维

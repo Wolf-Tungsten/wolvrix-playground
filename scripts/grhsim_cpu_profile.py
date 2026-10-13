@@ -91,6 +91,24 @@ def task_phases(model):
     return phases
 
 
+def six_phase_category(name):
+    if "::" not in name:
+        return "main_other"
+    method = name.split("::", 1)[1]
+    if re.match(r"sn_\d+(?:_|\()", method):
+        return "general_supernode"
+    for prefix, category in (("pGeneral_c", "general_chunk"), ("pMem_c", "mem_chunk")):
+        if re.match(rf"{prefix}\d+\(", method):
+            return category
+    for method_name, category in (("pInput", "input"), ("pEvent", "event"),
+                                  ("pGeneral", "general_schedule"), ("pMem", "mem_schedule"),
+                                  ("pPublish", "publication"), ("pOutput", "output"),
+                                  ("eval", "evaluator")):
+        if method.startswith(method_name + "("):
+            return category
+    return "main_other"
+
+
 def summarize(profile, binary, model, expected_samples, top):
     period, records, maps = read_profile(profile.read_bytes())
     total = sum(count for count, _ in records)
@@ -98,7 +116,8 @@ def summarize(profile, binary, model, expected_samples, top):
         raise ValueError(f"sample total {total} != profiler diagnostic {expected_samples}")
     native = symbols(binary)
     starts = sorted(native)
-    phases = task_phases(model)
+    six_phase = bool(re.search(r"void \w+::pMem\(\)\{", model.read_text()))
+    phases = {} if six_phase else task_phases(model)
     functions, categories, pcs_by_symbol = Counter(), Counter(), {}
     main_maps = [m for m in maps if m[4] and Path(m[4]).resolve() == binary.resolve()]
     if not main_maps or len({m[0] - m[3] for m in main_maps}) != 1:
@@ -117,7 +136,9 @@ def summarize(profile, binary, model, expected_samples, top):
                 if address < start + size:
                     name, category = symbol, "main_other"
                     task = re.fullmatch(r"\w+::cpu_task_(\d+)\(\)", name)
-                    if task:
+                    if six_phase:
+                        category = six_phase_category(name)
+                    elif task:
                         category = phases[int(task[1])]
                     elif name.endswith("::eval()"):
                         category = "evaluator"
@@ -132,7 +153,10 @@ def summarize(profile, binary, model, expected_samples, top):
     if sum(functions.values()) != total or sum(categories.values()) != total:
         raise ValueError("sample accounting mismatch")
     print(f"samples={total} records={len(records)} period_us={period} nominal_cpu_s={total * period / 1e6:.6f}")
-    print(f"task_coverage={len(phases)} phase_tasks={dict(Counter(phases.values()))}")
+    if six_phase:
+        print("backend=six_phase")
+    else:
+        print(f"task_coverage={len(phases)} phase_tasks={dict(Counter(phases.values()))}")
     print("category samples percent")
     for name, count in categories.most_common():
         print(f"{name} {count} {count / total * 100:.6f}")
@@ -142,14 +166,15 @@ def summarize(profile, binary, model, expected_samples, top):
         offsets = pcs_by_symbol.get(name, Counter()).most_common(5)
         if offsets:
             print("  top_offsets " + " ".join(f"+0x{offset:x}:{n}" for offset, n in offsets))
-    for phase in ("compute_task", "commit_task"):
+    for phase in (() if six_phase else ("compute_task", "commit_task")):
         rows = [(name, count) for name, count in functions.most_common()
                 if (m := re.fullmatch(r"\w+::cpu_task_(\d+)\(\)", name))
                 and phases[int(m[1])] == phase]
         print(f"{phase} sampled_tasks={len(rows)} top10_samples={sum(n for _, n in rows[:10])}")
         for name, count in rows[:10]:
             print(f"  {count} {count / total * 100:.6f} {name}")
-    print("PASS: profile terminator, mappings, ELF layout, task coverage, symbol bounds, sample totals")
+    coverage = "six-phase symbols" if six_phase else "task coverage"
+    print(f"PASS: profile terminator, mappings, ELF layout, {coverage}, symbol bounds, sample totals")
 
 
 if __name__ == "__main__":

@@ -2038,7 +2038,8 @@ XS_WOLF_GRHSIM_IR_AGGR_OVERRIDES = \
 	XS_PRESERVE_AGGREGATE="$(XS_AGGR_LEVEL)" \
 	XS_GRHSIM_IR_BUILD="$(XS_AGGR_GRHSIM_IR_BUILD)" \
 	XS_WOLF_FILELIST="$(XS_AGGR_GRHSIM_IR_BUILD)/xs_wolf_aggr.f" \
-	XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR="$(XS_AGGR_GRHSIM_IR_BUILD)/model"
+	XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR="$(XS_AGGR_GRHSIM_IR_BUILD)/model" \
+	WOLVRIX_GRHSIM_WAVEFORM="$(WOLVRIX_GRHSIM_WAVEFORM)"
 
 .PHONY: xs_wolf_grhsim_ir_aggregate xs_wolf_grhsim_ir_aggregate_emu \
 	xs_wolf_grhsim_ir_aggregate_build_emu run_xs_wolf_grhsim_ir_aggregate_emu
