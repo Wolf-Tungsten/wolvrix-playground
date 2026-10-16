@@ -187,6 +187,13 @@ def mem_enable_bitmap() -> str:
     )
 
 
+def recover_masked_or_enabled() -> bool:
+    raw = os.environ.get("XS_WOLF_GRHSIM_IR_MASKED_OR", "0").strip()
+    if raw not in ("0", "1"):
+        raise RuntimeError(f"XS_WOLF_GRHSIM_IR_MASKED_OR must be 0 or 1, got {raw!r}")
+    return raw == "1"
+
+
 CPU_SEMANTIC_PIPELINE = [
     # Whole-graph stage-A pipeline (M5d-3): normalize first so pattern
     # matching sees canonical input, pack isomorphic comb lanes and bit
@@ -212,8 +219,9 @@ CPU_PARTITION_PIPELINE = [
     # Partition stage B (M5d-5), still pure semantic layer (no CPU mapping):
     # B1-B4 lower the event/output/timeslot structure, B5 completes the
     # class-aware phase attribution (P_event/P_general/P_output partitions +
-    # P_mem write duty), B6 simplifies each partition separately, and B8
-    # seals the semantic layer. V3-M3: the predictive B7
+    # P_mem write duty), B6 simplifies each partition separately, optional B7
+    # restores mask/array reductions, and B8 seals the semantic layer.
+    # V3-M3: the predictive B7
     # (grhsim.clone-shared-compute) is gone — boundary-aware cloning moved
     # into the mapping stage as cpu.st.clone-shared-boundaries (C2.5), where
     # real supernode boundaries replace the prediction. After the seal only
@@ -246,13 +254,17 @@ def _cpu_mapping_options(name: str) -> dict:
             options["coarsen_max_op"] = value
     return options
 
-CPU_PIPELINE = (
-    CPU_SEMANTIC_PIPELINE + CPU_PARTITION_PIPELINE
-    + [
-        (name, _cpu_mapping_options(name))
-        for name in CPU_MAPPING_PIPELINE
+
+def cpu_pipeline(*, recover_masked_or: bool) -> list[tuple[str, dict]]:
+    partition = list(CPU_PARTITION_PIPELINE)
+    if recover_masked_or:
+        partition.insert(-1, ("cpu.st.recover-masked-or", {}))
+    return CPU_SEMANTIC_PIPELINE + partition + [
+        (name, _cpu_mapping_options(name)) for name in CPU_MAPPING_PIPELINE
     ]
-)
+
+
+CPU_PIPELINE = cpu_pipeline(recover_masked_or=recover_masked_or_enabled())
 
 
 def log(message: str) -> None:
@@ -326,6 +338,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--phase-simplify", action=argparse.BooleanOptionalAction, default=True,
                         help="run the B6 per-partition simplify (grhsim.simplify --scope phase) "
                              "after grhsim.split-phases")
+    parser.add_argument("--recover-masked-or", action=argparse.BooleanOptionalAction,
+                        default=recover_masked_or_enabled(),
+                        help="restore mask/array OR reductions at B7 (experimental; default off)")
+    parser.add_argument("--masked-or-min-terms", type=int, default=16,
+                        help="minimum term count for maskedOr recovery (at least 2; default 16)")
+    parser.add_argument("--masked-or-report", type=Path,
+                        help="write recovered maskedOr regions as TSV")
     parser.add_argument("--bitwise-predicates", action=argparse.BooleanOptionalAction, default=True,
                         help="deprecated no-op (M5d-5): bitwise-predicates runs inside "
                              "grhsim.simplify and no longer has a standalone pipeline step")
@@ -366,6 +385,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("--clone-shared-compute-max-clones must be positive")
     if args.mem_min_bytes is not None and args.mem_min_bytes < 0:
         parser.error("--mem-min-bytes must be nonnegative")
+    if not 2 <= args.masked_or_min_terms <= 2147483647:
+        parser.error("--masked-or-min-terms must be in [2,2147483647]")
     return args
 
 
@@ -470,7 +491,7 @@ def main() -> int:
             )
             require_ok(diagnostics, "store post-lower GrhSIM dump")
         pipeline = [
-            (name, options) for name, options in CPU_PIPELINE
+            (name, options) for name, options in cpu_pipeline(recover_masked_or=args.recover_masked_or)
             if not (name == "grhsim.pack-bit-registers"
                     and (not args.pack_bit_registers or args.disable_pack_bit_registers))
             and not (name == "grhsim.comb-pack" and not args.comb_pack)
@@ -481,6 +502,10 @@ def main() -> int:
         ]
         for pass_name, base_options in pipeline:
             pass_options = dict(base_options)
+            if pass_name == "cpu.st.recover-masked-or":
+                pass_options["min_terms"] = args.masked_or_min_terms
+                if args.masked_or_report:
+                    pass_options["report"] = str(args.masked_or_report.resolve())
             if pass_name == "cpu.st.clone-shared-boundaries":
                 pass_options["max-clones"] = args.clone_shared_compute_max_clones
                 if args.clone_shared_compute_lossy_compare:

@@ -20,6 +20,9 @@ def main():
     parser.add_argument("--remap", action="store_true", help="rebuild CPU mapping without a semantic transform")
     parser.add_argument("--bitwise-muxes", action="store_true")
     parser.add_argument("--mux-chain-fold", action="store_true")
+    parser.add_argument("--recover-masked-or", action="store_true",
+                        help="restore mask/array OR reductions, seal semantics, then rebuild CPU mapping")
+    parser.add_argument("--masked-or-min-terms", type=int, default=16)
 
     parser.add_argument("--used-bits", action="store_true",
                         help="run grhsim.used-bits (dead-cone elimination + width narrowing), then remap")
@@ -45,6 +48,8 @@ def main():
     args = parser.parse_args()
     if args.cpu_target_batch_count < 0:
         parser.error("cpu target batch count must be nonnegative")
+    if not 2 <= args.masked_or_min_terms <= 2147483647:
+        parser.error("maskedOr minimum terms must be in [2,2147483647]")
     if args.max_op_in_compute_supernode is not None and args.max_op_in_compute_supernode <= 0:
         parser.error("max op in compute supernode must be positive")
     if args.segment_penalty is not None and args.segment_penalty < 0:
@@ -98,44 +103,31 @@ def main():
                     options["coarsen_max_op"] = args.coarsen_max_op
             return options
 
-        if args.pack_bit_registers:
-            actions = [
-                lambda: session.run_grhsim_pass("grhsim.pack-bit-registers", model="grhsim.main"),
-            ] + [
+        actions = [
+            lambda name=name: session.run_grhsim_pass(name, model="grhsim.main")
+            for enabled, name in (
+                (args.pack_bit_registers, "grhsim.pack-bit-registers"),
+                (args.bitwise_muxes, "grhsim.bitwise-muxes"),
+                (args.mux_chain_fold, "grhsim.mux-chain-fold"),
+                (args.canonicalize_compute, "grhsim.canonicalize-compute"),
+                (args.used_bits, "grhsim.used-bits"),
+            ) if enabled
+        ]
+        if args.recover_masked_or:
+            actions += [lambda: session.run_grhsim_pass(
+                "cpu.st.recover-masked-or", model="grhsim.main",
+                min_terms=args.masked_or_min_terms, report=str(flow / "masked-or.tsv"))]
+        if actions:
+            actions += [lambda: session.run_grhsim_pass(
+                "grhsim.verify", model="grhsim.main", seal="semantic")]
+        if actions or args.remap:
+            actions += [
                 lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
                 for name in CPU_MAPPING_PIPELINE
             ]
         else:
-            actions = []
-        if args.remap and not args.pack_bit_registers:
-            actions = [
-                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
-                for name in CPU_MAPPING_PIPELINE
-            ]
-        if args.bitwise_muxes:
-            actions += [lambda: session.run_grhsim_pass("grhsim.bitwise-muxes", model="grhsim.main")]
-            actions += [
-                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
-                for name in CPU_MAPPING_PIPELINE
-            ]
-        if args.mux_chain_fold:
-            actions += [lambda: session.run_grhsim_pass("grhsim.mux-chain-fold", model="grhsim.main")]
-            actions += [
-                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
-                for name in CPU_MAPPING_PIPELINE
-            ]
-        if args.canonicalize_compute:
-            actions += [lambda: session.run_grhsim_pass("grhsim.canonicalize-compute", model="grhsim.main")]
-            actions += [
-                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
-                for name in CPU_MAPPING_PIPELINE
-            ]
-        if args.used_bits:
-            actions += [lambda: session.run_grhsim_pass("grhsim.used-bits", model="grhsim.main")]
-            actions += [
-                lambda name=name: session.run_grhsim_pass(name, model="grhsim.main", **mapping_options(name))
-                for name in CPU_MAPPING_PIPELINE
-            ]
+            # An unchanged archived checkpoint only needs its emit TU plan refreshed.
+            actions = [lambda: session.run_grhsim_pass("cpu.st.plan-translation-units", model="grhsim.main")]
         emit_options = {"model": "grhsim.main", "output": str(flow / "model"),
                         "mem_enable_bitmap": mem_enable_bitmap(),
                         "mem_write_activate": args.mem_write_activate}
@@ -145,9 +137,6 @@ def main():
             shutil.rmtree(flow / "model")
         print(f"Emitting model: {flow / 'model'} ({args.mem_write_activate})", flush=True)
         for action in actions + [
-            # C8 replans deterministically when the checkpoint already carries
-            # a TU plan, so it is safe to run unconditionally before emit.
-            lambda: session.run_grhsim_pass("cpu.st.plan-translation-units", model="grhsim.main"),
             lambda: session.run_grhsim_pass("cpu.st.emit-cpp", **emit_options),
             lambda: session.store_grhsim(model="grhsim.main", output=str(flow / "xiangshan_grhsim_ir.json")),
         ]:

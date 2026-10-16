@@ -194,6 +194,10 @@ XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE ?= 1
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
 # B6 per-partition simplify (M5d-5); disable only for pipeline debugging.
 XS_WOLF_GRHSIM_IR_PHASE_SIMPLIFY ?= 1
+# B7 mask/array reduction recovery; opt in (CoreMark 100k: -2.96% Host time).
+XS_WOLF_GRHSIM_IR_MASKED_OR ?= 0
+XS_WOLF_GRHSIM_IR_MASKED_OR_MIN_TERMS ?= 16
+XS_WOLF_GRHSIM_IR_MASKED_OR_REPORT ?=
 XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES ?= 1
 XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS ?= 1
 XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS ?= 0
@@ -359,6 +363,23 @@ test_grhsim_cpu_phase_emit:
 	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-cpu-phase-emit-tests -j 2
 	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-cpu-phase-emit-tests$$' --output-on-failure
 
+.PHONY: test_grhsim_masked_or
+test_grhsim_masked_or:
+	@mkdir -p ptmp/cpu_emit_test_tmp ptmp/cpu_emit_ccache ptmp/masked-or-tests
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-masked-or-tests -j 2
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache WOLVRIX_MASKED_OR_TEST_OUTPUT=$(CURDIR)/ptmp/masked-or-tests ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-masked-or-tests$$' --output-on-failure
+
+.PHONY: bench_grhsim_masked_or
+GRHSIM_MASKED_OR_BENCH_FLAGS ?= -std=c++20 -O3 -DNDEBUG
+GRHSIM_MASKED_OR_BENCH_SEED ?= 20261016
+bench_grhsim_masked_or: ptmp/masked-or-bench/bench
+	@set -o pipefail; ./$< $(GRHSIM_MASKED_OR_BENCH_SEED) | tee ptmp/masked-or-bench/results.tsv
+
+ptmp/masked-or-bench/bench: scripts/grhsim_masked_or_bench.cpp Makefile
+	@mkdir -p ptmp/masked-or-bench ptmp/cpu_emit_test_tmp
+	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp $(CXX) $(GRHSIM_MASKED_OR_BENCH_FLAGS) $< -o $@
+
 .PHONY: test_grhsim_simplify
 test_grhsim_simplify:
 	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
@@ -445,8 +466,25 @@ profile_grhsim_ir:
 
 .PHONY: reemit_grhsim_ir
 GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT ?= 0
+GRHSIM_REEMIT_MASKED_OR_MIN_TERMS ?= 16
 reemit_grhsim_ir: py_install
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py --model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" --cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" $(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,) $(if $(filter 1,$(GRHSIM_REEMIT_REMAP)),--remap,) $(if $(filter 1,$(GRHSIM_REEMIT_BITWISE_MUXES)),--bitwise-muxes,) $(if $(filter 1,$(GRHSIM_REEMIT_MUX_CHAIN_FOLD)),--mux-chain-fold,) $(if $(filter 1,$(GRHSIM_REEMIT_USED_BITS)),--used-bits,) $(if $(filter 1,$(GRHSIM_REEMIT_CANONICALIZE_COMPUTE)),--canonicalize-compute,) $(if $(strip $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE),) $(if $(strip $(GRHSIM_REEMIT_SEGMENT_PENALTY)),--segment-penalty $(GRHSIM_REEMIT_SEGMENT_PENALTY),) $(if $(strip $(GRHSIM_REEMIT_SINK_GUARD_MIN_SIZE)),--sink-enable-guard-min-size $(GRHSIM_REEMIT_SINK_GUARD_MIN_SIZE),) $(if $(strip $(GRHSIM_REEMIT_HELPER_MAX_ESTIMATED_LINES)),--helper-max-estimated-lines $(GRHSIM_REEMIT_HELPER_MAX_ESTIMATED_LINES),) $(if $(strip $(GRHSIM_REEMIT_SEMANTIC_NODES)),--semantic-nodes $(GRHSIM_REEMIT_SEMANTIC_NODES),) $(if $(strip $(GRHSIM_REEMIT_SEMANTIC_NODE_MAX_OP)),--semantic-node-max-op $(GRHSIM_REEMIT_SEMANTIC_NODE_MAX_OP),) $(if $(strip $(GRHSIM_REEMIT_COARSEN_MAX_OP)),--coarsen-max-op $(GRHSIM_REEMIT_COARSEN_MAX_OP),)
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim_ir.py \
+		--model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" \
+		--cpu-target-batch-count "$(GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT)" \
+		$(if $(filter 1,$(GRHSIM_REEMIT_PACK_BIT_REGISTERS)),--pack-bit-registers,) \
+		$(if $(filter 1,$(GRHSIM_REEMIT_REMAP)),--remap,) \
+		$(if $(filter 1,$(GRHSIM_REEMIT_MASKED_OR)),--recover-masked-or --masked-or-min-terms $(GRHSIM_REEMIT_MASKED_OR_MIN_TERMS),) \
+		$(if $(filter 1,$(GRHSIM_REEMIT_BITWISE_MUXES)),--bitwise-muxes,) \
+		$(if $(filter 1,$(GRHSIM_REEMIT_MUX_CHAIN_FOLD)),--mux-chain-fold,) \
+		$(if $(filter 1,$(GRHSIM_REEMIT_USED_BITS)),--used-bits,) \
+		$(if $(filter 1,$(GRHSIM_REEMIT_CANONICALIZE_COMPUTE)),--canonicalize-compute,) \
+		$(if $(strip $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE),) \
+		$(if $(strip $(GRHSIM_REEMIT_SEGMENT_PENALTY)),--segment-penalty $(GRHSIM_REEMIT_SEGMENT_PENALTY),) \
+		$(if $(strip $(GRHSIM_REEMIT_SINK_GUARD_MIN_SIZE)),--sink-enable-guard-min-size $(GRHSIM_REEMIT_SINK_GUARD_MIN_SIZE),) \
+		$(if $(strip $(GRHSIM_REEMIT_HELPER_MAX_ESTIMATED_LINES)),--helper-max-estimated-lines $(GRHSIM_REEMIT_HELPER_MAX_ESTIMATED_LINES),) \
+		$(if $(strip $(GRHSIM_REEMIT_SEMANTIC_NODES)),--semantic-nodes $(GRHSIM_REEMIT_SEMANTIC_NODES),) \
+		$(if $(strip $(GRHSIM_REEMIT_SEMANTIC_NODE_MAX_OP)),--semantic-node-max-op $(GRHSIM_REEMIT_SEMANTIC_NODE_MAX_OP),) \
+		$(if $(strip $(GRHSIM_REEMIT_COARSEN_MAX_OP)),--coarsen-max-op $(GRHSIM_REEMIT_COARSEN_MAX_OP),)
 
 .PHONY: grhsim_tu_trace
 # Diagnostic: compile ONE generated model TU with -ftime-trace to locate the
@@ -1034,6 +1072,31 @@ analyze_grhsim_slice_chains:
 analyze_grhsim_algebra_residue:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_algebra_residue_stats.py --model "$(GRHSIM_ALGEBRA_MODEL)"
 
+GRHSIM_BOOL_CHAIN_MODEL ?= $(XS_GRHSIM_IR_BUILD_ABS)/model
+GRHSIM_BOOL_CHAIN_OUTPUT ?= ptmp/grhsim-bool-chains.json
+GRHSIM_BOOL_CHAIN_CSV ?= ptmp/grhsim-bool-chains-ge16.csv
+.PHONY: analyze_grhsim_bool_chains test_grhsim_bool_chains
+analyze_grhsim_bool_chains:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_bool_chain_stats.py --model-dir "$(GRHSIM_BOOL_CHAIN_MODEL)" --output "$(GRHSIM_BOOL_CHAIN_OUTPUT)" --long-csv "$(GRHSIM_BOOL_CHAIN_CSV)"
+
+test_grhsim_bool_chains:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_bool_chain_stats.py
+
+XS_MUX1H_CENSUS_OUTPUT ?= ptmp/mux1h-census
+XS_MUX1H_CENSUS_FIR ?= build/xs/rtl-aggr/rtl/SimTop.fir
+.PHONY: analyze_xs_mux1h test_xs_mux1h_census
+analyze_xs_mux1h:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xiangshan_mux1h_census.py --fir "$(XS_MUX1H_CENSUS_FIR)" --output "$(XS_MUX1H_CENSUS_OUTPUT)"
+
+test_xs_mux1h_census:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_xiangshan_mux1h_census.py
+
+GRHSIM_MASKED_OR_COVERAGE_MODEL ?= build/xs/grhsim-ir-aggr-global-enhanced/xiangshan_grhsim_ir.json
+GRHSIM_MASKED_OR_COVERAGE_REPORT ?= ptmp/masked-or-xs/masked-or.tsv
+.PHONY: analyze_grhsim_masked_or_coverage
+analyze_grhsim_masked_or_coverage:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_masked_or_coverage.py --model "$(GRHSIM_MASKED_OR_COVERAGE_MODEL)" --report "$(GRHSIM_MASKED_OR_COVERAGE_REPORT)" --output "$(XS_MUX1H_CENSUS_OUTPUT)"
+
 .PHONY: analyze_grhsim_used_bits
 analyze_grhsim_used_bits:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_used_bits_stats.py --model "$(GRHSIM_USED_BITS_MODEL)"
@@ -1432,6 +1495,9 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES)),--mem-min-bytes $(XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES),) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE)),--no-clone-shared-compute,--clone-shared-compute --clone-shared-compute-max-clones $(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES)) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_PHASE_SIMPLIFY)),--no-phase-simplify,) \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_MASKED_OR)),--recover-masked-or,--no-recover-masked-or) \
+			--masked-or-min-terms "$(XS_WOLF_GRHSIM_IR_MASKED_OR_MIN_TERMS)" \
+			$(if $(strip $(XS_WOLF_GRHSIM_IR_MASKED_OR_REPORT)),--masked-or-report "$(abspath $(XS_WOLF_GRHSIM_IR_MASKED_OR_REPORT))",) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES)),--no-bitwise-predicates,--bitwise-predicates) \
 			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS)),--no-pack-bit-registers,--pack-bit-registers) \
 			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS)),--disable-pack-bit-registers,) \
