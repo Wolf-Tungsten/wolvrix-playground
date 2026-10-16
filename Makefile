@@ -181,6 +181,11 @@ XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES ?=
 XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON ?= 0
 XS_WOLF_GRHSIM_IR_KEEP_ORIGINS ?= 1
 XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR ?=
+XS_WOLF_GRHSIM_IR_OVERWRITE_CPP ?= 0
+# Memory write reader activation mode for the CPU emitter. Keep this as a
+# Makefile knob so aggregate and baseline standard flows can be re-emitted in
+# their fixed build directories without ad-hoc scripts.
+XS_WOLF_GRHSIM_IR_MEM_WRITE_ACTIVATE ?= on-write
 # Batch count 0 keeps one emit function per general supernode (the schedule
 # every accepted xiangshan run was validated with). The pass default (64)
 # merges supernodes into giant tasks.
@@ -326,6 +331,22 @@ test_wolvrix: build
 	mkdir -p $(CURDIR)/ptmp/ctest_tmp $(CURDIR)/ptmp/ctest_ccache
 	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) --output-on-failure
 
+.PHONY: test_grh_register_write
+test_grh_register_write:
+	mkdir -p $(CURDIR)/ptmp/register_write_tmp $(CURDIR)/ptmp/register_write_ccache
+	TMPDIR=$(CURDIR)/ptmp/register_write_tmp CCACHE_DIR=$(CURDIR)/ptmp/register_write_ccache $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR=$(CURDIR)/ptmp/register_write_tmp CCACHE_DIR=$(CURDIR)/ptmp/register_write_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-mux-tree-fold -j 2
+	TMPDIR=$(CURDIR)/ptmp/register_write_tmp CCACHE_DIR=$(CURDIR)/ptmp/register_write_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-mux-tree-fold$$' --output-on-failure
+
+.PHONY: probe_rob_register_write
+probe_rob_register_write:
+	mkdir -p $(CURDIR)/ptmp/register_write_tmp $(CURDIR)/ptmp/register_write_ccache
+	@if [ "$(SKIP_PY_INSTALL)" != "1" ]; then \
+		TMPDIR=$(CURDIR)/ptmp/register_write_tmp PIP_CACHE_DIR=$(CURDIR)/ptmp/register_write_tmp/pip-cache \
+		CCACHE_DIR=$(CURDIR)/ptmp/register_write_ccache CMAKE_BUILD_PARALLEL_LEVEL=2 $(MAKE) --no-print-directory py_install; \
+	fi
+	TMPDIR=$(CURDIR)/ptmp/register_write_tmp PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/probe_rob_register_write.py $(ROB_REGISTER_WRITE_ARGS)
+
 .PHONY: test_grhsim_ir
 test_grhsim_ir:
 	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
@@ -367,6 +388,12 @@ test_transform_simplify:
 	mkdir -p $(CURDIR)/ptmp/ctest_tmp $(CURDIR)/ptmp/ctest_ccache
 	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-simplify -j 2
 	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-simplify$$' --output-on-failure
+
+.PHONY: test_transform_shape_mapping
+test_transform_shape_mapping:
+	mkdir -p $(CURDIR)/ptmp/ctest_tmp $(CURDIR)/ptmp/ctest_ccache
+	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-hier-flatten transform-instance-inline transform-redundant-elim -j 2
+	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-(hier-flatten|instance-inline|redundant-elim)$$' --output-on-failure
 
 .PHONY: test_transform_comb_loop_elim
 test_transform_comb_loop_elim:
@@ -1389,7 +1416,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 	@printf "%s\n" $(XS_WOLF_INCLUDE_FLAGS) $(XS_WOLF_DEFINE_FLAGS) >> "$(XS_GRHSIM_IR_READ_ARGS_FILE)"
 	@echo "[LOG] Capturing GrhSIM IR checkpoint output to: $(XS_GRHSIM_IR_LOG_FILE)"
 	@set -o pipefail; { \
-		echo "[CMD] $(PYTHON) $(XS_WOLVRIX_GRHSIM_IR_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) $(XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON_ABS) $(XS_WOLF_GRHSIM_IR_JSON_ABS) $(XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON_ABS) $(XS_GRHSIM_IR_READ_ARGS_FILE) $(WOLF_LOG) $(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir $(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),) $(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),)"; \
+		echo "[CMD] $(PYTHON) $(XS_WOLVRIX_GRHSIM_IR_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) $(XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON_ABS) $(XS_WOLF_GRHSIM_IR_JSON_ABS) $(XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON_ABS) $(XS_GRHSIM_IR_READ_ARGS_FILE) $(WOLF_LOG) --mem-write-activate $(XS_WOLF_GRHSIM_IR_MEM_WRITE_ACTIVATE) $(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir $(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),) $(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),)"; \
 		$(PYTHON) $(XS_WOLVRIX_GRHSIM_IR_SCRIPT) \
 			"$(XS_WOLF_FILELIST_ABS)" \
 			"$(XS_SIM_TOP)" \
@@ -1411,6 +1438,8 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE),) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",) \
+			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_OVERWRITE_CPP)),--overwrite-emit-cpp,) \
+			--mem-write-activate "$(XS_WOLF_GRHSIM_IR_MEM_WRITE_ACTIVATE)" \
 			$(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),--emit-waveform,) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON)),--dump-post-lower-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON))",) \
 			$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON)),--dump-pre-partition-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON))",) \
@@ -1423,7 +1452,13 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 	exit $$status
 
 
-.PHONY: xs_wolf_grhsim_ir_emu xs_wolf_grhsim_ir_build_emu
+.PHONY: xs_wolf_grhsim_ir_reemit xs_wolf_grhsim_ir_emu xs_wolf_grhsim_ir_build_emu
+xs_wolf_grhsim_ir_reemit:
+	@$(PYTHON) scripts/reemit_grhsim_ir.py \
+		--model "$(XS_WOLF_GRHSIM_IR_JSON_ABS)" --flow "$(XS_GRHSIM_IR_BUILD_ABS)" \
+		--overwrite --mem-write-activate "$(XS_WOLF_GRHSIM_IR_MEM_WRITE_ACTIVATE)" \
+		$(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),--emit-waveform,)
+
 xs_wolf_grhsim_ir_emu: xs_wolf_grhsim_ir
 	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir_build_emu
 
@@ -2042,7 +2077,10 @@ XS_WOLF_GRHSIM_IR_AGGR_OVERRIDES = \
 	WOLVRIX_GRHSIM_WAVEFORM="$(WOLVRIX_GRHSIM_WAVEFORM)"
 
 .PHONY: xs_wolf_grhsim_ir_aggregate xs_wolf_grhsim_ir_aggregate_emu \
-	xs_wolf_grhsim_ir_aggregate_build_emu run_xs_wolf_grhsim_ir_aggregate_emu
+	xs_wolf_grhsim_ir_aggregate_reemit xs_wolf_grhsim_ir_aggregate_build_emu run_xs_wolf_grhsim_ir_aggregate_emu
+xs_wolf_grhsim_ir_aggregate_reemit:
+	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir_reemit $(XS_WOLF_GRHSIM_IR_AGGR_OVERRIDES)
+
 xs_wolf_grhsim_ir_aggregate:
 	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir $(XS_WOLF_GRHSIM_IR_AGGR_OVERRIDES)
 

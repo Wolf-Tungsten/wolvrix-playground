@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import shlex
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -17,8 +18,17 @@ GRH_PIPELINE: list[tuple[str, dict]] = [
     # Stage-07 编译期主修复：firtool preserve-aggregate 把字段级动态访问展开成
     # 常量索引 mux 树/逐元素写译码/pad 拼接读；在图最小的模块级阶段逆向折叠回
     # 动态数组访问，显著缩小后续 pass（尤其 simplify）与 emit 的图规模。
-    # XS_WOLF_MUX_TREE_FOLD=0 可临时禁用（A/B 回归分析用）。
-    *( [] if os.environ.get("XS_WOLF_MUX_TREE_FOLD", "1").strip() == "0" else [("mux-tree-fold", {})] ),
+    # 先折叠已有的简单链，再在完整写组上提取保持分支，恢复剩余多写口译码。
+    # XS_WOLF_MUX_TREE_FOLD=0 可临时禁用全部 mux-tree-fold（A/B 回归分析用）。
+    # XS_WOLF_REGISTER_WRITE_NORMALIZE=0 保留原有无参 mux-tree-fold，关闭
+    # 新增的旧值保持路径规范化和 guarded-write 恢复，作为公平性能对照组。
+    *([
+        ("mux-tree-fold", {}),
+        *([] if os.environ.get("XS_WOLF_REGISTER_WRITE_NORMALIZE", "1").strip() == "0" else [
+            ("register-write-normalize", {"semantics": "2state"}),
+            ("mux-tree-fold", {"guarded_writes": "2state"}),
+        ]),
+    ] if os.environ.get("XS_WOLF_MUX_TREE_FOLD", "1").strip() != "0" else []),
     ("memory-read-retime", {}),
     ("multidriven-guard", {}),
     ("blackbox-guard", {}),
@@ -281,6 +291,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--resume-from-flat-grh", action="store_true")
     parser.add_argument("--keep-origins", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--emit-cpp-dir", type=Path)
+    parser.add_argument("--overwrite-emit-cpp", action="store_true",
+                        help="replace existing generated C++ immediately before emitting the new model")
     parser.add_argument("--emit-waveform", action="store_true",
                         help="emit the CPU model with FST waveform capture for declared symbols "
                              "(cpu.st.emit-cpp --waveform declared-symbols)")
@@ -516,6 +528,8 @@ def main() -> int:
             # visible in the flow log; M5d-3 checkpoints consume these.
             session.print_diagnostics(diagnostics, min_level="info")
         if emit_cpp_dir is not None:
+            if args.overwrite_emit_cpp and emit_cpp_dir.exists():
+                shutil.rmtree(emit_cpp_dir)
             emit_options = {
                 "model": "grhsim.main",
                 "output": str(emit_cpp_dir),

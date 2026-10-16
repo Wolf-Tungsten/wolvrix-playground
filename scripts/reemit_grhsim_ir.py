@@ -1,6 +1,7 @@
 """Emit an archived mapped GrhSIM checkpoint for diagnostic candidate screening."""
 
 import argparse
+import shutil
 from pathlib import Path
 
 import wolvrix
@@ -11,6 +12,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--flow", type=Path, required=True)
+    parser.add_argument("--overwrite", action="store_true",
+                        help="replace the generated model in an existing flow directory")
+    parser.add_argument("--mem-write-activate", choices=["on-change", "on-write"], default="on-write")
+    parser.add_argument("--emit-waveform", action="store_true")
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--remap", action="store_true", help="rebuild CPU mapping without a semantic transform")
     parser.add_argument("--bitwise-muxes", action="store_true")
@@ -56,11 +61,15 @@ def main():
         parser.error("coarsen max op must be nonnegative")
     root = Path(__file__).resolve().parents[1]
     flow = args.flow.resolve()
-    if not flow.is_relative_to(root / "ptmp") or (flow / "model").exists():
-        parser.error("flow must be under ptmp with no existing model output")
+    if not any(flow.is_relative_to(base) and flow != base
+               for base in (root / "ptmp", root / "build" / "xs")):
+        parser.error("flow must be a subdirectory of ptmp or build/xs")
+    if (flow / "model").exists() and not args.overwrite:
+        parser.error("model output already exists; use --overwrite to replace it")
     flow.mkdir(parents=True, exist_ok=True)
     with wolvrix.Session() as session:
         session.diagnostics_raise_min_level = "none"
+        print(f"Loading checkpoint: {args.model.resolve()}", flush=True)
         diagnostics = session.load_grhsim(str(args.model.resolve()), out_model="grhsim.main")
         for entry in diagnostics:
             print(entry, flush=True)
@@ -128,7 +137,13 @@ def main():
                 for name in CPU_MAPPING_PIPELINE
             ]
         emit_options = {"model": "grhsim.main", "output": str(flow / "model"),
-                        "mem_enable_bitmap": mem_enable_bitmap()}
+                        "mem_enable_bitmap": mem_enable_bitmap(),
+                        "mem_write_activate": args.mem_write_activate}
+        if args.emit_waveform:
+            emit_options["waveform"] = "declared-symbols"
+        if args.overwrite and (flow / "model").exists():
+            shutil.rmtree(flow / "model")
+        print(f"Emitting model: {flow / 'model'} ({args.mem_write_activate})", flush=True)
         for action in actions + [
             # C8 replans deterministically when the checkpoint already carries
             # a TU plan, so it is safe to run unconditionally before emit.
