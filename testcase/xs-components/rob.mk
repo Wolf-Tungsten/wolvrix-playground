@@ -9,7 +9,7 @@ CXX := clang++
 endif
 ROB_REPO := $(abspath ../..)
 ROB_PYTHON ?= $(ROB_REPO)/.venv/bin/python
-ROB_SOURCE_RTL ?= $(ROB_REPO)/build/xs/rtl/rtl
+ROB_SOURCE_RTL ?= $(ROB_REPO)/ptmp/xs/rtl/rtl
 ROB_FIXTURE := $(abspath rob)
 ROB_WORK ?= $(ROB_REPO)/ptmp/xs-components-rob
 ROB_GSIM := $(abspath $(GSIM_BIN))
@@ -89,7 +89,7 @@ ROB_GRHSIM_FLAT_GRH := $(ROB_WORK)/grhsim/flat_grh.json
 ROB_GRHSIM_RESUME := --resume-from-flat-grh
 endif
 # Extra flags appended to the grhsim-ir emit invocation, e.g.
-# ROB_GRHSIM_EXTRA_FLAGS=--disable-pack-bit-registers for A/B arms.
+# ROB_GRHSIM_EXTRA_FLAGS=--no-pack-bit-registers for A/B arms.
 ROB_GRHSIM_EXTRA_FLAGS ?=
 
 .PHONY: rob-gsim-model rob-grhsim-model rob-bench
@@ -202,117 +202,4 @@ $(ROB_WORK)/probe_phase: $(ROB_WORK)/probe_phase.cpp $(ROB_BENCH_DIR)/rob_bench_
 		"$<" "$(ROB_BENCH_DIR)/rob_bench_lib.o" $(ROB_GSIM_OBJ_DIR)/*.o \
 		"$(ROB_GRHSIM_MODEL_DIR)/libgrhsim_Rob.a" -o $@
 
-# ---------------------------------------------------------------------------
-# Trace-driven benchmark: replay the Rob I/O trace captured from the full
-# XiangShan design (Verilator ref emu) through both standalone models.
-# ---------------------------------------------------------------------------
-ROB_TRACE_DIR := $(ROB_WORK)/trace
-ROB_TRACE_SV := $(ROB_TRACE_DIR)/rob_tap.sv
-ROB_TRACE_MANIFEST := $(ROB_TRACE_DIR)/tap_ports.json
-ROB_TRACE_LAYOUT := $(ROB_TRACE_DIR)/layout.json
-ROB_TRACE_BUILD := $(ROB_TRACE_DIR)/verilator-ref-emu
-ROB_TRACE_BIN := $(ROB_TRACE_DIR)/rob_trace.bin
-ROB_TRACE_CYCLES ?= 100000
-ROB_TRACE_IMAGE ?= $(ROB_REPO)/testcase/xiangshan/ready-to-run/coremark-2-iteration.bin
-ROB_TRACE_NEMU ?= $(ROB_REPO)/testcase/xiangshan/ready-to-run/riscv64-nemu-interpreter-so
-ROB_XS_ROOT := $(ROB_REPO)/testcase/xiangshan
-ROB_XS_RTL := $(ROB_REPO)/build/xs/rtl/rtl
-ROB_TRACE_JOBS ?= 32
-ROB_TRACE_EMU_THREADS ?= 2
-
-.PHONY: rob-trace-tap rob-trace-emu-build rob-trace-run rob-bench-trace
-
-rob-trace-tap: $(ROB_TRACE_SV) $(ROB_TRACE_LAYOUT)
-
-$(ROB_TRACE_SV): scripts/gen_rob_tap.py $(ROB_XS_RTL)/Rob.sv
-	@mkdir -p "$(ROB_TRACE_DIR)"
-	PYTHONDONTWRITEBYTECODE=1 $(ROB_PYTHON) scripts/gen_rob_tap.py \
-		--top Rob --sv "$(ROB_XS_RTL)/Rob.sv" \
-		--out "$(ROB_TRACE_SV)" --manifest "$(ROB_TRACE_MANIFEST)"
-
-$(ROB_TRACE_LAYOUT): scripts/gen_rob_bench.py $(ROB_GSIM_MODEL_DIR)/.patched $(ROB_GRHSIM_MODEL_DIR)/grhsim_Rob.hpp
-	@mkdir -p "$(ROB_TRACE_DIR)"
-	PYTHONDONTWRITEBYTECODE=1 $(ROB_PYTHON) scripts/gen_rob_bench.py \
-		--top Rob \
-		--gsim-header "$(ROB_GSIM_MODEL_DIR)/Rob.h" \
-		--grhsim-header "$(ROB_GRHSIM_MODEL_DIR)/grhsim_Rob.hpp" \
-		--sv "$(ROB_FIXTURE)/rtl/Rob.sv" \
-		--layout-out "$@"
-
-# Verilator whole-design ref emu with the RobTap bound in (mirrors the root
-# Makefile xs_ref_emu recipe, plus SIM_VSRC carrying the tap).
-rob-trace-emu-build: $(ROB_TRACE_SV)
-	@mkdir -p "$(ROB_TRACE_BUILD)"
-	@start=$$(date +%s); \
-	NOOP_HOME=$(ROB_XS_ROOT) $(MAKE) --no-print-directory -C "$(ROB_XS_ROOT)/difftest" emu \
-		BUILD_DIR="$(ROB_TRACE_BUILD)" \
-		GEN_CSRC_DIR="$(ROB_XS_ROOT)/build/generated-src" \
-		GEN_VSRC_DIR="$(ROB_XS_ROOT)/build/generated-src" \
-		RTL_DIR="$(ROB_XS_RTL)" \
-		SIM_TOP_V="$(ROB_XS_RTL)/SimTop.sv" \
-		NUM_CORES=1 \
-		RTL_SUFFIX=sv \
-		EMU_THREADS=$(ROB_TRACE_EMU_THREADS) \
-		VM_BUILD_JOBS=$(ROB_TRACE_JOBS) \
-		EMU_RANDOMIZE=0 \
-		SIM_VFLAGS="+define+DIFFTEST" \
-		WITH_CHISELDB=0 \
-		WITH_CONSTANTIN=0 \
-		SIM_VSRC="$$(find "$(ROB_XS_ROOT)/difftest/src/test/vsrc/common" -name '*.v' -or -name '*.sv' | tr '\n' ' ') $(ROB_TRACE_SV)" \
-		> "$(ROB_TRACE_DIR)/emu_build.log" 2>&1; \
-	rc=$$?; end=$$(date +%s); \
-	echo "[rob-trace-emu-build] rc=$$rc elapsed_s=$$((end - start))"; \
-	if [ $$rc -ne 0 ]; then tail -40 "$(ROB_TRACE_DIR)/emu_build.log"; exit $$rc; fi
-
-# Stream the text trace through a FIFO straight into the packed binary so the
-# raw text (which is larger) never touches disk. The tap falls back to
-# $fopen("rob_trace.txt") in the emu cwd because the difftest arg parser
-# rejects unknown +plusargs, so the FIFO lives in the build dir under that
-# fixed name.
-rob-trace-run: $(ROB_TRACE_LAYOUT)
-	@test -x "$(ROB_TRACE_BUILD)/emu" || { echo "run rob-trace-emu-build first"; exit 1; }
-	@rm -f "$(ROB_TRACE_BUILD)/rob_trace.txt" "$(ROB_TRACE_BIN)"
-	@mkfifo "$(ROB_TRACE_BUILD)/rob_trace.txt"
-	@start=$$(date +%s); \
-	PYTHONDONTWRITEBYTECODE=1 $(ROB_PYTHON) scripts/pack_rob_trace.py \
-		--manifest "$(ROB_TRACE_MANIFEST)" --layout "$(ROB_TRACE_LAYOUT)" \
-		--in "$(ROB_TRACE_BUILD)/rob_trace.txt" --out "$(ROB_TRACE_BIN)" \
-		> "$(ROB_TRACE_DIR)/pack.log" 2>&1 & \
-	pack_pid=$$!; \
-	cd "$(ROB_TRACE_BUILD)" && \
-		./emu -i "$(ROB_TRACE_IMAGE)" --diff "$(ROB_TRACE_NEMU)" -b 0 -e 0 \
-		-C $(ROB_TRACE_CYCLES) \
-		> "$(ROB_TRACE_DIR)/emu_run.log" 2>&1; \
-	emu_rc=$$?; \
-	for i in $$(seq 1 30); do kill -0 $$pack_pid 2>/dev/null || break; sleep 1; done; \
-	if kill -0 $$pack_pid 2>/dev/null; then \
-		echo "[rob-trace-run] packer stuck after emu exit; killing"; \
-		kill $$pack_pid 2>/dev/null; \
-	fi; \
-	wait $$pack_pid; pack_rc=$$?; end=$$(date +%s); \
-	rm -f "$(ROB_TRACE_BUILD)/rob_trace.txt"; \
-	echo "[rob-trace-run] emu_rc=$$emu_rc pack_rc=$$pack_rc elapsed_s=$$((end - start))"; \
-	if [ $$emu_rc -ne 0 ]; then tail -30 "$(ROB_TRACE_DIR)/emu_run.log"; fi; \
-	if [ $$pack_rc -ne 0 ]; then tail -30 "$(ROB_TRACE_DIR)/pack.log"; fi; \
-	test $$emu_rc -eq 0 -a $$pack_rc -eq 0
-
-rob-bench-trace: $(ROB_BENCH_DIR)/rob_bench
-	@test -f "$(ROB_TRACE_BIN)"
-	@start=$$(date +%s); \
-	set -o pipefail; "$(ROB_BENCH_DIR)/rob_bench" \
-		--trace "$(ROB_TRACE_BIN)" --verify $(ROB_BENCH_VERIFY) --repeat $(ROB_BENCH_REPEAT) \
-		2>&1 | tee "$(ROB_WORK)/bench_trace.log"; \
-	rc=$${PIPESTATUS[0]}; end=$$(date +%s); \
-	echo "[rob-bench-trace] run rc=$$rc elapsed_s=$$((end - start))" | tee -a "$(ROB_WORK)/bench_trace.log"; \
-	exit $$rc
-
-.PHONY: rob-trace-phase-probe
-rob-trace-phase-probe: $(ROB_WORK)/probe_trace_phase
-	@test -f "$(ROB_TRACE_BIN)"
-	"$(ROB_WORK)/probe_trace_phase" "$(ROB_TRACE_BIN)" "$(ROB_TRACE_DIR)/trace_phase.csv" \
-		2>&1 | tee "$(ROB_TRACE_DIR)/trace_phase.log"
-
-$(ROB_WORK)/probe_trace_phase: $(ROB_WORK)/probe_trace_phase.cpp $(ROB_BENCH_DIR)/rob_bench_lib.o $(ROB_GSIM_OBJ_DIR)/.stamp $(ROB_GRHSIM_MODEL_DIR)/libgrhsim_Rob.a
-	$(CXX) $(ROB_BENCH_CXXFLAGS) -I"$(ROB_GSIM_MODEL_DIR)" -I"$(ROB_GRHSIM_MODEL_DIR)" \
-		"$<" "$(ROB_BENCH_DIR)/rob_bench_lib.o" $(ROB_GSIM_OBJ_DIR)/*.o \
-		"$(ROB_GRHSIM_MODEL_DIR)/libgrhsim_Rob.a" -o $@
+# Full-system trace targets using scalarized Rob ports have been retired.

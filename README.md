@@ -86,13 +86,15 @@ make run_all_hdlbits_tests
 make run_c910_test
 make run_c910_ref_test
 
-make run_xs_diff -j
+make xs_wolf_grhsim_ir_emu
+make run_xs_wolf_grhsim_ir_emu XS_SIM_MAX_CYCLE=100000
 
 make -C testcase/xs-bugcase/CASE_006 run
 
-make build_xs_repcut_verilator -j
-make run_xs_repcut_verilator XS_EMU_THREADS=32 XS_REPCUT_STEP_TIMING=1 XS_SIM_MAX_CYCLE=30000
 ```
+
+The XiangShan flow requires `preserve-aggregate=all`. Mux1H/masked-OR recovery,
+state-write normalization and dynamic-write recovery are enabled by default.
 
 ## Output Locations
 
@@ -107,8 +109,8 @@ OpenC910:
 
 XiangShan:
 
-- build outputs: `build/xs/`
-- logs and waveforms: `build/logs/xs/`
+- RTL, checkpoints, models and emulators: `ptmp/xs/`
+- logs and waveforms: `ptmp/xs/logs/`
 - generated sources and macros: `testcase/xiangshan/build/generated-src/`
 
 XS bugcases:

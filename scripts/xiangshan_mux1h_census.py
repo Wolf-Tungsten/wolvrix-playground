@@ -343,7 +343,7 @@ def write_csv(path, rows):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("testcase/xiangshan"))
-    parser.add_argument("--fir", type=Path, default=Path("build/xs/rtl-aggr/rtl/SimTop.fir"))
+    parser.add_argument("--fir", type=Path, default=Path("ptmp/xs/rtl/rtl/SimTop.fir"))
     parser.add_argument("--output", type=Path, default=Path("ptmp/mux1h-census"))
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)

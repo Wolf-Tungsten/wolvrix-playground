@@ -25,11 +25,15 @@
 5. XS 完整 CoreMark + NEMU difftest：`HIT GOOD TRAP`、exit 0，且逐拍轨迹
    instrCnt=663,688 / cycleCnt=297,291 一致（除非本项优化有意改变调度语义，
    此时必须重钉轨迹并说明）。stage-07 起标准链路为 preserve-aggregate：
-   `make xs_wolf_grhsim_ir_aggregate_emu` + `make run_xs_wolf_grhsim_ir_aggregate_emu`
-   （RTL 由 `make xs_rtl_aggregate` 生成）；legacy（标量化 SV）链路降级为
-   HDLBits/小用例维护模式，不再是 XS 规模门禁。
+   `make xs_wolf_grhsim_ir_emu` + `make run_xs_wolf_grhsim_ir_emu`
+   （2026-10-17 起固定 preserve-aggregate=all，产物在 `ptmp/xs/`）；
+   XS 标量流程、旧 wolf/repcut 入口及重复的 `_aggregate` targets 已删除。
 
 ## 当前基线
+
+2026-10-17：标准 XS 流程默认 preserve-aggregate=all，开启已验证的 masked OR，
+保留 8-bit 活动位打包并精简无效/重复 flag；清理重跑见
+[默认配置与结果记录](20261017-aggregate-defaults-active8.md)。
 
 `20261004-075148-v3-sixphase-baseline.md`：M0 存档 85.9s vs 当前（V3-M3）223.4s
 （100k CoreMark 周期）= 2.60× 回退。**所有后续优化以缩小此差距为目标。**

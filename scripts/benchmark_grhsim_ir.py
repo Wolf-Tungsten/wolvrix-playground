@@ -119,7 +119,7 @@ def main() -> None:
                         help="root Makefile variable that selects the flow build directory")
     parser.add_argument("--emu-relpath", default="emu/emu",
                         help="emu binary path relative to the flow directory")
-    parser.add_argument("--expected-endpoint", default="240349,99996,100001,0x80000c0c",
+    parser.add_argument("--expected-endpoint", default="225471,99996,100001,0x800010e2",
                         help="instrCnt,cycleCnt,guestCycles,pc that every valid run must hit")
     parser.add_argument("--evict-page-cache", action=argparse.BooleanOptionalAction, default=True,
                         help="evict each flow binary's page cache before every run (default on)")

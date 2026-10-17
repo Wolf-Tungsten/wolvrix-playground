@@ -69,6 +69,7 @@ endif
 
 WOLVRIX_GRHSIM_WAVEFORM ?= 0
 WOLVRIX_GRHSIM_PERF ?= 0
+export WOLVRIX_GRHSIM_PERF
 
 HDLBITS_ROOT := $(CURDIR)/testcase/hdlbits
 HDLBITS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_hdlbits_emit.py
@@ -92,10 +93,8 @@ C910_WAVEFORM_PATH_ABS = $(if $(C910_WAVEFORM_PATH),$(if $(filter /%,$(C910_WAVE
 
 # XiangShan paths / options
 XS_ROOT := $(CURDIR)/testcase/xiangshan
-XS_WOLVRIX_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_emit.py
 XS_WOLVRIX_HIER_JSON_SCRIPT := $(CURDIR)/grh-ir-visualize/tools/export_xiangshan_hier_json.py
 XS_WOLVRIX_GRHSIM_IR_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_grhsim_ir.py
-XS_WOLVRIX_REPCUT_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_repcut.py
 REF_GSIM_ROOT ?= $(CURDIR)/reference/gsim
 REF_GSIM_BIN ?= $(REF_GSIM_ROOT)/build/gsim/gsim
 
@@ -107,16 +106,16 @@ XS_PROGRESS_EVERY_CYCLES ?= 0
 XS_LOG_BEGIN ?= 0
 XS_LOG_END ?= $(if $(filter 1,$(XS_WAVEFORM_FULL)),-1,0)
 XS_RAM_TRACE ?= 0
-XS_REPCUT_STEP_TIMING ?= 0
 XS_NUM_CORES ?= 1
 XS_EMU_THREADS ?= 2
 XS_VM_BUILD_JOBS ?= $(shell nproc)
 XS_SIM_TOP ?= SimTop
 XS_RTL_SUFFIX ?= sv
-# firtool --preserve-aggregate level forwarded to testcase/xiangshan/Makefile
-# (empty = firtool default "none"; the xs_*_aggregate targets set it via
-# XS_AGGR_LEVEL). Applies to the $(XS_SIM_TOP_V) / xs_gsim_rtl mill builds.
-XS_PRESERVE_AGGREGATE ?=
+# XiangShan has one RTL policy: always preserve aggregates.
+XS_PRESERVE_AGGREGATE ?= all
+ifneq ($(XS_PRESERVE_AGGREGATE),all)
+$(error XiangShan requires preserve-aggregate=all; scalar RTL generation was removed)
+endif
 # mill 0.12.15 (testcase/xiangshan/.mill-version) needs JDK 17 and the repo-root
 # mill launcher on PATH; empty XS_JAVA_HOME = rely on the ambient environment.
 XS_JAVA_HOME ?= $(firstword $(wildcard /usr/lib/jvm/java-17-openjdk-amd64))
@@ -141,33 +140,22 @@ XS_EMU_PREFIX ?= taskset -c $(XS_EMU_CPU) $(shell if command -v stdbuf >/dev/nul
 # (e.g. XS_EMU_DIFF_ARGS=--no-diff) only for diagnostic no-difftest runs.
 XS_EMU_DIFF_ARGS ?= --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so
 XS_RAM_TRACE_ARGS := $(if $(filter 1,$(XS_RAM_TRACE)),+trace_difftest_ram,)
-XS_LOG_DIR := $(BUILD_DIR)/logs/xs
+XS_LOG_DIR ?= $(REPO_ROOT)/ptmp/xs/logs
 XS_WAVEFORM_DIR ?= $(XS_LOG_DIR)
 XS_LOG_DIR_ABS = $(abspath $(XS_LOG_DIR))
 XS_WAVEFORM_DIR_ABS = $(abspath $(XS_WAVEFORM_DIR))
 XS_WAVEFORM_PATH_ABS = $(if $(XS_WAVEFORM_PATH),$(if $(filter /%,$(XS_WAVEFORM_PATH)),$(XS_WAVEFORM_PATH),$(abspath $(XS_WAVEFORM_PATH))),)
 
-XS_WORK_BASE ?= $(BUILD_DIR)/xs
+XS_WORK_BASE ?= $(REPO_ROOT)/ptmp/xs
 XS_RTL_BUILD ?= $(XS_WORK_BASE)/rtl
 XS_REF_BUILD ?= $(XS_WORK_BASE)/ref
 XS_GSIM_BUILD ?= $(XS_WORK_BASE)/gsim
 XS_GSIM_PGO_BUILD ?= $(XS_WORK_BASE)/gsim-pgo
-XS_WOLF_BUILD ?= $(XS_WORK_BASE)/wolf
-XS_GRHSIM_BUILD ?= $(XS_WORK_BASE)/grhsim
 XS_GRHSIM_IR_BUILD ?= $(XS_WORK_BASE)/grhsim-ir
-XS_REPCUT_BUILD ?= $(XS_WORK_BASE)/repcut
-# Stage-07 preserve-aggregate flow: independent RTL/build dirs so the baseline
-# (scalarized) chain stays untouched. XS_AGGR_LEVEL feeds firtool
-# --preserve-aggregate=$(XS_AGGR_LEVEL) through XS_PRESERVE_AGGREGATE.
-XS_AGGR_LEVEL ?= all
-XS_AGGR_RTL_BUILD ?= $(XS_WORK_BASE)/rtl-aggr
-XS_AGGR_GRHSIM_IR_BUILD ?= $(XS_WORK_BASE)/grhsim-ir-aggr
 XS_RTL_DIR := $(XS_RTL_BUILD)/rtl
 XS_VSRC_DIR ?= $(XS_ROOT)/difftest/src/test/vsrc/common
-XS_WOLF_EMIT_DIR ?= $(XS_WOLF_BUILD)/wolf_emit
-XS_WOLF_EMIT ?= $(XS_WOLF_EMIT_DIR)/wolf_emit.sv
-XS_WOLF_FILELIST ?= $(XS_WOLF_EMIT_DIR)/xs_wolf.f
-XS_WOLF_HIER_JSON ?= $(XS_WOLF_EMIT_DIR)/xs_wolf_hier.json
+XS_WOLF_FILELIST ?= $(XS_GRHSIM_IR_BUILD)/xs_wolf.f
+XS_WOLF_HIER_JSON ?= $(XS_GRHSIM_IR_BUILD)/xs_wolf_hier.json
 XS_WOLF_HIER_JSON_ROUNDTRIP ?= 1
 XS_WOLF_HIER_JSON_SKIP_SAFE_PASSES ?= 0
 XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON ?= $(XS_GRHSIM_IR_BUILD)/xiangshan_flat_grh.json
@@ -180,11 +168,9 @@ XS_WOLF_GRHSIM_IR_STATE_STORE_REPORT ?=
 XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES ?=
 XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON ?= 0
 XS_WOLF_GRHSIM_IR_KEEP_ORIGINS ?= 1
-XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR ?=
-XS_WOLF_GRHSIM_IR_OVERWRITE_CPP ?= 0
-# Memory write reader activation mode for the CPU emitter. Keep this as a
-# Makefile knob so aggregate and baseline standard flows can be re-emitted in
-# their fixed build directories without ad-hoc scripts.
+XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR ?= $(XS_GRHSIM_IR_BUILD)/model
+XS_WOLF_GRHSIM_IR_OVERWRITE_CPP ?= 1
+# Activate readers once per enabled memory write group.
 XS_WOLF_GRHSIM_IR_MEM_WRITE_ACTIVATE ?= on-write
 # Batch count 0 keeps one emit function per general supernode (the schedule
 # every accepted xiangshan run was validated with). The pass default (64)
@@ -194,13 +180,11 @@ XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE ?= 1
 XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
 # B6 per-partition simplify (M5d-5); disable only for pipeline debugging.
 XS_WOLF_GRHSIM_IR_PHASE_SIMPLIFY ?= 1
-# B7 mask/array reduction recovery; opt in (CoreMark 100k: -2.96% Host time).
-XS_WOLF_GRHSIM_IR_MASKED_OR ?= 0
+# B7 mask/array reduction recovery (aggregate CoreMark 100k: -2.96% Host time).
+XS_WOLF_GRHSIM_IR_MASKED_OR ?= 1
 XS_WOLF_GRHSIM_IR_MASKED_OR_MIN_TERMS ?= 16
 XS_WOLF_GRHSIM_IR_MASKED_OR_REPORT ?=
-XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES ?= 1
 XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS ?= 1
-XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS ?= 0
 XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT ?=
 XS_SIM_DEFINES ?= DIFFTEST
 XS_SIM_DEFINES += $(XS_ZERO_INIT_DEFINES)
@@ -212,13 +196,9 @@ XS_GSIM_BUILD_ABS := $(abspath $(XS_GSIM_BUILD))
 XS_GSIM_PGO_BUILD_ABS := $(abspath $(XS_GSIM_PGO_BUILD))
 XS_GSIM_RTPROF_BUILD ?= $(XS_WORK_BASE)/gsim-rtprof
 XS_GSIM_RTPROF_BUILD_ABS := $(abspath $(XS_GSIM_RTPROF_BUILD))
-XS_WOLF_BUILD_ABS := $(abspath $(XS_WOLF_BUILD))
-XS_GRHSIM_BUILD_ABS := $(abspath $(XS_GRHSIM_BUILD))
 XS_GRHSIM_IR_BUILD_ABS := $(abspath $(XS_GRHSIM_IR_BUILD))
 XS_RTL_DIR_ABS := $(abspath $(XS_RTL_DIR))
 XS_VSRC_DIR_ABS := $(abspath $(XS_VSRC_DIR))
-XS_WOLF_EMIT_DIR_ABS := $(abspath $(XS_WOLF_EMIT_DIR))
-XS_WOLF_EMIT_ABS := $(abspath $(XS_WOLF_EMIT))
 XS_WOLF_FILELIST_ABS := $(abspath $(XS_WOLF_FILELIST))
 XS_WOLF_HIER_JSON_ABS := $(abspath $(XS_WOLF_HIER_JSON))
 XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON))
@@ -226,27 +206,7 @@ XS_WOLF_GRHSIM_IR_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_IR_JSON))
 XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON_ABS := $(abspath $(XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON))
 XS_SIM_TOP_V := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).$(XS_RTL_SUFFIX)
 XS_SIM_TOP_FIR := $(XS_RTL_DIR_ABS)/$(XS_SIM_TOP).fir
-XS_WOLF_JSON ?= $(XS_WOLF_EMIT_DIR_ABS)/xs_wolf.json
 XS_GSIM_SUPERNODE_MAX_SIZE ?= 15
-XS_WOLF_REPCUT_JSON ?= $(XS_REPCUT_BUILD)/xs_wolf_repcut.json
-XS_WOLF_REPCUT_EMIT_DIR ?= $(XS_WOLF_REPCUT_JSON:.json=)
-XS_WOLF_REPCUT_EMIT ?= $(XS_WOLF_REPCUT_EMIT_DIR)/$(XS_SIM_TOP).sv
-XS_REPCUT_PACKAGE_ROOT ?= $(XS_REPCUT_BUILD)/package
-XS_WOLF_REPCUT_PACKAGE_DIR ?= $(XS_REPCUT_PACKAGE_ROOT)/xs_wolf_repcut_partitioned
-XS_REPCUT_WORK_DIR ?= $(XS_REPCUT_BUILD)/work
-XS_REPCUT_EMU_BUILD ?= $(XS_REPCUT_BUILD)/partitioned-emu
-XS_REPCUT_LEGACY_EMU_DIR ?= $(XS_REPCUT_BUILD)/emu
-XS_REPCUT_WORK_DIR_ABS := $(abspath $(XS_REPCUT_WORK_DIR))
-XS_REPCUT_BUILD_ABS := $(abspath $(XS_REPCUT_BUILD))
-XS_REPCUT_EMU_BUILD_ABS := $(abspath $(XS_REPCUT_EMU_BUILD))
-XS_REPCUT_LEGACY_EMU_DIR_ABS := $(abspath $(XS_REPCUT_LEGACY_EMU_DIR))
-XS_WOLF_REPCUT_EMIT_DIR_ABS := $(abspath $(XS_WOLF_REPCUT_EMIT_DIR))
-XS_WOLF_REPCUT_EMIT_ABS := $(abspath $(XS_WOLF_REPCUT_EMIT))
-XS_WOLF_REPCUT_PACKAGE_DIR_ABS := $(abspath $(XS_WOLF_REPCUT_PACKAGE_DIR))
-XS_JSON_ROUNDTRIP ?= 0
-XS_REPCUT_LOG_DIR ?= $(BUILD_DIR)/logs/xs-repcut
-XS_REPCUT_LOG_DIR_ABS := $(abspath $(XS_REPCUT_LOG_DIR))
-
 XS_DIFFTEST_GEN_DIR ?= $(XS_ROOT)/build/generated-src
 XS_DIFFTEST_GEN_DIR_ABS := $(abspath $(XS_DIFFTEST_GEN_DIR))
 XS_WOLF_INCLUDE_DIRS ?= $(XS_RTL_DIR_ABS) $(XS_VSRC_DIR_ABS) $(XS_DIFFTEST_GEN_DIR_ABS)
@@ -274,8 +234,8 @@ HDLBITS_GRHTB_SOURCES := $(wildcard $(HDLBITS_ROOT)/grhtb/grhtb_*.cpp)
 HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS_GRHTB_SOURCES)))))
 
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
-	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_rtl_aggregate xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_ir xs_ref_emu xs_gsim_emu xs_wolf_emu run_xs_json_test \
-	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_diff \
+	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_hier_json xs_wolf_grhsim_ir xs_ref_emu xs_gsim_emu \
+	run_xs_ref_emu run_xs_gsim_emu \
 	xs_gsim_emu_pgo xs_gsim_emu_rtprof xs_gsim_export_precoarsen \
 	xs_wolf_grhsim_ir_emu xs_wolf_grhsim_ir_build_emu xs_wolf_grhsim_ir_emu_pgo xs_wolf_grhsim_ir_build_emu_pgo \
 	clean
@@ -356,12 +316,6 @@ test_grhsim_ir:
 	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
 	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-ir-tests -j 2
 	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-ir-tests$$' --output-on-failure
-
-.PHONY: test_grhsim_cpu_phase_emit
-test_grhsim_cpu_phase_emit:
-	mkdir -p $(CURDIR)/ptmp/cpu_emit_test_tmp $(CURDIR)/ptmp/cpu_emit_ccache
-	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-cpu-phase-emit-tests -j 2
-	TMPDIR=$(CURDIR)/ptmp/cpu_emit_test_tmp CCACHE_DIR=$(CURDIR)/ptmp/cpu_emit_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-cpu-phase-emit-tests$$' --output-on-failure
 
 .PHONY: test_grhsim_masked_or
 test_grhsim_masked_or:
@@ -502,7 +456,7 @@ GRHSIM_IR_BENCH_PAIRS ?= 3
 GRHSIM_IR_BENCH_MAKE_TARGET ?= run_xs_wolf_grhsim_ir_emu
 GRHSIM_IR_BENCH_BUILD_VAR ?= XS_GRHSIM_IR_BUILD
 GRHSIM_IR_BENCH_EMU_RELPATH ?= emu/emu
-GRHSIM_IR_BENCH_EXPECTED_ENDPOINT ?= 240349,99996,100001,0x80000c0c
+GRHSIM_IR_BENCH_EXPECTED_ENDPOINT ?= 225471,99996,100001,0x800010e2
 GRHSIM_IR_BENCH_PERF_STAT ?= 0
 .PHONY: benchmark_grhsim_ir
 benchmark_grhsim_ir:
@@ -516,6 +470,10 @@ benchmark_grhsim_ir:
 .PHONY: test_benchmark_grhsim_ir
 test_benchmark_grhsim_ir:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_benchmark_grhsim_ir.py
+
+.PHONY: test_xs_workflow
+test_xs_workflow:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_xs_workflow.py
 
 # ---------------------------------------------------------------------------
 # Sim-model refactor M0: golden baseline capture and diff harness.
@@ -1083,7 +1041,7 @@ test_grhsim_bool_chains:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_bool_chain_stats.py
 
 XS_MUX1H_CENSUS_OUTPUT ?= ptmp/mux1h-census
-XS_MUX1H_CENSUS_FIR ?= build/xs/rtl-aggr/rtl/SimTop.fir
+XS_MUX1H_CENSUS_FIR ?= $(XS_SIM_TOP_FIR)
 .PHONY: analyze_xs_mux1h test_xs_mux1h_census
 analyze_xs_mux1h:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xiangshan_mux1h_census.py --fir "$(XS_MUX1H_CENSUS_FIR)" --output "$(XS_MUX1H_CENSUS_OUTPUT)"
@@ -1091,10 +1049,11 @@ analyze_xs_mux1h:
 test_xs_mux1h_census:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_xiangshan_mux1h_census.py
 
-GRHSIM_MASKED_OR_COVERAGE_MODEL ?= build/xs/grhsim-ir-aggr-global-enhanced/xiangshan_grhsim_ir.json
-GRHSIM_MASKED_OR_COVERAGE_REPORT ?= ptmp/masked-or-xs/masked-or.tsv
+GRHSIM_MASKED_OR_COVERAGE_MODEL ?=
+GRHSIM_MASKED_OR_COVERAGE_REPORT ?=
 .PHONY: analyze_grhsim_masked_or_coverage
 analyze_grhsim_masked_or_coverage:
+	@test -f "$(GRHSIM_MASKED_OR_COVERAGE_MODEL)" && test -f "$(GRHSIM_MASKED_OR_COVERAGE_REPORT)" || { echo "Set GRHSIM_MASKED_OR_COVERAGE_MODEL to the IR before recovery and GRHSIM_MASKED_OR_COVERAGE_REPORT to its matching report"; exit 1; }
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_masked_or_coverage.py --model "$(GRHSIM_MASKED_OR_COVERAGE_MODEL)" --report "$(GRHSIM_MASKED_OR_COVERAGE_REPORT)" --output "$(XS_MUX1H_CENSUS_OUTPUT)"
 
 .PHONY: analyze_grhsim_used_bits
@@ -1372,20 +1331,21 @@ $(XS_SIM_TOP_V):
 	@$(eval LOG_FILE := $(XS_LOG_DIR_ABS)/xs_simverilog_$(RUN_ID).log)
 	@echo "[LOG] Recording sim-verilog command to: $(LOG_FILE)"
 	@printf '' > "$(LOG_FILE)"
-	@echo "[CMD] $(XS_MILL_ENV) $(MAKE) -C $(XS_ROOT) sim-verilog BUILD_DIR=$(XS_RTL_BUILD_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) PRESERVE_AGGREGATE=$(XS_PRESERVE_AGGREGATE)" | tee -a "$(LOG_FILE)"
+	@echo "[CMD] $(XS_MILL_ENV) $(MAKE) -C $(XS_ROOT) sim-verilog BUILD_DIR=$(XS_RTL_BUILD_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) PRESERVE_AGGREGATE=all" | tee -a "$(LOG_FILE)"
 	$(XS_MILL_ENV) NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT) sim-verilog \
 		BUILD_DIR=$(XS_RTL_BUILD_ABS) \
 		NUM_CORES=$(XS_NUM_CORES) \
 		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
-		PRESERVE_AGGREGATE="$(XS_PRESERVE_AGGREGATE)"
+		PRESERVE_AGGREGATE=all
 
-xs_rtl: $(XS_SIM_TOP_V)
+.PHONY: check_xs_aggregate_rtl
+check_xs_aggregate_rtl: $(XS_SIM_TOP_V)
+	@rg -q -- '--preserve-aggregate=all([[:space:]"]|$$)' "$(XS_RTL_BUILD_ABS)/time.log" && \
+		rg -q 'Exit status: 0' "$(XS_RTL_BUILD_ABS)/time.log" || { \
+			echo "[FAIL] RTL lacks a successful preserve-aggregate=all generation record; run make clean_xs_rtl xs_rtl"; exit 1; }
+	@echo "[CONFIG] XiangShan RTL: preserve-aggregate=all ($(XS_RTL_DIR_ABS))"
 
-# Stage-07: preserve-aggregate XiangShan RTL in an independent build dir.
-xs_rtl_aggregate:
-	@$(MAKE) --no-print-directory xs_rtl \
-		XS_RTL_BUILD="$(XS_AGGR_RTL_BUILD)" \
-		XS_PRESERVE_AGGREGATE="$(XS_AGGR_LEVEL)"
+xs_rtl: check_xs_aggregate_rtl
 
 xs_gsim_rtl:
 	@echo "[RUN] Generating XiangShan GSIM sim-verilog into $(XS_RTL_BUILD_ABS)..."
@@ -1395,18 +1355,19 @@ xs_gsim_rtl:
 	@echo "[LOG] Recording GSIM sim-verilog command to: $(LOG_FILE)"
 	@printf '' > "$(LOG_FILE)"
 	@FORCE_FLAG="$(if $(wildcard $(XS_DIFFTEST_GSIM_EXTMODULE)),,-B)"; \
-		echo "[CMD] $(XS_MILL_ENV) $(MAKE) $$FORCE_FLAG -C $(XS_ROOT) sim-verilog BUILD_DIR=$(XS_RTL_BUILD_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) GSIM=1" | tee -a "$(LOG_FILE)"; \
+		echo "[CMD] $(XS_MILL_ENV) $(MAKE) $$FORCE_FLAG -C $(XS_ROOT) sim-verilog BUILD_DIR=$(XS_RTL_BUILD_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) PRESERVE_AGGREGATE=all GSIM=1" | tee -a "$(LOG_FILE)"; \
 		$(XS_MILL_ENV) NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) $$FORCE_FLAG -C "$(XS_ROOT)" sim-verilog \
 			BUILD_DIR="$(XS_RTL_BUILD_ABS)" \
 			NUM_CORES="$(XS_NUM_CORES)" \
 			RTL_SUFFIX="$(XS_RTL_SUFFIX)" \
+			PRESERVE_AGGREGATE=all \
 			GSIM=1
 	@if [ ! -f "$(XS_DIFFTEST_GSIM_EXTMODULE)" ]; then \
 		echo "[FAIL] xs gsim sim-verilog: missing generated extmodule $(XS_DIFFTEST_GSIM_EXTMODULE)"; \
 		exit 1; \
 	fi
 
-$(XS_WOLF_FILELIST_ABS): $(XS_SIM_TOP_V)
+$(XS_WOLF_FILELIST_ABS): $(XS_SIM_TOP_V) | check_xs_aggregate_rtl
 	@mkdir -p "$(dir $@)"
 	@{ \
 		find "$(XS_RTL_DIR_ABS)" -type f -name "*.sv" -o -type f -name "*.v"; \
@@ -1417,39 +1378,15 @@ xs_wolf_filelist: $(XS_WOLF_FILELIST_ABS)
 
 XS_WOLF_DEPS := py_install
 
-xs_wolf_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
-	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
-		$(MAKE) --no-print-directory -B xs_rtl; \
-	fi
-	@mkdir -p "$(XS_WOLF_REPCUT_EMIT_DIR_ABS)"
-	@mkdir -p "$(XS_LOG_DIR_ABS)"
-	@$(eval RUN_ID := $(RUN_ID))
-	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_build_$(RUN_ID).log)
-	@$(eval XS_READ_ARGS_FILE := $(XS_WOLF_EMIT_DIR_ABS)/wolvrix_read_args.txt)
-	@echo "[LOG] Capturing wolf emit output to: $(XS_BUILD_LOG_FILE)"
-	@printf '' > "$(XS_BUILD_LOG_FILE)"
-	@printf '' > "$(XS_READ_ARGS_FILE)"
-	@printf "%s\n" $(XS_WOLF_INCLUDE_FLAGS) $(XS_WOLF_DEFINE_FLAGS) >> "$(XS_READ_ARGS_FILE)"
-	@{ \
-		echo "[CMD] $(PYTHON) $(XS_WOLVRIX_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) $(XS_WOLF_EMIT_ABS) $(XS_WOLF_JSON) $(XS_READ_ARGS_FILE) $(WOLF_LOG)"; \
-		$(PYTHON) $(XS_WOLVRIX_SCRIPT) \
-			$(XS_WOLF_FILELIST_ABS) \
-			$(XS_SIM_TOP) \
-			$(XS_WOLF_EMIT_ABS) \
-			$(XS_WOLF_JSON) \
-			$(XS_READ_ARGS_FILE) \
-			$(WOLF_LOG); \
-	} 2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
-
 xs_wolf_hier_json: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
 		$(MAKE) --no-print-directory -B xs_rtl; \
 	fi
-	@mkdir -p "$(XS_WOLF_EMIT_DIR_ABS)"
+	@mkdir -p "$(XS_GRHSIM_IR_BUILD_ABS)"
 	@mkdir -p "$(XS_LOG_DIR_ABS)"
 	@$(eval RUN_ID := $(RUN_ID))
 	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_hier_json_$(RUN_ID).log)
-	@$(eval XS_READ_ARGS_FILE := $(XS_WOLF_EMIT_DIR_ABS)/wolvrix_read_args.txt)
+	@$(eval XS_READ_ARGS_FILE := $(XS_GRHSIM_IR_BUILD_ABS)/wolvrix_read_args.txt)
 	@echo "[LOG] Capturing hierarchical wolf json output to: $(XS_BUILD_LOG_FILE)"
 	@printf '' > "$(XS_BUILD_LOG_FILE)"
 	@printf '' > "$(XS_READ_ARGS_FILE)"
@@ -1466,6 +1403,32 @@ xs_wolf_hier_json: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			--log-level $(WOLF_LOG); \
 	} 2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
 
+# Pass only deviations from the Python flow's production defaults.
+XS_WOLF_GRHSIM_IR_FLAGS = \
+	$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON)),--resume-from-flat-grh,) \
+	$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_KEEP_ORIGINS)),--no-keep-origins,) \
+	$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_COMB_PACK)),--comb-pack,) \
+	$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_SELECT_STATE_STORES)),--no-select-state-stores,) \
+	$(if $(strip $(XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES)),--mem-min-bytes $(XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES),) \
+	$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE)),--no-clone-shared-compute,) \
+	$(if $(filter-out 250000,$(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES)),--clone-shared-compute-max-clones $(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES),) \
+	$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_PHASE_SIMPLIFY)),--no-phase-simplify,) \
+	$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_MASKED_OR)),--no-recover-masked-or,) \
+	$(if $(filter-out 16,$(XS_WOLF_GRHSIM_IR_MASKED_OR_MIN_TERMS)),--masked-or-min-terms $(XS_WOLF_GRHSIM_IR_MASKED_OR_MIN_TERMS),) \
+	$(if $(strip $(XS_WOLF_GRHSIM_IR_MASKED_OR_REPORT)),--masked-or-report "$(abspath $(XS_WOLF_GRHSIM_IR_MASKED_OR_REPORT))",) \
+	$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS)),--no-pack-bit-registers,) \
+	$(if $(strip $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE),) \
+	$(if $(filter-out 0,$(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
+	$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",) \
+	$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_OVERWRITE_CPP)),--no-overwrite-emit-cpp,) \
+	$(if $(filter-out on-write,$(XS_WOLF_GRHSIM_IR_MEM_WRITE_ACTIVATE)),--mem-write-activate "$(XS_WOLF_GRHSIM_IR_MEM_WRITE_ACTIVATE)",) \
+	$(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),--emit-waveform,) \
+	$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON)),--dump-post-lower-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON))",) \
+	$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON)),--dump-pre-partition-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON))",) \
+	$(if $(strip $(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT)),--pack-bit-registers-report "$(abspath $(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT))",) \
+	$(if $(strip $(XS_WOLF_GRHSIM_IR_COMB_PACK_REPORT)),--comb-pack-report "$(abspath $(XS_WOLF_GRHSIM_IR_COMB_PACK_REPORT))",) \
+	$(if $(strip $(XS_WOLF_GRHSIM_IR_STATE_STORE_REPORT)),--state-store-report "$(abspath $(XS_WOLF_GRHSIM_IR_STATE_STORE_REPORT))",)
+
 xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
 		$(MAKE) --no-print-directory -B xs_rtl; \
@@ -1479,8 +1442,7 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 	@printf "%s\n" $(XS_WOLF_INCLUDE_FLAGS) $(XS_WOLF_DEFINE_FLAGS) >> "$(XS_GRHSIM_IR_READ_ARGS_FILE)"
 	@echo "[LOG] Capturing GrhSIM IR checkpoint output to: $(XS_GRHSIM_IR_LOG_FILE)"
 	@set -o pipefail; { \
-		echo "[CMD] $(PYTHON) $(XS_WOLVRIX_GRHSIM_IR_SCRIPT) $(XS_WOLF_FILELIST_ABS) $(XS_SIM_TOP) $(XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON_ABS) $(XS_WOLF_GRHSIM_IR_JSON_ABS) $(XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON_ABS) $(XS_GRHSIM_IR_READ_ARGS_FILE) $(WOLF_LOG) --mem-write-activate $(XS_WOLF_GRHSIM_IR_MEM_WRITE_ACTIVATE) $(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir $(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),) $(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),)"; \
-		$(PYTHON) $(XS_WOLVRIX_GRHSIM_IR_SCRIPT) \
+		set -- $(PYTHON) "$(XS_WOLVRIX_GRHSIM_IR_SCRIPT)" \
 			"$(XS_WOLF_FILELIST_ABS)" \
 			"$(XS_SIM_TOP)" \
 			"$(XS_WOLF_GRHSIM_IR_FLAT_GRH_JSON_ABS)" \
@@ -1488,38 +1450,40 @@ xs_wolf_grhsim_ir: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			"$(XS_WOLF_GRHSIM_IR_ROUNDTRIP_JSON_ABS)" \
 			"$(XS_GRHSIM_IR_READ_ARGS_FILE)" \
 			"$(WOLF_LOG)" \
-			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON)),--resume-from-flat-grh,) \
-			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_KEEP_ORIGINS)),--keep-origins,) \
-			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_COMB_PACK)),--comb-pack,--no-comb-pack) \
-			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_SELECT_STATE_STORES)),--no-select-state-stores,) \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES)),--mem-min-bytes $(XS_WOLF_GRHSIM_IR_MEM_MIN_BYTES),) \
-			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE)),--no-clone-shared-compute,--clone-shared-compute --clone-shared-compute-max-clones $(XS_WOLF_GRHSIM_IR_CLONE_SHARED_COMPUTE_MAX_CLONES)) \
-			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_PHASE_SIMPLIFY)),--no-phase-simplify,) \
-			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_MASKED_OR)),--recover-masked-or,--no-recover-masked-or) \
-			--masked-or-min-terms "$(XS_WOLF_GRHSIM_IR_MASKED_OR_MIN_TERMS)" \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_MASKED_OR_REPORT)),--masked-or-report "$(abspath $(XS_WOLF_GRHSIM_IR_MASKED_OR_REPORT))",) \
-			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_BITWISE_PREDICATES)),--no-bitwise-predicates,--bitwise-predicates) \
-			$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS)),--no-pack-bit-registers,--pack-bit-registers) \
-			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_DISABLE_PACK_BIT_REGISTERS)),--disable-pack-bit-registers,) \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(XS_WOLF_GRHSIM_IR_MAX_OP_IN_COMPUTE_SUPERNODE),) \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT)),--cpu-target-batch-count $(XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT),) \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR))",) \
-			$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_OVERWRITE_CPP)),--overwrite-emit-cpp,) \
-			--mem-write-activate "$(XS_WOLF_GRHSIM_IR_MEM_WRITE_ACTIVATE)" \
-			$(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),--emit-waveform,) \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON)),--dump-post-lower-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON))",) \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON)),--dump-pre-partition-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON))",) \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT)),--pack-bit-registers-report "$(abspath $(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT))",) \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_COMB_PACK_REPORT)),--comb-pack-report "$(abspath $(XS_WOLF_GRHSIM_IR_COMB_PACK_REPORT))",) \
-			$(if $(strip $(XS_WOLF_GRHSIM_IR_STATE_STORE_REPORT)),--state-store-report "$(abspath $(XS_WOLF_GRHSIM_IR_STATE_STORE_REPORT))",); \
+			$(XS_WOLF_GRHSIM_IR_FLAGS); \
+		printf '[CMD]'; printf ' %q' "$$@"; printf '\n'; \
+		"$$@"; \
 	} 2>&1 | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
 	status=$$?; \
 	echo "[EXIT] xs_wolf_grhsim_ir $$status" | tee -a "$(XS_GRHSIM_IR_LOG_FILE)"; \
 	exit $$status
 
 
-.PHONY: xs_wolf_grhsim_ir_reemit xs_wolf_grhsim_ir_emu xs_wolf_grhsim_ir_build_emu
-xs_wolf_grhsim_ir_reemit:
+.PHONY: clean_xs_wolf_grhsim_ir clean_xs_rtl clean_xs_retired xs_wolf_grhsim_ir_reemit xs_wolf_grhsim_ir_emu xs_wolf_grhsim_ir_build_emu
+clean_xs_retired:
+	@echo "[CLEAN] Retired scalar XiangShan RTL/models and legacy wolf/repcut outputs"
+	@rm -rf -- "$(REPO_ROOT)/build/xs/rtl" "$(REPO_ROOT)/build/xs/grhsim-ir" \
+		"$(REPO_ROOT)/build/xs/grhsim" "$(REPO_ROOT)/build/xs/wolf" \
+		"$(REPO_ROOT)/build/xs/repcut" "$(REPO_ROOT)/ptmp/grhsim-ir-active8" \
+		"$(REPO_ROOT)/ptmp/grhsim-ir-active8-verify" "$(REPO_ROOT)/ptmp/xs/wolf"
+
+clean_xs_wolf_grhsim_ir:
+	@case "$(XS_GRHSIM_IR_BUILD_ABS)" in \
+		"$(REPO_ROOT)/ptmp/"?*|"$(REPO_ROOT)/build/"?*) ;; \
+		*) echo "[FAIL] Refusing to clean outside repository build/ptmp directories"; exit 1 ;; \
+	esac
+	@echo "[CLEAN] $(XS_GRHSIM_IR_BUILD_ABS)"
+	@rm -rf -- "$(XS_GRHSIM_IR_BUILD_ABS)"
+
+clean_xs_rtl:
+	@case "$(XS_RTL_BUILD_ABS)" in \
+		"$(REPO_ROOT)/ptmp/"?*|"$(REPO_ROOT)/build/"?*) ;; \
+		*) echo "[FAIL] Refusing to clean outside repository build/ptmp directories"; exit 1 ;; \
+	esac
+	@echo "[CLEAN] $(XS_RTL_BUILD_ABS)"
+	@rm -rf -- "$(XS_RTL_BUILD_ABS)"
+
+xs_wolf_grhsim_ir_reemit: check_xs_aggregate_rtl
 	@$(PYTHON) scripts/reemit_grhsim_ir.py \
 		--model "$(XS_WOLF_GRHSIM_IR_JSON_ABS)" --flow "$(XS_GRHSIM_IR_BUILD_ABS)" \
 		--overwrite --mem-write-activate "$(XS_WOLF_GRHSIM_IR_MEM_WRITE_ACTIVATE)" \
@@ -1528,7 +1492,7 @@ xs_wolf_grhsim_ir_reemit:
 xs_wolf_grhsim_ir_emu: xs_wolf_grhsim_ir
 	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir_build_emu
 
-xs_wolf_grhsim_ir_build_emu:
+xs_wolf_grhsim_ir_build_emu: check_xs_aggregate_rtl
 	@test -n "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)" && test -f "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)/Makefile" || { echo "[FAIL] Generate the GrhSIM IR C++ model before build-only emu"; exit 1; }
 	@echo "[RUN] Building XiangShan emu with the GrhSIM IR generated model..."
 	@NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
@@ -1557,7 +1521,7 @@ LLVM_PROFDATA ?= llvm-profdata
 xs_wolf_grhsim_ir_emu_pgo: xs_wolf_grhsim_ir
 	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir_build_emu_pgo
 
-xs_wolf_grhsim_ir_build_emu_pgo:
+xs_wolf_grhsim_ir_build_emu_pgo: check_xs_aggregate_rtl
 	@test -n "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)" && test -f "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)/Makefile" || { echo "[FAIL] Generate the GrhSIM IR C++ model before PGO emu build"; exit 1; }
 	@command -v "$(LLVM_PROFDATA)" >/dev/null || { echo "[FAIL] llvm-profdata not found (set LLVM_PROFDATA)"; exit 1; }
 	@echo "[RUN] PGO phase 1/3: instrumented emu build (model + harness)"
@@ -1607,207 +1571,7 @@ xs_wolf_grhsim_ir_build_emu_pgo:
 		PGO_LDFLAGS="-fprofile-use=$(XS_WOLF_GRHSIM_IR_PGO_DIR)/code.profdata" \
 		WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM)
 
-run_xs_repcut: py_install
-	@if [ ! -f "$(XS_WOLF_JSON)" ]; then \
-		echo "[FAIL] xs repcut: missing json $(XS_WOLF_JSON)"; \
-		exit 1; \
-	fi
-	@if [ -d "$(XS_REPCUT_LEGACY_EMU_DIR_ABS)" ]; then \
-		echo "[CLEAN] Removing stale legacy repcut emu dir: $(XS_REPCUT_LEGACY_EMU_DIR_ABS)"; \
-		rm -rf "$(XS_REPCUT_LEGACY_EMU_DIR_ABS)"; \
-	fi
-	@mkdir -p "$(XS_WOLF_REPCUT_EMIT_DIR_ABS)"
-	@mkdir -p "$(XS_REPCUT_BUILD_ABS)"
-	@mkdir -p "$(XS_REPCUT_WORK_DIR_ABS)"
-	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
-	@$(eval XS_REPCUT_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_$(RUN_ID).log)
-	@echo "[RUN] xs repcut"
-	@echo "[LOG] repcut: $(XS_REPCUT_LOG_FILE)"
-	@echo "[CMD] $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) $(XS_WOLF_JSON) $(XS_WOLF_REPCUT_JSON) $(XS_REPCUT_WORK_DIR_ABS) $(WOLF_LOG)"
-	@set -o pipefail; $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) \
-		$(XS_WOLF_JSON) \
-		$(XS_WOLF_REPCUT_JSON) \
-		$(XS_REPCUT_WORK_DIR_ABS) \
-		$(WOLF_LOG) \
-		2>&1 | tee "$(XS_REPCUT_LOG_FILE)"
-	@if [ ! -f "$(XS_WOLF_REPCUT_EMIT_ABS)" ]; then \
-		echo "[FAIL] xs repcut: missing emitted top sv $(XS_WOLF_REPCUT_EMIT_ABS)"; \
-		exit 1; \
-	fi
-	@$(eval XS_REPCUT_BUILD_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_build_$(RUN_ID).log)
-	@echo "[RUN] Building XiangShan repcut emu..."
-	@echo "[LOG] repcut build: $(XS_REPCUT_BUILD_LOG_FILE)"
-	@printf '' > "$(XS_REPCUT_BUILD_LOG_FILE)"
-	@echo "[CLEAN] Removing stale verilator-compile: $(XS_REPCUT_BUILD_ABS)/verilator-compile" | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
-	@rm -rf "$(XS_REPCUT_BUILD_ABS)/verilator-compile"
-	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_REPCUT_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_WOLF_REPCUT_EMIT_DIR_ABS) SIM_TOP_V=$(XS_WOLF_REPCUT_EMIT_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) SIM_VSRC= $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
-	@set -o pipefail; NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
-		BUILD_DIR=$(XS_REPCUT_BUILD_ABS) \
-		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
-		GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
-		RTL_DIR=$(XS_WOLF_REPCUT_EMIT_DIR_ABS) \
-		SIM_TOP_V=$(XS_WOLF_REPCUT_EMIT_ABS) \
-		NUM_CORES=$(XS_NUM_CORES) \
-		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
-		EMU_THREADS=$(XS_EMU_THREADS) \
-		VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) \
-		EMU_RANDOMIZE=0 \
-		SIM_VFLAGS="$(XS_SIM_VFLAGS)" \
-		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
-		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
-		SIM_VSRC= \
-		$(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,) \
-		2>&1 | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
-	@if [ ! -x "$(XS_REPCUT_BUILD_ABS)/emu" ]; then \
-		echo "[FAIL] xs repcut: emu build did not produce executable $(XS_REPCUT_BUILD_ABS)/emu"; \
-		exit 1; \
-	fi
-	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
-		REPCUT_RUN_LOG="$(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_$${RUN_ID}.log"; \
-		REPCUT_WAVEFORM="$(XS_WAVEFORM_DIR_ABS)/xs_repcut_$${RUN_ID}.fst"; \
-		printf '' > "$$REPCUT_RUN_LOG"; \
-		echo "[RUN] xs repcut emu"; \
-		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_WAVEFORM=$(XS_WAVEFORM) XS_WAVEFORM_FULL=$(XS_WAVEFORM_FULL)"; \
-		echo "[LOG] repcut run: $$REPCUT_RUN_LOG"; \
-		if [ "$(XS_WAVEFORM)" = "1" ]; then \
-			echo "[WAVEFORM] repcut: $$REPCUT_WAVEFORM"; \
-		fi; \
-		echo "[CMD] cd $(XS_REPCUT_BUILD_ABS) && $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b 0 $(if $(filter 1,$(XS_WAVEFORM_FULL)),-e -1,-e 0) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_WAVEFORM)),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$REPCUT_WAVEFORM,)"; \
-		set -o pipefail; cd "$(XS_REPCUT_BUILD_ABS)" && $(XS_EMU_PREFIX) ./emu \
-			-i "$(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin" \
-			--diff "$(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so" \
-			-b 0 $(if $(filter 1,$(XS_WAVEFORM_FULL)),-e -1,-e 0) \
-			$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) \
-			$(XS_RAM_TRACE_ARGS) \
-			$(if $(filter 1,$(XS_WAVEFORM)),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) \
-			$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$REPCUT_WAVEFORM,) \
-			2>&1 | tee "$$REPCUT_RUN_LOG"
-
-run_xs_repcut_partitioned_smoke: py_install
-	@if [ ! -f "$(XS_WOLF_JSON)" ]; then \
-		echo "[FAIL] xs repcut partitioned: missing json $(XS_WOLF_JSON)"; \
-		exit 1; \
-	fi
-	@mkdir -p "$(XS_WOLF_REPCUT_EMIT_DIR_ABS)"
-	@mkdir -p "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)"
-	@mkdir -p "$(XS_REPCUT_BUILD_ABS)"
-	@mkdir -p "$(XS_REPCUT_WORK_DIR_ABS)"
-	@mkdir -p "$(XS_REPCUT_EMU_BUILD_ABS)"
-	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
-	@$(eval XS_REPCUT_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_partitioned_$(RUN_ID).log)
-	@echo "[RUN] xs repcut partitioned package"
-	@echo "[LOG] repcut partitioned: $(XS_REPCUT_LOG_FILE)"
-	@echo "[CMD] $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) $(XS_WOLF_JSON) $(XS_WOLF_REPCUT_JSON) $(XS_REPCUT_WORK_DIR_ABS) $(WOLF_LOG) $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)"
-	@set -o pipefail; $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) \
-		$(XS_WOLF_JSON) \
-		$(XS_WOLF_REPCUT_JSON) \
-		$(XS_REPCUT_WORK_DIR_ABS) \
-		$(WOLF_LOG) \
-		$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS) \
-		2>&1 | tee "$(XS_REPCUT_LOG_FILE)"
-	@$(eval XS_REPCUT_PACKAGE_BUILD_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_partitioned_build_$(RUN_ID).log)
-	@echo "[RUN] Building repcut partitioned smoke package..."
-	@echo "[LOG] repcut partitioned build: $(XS_REPCUT_PACKAGE_BUILD_LOG_FILE)"
-	@printf '' > "$(XS_REPCUT_PACKAGE_BUILD_LOG_FILE)"
-	@echo "[CMD] $(MAKE) -C $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS) -j$$(nproc)" | tee -a "$(XS_REPCUT_PACKAGE_BUILD_LOG_FILE)"
-	@set -o pipefail; $(MAKE) -C "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)" -j"$$(nproc)" \
-		2>&1 | tee -a "$(XS_REPCUT_PACKAGE_BUILD_LOG_FILE)"
-	@if [ ! -x "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/build/partitioned-smoke" ]; then \
-		echo "[FAIL] xs repcut partitioned: missing smoke binary $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/build/partitioned-smoke"; \
-		exit 1; \
-	fi
-	@$(eval XS_REPCUT_PACKAGE_RUN_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_repcut_partitioned_run_$(RUN_ID).log)
-	@echo "[RUN] repcut partitioned smoke binary"
-	@echo "[LOG] repcut partitioned run: $(XS_REPCUT_PACKAGE_RUN_LOG_FILE)"
-	@printf '' > "$(XS_REPCUT_PACKAGE_RUN_LOG_FILE)"
-	@echo "[CMD] $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/build/partitioned-smoke" | tee -a "$(XS_REPCUT_PACKAGE_RUN_LOG_FILE)"
-	@set -o pipefail; "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)/build/partitioned-smoke" \
-		2>&1 | tee -a "$(XS_REPCUT_PACKAGE_RUN_LOG_FILE)"
-
-build_xs_repcut_verilator:
-	@echo "[RUN] Installing Wolvrix for XiangShan repcut emu via scikit-build-core..."
-	@$(MAKE) --no-print-directory py_install
-	@if [ "$(XS_WAVEFORM)" != "0" ] || [ "$(XS_WAVEFORM_FULL)" != "0" ]; then \
-		echo "[FAIL] xs verilator repcut: waveform is not supported in partitioned backend yet"; \
-		exit 1; \
-	fi
-	@if [ ! -f "$(XS_WOLF_JSON)" ]; then \
-		echo "[FAIL] xs verilator repcut: missing json $(XS_WOLF_JSON)"; \
-		exit 1; \
-	fi
-	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
-	@echo "[CLEAN] Removing stale repcut package/work/emu build dirs"
-	@rm -rf "$(XS_WOLF_REPCUT_EMIT_DIR_ABS)" \
-		"$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)" \
-		"$(XS_REPCUT_WORK_DIR_ABS)" \
-		"$(XS_REPCUT_EMU_BUILD_ABS)"
-	@mkdir -p "$(XS_WOLF_REPCUT_EMIT_DIR_ABS)"
-	@mkdir -p "$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)"
-	@mkdir -p "$(XS_REPCUT_BUILD_ABS)"
-	@mkdir -p "$(XS_REPCUT_WORK_DIR_ABS)"
-	@mkdir -p "$(XS_REPCUT_EMU_BUILD_ABS)"
-	@$(eval XS_REPCUT_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_verilator_repcut_$(RUN_ID).log)
-	@echo "[RUN] xs verilator repcut package"
-	@echo "[LOG] xs verilator repcut: $(XS_REPCUT_LOG_FILE)"
-	@echo "[CMD] $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) $(XS_WOLF_JSON) $(XS_WOLF_REPCUT_JSON) $(XS_REPCUT_WORK_DIR_ABS) $(WOLF_LOG) $(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)"
-	@set -o pipefail; $(PYTHON) $(XS_WOLVRIX_REPCUT_SCRIPT) \
-		$(XS_WOLF_JSON) \
-		$(XS_WOLF_REPCUT_JSON) \
-		$(XS_REPCUT_WORK_DIR_ABS) \
-		$(WOLF_LOG) \
-		$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS) \
-		2>&1 | tee "$(XS_REPCUT_LOG_FILE)"
-	@$(eval XS_REPCUT_BUILD_LOG_FILE := $(XS_REPCUT_LOG_DIR_ABS)/xs_verilator_repcut_build_$(RUN_ID).log)
-	@echo "[RUN] Building XiangShan repcut verilator emu..."
-	@echo "[LOG] xs verilator repcut build: $(XS_REPCUT_BUILD_LOG_FILE)"
-	@printf '' > "$(XS_REPCUT_BUILD_LOG_FILE)"
-	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_REPCUT_EMU_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_WOLF_REPCUT_EMIT_DIR_ABS) SIM_TOP_V=$(XS_WOLF_REPCUT_EMIT_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=0 VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) WOLVRIX_PARTITIONED_PACKAGE_DIR=$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)" | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
-	@set -o pipefail; NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
-		BUILD_DIR=$(XS_REPCUT_EMU_BUILD_ABS) \
-		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
-		GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
-		RTL_DIR=$(XS_WOLF_REPCUT_EMIT_DIR_ABS) \
-		SIM_TOP_V=$(XS_WOLF_REPCUT_EMIT_ABS) \
-		NUM_CORES=$(XS_NUM_CORES) \
-		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
-		EMU_THREADS=0 \
-		VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) \
-		EMU_RANDOMIZE=0 \
-		SIM_VFLAGS="$(XS_SIM_VFLAGS)" \
-		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
-		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
-		WOLVRIX_PARTITIONED_PACKAGE_DIR=$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS) \
-		2>&1 | tee -a "$(XS_REPCUT_BUILD_LOG_FILE)"
-	@if [ ! -x "$(XS_REPCUT_EMU_BUILD_ABS)/emu" ]; then \
-		echo "[FAIL] xs verilator repcut: emu build did not produce executable $(XS_REPCUT_EMU_BUILD_ABS)/emu"; \
-		exit 1; \
-	fi
-
-run_xs_repcut_verilator:
-	@if [ ! -x "$(XS_REPCUT_EMU_BUILD_ABS)/emu" ]; then \
-		echo "[FAIL] xs verilator repcut: missing emu $(XS_REPCUT_EMU_BUILD_ABS)/emu; run 'make build_xs_repcut_verilator' first"; \
-		exit 1; \
-	fi
-	@mkdir -p "$(XS_REPCUT_LOG_DIR_ABS)"
-	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
-		REPCUT_RUN_LOG="$(XS_REPCUT_LOG_DIR_ABS)/xs_verilator_repcut_$${RUN_ID}.log"; \
-		REPCUT_TIMING_JSONL="$(XS_REPCUT_LOG_DIR_ABS)/xs_verilator_repcut_$${RUN_ID}.timing.jsonl"; \
-		printf '' > "$$REPCUT_RUN_LOG"; \
-		echo "[RUN] xs verilator repcut emu"; \
-		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_EMU_THREADS=$(XS_EMU_THREADS) XS_REPCUT_STEP_TIMING=$(XS_REPCUT_STEP_TIMING)"; \
-		echo "[LOG] xs verilator repcut run: $$REPCUT_RUN_LOG"; \
-		echo "[LOG] xs verilator repcut timing: $$REPCUT_TIMING_JSONL"; \
-		echo "[CMD] cd $(XS_REPCUT_EMU_BUILD_ABS) && XS_EMU_THREADS=$(XS_EMU_THREADS) XS_REPCUT_STEP_TIMING=$(XS_REPCUT_STEP_TIMING) WOLVI_REPCUT_TIMING_JSONL=$$REPCUT_TIMING_JSONL $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b 0 -e 0 $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS)"; \
-		set -o pipefail; cd "$(XS_REPCUT_EMU_BUILD_ABS)" && XS_EMU_THREADS="$(XS_EMU_THREADS)" XS_REPCUT_STEP_TIMING="$(XS_REPCUT_STEP_TIMING)" WOLVI_REPCUT_TIMING_JSONL="$$REPCUT_TIMING_JSONL" $(XS_EMU_PREFIX) ./emu \
-			-i "$(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin" \
-			--diff "$(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so" \
-			-b 0 \
-			-e 0 \
-			$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) \
-			$(XS_RAM_TRACE_ARGS) \
-			2>&1 | tee "$$REPCUT_RUN_LOG"
-
-xs_ref_emu: $(XS_SIM_TOP_V)
+xs_ref_emu: check_xs_aggregate_rtl
 	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
 		$(MAKE) --no-print-directory -B xs_rtl; \
 	fi
@@ -1985,44 +1749,7 @@ xs_gsim_export_precoarsen:
 			"$(XS_SIM_TOP_FIR)"; \
 	} 2>&1 | tee "$(XS_GSIM_EXPORT_LOG)"
 
-xs_wolf_emu: xs_wolf_emit
-	@echo "[RUN] Building XiangShan wolf emu..."
-	@mkdir -p "$(XS_LOG_DIR_ABS)"
-	@$(eval RUN_ID := $(if $(RUN_ID),$(RUN_ID),$(shell date +%Y%m%d_%H%M%S)))
-	@$(eval XS_BUILD_LOG_FILE := $(XS_LOG_DIR_ABS)/xs_wolf_build_$(RUN_ID).log)
-	@echo "[LOG] Capturing build output to: $(XS_BUILD_LOG_FILE)"
-	@printf '' >> "$(XS_BUILD_LOG_FILE)"
-	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_WOLF_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_WOLF_EMIT_DIR_ABS) SIM_TOP_V=$(XS_WOLF_EMIT_ABS) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) SIM_VSRC= $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(XS_BUILD_LOG_FILE)"
-	NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
-		BUILD_DIR=$(XS_WOLF_BUILD_ABS) \
-		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
-		GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
-		RTL_DIR=$(XS_WOLF_EMIT_DIR_ABS) \
-		SIM_TOP_V=$(XS_WOLF_EMIT_ABS) \
-		NUM_CORES=$(XS_NUM_CORES) \
-		RTL_SUFFIX=$(XS_RTL_SUFFIX) \
-		EMU_THREADS=$(XS_EMU_THREADS) \
-		VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) \
-		EMU_RANDOMIZE=0 \
-		SIM_VFLAGS="$(XS_SIM_VFLAGS)" \
-		WITH_CHISELDB=$(XS_WITH_CHISELDB) \
-		WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) \
-		SIM_VSRC= \
-		$(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,) \
-		2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
-
-xs_diff_clean:
-	rm -rf "$(XS_REF_BUILD_ABS)/verilator-compile" \
-		"$(XS_GSIM_BUILD_ABS)/gsim-compile" \
-		"$(XS_WOLF_BUILD_ABS)/verilator-compile" \
-		"$(XS_GRHSIM_BUILD_ABS)/grhsim-compile" \
-		"$(XS_WOLF_EMIT_DIR_ABS)" \
-		"$(XS_WOLF_REPCUT_PACKAGE_DIR_ABS)" \
-		"$(XS_REPCUT_EMU_BUILD_ABS)" \
-		"$(XS_REPCUT_LEGACY_EMU_DIR_ABS)" \
-		"$(XS_REPCUT_WORK_DIR_ABS)"
-
-run_xs_ref_emu:
+run_xs_ref_emu: check_xs_aggregate_rtl
 	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
 	LOG_DIR="$(XS_LOG_DIR_ABS)"; \
 	mkdir -p "$$LOG_DIR"; \
@@ -2047,7 +1774,7 @@ run_xs_ref_emu:
 			$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$REF_WAVEFORM,) \
 			2>&1 | tee "$$REF_LOG"
 
-run_xs_gsim_emu:
+run_xs_gsim_emu: check_xs_aggregate_rtl
 	@if [ "$(XS_WAVEFORM)" != "0" ] || [ -n "$(XS_WAVEFORM_PATH)" ]; then \
 		echo "[FAIL] xs gsim: waveform is unsupported in the current gsim simulator path"; \
 		exit 1; \
@@ -2070,33 +1797,8 @@ run_xs_gsim_emu:
 			$(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) \
 			2>&1 | tee "$$GSIM_LOG"
 
-run_xs_wolf_emu:
-	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
-	LOG_DIR="$(XS_LOG_DIR_ABS)"; \
-	mkdir -p "$$LOG_DIR"; \
-	WOLF_LOG="$$LOG_DIR/xs_wolf_$${RUN_ID}.log"; \
-	WOLF_WAVEFORM="$(XS_WAVEFORM_DIR_ABS)/xs_wolf_$${RUN_ID}.fst"; \
-	printf '' > "$$WOLF_LOG"; \
-	echo "[RUN] xs wolf emu"; \
-		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_WAVEFORM=$(XS_WAVEFORM) XS_WAVEFORM_FULL=$(XS_WAVEFORM_FULL) XS_COMMIT_TRACE=$(XS_COMMIT_TRACE) XS_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) XS_LOG_BEGIN=$(XS_LOG_BEGIN) XS_LOG_END=$(XS_LOG_END)"; \
-		echo "[LOG] wolf: $$WOLF_LOG"; \
-		if [ "$(XS_WAVEFORM)" = "1" ]; then \
-			echo "[WAVEFORM] wolf: $$WOLF_WAVEFORM"; \
-		fi; \
-		echo "[CMD] cd $(XS_WOLF_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) $(XS_EMU_PREFIX) ./emu -i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin --diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b $(XS_LOG_BEGIN) -e $(XS_LOG_END) $(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) $(XS_RAM_TRACE_ARGS) $(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) $(if $(filter 1,$(XS_WAVEFORM)),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) $(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$WOLF_WAVEFORM,)"; \
-		cd $(XS_WOLF_BUILD_ABS) && EMU_PROGRESS_EVERY_CYCLES="$(XS_PROGRESS_EVERY_CYCLES)" $(XS_EMU_PREFIX) ./emu \
-			-i $(XS_ROOT_ABS)/ready-to-run/coremark-2-iteration.bin \
-			--diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so \
-			-b $(XS_LOG_BEGIN) -e $(XS_LOG_END) \
-			$(if $(filter-out 0,$(XS_SIM_MAX_CYCLE)),-C $(XS_SIM_MAX_CYCLE),) \
-			$(XS_RAM_TRACE_ARGS) \
-			$(if $(filter 1,$(XS_COMMIT_TRACE)),--dump-commit-trace,) \
-			$(if $(filter 1,$(XS_WAVEFORM)),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) \
-			$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$WOLF_WAVEFORM,) \
-			2>&1 | tee "$$WOLF_LOG"
-
 .PHONY: run_xs_wolf_grhsim_ir_emu
-run_xs_wolf_grhsim_ir_emu:
+run_xs_wolf_grhsim_ir_emu: check_xs_aggregate_rtl
 	@test -x "$(XS_GRHSIM_IR_BUILD_ABS)/emu/emu" || { echo "[FAIL] Build the GrhSIM IR emu before running"; exit 1; }
 	@if { [ "$(XS_WAVEFORM)" != "0" ] || [ -n "$(XS_WAVEFORM_PATH)" ]; } && [ "$(WOLVRIX_GRHSIM_WAVEFORM)" != "1" ]; then \
 		echo "[FAIL] xs wolf grhsim: runtime waveform requested, but model was emitted without waveform support; rebuild with WOLVRIX_GRHSIM_WAVEFORM=1"; \
@@ -2126,71 +1828,6 @@ run_xs_wolf_grhsim_ir_emu:
 			$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),$(if $(filter 1,$(XS_WAVEFORM_FULL)),--dump-wave-full,--dump-wave),) \
 			$(if $(filter 1,$(XS_WAVEFORM))$(XS_WAVEFORM_PATH),--wave-path $$GRHSIM_WAVEFORM,) \
 		2>&1 | tee "$$GRHSIM_LOG"
-
-# ---------------------------------------------------------------------------
-# Stage-07 preserve-aggregate GrhSIM IR flow. Same pipeline as
-# xs_wolf_grhsim_ir with the aggregate RTL as input (the CPU pipeline no
-# longer contains reg-to-mem — stage-07 7c: aggregate declarations carry the
-# array structure reg-to-mem used to recover). All artifacts stay under the
-# XS_AGGR_* dirs; the baseline targets above are untouched.
-# ---------------------------------------------------------------------------
-XS_WOLF_GRHSIM_IR_AGGR_OVERRIDES = \
-	XS_RTL_BUILD="$(XS_AGGR_RTL_BUILD)" \
-	XS_PRESERVE_AGGREGATE="$(XS_AGGR_LEVEL)" \
-	XS_GRHSIM_IR_BUILD="$(XS_AGGR_GRHSIM_IR_BUILD)" \
-	XS_WOLF_FILELIST="$(XS_AGGR_GRHSIM_IR_BUILD)/xs_wolf_aggr.f" \
-	XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR="$(XS_AGGR_GRHSIM_IR_BUILD)/model" \
-	WOLVRIX_GRHSIM_WAVEFORM="$(WOLVRIX_GRHSIM_WAVEFORM)"
-
-.PHONY: xs_wolf_grhsim_ir_aggregate xs_wolf_grhsim_ir_aggregate_emu \
-	xs_wolf_grhsim_ir_aggregate_reemit xs_wolf_grhsim_ir_aggregate_build_emu run_xs_wolf_grhsim_ir_aggregate_emu
-xs_wolf_grhsim_ir_aggregate_reemit:
-	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir_reemit $(XS_WOLF_GRHSIM_IR_AGGR_OVERRIDES)
-
-xs_wolf_grhsim_ir_aggregate:
-	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir $(XS_WOLF_GRHSIM_IR_AGGR_OVERRIDES)
-
-xs_wolf_grhsim_ir_aggregate_emu: xs_wolf_grhsim_ir_aggregate
-	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir_aggregate_build_emu
-
-xs_wolf_grhsim_ir_aggregate_build_emu:
-	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir_build_emu $(XS_WOLF_GRHSIM_IR_AGGR_OVERRIDES)
-
-run_xs_wolf_grhsim_ir_aggregate_emu:
-	@$(MAKE) --no-print-directory run_xs_wolf_grhsim_ir_emu $(XS_WOLF_GRHSIM_IR_AGGR_OVERRIDES)
-
-run_xs_json_test:
-	@RUN_ID="$$(date +%Y%m%d_%H%M%S)"; \
-	$(MAKE) --no-print-directory xs_wolf_emu RUN_ID=$$RUN_ID XS_JSON_ROUNDTRIP=1; \
-	$(MAKE) --no-print-directory run_xs_wolf_emu RUN_ID=$$RUN_ID
-
-run_xs_diff:
-	@$(MAKE) --no-print-directory xs_diff_clean
-	@$(MAKE) --no-print-directory xs_ref_emu xs_wolf_emu
-	@RUN_ID="$$(date +%Y%m%d_%H%M%S)"; \
-	echo "[RUN] parallel xs diff"; \
-	{ start=$$(date +%s); \
-	  $(MAKE) --no-print-directory run_xs_wolf_emu RUN_ID=$$RUN_ID; \
-	  wolf_status=$$?; \
-	  end=$$(date +%s); \
-	  wolf_log="$(XS_LOG_DIR_ABS)/xs_wolf_$${RUN_ID}.log"; \
-	  mkdir -p "$(XS_LOG_DIR_ABS)"; \
-	  echo "[TIME] xs wolf emu: $$((end-start))s" | tee -a "$$wolf_log"; \
-	  exit $$wolf_status; } & wolf_pid=$$!; \
-	{ start=$$(date +%s); \
-	  $(MAKE) --no-print-directory run_xs_ref_emu RUN_ID=$$RUN_ID; \
-	  ref_status=$$?; \
-	  end=$$(date +%s); \
-	  ref_log="$(XS_LOG_DIR_ABS)/xs_ref_$${RUN_ID}.log"; \
-	  mkdir -p "$(XS_LOG_DIR_ABS)"; \
-	  echo "[TIME] xs ref emu: $$((end-start))s" | tee -a "$$ref_log"; \
-	  exit $$ref_status; } & ref_pid=$$!; \
-	wait $$wolf_pid; wolf_status=$$?; \
-	wait $$ref_pid; ref_status=$$?; \
-	if [ $$wolf_status -ne 0 ] || [ $$ref_status -ne 0 ]; then \
-		echo "[FAIL] xs diff: wolf=$$wolf_status ref=$$ref_status"; \
-		exit 1; \
-	fi
 
 clean:
 	@rm -rf build

@@ -78,7 +78,7 @@ def generated_dependencies(sv: Path) -> list[Path]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--sv", type=Path, default=Path("build/xs/rtl-aggr/rtl/Rob.sv"))
+    parser.add_argument("--sv", type=Path, default=Path("ptmp/xs/rtl/rtl/Rob.sv"))
     parser.add_argument("--assert-v", type=Path,
                         default=Path("testcase/xiangshan/difftest/src/test/vsrc/common/assert.v"))
     parser.add_argument("--out", type=Path, default=Path("ptmp/rob-register-write"))

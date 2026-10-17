@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shlex
 import shutil
@@ -19,16 +20,9 @@ GRH_PIPELINE: list[tuple[str, dict]] = [
     # 常量索引 mux 树/逐元素写译码/pad 拼接读；在图最小的模块级阶段逆向折叠回
     # 动态数组访问，显著缩小后续 pass（尤其 simplify）与 emit 的图规模。
     # 先折叠已有的简单链，再在完整写组上提取保持分支，恢复剩余多写口译码。
-    # XS_WOLF_MUX_TREE_FOLD=0 可临时禁用全部 mux-tree-fold（A/B 回归分析用）。
-    # XS_WOLF_REGISTER_WRITE_NORMALIZE=0 保留原有无参 mux-tree-fold，关闭
-    # 新增的旧值保持路径规范化和 guarded-write 恢复，作为公平性能对照组。
-    *([
-        ("mux-tree-fold", {}),
-        *([] if os.environ.get("XS_WOLF_REGISTER_WRITE_NORMALIZE", "1").strip() == "0" else [
-            ("register-write-normalize", {"semantics": "2state"}),
-            ("mux-tree-fold", {"guarded_writes": "2state"}),
-        ]),
-    ] if os.environ.get("XS_WOLF_MUX_TREE_FOLD", "1").strip() != "0" else []),
+    ("mux-tree-fold", {}),
+    ("register-write-normalize", {"semantics": "2state"}),
+    ("mux-tree-fold", {"guarded_writes": "2state"}),
     ("memory-read-retime", {}),
     ("multidriven-guard", {}),
     ("blackbox-guard", {}),
@@ -188,7 +182,7 @@ def mem_enable_bitmap() -> str:
 
 
 def recover_masked_or_enabled() -> bool:
-    raw = os.environ.get("XS_WOLF_GRHSIM_IR_MASKED_OR", "0").strip()
+    raw = os.environ.get("XS_WOLF_GRHSIM_IR_MASKED_OR", "1").strip()
     if raw not in ("0", "1"):
         raise RuntimeError(f"XS_WOLF_GRHSIM_IR_MASKED_OR must be 0 or 1, got {raw!r}")
     return raw == "1"
@@ -236,9 +230,8 @@ CPU_PARTITION_PIPELINE = [
 ]
 
 def _cpu_mapping_options(name: str) -> dict:
-    # Default-valued knobs stay unpassed so older wolvrix builds (which
-    # reject unknown options) keep working; the skipped values equal the
-    # engines' built-in defaults in every case.
+    # Keep exploration knobs unpassed at their engine defaults. The production
+    # schedule uses one emit function per supernode (target_batch_count=0).
     options = {}
     if name == "cpu.st.build-general-nodes":
         if value := semantic_nodes():
@@ -252,6 +245,8 @@ def _cpu_mapping_options(name: str) -> dict:
             options["segment_penalty"] = value
         if value := coarsen_max_op():
             options["coarsen_max_op"] = value
+    if name == "cpu.st.pack-general-functions":
+        options["target_batch_count"] = 0
     return options
 
 
@@ -303,7 +298,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--resume-from-flat-grh", action="store_true")
     parser.add_argument("--keep-origins", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--emit-cpp-dir", type=Path)
-    parser.add_argument("--overwrite-emit-cpp", action="store_true",
+    parser.add_argument("--overwrite-emit-cpp", action=argparse.BooleanOptionalAction, default=True,
                         help="replace existing generated C++ immediately before emitting the new model")
     parser.add_argument("--emit-waveform", action="store_true",
                         help="emit the CPU model with FST waveform capture for declared symbols "
@@ -312,7 +307,7 @@ def parse_args() -> argparse.Namespace:
                         help="P_mem reader activation mode (cpu.st.emit-cpp --mem-write-activate): "
                              "on-write activates the array's readers once per enable-word run "
                              "(write-occurs, gsim-style); on-change keeps the per-cell change compare")
-    parser.add_argument("--cpu-target-batch-count", type=int)
+    parser.add_argument("--cpu-target-batch-count", type=int, default=0)
     parser.add_argument("--cpu-helper-max-estimated-lines", type=int,
                         help="C6 per-function helper-chunk cap; huge values disable supernode chunking")
     parser.add_argument("--cpu-chunk-max-estimated-lines", type=int,
@@ -340,21 +335,12 @@ def parse_args() -> argparse.Namespace:
                              "after grhsim.split-phases")
     parser.add_argument("--recover-masked-or", action=argparse.BooleanOptionalAction,
                         default=recover_masked_or_enabled(),
-                        help="restore mask/array OR reductions at B7 (experimental; default off)")
+                        help="restore mask/array OR reductions at B7 (default on)")
     parser.add_argument("--masked-or-min-terms", type=int, default=16,
                         help="minimum term count for maskedOr recovery (at least 2; default 16)")
     parser.add_argument("--masked-or-report", type=Path,
                         help="write recovered maskedOr regions as TSV")
-    parser.add_argument("--bitwise-predicates", action=argparse.BooleanOptionalAction, default=True,
-                        help="deprecated no-op (M5d-5): bitwise-predicates runs inside "
-                             "grhsim.simplify and no longer has a standalone pipeline step")
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--disable-pack-bit-registers", action="store_true",
-                        help="drop only grhsim.pack-bit-registers from the pipeline, keeping every "
-                             "other semantic pass (isolated A/B arm, NO00021)")
-    parser.add_argument("--used-bits", action=argparse.BooleanOptionalAction, default=True,
-                        help="deprecated no-op (M5d-5): used-bits runs inside grhsim.simplify "
-                             "and no longer has a standalone pipeline step")
     parser.add_argument("--dump-post-lower-json", type=Path,
                         help="diagnostic (NO00020): also store the GrhSIM model right after grhsim.verify, before any semantic/mapping pass")
     parser.add_argument("--dump-pre-simplify-json", type=Path,
@@ -368,7 +354,7 @@ def parse_args() -> argparse.Namespace:
                         help="override the compute supernode op cap (activity granularity)")
     parser.add_argument("--sink-enable-guard-min-size", type=int,
                         help="override the A1 sink enable-guard group threshold "
-                             "(default: XS_WOLF_GRHSIM_IR_SINK_GUARD_MIN or 8; 0 disables)")
+                             "(default: XS_WOLF_GRHSIM_IR_SINK_GUARD_MIN or 0; 0 disables)")
     parser.add_argument("--pack-bit-registers-report", type=Path,
                         help="diagnostic (NO00026): dump the packed_bits member list TSV from grhsim.pack-bit-registers")
     args = parser.parse_args()
@@ -405,12 +391,35 @@ def read_slang_args(filelist: Path, top: str, read_args_file: Path) -> list[str]
 
 def main() -> int:
     args = parse_args()
+    log("CPU configuration " + json.dumps({
+        "grh_passes": [] if args.resume_from_flat_grh else [name for name, _ in GRH_PIPELINE],
+        "resume_from_flat_grh": args.resume_from_flat_grh,
+        "comb_pack": args.comb_pack,
+        "pack_bit_registers": args.pack_bit_registers,
+        "select_state_stores": args.select_state_stores,
+        "phase_simplify": args.phase_simplify,
+        "recover_masked_or": args.recover_masked_or,
+        "masked_or_min_terms": args.masked_or_min_terms,
+        "clone_shared_compute": args.clone_shared_compute,
+        "clone_shared_compute_max_clones": args.clone_shared_compute_max_clones,
+        "clone_shared_compute_lossy_compare": args.clone_shared_compute_lossy_compare,
+        "cpu_target_batch_count": args.cpu_target_batch_count,
+        "mem_enable_bitmap": mem_enable_bitmap(),
+        "mem_write_activate": args.mem_write_activate,
+        "activity_flag_bits": 8,
+    }, sort_keys=True))
     filelist = Path(args.filelist).resolve()
     flat_grh_json = Path(args.flat_grh_json).resolve()
     grhsim_json = Path(args.grhsim_json).resolve()
     roundtrip_json = Path(args.roundtrip_json).resolve()
     read_args_file = Path(args.read_args_file).resolve()
     emit_cpp_dir = args.emit_cpp_dir.resolve() if args.emit_cpp_dir else None
+
+    if emit_cpp_dir is not None and emit_cpp_dir.exists():
+        if not emit_cpp_dir.is_dir():
+            raise RuntimeError(f"CPU emit output path is not a directory: {emit_cpp_dir}")
+        if not args.overwrite_emit_cpp and any(emit_cpp_dir.iterdir()):
+            raise RuntimeError(f"CPU emit output directory must be empty: {emit_cpp_dir}")
 
     for path in (flat_grh_json, grhsim_json, roundtrip_json):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -492,8 +501,7 @@ def main() -> int:
             require_ok(diagnostics, "store post-lower GrhSIM dump")
         pipeline = [
             (name, options) for name, options in cpu_pipeline(recover_masked_or=args.recover_masked_or)
-            if not (name == "grhsim.pack-bit-registers"
-                    and (not args.pack_bit_registers or args.disable_pack_bit_registers))
+            if not (name == "grhsim.pack-bit-registers" and not args.pack_bit_registers)
             and not (name == "grhsim.comb-pack" and not args.comb_pack)
             and not (name == "grhsim.select-state-stores" and not args.select_state_stores)
             and not (name == "cpu.st.clone-shared-boundaries" and not args.clone_shared_compute)
