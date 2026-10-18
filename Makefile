@@ -111,7 +111,8 @@ XS_EMU_THREADS ?= 2
 XS_VM_BUILD_JOBS ?= $(shell nproc)
 XS_SIM_TOP ?= SimTop
 XS_RTL_SUFFIX ?= sv
-# XiangShan has one RTL policy: always preserve aggregates.
+# XiangShan RTL generation preserves aggregates; prebuilt references have their
+# own build provenance and can use plain RTL.
 XS_PRESERVE_AGGREGATE ?= all
 ifneq ($(XS_PRESERVE_AGGREGATE),all)
 $(error XiangShan requires preserve-aggregate=all; scalar RTL generation was removed)
@@ -294,6 +295,19 @@ $(WOLVRIX_APP): build
 test_wolvrix: build
 	mkdir -p $(CURDIR)/ptmp/ctest_tmp $(CURDIR)/ptmp/ctest_ccache
 	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) --output-on-failure
+
+.PHONY: test_ingest_expression_width
+test_ingest_expression_width:
+	mkdir -p $(CURDIR)/ptmp/ingest_width_tmp $(CURDIR)/ptmp/ingest_width_ccache
+	TMPDIR=$(CURDIR)/ptmp/ingest_width_tmp CCACHE_DIR=$(CURDIR)/ptmp/ingest_width_ccache $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR=$(CURDIR)/ptmp/ingest_width_tmp CCACHE_DIR=$(CURDIR)/ptmp/ingest_width_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target ingest-expression-width -j 2
+	TMPDIR=$(CURDIR)/ptmp/ingest_width_tmp CCACHE_DIR=$(CURDIR)/ptmp/ingest_width_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^ingest-expression-width$$' --output-on-failure
+
+.PHONY: test_ingest_struct_array_write
+test_ingest_struct_array_write:
+	mkdir -p $(CURDIR)/ptmp/ingest_struct_tmp $(CURDIR)/ptmp/ingest_struct_ccache
+	TMPDIR=$(CURDIR)/ptmp/ingest_struct_tmp CCACHE_DIR=$(CURDIR)/ptmp/ingest_struct_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target ingest-struct-array-fieldwise -j 2
+	TMPDIR=$(CURDIR)/ptmp/ingest_struct_tmp CCACHE_DIR=$(CURDIR)/ptmp/ingest_struct_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^ingest-struct-array-fieldwise$$' --output-on-failure
 
 .PHONY: test_grh_register_write
 test_grh_register_write:
@@ -1139,7 +1153,7 @@ run_xs_bugcase_grhsim: py_install
 	  export CCACHE_DIR="$(REPO_ROOT)/ptmp/xs-bugcase-grhsim/ccache"; \
 	  summary="$(REPO_ROOT)/ptmp/xs-bugcase-grhsim/summary.txt"; \
 	  : > "$$summary"; \
-	  for index in $$(seq 1 25); do \
+	  for index in $$(seq 1 27); do \
 	    case_tag=$$(printf 'CASE_%03d' "$$index"); \
 	    target=run; if [ "$$index" -le 5 ]; then target=run_grhsim; fi; \
 	    log="$(REPO_ROOT)/ptmp/xs-bugcase-grhsim/$${case_tag}.log"; \
@@ -1150,7 +1164,7 @@ run_xs_bugcase_grhsim: py_install
 	      echo "FAIL $$case_tag ($$log)" | tee -a "$$summary"; failed=$$((failed + 1)); \
 	    fi; \
 	  done; \
-	  echo "Result: $$passed/25 passed, $$failed failed" | tee -a "$$summary"; \
+	  echo "Result: $$passed/27 passed, $$failed failed" | tee -a "$$summary"; \
 	  test "$$failed" -eq 0
 
 $(HDLBITS_EMITTED_DUT) $(HDLBITS_EMITTED_JSON): $(HDLBITS_DUT_SRC) $(HDLBITS_WOLVRIX_SCRIPT) check_id
@@ -1749,14 +1763,17 @@ xs_gsim_export_precoarsen:
 			"$(XS_SIM_TOP_FIR)"; \
 	} 2>&1 | tee "$(XS_GSIM_EXPORT_LOG)"
 
-run_xs_ref_emu: check_xs_aggregate_rtl
-	@RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
+run_xs_ref_emu:
+	@test -x "$(XS_REF_BUILD_ABS)/emu" || { echo "[FAIL] Build the Verilator reference emu before running"; exit 1; }
+	@set -o pipefail; \
+	RUN_ID="$(if $(RUN_ID),$(RUN_ID),$$(date +%Y%m%d_%H%M%S))"; \
 	LOG_DIR="$(XS_LOG_DIR_ABS)"; \
 	mkdir -p "$$LOG_DIR"; \
 	REF_LOG="$$LOG_DIR/xs_ref_$${RUN_ID}.log"; \
 	REF_WAVEFORM="$(XS_WAVEFORM_DIR_ABS)/xs_ref_$${RUN_ID}.fst"; \
 	printf '' > "$$REF_LOG"; \
 	echo "[RUN] xs ref emu"; \
+		echo "[CONFIG] Prebuilt Verilator reference: $(XS_REF_BUILD_ABS)/emu (uses its compiled RTL)"; \
 		echo "[RUN] XS_SIM_MAX_CYCLE=$(XS_SIM_MAX_CYCLE) XS_WAVEFORM=$(XS_WAVEFORM) XS_WAVEFORM_FULL=$(XS_WAVEFORM_FULL) XS_COMMIT_TRACE=$(XS_COMMIT_TRACE) XS_PROGRESS_EVERY_CYCLES=$(XS_PROGRESS_EVERY_CYCLES) XS_LOG_BEGIN=$(XS_LOG_BEGIN) XS_LOG_END=$(XS_LOG_END)"; \
 		echo "[LOG] ref : $$REF_LOG"; \
 		if [ "$(XS_WAVEFORM)" = "1" ]; then \
