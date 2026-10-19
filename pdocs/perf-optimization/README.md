@@ -31,6 +31,13 @@
 
 ## 当前基线
 
+2026-10-19：XS aggregate 默认保留完整数组直写优化组合，标准构建使用
+`-O3 -march=native -fno-strict-aliasing`，无新增优化开关、无 PGO。完整 SV→emu
+生成后的 100k CoreMark 三次均值 **262.709 ± 1.942 秒**，同口径 alias 基线为
+317.977 ± 4.018 秒，耗时下降 **17.381%**；与 plain Verilator 的 231,568 条
+提交轨迹一致。命令、逐次数据和生成耗时见
+[优化博客末尾的默认入口复测](20261018-preserve-aggregate-grhsim-performance-journey.md#把完整组合放进默认入口2026-10-19)。
+
 2026-10-17：标准 XS 流程默认 preserve-aggregate=all，开启已验证的 masked OR，
 保留 8-bit 活动位打包并精简无效/重复 flag；清理重跑见
 [默认配置与结果记录](20261017-aggregate-defaults-active8.md)。

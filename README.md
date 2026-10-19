@@ -94,7 +94,10 @@ make -C testcase/xs-bugcase/CASE_006 run
 ```
 
 The XiangShan flow requires `preserve-aggregate=all`. Mux1H/masked-OR recovery,
-state-write normalization and dynamic-write recovery are enabled by default.
+state-write normalization, dynamic-write recovery, aggregate alias elimination,
+and direct aggregate row copies are enabled by default. The standard GrhSIM
+build uses `-O3 -march=native -fno-strict-aliasing` without PGO; the resulting
+emulator targets the build host's CPU.
 
 ## Output Locations
 

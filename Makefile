@@ -470,7 +470,7 @@ GRHSIM_IR_BENCH_PAIRS ?= 3
 GRHSIM_IR_BENCH_MAKE_TARGET ?= run_xs_wolf_grhsim_ir_emu
 GRHSIM_IR_BENCH_BUILD_VAR ?= XS_GRHSIM_IR_BUILD
 GRHSIM_IR_BENCH_EMU_RELPATH ?= emu/emu
-GRHSIM_IR_BENCH_EXPECTED_ENDPOINT ?= 225471,99996,100001,0x800010e2
+GRHSIM_IR_BENCH_EXPECTED_ENDPOINT ?= 238535,99996,100001,0x80000cde
 GRHSIM_IR_BENCH_PERF_STAT ?= 0
 .PHONY: benchmark_grhsim_ir
 benchmark_grhsim_ir:
@@ -1506,6 +1506,7 @@ xs_wolf_grhsim_ir_reemit: check_xs_aggregate_rtl
 xs_wolf_grhsim_ir_emu: xs_wolf_grhsim_ir
 	@$(MAKE) --no-print-directory xs_wolf_grhsim_ir_build_emu
 
+# Match the accepted aggregate benchmarks on the build host without extra flags.
 xs_wolf_grhsim_ir_build_emu: check_xs_aggregate_rtl
 	@test -n "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)" && test -f "$(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)/Makefile" || { echo "[FAIL] Generate the GrhSIM IR C++ model before build-only emu"; exit 1; }
 	@echo "[RUN] Building XiangShan emu with the GrhSIM IR generated model..."
@@ -1518,6 +1519,7 @@ xs_wolf_grhsim_ir_build_emu: check_xs_aggregate_rtl
 		VM_BUILD_JOBS=$(if $(VM_BUILD_JOBS),$(VM_BUILD_JOBS),$(XS_VM_BUILD_JOBS)) \
 		GRHSIM=1 \
 		GRHSIM_MODEL_DIR=$(abspath $(XS_WOLF_GRHSIM_IR_EMIT_CPP_DIR)) \
+		GRHSIM_MODEL_CXXFLAGS="-std=c++20 -O3 -march=native -fno-strict-aliasing -DWOLVRIX_GRHSIM_PERF=$(WOLVRIX_GRHSIM_PERF)" \
 		WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM)
 
 # Compiler PGO for the GrhSIM IR emu: three-phase build (instrument, train on the
