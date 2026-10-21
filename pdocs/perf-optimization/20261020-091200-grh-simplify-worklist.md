@@ -269,3 +269,72 @@ perf 15k 干净周期 fixa 438.6G vs elide 433.0G（-1.3%）；同二进制两�
 物化成本已是 memcpy 量级，消除只省下调度开销。附带收益：生成代码 -70 万行
 （-3%），seg2 模型编译 9m15s vs 9m32s。行为验证：test_wolvrix 64/64、
 xs_bugcase 27/27、XS 100k difftest 通过（instrCnt/IPC 一致）。
+
+### P6：编译总时长压降（2026-10-21，方案 1+2+3）
+
+背景：P5 收尾后 SV→CPP→emu 端到端编译 32m26s（seg1 1391s + seg2 555s），
+用户要求压进 30min。执行方案 1（流程裁剪）+ 2（生成代码/规划）+ 3（simplify
+深挖）。
+
+**方案 1：checkpoint 往返校验 flag 化（-105s）**
+`wolvrix_xs_grhsim_ir.py` 的 round-trip 稳定校验（load fresh 67.7s +
+store 36.8s）原为无条件步骤。改为 `--roundtrip-verify`（BooleanOptionalAction，
+**脚本默认 ON**——xs-bugcase/xs-components 等 20+ 个直接调用方行为不变）；
+XS 生产流 Makefile 默认传 `--no-roundtrip-verify`，
+`XS_WOLF_GRHSIM_IR_ROUNDTRIP_VERIFY=1` 可开（verify=1 的 resume 全流已实测
+通过，字节级一致校验仍可用）。
+
+**方案 2a/2b：replicate 字填充 + unpack memcpy 扩展**
+- 宽位 replicate 旧实现是运行期循环 `cpu_rep|=(W)(elem)<<(i*ew)`，对
+  212×64→13568 等实例每次调用 O(rep×words)（45k 字操作/次）。改为容器字
+  直接填充：64%ew==0 时先构造 64 位 broadcast 模式再按字写（memcpy/字循环），
+  ew%64==0 且宽元素时按元素 memcpy；小端守卫与 packStoreRows 相同，其余回退
+  原循环。主要收益在仿真侧。
+- unpackValue memcpy 快速路径从 ew∈{8,16,32,64} 扩展到 ew%64==0（容器无填充）。
+  实测 elide 模型剩余通用 unpack 点仅 ~2.8k 且行数普遍 ≤8（早先估计的 62k
+  是过期口径），本项收益边际。
+
+**方案 2c：TU 规划器 fanout 估算修复（seg2 主杠杆）**
+seg2 构成：1218 个模型 TU 编译跨度 529s（difftest make -j28 按 tu 序号顺序
+编译）。发现两类失衡：
+- tu1069/70/71 各 64-95 万行（估算 32.7k 行），占 300-340s/个——根因：
+  `estimateSupernodeLines` 对 activity-flag 扇出几乎不计费，而 XS small-sink
+  写每次变更广播数十个 flag 字（sn_45570 单函数 9994 行中 9462 行是
+  flagAcc 声明/累积/写回），低估 20-29 倍。
+- 尾部：tu1072（5.3 万行宽 _BitInt 代码，含 8192 位 op）最后完成，
+  27 核空转 ~150s。
+修复：估算器按 schedule 的 commitStateFanout/computeSupernodeFanout 对
+每个写收 6+distinctFlagWords 行、每个 supernode 函数收 2×unionWords
+（声明+写回）；另对 `core.system.task` 按 arg 数计费（每个 arg 是一次
+grhsim_make_task_arg 调用，PERF 计数器 fwrite 单 arg ~14ms 前端耗时，
+97 行 4.4MB 的 tu1471 单 TU ~460s）——实测 plan-TU pass 40.3s（+2.7s），
+units 1218→1792，max_unit_estimated 仍封 32768 cap，最大实际 TU 从 95 万
+行降到 7.6 万行。
+**曾尝试**将 plan.units 按估算降序重排，已回退：chunk 流（init/scan 等）
+要求跨 unit 按计划顺序密铺（emit 的 tiling 校验直接报错），且 general scan
+调用顺序承载同轮激活语义，不可乱序。**正确做法**：plan 与 .cpp 内容保持
+流序，只在生成 Makefile 的 SOURCES 列表按 estimatedLines 降序——编译顺序
+与内容顺序解耦（difftest make -j28 按列表顺序编译，archive 成员顺序不影响
+链接语义）。同一份 t2c2 模型实测：顺序编译跨度 629s → 前置后 **495.7s**
+（-133s，-21%）。
+
+**方案 3：simplify profile（perf record -F 999 --call-graph fp，resume seg1）**
+- 扁平 profile：parseCpuConstLiteral 所在内联区 6.85%、StringInterner::text
+  4.39%、verify 2.25%——通用 helper 死亡千刀，无单点。
+- 分窗（simplify whole/phase）50-70% 样本落在一个 ~23 字节热循环。符号化
+  反复踩坑（.so 被后续构建覆盖，就近符号漂移到 __make_heap）；ccache 重链
+  同时代 .so 后定位为 **`simplifyStepUsedBits` 内部的 memset 型向量分配**。
+  疑似主因：whole 8 轮 + phase 3 轮里每步每轮对 ~1M 项大向量的
+  assign/resize 与 model.compact()（compact 在 canonicalize 窗口也占 4.86%，
+  每步删除后全量重建 op/value 数组，~66 次/全流程）。定为后续工作
+  （跨轮复用缓冲 / compact 阈值化），本轮未动。
+- GRH 侧（干净流独有）：xmr-resolve 102.6s、hier-flatten 67.3s、
+  comb-loop-elim 58.8s、GRH simplify 291.3s（iteration 0 占 200s，
+  const-fold 132s 为单块最大）。H2 工作队列后 iteration 0 为一次全图
+  筛查，剩余是 per-op 成本，无 XS 规模 pre-simplify 转储可深剖（replay
+  用的 flat 转储 changed=0，已是简化后图）。
+
+**实测总时长（方案 1+2c 后，干净全流）**：sv→cpp（seg1）1639 s，cpp→emu（seg2）
+534 s，端到端编译 2173 s（36m13s）；XS emu 100k 246.3 s（钉核 taskset -c 2），
+instrCnt 238,535 / IPC 2.385445 与基线一致，difftest 通过。日志：
+`ptmp/grh-simplify-h2-20261020/variant-rerun1/`（2026-10-21 23:26 启动的重跑）。

@@ -1420,6 +1420,7 @@ xs_wolf_hier_json: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 # Pass only deviations from the Python flow's production defaults.
 XS_WOLF_GRHSIM_IR_FLAGS = \
 	$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_RESUME_FROM_FLAT_GRH_JSON)),--resume-from-flat-grh,) \
+	$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_ROUNDTRIP_VERIFY)),,--no-roundtrip-verify) \
 	$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_KEEP_ORIGINS)),--no-keep-origins,) \
 	$(if $(filter 1,$(XS_WOLF_GRHSIM_IR_COMB_PACK)),--comb-pack,) \
 	$(if $(filter 0,$(XS_WOLF_GRHSIM_IR_SELECT_STATE_STORES)),--no-select-state-stores,) \

@@ -296,6 +296,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("read_args_file")
     parser.add_argument("log_level", nargs="?", default="info")
     parser.add_argument("--resume-from-flat-grh", action="store_true")
+    parser.add_argument("--roundtrip-verify", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--keep-origins", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--emit-cpp-dir", type=Path)
     parser.add_argument("--overwrite-emit-cpp", action=argparse.BooleanOptionalAction, default=True,
@@ -583,24 +584,25 @@ def main() -> int:
         )
         require_ok(diagnostics, "store GrhSIM checkpoint")
 
-    with wolvrix.Session() as fresh_session:
-        fresh_session.diagnostics_raise_min_level = "none"
-        diagnostics = timed(
-            f"load GrhSIM checkpoint in fresh session {grhsim_json}",
-            lambda: fresh_session.load_grhsim(str(grhsim_json), out_model="grhsim.roundtrip"),
-        )
-        require_ok(diagnostics, "load GrhSIM checkpoint")
-        diagnostics = timed(
-            f"store GrhSIM round-trip {roundtrip_json}",
-            lambda: fresh_session.store_grhsim(
-                model="grhsim.roundtrip", output=str(roundtrip_json)
-            ),
-        )
-        require_ok(diagnostics, "store GrhSIM round-trip")
+    if args.roundtrip_verify:
+        with wolvrix.Session() as fresh_session:
+            fresh_session.diagnostics_raise_min_level = "none"
+            diagnostics = timed(
+                f"load GrhSIM checkpoint in fresh session {grhsim_json}",
+                lambda: fresh_session.load_grhsim(str(grhsim_json), out_model="grhsim.roundtrip"),
+            )
+            require_ok(diagnostics, "load GrhSIM checkpoint")
+            diagnostics = timed(
+                f"store GrhSIM round-trip {roundtrip_json}",
+                lambda: fresh_session.store_grhsim(
+                    model="grhsim.roundtrip", output=str(roundtrip_json)
+                ),
+            )
+            require_ok(diagnostics, "store GrhSIM round-trip")
 
-    if grhsim_json.read_bytes() != roundtrip_json.read_bytes():
-        raise RuntimeError("GrhSIM store/load/store changed stable JSON bytes")
-    log(f"stable round-trip verified: {grhsim_json} == {roundtrip_json}")
+        if grhsim_json.read_bytes() != roundtrip_json.read_bytes():
+            raise RuntimeError("GrhSIM store/load/store changed stable JSON bytes")
+        log(f"stable round-trip verified: {grhsim_json} == {roundtrip_json}")
     log(f"total done {int((time.perf_counter() - total_start) * 1000)}ms")
     return 0
 
