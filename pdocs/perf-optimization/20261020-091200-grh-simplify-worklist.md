@@ -251,3 +251,21 @@ crossing/非 boundary，保守条件已论证）。
 **最终门禁（2026-10-21，P4 树态）**：test_wolvrix 64/64；xs_bugcase 27/27；
 sim_refactor 162/162；hdlbits Verilator 流 162/162（含 8 个 tb 兼容修复后）；
 XS emu 100k difftest 通过、host 241.3/243.1 s。**260 s 目标达成，工作收尾。**
+
+### P5：emit 视图消除（read() 别名，2026-10-21）
+
+设计：等宽两态单操作数 `core.compute.assign`（kAssign/kAssignAs 共同的
+lowering 形态），result 不跨 chunk（不在任何 supernode/event/output
+frame）、无 boundary 字段、非 static/masked 时，op 不产任何代码，
+`read()` 在行时沿 `viewRoot_` 链别名到 operand 根；根必须为 flat（扁平读
+平凡）或与 result 完全同形（行存取可转发，masked-read 根排除防重复展开）。
+构造时机放在构造器末尾，construction 期的 read()/expression() 快照保持
+旧解析。安全性已逐路径论证（boundary 上下文、waveform、DPI、latchWrite
+staged 文本、frame 并集）。
+
+实测（XS emu 100k 钉核背靠背）：fixa 246.3 s vs elide 253.8 s（+3%）；但
+perf 15k 干净周期 fixa 438.6G vs elide 433.0G（-1.3%）；同二进制两次钉核
+自身漂移 ~1.5%。**结论：XS 上性能中性（噪声区间内）**——Fix A 之后被消除的
+物化成本已是 memcpy 量级，消除只省下调度开销。附带收益：生成代码 -70 万行
+（-3%），seg2 模型编译 9m15s vs 9m32s。行为验证：test_wolvrix 64/64、
+xs_bugcase 27/27、XS 100k difftest 通过（instrCnt/IPC 一致）。
