@@ -1438,6 +1438,7 @@ XS_WOLF_GRHSIM_IR_FLAGS = \
 	$(if $(filter-out on-write,$(XS_WOLF_GRHSIM_IR_MEM_WRITE_ACTIVATE)),--mem-write-activate "$(XS_WOLF_GRHSIM_IR_MEM_WRITE_ACTIVATE)",) \
 	$(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),--emit-waveform,) \
 	$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON)),--dump-post-lower-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON))",) \
+	$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_PRE_SIMPLIFY_JSON)),--dump-pre-simplify-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_PRE_SIMPLIFY_JSON))",) \
 	$(if $(strip $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON)),--dump-pre-partition-json "$(abspath $(XS_WOLF_GRHSIM_IR_DUMP_PRE_PARTITION_JSON))",) \
 	$(if $(strip $(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT)),--pack-bit-registers-report "$(abspath $(XS_WOLF_GRHSIM_IR_PACK_BIT_REGISTERS_REPORT))",) \
 	$(if $(strip $(XS_WOLF_GRHSIM_IR_COMB_PACK_REPORT)),--comb-pack-report "$(abspath $(XS_WOLF_GRHSIM_IR_COMB_PACK_REPORT))",) \
