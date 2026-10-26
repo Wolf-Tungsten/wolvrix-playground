@@ -1,10 +1,12 @@
-# 实际 XiangShan ROB：gsim / GrhSIM IR 微观结构对比
+# XiangShan ROB 独立提取与真实 trace 基准
 
 目标实例：`cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob`。独立顶层为 `Rob`，包含全部子模块。
 
 ## 提取与导出
 
 `Rob.fir` 为 SimTop.fir 的依赖闭包，10 个 FIRRTL 模块；`rtl/` 为 12 个生成 SV 模块及原有 assert.v DPI 声明。模块正文按字节复制，来源、偏移及 SHA256 见 manifest.json。
+
+当前提取源为 `build/xs/rtl/rtl/` 的 `--preserve-aggregate=all` 产物。提取器检查对应 `time.log` 的生成参数和成功状态，并把生成记录的哈希写入 `manifest.json` 的 `preserve_aggregate` / `generation_record` 字段。重复提取会保留内容相同文件的时间戳，避免复用同一源时重建模型。
 
 FIRRTL 去掉了全设计 annotation，电路名改为 Rob；gsim 实际输入 `ptmp/xs-components-rob/Rob_resolved.fir` 只将 Rob 顶层抽象 Reset 解析为 UInt<1>，与 SV 同步复位一致。未修改寄存器数据逻辑。
 
@@ -23,7 +25,59 @@ make -C testcase/xs-components rob-compare
 
 GrhSIM 使用当前 CPU 管线，开启 row-constant-fill、OR-write-merge、migrate-boundary-ops、demonitor-redundant。整机动态 profile 的 ID 不适用于独立模型，因此未使用两个依赖 profile 的调度优化；这两个优化不改寄存器与计算语义。
 
-## 原先 1,537 个未配对项
+## 聚合 RTL 与 CoreMark 100k 回放（2026-10-22）
+
+独立模型使用聚合 SV；真实激励来自已验证的 **plain Verilator reference**。本次加载 `coremark-2-iteration.bin`，开启 NEMU difftest、RTL 断言和完整 FST，正常运行至 `-C 100000` 周期上限，共提取 **100,050 条记录（52 条 reset）**。这是 CoreMark 的 100k 周期窗口，不表示程序已执行完两次迭代。
+
+聚合版整机 Verilator 在约 10,269 周期触发 `AheadBtbReplacer` 断言，不能作为本次 100k 参考；失败前缀保留作常量审计补充证据。该整机问题也记录在 `pdocs/grhsim-ir-preserve-aggregate-xiangshan-coremark-investigation-20261018.md`。没有关闭断言绕过失败。
+
+`map_rob_fst.py` 把 plain 波形映射到聚合端口记录：5,213 个输入叶中，1,505 个从 FST 读取，3,532 个经生成 gsim 计算代码审计确认为未使用，176 个为整机传播的零常量（入队 replayInst、非内存执行单元 debug、未实现写回数据和 exception 位）。后两类统一驱动零；遇到未分类的活跃输入会失败。176 个常量另与聚合 tap 的 10,322 周期前缀逐条核对，全部为零。来源和逐项分类见 `trace/fst_mapping.json`。
+
+`pack_rob_fst.cpp` 用 libfst 流式读取，每个时刻先检查时钟上升沿、输出前一个低相的稳定值，再应用该时刻所有变化，避免把 Verilator eval 后的输入/状态误配给前一个时钟沿。`layout.json` 的 `sv_port` / `sv_offset` 也支持聚合 tap 的位段提取：例如 packed `struct {logic [3:0] tag; logic [1:0][4:0] lanes;}` 中，`lanes[0]` 为 `[4:0]`、`lanes[1]` 为 `[9:5]`、`tag` 为 `[13:10]`。
+
+gsim 的布尔数组与 GrhSIM 的 packed 整数逐位对应，也覆盖 struct 数组内部的布尔向量。gsim 推导后收窄的输入仍按完整 SV 位宽采集并驱动 GrhSIM；gsim setter 只保留其实际使用的位。当前配对 5,213 个输入叶、5,439 个输出叶，GrhSIM 没有未配对输入；87 个输入端口和 55 个输出端口都有记录映射。
+
+```bash
+make -C testcase/xs-components rob-test-scripts
+make -C testcase/xs-components rob-extract
+make -C testcase/xs-components rob-bench-build rob-trace-layout-check
+make -C testcase/xs-components rob-trace-plain-wave ROB_TRACE_CYCLES=100000
+make -C testcase/xs-components rob-trace-plain-pack ROB_TRACE_CYCLES=100000
+make -C testcase/xs-components rob-bench-trace \
+  ROB_BENCH_VERIFY=100050 ROB_BENCH_REPEAT=3 \
+  ROB_BENCH_PREFIX='taskset -c 0 stdbuf -oL -eL'
+```
+
+`rob-trace-plain-wave` 需要已有的、通过 NEMU 校验的 plain 参考程序，默认 `build/xs/ref/emu`；可用 `ROB_PLAIN_REF_BUILD` 指向保存的其他 plain 构建。本次没有把聚合整机重新构建成 plain，也没有用失败的聚合整机采集代替参考。已有完整 FST 时可从 `rob-trace-plain-pack` 继续。
+
+回放在同一核上分别测量两个模型，每轮新建零初始化模型，先 warmup 一轮、再计时三轮；计时包含驱动、模型求值和相同输出叶的 checksum，构造和文件读取不计时。gsim 每周期一次 `step()`，GrhSIM 低相/高相各一次 `eval()`，都在本周期时钟沿前采样。正式计时前逐周期比较 gsim、GrhSIM，并对 FST 实际保留的输出与整机比较。
+
+**本次 100,050 周期校验通过**。plain FST 保留了 4,274 个输出叶（4,326 个 u64 字）；另外 1,165 个未保留的输出由 `fst_output_mask.bin` 明确屏蔽参考比较，仍参与两模型之间的比较。扣除下述历史排除项，模型间严格比较 4,084 个输出叶，其中 3,289 个也对照真实参考。未保留的 795 个严格输出叶以两个独立模型互相比对，不能宣称已获得整机三方全端口证明。
+
+延续历史校验边界：17 个 `*_bore` 观测叶、2 个可能越界读取的 `io_storeDebugInfo_*_pc`、1,336 个 `io_diffCommits_info` 行 ≥353 的观测叶不作为通过条件；`[VERIFY_EXCLUDED]` 另行报告这些叶实际出现的失配，其他输出保持严格比较。
+
+产物都在 `ptmp/xs-components-rob/`：
+
+- `trace/xs_ref_rob_coremark100k.fst`、`.log`：完整真实波形和参考运行记录。
+- `trace/rob_trace.bin`、`trace/capture_summary.json`：8,593,894,824 字节二进制回放记录与周期/复位统计。
+- `trace/fst_plan.tsv`、`trace/fst_mapping.json`、`trace/fst_output_mask.bin`：FST 位段映射、输入审计与参考输出覆盖范围。
+- `trace/plain_reference_sources.sha256`、`trace/fst_sources.sha256`、`trace/replay.sha256`：参考程序/镜像/NEMU、FST/映射/模型来源、trace/布局/覆盖掩码的 SHA256。
+- `trace/replay_full_20261022.log`、`bench_trace.log`：全程校验和性能日志。
+
+完整测量、编译配置和校验边界见 `pdocs/rob_standalone/rob-aggregate-coremark100k-20261022.md`。下文的 2026-10-07 结果仅保留为历史记录。
+
+本次结果（CPU 0，100,050 周期，三轮取 min，均 `-O3` / 无 PGO）：
+
+| 模型 | min 耗时 | 吞吐 | 每周期耗时 |
+|---|---:|---:|---:|
+| gsim | 11,246.826 ms | 8,895.84 cycles/s | 112.412 µs |
+| GrhSIM | 54,147.767 ms | 1,847.72 cycles/s | 541.207 µs |
+
+**GrhSIM 耗时为 gsim 的 4.814×**。两模型全部计时轮的 checksum 均为 `0x048c94f0d417ffac`。
+
+## 历史微观结构：原先 1,537 个未配对项
+
+以下结构计数和旧性能表是 2026-10-07 的标量 RTL 记录；当前聚合版的结果按本节之前的流程生成，不沿用旧数字。
 
 逐项使用 FIRRTL 寄存器的 bundle/vector 类型恢复路径；只在类型声明给出的合法索引范围内重排，保留原始位宽检查。
 
@@ -98,7 +152,7 @@ gsim RHS enodes 只统计每棵赋值树 root 可达节点，排除序列化 lva
 
 静态形态结果不能直接推导整机性能；运行时基准见下节。
 
-## 运行时基准
+## 历史随机基准（2026-10-07）
 
 对独立 `Rob` 顶层做随机激励逐周期仿真，两侧模型先逐周期比对全部配对输出（verify），再分别计时（bench）。testbench 由 `scripts/gen_rob_bench.py` 依据两个生成模型的头文件自动配对端口生成（配对输入 1,501 个、配对输出 4,258 个；仅存在于 gsim 侧的内部暴露信号不驱动、不比对）。每向量 gsim 执行一次 `step()`，GrhSIM 执行低相、高相各一次 `eval()`，两者都构成一个完整时钟周期，采样点暴露相同的 (上周期状态, 本周期输入) 组合结果。
 
@@ -128,7 +182,7 @@ make -C testcase/xs-components rob-bench   # 链：rob-gsim-model rob-grhsim-mod
 
 中间产物在 `ptmp/xs-components-rob/`：`gsim-model/`、`grhsim-model/`（生成模型）、`bench/rob_bench.cpp`（生成的 testbench）、`port_pairing.tsv`（端口配对与排除清单）、`bench.log`（verify/bench 输出）。gsim 顶层数组端口的标量化访问器由 `scripts/fix_gsim_array_ports.py` 在生成后原地改写为逐元素指针形式，否则生成代码无法编译。
 
-## Trace 回放基准（整机真实激励）
+## 历史 Trace 回放基准（2026-10-07）
 
 随机激励的法律性无法保证，因此另建一条真实激励口径：在整机 XiangShan 的 Verilator ref emu 上用 `bind Rob RobTap u_rob_tap (.*)` 绑定观测模块（`scripts/gen_rob_tap.py` 生成），从 cycle 0（含 reset 段）逐周期 `$fwrite` Rob 全部 1,507 个输入与 4,275 个输出，经 FIFO 流式打包为二进制（`scripts/pack_rob_trace.py`；6 个截断宽输入与 17 个 `*_bore` 观测口不进入记录，打包后每周期 `flags + 1,500 + 4,258` 个 u64 字），再由 `rob_bench --trace` mmap 回放：每周期把 trace 的 reset/输入同时驱动到两个独立模型，按既有约定求值采样。每个计时轮都从零初始化的新建模型开始，trace 前 52 个周期为 reset，轨迹与真实芯片逐周期对齐。
 

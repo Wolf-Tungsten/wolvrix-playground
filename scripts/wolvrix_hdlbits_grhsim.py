@@ -6,7 +6,8 @@ from pathlib import Path
 
 import wolvrix
 
-from wolvrix_xs_grhsim_ir import CPU_PIPELINE, mem_enable_bitmap
+from grhsim_flow import checked, emit_cpp, finish_simulation_graph, store_checkpoint, validate_environment
+from wolvrix_xs_grhsim import default_flow_options
 
 
 TOP_NAME = "top_module"
@@ -64,36 +65,28 @@ def run_pipeline(dut_path: Path, out_dir: Path, waveform_mode: str | None, perf_
         sess.store_json(
             design="design.main", output=str(out_dir.parent / f"{dut_path.stem}_flat.grh.json"), top=[TOP_NAME],
         )
-        sess.lower_grhsim(
-            design="design.main", out_model="grhsim.main", top=TOP_NAME,
-            logic_domain="2-state", keep_origins=True, keep_declared_symbols=True,
-            consume=True,
-        )
-        sess.run_grhsim_pass("grhsim.verify", model="grhsim.main")
-        for pass_name, pass_options in CPU_PIPELINE:
-            sess.run_grhsim_pass(pass_name, model="grhsim.main", **pass_options)
-        emit_options = {"model": "grhsim.main", "output": str(out_dir),
-                        "mem_enable_bitmap": mem_enable_bitmap()}
-        if waveform_mode and waveform_mode != "off":
-            emit_options["waveform"] = waveform_mode
-        if perf_mode and perf_mode != "off":
-            emit_options["perf"] = perf_mode
-        sess.print_diagnostics(
-            sess.run_grhsim_pass("cpu.st.emit-cpp", **emit_options),
-            min_level="info",
-        )
-        sess.store_grhsim(model="grhsim.main", output=str(json_out))
+        finish_simulation_graph(sess, design="design.main", top=TOP_NAME, options=default_flow_options())
+        emit_cpp(sess, design="design.main", top=TOP_NAME, output=out_dir,
+                 waveform=bool(waveform_mode and waveform_mode != "off"))
+        store_checkpoint(sess, json_out, design="design.main", top=TOP_NAME)
         write_stable_header_alias(out_dir)
 
 
-def main() -> int:
+def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    try:
+        validate_environment()
+    except ValueError as error:
+        parser.error(str(error))
     parser.add_argument("dut")
     parser.add_argument("out_dir")
     parser.add_argument("--waveform", choices=["off", "declared-symbols"], default="off")
     parser.add_argument("--perf", choices=["off", "eval"], default="off")
-    parser.add_argument("--backend", choices=["ir"], default="ir")
-    args = parser.parse_args()
+    return parser.parse_args(argv)
+
+
+def main() -> int:
+    args = parse_args()
 
     dut_id = args.dut
     out_dir = Path(args.out_dir).resolve()

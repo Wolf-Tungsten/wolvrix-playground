@@ -1,13 +1,13 @@
 # GRH IR 多维数组支持重构 — 总览与路线图
 
 - 日期：2026-10-08
-- 状态：计划草案（设计已定稿，未实施）；进展跟踪见 [PROGRESS.md](PROGRESS.md)
+- 状态：分阶段实施；S8 已实施、工作树未提交；S9 前置 [移除独立 GrhSIM IR](../remove-grhsim-ir/README.md) 的 R0–R8 已完成必要验证，见 [最终报告](../remove-grhsim-ir/20261026-r7-r8-validation.md)。原独立目标模型存档，S9 保持未开始，以该验收版本为直接基线另行实施。S7 整机验收独立跟踪。进展见 [PROGRESS.md](PROGRESS.md)
 - 范围：wolvrix（GRH IR、ingest、transform、emit、grhsim IR、CPU 后端、持久化、Python 绑定、文档、测试基础设施）
 
 ## 1. 背景与动机
 
 长期以来，无论 GRH IR 还是 GrhSIM IR，数组处理都依赖 **reg-to-mem 这条补救性质的 pass**
-（`wolvrix/lib/grhsim/pass/reg_to_mem.cpp`，文档 `wolvrix/docs/grhsim_ir/passes/reg-to-mem.md`）。
+（已退役的 `wolvrix/lib/grhsim/pass/reg_to_mem.cpp`，历史文档 `wolvrix/docs/history/grhsim-ir/passes/reg-to-mem.md`）。
 它的工作是逆向工程：firtool 在 FIRRTL → SystemVerilog 的 lowering 中把聚合类型（向量、多维数组、
 结构体）打散成 `_N` 后缀的标量寄存器族，wolvrix ingest 再把这些标量拼回扁平位向量，最后
 reg-to-mem 靠写模式识别（地址译码 guard）和声明名网格把它们重新"猜"回 `core.array` 状态。
@@ -32,7 +32,7 @@ firtool 提供 `--preserve-aggregate` 选项（取值 `none`/`1d`/`all`，circt 
 | # | 目标 | 阶段 |
 |---|------|------|
 | 1 | GRH IR 类型系统扩展：value 与 reg/latch/mem 声明支持单一元素类型的一维到多维数组（如 `UInt8[x][y]`，x、y 编译期常量） | stage-01 |
-| 2 | 不破坏 value 的 SSA 语义：数组 value 仍由单个 op 定义（concat、const 等） | stage-01（设计原则） |
+| 2 | 不破坏 value 的 SSA 语义：数组 value 仍由单个 op 定义（arrayCreate、const 等） | stage-01（设计原则）、stage-08 |
 | 3 | 重定义 kSliceArray：废弃 sliceWidth 属性判宽，只能连接数组类型 value，允许 1..N 个索引操作数 | stage-02 |
 | 4 | 数组状态读写端口多索引（kRegister 端口族；**kMemory 退役**，reg/mem 之分降级为后端存储分类） | stage-03 |
 | 5 | kMemoryWritePort 优先级语义变更 → kRegister 写端口：同 regSymbol 唯一组、声明顺序定优先级、同时激活时后声明者覆盖 | stage-03 |
@@ -52,6 +52,8 @@ firtool 提供 `--preserve-aggregate` 选项（取值 `none`/`1d`/`all`，circt 
    不设 op 白名单；存量按位/按总位宽代码自动正确，持久化、emit、仿真后端可分阶段迁移。
    （否决了 width+packed_shape+unpacked_shape 三层模型：packed/unpacked 是源语言的类型检查
    维度而非 IR 语义维度，合并维度表无信息损失，见 stage-01 §3.1。）
+   S8 补充：`kArrayCreate` 明确区分数组构造与位拼接，强制核验同型元素和新增外维；
+   其扁平位布局仍服从上述规则，既有 shaped concat 继续合法。
 2. **数组 value 保持 SSA**：一个数组 value 有且仅有一个定义 op。部分更新（元素写）不发生在
    value 上——动态元素写的聚合走 kRegister 数组端口族（写端口带事件，stage-03），
    静态部分更新走
@@ -74,6 +76,9 @@ firtool 提供 `--preserve-aggregate` 选项（取值 `none`/`1d`/`all`，circt 
 | S6 | [stage-06-grhsim-backend.md](stage-06-grhsim-backend.md) | S1, S3 | GrhSIM IR 多维数组承接、mem op 多索引、CPU 后端与 JSON schema 演进 |
 | S7 | [stage-07-preserve-aggregate-e2e.md](stage-07-preserve-aggregate-e2e.md) | S4, S5, S6 | firtool preserve-aggregate 链路、reg-to-mem 退役、终极验收 |
 | S7.1 | [stage-07.1-ingest-expression-fieldwise.md](stage-07.1-ingest-expression-fieldwise.md) | S7（mux-tree-fold） | ingest 表达式层逐字段化：消灭聚合→扁平物化逃生口，struct 永不成为 GRH value |
+| S8 | [stage-08-array-create.md](stage-08-array-create.md) | S4, S6, S7.1 | 已实施，未提交：两层数组构造与按元素发射贯通；ROB 全输出一致，回放耗时降低 15.76% |
+| S9 前置 | [移除独立 GrhSIM IR](../remove-grhsim-ir/README.md)、[历史事实审查](pre-s9-grhsim-ir-boundary-review.md) | S8 | R0/R1 进行中：统一 GRH、按需 op 转换、无分区优化、显式拆分/分区、sink 调度和新 emitter |
+| S9 | [stage-09-array-normalize-mapping.md](stage-09-array-normalize-mapping.md) | S8、S9 前置 | 未开始：规范化作用于统一图，数组访问分析归 emitter 内部；原 CPU planning pass/计划字段草案不再实施 |
 
 依赖图（`──>` 表示"阻塞"）：
 
@@ -125,7 +130,9 @@ S2 ──────────> S5 ─┘
 - 实施过程产生的实验/测量记录仍按日期前缀落在 `pdocs/perf-optimization/` 或本目录
   （文件名 `YYYYMMDD-hhmmss-<topic>.md`），并在对应阶段文档里补链接。
 - 规范类文档的最终落点：`wolvrix/docs/grh/grh-ir.md`、`wolvrix/docs/grh/grh-json-spec.md`、
-  `wolvrix/docs/grhsim_ir/` 各方言与流程文档。阶段文档是计划，规范文档是承诺。
+  `wolvrix/docs/grhsim.md`、`docs/grh/grhsim-dialect.md`、`docs/transform/grhsim-transforms.md`
+  和 `docs/emit/grhsim-cpu-st-cpp.md`。旧独立 IR 文档移入 `docs/history/grhsim-ir/`。
+  阶段文档是计划，规范文档是承诺。
 
 ## 8. 关键事实速查（现状）
 

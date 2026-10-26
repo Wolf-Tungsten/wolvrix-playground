@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 PYTHON ?= python3
 WOLVRIX_PYTHON ?= $(abspath ../../.venv/bin/python)
-WOLVRIX_GRHSIM_IR_SCRIPT := $(abspath ../../scripts/wolvrix_xs_grhsim_ir.py)
+WOLVRIX_GRHSIM_SCRIPT := $(abspath ../../scripts/wolvrix_xs_grhsim.py)
 CXX = clang++
 MILL ?= mill
 GSIM_BIN ?= ../../reference/gsim/build/gsim/gsim
@@ -242,7 +242,7 @@ MATRIX_DIR := $(BUILD_DIR)/matrix
 FIR := $(FIR_DIR)/$(CASE).fir
 SV := $(SV_DIR)/$(CASE).sv
 GSIM_GRAPH_STATS := $(GSIM_MODEL_DIR)/$(CASE)_0Final_Stats.json
-GRHSIM_IR_JSON := $(GRHSIM_DIR)/$(CASE).json
+GRHSIM_JSON := $(GRHSIM_DIR)/$(CASE).json
 GSIM_BUILD_STAMP := $(GSIM_DIR)/obj/.stamp
 GRHSIM_LIB := $(GRHSIM_MODEL_DIR)/libgrhsim_$(CASE).a
 BENCH_TB := $(TB_DIR)/$(CASE)_bench
@@ -301,22 +301,22 @@ $(GSIM_BUILD_STAMP): $(GSIM_MODEL_DIR)/$(CASE)0.cpp
 
 gsim: $(GSIM_BUILD_STAMP)
 
-# Extra flags appended to the grhsim-ir emit invocation, e.g.
+# Extra flags appended to the grhsim emit invocation, e.g.
 # GRHSIM_EXTRA_FLAGS="--max-op-in-compute-supernode 512" for A/B arms.
 GRHSIM_EXTRA_FLAGS ?=
 
-$(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_IR_JSON) &: $(SV) $(WOLVRIX_GRHSIM_IR_SCRIPT)
+$(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_JSON) &: $(SV) $(WOLVRIX_GRHSIM_SCRIPT)
 	@mkdir -p $(GRHSIM_MODEL_DIR)
 	@find "$(abspath $(SV_DIR))" -maxdepth 1 -name '*.sv' -print | sort > "$(GRHSIM_DIR)/rtl.f"
 	@: > "$(GRHSIM_DIR)/read_args.txt"
-	set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(WOLVRIX_PYTHON) $(WOLVRIX_GRHSIM_IR_SCRIPT) \
+	set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(WOLVRIX_PYTHON) $(WOLVRIX_GRHSIM_SCRIPT) \
 		"$(GRHSIM_DIR)/rtl.f" $(CASE) "$(GRHSIM_DIR)/flat_grh.json" \
-		"$(GRHSIM_IR_JSON)" "$(GRHSIM_DIR)/roundtrip.json" \
+		"$(GRHSIM_JSON)" "$(GRHSIM_DIR)/roundtrip.json" \
 		"$(GRHSIM_DIR)/read_args.txt" info $(GRHSIM_EXTRA_FLAGS) --emit-cpp-dir "$(GRHSIM_MODEL_DIR)" \
 		2>&1 | tee "$(GRHSIM_DIR)/emit.log"
 	test -f $(GRHSIM_MODEL_DIR)/Makefile
 	test -f $(GRHSIM_MODEL_DIR)/grhsim_$(CASE).hpp
-	test -f $(GRHSIM_IR_JSON)
+	test -f $(GRHSIM_JSON)
 
 $(GRHSIM_LIB): $(GRHSIM_MODEL_DIR)/Makefile
 	$(MAKE) -C $(GRHSIM_MODEL_DIR) CXX=$(CXX) CXXFLAGS="$(GRHSIM_CXXFLAGS)"
@@ -355,11 +355,11 @@ $(STATS_DIR)/grhsim.json: $(GRHSIM_LIB) scripts/objdump_stats.py
 
 stats: $(STATS_DIR)/gsim.json $(STATS_DIR)/grhsim.json
 
-$(MODEL_STATS_JSON): bench stats $(GRHSIM_IR_JSON) scripts/model_stats.py
+$(MODEL_STATS_JSON): bench stats $(GRHSIM_JSON) scripts/model_stats.py
 	$(PYTHON) scripts/model_stats.py \
 		--case $(CASE) --kind $(KIND) --scale $(SCALE) \
 		--gsim-graph-stats $(GSIM_GRAPH_STATS) \
-		--grhsim-ir $(GRHSIM_IR_JSON) \
+		--grhsim $(GRHSIM_JSON) \
 		--gsim-instruction-stats $(STATS_DIR)/gsim.json \
 		--grhsim-instruction-stats $(STATS_DIR)/grhsim.json \
 		--bench-log $(BENCH_LOG) \

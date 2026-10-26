@@ -86,8 +86,8 @@ make run_all_hdlbits_tests
 make run_c910_test
 make run_c910_ref_test
 
-make xs_wolf_grhsim_ir_emu
-make run_xs_wolf_grhsim_ir_emu XS_SIM_MAX_CYCLE=100000
+make xs_grhsim_emu
+make run_xs_grhsim_emu XS_SIM_MAX_CYCLE=100000
 
 make -C testcase/xs-bugcase/CASE_006 run
 
@@ -98,6 +98,13 @@ state-write normalization, dynamic-write recovery, aggregate alias elimination,
 and direct aggregate row copies are enabled by default. The standard GrhSIM
 build uses `-O3 -march=native -fno-strict-aliasing` without PGO; the resulting
 emulator targets the build host's CPU.
+
+Simulation now uses the same GRH design through conversion, optimization,
+virtual partitioning and C++ emission. The independent GrhSIM IR and Python
+model APIs have been removed. The active XiangShan route is `xs_grhsim_emu`
+and `run_xs_grhsim_emu`. See the [simulation workflow](wolvrix/docs/grhsim.md)
+and [capability/evidence index](pdocs/remove-grhsim-ir/capability-evidence.md)
+for checkpoints, supported forms and validation.
 
 ## Output Locations
 

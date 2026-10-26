@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
 from dataclasses import dataclass
@@ -38,6 +39,10 @@ from itertools import product
 from pathlib import Path
 
 CTYPE_RE = r"(?:unsigned _BitInt\(\d+\)|uint8_t|uint16_t|uint32_t|uint64_t)"
+GRHSIM_SCALAR_CTYPE_RE = (
+    r"(?:unsigned _BitInt\(\d+\)|bool|std::uint8_t|std::uint16_t|"
+    r"std::uint32_t|std::uint64_t)"
+)
 
 # Static configuration inputs driven with constant 0 instead of random data.
 STATIC_ZERO_PORTS = {"io_hartId"}
@@ -53,6 +58,328 @@ def log(message: str) -> None:
 
 def norm_name(name: str) -> str:
     return name.replace("__DOT__", "_")
+
+
+@dataclass
+class SvPort:
+    name: str
+    direction: str
+    width: int  # total packed bits
+
+
+@dataclass
+class SvLeaf:
+    """One drivable/comparable leaf of an SV port, at the same granularity as
+    the scalarized (firtool default) port split: every packed array dim is
+    exploded per element, struct fields keep their innermost vector dim.
+
+    ``name_parts`` are the scalarized name components after the port name
+    (array indices inserted right after the field that carries the dim, the
+    firtool ``_`` joining convention).  ``member_field`` is the pure struct
+    field path and ``row_indices`` the array element indices in declaration
+    order — together they locate the leaf inside the SoA GrhSIM port member
+    ``port__DOT__field...`` at row ``row_indices``.  ``offset`` is the leaf
+    LSB within the port's packed image; ``sv_access`` is the SV part-select
+    expression after the port name."""
+
+    port: str
+    name_parts: tuple[str, ...]
+    member_field: tuple[str, ...]
+    row_indices: tuple[int, ...]
+    sv_access: str
+    width: int
+    offset: int
+    member_bit_offset: int | None = None
+    member_row_indices: tuple[int, ...] | None = None
+
+    @property
+    def logical_name(self) -> str:
+        return "_".join((self.port,) + self.name_parts)
+
+    @property
+    def member_name(self) -> str:
+        return "__DOT__".join((self.port,) + self.member_field)
+
+    def sv_lvalue(self) -> str:
+        return self.port + self.sv_access
+
+
+def _parse_packed_type(tokens: list[str], pos: int) -> tuple[int, list, int]:
+    """Parse one packed type starting at tokens[pos].
+
+    Returns (width, dims, pos) where dims describes packed-array dimensions
+    as (lo, extent, elem_width) tuples, outermost last.  Struct contents are
+    folded into width only (use _sv_struct_leaves for field detail)."""
+    tok = tokens[pos]
+    if tok == "struct":
+        pos += 2  # struct packed
+        while tokens[pos] in ("signed", "unsigned"):
+            pos += 1
+        pos += 1  # {
+        width = 0
+        while True:
+            w, _dims, pos = _parse_packed_type(tokens, pos)
+            # Consume one or two name-ish tokens: `field;` or `field [N:0];`
+            # (packed array dims may legally follow the field name).
+            while pos < len(tokens) and tokens[pos] != ";":
+                pos += 1
+            pos += 1  # ;
+            width += w
+            if tokens[pos] == "}":
+                pos += 1
+                break
+        # A struct port may itself be a packed array: `} [N-1:0] name`.
+        dims: list = []
+        while pos < len(tokens) and tokens[pos] == "[":
+            pos += 1
+            msb = int(tokens[pos]); pos += 1
+            lsb = 0
+            if tokens[pos] == ":":
+                pos += 1
+                lsb = int(tokens[pos]); pos += 1
+            pos += 1  # ]
+            extent = abs(msb - lsb) + 1
+            lo = min(msb, lsb)
+            dims.append((lo, extent, width))
+            width *= extent
+        return width, dims, pos
+    width = 1
+    if tok in ("logic", "bit", "reg", "wire"):
+        pos += 1
+        while tokens[pos] in ("signed", "unsigned"):
+            pos += 1
+    elif tok != "[":
+        raise RuntimeError(f"aggregate SV parser: unexpected token {tok}")
+    dims: list = []
+    while pos < len(tokens) and tokens[pos] == "[":
+        pos += 1
+        msb = int(tokens[pos]); pos += 1
+        lsb = 0
+        if tokens[pos] == ":":
+            pos += 1
+            lsb = int(tokens[pos]); pos += 1
+        pos += 1  # ]
+        extent = abs(msb - lsb) + 1
+        lo = min(msb, lsb)
+        if width == 1 and not dims:
+            width = extent
+            dims.append((lo, extent, 1))
+        else:
+            dims.append((lo, extent, width))
+            width *= extent
+    return width, dims, pos
+
+
+def _flatten_packed_leaves(tokens: list[str], pos: int, offset: int) -> tuple[list, int, int]:
+    """Flatten a packed type into leaf entries
+    (name_parts, member_field, row_indices, sv_access, width, offset).
+
+    Every packed array dim is exploded per element (the index component sits
+    right after the field that carries the dim, matching the firtool
+    scalarized ``_`` naming); a scalar struct field's innermost vector dim
+    stays inside the leaf."""
+    tok = tokens[pos]
+    if tok == "struct":
+        pos += 2  # struct packed
+        while tokens[pos] in ("signed", "unsigned"):
+            pos += 1
+        pos += 1  # {
+        fields: list[tuple[str, list, int]] = []
+        while True:
+            leaves, width, pos = _flatten_packed_leaves(tokens, pos, 0)
+            name = tokens[pos]
+            pos += 1
+            # A field of a packed struct array may itself carry trailing
+            # packed dims (`field [1:0];`): the type parser already folded
+            # them into the width; skip the dim tokens.
+            while pos < len(tokens) and tokens[pos] != ";":
+                pos += 1
+            pos += 1  # ;
+            fields.append((name, leaves, width))
+            if tokens[pos] == "}":
+                pos += 1
+                break
+        total = sum(width for _n, _l, width in fields)
+        out = []
+        cursor = total
+        for name, leaves, width in fields:
+            cursor -= width
+            for parts, mfield, rows, access, leaf_w, leaf_off in leaves:
+                out.append(((name,) + parts, (name,) + mfield, rows,
+                            "." + name + access, leaf_w, offset + cursor + leaf_off))
+        # A struct may itself be a packed array (`} [N-1:0] name`): explode
+        # per element, element-major (each element is one struct image).
+        dims: list[tuple[int, int]] = []
+        arr_width = total
+        while pos < len(tokens) and tokens[pos] == "[":
+            pos += 1
+            msb = int(tokens[pos]); pos += 1
+            lsb = 0
+            if tokens[pos] == ":":
+                pos += 1
+                lsb = int(tokens[pos]); pos += 1
+            pos += 1  # ]
+            dims.append((min(msb, lsb), abs(msb - lsb) + 1))
+            arr_width *= dims[-1][1]
+        if not dims:
+            return out, total, pos
+        # Trailing packed array dims (`} [N-1:0]`): explode per element,
+        # element-major — each element is one complete struct image.
+        flat_extent = 1
+        for _lo, extent in dims:
+            flat_extent *= extent
+        exploded = []
+        for idx in range(flat_extent):
+            elem_off = offset + idx * total
+            for parts, mfield, rows, access, leaf_w, leaf_off in out:
+                exploded.append(((str(idx),) + parts, mfield, (idx,) + rows,
+                                 f"[{idx}]" + access, leaf_w,
+                                 elem_off + (leaf_off - offset)))
+        return exploded, total * flat_extent, pos
+    if tok not in ("logic", "bit", "reg", "wire") and tok != "[":
+        raise RuntimeError(f"aggregate SV parser: unexpected token {tok}")
+    if tok in ("logic", "bit", "reg", "wire"):
+        pos += 1
+        while tokens[pos] in ("signed", "unsigned"):
+            pos += 1
+    dims: list[tuple[int, int]] = []  # (lo, extent) in declaration order
+    width = 1
+    while pos < len(tokens) and tokens[pos] == "[":
+        pos += 1
+        msb = int(tokens[pos]); pos += 1
+        lsb = 0
+        if tokens[pos] == ":":
+            pos += 1
+            lsb = int(tokens[pos]); pos += 1
+        pos += 1  # ]
+        extent = abs(msb - lsb) + 1
+        lo = min(msb, lsb)
+        dims.append((lo, extent))
+        width *= extent
+    if not dims:
+        return [((), (), (), "", width, offset)], width, pos
+    # Leaf granularity: the innermost dim is the element width, outer dims
+    # are exploded (the grhsim SoA member does the same with its shape).
+    elem_width = dims[-1][1]
+    out = []
+
+    def rec(level: int, base: int, parts: tuple, rows: tuple, access: str):
+        if level == len(dims) - 1:
+            out.append((parts, (), rows, access, elem_width, base))
+            return
+        lo, extent = dims[level]
+        sub_width = math.prod(e for _l, e in dims[level + 1:])
+        for idx in range(lo, lo + extent):
+            rec(level + 1, base + (idx - lo) * sub_width,
+                parts + (str(idx),), rows + (idx,), access + f"[{idx}]")
+
+    # When only one dim exists it is the vector itself: a single leaf.
+    if len(dims) == 1:
+        out.append(((), (), (), "", width, offset))
+    else:
+        rec(0, offset, (), (), "")
+    return out, width, pos
+
+
+def _sv_module_header(sv_path: Path, top: str) -> list[str]:
+    """Return the port declarations of module ``top`` split on top-level
+    commas (comment/string aware)."""
+    text = sv_path.read_text(encoding="utf-8", errors="replace")
+    m = re.search(rf"module {top}\s*\(", text)
+    if not m:
+        raise RuntimeError(f"module {top} not found in {sv_path}")
+    i = m.end()
+    depth = 1
+    in_line = in_block = in_str = False
+    start = i
+    while i < len(text) and depth:
+        c = text[i]
+        nxt = text[i + 1] if i + 1 < len(text) else ""
+        if in_line:
+            if c == "\n":
+                in_line = False
+        elif in_block:
+            if c == "*" and nxt == "/":
+                in_block = False
+                i += 1
+        elif in_str:
+            if c == "\\":
+                i += 1
+            elif c == '"':
+                in_str = False
+        else:
+            if c == "/" and nxt == "/":
+                in_line = True
+                i += 1
+            elif c == "/" and nxt == "*":
+                in_block = True
+                i += 1
+            elif c == '"':
+                in_str = True
+            elif c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+        i += 1
+    if depth:
+        raise RuntimeError(f"unbalanced module header in {sv_path}")
+    header = text[start:i - 1]
+    parts: list[str] = []
+    depth2 = 0
+    cur: list[str] = []
+    in_line = in_block = in_str = False
+    j = 0
+    while j < len(header):
+        c = header[j]
+        nxt = header[j + 1] if j + 1 < len(header) else ""
+        if in_line:
+            if c == "\n":
+                in_line = False
+        elif in_block:
+            if c == "*" and nxt == "/":
+                in_block = False
+                j += 1
+        elif in_str:
+            if c == "\\":
+                j += 1
+            elif c == '"':
+                in_str = False
+        else:
+            if c == "/" and nxt == "/":
+                in_line = True
+                j += 1
+            elif c == "/" and nxt == "*":
+                in_block = True
+                j += 1
+            elif c == '"':
+                in_str = True
+            elif c in "([{":
+                depth2 += 1
+            elif c in ")]}":
+                depth2 -= 1
+            elif c == "," and depth2 == 0:
+                parts.append("".join(cur))
+                cur = []
+                j += 1
+                continue
+        cur.append(c)
+        j += 1
+    if "".join(cur).strip():
+        parts.append("".join(cur))
+    return [part.strip() for part in parts]
+
+
+def _split_port_decl(decl: str) -> tuple[str, str, str]:
+    """Split one header port declaration into (direction, type_text, name)."""
+    dm = re.match(r"(input|output|inout)\b", decl)
+    if not dm:
+        raise RuntimeError(f"not a port declaration: {decl[:120]}")
+    direction = dm.group(1)
+    body = re.sub(r"^(wire|reg|var|tri)\s+", "", decl[dm.end():].strip())
+    nm = re.search(r"([A-Za-z_][A-Za-z0-9_$]*)\s*$", body)
+    if not nm:
+        raise RuntimeError(f"cannot parse port name: {decl[:120]}")
+    return direction, body[:nm.start()], nm.group(1)
 
 
 @dataclass
@@ -95,7 +422,13 @@ class Leaf:
     gsim_index: tuple[int, ...] | None = None  # element index for array ports
     gsim_broadcast: bool = False  # gsim side is a shared scalar (const-folded vector)
     grhsim_name: str = ""
-    grhsim_type: str = ""  # bool/std::uintN_t/std::array<...>
+    grhsim_type: str = ""  # element ctype: bool/std::uintN_t/unsigned _BitInt(N)
+    grhsim_shape: tuple[int, ...] = ()  # member packed dims; () for scalar members
+    grhsim_row: tuple[int, ...] = ()  # row subscripts inside a shaped member
+    sv_port: str = ""  # owning SV (tap-visible) port name
+    sv_offset: int = 0  # leaf LSB within the SV port's packed image
+    sv_width: int = 0
+    grhsim_bit_offset: int | None = None
 
     @property
     def words(self) -> int:
@@ -155,8 +488,49 @@ def parse_gsim_header(text: str) -> tuple[dict[str, GsimPort], dict[str, tuple[s
     return ports, members
 
 
-def parse_grhsim_header(text: str, top: str) -> dict[str, tuple[str, int]]:
-    """name -> (ctype, nominal width)."""
+@dataclass
+class GrhsimMember:
+    """One public port member of the generated GrhSIM model.
+
+    ``ctype`` is the element type for shaped members (or the scalar type);
+    ``shape`` lists the packed array dimensions (empty for scalars);
+    ``width`` is the element width in bits."""
+
+    name: str
+    ctype: str
+    shape: tuple[int, ...]
+    width: int
+
+    @property
+    def rows(self) -> int:
+        total = 1
+        for d in self.shape:
+            total *= d
+        return total
+
+    @property
+    def shaped(self) -> bool:
+        return bool(self.shape)
+
+
+_SCALAR_WIDTHS = {"bool": 1, "std::uint8_t": 8, "std::uint16_t": 16,
+                  "std::uint32_t": 32, "std::uint64_t": 64,
+                  "uint8_t": 8, "uint16_t": 16, "uint32_t": 32, "uint64_t": 64}
+
+
+def _ctype_width(ctype: str) -> int:
+    ctype = ctype.replace("unsigned_BitInt", "unsigned _BitInt")
+    if ctype in _SCALAR_WIDTHS:
+        return _SCALAR_WIDTHS[ctype]
+    m = re.match(r"unsigned _BitInt\((\d+)\)", ctype)
+    if m:
+        return int(m.group(1))
+    raise RuntimeError(f"unsupported grhsim member element type: {ctype}")
+
+
+def parse_grhsim_header(text: str, top: str) -> dict[str, GrhsimMember]:
+    """name -> GrhsimMember (supports scalars, _BitInt, and nested std::array
+    shapes emitted for preserve-aggregate ports)."""
     class_match = re.search(rf"class GrhSIM_{top}\b", text)
     if not class_match:
         raise RuntimeError(f"class GrhSIM_{top} not found in grhsim header")
@@ -165,48 +539,91 @@ def parse_grhsim_header(text: str, top: str) -> dict[str, tuple[str, int]]:
     if start < 0 or end < 0:
         raise RuntimeError("public/private section not found in grhsim header")
     body = text[start:end]
-    result: dict[str, tuple[str, int]] = {}
-    scalar = re.compile(
-        r"^\s*(bool|std::uint8_t|std::uint16_t|std::uint32_t|std::uint64_t)\s+(\w+)\s*(?:\{[^;]*\}|=[^;]*);",
+    result: dict[str, GrhsimMember] = {}
+
+    decl_re = re.compile(
+        rf"^\s*({GRHSIM_SCALAR_CTYPE_RE}|std::array<[^;]+>)\s+(\w+)\s*(?:\{{[^;]*\}}|=[^;]*);",
         re.MULTILINE,
     )
-    for m in scalar.finditer(body):
-        ctype, name = m.group(1), m.group(2)
-        width = {"bool": 1, "std::uint8_t": 8, "std::uint16_t": 16,
-                 "std::uint32_t": 32, "std::uint64_t": 64}[ctype]
-        result[name] = (ctype, width)
-    wide = re.compile(
-        r"^\s*std::array<\s*std::uint64_t\s*,\s*(\d+)\s*>\s+(\w+)\s*(?:\{[^;]*\}|=[^;]*);",
-        re.MULTILINE,
-    )
-    for m in wide.finditer(body):
-        result[m.group(2)] = (f"std::array<std::uint64_t, {m.group(1)}>", int(m.group(1)) * 64)
+    for m in decl_re.finditer(body):
+        raw_type, name = m.group(1), m.group(2)
+        if raw_type.startswith("std::array"):
+            def parse_array(text_type: str) -> tuple[str, tuple[int, ...]]:
+                dims: list[int] = []
+                cur = text_type.replace(" ", "")
+                while cur.startswith("std::array<"):
+                    inner = cur[len("std::array<"):]
+                    depth = 0
+                    split = -1
+                    for i, ch in enumerate(inner):
+                        if ch == "<":
+                            depth += 1
+                        elif ch == ">":
+                            if depth == 0:
+                                break
+                            depth -= 1
+                        elif ch == "," and depth == 0:
+                            split = i
+                            break
+                    if split < 0:
+                        raise RuntimeError(f"malformed std::array member type: {text_type}")
+                    dims.append(int(inner[split + 1:].rstrip(">").strip()))
+                    cur = inner[:split].strip()
+                return cur, tuple(dims)
+            ctype, shape = parse_array(raw_type)
+            ctype = ctype.replace("unsigned_BitInt", "unsigned _BitInt")
+            result[name] = GrhsimMember(name=name, ctype=ctype, shape=shape,
+                                        width=_ctype_width(ctype))
+        else:
+            raw_type = raw_type.replace(" ", "")
+            raw_type = raw_type.replace("unsigned_BitInt", "unsigned _BitInt")
+            result[name] = GrhsimMember(name=name, ctype=raw_type, shape=(),
+                                        width=_ctype_width(raw_type))
     result.pop("clock", None)
     result.pop("reset", None)
     return result
 
 
-def parse_sv_ports(sv_path: Path, top: str) -> dict[str, tuple[str, int]]:
-    ports: dict[str, tuple[str, int]] = {}
-    with sv_path.open("r", encoding="utf-8", errors="replace") as stream:
-        in_header = False
-        for line in stream:
-            if not in_header:
-                if re.match(rf"module {top}\s*\(", line):
-                    in_header = True
-                continue
-            if line.strip().startswith(");"):
-                break
-            m = re.match(
-                r"\s*(input|output)\s+(?:wire\s+|reg\s+)?(?:\[\s*(\d+)\s*:\s*\d+\]\s*)?(\w+)",
-                line,
-            )
-            if m:
-                width = int(m.group(2)) + 1 if m.group(2) else 1
-                ports[m.group(3)] = (m.group(1), width)
+def parse_sv_ports(sv_path: Path, top: str) -> dict[str, SvPort]:
+    """Parse the module header port list, handling both the legacy scalarized
+    form (``input [5:0] io_foo``) and the preserve-aggregate form (``input
+    struct packed {...} io_foo``)."""
+    ports: dict[str, SvPort] = {}
+    for decl in _sv_module_header(sv_path, top):
+        direction, type_text, name = _split_port_decl(decl)
+        if not type_text:
+            ports[name] = SvPort(name=name, direction=direction, width=1)
+            continue
+        tokens = re.findall(r"[A-Za-z_][A-Za-z0-9_$]*|\d+|\S", type_text)
+        width, _dims, pos = _parse_packed_type(tokens, 0)
+        if pos != len(tokens):
+            raise RuntimeError(f"trailing tokens in port declaration: {decl[:120]}")
+        ports[name] = SvPort(name=name, direction=direction, width=width)
     if not ports:
         raise RuntimeError(f"no SV ports parsed from {sv_path} module {top}")
     return ports
+
+
+def sv_port_leaves(sv_path: Path, top: str) -> dict[str, list[SvLeaf]]:
+    """Per-port leaf decomposition (scalarized naming granularity) for every
+    port; scalar ports get a single leaf with an empty field path."""
+    result: dict[str, list[SvLeaf]] = {}
+    for decl in _sv_module_header(sv_path, top):
+        _direction, type_text, name = _split_port_decl(decl)
+        if not type_text:
+            result[name] = [SvLeaf(port=name, name_parts=(), member_field=(),
+                                   row_indices=(), sv_access="", width=1, offset=0)]
+            continue
+        tokens = re.findall(r"[A-Za-z_][A-Za-z0-9_$]*|\d+|\S", type_text)
+        leaves, width, pos = _flatten_packed_leaves(tokens, 0, 0)
+        if pos != len(tokens):
+            raise RuntimeError(f"trailing tokens in port declaration: {decl[:120]}")
+        result[name] = [
+            SvLeaf(port=name, name_parts=parts, member_field=mfield,
+                   row_indices=rows, sv_access=access, width=w, offset=o)
+            for parts, mfield, rows, access, w, o in leaves
+        ]
+    return result
 
 
 def element_name(comps: list[str], positions: tuple[int, ...], indices: tuple[int, ...]) -> str:
@@ -238,11 +655,41 @@ def find_positions(comps: list[str], dims: tuple[int, ...], indices: list[tuple[
 def build_leaves(
     gsim_ports: dict[str, GsimPort],
     gsim_members: dict[str, tuple[str, tuple[int, ...], int]],
-    grhsim_members: dict[str, tuple[str, int]],
-    sv_ports: dict[str, tuple[str, int]],
+    grhsim_members: dict[str, GrhsimMember],
+    sv_ports: dict[str, SvPort],
+    sv_leaves: dict[str, list[SvLeaf]],
 ) -> list[Leaf]:
     leaves: dict[str, Leaf] = {}
-    grhsim_names = set(grhsim_members)
+    # SV leaf logical names are the scalarized-style port names; they are the
+    # common namespace shared by the gsim accessors, the GrhSIM SoA port
+    # members, and the RobTap trace.
+    sv_leaf_by_name: dict[str, SvLeaf] = {}
+    for port_name, port_leaves in sv_leaves.items():
+        for sv_leaf in port_leaves:
+            sv_leaf_by_name[sv_leaf.logical_name] = sv_leaf
+    # FIRRTL vectors of UInt<1> become packed SV scalars, while gsim keeps
+    # an array (occasionally padded to a power of two). Split only the live
+    # SV bits and retain their offsets in the scalar GrhSIM member.
+    packed_gsim = {norm_name(p.name): p for p in gsim_ports.values() if p.dims and p.width == 1}
+    for name, sv_leaf in list(sv_leaf_by_name.items()):
+        port = packed_gsim.get(norm_name(sv_leaf.member_name))
+        if port is None or sv_leaf.width <= 1:
+            continue
+        if len(port.dims) == len(sv_leaf.row_indices):
+            continue  # gsim narrowed a UInt element; this is not a Bool vector
+        if len(port.dims) != len(sv_leaf.row_indices) + 1 or port.dims[-1] < sv_leaf.width:
+            raise RuntimeError(f"unsupported packed vector pairing: {name}")
+        del sv_leaf_by_name[name]
+        for idx in range(sv_leaf.width):
+            child = SvLeaf(
+                port=sv_leaf.port, name_parts=sv_leaf.name_parts + (str(idx),),
+                member_field=sv_leaf.member_field, row_indices=sv_leaf.row_indices + (idx,),
+                sv_access=sv_leaf.sv_access + f"[{idx}]", width=1,
+                offset=sv_leaf.offset + idx, member_bit_offset=idx,
+                member_row_indices=sv_leaf.row_indices,
+            )
+            sv_leaf_by_name[child.logical_name] = child
+    grhsim_names = set(sv_leaf_by_name)
 
     def leaf_for(name: str, direction: str, width: int) -> Leaf:
         leaf = leaves.get(name)
@@ -251,28 +698,23 @@ def build_leaves(
             leaves[name] = leaf
         return leaf
 
+    gsim_array_ports: list[GsimPort] = []
     for port in sorted(gsim_ports.values(), key=lambda p: p.name):
         base = norm_name(port.name)
         if not port.dims:
             leaf = leaf_for(base, port.direction, port.width)
             leaf.gsim = port
             continue
-        indices = port.element_indices()
-        positions, matched = find_positions(base.split("_"), port.dims, indices, grhsim_names)
-        for idx in indices:
-            if positions is not None and matched:
-                name = element_name(base.split("_"), positions, idx)
-            else:
-                name = base + "__e" + "_".join(map(str, idx))
-            leaf = leaf_for(name, port.direction, port.width)
-            leaf.gsim = port
-            leaf.gsim_index = idx
+        gsim_array_ports.append(port)
 
-    # Attach GrhSIM members; reverse index stripping handles GrhSIM ports
-    # whose gsim counterpart collapsed to a scalar (const-folded vectors).
+    # Attach GrhSIM members via the SV leaf namespace; reverse index
+    # stripping handles leaves whose gsim counterpart collapsed to a scalar
+    # (const-folded vectors).
     gsim_scalar = {n for n, p in leaves.items() if p.gsim is not None and p.gsim_index is None}
     gsim_member_only = set(gsim_members) - {p.name for p in gsim_ports.values()}
     for name in sorted(grhsim_names):
+        sv_leaf = sv_leaf_by_name[name]
+        member = grhsim_members.get(sv_leaf.member_name)
         if name in leaves:
             leaf = leaves[name]
         else:
@@ -303,23 +745,103 @@ def build_leaves(
                         has_member=True, pointer_accessor=False,
                     )
                     leaf.gsim_broadcast = True
-        ctype, nominal = grhsim_members[name]
-        leaf.grhsim_name = name
-        leaf.grhsim_type = ctype
+        if member is not None:
+            leaf.grhsim_name = member.name
+            leaf.grhsim_type = member.ctype
+            leaf.grhsim_shape = member.shape
+            leaf.grhsim_row = (sv_leaf.member_row_indices if sv_leaf.member_row_indices is not None
+                              else sv_leaf.row_indices)
+            leaf.grhsim_bit_offset = sv_leaf.member_bit_offset
+        leaf.sv_port = sv_leaf.port
+        leaf.sv_offset = sv_leaf.offset
+        leaf.sv_width = sv_leaf.width
         if not leaf.width:
-            leaf.width = nominal
-        if name in sv_ports and not leaf.direction:
-            leaf.direction = sv_ports[name][0]
+            leaf.width = sv_leaf.width
+        if sv_leaf.port in sv_ports and not leaf.direction:
+            leaf.direction = sv_ports[sv_leaf.port].direction
         if leaf.gsim is not None and not leaf.direction:
             leaf.direction = leaf.gsim.direction
+
+    # Expand the gsim array (vector) ports against the SV leaf namespace: for
+    # every element find the SV leaf carrying the same field at the same
+    # element indices.  The SV (firtool) port split may differ from the gsim
+    # (FIRRTL) aggregate structure, so the search goes by field suffix rather
+    # than by exact name: candidates are the SV leaves of the SV port whose
+    # name is the longest prefix of the gsim port name, plus same-prefix
+    # pruned sub-ports (io_exuWriteback_14_bits_debug_* style).
+    sv_leaves_by_prefix: dict[str, list[SvLeaf]] = {}
+    for sv_leaf in sv_leaf_by_name.values():
+        sv_leaves_by_prefix.setdefault(sv_leaf.port, []).append(sv_leaf)
+
+    def sv_leaf_for_element(port: GsimPort, idx: tuple[int, ...]) -> SvLeaf | None:
+        base = norm_name(port.name)
+        idx_str = [str(i) for i in idx]
+        best: SvLeaf | None = None
+        best_score = -1
+        for sv_port, port_leaves in sv_leaves_by_prefix.items():
+            if not base.startswith(sv_port + "_") and base != sv_port:
+                continue
+            for sv_leaf in port_leaves:
+                if len(sv_leaf.row_indices) != len(idx):
+                    continue
+                if sv_leaf.row_indices != idx:
+                    continue
+                # candidate leaf: its logical name must equal base with the
+                # indices inserted at the SV port boundary
+                expect = sv_port + "_" + "_".join(idx_str) + \
+                    ("_" + "_".join(sv_leaf.name_parts[len(idx_str):])
+                     if len(sv_leaf.name_parts) > len(idx_str) else "")
+                logical = sv_leaf.logical_name
+                # Reconstruct the scalarized name the leaf would have if the
+                # SV port boundary matched the gsim one: strip the SV port
+                # prefix, keep the remainder.
+                rem = logical[len(sv_port):]
+                if rem.startswith("_"):
+                    rem = rem[1:]
+                # gsim-side remainder: base without the sv_port prefix
+                grem = base[len(sv_port):]
+                if grem.startswith("_"):
+                    grem = grem[1:]
+                if rem == grem or grem.endswith("_" + rem) or rem.endswith("_" + grem):
+                    score = len(sv_port)
+                    if score > best_score:
+                        best = sv_leaf
+                        best_score = score
+        return best
+
+    for port in gsim_array_ports:
+        base = norm_name(port.name)
+        indices = port.element_indices()
+        positions, matched = find_positions(base.split("_"), port.dims, indices, grhsim_names)
+        for idx in indices:
+            if positions is not None and matched:
+                name = element_name(base.split("_"), positions, idx)
+            else:
+                sv_leaf = sv_leaf_for_element(port, idx)
+                name = sv_leaf.logical_name if sv_leaf is not None else \
+                    base + "__e" + "_".join(map(str, idx))
+            leaf = leaf_for(name, port.direction, port.width)
+            leaf.gsim = port
+            leaf.gsim_index = idx
+            if leaf.sv_port and leaf.direction != port.direction:
+                leaf.direction = port.direction
 
     result = list(leaves.values())
     for leaf in result:
         if not leaf.direction:
-            leaf.direction = sv_ports.get(leaf.name, ("internal", 0))[0] or "internal"
+            leaf.direction = "internal"
+        if not leaf.sv_port and leaf.name in sv_leaf_by_name:
+            leaf.sv_port = sv_leaf_by_name[leaf.name].port
+            leaf.sv_offset = sv_leaf_by_name[leaf.name].offset
         if leaf.gsim is not None and leaf.gsim.width and leaf.width != leaf.gsim.width:
             # gsim carries the FIRRTL true width
             leaf.width = leaf.gsim.width
+        if leaf.direction == "input" and leaf.sv_width:
+            # Keep the complete captured RTL input, including bits narrowed
+            # away by gsim. Its setter still masks to its optimized width.
+            if leaf.gsim and leaf.gsim.width > 64 and leaf.gsim.width > leaf.sv_width:
+                raise RuntimeError(f"wide gsim input needs explicit zero extension: {leaf.name}")
+            leaf.width = leaf.sv_width
     return sorted(result, key=lambda l: l.name)
 
 
@@ -332,7 +854,12 @@ def build_leaves(
 #   undefined by FIRRTL; gsim resolves it to 0, GrhSIM to an aliased entry.
 #   Every in-bounds vector matched on every cycle (probe8 evidence).
 # - io_diffCommits_info rows >= 353: see DIFF_COMMITS_WRAP_ROW note below.
-OOB_DEBUG_OUTPUTS = frozenset({"io_storeDebugInfo_0_pc", "io_storeDebugInfo_1_pc"})
+# io_storeDebugInfo_{0,1}_pc: dynamic-index reads of the 352-entry
+# robEntries.debug_pc array via robidx.value (9 bits).  Aggregate member
+# names carry the element index before the field (io_storeDebugInfo_0_pc);
+# scalarized names put it after the field (io_storeDebugInfo_pc_0).
+OOB_DEBUG_OUTPUTS = frozenset({"io_storeDebugInfo_0_pc", "io_storeDebugInfo_1_pc",
+                               "io_storeDebugInfo_pc_0", "io_storeDebugInfo_pc_1"})
 
 # io_diffCommits_info rows >= 353 come from the RAB difftest commit lookahead
 # window: io.diffCommits shows 520 rows starting at diffPtr over the 352-entry
@@ -344,12 +871,18 @@ OOB_DEBUG_OUTPUTS = frozenset({"io_storeDebugInfo_0_pc", "io_storeDebugInfo_1_pc
 # ROB outputs, so they are excluded from compare and checksum like the bore
 # ports.
 DIFF_COMMITS_WRAP_ROW = 353
-DIFF_COMMITS_ROW_RE = re.compile(r"^io_diffCommits_info_(\d+)_")
+DIFF_COMMITS_ROW_RES = (
+    re.compile(r"^io_diffCommits_info_(\d+)_"),  # index after field (scalarized)
+    re.compile(r"^io_diffCommits_(\d+)_info_"),  # index before field (aggregate)
+)
 
 
 def is_diffcommits_excluded(name: str) -> bool:
-    m = DIFF_COMMITS_ROW_RE.match(name)
-    return m is not None and int(m.group(1)) >= DIFF_COMMITS_WRAP_ROW
+    for pattern in DIFF_COMMITS_ROW_RES:
+        m = pattern.match(name)
+        if m is not None and int(m.group(1)) >= DIFF_COMMITS_WRAP_ROW:
+            return True
+    return False
 
 
 def is_excluded_output(name: str) -> bool:
@@ -393,6 +926,7 @@ CPP_HEAD = """// Generated by testcase/xs-components/scripts/gen_rob_bench.py. D
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -447,6 +981,30 @@ inline std::uint64_t fold_word(std::uint64_t acc, std::uint64_t word)
 inline std::uint64_t mask_word(std::uint64_t value, unsigned width)
 {
     return width >= 64U ? value : (value & ((UINT64_C(1) << width) - UINT64_C(1)));
+}
+
+// Row-wise helpers for shaped (preserve-aggregate) GrhSIM members: each leaf
+// occupies ceil(width/64) record words per row, with only the top word
+// masked when width % 64 != 0.
+inline void store_masked_word(std::uint64_t *dst, unsigned w, std::uint64_t value,
+                              unsigned width)
+{
+    const unsigned words = (width + 63U) / 64U;
+    if (w + 1 == words && width % 64U) {
+        dst[w] = mask_word(value, width % 64U);
+    } else {
+        dst[w] = value;
+    }
+}
+
+inline std::uint64_t fold_masked_word(std::uint64_t acc, std::uint64_t value, unsigned w,
+                                      unsigned width)
+{
+    const unsigned words = (width + 63U) / 64U;
+    if (w + 1 == words && width % 64U) {
+        value = mask_word(value, width % 64U);
+    }
+    return fold_word(acc, value);
 }
 
 template <unsigned Width>
@@ -584,32 +1142,38 @@ def emit_cpp(leaves: list[Leaf], top: str) -> str:
     out.append("")
 
     # ---------------- drive grhsim ----------------
+    def grhsim_row_access(leaf: Leaf) -> str:
+        return "".join(f"[{i}]" for i in leaf.grhsim_row)
+
     out.append(f"void drive_grhsim(GrhSIM_{top} &dut, const std::uint64_t *rec)")
     out.append("{")
+    packed_inputs: dict[str, list[Leaf]] = {}
     for leaf in inputs + grhsim_only_in:
         if not leaf.grhsim_name:
             continue
+        target = f"dut.{leaf.grhsim_name}{grhsim_row_access(leaf)}"
+        if leaf.grhsim_bit_offset is not None:
+            packed_inputs.setdefault(target, []).append(leaf)
+            continue
         if leaf.name in STATIC_ZERO_PORTS:
-            if leaf.wide:
-                out.append(f"    dut.{leaf.grhsim_name}.fill(0); // static config input")
-            else:
-                out.append(f"    dut.{leaf.grhsim_name} = 0; // static config input")
+            out.append(f"    {target} = 0; // static config input")
             continue
         off = in_offsets[leaf.name]
-        if leaf.grhsim_type.startswith("std::array"):
-            out.append(f"    for (unsigned i = 0; i < {leaf.words}u; ++i) {{")
-            out.append(f"        dut.{leaf.grhsim_name}[i] = rec[{off} + i];")
-            out.append("    }")
-            if leaf.width % 64:
-                out.append(
-                    f"    dut.{leaf.grhsim_name}[{leaf.words - 1}] &= "
-                    f"(UINT64_C(1) << {leaf.width % 64}u) - 1;")
+        if leaf.grhsim_type.startswith("unsigned _BitInt"):
+            rounded = bitint_rounded(leaf.width)
+            out.append(
+                f"    {target} = bitint_from_words<{rounded}>(rec + {off}, {leaf.width}u);")
         elif leaf.grhsim_type == "bool":
-            out.append(f"    dut.{leaf.grhsim_name} = static_cast<bool>(rec[{off}] & 1);")
+            out.append(f"    {target} = static_cast<bool>(rec[{off}] & 1);")
         else:
             out.append(
-                f"    dut.{leaf.grhsim_name} = static_cast<{leaf.grhsim_type}>("
+                f"    {target} = static_cast<{leaf.grhsim_type}>("
                 f"mask_word(rec[{off}], {leaf.width}u));")
+    for target, members in packed_inputs.items():
+        terms = [f"((rec[{in_offsets[l.name]}] & 1u) << {l.grhsim_bit_offset}u)"
+                 for l in members]
+        out.append(f"    {target} = static_cast<{members[0].grhsim_type}>("
+                   + " | ".join(terms) + ");")
     out.append("}")
     out.append("")
 
@@ -623,21 +1187,53 @@ def emit_cpp(leaves: list[Leaf], top: str) -> str:
             return f"dut.get_{port.name}()"
         return f"dut.{port.name}{subscript(leaf.gsim_index)}"
 
+    def grhsim_read_lines(leaf: Leaf, dst: str, indent: str) -> list[str]:
+        """Emit statements copying one grhsim output leaf into ``dst`` words
+        (masked to leaf.width).  ``dst`` must be a uint64_t lvalue base."""
+        lines: list[str] = []
+        expr = f"dut.{leaf.grhsim_name}{grhsim_row_access(leaf)}"
+        if leaf.grhsim_bit_offset is not None:
+            expr = f"({expr} >> {leaf.grhsim_bit_offset}u)"
+        if leaf.grhsim_type.startswith("unsigned _BitInt"):
+            lines.append(f"{indent}{{ const auto v = {expr};")
+            for w in range(leaf.words):
+                lines.append(
+                    f"{indent}  store_masked_word({dst}, {w}, static_cast<std::uint64_t>(v >> {64 * w}u), {leaf.width}u);")
+            lines.append(f"{indent}}}")
+        else:
+            lines.append(
+                f"{indent}store_masked_word({dst}, 0, static_cast<std::uint64_t>({expr}), {leaf.width}u);")
+        return lines
+
+    def grhsim_fold_lines(leaf: Leaf, indent: str) -> list[str]:
+        lines: list[str] = []
+        expr = f"dut.{leaf.grhsim_name}{grhsim_row_access(leaf)}"
+        if leaf.grhsim_bit_offset is not None:
+            expr = f"({expr} >> {leaf.grhsim_bit_offset}u)"
+        if leaf.grhsim_type.startswith("unsigned _BitInt"):
+            lines.append(f"{indent}{{ const auto v = {expr};")
+            for w in range(leaf.words):
+                lines.append(
+                    f"{indent}  acc = fold_masked_word(acc, static_cast<std::uint64_t>(v >> {64 * w}u), {w}, {leaf.width}u);")
+            lines.append(f"{indent}}}")
+        else:
+            lines.append(
+                f"{indent}acc = fold_masked_word(acc, static_cast<std::uint64_t>({expr}), 0, {leaf.width}u);")
+        return lines
+
     for side, cls in (("gsim", f"S{top}"), ("grhsim", f"GrhSIM_{top}")):
         # verify reader: fill masked words
         out.append(f"void read_{side}_outputs({cls} &dut, std::uint64_t *out)")
         out.append("{")
         for leaf in outputs:
             off = out_offsets[leaf.name]
-            if side == "gsim":
-                expr = gsim_value_expr(leaf)
-            else:
-                expr = f"dut.{leaf.grhsim_name}"
+            if side == "grhsim":
+                for line in grhsim_read_lines(leaf, f"out + {off}", "    "):
+                    out.append(line)
+                continue
+            expr = gsim_value_expr(leaf)
             if leaf.wide:
-                if side == "grhsim":
-                    for w in range(leaf.words):
-                        out.append(f"    out[{off + w}] = {expr}[{w}];")
-                elif leaf.gsim is not None and leaf.gsim.ctype.startswith("unsigned _BitInt"):
+                if leaf.gsim is not None and leaf.gsim.ctype.startswith("unsigned _BitInt"):
                     out.append(f"    {{ const auto v = {expr};")
                     for w in range(leaf.words):
                         out.append(
@@ -661,21 +1257,19 @@ def emit_cpp(leaves: list[Leaf], top: str) -> str:
             if is_excluded_output(leaf.name):
                 # excluded from the checksum on both models (see header note)
                 continue
-            if side == "gsim":
-                expr = gsim_value_expr(leaf)
-            else:
-                expr = f"dut.{leaf.grhsim_name}"
+            if side == "grhsim":
+                for line in grhsim_fold_lines(leaf, "    "):
+                    out.append(line)
+                continue
+            expr = gsim_value_expr(leaf)
             if leaf.wide:
                 is_bitint = (
-                    side == "gsim" and leaf.gsim is not None
-                    and leaf.gsim.ctype.startswith("unsigned _BitInt"))
+                    leaf.gsim is not None and leaf.gsim.ctype.startswith("unsigned _BitInt"))
                 if is_bitint:
                     out.append(f"    {{ const auto v = {expr};")
                 indent = "      " if is_bitint else "    "
                 for w in range(leaf.words):
-                    if side == "grhsim":
-                        word_expr = f"{expr}[{w}]"
-                    elif is_bitint:
+                    if is_bitint:
                         word_expr = f"static_cast<std::uint64_t>(v >> {64 * w}u)"
                     else:
                         word_expr = f"static_cast<std::uint64_t>({expr})"
@@ -1071,7 +1665,7 @@ std::unique_ptr<S_TOP> make_gsim_zeroed()
     return std::unique_ptr<S_TOP>(new (mem) S_TOP());
 }
 
-bool verify_trace(const TraceFile &tf, unsigned count)
+bool verify_trace(const TraceFile &tf, unsigned count, const std::vector<std::uint64_t> &reference_mask)
 {
     auto gsim = make_gsim_zeroed();
     auto grhsim = std::make_unique<GrhSIM_TOP>();
@@ -1080,6 +1674,7 @@ bool verify_trace(const TraceFile &tf, unsigned count)
     std::vector<std::uint64_t> grhsim_out(kOutWords, 0);
     const char *pair_names[3] = {"gsim_vs_grhsim", "gsim_vs_trace", "grhsim_vs_trace"};
     std::map<std::string, unsigned long long> mismatches[3];
+    std::map<std::string, unsigned long long> excluded_mismatches[3];
     unsigned long long fail_vectors[3] = {0, 0, 0};
     long long first_fail[3] = {-1, -1, -1};
     for (unsigned i = 0; i < count; ++i) {
@@ -1089,9 +1684,6 @@ bool verify_trace(const TraceFile &tf, unsigned count)
         eval_grhsim_trace_out(*grhsim, rec, grhsim_out.data());
         bool diff[3] = {false, false, false};
         for (const OutWordInfo &info : kOutWordInfo) {
-            if (info.excluded) {
-                continue;
-            }
             bool port_diff[3] = {false, false, false};
             for (unsigned w = 0; w < info.words; ++w) {
                 const std::uint64_t g = gsim_out[info.offset + w];
@@ -1100,15 +1692,27 @@ bool verify_trace(const TraceFile &tf, unsigned count)
                 if (g != r) {
                     port_diff[0] = true;
                 }
-                if (g != t) {
+                const bool observed = reference_mask.empty() || reference_mask[info.offset + w];
+                if (observed && g != t) {
                     port_diff[1] = true;
                 }
-                if (r != t) {
+                if (observed && r != t) {
                     port_diff[2] = true;
                 }
             }
             for (int p = 0; p < 3; ++p) {
                 if (port_diff[p]) {
+                    if (info.excluded) {
+                        excluded_mismatches[p][info.name] += 1;
+                        continue;
+                    }
+                    if (mismatches[p].size() < 3 && !mismatches[p].count(info.name)) {
+                        std::cerr << "[TRACE_DIFF] pairing=" << pair_names[p]
+                                  << " cycle=" << i << " port=" << info.name
+                                  << " gsim=" << hex64(gsim_out[info.offset])
+                                  << " grhsim=" << hex64(grhsim_out[info.offset])
+                                  << " trace=" << hex64(traced[info.offset]) << "\\n";
+                    }
                     diff[p] = true;
                     mismatches[p][info.name] += 1;
                 }
@@ -1122,6 +1726,15 @@ bool verify_trace(const TraceFile &tf, unsigned count)
                 }
             }
         }
+    }
+    for (int p = 0; p < 3; ++p) {
+        unsigned long long total = 0;
+        for (const auto &[name, count] : excluded_mismatches[p]) {
+            total += count;
+        }
+        std::cout << "[VERIFY_EXCLUDED] pairing=" << pair_names[p]
+                  << " mismatch_ports=" << excluded_mismatches[p].size()
+                  << " port_cycles=" << total << "\\n";
     }
     const bool pass = fail_vectors[0] == 0 && fail_vectors[1] == 0 && fail_vectors[2] == 0;
     std::ostream &os = pass ? std::cout : std::cerr;
@@ -1227,6 +1840,7 @@ int main(int argc, char **argv)
     bool vectors_set = false;
     std::string model_selection = "both";
     std::string trace_path;
+    std::string trace_mask_path;
     for (int i = 1; i < argc; ++i) {
         const std::string arg(argv[i]);
         if (arg == "--vectors" && i + 1 < argc) {
@@ -1244,6 +1858,8 @@ int main(int argc, char **argv)
             }
         } else if (arg == "--trace" && i + 1 < argc) {
             trace_path = argv[++i];
+        } else if (arg == "--trace-mask" && i + 1 < argc) {
+            trace_mask_path = argv[++i];
         } else {
             std::cerr << "usage: " << argv[0]
                       << " [--vectors N] [--verify N] [--repeat N] [--model both|gsim|grhsim] [--trace PATH]\\n";
@@ -1264,7 +1880,22 @@ int main(int argc, char **argv)
         }
         const unsigned verify_cycles = static_cast<unsigned>(
             std::min<std::uint64_t>(verify, tf.cycles));
-        if (verify_cycles > 0 && !rob_bench::verify_trace(tf, verify_cycles)) {
+        std::vector<std::uint64_t> reference_mask;
+        if (!trace_mask_path.empty()) {
+            std::ifstream mask(trace_mask_path, std::ios::binary | std::ios::ate);
+            if (!mask || mask.tellg() != rob_bench::kOutWords * 8) {
+                std::cerr << "[TRACE] invalid reference output mask\\n";
+                rob_bench::close_trace(tf);
+                return 1;
+            }
+            reference_mask.resize(rob_bench::kOutWords);
+            mask.seekg(0);
+            mask.read(reinterpret_cast<char *>(reference_mask.data()), reference_mask.size() * 8);
+            if (!mask) return 1;
+            std::cout << "[TRACE] reference_words=" << std::count(reference_mask.begin(), reference_mask.end(), 1)
+                      << " model_compared_words=" << rob_bench::kOutWords << "\\n";
+        }
+        if (verify_cycles > 0 && !rob_bench::verify_trace(tf, verify_cycles, reference_mask)) {
             rob_bench::close_trace(tf);
             return 1;
         }
@@ -1368,7 +1999,8 @@ def main() -> int:
     gsim_ports, gsim_members = parse_gsim_header(gsim_text)
     grhsim_members = parse_grhsim_header(grhsim_text, args.top)
     sv_ports = parse_sv_ports(Path(args.sv), args.top)
-    leaves = build_leaves(gsim_ports, gsim_members, grhsim_members, sv_ports)
+    sv_leaves = sv_port_leaves(Path(args.sv), args.top)
+    leaves = build_leaves(gsim_ports, gsim_members, grhsim_members, sv_ports, sv_leaves)
 
     def count(pred) -> int:
         return sum(1 for l in leaves if pred(l))
@@ -1385,6 +2017,10 @@ def main() -> int:
         "broadcast_paired": count(lambda l: l.paired and l.gsim_broadcast),
     }
     log("ports: " + " ".join(f"{k}={v}" for k, v in stats.items()))
+    width_diffs = [l for l in leaves if l.paired and l.gsim.width and l.sv_width != l.gsim.width]
+    if width_diffs:
+        log("port width differences: " + ", ".join(
+            f"{l.name}:gsim={l.gsim.width}/sv={l.sv_width}" for l in width_diffs[:20]))
 
     if args.layout_out:
         layout = compute_record_layout(leaves)
@@ -1398,7 +2034,12 @@ def main() -> int:
                     "words": leaf.words,
                     "offset": layout["in_offsets"][leaf.name],
                     "kind": kind,
-                    "sv_port": leaf.name in sv_ports,
+                    "sv_port": leaf.sv_port,
+                    "sv_offset": leaf.sv_offset,
+                    "trace_signal": (leaf.name.rsplit("_", 1)[0]
+                                     if leaf.grhsim_bit_offset is not None else leaf.name),
+                    "trace_bit_offset": leaf.grhsim_bit_offset or 0,
+                    "gsim_live": bool(leaf.gsim and leaf.gsim.has_member),
                 })
         for leaf in layout["static_inputs"]:
             inputs_doc.append({
@@ -1407,7 +2048,11 @@ def main() -> int:
                 "words": leaf.words,
                 "offset": None,
                 "kind": "static",
-                "sv_port": leaf.name in sv_ports,
+                "sv_port": leaf.sv_port,
+                "sv_offset": leaf.sv_offset,
+                "trace_signal": leaf.name,
+                "trace_bit_offset": 0,
+                "gsim_live": bool(leaf.gsim and leaf.gsim.has_member),
             })
         outputs_doc = [{
             "name": leaf.name,
@@ -1415,7 +2060,12 @@ def main() -> int:
             "words": leaf.words,
             "offset": layout["out_offsets"][leaf.name],
             "excluded": is_excluded_output(leaf.name),
-            "sv_port": leaf.name in sv_ports,
+            "sv_port": leaf.sv_port,
+            "sv_offset": leaf.sv_offset,
+            "trace_signal": (leaf.name.rsplit("_", 1)[0]
+                             if leaf.grhsim_bit_offset is not None else leaf.name),
+            "trace_bit_offset": leaf.grhsim_bit_offset or 0,
+            "gsim_live": bool(leaf.gsim and leaf.gsim.has_member),
         } for leaf in layout["outputs"]]
         doc = {
             "top": args.top,

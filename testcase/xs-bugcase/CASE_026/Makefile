@@ -13,7 +13,7 @@ TB := $(CASE_DIR)/tb.v
 REF_LIB := $(REF_DIR)/VRef__ALL.a
 GRHSIM_LIB := $(GRHSIM_DIR)/libgrhsim_xs_bugcase_tb.a
 BIN := $(OUT)/compare
-PIPELINE := $(ROOT)/scripts/wolvrix_xs_grhsim_ir.py
+PIPELINE := $(ROOT)/scripts/wolvrix_xs_grhsim.py
 
 export CCACHE_DIR := $(OUT)/ccache
 
@@ -49,7 +49,7 @@ $(GRHSIM_DIR)/.emitted: $(RTL) $(TB) $(PIPELINE) $(CASE_DIR)/Makefile FORCE | $(
 	printf '%s\n' '$(RTL)' '$(TB)' > $(OUT)/filelist.f
 	printf '' > $(OUT)/read_args.txt
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) $(PIPELINE) \
-		$(OUT)/filelist.f xs_bugcase_tb $(OUT)/flat_grh.json $(OUT)/grhsim_ir.json \
+		$(OUT)/filelist.f xs_bugcase_tb $(OUT)/flat_grh.json $(OUT)/grhsim.json \
 		$(OUT)/roundtrip.json $(OUT)/read_args.txt warn --emit-cpp-dir $(GRHSIM_DIR)
 	touch $@
 

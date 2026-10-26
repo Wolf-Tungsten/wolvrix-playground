@@ -105,7 +105,35 @@ def native_work_summary(results: list[dict]) -> dict:
     return groups
 
 
-def main() -> None:
+def migration_runtime_summary(results: list[dict], runtime_limit=3.0, rss_limit=5.0) -> dict:
+    """Use the migration budget, independently of the optimization rank gate."""
+    groups = {}
+    for mode in ("old", "new"):
+        rows = [row for row in results if row["mode"] == mode and not row.get("warmup", False)]
+        if len(rows) != 3:
+            raise ValueError("migration runtime gate requires exactly three measured runs per mode")
+        for row in rows:
+            if any(not math.isfinite(row[key]) or row[key] <= 0 for key in ("host_s", "max_rss_kib")):
+                raise ValueError("migration runtime gate requires positive finite Host and RSS observations")
+        times = [row["host_s"] for row in rows]
+        groups[mode] = {"host_s": times, "median_host_s": statistics.median(times),
+                        "median_max_rss_kib": statistics.median(row["max_rss_kib"] for row in rows)}
+        groups[mode]["host_spread_percent"] = 100 * (max(times) - min(times)) / groups[mode]["median_host_s"]
+    runtime_ratio = groups["new"]["median_host_s"] / groups["old"]["median_host_s"]
+    rss_ratio = groups["new"]["median_max_rss_kib"] / groups["old"]["median_max_rss_kib"]
+    noise_ok = all(group["host_spread_percent"] <= 5.0 for group in groups.values())
+    runtime_ok = runtime_ratio <= 1 + runtime_limit / 100
+    rss_ok = rss_ratio <= 1 + rss_limit / 100
+    return {"scope": "XS 100k runtime/RSS only; generation and compilation gates remain separate",
+            "groups": groups, "new_over_old_host": runtime_ratio, "new_over_old_rss": rss_ratio,
+            "runtime_limit_percent": runtime_limit, "rss_limit_percent": rss_limit,
+            "noise_limit_percent": 5.0, "noise_ok": noise_ok,
+            "runtime_ok": runtime_ok, "rss_ok": rss_ok,
+            "classification": "NOISY" if not noise_ok else "PASS" if runtime_ok and rss_ok else "REGRESSION",
+            "accepted": noise_ok and runtime_ok and rss_ok}
+
+
+def main(argv=None, root=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--old", type=Path, required=True)
     parser.add_argument("--new", type=Path, required=True)
@@ -113,9 +141,9 @@ def main() -> None:
     parser.add_argument("--cpu", type=int, default=2)
     parser.add_argument("--pairs", type=int, choices=(1, 3), default=3)
     parser.add_argument("--baseline-seconds", type=float, required=True)
-    parser.add_argument("--make-target", default="run_xs_wolf_grhsim_ir_emu",
+    parser.add_argument("--make-target", default="run_xs_grhsim_emu",
                         help="root Makefile run target used for every timed run")
-    parser.add_argument("--build-var", default="XS_GRHSIM_IR_BUILD",
+    parser.add_argument("--build-var", default="XS_GRHSIM_BUILD",
                         help="root Makefile variable that selects the flow build directory")
     parser.add_argument("--emu-relpath", default="emu/emu",
                         help="emu binary path relative to the flow directory")
@@ -128,7 +156,9 @@ def main() -> None:
     parser.add_argument("--old-env", action="append", default=[], metavar="KEY=VALUE",
                         help="extra environment variable for old-mode runs only (repeatable); "
                              "enables same-binary A/B when old and new point at one flow")
-    args = parser.parse_args()
+    parser.add_argument("--migration-baseline", type=Path,
+                        help="frozen removal baseline; enable one warmup each, 3+3, and its migration runtime/RSS budgets")
+    args = parser.parse_args(argv)
     endpoint_fields = args.expected_endpoint.split(",")
     if len(endpoint_fields) != 4:
         parser.error("--expected-endpoint must be instrCnt,cycleCnt,guestCycles,pc")
@@ -137,16 +167,19 @@ def main() -> None:
                              int(endpoint_fields[2]), endpoint_fields[3]]
     except ValueError:
         parser.error("--expected-endpoint counts must be integers")
-    root = Path(__file__).resolve().parents[1]
+    root = Path(root).resolve() if root is not None else Path(__file__).resolve().parents[1]
     output = args.output.resolve()
     if not output.is_relative_to(root / "ptmp") or output.exists():
         parser.error("output must be a new directory under ptmp")
     if args.cpu not in os.sched_getaffinity(0) or not math.isfinite(args.baseline_seconds) or args.baseline_seconds <= 0:
         parser.error("CPU must be available and baseline time positive")
+    if args.migration_baseline and (args.pairs != 3 or args.perf_stat or args.old_env or args.evict_page_cache):
+        parser.error("migration timing requires three pairs, no perf/old-env, and --no-evict-page-cache after warmup")
     flows = {mode: getattr(args, mode).resolve() for mode in ("old", "new")}
     binaries = {mode: {"path": str(flow / args.emu_relpath), "sha256": digest(flow / args.emu_relpath)}
                 for mode, flow in flows.items()}
-    order = [(mode, i) for i in range(1, args.pairs + 1) for mode in ("old", "new")]
+    order = ([("old", 0), ("new", 0)] if args.migration_baseline else []) + [
+        (mode, i) for i in range(1, args.pairs + 1) for mode in ("old", "new")]
     cutoff = args.baseline_seconds * 1.5
     output.mkdir(parents=True)
     old_env = {}
@@ -167,6 +200,31 @@ def main() -> None:
                     "expected_endpoint": expected_endpoint,
                     "timestamp": time.time()}
     registration["perf_stat"] = args.perf_stat
+    if args.migration_baseline:
+        baseline = args.migration_baseline.resolve()
+        manifest = baseline / "manifest.json"
+        frozen = json.loads(manifest.read_text())
+        original = "frozen/ptmp/xs/grhsim-ir/emu/grhsim-compile/emu"
+        if binaries["old"]["sha256"] != frozen["artifacts"][original]["sha256"]:
+            raise ValueError("old runtime is not the frozen XS executable")
+        if flows["old"].is_relative_to(baseline) or flows["new"].is_relative_to(baseline):
+            raise ValueError("run isolated copies; benchmark must not write into the frozen baseline")
+        supplement = baseline / "inputs-supplement.json"
+        inputs = json.loads(supplement.read_text())["inputs"]
+        for name, checksum in registration["inputs"].items():
+            if checksum != inputs["testcase/xiangshan/ready-to-run/" + name]["sha256"]:
+                raise ValueError("XS input differs from frozen input: " + name)
+        registration.update(kind="migration runtime gate", warmup_runs=2, seed=0,
+                            baseline_s=None, timeout_reference_s=args.baseline_seconds,
+                            baseline_manifest_sha256=digest(manifest), baseline_inputs_sha256=digest(supplement),
+                            policy=frozen["policy"], noise_limit_percent=5.0,
+                            gate="Host median regression <= frozen runtime budget; RSS <= frozen memory budget; noise <= 5%")
+        registration["candidate_artifacts"] = {
+            str(path.relative_to(flows["new"])): digest(path)
+            for path in (flows["new"] / "generation-identity.json", flows["new"] / "model/manifest.json",
+                         flows["new"] / "model/generation-identity.json") if path.is_file()}
+        if "model/generation-identity.json" not in registration["candidate_artifacts"]:
+            raise ValueError("migration timing requires the candidate generation identity")
     if args.perf_stat:
         from grhsim_native_work_compare import MAIN_EVENTS, parse_perf_stat
         registration["primary"] = "instructions per guest cycle"
@@ -189,8 +247,9 @@ def main() -> None:
                 raise RuntimeError(f"{label}: cannot evict binary page cache")
             evicted.add(mode)
         timing = directory / "emu.time"
+        time_format = "wall=%e,exit=%x" + (",rss_kib=%M" if args.migration_baseline else "")
         prefix_args = ["timeout", "--signal=KILL", f"{cutoff:.6f}s", "/usr/bin/time",
-                       "-f", "wall=%e,exit=%x", "-o", str(timing)]
+                       "-f", time_format, "-o", str(timing)]
         if args.perf_stat:
             prefix_args += ["perf", "stat", "-x,", "-e", ",".join(MAIN_EVENTS),
                             "-o", str(directory / "perf.stat")]
@@ -201,6 +260,8 @@ def main() -> None:
                    f"XS_EMU_CPU={args.cpu}", "XS_SIM_MAX_CYCLE=100000", "XS_WAVEFORM=0",
                    "XS_WAVEFORM_PATH=", "XS_COMMIT_TRACE=0", "XS_RAM_TRACE=0",
                    "XS_PROGRESS_EVERY_CYCLES=0", f"XS_EMU_PREFIX={prefix}"]
+        if args.migration_baseline:
+            command.append(f"XS_WAVEFORM_DIR={directory / 'waveforms'}")
         (directory / "command.sh").write_text(shlex.join(command) + "\n")
         print(f"START {label}", flush=True)
         start = time.monotonic()
@@ -220,7 +281,8 @@ def main() -> None:
                     break
                 time.sleep(0.5)
             status = process.wait()
-        result = {"mode": mode, "repeat": repeat, "make_exit": status, "make_wall_s": time.monotonic() - start}
+        result = {"mode": mode, "repeat": repeat, "warmup": repeat == 0,
+                  "make_exit": status, "make_wall_s": time.monotonic() - start}
         (directory / "status.json").write_text(json.dumps(result, indent=2) + "\n")
         if status or killed:
             reason = killed or ("REGRESSION_KILLED" if status in (137, -9) or result["make_wall_s"] >= cutoff else "INVALID")
@@ -230,23 +292,46 @@ def main() -> None:
         parsed = endpoint(log.read_text())
         if list(parsed[:4]) != registration["expected_endpoint"]:
             raise RuntimeError(f"{label}: INVALID endpoint {parsed[:4]}")
-        wall = re.fullmatch(r"wall=([\d.]+),exit=0\n?", timing.read_text())
+        wall = re.fullmatch(r"wall=([\d.]+),exit=0" + (r",rss_kib=(\d+)" if args.migration_baseline else "") + r"\n?", timing.read_text())
         if not wall:
             raise RuntimeError(f"{label}: INVALID emu exit/timing")
         result.update(host_s=parsed[4], emu_wall_s=float(wall[1]), emu_exit=0, endpoint=list(parsed[:4]))
+        if args.migration_baseline:
+            if not re.search(r"Seed=0\s+Guest cycle", log.read_text()):
+                raise RuntimeError(f"{label}: seed differs from frozen seed 0")
+            result["max_rss_kib"] = int(wall[2])
         result["page_cache_evicted"] = cache_evicted
         if args.perf_stat:
             result["counts"] = parse_perf_stat((directory / "perf.stat").read_text(), MAIN_EVENTS)
         results.append(result)
         (output / "results.json").write_text(json.dumps(results, indent=2) + "\n")
         print(f"DONE {label} Host={parsed[4]:.3f}s emu_wall={wall[1]}s", flush=True)
-    stats = summary(results)
+    for mode, binary in binaries.items():
+        if digest(Path(binary["path"])) != binary["sha256"]:
+            raise RuntimeError("XS binary changed during benchmark: " + mode)
+    for name, checksum in registration["inputs"].items():
+        if digest(root / "testcase/xiangshan/ready-to-run" / name) != checksum:
+            raise RuntimeError("XS input changed during benchmark: " + name)
+    measured = [result for result in results if not result["warmup"]]
+    stats = summary(measured)
     stats["page_cache_evicted"] = sorted(evicted)
     if args.perf_stat:
         stats["kind"] = registration["kind"]
-        stats["native_work"] = native_work_summary(results)
+        stats["native_work"] = native_work_summary(measured)
+    if args.migration_baseline:
+        if (digest(baseline / "manifest.json") != registration["baseline_manifest_sha256"] or
+                digest(baseline / "inputs-supplement.json") != registration["baseline_inputs_sha256"]):
+            raise RuntimeError("frozen baseline identity changed during benchmark")
+        for name, checksum in registration["candidate_artifacts"].items():
+            if digest(flows["new"] / name) != checksum:
+                raise RuntimeError("candidate generation changed during benchmark: " + name)
+        stats["migration_runtime"] = migration_runtime_summary(
+            measured, registration["policy"]["runtime_regression_percent"],
+            registration["policy"]["generation_compile_rss_percent"])
     (output / "summary.json").write_text(json.dumps(stats, indent=2) + "\n")
     print(json.dumps(stats, indent=2), flush=True)
+    if args.migration_baseline and not stats["migration_runtime"]["accepted"]:
+        raise SystemExit("Migration runtime gate did not pass; see " + str(output / "summary.json"))
 
 
 if __name__ == "__main__":

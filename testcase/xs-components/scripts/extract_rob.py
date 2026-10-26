@@ -13,6 +13,23 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def file_digest(path):
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def finish_file(temporary, target):
+    if target.is_file() and file_digest(temporary) == file_digest(target):
+        temporary.unlink()
+    else:
+        temporary.replace(target)
+
+
+def write_if_changed(path, text):
+    if not path.is_file() or path.read_text() != text:
+        path.write_text(text)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for key in ("source", "output", "work"):
@@ -20,6 +37,11 @@ def main():
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     args.work.mkdir(parents=True, exist_ok=True)
+    generation_log = args.source.parent / "time.log"
+    generation_text = generation_log.read_text()
+    if not re.search(r"--preserve-aggregate=all(?:\s|\")", generation_text) or \
+            not re.search(r"Exit status: 0\s*$", generation_text):
+        raise ValueError(f"missing successful preserve-aggregate=all generation record: {generation_log}")
     source = args.source / "SimTop.fir"
     module_re = re.compile(rb"^  (module|extmodule|intmodule) (\S+) :")
     inst_re = re.compile(rb"^\s*inst (\S+) of ([^ \r\n\[]+)")
@@ -56,8 +78,10 @@ def main():
     ordered = sorted(needed, key=lambda name: modules[name]["start"])
     output_fir = args.output / "Rob.fir"
     records = []
-    with source.open("rb") as stream, output_fir.open("wb") as out, \
-            (args.work / "Rob_resolved.fir").open("wb") as resolved:
+    temporary_fir = args.work / "Rob.fir.partial"
+    temporary_resolved = args.work / "Rob_resolved.fir.partial"
+    with source.open("rb") as stream, temporary_fir.open("wb") as out, \
+            temporary_resolved.open("wb") as resolved:
         out.write(b"FIRRTL version 6.0.0\ncircuit Rob :\n")
         resolved.write(b"FIRRTL version 6.0.0\ncircuit Rob :\n")
         for name in ordered:
@@ -73,6 +97,8 @@ def main():
             else:
                 resolved.write(data)
             records.append({"module": name, **record, "sha256": digest(data)})
+    finish_file(temporary_fir, output_fir)
+    finish_file(temporary_resolved, args.work / "Rob_resolved.fir")
     print(f"FIRRTL: {len(ordered)} modules, {output_fir.stat().st_size} bytes", flush=True)
 
     sv_dir = args.output / "rtl"
@@ -94,7 +120,9 @@ def main():
         missing = [typ for typ, _inst in children if not (args.source / f"{typ}.sv").is_file()]
         if missing:
             raise ValueError(f"missing SV dependencies of {name}: {missing}")
-        shutil.copyfile(path, sv_dir / path.name)
+        target = sv_dir / path.name
+        if not target.is_file() or file_digest(target) != digest(data):
+            shutil.copyfile(path, target)
         sv_modules[name] = {"source": str(path), "bytes": len(data), "sha256": digest(data),
                             "instances": children}
         pending.extend(typ for typ, _inst in children)
@@ -102,14 +130,21 @@ def main():
     repo = Path(__file__).resolve().parents[3]
     assert_source = repo / "testcase/xiangshan/difftest/src/test/vsrc/common/assert.v"
     assert_target = sv_dir / "assert.v"
-    shutil.copyfile(assert_source, assert_target)
+    if not assert_target.is_file() or file_digest(assert_source) != file_digest(assert_target):
+        shutil.copyfile(assert_source, assert_target)
     sv_paths.insert(0, assert_target)
-    (args.output / "rtl.f").write_text("".join(f"rtl/{p.name}\n" for p in sv_paths))
-    (args.work / "rtl.f").write_text("".join(f"{p.resolve()}\n" for p in sv_paths))
-    (args.work / "read_args.txt").write_text(f"-I\n{sv_dir.resolve()}\n-D\nDIFFTEST\n")
+    expected_files = {path.name for path in sv_paths}
+    for old_path in sv_dir.iterdir():
+        if old_path.suffix in (".sv", ".v") and old_path.name not in expected_files:
+            old_path.unlink()
+    write_if_changed(args.output / "rtl.f", "".join(f"rtl/{p.name}\n" for p in sv_paths))
+    write_if_changed(args.work / "rtl.f", "".join(f"{p.resolve()}\n" for p in sv_paths))
+    write_if_changed(args.work / "read_args.txt", f"-I\n{sv_dir.resolve()}\n-D\nDIFFTEST\n")
     manifest = {
         "instance": "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob",
         "top": "Rob", "source_firrtl": str(source), "source_firrtl_sha256": hasher.hexdigest(),
+        "preserve_aggregate": "all",
+        "generation_record": {"source": str(generation_log), "sha256": file_digest(generation_log)},
         "firrtl_sha256": digest(output_fir.read_bytes()), "firrtl_modules": records,
         "sv_modules": sv_modules,
         "dpi_declaration": {"source": str(assert_source), "sha256": digest(assert_source.read_bytes())},
@@ -117,7 +152,7 @@ def main():
         "extraction": "Module bodies copied verbatim; FIRRTL circuit name changed to Rob and design-level annotations omitted. SV module bodies and macros unchanged.",
         "boundary": "Standalone Rob ports are unconstrained; includes transitive child modules.",
     }
-    (args.output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    write_if_changed(args.output / "manifest.json", json.dumps(manifest, indent=2) + "\n")
     print(f"SV: {len(sv_paths)} modules, {sum(r['bytes'] for r in sv_modules.values())} bytes", flush=True)
     print(f"wrote {args.output / 'manifest.json'}", flush=True)
 

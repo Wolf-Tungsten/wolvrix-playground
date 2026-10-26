@@ -85,6 +85,7 @@ import random
 import re
 
 from grhsim_bit_update_census import Model, check_dynamic
+from grhsim_grh_reader import declared_symbols
 from grhsim_residual_write_cones import unit_index
 
 CHUNK_TAIL = re.compile(r"_\d+$")
@@ -154,11 +155,13 @@ def fam_label(fam):
     return f"{fam['module']}${fam['stem']}" if fam["module"] else fam["stem"]
 
 
-def declared_names(model):
+def declared_names(model, top=None):
+    if "graphs" in model or "ops" in model:
+        return declared_symbols(model, top)
     raw = model.get("declaredSymbols")
     if raw is None:
         raise ValueError("post-lower dump lacks declaredSymbols")
-    strings = model["strings"]
+    strings = model.get("strings", [])
     names = set()
     for entry in raw:
         if isinstance(entry, int):
@@ -174,31 +177,36 @@ def declared_names(model):
 
 def build_universe(model):
     declared = declared_names(model)
-    strings = model["strings"]
-    types = {t[0]: t for t in model["types"]}
+    if "graphs" in model or "ops" in model:
+        from grhsim_grh_reader import GraphReader, logical_type
+        reader = GraphReader(model)
+        states = ((name, name, logical_type(op, True)) for name, op in reader.states.items())
+    else:
+        strings = model["strings"]
+        types = {t[0]: t for t in model["types"]}
+        states = ((row[0], strings[row[1] - 1] if row[1] else "",
+                   (types[row[2]][2], types[row[2]][3], False, "2state", ()))
+                  for row in model["states"])
     members = {}
     rejects, reject_bits, reject_samples = Counter(), Counter(), defaultdict(list)
     logic_hit, nonlogic_hit = set(), set()
     bits = 0
-    for state in model["states"]:
-        sid, name_idx, tid = state[0], state[1], state[2]
-        name = strings[name_idx - 1] if name_idx else ""
+    for sid, name, typ in states:
         if name.startswith(EVENT_PREFIX) or name not in declared:
             continue
-        typ = types[tid]
-        if typ[2] != "logic":
+        if typ[0] != "logic" or typ[4]:
             nonlogic_hit.add(name)
             continue
         logic_hit.add(name)
-        bits += typ[3]
+        bits += typ[1]
         if name in members:
             rejects["duplicate_state_name"] += 1
-            reject_bits["duplicate_state_name"] += typ[3]
+            reject_bits["duplicate_state_name"] += typ[1]
             if len(reject_samples["duplicate_state_name"]) < 10:
                 reject_samples["duplicate_state_name"].append(name)
             continue
         module, stem = family_key(name)
-        members[name] = {"sid": sid, "name": name, "width": typ[3],
+        members[name] = {"sid": sid, "name": name, "width": typ[1],
                          "module": module, "stem": stem}
     return {"members": members, "bits": bits,
             "member_bits": sum(m["width"] for m in members.values()),
@@ -214,7 +222,7 @@ def read_pack_members(path):
     with path.open(newline="") as handle:
         reader = csv.reader(handle, delimiter="\t")
         header = next(reader, None)
-        if header != PACK_HEADER:
+        if header not in (PACK_HEADER, ["packed_state", "bit", "member", "initial"]):
             raise ValueError(f"unexpected pack-members header: {header}")
         for lineno, row in enumerate(reader, 2):
             if len(row) != 4:
@@ -863,12 +871,152 @@ def render(report):
     return "\n".join(lines) + "\n"
 
 
+def native_family_report(model, *, final_model=None, pack_members=None, execution=None):
+    """Static families over native operands; no legacy writer ABI or mappings."""
+    from grhsim_grh_reader import GraphReader, logical_type
+    from grhsim_paired_cone_diff import NativeGrhSignatures, Signatures
+
+    reader = GraphReader(model)
+    universe = build_universe(model)
+    grouped = defaultdict(list)
+    for member in universe["members"].values():
+        grouped[(member["module"], member["stem"])].append(member)
+    pool = Signatures()
+    control_engine = NativeGrhSignatures(reader, {}, pool)
+    final_names = set(GraphReader(final_model).states) if final_model is not None else None
+    words = read_pack_members(pack_members) if pack_members is not None else None
+    packed_names = {name for rows in (words or {}).values() for _, name, _ in rows}
+    forms = classify_forms(universe["members"], final_names, packed_names if words is not None else None, None)
+    rows = []
+    supported = set(NativeGrhSignatures.classes) | {
+        "kConstant", "kRegisterReadPort", "kLatchReadPort", "kRegisterReadArrayPort", "kAssign", "kMux",
+        "kSliceStatic", "kSliceDynamic", "kSliceArray", "kReplicate", "kShl", "kLShr", "kAShr",
+        "grhsim.bitSelect", "grhsim.prioritySelect"}
+    for (module, stem), members in sorted(grouped.items()):
+        if len(members) < 2:
+            continue
+        members.sort(key=lambda row: row["name"])
+        ordinals = {member["name"]: i for i, member in enumerate(members)}
+        updates, controls, reasons = {}, defaultdict(list), Counter()
+        for member in members:
+            name = member["name"]
+            writers = reader.writes.get(name, [])
+            if len(writers) != 1:
+                reasons["no_writer" if not writers else "multiple_writers"] += 1
+                continue
+            writer = reader.ops[writers[0]]
+            kind, args = writer["kind"], writer["in"]
+            if kind not in ("grhsim.write", "grhsim.writeMask", "grhsim.latchWrite"):
+                reasons["unsupported_writer"] += 1
+                continue
+            if len(args) != (3 if kind in ("grhsim.write", "grhsim.latchWrite") else 4):
+                raise ValueError(f"malformed native scalar writer {writers[0]!r}")
+            typ = logical_type(reader.states[name], True)
+            if typ[0] != "logic" or typ[3] != "2state":
+                reasons["unsupported_state_type"] += 1
+                continue
+            roots = args if kind == "grhsim.latchWrite" else args[1:]
+            cone = reader.cone(roots)
+            if any(reader.ops[op]["kind"] not in supported for op in cone):
+                reasons["effectful_or_unsupported_cone"] += 1
+                continue
+            # Normalize only the current member to self. Other family members
+            # retain distinct ordinals, rather than being guessed equivalent.
+            keys = {target: -1 if target == name else ordinal for target, ordinal in ordinals.items()}
+            engine = NativeGrhSignatures(reader, keys, pool)
+            updates[name] = (kind, typ, tuple(engine.sig_value(value) for value in roots))
+            enable = args[0] if kind == "grhsim.latchWrite" else args[1]
+            fire = None if kind == "grhsim.latchWrite" else args[0]
+            mask = args[-1] if kind != "grhsim.write" else None
+            initial = {key: value for key, value in reader.states[name].get("attrs", {}).items()
+                       if key.startswith("init")}
+            control = (kind, typ, control_engine.sig_value(fire) if fire else None,
+                       control_engine.sig_value(enable), control_engine.sig_value(mask) if mask else None,
+                       json.dumps(initial, sort_keys=True))
+            controls[control].append(name)
+        rows.append({"module": module, "stem": stem, "members": [row["name"] for row in members],
+                     "bits": sum(row["width"] for row in members),
+                     "isomorphic": len(updates) == len(members) and len(set(updates.values())) == 1,
+                     "unsigned_reasons": dict(sorted(reasons.items())),
+                     "control_subfamilies": sorted((sorted(names) for names in controls.values()), key=lambda names: names[0]),
+                     "forms": dict(sorted(Counter(forms[row["name"]] for row in members).items()))})
+    family_bits = sum(row["bits"] for row in rows)
+    singleton_bits = sum(members[0]["width"] for members in grouped.values() if len(members) == 1)
+    if family_bits + singleton_bits != universe["member_bits"]:
+        raise ValueError("native family bit closure failed")
+    report = {"schema": "grh-declared-families.v1", "graph": reader.graph["symbol"],
+            "universe": {"states": len(universe["members"]), "bits": universe["member_bits"]},
+            "family_bits": family_bits, "singleton_bits": singleton_bits, "families": rows,
+            "packing_alignment": m_align(words, universe) if words is not None else unavailable("no pack report"),
+            "dynamic": unavailable("static native report; legacy dynamic mapping IDs are not reused"),
+            "limitations": "Conservative structural diagnostics, not an optimization or a frozen legacy gate. "
+                            "Array reads are opaque; effectful/unsupported cones are unsigned. "
+                            "Control subfamilies are informational and do not prove packing eligibility."}
+    if execution is not None:
+        bound = GraphReader(final_model if final_model is not None else model)
+        if bound.graph != execution.reader.graph:
+            raise ValueError("native family pricing requires the exact final counter graph")
+        union, sum_visits, families = set(), 0, []
+        for family in rows:
+            cone, missing = set(), Counter()
+            for name in family["members"]:
+                writers = bound.writes.get(name, [])
+                if name not in bound.states or len(writers) != 1:
+                    missing["missing_final_state_or_unique_writer"] += 1
+                    continue
+                writer = bound.ops[writers[0]]
+                if writer["kind"] not in ("grhsim.write", "grhsim.writeMask", "grhsim.latchWrite"):
+                    missing["unsupported_final_writer"] += 1
+                    continue
+                data = writer["in"][1 if writer["kind"] == "grhsim.latchWrite" else 2]
+                cone.update(bound.cone([data]))
+            row = {"module": family["module"], "stem": family["stem"], "members": len(family["members"]),
+                   "available": not missing, "unpriced_reasons": dict(sorted(missing.items()))}
+            if not missing:
+                visits = execution.price(cone)
+                row.update(compute_visits=visits, compute_visits_per_eval=visits / execution.evals)
+                union.update(cone)
+                sum_visits += visits
+            families.append(row)
+        dynamic = execution.summary()
+        total, unique = dynamic["compute_operation_visits"], execution.price(union)
+        if not 0 <= unique <= sum_visits or unique > total:
+            raise ValueError("native family dynamic union closure failed")
+        dynamic.update(families=families, sum_family_compute_visits=sum_visits,
+                       union_compute_visits=unique, union_compute_share=unique / total if total else None,
+                       pricing="Inclusive data-cone compute visits; shared operations count once in the union. "
+                               "Removed/packed members are unpriced, not assigned zero or legacy IDs.")
+        report["dynamic"] = dynamic
+    return report
+
+
 def run(args):
     root = Path(__file__).resolve().parents[1]
     if not args.out_dir.resolve().is_relative_to(root / "ptmp"):
         raise ValueError("out-dir must be under repository ptmp")
     print("Loading post-lower dump", flush=True)
     post = json.loads(args.post_lower_json.read_bytes())
+    if "graphs" in post or "ops" in post:
+        final = json.loads(args.final_json.read_bytes()) if args.final_json is not None else None
+        execution = None
+        if any((args.run1, args.run2, args.native_model_dir)):
+            if not all((args.run1, args.run2, args.native_model_dir)):
+                raise ValueError("native dynamic pricing requires --native-model-dir, --run1 and --run2")
+            from grhsim_execution_counts import NativeExecutionCounts
+            execution = NativeExecutionCounts(final if final is not None else post,
+                                              args.native_model_dir, args.run1, args.run2)
+        report = native_family_report(post, final_model=final, pack_members=args.pack_members, execution=execution)
+        args.out_dir.mkdir(parents=True, exist_ok=True)
+        (args.out_dir / "summary.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+        dynamic = report["dynamic"]
+        description = (f"{dynamic['union_compute_visits']} union compute visits; "
+                       f"{dynamic['evals']} eval calls" if dynamic["available"] else dynamic["reason"])
+        text = (f"# Native GRH declared families\n\nGraph: {report['graph']}; "
+                f"{report['universe']['states']} states, {len(report['families'])} families.\n\n"
+                f"{report['limitations']}\n\nDynamic: {description}\n")
+        (args.out_dir / "summary.md").write_text(text)
+        print(text, flush=True)
+        return report
     view = Model(post)
     universe = build_universe(post)
     grouped = defaultdict(list)
@@ -1013,8 +1161,8 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--post-lower-json", type=Path, required=True,
-                        help="raw post-lower dump (before packing), with declaredSymbols")
+    parser.add_argument("--post-conversion-json", "--post-lower-json", dest="post_lower_json", type=Path, required=True,
+                        help="unpartitioned GRH after conversion, or a frozen legacy dump, before packing")
     parser.add_argument("--final-json", type=Path,
                         help="final checkpoint of the same design (carries the schedule)")
     parser.add_argument("--pack-members", type=Path,
@@ -1022,6 +1170,7 @@ def main():
     parser.add_argument("--reg-to-mem", type=Path, help="flow reg_to_mem.tsv")
     parser.add_argument("--run1", type=Path, help="first dynamic run log")
     parser.add_argument("--run2", type=Path, help="second dynamic run log")
+    parser.add_argument("--native-model-dir", type=Path, help="native emitted model with execution-counters=on")
     parser.add_argument("--top-n", type=int, default=25,
                         help="M-dyn family ranking size (default 25)")
     parser.add_argument("--sample-verify", type=int, default=0,

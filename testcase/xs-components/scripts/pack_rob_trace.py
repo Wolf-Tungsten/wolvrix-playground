@@ -19,6 +19,7 @@ text trace without it ever touching disk.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import struct
 import sys
@@ -34,10 +35,12 @@ def log(message: str) -> None:
 
 
 def build_plan(record_ports: list[dict], manifest_ports: list[dict], what: str) -> tuple[list, list[str]]:
-    """Join record ports against manifest ports by name.
+    """Join record leaves against manifest (tap) ports by SV port name.
 
-    Returns (plan, dropped_names) where plan entries are
-    (record_offset, width, words, manifest_token_index).
+    Each record leaf carries ``sv_port``/``sv_offset``: the tap dumps whole
+    packed ports, so the leaf value is bits [sv_offset +: width] of the
+    port's hex token.  Returns (plan, dropped_names) where plan entries are
+    (record_offset, width, words, sv_offset, manifest_token_index).
     """
     manifest_index = {p["name"]: i for i, p in enumerate(manifest_ports)}
     manifest_width = {p["name"]: p["width"] for p in manifest_ports}
@@ -46,21 +49,22 @@ def build_plan(record_ports: list[dict], manifest_ports: list[dict], what: str) 
     for port in record_ports:
         if port["offset"] is None:
             continue  # static config input: not carried in the record
-        idx = manifest_index.get(port["name"])
+        sv_port = port.get("sv_port") or port["name"]
+        idx = manifest_index.get(sv_port)
         if idx is None:
             missing.append(port["name"])
             continue
-        if manifest_width[port["name"]] != port["width"]:
-            log(f"WARNING: width mismatch on {port['name']}: "
-                f"record={port['width']} tap={manifest_width[port['name']]} (using record width)")
-        plan.append((port["offset"], port["width"], port["words"], idx))
+        sv_offset = port.get("sv_offset", 0)
+        if sv_offset < 0 or sv_offset + port["width"] > manifest_width[sv_port]:
+            raise RuntimeError(f"{what} leaf {port['name']} extends outside tap port {sv_port}")
+        plan.append((port["offset"], port["width"], port["words"], sv_offset, idx))
     if missing:
         raise RuntimeError(
-            f"{len(missing)} {what} record ports missing from tap dump: "
+            f"{len(missing)} {what} record leaves missing from tap dump: "
             + ",".join(missing[:20])
             + (" ..." if len(missing) > 20 else ""))
-    record_names = {p["name"] for p in record_ports}
-    dropped = [p["name"] for p in manifest_ports if p["name"] not in record_names]
+    record_ports_set = {p.get("sv_port") or p["name"] for p in record_ports}
+    dropped = [p["name"] for p in manifest_ports if p["name"] not in record_ports_set]
     return plan, dropped
 
 
@@ -75,10 +79,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", required=True, help="tap_ports.json from gen_rob_tap.py")
     parser.add_argument("--layout", required=True, help="layout.json from gen_rob_bench.py --layout-out")
-    parser.add_argument("--in", dest="input", required=True, help="text trace path (may be a FIFO)")
-    parser.add_argument("--out", required=True, help="output binary path")
+    parser.add_argument("--in", dest="input", help="text trace path (may be a FIFO)")
+    parser.add_argument("--out", help="output binary path")
+    parser.add_argument("--check-layout", action="store_true", help="validate the tap/record mapping without capture")
     parser.add_argument("--limit", type=int, default=0, help="stop after N cycles (0 = all)")
+    parser.add_argument("--min-cycles", type=int, default=1, help="reject an incomplete capture")
+    parser.add_argument("--summary", help="write capture dimensions and source hashes as JSON")
     args = parser.parse_args()
+    if not args.check_layout and (not args.input or not args.out):
+        parser.error("--in and --out are required for capture")
 
     manifest = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
     layout = json.loads(Path(args.layout).read_text(encoding="utf-8"))
@@ -88,7 +97,7 @@ def main() -> int:
 
     in_plan, dropped_in = build_plan(layout["inputs"], manifest["inputs"], "input")
     out_plan, dropped_out = build_plan(layout["outputs"], manifest["outputs"], "output")
-    static_names = [p["name"] for p in layout["inputs"] if p["offset"] is None]
+    static_names = {p.get("sv_port") or p["name"] for p in layout["inputs"] if p["offset"] is None}
     static_idx = {p["name"]: i for i, p in enumerate(manifest["inputs"]) if p["name"] in static_names}
     log(f"record: in_words={in_words} out_words={out_words} stride_bytes={8 * rec_len}")
     log(f"tap ports dropped (not in record): inputs={len(dropped_in)} outputs={len(dropped_out)}")
@@ -96,6 +105,9 @@ def main() -> int:
         log("  dropped inputs: " + ",".join(dropped_in[:10]) + (" ..." if len(dropped_in) > 10 else ""))
     if dropped_out:
         log("  dropped outputs: " + ",".join(dropped_out[:10]) + (" ..." if len(dropped_out) > 10 else ""))
+    if args.check_layout:
+        log("layout check passed")
+        return 0
 
     pack = struct.Struct(f"<{rec_len}Q").pack
     header = struct.Struct("<8sQII")
@@ -138,12 +150,16 @@ def main() -> int:
 
             rec = [0] * rec_len
             rec[0] = reset & 1
-            for offset, width, words, idx in in_plan:
-                store_words(rec, 1 + offset, int(tokens[idx], 16), width, words)
-            for offset, width, words, idx in out_plan:
-                store_words(rec, 1 + in_words + offset, int(otokens[idx], 16), width, words)
+            # A packed port can contain thousands of leaves; decode its hex
+            # token once rather than once per leaf.
+            input_values = [int(token, 16) for token in tokens]
+            output_values = [int(token, 16) for token in otokens]
+            for offset, width, words, sv_offset, idx in in_plan:
+                store_words(rec, 1 + offset, input_values[idx] >> sv_offset, width, words)
+            for offset, width, words, sv_offset, idx in out_plan:
+                store_words(rec, 1 + in_words + offset, output_values[idx] >> sv_offset, width, words)
             for name, idx in static_idx.items():
-                if int(tokens[idx], 16) != 0:
+                if input_values[idx] != 0:
                     static_nonzero += 1
             out.write(pack(*rec))
 
@@ -161,11 +177,21 @@ def main() -> int:
     elapsed = time.monotonic() - start
     log(f"done: cycles={cycles} reset_cycles={reset_cycles} first_reset={first_reset} "
         f"static_nonzero={static_nonzero} bytes={24 + cycles * 8 * rec_len} elapsed_s={elapsed:.1f}")
-    if cycles == 0:
-        log("ERROR: no cycles parsed (emu died before producing trace?)")
+    if cycles < args.min_cycles:
+        log(f"ERROR: only {cycles} cycles parsed, expected at least {args.min_cycles}")
         return 2
-    if first_reset == 0:
-        log("WARNING: trace does not start in reset; replay rounds will not rebuild state")
+    if first_reset != 1 or static_nonzero:
+        log("ERROR: capture must start in reset and static configuration inputs must stay zero")
+        return 2
+    if args.summary:
+        def sha256(path):
+            with open(path, "rb") as stream:
+                return hashlib.file_digest(stream, "sha256").hexdigest()
+        summary = {"cycles": cycles, "reset_cycles": reset_cycles, "first_reset": first_reset,
+                   "static_nonzero": static_nonzero, "in_words": in_words, "out_words": out_words,
+                   "bytes": Path(args.out).stat().st_size, "trace_sha256": sha256(args.out),
+                   "layout_sha256": sha256(args.layout), "tap_manifest_sha256": sha256(args.manifest)}
+        Path(args.summary).write_text(json.dumps(summary, indent=2) + "\n")
     return 0
 
 

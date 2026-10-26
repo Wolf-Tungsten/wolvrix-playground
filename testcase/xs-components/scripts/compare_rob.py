@@ -15,9 +15,10 @@ import sys
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "scripts"))
 from grhsim_declared_pack_census import declared_names
+from grhsim_grh_reader import GraphReader, READ_KINDS, STATE_KINDS
 from grhsim_gsim_module_compare import (GRHSIM_KIND_BUCKETS, bucket_of_gsim_op,
                                         distribution, normalize_name)
-from grhsim_paired_cone_diff import (GrhSignatures, GsimSignatures, Signatures,
+from grhsim_paired_cone_diff import (GrhSignatures, NativeGrhSignatures, GsimSignatures, Signatures,
                                     load_grhsim_final, load_gsim)
 from grhsim_residual_write_cones import cone, tree_summary
 
@@ -34,6 +35,27 @@ def write_tsv(path, rows, fields=None):
         writer = csv.DictWriter(stream, fields or list(rows[0]), delimiter="\t", lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def conversion_checkpoint(work):
+    current = work / "grhsim/post_conversion.json"
+    if current.is_file():
+        return current
+    frozen = work / "grhsim/post_lower.json"
+    if frozen.is_file():
+        return frozen
+    raise FileNotFoundError(f"missing conversion checkpoint: {current}")
+
+
+def kind_bucket(kind):
+    if kind in STATE_KINDS:
+        return "state_declaration"
+    if kind in READ_KINDS:
+        return "node_ref"
+    if kind.startswith("k"):
+        suffix = kind[1:2].lower() + kind[2:]
+        return GRHSIM_KIND_BUCKETS.get("core.compute." + suffix, "other")
+    return GRHSIM_KIND_BUCKETS.get(kind, "other")
 
 
 def parse_type(tokens, pos=0):
@@ -144,6 +166,8 @@ def gsim_summary(path):
 def grhsim_summary(path):
     log(f"summarizing {path}")
     model = json.loads(path.read_bytes())
+    if "graphs" in model or "ops" in model:
+        return GraphReader(model).state_census()
     strings, types = model["strings"], {t[0]: t for t in model["types"]}
     declared = declared_names(model)
     registers, arrays = {}, {}
@@ -269,6 +293,8 @@ def whole_design_unpaired(schema, output):
 def compare_cones(model_path, graph_path, pairs, output):
     log("building scalar register update-cone comparisons")
     grh, graph = load_grhsim_final(model_path), load_gsim(graph_path)
+    if isinstance(grh, GraphReader):
+        return compare_grh_cones(grh, graph, pairs, output)
     keys_g = {p["gsim"]: i for i, p in enumerate(pairs)}
     keys_r = {p["grhsim"]: i for i, p in enumerate(pairs)}
     pool = Signatures()
@@ -361,6 +387,82 @@ def compare_cones(model_path, graph_path, pairs, output):
     return result
 
 
+def compare_grh_cones(reader, graph, pairs, output):
+    """Compare native GRH cones; retain original symbols and operand positions."""
+    pool = Signatures()
+    ge = NativeGrhSignatures(reader, {p["grhsim"]: i for i, p in enumerate(pairs)}, pool)
+    se = GsimSignatures(graph, {p["gsim"]: i for i, p in enumerate(pairs)}, pool)
+    destinations = {name: dst for name, _width, dst in graph.reg_src}
+    rows, samples = [], []
+    r_union, g_union, total = set(), set(), Counter()
+
+    def compute(name):
+        kind = reader.ops[name]["kind"]
+        return (kind.startswith("k") and kind not in READ_KINDS | STATE_KINDS |
+                {"kConstant", "kDpicImport", "kInstance", "kBlackbox"}) or kind in {
+                    "grhsim.bitSelect", "grhsim.prioritySelect", "grhsim.cpu.maskedOr"}
+
+    for pair in pairs:
+        name = pair["grhsim"]
+        writers = [reader.ops[symbol] for symbol in reader.writes.get(name, [])
+                   if reader.ops[symbol]["kind"] in ("grhsim.write", "grhsim.writeMask")]
+        roots = [op["in"][2] for op in writers]
+        groot = se.root(destinations.get(pair["gsim"]))
+        if not roots or groot is None:
+            total["unlinked"] += 1
+            continue
+        rops = reader.cone(roots)
+        update_ops = reader.cone([value for op in writers for value in op["in"]])
+        se.sig(groot)
+        glocs = se.cone(groot)
+        rsigs = {ge.sig_value(value) for symbol in rops for value in reader.ops[symbol]["out"]}
+        gsigs = {se.memo[loc] for loc in glocs}
+        shared = rsigs & gsigs
+        rk = Counter(reader.ops[symbol]["kind"] for symbol in rops)
+        gk = Counter(graph.op_names[se.row(loc)[0]] for loc in glocs)
+        row = {"grhsim": name, "gsim": pair["gsim"], "width": pair["width"],
+               "grhsim_cone_ops": len(rops), "gsim_cone_enodes": len(glocs),
+               "grhsim_compute": sum(compute(symbol) for symbol in rops),
+               "gsim_compute": sum(count for kind, count in gk.items() if kind not in ("OP_EMPTY", "OP_INT")),
+               "grhsim_update_ops": len(update_ops),
+               "grhsim_update_compute": sum(compute(symbol) for symbol in update_ops),
+               "grhsim_distinct_signatures": len(rsigs), "gsim_distinct_signatures": len(gsigs),
+               "shared_signatures": len(shared), "grhsim_kinds": json.dumps(dict(rk), sort_keys=True),
+               "gsim_kinds": json.dumps(dict(gk), sort_keys=True)}
+        rows.append(row)
+        r_union.update(rops)
+        g_union.update(glocs)
+        total.update(pairs=1, grhsim_signatures=len(rsigs), gsim_signatures=len(gsigs), shared=len(shared))
+        if len(samples) < 5:
+            detail = {**pair, "grhsim_root": [pool.explain(ge.sig_value(value), 5) for value in roots],
+                      "gsim_root": pool.explain(se.memo[groot], 5), "counts": row}
+            samples.append(detail)
+            # The raw native records are the diagnostic authority. No legacy
+            # object references, event states, or operand order are synthesized.
+            (output / f"cone_{name}.json").write_text(json.dumps({
+                "pair": pair, "grhsim_writes": writers,
+                "grhsim_ops": [reader.ops[symbol] for symbol in sorted(update_ops)],
+                "operand_convention": ["fire", "enable", "value", "mask (writeMask only)"],
+                "gsim_nodes": {n: graph.nodes[n] for n in sorted({loc[0] for loc in glocs} | {groot[0]})},
+                "gsim_opcode_names": graph.op_names}, indent=1) + "\n")
+    rows.sort(key=lambda row: (-row["grhsim_compute"], row["grhsim"]))
+    if rows:
+        write_tsv(output / "paired_update_cones.tsv", rows)
+    else:
+        write_tsv(output / "paired_update_cones.tsv", [], ["grhsim", "gsim", "width"])
+    (output / "sample_update_trees.json").write_text(json.dumps(samples, indent=2) + "\n")
+    return {"schema": "grh", "totals": dict(total), "grhsim_cone_ops_union": len(r_union),
+            "gsim_enodes_union": len(g_union),
+            "grhsim_compute_distribution": distribution(sorted(row["grhsim_compute"] for row in rows)),
+            "grhsim_update_compute_distribution": distribution(sorted(row["grhsim_update_compute"] for row in rows)),
+            "gsim_compute_distribution": distribution(sorted(row["gsim_compute"] for row in rows)),
+            "grhsim_kinds_union": dict(Counter(reader.ops[symbol]["kind"] for symbol in r_union)),
+            "gsim_kinds_union": dict(Counter(graph.op_names[se.row(loc)[0]] for loc in g_union)),
+            "samples": samples,
+            "limitations": "Structural diagnostics only; memory reads are opaque, ports are native values. "
+                           "No equivalence, dynamic-counter or timing conclusion."}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture", type=Path, required=True)
@@ -389,21 +491,23 @@ def main():
     log(f"original 1537 reclassified: {original['counts']}")
     gpath = args.work / "gsim/Rob_PreCoarsen.json"
     gsummary, gregs = gsim_summary(gpath)
-    rpost, pre_regs, _ = grhsim_summary(args.work / "grhsim/post_lower.json")
+    post_path = conversion_checkpoint(args.work)
+    rpost, pre_regs, _ = grhsim_summary(post_path)
     rfinal, rregs, arrays = grhsim_summary(args.work / "grhsim/final.json")
-    post_pairing, _ = match_registers(pre_regs, gregs, schema, output, "post_lower")
+    post_pairing, _ = match_registers(pre_regs, gregs, schema, output, "post_conversion")
     final_pairing, pairs = match_registers(rregs, gregs, schema, output, "final")
     buckets = defaultdict(lambda: Counter())
     for kind, count in gsummary["rhs_kinds"].items():
         buckets[bucket_of_gsim_op(kind)]["gsim_rhs_enodes"] += count
-    for label, summary in (("grhsim_post_lower_ops", rpost), ("grhsim_final_ops", rfinal)):
+    for label, summary in (("grhsim_post_conversion_ops", rpost), ("grhsim_final_ops", rfinal)):
         for kind, count in summary["kinds"].items():
-            buckets[GRHSIM_KIND_BUCKETS.get(kind, "other")][label] += count
+            buckets[kind_bucket(kind)][label] += count
     write_tsv(output / "op_buckets.tsv", [{"bucket": k, **{c: v[c] for c in
-        ("gsim_rhs_enodes", "grhsim_post_lower_ops", "grhsim_final_ops")}} for k, v in sorted(buckets.items())])
+        ("gsim_rhs_enodes", "grhsim_post_conversion_ops", "grhsim_final_ops")}} for k, v in sorted(buckets.items())])
     log(f"standalone final pairing: {final_pairing['counts']}")
-    result = {"original_unpaired": original, "gsim": gsummary, "grhsim_post_lower": rpost,
-              "grhsim_final": rfinal, "post_lower_pairing": post_pairing, "final_pairing": final_pairing}
+    result = {"original_unpaired": original, "gsim": gsummary, "grhsim_post_conversion": rpost,
+              "post_conversion_file": str(post_path.relative_to(args.work)),
+              "grhsim_final": rfinal, "post_conversion_pairing": post_pairing, "final_pairing": final_pairing}
     (output / "summary.json").write_text(json.dumps(result, indent=2) + "\n")
     result["cones"] = compare_cones(args.work / "grhsim/final.json", gpath, pairs, output)
     (output / "summary.json").write_text(json.dumps(result, indent=2) + "\n")
@@ -414,7 +518,8 @@ def main():
 def render_report(fixture, work):
     output = work / "analysis"
     result = json.loads((output / "summary.json").read_text())
-    gs, post, final = result["gsim"], result["grhsim_post_lower"], result["grhsim_final"]
+    gs, post, final = (result["gsim"], result.get("grhsim_post_conversion", result.get("grhsim_post_lower")),
+                       result["grhsim_final"])
     cones = result["cones"]
     print(json.dumps({"original": result["original_unpaired"]["counts"],
                       "final_pairing": result["final_pairing"],
@@ -422,7 +527,9 @@ def render_report(fixture, work):
                                    "gsim_root": s["gsim_root"]["op"],
                                    "grhsim_compute": s["counts"]["grhsim_compute"],
                                    "gsim_compute": s["counts"]["gsim_compute"]} for s in cones["samples"]]}, indent=2))
-    report = ["# 实际 XiangShan ROB：gsim / GrhSIM IR 微观结构对比", "",
+    native = final.get("schema") == "grh"
+    post_file = result.get("post_conversion_file", "grhsim/post_lower.json")
+    report = ["# 实际 XiangShan ROB：gsim / GrhSIM 微观结构对比", "",
               f"目标实例：`{INSTANCE}`。独立顶层为 `Rob`，包含全部子模块。", "",
               "## 提取与导出", "",
               "`Rob.fir` 为 SimTop.fir 的依赖闭包，10 个 FIRRTL 模块；`rtl/` 为 12 个生成 SV 模块及原有 assert.v DPI 声明。模块正文按字节复制，来源、偏移及 SHA256 见 manifest.json。", "",
@@ -431,10 +538,12 @@ def render_report(fixture, work):
               "原始导出与分析文件均在 `ptmp/xs-components-rob/`：", "",
               "- `gsim/Rob_0InferAllWidth.json`：gsim 推导位宽后、优化前。",
               "- `gsim/Rob_PreCoarsen.json`：gsim 全部语义优化后、分图前，含 assignTree。",
-              "- `grhsim/post_lower.json`：独立 GrhSIM IR lower 后。",
-              "- `grhsim/pre_partition.json`：GrhSIM 语义优化后、第二轮 CPU mapping 前。",
-              "- `grhsim/final.json`：最终 IR；与 roundtrip.json 逐字节一致。", "",
-              "GrhSIM 使用当前 CPU 管线，开启 row-constant-fill、OR-write-merge、migrate-boundary-ops、demonitor-redundant。整机动态 profile 的 ID 不适用于独立模型，因此未使用两个依赖 profile 的调度优化；这两个优化不改寄存器与计算语义。", "",
+              f"- `{post_file}`：" + ("grh-to-grhsim 后的统一图，无虚拟分区。" if native else "冻结旧格式转换后。"),
+              "- `grhsim/pre_partition.json`：语义优化后、首次 Event/Output 提取前。" if native else
+              "- `grhsim/pre_partition.json`：冻结旧管线分区前。",
+              "- `grhsim/final.json`：最终 checkpoint；重启一致性须由对应生成日志核实。", "",
+              "结构分析直接读取所选图的 symbol、完整类型和 op；数组读保持不透明边界，端口是 value，不伪造 input op 或事件状态。此报告不包含动态计数和时序/等价结论。" if native else
+              "此报告读取冻结旧格式；旧动态 profile 的 ID 不适用于独立模型。", "",
               "## 原先 1,537 个未配对项", "",
               "逐项使用 FIRRTL 寄存器的 bundle/vector 类型恢复路径；只在类型声明给出的合法索引范围内重排，保留原始位宽检查。", "",
               "| 对应形式 | 原未配对个数 |", "|---|---:|"]
@@ -448,27 +557,36 @@ def render_report(fixture, work):
                "原整机逐项证据：`analysis/original_1537_reclassified.tsv`；按字段计数：`analysis/original_1537_families.tsv`。这些是来源对应关系，未作逐周期等价证明。", "",
                "## 独立模型的结构", "",
                "独立端口未施加整机常量，且保留子模块，因此下列计数不等同于整机中 ROB 本层的 1,596 个 declared state。gsim REG_SRC 的 width 是元素位宽；带 dimension 的数组须乘元素个数。", "",
-               "| 指标 | gsim PreCoarsen | GrhSIM post-lower | GrhSIM final |", "|---|---:|---:|---:|",
+               "| 指标 | gsim PreCoarsen | GrhSIM post-conversion | GrhSIM final |", "|---|---:|---:|---:|",
                f"| 节点 / ops | {gs['nodes']:,} nodes | {post['ops']:,} ops | {final['ops']:,} ops |",
                f"| REG_SRC / 非事件 logic states | {gs['register_nodes']:,} | {post['register_states']:,} | {final['register_states']:,} |",
                f"| REG_SRC 数组 / array states | {gs['array_register_nodes']:,} | {post['array_states']:,} | {final['array_states']:,} |",
                f"| 事件簿记 states | 无对应单独节点 | {post['event_states']:,} | {final['event_states']:,} |", "",
                "REG_SRC 与 GrhSIM logic/array 的拆分策略不同，不能将节点数直接视作存储量或运行代价。gsim 数组 REG_SRC 计入上一行，GrhSIM array 则不计入 logic states。", "",
-               "| 运算类别 | gsim RHS enodes | GrhSIM post-lower ops | GrhSIM final ops |", "|---|---:|---:|---:|"]
+               "| 运算类别 | gsim RHS enodes | GrhSIM post-conversion ops | GrhSIM final ops |", "|---|---:|---:|---:|"]
     for row in csv.DictReader((output / "op_buckets.tsv").open(), delimiter="\t"):
         if row["bucket"] in {"bitwise_logic", "mux_control", "slice_index", "memory", "compare", "aggregate_concat", "arithmetic"}:
-            report.append(f"| {row['bucket']} | {int(row['gsim_rhs_enodes']):,} | {int(row['grhsim_post_lower_ops']):,} | {int(row['grhsim_final_ops']):,} |")
+            post_count = row.get('grhsim_post_conversion_ops', row.get('grhsim_post_lower_ops'))
+            report.append(f"| {row['bucket']} | {int(row['gsim_rhs_enodes']):,} | {int(post_count):,} | {int(row['grhsim_final_ops']):,} |")
     report += ["", "gsim RHS enodes 只统计每棵赋值树 root 可达节点，排除序列化 lvalue；GrhSIM 按唯一 op 计数。两种表示的共享粒度仍不同，表格描述静态形态，不是执行次数。", "",
                "## 配对寄存器的更新锥", "",
-               f"依据完整 FIRRTL 路径及一致位宽，独立模型严格对应 {cones['totals']['pairs']:,} 对标量寄存器。保留数组的对应项、位宽不同项和 bit chunk 不混入一对一标量更新锥。", "",
-               "更新锥穿过组合别名，在 state/input/memory read 截止。计算节点数排除常量和读取叶。主表的 GrhSIM 更新锥合并 regWrite 的 updateCond、nextValue、mask 三个操作数的反向锥；gsim 取 REG_DST 的全部 RHS 树。两侧均不计时钟/事件检测；TSV 还单列 GrhSIM nextValue 锥，便于区分数据选择与独立写条件。", "",
+               f"依据完整 FIRRTL 路径及一致位宽，独立模型严格对应 {cones['totals'].get('pairs', 0):,} 对标量寄存器。保留数组的对应项、位宽不同项和 bit chunk 不混入一对一标量更新锥。", "",
+               ("更新锥在 state read 和 input value 截止，数组读为不透明边界。全更新锥包含原写口的 fire、enable、value 和可选 mask；数据锥从第 3 个操作数 value 出发。计算数排除常量、读取叶和 edge-detect；不把端口伪造成 op。" if native else
+                "更新锥在 state/input/memory read 截止。全更新锥合并旧 regWrite 的 updateCond、nextValue、mask；数据锥另列。计算数排除常量和读取叶，不计旧时钟/事件操作数。"), "",
                "| 指标 | gsim | GrhSIM |", "|---|---:|---:|"]
     for key in ("median", "p90", "mean"):
-        report.append(f"| 每对计算节点 {key} | {cones['gsim_compute_distribution'][key]:.2f} | {cones['grhsim_update_compute_distribution'][key]:.2f} |")
+        if key in cones['gsim_compute_distribution']:
+            report.append(f"| 每对计算节点 {key} | {cones['gsim_compute_distribution'][key]:.2f} | {cones['grhsim_update_compute_distribution'][key]:.2f} |")
     report += ["", "| 寄存器样例 | gsim 计算节点 | GrhSIM 计算节点 |", "|---|---:|---:|"]
     for sample in cones["samples"]:
         row = sample["counts"]
         report.append(f"| `{sample['grhsim']}` | {row['gsim_compute']} | {row['grhsim_update_compute']} |")
+    if native:
+        report += ["", "逐对统计在 `analysis/paired_update_cones.tsv`。最多五个样例保留原生写口及反向锥的 op 记录、symbol、attrs 和输入顺序；不生成旧 IR 的 objectRef 或事件状态。", "",
+                   "完整类型不同的 assign 不作透明别名；未知方言、bitSelect、DPI 和非二态值不猜测与 gsim 等价。结构签名相交只描述已支持的表示对应，不是等价率，也不替代 ROB 全输出比较。", "",
+                   "本报告不包含运行性能结论。", ""]
+        (fixture / "README.md").write_text("\n".join(report))
+        return
     report += ["", "完整逐对计数及 op-kind 分布在 `analysis/paired_update_cones.tsv`。五个样例的解码操作、操作数、state 引用与 gsim 表达树在 `analysis/cone_*.json`；截断表达树在 `analysis/sample_update_trees.json`。", "",
                "### 具体形态差异", "",
                "1. **写条件与数据选择分离**：`commitType[0]` 的 gsim 根是带条件的 OP_WHEN，数据为 8 路 `(enqOH_i ? commitType_i : 0)` 的 OR。GrhSIM nextValue 根直接是 OR，写条件在 regWrite.updateCond；全更新锥将其加回统计。", "",

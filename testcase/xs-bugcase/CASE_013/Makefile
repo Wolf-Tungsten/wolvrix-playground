@@ -20,7 +20,7 @@ export CCACHE_DIR := $(OUT_DIR_BASE)/ccache
 PYTHON ?= python3
 WOLVRIX_PY ?= $(PYTHON)
 PIP ?= $(PYTHON) -m pip
-WOLVRIX_XS_GRHSIM_SCRIPT := $(ROOT)/scripts/wolvrix_xs_grhsim_ir.py
+WOLVRIX_XS_GRHSIM_SCRIPT := $(ROOT)/scripts/wolvrix_xs_grhsim.py
 GRHSIM_LOG ?= info
 
 VERILATOR ?= $(or $(shell echo $$VERILATOR),verilator)
@@ -71,7 +71,7 @@ $(GRHSIM_LIB): $(TB_V) $(FILELIST)
 	@mkdir -p $(CCACHE_DIR)
 	@rm -rf "$(GRHSIM_DIR)" && mkdir -p "$(GRHSIM_DIR)"
 	@printf "%s\n" "$(TB_V)" > $(OUT_DIR_BASE)/wolvrix_read_args.txt
-	@$(WOLVRIX_PY) $(WOLVRIX_XS_GRHSIM_SCRIPT) $(FILELIST) $(TB_TOP) $(OUT_DIR_BASE)/flat_grh.json $(OUT_DIR_BASE)/grhsim_ir.json $(OUT_DIR_BASE)/grhsim_ir_roundtrip.json $(OUT_DIR_BASE)/wolvrix_read_args.txt $(GRHSIM_LOG) --emit-cpp-dir "$(GRHSIM_DIR)"
+	@$(WOLVRIX_PY) $(WOLVRIX_XS_GRHSIM_SCRIPT) $(FILELIST) $(TB_TOP) $(OUT_DIR_BASE)/flat_grh.json $(OUT_DIR_BASE)/grhsim.json $(OUT_DIR_BASE)/grhsim_roundtrip.json $(OUT_DIR_BASE)/wolvrix_read_args.txt $(GRHSIM_LOG) --emit-cpp-dir "$(GRHSIM_DIR)"
 	@test -f $(GRHSIM_HDR)
 	@$(MAKE) -C $(GRHSIM_DIR) CXX=$(CXX) CXXFLAGS="$(CXXFLAGS)"
 	@test -f $(GRHSIM_LIB)

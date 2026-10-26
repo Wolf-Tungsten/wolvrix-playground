@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 PYTHON ?= python3
 WOLVRIX_PYTHON ?= $(abspath ../../.venv/bin/python)
-WOLVRIX_GRHSIM_IR_SCRIPT := $(abspath ../../scripts/wolvrix_xs_grhsim_ir.py)
+WOLVRIX_GRHSIM_SCRIPT := $(abspath ../../scripts/wolvrix_xs_grhsim.py)
 CXX = clang++
 MILL ?= mill
 GSIM_BIN ?= ../../reference/gsim/build/gsim/gsim
@@ -26,7 +26,7 @@ BENCH_TB_SRC := tb/big_comb_bench.cpp
 BENCH_TB := $(TB_DIR)/big_comb_bench
 BENCH_LOG := $(TB_DIR)/big_comb_bench.log
 GSIM_GRAPH_STATS := $(GSIM_MODEL_DIR)/$(TOP)_0Final_Stats.json
-GRHSIM_IR_JSON := $(GRHSIM_DIR)/$(TOP).json
+GRHSIM_JSON := $(GRHSIM_DIR)/$(TOP).json
 GSIM_BUILD_STAMP := $(GSIM_DIR)/obj/.stamp
 
 GSIM_FLAGS ?= --supernode-max-size=8 --cpp-max-size-KB=512
@@ -75,18 +75,18 @@ $(GSIM_BUILD_STAMP): $(GSIM_MODEL_DIR)/$(TOP)0.cpp
 
 gsim: $(GSIM_BUILD_STAMP)
 
-$(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_IR_JSON) &: $(SV) $(WOLVRIX_GRHSIM_IR_SCRIPT)
+$(GRHSIM_MODEL_DIR)/Makefile $(GRHSIM_JSON) &: $(SV) $(WOLVRIX_GRHSIM_SCRIPT)
 	@mkdir -p $(GRHSIM_MODEL_DIR)
 	@find "$(abspath $(CHISEL_SV_DIR))" -maxdepth 1 -name '*.sv' -print | sort > "$(GRHSIM_DIR)/rtl.f"
 	@: > "$(GRHSIM_DIR)/read_args.txt"
-	set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(WOLVRIX_PYTHON) $(WOLVRIX_GRHSIM_IR_SCRIPT) \
+	set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(WOLVRIX_PYTHON) $(WOLVRIX_GRHSIM_SCRIPT) \
 		"$(GRHSIM_DIR)/rtl.f" $(TOP) "$(GRHSIM_DIR)/flat_grh.json" \
-		"$(GRHSIM_IR_JSON)" "$(GRHSIM_DIR)/roundtrip.json" \
+		"$(GRHSIM_JSON)" "$(GRHSIM_DIR)/roundtrip.json" \
 		"$(GRHSIM_DIR)/read_args.txt" info --emit-cpp-dir "$(GRHSIM_MODEL_DIR)" \
 		2>&1 | tee "$(GRHSIM_DIR)/emit.log"
 	test -f $(GRHSIM_MODEL_DIR)/Makefile
 	test -f $(GRHSIM_MODEL_DIR)/grhsim_$(TOP).hpp
-	test -f $(GRHSIM_IR_JSON)
+	test -f $(GRHSIM_JSON)
 
 grhsim: $(GRHSIM_MODEL_DIR)/Makefile
 	$(MAKE) -C $(GRHSIM_MODEL_DIR) CXX=$(CXX) CXXFLAGS="$(GRHSIM_CXXFLAGS)"

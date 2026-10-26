@@ -318,7 +318,7 @@ def main() -> None:
     model_cpp = (args.ir_model_cpp or ir_flow / "model" / "grhsim_SimTop.cpp").resolve()
     sides = {
         "ir": {"name": "ir", "flow": ir_flow, "binary": ir_flow / "emu" / "emu",
-               "make_target": "run_xs_wolf_grhsim_ir_emu", "build_var": "XS_GRHSIM_IR_BUILD",
+               "make_target": "run_xs_grhsim_emu", "build_var": "XS_GRHSIM_BUILD",
                "expected_endpoint": endpoint(args.ir_endpoint),
                "cutoff": args.ir_baseline_seconds * 1.5, "cpu": args.cpu},
         "gsim": {"name": "gsim", "flow": gsim_build, "binary": gsim_build / "emu",

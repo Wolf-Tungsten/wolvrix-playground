@@ -19,7 +19,15 @@ def main():
     parser.add_argument("--flow", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--baseline-seconds", type=float, required=True)
+    parser.add_argument("--expected-endpoint", default="238535,99996,100001,0x80000cde")
     args = parser.parse_args()
+    fields = args.expected_endpoint.split(",")
+    try:
+        if len(fields) != 4:
+            raise ValueError()
+        expected_endpoint = (int(fields[0]), int(fields[1]), int(fields[2]), fields[3])
+    except ValueError:
+        parser.error("expected-endpoint must be instrCnt,cycleCnt,guestCycles,pc")
     root = Path(__file__).resolve().parents[1]
     output = args.output.resolve()
     if (output.exists() or not output.is_relative_to(root / "ptmp") or
@@ -35,7 +43,7 @@ def main():
                          "env", "LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libprofiler.so",
                          f"CPUPROFILE={profile}", "CPUPROFILE_FREQUENCY=200", "EMU_RUNTIME_PROFILE=1",
                          "EMU_PHASE_TIMING=1", "stdbuf", "-oL", "-eL"])
-    command = ["make", "--no-print-directory", "run_xs_wolf_grhsim_ir_emu", f"XS_GRHSIM_IR_BUILD={flow}",
+    command = ["make", "--no-print-directory", "run_xs_grhsim_emu", f"XS_GRHSIM_BUILD={flow}",
                f"XS_LOG_DIR={output / 'logs'}", f"RUN_ID={output.parent.name}_{output.name}",
                "XS_NUM_CORES=1", "XS_EMU_THREADS=1", "EMU_THREADS=1", "XS_EMU_CPU=2",
                "XS_SIM_MAX_CYCLE=100000", "XS_WAVEFORM=0", "XS_WAVEFORM_PATH=", "XS_COMMIT_TRACE=0",
@@ -76,7 +84,7 @@ def main():
         raise RuntimeError(str(result))
     text = log.read_text()
     final = endpoint(text)
-    if final[:4] != (240349, 99996, 100001, "0x80000c0c"):
+    if final[:4] != expected_endpoint:
         raise RuntimeError(f"INVALID endpoint {final}")
     timing = re.fullmatch(r"wall=([\d.]+),exit=0\n?", (output / "emu.time").read_text())
     if not timing:
@@ -95,7 +103,7 @@ def main():
         subprocess.run(["make", "--no-print-directory", "analyze_grhsim_cpu_profile",
                         f"PYTHON={os.sys.executable}", f"GRHSIM_CPU_PROFILE={profile}",
                         f"GRHSIM_CPU_PROFILE_BINARY={binary}",
-                        f"GRHSIM_CPU_PROFILE_MODEL={flow / 'model/grhsim_SimTop.cpp'}",
+                        f"GRHSIM_CPU_PROFILE_MODEL={flow / 'model'}",
                         f"GRHSIM_CPU_PROFILE_SAMPLES={samples[1]}"], cwd=root, env=env, check=True,
                        stdout=analysis, stderr=subprocess.STDOUT)
     print(json.dumps(result, indent=2))

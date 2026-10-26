@@ -5,7 +5,7 @@
 ## 填写规则
 
 1. **每次合入或状态变化必须更新本文件**，并在日志区追加一行（日期 + 内容 + commit/分支）。
-2. 阶段状态取值：`未开始` / `进行中` / `已合入` / `阻塞`（阻塞必须在日志写清等什么）。
+2. 阶段状态取值：`未开始` / `进行中` / `已实施`（验收通过、未合入）/ `已合入` / `阻塞`（阻塞必须在日志写清等什么）。
 3. 豁免与破坏的**权威登记在各 stage 文档 §7**（README §5 规则）；本文件只记数量与链接。
    下一阶段开始时清零上一阶段豁免；S7 结束时全部清零。
 4. 实施中新冒出来的开放问题先记在本文件对应阶段的"新增问题"行；拍板后回填对应
@@ -26,6 +26,9 @@
 | S6 grhsim 承接 | 已实施 | 1/1 | 2026-10-10 全绿 | 0 | S7 等 S5/S6 |
 | S7 preserve-aggregate 端到端 | 进行中 | 2/3 | 2026-10-13 ctest 62/62；XS CoreMark difftest HIT GOOD TRAP，但精确计数和性能门槛未满足 | 0 | 定位 5 指令/258 周期差异，优化 P_general 热点并复采 |
 | S7.1 ingest 表达式层逐字段化 | 已实施 | 2/2 | 门禁全绿；XS 护栏 68→0；ingest 190→45s；最差 TU 69s | 0 | S7 完整验收 |
+| S8 数组构造 op | 已实施 | 工作树，未提交 | 67/67；HDLBits 162/162；xsbug 27/27；黄金 trace 162/162；ROB 全输出相同、耗时降低 15.76% | 0 | 实现与验收见 [stage-08](stage-08-array-create.md) 和 [实测报告](../rob_standalone/20261023-040804-rob-array-create-ab.md)，待后续审阅合入 |
+| S9 前置：移除独立 GrhSIM IR | 已实施 | R0–R8 完成，工作树未提交 | 干净构建 64/64、生成执行 54、HDLBits 162/162、bugcase 27/27、ROB 全输出通过；SV→emu 1954.081s、100k Host 965.162s/无 mismatch | 0 | 以 [最终验证版本](../remove-grhsim-ir/20261026-r7-r8-validation.md) 为 S9 直接基线 |
+| S9 数组规范化与 CPU 访问分析 | 未开始 | 历史 P0–P5 接口待重写 | 门禁未运行 | 0 | 先验收统一图迁移；规范化归 transform，访问分析归 emitter 内部 |
 
 依赖图见 README §4：S2∥S3，S5∥S6，S4 是 S7 最大前置。
 
@@ -185,7 +188,77 @@
   endpoint 拼接/整组读口/1 个纯位向量 pad-concat——§3.5 明记残余）
 - 豁免/破坏：0（计划内破坏：旧 GRH JSON 产物重生）
 
+### S8 — 数组构造 op（stage-08-array-create.md）
+
+- 状态：已实施、验收通过，工作树未提交，未标记已合入。
+- 实现：GRH `kArrayCreate` / `Graph::createArray` 与 GrhSIM `core.compute.arrayCreate` /
+  `addArrayCreate`；同型元素、`[N]+S` 几何、顺序和 domain 强校验；前端直接生产、
+  SV/JSON 往返、常量/CSE/索引/位依赖及 CPU local/frame/boundary/state/output 按元素消费。
+- ROB 接通：原 SV 重生后 flat GRH 813 个构造、最终 GrhSIM 373 个构造；目标输出
+  直接消费数组。修复目标输出的无损 assign 链重接及 used-bits 数组视图存活规则，
+  对应无用打包生产者删除；内部消费者和其他剩余形态由 S9 继续通用化。
+- 门禁快照（2026-10-23）：`test_wolvrix` 67/67；`run_xs_bugcase_grhsim` 27/27；
+  HDLBits IR 162/162；黄金 trace 162/162；新类型/顺序/往返及四种 CPU 执行 + UBSan 全过。
+- ROB 行为：100050 周期 × 5491 输出字的新旧 GrhSIM dump 无排除逐字节相同；
+  gsim/GrhSIM/trace 既定严格校验通过，历史排除项不扩张。
+- 性能：同 CPU 0 / Clang 22.1.2 / -O3 / trace，每侧预热 1、测 3；旧 GrhSIM
+  min 54227.731 ms → 新 45683.073 ms（耗时降低 15.76%，中位数降低 15.69%）；
+  gsim 10905.952 ms，新 GrhSIM 仍慢 4.189×。IR/C++/机器码与 perf 证据均归档。
+- 豁免：0。兼容性变更：core 方言指纹 v2→v3，旧 checkpoint 需重生；JSON 容器仍 v3。
+  CPU 四态 aggregate 仍明确不支持，exceptionVec 存储未改；不改变 S7 整机验收状态。
+- 文档：[完整实测报告](../rob_standalone/20261023-040804-rob-array-create-ab.md)、
+  stage-08 §10，以及 GRH/ingest/GrhSIM 方言、pass、CPU 正式规范均已同步。
+
+### S9 前置 — 移除独立 GrhSIM IR
+
+- 状态：按 [统一图计划](../remove-grhsim-ir/README.md) 完成 R0–R8，工作树未提交。旧实现已删除，干净重建、必要回归、ROB 及 XS 验证通过；结果见 [迁移进度](../remove-grhsim-ir/PROGRESS.md) 和 [能力索引](../remove-grhsim-ir/capability-evidence.md)。
+- 核对：公共计算在两层分别注册/映射/校验，sliceArray 的 shape 校验存在漂移；分区、布局、
+  激活、写与 TU 计划实际生效，generic NUMA/core/task 表没有驱动当前 CPU ST emitter 的顺序。
+- 已定：复用 GRH 实体/类型/数组/JSON；bitSelect/prioritySelect 属于 grhsim，删除 assignAs。
+  grh-to-grhsim 只转换 op，分区前独立 simplify 可合并等价 detector；之后两次拆区域、活动度切图和 sink 分区。
+  SinkSchedule 是第一个跨 pass 的额外产物；布局/访问/激活及所有函数 chunk/chunkFrame 归新 emitter，不建独立 CpuProgram 或 CPU planning pass。
+- 文档：[权威 pass 规划](../remove-grhsim-ir/passes-and-emitter.md)；[原目标模型](pre-s9-grhsim-target-model.md) 与 [事实审查](pre-s9-grhsim-ir-boundary-review.md) 存档。
+  S9 优化以 [R7/R8 验证版本](../remove-grhsim-ir/20261026-r7-r8-validation.md)为直接基线，尚未开工；单次 100k 测量不构成受控加速比。
+- 豁免：0；S8 历史总基线固定，前置与数组优化分开验收和计算增量收益。
+
+### S9 — 数组规范化与 CPU 访问映射（stage-09-array-normalize-mapping.md）
+
+- 状态：未开始；历史 P0–P5 结构待按统一图计划重写，尚无新 S9 pass 或验收结果。
+- 依据：[S8 后 ROB 审计](../rob_standalone/20261023-rob-array-roundtrip-audit.md) 确认仍有
+  内部无损 assign 往返、不同叶宽整数组写、对齐切片、二维 repeat/concat 四类遗漏。
+- 当前归属：规范化在同一 GRH 图上作为按需优化；数组访问、快照和物化分析在新 emitter 内部完成。
+  原 whole/phase、CPU4/CpuValuePlan 和独立 artifact 格式均为历史草案，不按原接口实施。
+- 顺序：前置收敛及验收已完成、直接基线已固定；后续为访问计划最小闭环及 replayCause → 内部视图 → 切片 →
+  二维块操作 → 回归和 ROB 同 trace 验收；在统一 GRH 与新 emitter 已验收的行为基础上扩展。
+- 门禁：尚未运行；要求新旧 GrhSIM 全输出零排除一致、IR/C++/机器码结构验收和正式三轮 A/B。
+  既有 S8 门禁结果不能作为 S9 通过依据，含 reset 的回放收益不得直接外推到稳态。
+- 豁免：0；checkpoint 使用统一 GRH JSON，访问/布局/chunk 不作为另一套执行输入。S7 状态保持独立。
+- 文档：[实施计划](stage-09-array-normalize-mapping.md)。
+
 ## 日志
+
+- 2026-10-26：R0–R8 必要验证及收口已完成；旧实现删除，正式仿真规范迁至统一 GRH，独立 IR 文档归档。完整 SV→emu 1954.081s、100k Host=965.162s/238,535 提交/无 mismatch。S9 保持未开始，以该版本为直接基线；未提交工作树。
+
+- 2026-10-24：新权威计划为 [移除独立 GrhSIM IR](../remove-grhsim-ir/README.md)；同步 pre-S9/S9 状态引用，独立 SimModel/CpuProgram/CpuStArtifact 方案存档。S8 证据及以下历史日志保留。
+
+- 2026-10-23：完成 [GrhSIM 最小扩展与 CPU ST 目标数据模型](pre-s9-grhsim-target-model.md)。
+  明确保留的公共/仿真/CPU op 白名单及逐项字段；CPU 独立持有 lowered program、分区、存储、激活、
+  写入、访问/快照/物化、frame/函数/TU；删除 generic mapping/task 壳，选定 v4 + cpu.st.artifact.v1。
+  S9 接口改为 CPU4 更新同一 CpuValuePlan，无新 stage 枚举。仅文档变更，重构与新门禁未开始。
+
+- 2026-10-23：将 [GrhSIM IR 定义与 CPU 计划边界审查](pre-s9-grhsim-ir-boundary-review.md)
+  排在两个数组 pass 之前；完成生产/消费链代码核对，发现共享 op 契约重复和 sliceArray 校验漂移，
+  generic task 顺序表未被 emitter 消费；mapping 中的实际布局/激活/写/TU 计划仍必要。
+  S9 新 stage/schema 改为候选，待前置收敛；本轮未实施重构、未运行新仿真。
+
+- 2026-10-23：完成 [S9 pass 规划](stage-09-array-normalize-mapping.md)，尚未实施；明确
+  语义数组规范化与 CPU 数组访问规划的分工、C5.5 插入点、typed mapping 生命周期、
+  P0–P5 顺序和验收。基线选 S8 candidate，不把含 reset 的 5.6005% 采样占比当作收益承诺。
+
+- 2026-10-23：S8 已实施并通过全部门禁，ROB 全输出零排除一致，三轮回放耗时降低
+  15.76%；机器码和 perf 确认目标字段的大整数往返消失。详见
+  [实测报告](../rob_standalone/20261023-040804-rob-array-create-ab.md) 与 stage-08 §10。
+  playground `grh/grhsim-ir-gap-driven` / wolvrix `grh/grhsim-ir` 工作树未提交、未合入。
 
 - 2026-10-13：S7 常量数组索引保留实验收口到完整仿真：CLE 仅在假环入口
   消除 LSQ 假环（53/53 fixed、unresolved=0），CPU 映射、1343 TU emu
@@ -288,3 +361,4 @@
   shape 传播、used-bits 非跟踪值 cone pinning（pinned 单调标记）、emit rowOf 动态单索引
   stride、state.read 按 state shape 分派、kSliceArray 扁平基值转换层兜底（单索引
   1-D 视图）。详见 stage-06 实施记录（偏差 11 条）。S7 可开工（S5/S6 依赖已清）。
+- 2026-10-23：新增 [S8 数组构造 op 实施计划](stage-08-array-create.md)，状态为未开始；计划位于 `pdocs/grh-ir-array-support/`，本次仅整理文档（工作树，分支 grh/grhsim-ir-gap-driven）。

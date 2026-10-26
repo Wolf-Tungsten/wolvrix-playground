@@ -4,6 +4,7 @@
 import argparse
 from bisect import bisect_right
 from collections import Counter
+import json
 from pathlib import Path
 import re
 import struct
@@ -97,16 +98,35 @@ def six_phase_category(name):
     method = name.split("::", 1)[1]
     if re.match(r"sn_\d+(?:_|\()", method):
         return "general_supernode"
-    for prefix, category in (("pGeneral_c", "general_chunk"), ("pMem_c", "mem_chunk")):
+    for prefix, category in ((r"writer_(?:run)?", "sink_writer"),
+                             (r"commit_(?:run)?", "large_sink_commit")):
+        if re.match(rf"{prefix}\d+(?:_chunk\d+)?\(", method):
+            return category
+    for prefix, category in (("pGeneral_c", "general_chunk"), ("pMem_c", "mem_chunk"),
+                             ("pGeneral_chunk", "general_chunk"), ("pLargeSink_chunk", "large_sink_chunk")):
         if re.match(rf"{prefix}\d+\(", method):
             return category
     for method_name, category in (("pInput", "input"), ("pEvent", "event"),
                                   ("pGeneral", "general_schedule"), ("pMem", "mem_schedule"),
+                                  ("pLargeSink", "large_sink_schedule"),
                                   ("pPublish", "publication"), ("pOutput", "output"),
-                                  ("eval", "evaluator")):
-        if method.startswith(method_name + "("):
+                                  ("eval", "evaluator"), ("init", "initialization"),
+                                  ("dump_waveform", "waveform"), ("ensure_waveform_open", "waveform"),
+                                  ("dump_runtime_profile", "profile")):
+        if re.match(rf"{method_name}(?:_chunk\d+)?\(", method):
             return category
     return "main_other"
+
+
+def six_phase_model(model):
+    manifest = model / "manifest.json" if model.is_dir() else model.parent / "manifest.json"
+    if manifest.is_file():
+        info = json.loads(manifest.read_bytes())
+        if info.get("emitter") == "grhsim-cpu-st-cpp":
+            if not isinstance(info.get("functions"), list) or not isinstance(info.get("nonsink_functions"), list):
+                raise ValueError("incomplete CPU emitter manifest")
+            return True
+    return bool(re.search(r"void\s+\w+::pMem\(\)\s*\{", model.read_text()))
 
 
 def summarize(profile, binary, model, expected_samples, top):
@@ -116,7 +136,7 @@ def summarize(profile, binary, model, expected_samples, top):
         raise ValueError(f"sample total {total} != profiler diagnostic {expected_samples}")
     native = symbols(binary)
     starts = sorted(native)
-    six_phase = bool(re.search(r"void \w+::pMem\(\)\{", model.read_text()))
+    six_phase = six_phase_model(model)
     phases = {} if six_phase else task_phases(model)
     functions, categories, pcs_by_symbol = Counter(), Counter(), {}
     main_maps = [m for m in maps if m[4] and Path(m[4]).resolve() == binary.resolve()]

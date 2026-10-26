@@ -20,7 +20,7 @@ $(SIM)/.emitted: $(RTL) $(CASE_DIR)/Makefile FORCE
 	mkdir -p $(OUT)
 	printf '%s\n' '$(RTL)' > $(OUT)/filelist.f
 	printf '' > $(OUT)/read_args.txt
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) $(ROOT)/scripts/wolvrix_xs_grhsim_ir.py \
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) $(ROOT)/scripts/wolvrix_xs_grhsim.py \
 		$(OUT)/filelist.f $(TOP) $(OUT)/flat.json $(OUT)/ir.json $(OUT)/roundtrip.json \
 		$(OUT)/read_args.txt warn --emit-cpp-dir $(SIM)
 	touch $@

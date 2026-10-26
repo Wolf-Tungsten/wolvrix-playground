@@ -61,6 +61,7 @@ from benchmark_grhsim_ir import digest  # noqa: E402
 from grhsim_bit_update_census import check_dynamic  # noqa: E402
 from grhsim_bucket_dyn_price import attribute_op_modules, BUCKET_MODULES  # noqa: E402
 from grhsim_declared_pack_census import declared_names  # noqa: E402
+from grhsim_grh_reader import GraphReader, READ_KINDS, attribute, logical_type  # noqa: E402
 from grhsim_gsim_module_compare import (  # noqa: E402
     check_grhsim_counts, match_anchor_sets, match_report, normalize_name,
 )
@@ -161,10 +162,12 @@ def parse_gsim_int(text, width):
 # ---------------------------------------------------------------------------
 
 
-def load_grhsim_final(path):
-    """Load the final checkpoint once; keep padded id-indexed arrays only."""
+def load_grhsim_final(path, top=None):
+    """Load native graph indexes, or the frozen legacy diagnostic arrays."""
     log(f"grhsim: loading {path}")
     model = json.loads(Path(path).read_bytes())
+    if "graphs" in model or "ops" in model:
+        return GraphReader(model, top)
     strings = model["strings"]
     counts_ok, counts_checks = full_counts_check(model)
     fingerprints = semantic_fingerprints(model)
@@ -421,6 +424,109 @@ def member_pairs(groups):
         remainder["gsim_bits"] += sum(w for n, w in group["gsim"] if n not in used_g)
         remainder["grhsim_bits"] += sum(w for n, w in group["grhsim"] if n not in used_r)
     return pairs, gkeys, rkeys, dict(remainder)
+
+
+class NativeGrhSignatures:
+    """Structural diagnostics directly over GRH values and operation records."""
+
+    classes = {"k" + key.rsplit(".", 1)[1][0].upper() + key.rsplit(".", 1)[1][1:]: value
+               for key, value in GRH_CLASS.items()}
+
+    def __init__(self, reader, keys, pool):
+        self.reader, self.keys, self.pool = reader, keys, pool
+        self.memo = {}
+
+    def dependencies(self, value):
+        if value not in self.reader.values:
+            raise ValueError(f"missing value {value!r}")
+        name = self.reader.producer.get(value)
+        if name is None:
+            if value in self.reader.inputs:
+                return []
+            raise ValueError(f"missing value producer for {value!r}")
+        op = self.reader.ops[name]
+        if op["kind"] in READ_KINDS or op["kind"] == "grhsim.edge-detect":
+            return []
+        return op["in"]
+
+    def sig_value(self, root):
+        active, stack = set(), [(root, False)]
+        while stack:
+            value, done = stack.pop()
+            if value in self.memo:
+                continue
+            if done:
+                child = [self.memo[arg] for arg in self.dependencies(value)]
+                self.memo[value] = self.normalize(value, child)
+                active.remove(value)
+            else:
+                if value in active:
+                    raise ValueError(f"GRH combinational cycle at {value!r}")
+                active.add(value)
+                stack.append((value, True))
+                stack.extend((arg, False) for arg in reversed(self.dependencies(value))
+                             if arg not in self.memo)
+        return self.memo[root]
+
+    def sig(self, name):
+        results = self.reader.ops[name]["out"]
+        if len(results) != 1:
+            raise ValueError("structural operation signature requires exactly one result")
+        return self.sig_value(results[0])
+
+    def normalize(self, value, children):
+        reader, pool = self.reader, self.pool
+        typ = logical_type(reader.values[value])
+        width = typ[1]
+        if typ[0] != "logic" or typ[3] != "2state" or typ[4]:
+            return pool.add("grh_typed_leaf", width, (typ, value))
+        if value in reader.inputs:
+            names = tuple(sorted(normalize_name(name) for name in reader.inputs[value]))
+            return pool.add("input" if len(names) == 1 else "grh_input_aliases", width, names)
+        name = reader.producer[value]
+        op = reader.ops[name]
+        kind = op["kind"]
+        params = {key: attribute(op, key) for key in op.get("attrs", {})}
+        if kind in READ_KINDS:
+            target = reader.target(op)
+            if kind == "kRegisterReadArrayPort" or logical_type(reader.states[target], True)[4]:
+                return pool.add("grh_mem", width, (target, name))
+            if target in self.keys:
+                return pool.add("reg", width, (self.keys[target],))
+            return pool.add("grh_reg", width, (target,))
+        if kind == "grhsim.edge-detect":
+            return pool.add("grh_event", width, (name,))
+        if kind == "kConstant":
+            parsed = parse_const_literal(params.get("constValue"), width)
+            if parsed is not None:
+                return pool.add("const", width, (parsed[0],))
+            return pool.add("grh_const", width, (str(params.get("constValue")),))
+        if kind == "kAssign" and logical_type(reader.values[op["in"][0]]) == typ:
+            return children[0]
+        if kind == "kMux":
+            return pool.select(width, children[:1], children[1:2], children[2])
+        if kind == "grhsim.prioritySelect":
+            n = (len(children) - 1) // 2
+            return pool.select(width, children[:n], children[n:2*n], children[-1])
+        if kind == "kSliceStatic":
+            return pool.node("slice", width, children, (int(params["sliceStart"]), int(params["sliceEnd"])))
+        if kind in ("kSliceDynamic", "kSliceArray"):
+            return pool.node("slice_dyn" if kind == "kSliceDynamic" else "index_dyn", width,
+                             children, (int(params.get("sliceWidth", width)),))
+        if kind in ("kShl", "kLShr", "kAShr"):
+            tag = {"kShl": "shl", "kLShr": "lshr", "kAShr": "ashr"}[kind]
+            amount = pool.keys[children[1]]
+            return (pool.node(tag, width, children[:1], (amount[2][0],)) if amount[0] == "const"
+                    else pool.node(tag, width, children))
+        if kind == "kReplicate":
+            return pool.node("replicate", width, children, (int(params["rep"]),))
+        if kind in self.classes:
+            signs = tuple(int(reader.values[arg].get("sgn", False)) for arg in op["in"])
+            return pool.node(self.classes[kind], width, children, signs if any(signs) else ())
+        # Unknown dialects, calls, bit masks and shape/sign views are never
+        # guessed to be equivalent to a gsim expression.
+        return pool.node("grh:" + kind, width, children,
+                         (json.dumps(params, sort_keys=True), typ))
 
 
 class GrhSignatures:
@@ -1161,11 +1267,76 @@ def analyze_pairs(pairs, grh, graph, grh_engine, gs_engine, execs, cycles, out_d
     return metrics, g4, g5, dict(links)
 
 
+def native_paired_report(reader, graph, execution=None):
+    """Compare data cones using native symbols; report no legacy dynamic gate."""
+    gitems = [(name, width) for name, width, _ in graph.reg_src]
+    ritems = [(name, logical_type(state, True)[1]) for name, state in reader.states.items()
+              if logical_type(state, True)[0] == "logic" and not logical_type(state, True)[4]]
+    groups, ug, ur = match_anchor_sets(gitems, ritems)
+    pairs, gkeys, rkeys, remainder = member_pairs(groups)
+    pool = Signatures()
+    ge, se = NativeGrhSignatures(reader, rkeys, pool), GsimSignatures(graph, gkeys, pool)
+    destinations = {name: target for name, _width, target in graph.reg_src}
+    rows, unlinked = [], Counter()
+    for pair in pairs:
+        writers = reader.writes.get(pair["grhsim"], [])
+        if len(writers) != 1:
+            unlinked["no_writer" if not writers else "multiple_writers"] += 1
+            continue
+        writer = reader.ops[writers[0]]
+        if writer["kind"] not in ("grhsim.write", "grhsim.writeMask"):
+            unlinked["unsupported_writer"] += 1
+            continue
+        if len(writer["in"]) != (3 if writer["kind"] == "grhsim.write" else 4):
+            raise ValueError(f"malformed native writer {writers[0]!r}")
+        groot = se.root(destinations.get(pair["gsim"]))
+        if groot is None:
+            unlinked["missing_gsim_root"] += 1
+            continue
+        root = writer["in"][2]
+        rsig, gsig = ge.sig_value(root), se.sig(groot)
+        rops, gops = reader.cone([root]), se.cone(groot)
+        rsigs = {ge.sig_value(value) for name in rops for value in reader.ops[name]["out"]}
+        gsigs = {se.memo[loc] for loc in gops}
+        rows.append({**pair, "writer": writers[0], "data_value": root,
+                     "data_root_equal": rsig == gsig, "grh_data_operations": len(rops),
+                     "gsim_data_enodes": len(gops), "shared_signatures": len(rsigs & gsigs)})
+    report = {"schema": "grh-paired-cones.v1", "graph": reader.graph["symbol"],
+            "pairing": {"pairs": len(pairs), "unmatched_grh": len(ur), "unmatched_gsim": len(ug),
+                        "remainders": remainder}, "linked_pairs": rows, "unlinked": dict(sorted(unlinked.items())),
+            "dynamic": {"available": False, "reason": "static native diagnostics; no legacy mapping IDs reused"},
+            "limitations": "Data-cone structural comparison only, not write-control equivalence or a frozen legacy gate. "
+                            "Indexed reads, shape/type views, detectors and unknown dialects remain opaque."}
+    if execution is not None:
+        if reader.graph != execution.reader.graph:
+            raise ValueError("native paired pricing requires the exact counter graph")
+        union, sum_visits = set(), 0
+        for row in rows:
+            cone = reader.cone([row["data_value"]])
+            visits = execution.price(cone)
+            row["grh_compute_visits"] = visits
+            row["grh_compute_visits_per_eval"] = visits / execution.evals
+            union.update(cone)
+            sum_visits += visits
+        dynamic = execution.summary()
+        total, unique = dynamic["compute_operation_visits"], execution.price(union)
+        if not 0 <= unique <= sum_visits or unique > total:
+            raise ValueError("native paired dynamic union closure failed")
+        dynamic.update(union_compute_visits=unique, sum_pair_compute_visits=sum_visits,
+                       union_compute_share=unique / total if total else None,
+                       pricing="Inclusive native data-cone compute visits. Shared operations count once in the union. "
+                               "No gsim dynamic normalization or historical G1-G4 gate is inferred.")
+        report["dynamic"] = dynamic
+    return report
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("gsim-json", "grhsim-final", "grhsim-pre", "grhsim-dynamic",
                  "model-dir", "run1", "run2", "out-dir"):
-        parser.add_argument("--" + name, type=Path, required=True)
+        parser.add_argument("--" + name, type=Path, required=name in ("gsim-json", "grhsim-final", "out-dir"))
+    parser.add_argument("--static-only", action="store_true", help="native GRH data-cone report without legacy dynamic gates")
+    parser.add_argument("--native", action="store_true", help="native static report with optional bound native execution counts")
     parser.add_argument("--gsim-sha256", required=True)
     parser.add_argument("--sample-verify", type=int, default=100)
     parser.add_argument("--sample-seed", type=int, default=20260928)
@@ -1177,14 +1348,49 @@ def main():
         parser.error("output must be a new directory under repository ptmp")
     if args.sample_verify < 100:
         parser.error("G4 requires at least 100 pairs")
+    native = args.static_only or args.native
+    if args.static_only and any((args.model_dir, args.run1, args.run2)):
+        parser.error("use --native for native execution pricing; --static-only does not consume counters")
+    if not native:
+        for name in ("grhsim_pre", "grhsim_dynamic", "model_dir", "run1", "run2"):
+            if getattr(args, name) is None:
+                parser.error("frozen dynamic gate requires --" + name.replace("_", "-"))
     output.mkdir(parents=True)
     sys.setrecursionlimit(20000)
     start = time.monotonic()
+    if native:
+        hashes = {"gsim_json": digest(args.gsim_json), "grhsim_final": digest(args.grhsim_final)}
+        if hashes["gsim_json"] != args.gsim_sha256:
+            raise ValueError("gsim input hash differs from expected input")
+        reader = load_grhsim_final(args.grhsim_final)
+        if not isinstance(reader, GraphReader):
+            raise ValueError("--static-only requires native GRH JSON")
+        execution = None
+        if any((args.model_dir, args.run1, args.run2)):
+            if not all((args.model_dir, args.run1, args.run2)):
+                raise ValueError("native execution pricing requires --model-dir, --run1 and --run2")
+            from grhsim_execution_counts import NativeExecutionCounts
+            execution = NativeExecutionCounts(reader, args.model_dir, args.run1, args.run2)
+        report = native_paired_report(reader, load_gsim(args.gsim_json), execution=execution)
+        report["inputs_sha256"] = hashes
+        (output / "summary.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+        dynamic = report["dynamic"]
+        description = (f"{dynamic['union_compute_visits']} union compute visits; "
+                       f"{dynamic['evals']} eval calls" if dynamic["available"] else dynamic["reason"])
+        text = (f"# Native GRH paired data cones\n\n{len(report['linked_pairs'])} linked strict pairs.\n\n"
+                f"{report['limitations']}\n\nDynamic: {description}\n")
+        (output / "summary.md").write_text(text)
+        print(text, flush=True)
+        return
     hashes = {name: digest(getattr(args, name)) for name in
               ("gsim_json", "grhsim_final", "grhsim_dynamic")}
     if hashes["gsim_json"] != args.gsim_sha256 or hashes["grhsim_final"] != hashes["grhsim_dynamic"]:
         raise ValueError("G1a input hashes differ from registered inputs")
     grh = load_grhsim_final(args.grhsim_final)
+    if isinstance(grh, GraphReader):
+        raise ValueError("this frozen dynamic-counter gate requires legacy mappings; "
+                         "use the native GRH cone reader for structural diagnostics, "
+                         "and do not reuse legacy dynamic IDs on a new graph")
     log("loading pre-partition for semantic identity gate")
     pre = json.loads(args.grhsim_pre.read_bytes())
     pre_identity = semantic_fingerprints(pre) == grh["fingerprints"]

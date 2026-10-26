@@ -55,3 +55,20 @@ class XsWorkflowTests(unittest.TestCase):
                 result = self.make("-n", target)
                 self.assertNotEqual(result.returncode, 0, result.stdout)
                 self.assertIn("No rule to make target", result.stdout)
+
+    def test_grhsim_ir_aliases_are_absent(self):
+        makefile = (ROOT / "Makefile").read_text()
+        self.assertNotIn("xs_wolf_grhsim_ir", makefile)
+        self.assertNotIn("XS_WOLF_GRHSIM_IR", makefile)
+        for target in ("test_grhsim_ir", "run_hdlbits_grhsim_ir", "run_all_hdlbits_grhsim_ir_tests"):
+            with self.subTest(target=target):
+                result = self.make("-n", target)
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn("No rule to make target", result.stdout)
+
+    def test_grhsim_emu_uses_current_grhsim_route(self):
+        makefile = (ROOT / "Makefile").read_text()
+        self.assertIn("XS_GRHSIM_SCRIPT := $(CURDIR)/scripts/wolvrix_xs_grhsim.py", makefile)
+        self.assertRegex(makefile, r"(?m)^xs_grhsim_emu: xs_grhsim$")
+        self.assertRegex(makefile, r'(?m)^run_xs_grhsim_emu: check_xs_aggregate_rtl$')
+        self.assertIn('$(XS_GRHSIM_BUILD_ABS)/emu/emu', makefile)
