@@ -10,7 +10,7 @@ producer and consumer in the same supernode AND same helperChunk.
 
 Joins fusible ops with [grhsim-dyn] sn body counts for dynamic executions.
 Used to size the grhsim.fuse-expr-chains pass (core.compute.expr) before
-implementation; see pdocs/NO00011-grhsim-ir-expr-tree-fusion-20260925.md.
+implementation in the historical NO00011 experiment.
 
 Parsing conventions follow scripts/grhsim_op_mix_stats.py (op[1]=name sid,
 op[4]=operands, op[5]=results; type[2]=kind, type[3]=width, type[5]=domain).

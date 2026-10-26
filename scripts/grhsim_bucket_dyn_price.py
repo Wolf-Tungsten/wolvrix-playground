@@ -20,7 +20,7 @@ simulation runs), linking two archives of one production build:
   2. dyn run log           -> per-unit body/chg fires ([grhsim-dyn] sn rows),
      per-value change counters ([grhsim-vchg] rows), commit rows and totals.
 
-Metrics (pre-registered in pdocs/NO00021-*.md):
+Metrics (historical NO00021 experiment):
   M-bexec   per-bucket dynamic op execs/cycle (compute domain, closed form:
             sum over units body(unit) * bucket ops in unit);
   M-bmon    per-bucket monitored-value count, sum wr / sum ch per cycle;

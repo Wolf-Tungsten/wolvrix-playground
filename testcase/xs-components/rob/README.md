@@ -29,7 +29,7 @@ GrhSIM 使用当前 CPU 管线，开启 row-constant-fill、OR-write-merge、mig
 
 独立模型使用聚合 SV；真实激励来自已验证的 **plain Verilator reference**。本次加载 `coremark-2-iteration.bin`，开启 NEMU difftest、RTL 断言和完整 FST，正常运行至 `-C 100000` 周期上限，共提取 **100,050 条记录（52 条 reset）**。这是 CoreMark 的 100k 周期窗口，不表示程序已执行完两次迭代。
 
-聚合版整机 Verilator 在约 10,269 周期触发 `AheadBtbReplacer` 断言，不能作为本次 100k 参考；失败前缀保留作常量审计补充证据。该整机问题也记录在 `pdocs/grhsim-ir-preserve-aggregate-xiangshan-coremark-investigation-20261018.md`。没有关闭断言绕过失败。
+聚合版整机 Verilator 在约 10,269 周期触发 `AheadBtbReplacer` 断言，不能作为本次 100k 参考；失败前缀保留作常量审计补充证据。当前整机行为对比使用 plain SV，参见 [GrhSIM 实现](../../../pdocs/grhsim.md)。没有关闭断言绕过失败。
 
 `map_rob_fst.py` 把 plain 波形映射到聚合端口记录：5,213 个输入叶中，1,505 个从 FST 读取，3,532 个经生成 gsim 计算代码审计确认为未使用，176 个为整机传播的零常量（入队 replayInst、非内存执行单元 debug、未实现写回数据和 exception 位）。后两类统一驱动零；遇到未分类的活跃输入会失败。176 个常量另与聚合 tap 的 10,322 周期前缀逐条核对，全部为零。来源和逐项分类见 `trace/fst_mapping.json`。
 
@@ -64,7 +64,7 @@ make -C testcase/xs-components rob-bench-trace \
 - `trace/plain_reference_sources.sha256`、`trace/fst_sources.sha256`、`trace/replay.sha256`：参考程序/镜像/NEMU、FST/映射/模型来源、trace/布局/覆盖掩码的 SHA256。
 - `trace/replay_full_20261022.log`、`bench_trace.log`：全程校验和性能日志。
 
-完整测量、编译配置和校验边界见 `pdocs/rob_standalone/rob-aggregate-coremark100k-20261022.md`。下文的 2026-10-07 结果仅保留为历史记录。
+原始测量报告可从 git 历史查阅。下文的 2026-10-07 结果仅保留为历史记录。
 
 本次结果（CPU 0，100,050 周期，三轮取 min，均 `-O3` / 无 PGO）：
 
@@ -172,7 +172,7 @@ gsim RHS enodes 只统计每棵赋值树 root 可达节点，排除序列化 lva
 - 17 个 `*_bore` difftest WiringControl 观测口：自 2026-10 起在端口配对/打包阶段即不纳入（verify 报告 `excluded_bore_ports=0`）；其 payload 此前已验证一致，帧内包装计数器/时间戳的计数约定在两个生成模型间不同。
 - `io_storeDebugInfo_{0,1}_pc`：352 项 `debug_pc` 数组经 9 位 `robidx.value` 的动态索引读；随机激励下索引频繁越界（≥352），越界读在 FIRRTL 中属未定义行为——gsim 得 0，GrhSIM 得别名项。索引在界内的向量逐周期一致。
 
-注意：随机激励下两模型执行的是相同但非法的状态轨迹，吞吐不代表现实工作负载；整机 CoreMark 口径的差距（含 gsim PGO）见 `pdocs/perf-optimization/20261007-011318-gsim-vs-grhsim-ir-100k-coremark.md`，不可与本基准直接比较。**真实激励口径见下节"Trace 回放基准"。**
+注意：随机激励下两模型执行的是相同但非法的状态轨迹，吞吐不代表现实工作负载；历史整机 CoreMark 测量包含 gsim PGO，不可与本基准直接比较。**真实激励口径见下节"Trace 回放基准"。**
 
 复现与产物：
 
@@ -219,7 +219,7 @@ make -C testcase/xs-components -f rob.mk rob-trace-run ROB_TRACE_CYCLES=100000
 make -C testcase/xs-components -f rob.mk rob-bench-trace ROB_BENCH_VERIFY=100000 ROB_BENCH_REPEAT=3
 ```
 
-产物在 `ptmp/xs-components-rob/trace/`：`rob_tap.sv`/`tap_ports.json`（tap 与端口清单）、`layout.json`（记录布局）、`verilator-ref-emu/`（整机构建）、`rob_trace.bin`（4.6GB 打包 trace）、`pack.log`/`emu_run.log`、`perf_{gsim,grhsim}_trace_20261007.txt`（perf 原始计数）。difftest 的参数解析器拒绝未知 `+plusarg`，因此 tap 固定写 emu 工作目录下的 `rob_trace.txt`（该路径即 FIFO）。本次重测数据记录见 `pdocs/rob_standalone/rob-trace-replay-bench-20261007.md`。
+产物在 `ptmp/xs-components-rob/trace/`：`rob_tap.sv`/`tap_ports.json`（tap 与端口清单）、`layout.json`（记录布局）、`verilator-ref-emu/`（整机构建）、`rob_trace.bin`（4.6GB 打包 trace）、`pack.log`/`emu_run.log`、`perf_{gsim,grhsim}_trace_20261007.txt`（perf 原始计数）。difftest 的参数解析器拒绝未知 `+plusarg`，因此 tap 固定写 emu 工作目录下的 `rob_trace.txt`（该路径即 FIFO）。原始重测报告可从 git 历史查阅。
 
 ## 微观性能分析（2026-10-07，六阶段路线口径）
 
@@ -235,4 +235,4 @@ make -C testcase/xs-components -f rob.mk rob-bench-trace ROB_BENCH_VERIFY=100000
 ### 公平性附注
 
 - TB 驱动开销不对称（旧路线实测 gsim `set_` 访问器 + 位宽掩码约 8 µs/周期，GrhSIM 直接成员写约 1 µs/周期），剔除驱动后纯模型墙钟比更高。
-- 两侧均未 PGO；整机 CoreMark 口径见 `pdocs/perf-optimization/20261007-011318-gsim-vs-grhsim-ir-100k-coremark.md`。
+- 两侧均未 PGO；历史整机 CoreMark 测量包含 gsim PGO，不能直接比较。

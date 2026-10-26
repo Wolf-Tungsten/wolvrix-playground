@@ -103,8 +103,8 @@ Simulation now uses the same GRH design through conversion, optimization,
 virtual partitioning and C++ emission. The independent GrhSIM IR and Python
 model APIs have been removed. The active XiangShan route is `xs_grhsim_emu`
 and `run_xs_grhsim_emu`. See the [simulation workflow](wolvrix/docs/grhsim.md)
-and [capability/evidence index](pdocs/remove-grhsim-ir/capability-evidence.md)
-for checkpoints, supported forms and validation.
+and [current implementation](pdocs/grhsim.md)
+for the six scheduling phases, passes, dialect operations and emitter layout.
 
 ## Output Locations
 

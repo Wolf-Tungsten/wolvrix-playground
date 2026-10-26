@@ -12,7 +12,7 @@ strip to empty keeps the last non-empty prefix. Name clustering is a
 diagnostic anchor inside the declared provenance set, never an optimization
 trigger.
 
-Metrics (pre-registered in pdocs/NO00026-*.md):
+Metrics (historical NO00026 experiment):
 
   M-fam   family sizes, widths, bit share of the universe, and the
           production form of each member: standalone (same-name state in

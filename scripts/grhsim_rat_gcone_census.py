@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """NO00022 M-gcone census: row-private write-cone dynamic execs of target RAT families.
 
-Pre-registered anchor metric of pdocs/NO00022-grhsim-ir-writenet-factor-*.md:
+Anchor metric (historical NO00022 experiment):
 
   M-gcone = deduplicated row-private write-cone op execs/cycle of the target
   register families, deterministic caliber:

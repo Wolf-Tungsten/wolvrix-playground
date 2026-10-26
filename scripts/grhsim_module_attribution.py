@@ -4,10 +4,9 @@
 
 Joins the supernode-origin manifest (schema grhsim-supernode-origin-manifest/v1)
 with the runtime per-supernode timing TSV and attributes simulator host cycles
-to RTL module paths, per pdocs/grhsim-ir-module-attribution/
-20261022-implementation-plan.md section 6.
+to RTL module paths. Current workflow: pdocs/grhsim.md section 6.
 
-Attribution model (plan section 6.1):
+Attribution model:
   A(m) += cycles_s * (sum_{i: m in M_i} w_i / |M_i|) / (sum_i w_i)
 with op weights w_i = base[kind_i] * widthFactor(width_i), where base[kind] is
 calibrated by non-negative least squares (NNLS) over all fired supernodes

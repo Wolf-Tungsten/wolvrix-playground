@@ -20,8 +20,8 @@ archive, the current-best build):
      checkpoint-derived task->unit mapping is cached as a pickle in the output
      directory keyed on (path, mtime, size).
 
-Gates (pre-registered in pdocs/NO00018-*.md; amended 2026-09-26 per the
-report's "门槛修订登记" after the first-round G2/G3/G4 failures — original
+Gates (historical NO00018 experiment; amended 2026-09-26
+after the first-round G2/G3/G4 failures — original
 gate outcomes are still reported in the summary's `informational` section):
   G1 merged samples inside model functions (task/helper/simtop_other)
      >= 100,000 and emu address->function interval coverage >= 99%;

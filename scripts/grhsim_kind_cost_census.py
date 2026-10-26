@@ -21,7 +21,7 @@ join with per-unit deterministic fires yields dynamic instr/cycle per kind
 (M-kinddyn), per result-width bucket (M-widthdyn, second fit on width
 features + bookkeeping) and for bookkeeping classes (M-bkacct).
 
-Gates (pre-registered in pdocs/NO00017-*.md):
+Gates (historical NO00017 experiment):
   G1 data joins: disasm task symbols == schedule tasks; helper symbols all
      attributed; compute-excluding-constant body*ops == NO00016 dynOps
      reference within tolerance; all-ops body*ops == grhsim_dynamic_stats

@@ -13,7 +13,7 @@ keyed by (value, width), commutative child sorting, static slice/index
 parameter decoding), matches them per strict member pair, classifies one-sided
 excess (M-xo / M-xg) and joins deterministic dynamic counters closed-form.
 
-Metrics (pre-registered in pdocs/NO00027-grhsim-ir-paired-cone-diff-20260928.md):
+Metrics (historical NO00027 experiment):
   M-pair        anchor bit-weighted coverage, both sides (gate >= 80%);
   M-cone-cover  paired-cone union execs/cycle over all-model compute
                 execs/cycle (static op coverage reported alongside);

@@ -13,7 +13,7 @@ Compares two "pre-partition" IR dumps of the same XiangShan design:
     cpu.st.build-general-nodes (the single C-segment mapping run, M5d-6;
     G1b proves the CPU mapping passes do not change the op multiset).
 
-Metrics (pre-registered in pdocs/NO00020-*.md, HYPOTHESIS section):
+Metrics (historical NO00020 experiment):
 
   M-name     Register anchor matching: gsim NODE_REG_SRC nodes vs GrhSIM
              register-class states (logic-type states EXCLUDING `__event_*`

@@ -71,7 +71,7 @@ WOLVRIX_GRHSIM_WAVEFORM ?= 0
 WOLVRIX_GRHSIM_PERF ?= 0
 export WOLVRIX_GRHSIM_PERF
 # Per-supernode rdtscp timing probes in generated model code (module-level time
-# attribution, see pdocs/grhsim-ir-module-attribution/). Default off: zero
+# attribution, see pdocs/grhsim.md section 6). Default off: zero
 # generated-code and compile-time impact.
 WOLVRIX_GRHSIM_SN_TIMING ?= 0
 export WOLVRIX_GRHSIM_SN_TIMING
@@ -594,8 +594,8 @@ check_remove_grhsim_ir: check_remove_grhsim_ir_options
 		--report "$(REMOVE_GRHSIM_IR_AUDIT_REPORT)" $(if $(strip $(REMOVE_GRHSIM_IR_AUDIT_MODEL)),--model-dir "$(REMOVE_GRHSIM_IR_AUDIT_MODEL)",)
 check_remove_grhsim_ir_options:
 	$(foreach option,$(.VARIABLES),$(if $(filter XS_WOLF_%,$(option)),$(error Retired GrhSIM option $(option); use the XS_GRHSIM_* interface),))
-	$(foreach option,$(.VARIABLES),$(if $(findstring GRHSIM_IR,$(option)),$(if $(filter XS_%,$(option)),$(error Retired GrhSIM option $(option); see pdocs/remove-grhsim-ir/passes-and-emitter.md),)))
-	$(foreach option,$(filter GRHSIM_REEMIT_%,$(.VARIABLES)),$(if $(filter $(option),$(_GRHSIM_REEMIT_ALLOWED)),,$(error Retired GrhSIM option $(option); see pdocs/remove-grhsim-ir/passes-and-emitter.md)))
+	$(foreach option,$(.VARIABLES),$(if $(findstring GRHSIM_IR,$(option)),$(if $(filter XS_%,$(option)),$(error Retired GrhSIM option $(option); see pdocs/grhsim.md),)))
+	$(foreach option,$(filter GRHSIM_REEMIT_%,$(.VARIABLES)),$(if $(filter $(option),$(_GRHSIM_REEMIT_ALLOWED)),,$(error Retired GrhSIM option $(option); see pdocs/grhsim.md)))
 	@:
 test_remove_grhsim_ir_tooling:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_remove_grhsim_ir_tooling.py
@@ -1423,7 +1423,7 @@ analyze_grhsim_slice_chains:
 analyze_grhsim_algebra_residue:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_algebra_residue_stats.py --model "$(GRHSIM_ALGEBRA_MODEL)"
 
-# Module-level simulation-time attribution (pdocs/grhsim-ir-module-attribution/):
+# Module-level simulation-time attribution (pdocs/grhsim.md section 6):
 # supernode origin manifest + purity stats, then NNLS-calibrated module attribution.
 GRHSIM_ORIGIN_MODEL ?= $(XS_GRHSIM_JSON_ABS)
 GRHSIM_ORIGIN_EMIT_MANIFEST ?= $(XS_GRHSIM_EMIT_CPP_DIR)/manifest.json
@@ -1444,7 +1444,7 @@ analyze_grhsim_module_attribution:
 		--manifest "$(GRHSIM_ORIGIN_MANIFEST)" --timing "$(GRHSIM_SN_TIMING_TSV)" \
 		--out-tsv "$(GRHSIM_ATTRIBUTION_TSV)" --report "$(GRHSIM_ATTRIBUTION_REPORT)"
 
-# End-to-end module-level attribution pipeline (pdocs/grhsim-ir-module-attribution/):
+# End-to-end module-level attribution pipeline (pdocs/grhsim.md section 6):
 #   model+emu (SN_TIMING=1) -> instrumented difftest run (sn_timing TSV)
 #   -> origin manifest + purity report -> NNLS module attribution.
 # Heavy stages are skippable when their artifacts already exist:
@@ -1573,8 +1573,8 @@ analyze_grhsim_activity_guards:
 # companion scripts (scripts/benchmark_grhsim_reg_to_mem.py,
 # scripts/test_grhsim_reg_to_mem_rtl.py) are retired — preserve-aggregate RTL
 # carries the array structure the pass used to recover. The rationale and the
-# negative-result knowledge stay in wolvrix/docs/history/grhsim/passes/reg-to-mem.md
-# (historical record) and pdocs/perf-optimization/20261007-040954-reg-to-mem-off-negative.md.
+# negative-result knowledge stay in wolvrix/docs/history/grhsim-ir/passes/reg-to-mem.md
+# and git history. Current state splitting is described in pdocs/grhsim.md.
 
 .PHONY: py_install
 py_install:
