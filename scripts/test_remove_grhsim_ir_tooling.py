@@ -236,6 +236,7 @@ class ToolingTest(unittest.TestCase):
             result = subprocess.run(
                 ["make", "--no-print-directory", "-n", "reemit_grhsim", "SKIP_PY_INSTALL=1",
                  "GRHSIM_REEMIT_OVERWRITE=1", "GRHSIM_REEMIT_MEM_ENABLE_BITMAP=off",
+                 "GRHSIM_REEMIT_MAX_OUTPUT_FILE_BYTES=34359738368",
                  "GRHSIM_REEMIT_MEM_WRITE_ACTIVATE=on-change",
                  f"GRHSIM_REEMIT_PACK_BIT_REGISTERS={enabled}", f"GRHSIM_REEMIT_MASKED_OR={enabled}"],
                 cwd=ROOT, env=env, capture_output=True, text=True, check=False,
@@ -243,6 +244,7 @@ class ToolingTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('--mem-write-activate "on-change"', result.stdout)
             self.assertIn('--mem-enable-bitmap "off"', result.stdout)
+            self.assertIn('--max-output-file-bytes "34359738368"', result.stdout)
             self.assertIn("--overwrite", result.stdout)
             for flag in ("pack-bit-registers", "recover-masked-or"):
                 self.assertIn(f"--{'' if enabled == '1' else 'no-'}{flag}", result.stdout)

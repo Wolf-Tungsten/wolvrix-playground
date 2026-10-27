@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import dataclasses
 from pathlib import Path
+import resource
+import time
 
 import wolvrix
 
@@ -30,6 +32,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--execution-counters", action="store_true", help="diagnostic native operation/site counts; changes generated ABI")
     parser.add_argument("--max-function-lines", type=int, default=1024)
     parser.add_argument("--max-tu-bytes", type=int, default=1024 * 1024)
+    parser.add_argument("--max-output-file-bytes", type=int, default=4 * 1024**3,
+                        help="per-artifact limit, including readable graph and code map")
     parser.add_argument("--max-round", type=int, default=100000)
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--recover-masked-or", action=argparse.BooleanOptionalAction, default=None)
@@ -52,19 +56,28 @@ def parse_args(argv=None) -> argparse.Namespace:
         parser.error("flow must be a subdirectory of repository ptmp or build")
     if args.max_function_lines < 8 or args.max_tu_bytes < 1 or args.max_round < 1:
         parser.error("max-function-lines must be >=8; max-tu-bytes/max-round must be positive")
+    if not 0 < args.max_output_file_bytes < 2**64:
+        parser.error("max-output-file-bytes must be a positive uint64")
     return args
 
 
 def main() -> int:
     args = parse_args()
+    started = time.monotonic()
+    def progress(stage):
+        print(f"[grhsim] {stage}; elapsed={time.monotonic() - started:.1f}s; "
+              f"peak_rss_mib={resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024:.1f}", flush=True)
+
     flow = args.flow.resolve()
     parser = argparse.ArgumentParser(description=__doc__)
     flow.mkdir(parents=True, exist_ok=True)
+    progress("capture generation identity")
     identity = capture_generation("checkpoint-reemit", inputs={"checkpoint": args.model}, configuration=vars(args))
     write_identity(flow / "generation-identity.json", identity)
     with wolvrix.Session() as session:
         session.diagnostics_raise_min_level = "none"
         checked(session.read_json_file(str(args.model.resolve()), out_design="design.main"), "load ordinary GRH checkpoint")
+        progress("checkpoint loaded")
         info = session.graph_metadata(design="design.main", top=args.top)
         top, metadata = info["symbol"], info["metadata"]
         options = FlowOptions.from_metadata(metadata)
@@ -89,6 +102,7 @@ def main() -> int:
             if options.mem_min_bytes != int(metadata["grhsim.memMinBytes"]):
                 parser.error("Changed mem-min-bytes requires the event-output-split checkpoint")
         finish_simulation_graph(session, design="design.main", top=top, options=options, stop_after=args.stop_after)
+        progress("schedule ready")
         # A sink-partitioned checkpoint already contains the complete graph
         # state needed by the emitter.  Re-saving a multi-gigabyte JSON after
         # rebuilding its revision-local SinkSchedule only duplicates work and
@@ -98,11 +112,14 @@ def main() -> int:
         if stage != "sink-partitioned" or args.store_checkpoint:
             store_checkpoint(session, flow / "xiangshan_grhsim.json", design="design.main", top=top)
         if args.stop_after == "sink-partitioned":
+            progress("emit model")
             emit_cpp(session, design="design.main", top=top, output=flow / "model", overwrite=args.overwrite,
                      generation_identity=identity,
                      max_function_lines=args.max_function_lines, max_tu_bytes=args.max_tu_bytes,
+                     max_output_file_bytes=args.max_output_file_bytes,
                      max_round=args.max_round, waveform=args.emit_waveform, mem_write_activate=args.mem_write_activate,
                      mem_enable_bitmap=args.mem_enable_bitmap == "on", execution_counters=args.execution_counters)
+            progress("model published")
     print("CHECKPOINT SCREENING ONLY: this timing does not qualify as full SV generation", flush=True)
     return 0
 

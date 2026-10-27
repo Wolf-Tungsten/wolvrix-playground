@@ -382,6 +382,40 @@ test_grhsim_virtual_partitions test_grhsim_sink_schedule:
 
 .PHONY: test_ingest_expression_width
 .PHONY: generate_grhsim_cpu_st_cpp test_grhsim_cpu_st_cpp
+.PHONY: test_grhsim_readable_store
+test_grhsim_readable_store:
+	mkdir -p $(CURDIR)/ptmp/grhsim-readable/build-tmp $(CURDIR)/ptmp/grhsim-readable/ccache
+	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target store-text store-json store-load-origin-attrs -j 4
+	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(store-text|store-json|store-load-origin-attrs)$$' --output-on-failure
+
+.PHONY: test_grhsim_readable_python
+test_grhsim_readable_python:
+	mkdir -p $(CURDIR)/ptmp/grhsim-readable/build-tmp $(CURDIR)/ptmp/grhsim-readable/ccache $(CURDIR)/ptmp/grhsim-readable/pip-cache
+	@if [ "$(SKIP_PY_INSTALL)" != "1" ]; then \
+		TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache PIP_CACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/pip-cache $(MAKE) --no-print-directory py_install; \
+	fi
+	PYTHONDONTWRITEBYTECODE=1 GRHSIM_READABLE_TEST_WORK=$(CURDIR)/ptmp/grhsim-readable/python $(PYTHON) -m unittest discover -s scripts -p test_grhsim_readable.py
+	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp $(MAKE) -C $(CURDIR)/ptmp/grhsim-readable/python -j 4 run
+
+.PHONY: test_grhsim_readable_cpp
+test_grhsim_readable_cpp: generate_grhsim_cpu_st_cpp
+	mkdir -p $(CURDIR)/ptmp/grhsim-readable/build-tmp
+	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp $(MAKE) -C $(WOLVRIX_BUILD_DIR)/artifacts/grhsim-cpu-st-cpp -j 4 \
+		readable-emission-b16 readable-emission-b16-explicit readable-emission-b16-off readable-emission-b16-frames readable-emission-b16-compact \
+		readable-emission-b1024 readable-emission-b1024-explicit readable-emission-b1024-off readable-emission-b1024-frames readable-emission-b1024-compact \
+		phases-b16-tu4096 phases-b1024-tu1048576 chunk-control-b16 chunk-control-b1024 \
+		effects-b16 effects-b1024 init-b16 init-b1024 waveform-b16 waveform-b1024 \
+		sink-private-b16 sink-private-b1024 snapshot-identity-b16 snapshot-identity-b1024 large-store-construction
+
+.PHONY: inspect_grhsim_readable_model
+GRHSIM_READABLE_MODEL ?= $(CURDIR)/ptmp/grhsim-readable/xiangshan/model
+inspect_grhsim_readable_model:
+	@test -s "$(GRHSIM_READABLE_MODEL)/grhsim.txt"
+	jq -e '{top, readable_names, source_comments, readable_frames, function_count: (.functions | length), source_count: (.sources | length), largest_function: ([.functions[].lines] | max)}' "$(GRHSIM_READABLE_MODEL)/manifest.json"
+	jq --stream empty "$(GRHSIM_READABLE_MODEL)/code-map.json"
+	@echo "Readable model JSON validated with bounded memory."
+
 generate_grhsim_cpu_st_cpp:
 	mkdir -p $(CURDIR)/ptmp/remove-grhsim-ir/build-tmp $(CURDIR)/ptmp/remove-grhsim-ir/ccache
 	TMPDIR=$(CURDIR)/ptmp/remove-grhsim-ir/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/remove-grhsim-ir/ccache $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
@@ -579,7 +613,7 @@ test_grhsim_flow: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
 # variables by namespace, so the production route contains no legacy aliases.
 _GRHSIM_REEMIT_ALLOWED := \
 	GRHSIM_REEMIT_MODEL GRHSIM_REEMIT_FLOW GRHSIM_REEMIT_MAX_FUNCTION_LINES \
-	GRHSIM_REEMIT_MAX_TU_BYTES GRHSIM_REEMIT_MEM_WRITE_ACTIVATE \
+	GRHSIM_REEMIT_MAX_TU_BYTES GRHSIM_REEMIT_MAX_OUTPUT_FILE_BYTES GRHSIM_REEMIT_MEM_WRITE_ACTIVATE \
 	GRHSIM_REEMIT_EXECUTION_COUNTERS GRHSIM_REEMIT_OVERWRITE \
 	GRHSIM_REEMIT_MEM_ENABLE_BITMAP GRHSIM_REEMIT_PACK_BIT_REGISTERS \
 	GRHSIM_REEMIT_MASKED_OR GRHSIM_REEMIT_MASKED_OR_MIN_TERMS \
@@ -762,12 +796,14 @@ profile_grhsim_ir:
 .PHONY: reemit_grhsim
 GRHSIM_REEMIT_MAX_FUNCTION_LINES ?= 1024
 GRHSIM_REEMIT_MAX_TU_BYTES ?= 1048576
+GRHSIM_REEMIT_MAX_OUTPUT_FILE_BYTES ?= 4294967296
 GRHSIM_REEMIT_MASKED_OR_MIN_TERMS ?= 16
 GRHSIM_REEMIT_MEM_WRITE_ACTIVATE ?= on-write
 reemit_grhsim: check_remove_grhsim_ir_options $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim.py \
 		--model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" \
 		--max-function-lines "$(GRHSIM_REEMIT_MAX_FUNCTION_LINES)" --max-tu-bytes "$(GRHSIM_REEMIT_MAX_TU_BYTES)" \
+		--max-output-file-bytes "$(GRHSIM_REEMIT_MAX_OUTPUT_FILE_BYTES)" \
 		--mem-write-activate "$(GRHSIM_REEMIT_MEM_WRITE_ACTIVATE)" \
 		$(if $(filter 1,$(GRHSIM_REEMIT_EXECUTION_COUNTERS)),--execution-counters,) \
 		$(if $(filter 1,$(GRHSIM_REEMIT_OVERWRITE)),--overwrite,) \

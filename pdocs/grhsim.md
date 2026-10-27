@@ -19,7 +19,8 @@ use-def 和 JSON。输入是完成层次展开、必要的数组规范化、组�
 - `SinkSchedule` 是 pass 间首个额外分析产物，保存在外部 session 的 typed
   scratchpad。它仅描述 sink 分组、writer 顺序及依赖，不复制计算图或写入参数。
 - emitter 私下分析存储、数组访问、激活关系、C++ 函数和 chunk 布局，
-  不把这些结果序列化成另一套 CPU plan。
+  不把这些结果序列化成另一套可执行 CPU plan；可读文本和 code map 只是
+  inspection sidecar，帮助从生成代码反查当前 GRH，不参与执行或 checkpoint 恢复。
 
 JSON 的 per-graph `formatVersion=2`；方言版本为 `grh:2`、`grhsim:1`，
 使用 CPU 优化 op 时还有 `grhsim.cpu:1`。类型、stage、归属和配置随 JSON
@@ -388,6 +389,9 @@ current/next；小 writer 在 General 消费输入并直接更新 `smallSinkStor
 
 sink 输入按来源读取：
 
+下表的 `vN` 仅为 value 字段的示意占位；默认生成名称含模块来源和逻辑语义，
+精确拼写与物理引用以 `code-map.json` 为准，见 5.5 和 6.1。
+
 | 输入来源 | 当前物理位置 |
 | --- | --- |
 | 外部输入端口 | `inputStore.vN`；small-sink 使用按角色同步的 enable/payload 字段 |
@@ -437,7 +441,7 @@ whole-array 路径需要时生成；生产默认 on-write 时这两个 store 可
   `dirtyStateFlags`：待 Publish 的状态 bitmap；`pending_`：继续收敛标志。
 - `chunkFrame_<function>` 类型及调用时的局部 `chunkFrame`：函数拆分后的
   temporary / spill 存储，生命周期属于原函数调用，不是长期模型状态。
-  这里的 `cells_*` 是 private frame 布局，详见 5.3。
+  默认仍保留语义字段；显式关闭可读 frame 后才可能出现 private `cells_*`，详见 5.3。
 - `cpu_rng`：随机数状态；`perf_`、`profileEnabled_`、`snTimeTicks_` /
   `snTimeFires_`：性能/计时控制和计数；启用 execution counters 时还有
   `opExecCounts_` / `opExecEvals_`。
@@ -479,8 +483,11 @@ void Model::pGeneral() {
 
 ### 5.3 函数行数限制与 private frame
 
-`max-function-lines=1024` 按最终生成的真实函数行数计数，包含 scaffolding；
+`max-function-lines=1024` 按最终生成的函数代码行数计数，包含 scaffolding；
 `max-tu-bytes=1048576` 控制翻译单元分割。它们与 nonsink work 预算不同。
+函数前的说明注释不计入行数预算，语句/字段注释与原代码同行；注释不参与
+placeholder 替换或 local liveness 分析，不会因为注释提及某变量就制造 spill。
+完整注释仍计入翻译单元的字节数，因此可读模式可能改变 TU 划分。
 
 [function-writer](../wolvrix/lib/emit/grhsim/function-writer.cpp) 按预算拆分函数。
 General/LargeSink 的计算 locals 已限制在各自 batch 内，不汇总到 phase driver。
@@ -489,9 +496,11 @@ General/LargeSink 的计算 locals 已限制在各自 batch 内，不汇总到 p
 或跨 chunk 返回控制时不分配 frame。拆分保持初始化、loop lifetime、
 作用域和 return 语义。
 
-只有 private chunkFrame 超过 **1024 个 logical fields** 时，才允许将默认
+默认 `readable-frames=on`，private chunkFrame 无论字段多少都用直接命名字段，
+例如 `chunkFrame.val_<origin>_<logic>_vN`。显式设为 `readable-frames=off`
+才启用旧布局：超过 **1024 个 logical fields** 的 private frame，可将默认
 初始化字段按完整 C++ type 聚合成 indexed `cells_*`；显式初始化和返回控制
-字段继续独立。这个规则不能应用到 named stores。
+字段继续独立。named stores 在两种模式下都始终使用直接命名字段。
 
 纯 sink-run locals 沿 guarded path 使用前必定赋值，因此不强制整块清零；
 显式初始值、return 控制和其他函数仍保留初始化要求。这个优化不允许跳过
@@ -516,6 +525,41 @@ General/LargeSink 的计算 locals 已限制在各自 batch 内，不汇总到 p
   不支持的 live op、system-function/task 或签名使 emission 失败，
   candidate 生成成功前不替换已有模型。
 
+### 5.5 可读名称与源码注释
+
+默认 `readable-names=on`。状态/operation 名以 `op_` 开头，包含定义它的
+`originModules` 模块实例路径、声明或逻辑 symbol（内部 symbol 缺少语义时改用
+目标状态或 op kind）、运算种类和 `_oN`；value 名以 `val_` 开头，包含输入
+端口、声明或 producer 的来源语义和 `_vN`。算术临时值、packed image、
+writer capture 和 indexed-read subscription 继续附加其职责，例如 data/index/mask、
+临时值用途和 operand 序号。固定调度/runtime 变量保留其已有含义明确的名称。
+
+这些名称表达已保存的定义来源，不是猜测：
+
+- 单一来源使用该模块实例路径；`$` 等不合法 C++ 字符转为 `_`。
+- 多来源共享 op 使用首个来源和 `sharedN`，完整来源列表见 code map 的
+  `origin_sets` 或文本 `origin-sets`；不能把首个路径误解为唯一所属模块。
+- 没有来源的 pass 合成逻辑明确使用 `generated`；未绑定的 value 使用
+  `generated_unbound`，不伪造原 RTL 路径。输入值注明 top/input 来源。
+- 过长名称的语义段保留前缀和尾部，并加入完整文本 hash；最终实体 ID 后缀
+  用于区分相同语义、清洗后碰撞或同名的实体。完整 symbol、来源、source range
+  保存在 sidecar，C++ 截短名称不是唯一追溯依据。
+
+`source-comments=on` 在 phase/function 入口说明阶段、execution owner、writer
+采样或 commit 职责；字段、locals 和 op 语句旁说明 symbol、来源、source 文件/行、
+合成 pass、目标状态和 writerOrder。长注释只给摘要，完整信息在 sidecar。
+注释做单行安全转义，不允许原 HDL 文本改变 C++ 注释或预处理语义。关闭此选项
+只去掉这些可读注释，仍生成 code map。
+
+整机生成按函数消费并释放 C++ 语句树，函数正文暂存于私有 staging，随后按
+原 TU 字节预算流式组装；不会同时保留整机语句树和全部 C++ 文本。名称按需缓存，
+声明注释直接附在对应字段或 local。`code-map.json` 和 `grhsim.txt` 流式写文件，
+生成上下文在文本导出前释放。任何生成、写入或文件大小检查失败都会清理 staging；
+全部产物成功后才发布模型，临时函数正文不进入模型目录。
+默认每个产物仍受 4 GiB 限额约束。整机的完整 code map / 文本可能超过此值；
+可显式传入 Python `max_output_file_bytes`，或在 `make reemit_grhsim` 中设置
+`GRHSIM_REEMIT_MAX_OUTPUT_FILE_BYTES`。此限额不改变函数行数或 TU 字节预算。
+
 ## 6. 使用、诊断与验证
 
 生产入口经项目 Makefile 执行：
@@ -538,6 +582,136 @@ counter graph、sites 和生成源码绑定；跨 chunk 预算比较按原 op/ca
 对齐。模块归因使用原生 graph source/ownership 和 manifest，不借用旧 IR IDs。
 带 instrumentation 的模型不能直接作为无 instrumentation 的性能候选。
 
+### 6.1 中间结构导出与反向查询
+
+`store::StoreText` 与 `StoreJson` 共用 `StoreOptions`、top 选择和诊断通路：
+
+```cpp
+store::StoreText readable(&diagnostics, session);
+store::StoreOptions options;
+options.outputFilename = "stage.grh.txt";
+options.topOverrides = {"Top"};
+const auto result = readable.store(design, options);
+const auto text = readable.storeToString(design, options);
+```
+
+session 参数可空，文件默认名为 `design.grh.txt`。文件导出按流写入；
+`storeToString` 供小规模调用方取得同样内容；整机 emitter 使用流式文件接口。Python 对应接口：
+
+```python
+session.store_text(design="design.main", output="ptmp/stage.grh.txt", top=["Top"])
+session.emit_grhsim_cpu_st_cpp(
+    design="design.main", output="ptmp/model", top=["Top"],
+    readable_names=True, source_comments=True,
+    readable_dump=True, readable_frames=True,
+)
+```
+
+可在原始 GRH，以及 `converted`、`event-output-split`、`nonsink-sink-split`、
+`nonsink-partitioned`、`sink-partitioned` 各 checkpoint 导出。文本含：
+
+- graph/stage/config metadata、端口、declared-symbol/generate-group anchors；
+- 六阶段职责、完整 logical partition tree、折叠 leaf 后的 execution owners
+  及数据/effect-order 依赖。owner key 是身份，不冒充 `sn_N` 编号或 C++ chunk；
+- 当前 session 校验通过的 SinkSchedule group、hoisted enable、fire、general runs、
+  large commit runs、ordered writers、nonsink prerequisites、writerOrder 与同状态写入 rank；
+- 每个 op/value 的 ID、symbol、operand/result、类型/shape/leaf width、attrs、
+  source file/range、origin/pass/note。writer operands 额外注明 fire/enable/index/data/mask 角色；
+- 完整 origin 列表池。共享来源重复出现时引用池项，不在每行重复展开或截掉来源。
+
+schedule 缺失、过期、类型不符或 stage 未完成时，文本明确输出 `status: unavailable`
+和原因，仍允许观察 GRH；不从 partition attrs 猜造一份“已验证” schedule。
+重新加载 JSON 后应在当前 session 重跑 `grhsim-partition-sink` 再导出有效 schedule。
+本文本是 inspection 格式，不能替代 JSON 进行 round-trip，也不是新的执行 IR。
+
+CPU emitter 默认额外生成 `grhsim.txt`；`code-map.json` 始终生成，schema 为
+`grhsim-code-map.v1`，manifest 的 `code_map` 指向它。code map 记录：
+
+| 区域 | 反查信息 |
+| --- | --- |
+| `values` | `value_id/generation/symbol/cpp_name/cpp_type`、producer、source、storage 角色/引用、enable bit、packed prefix |
+| `operations` | op ID/generation、symbol/kind、operands/results、origin_set、source、logical partition / execution owner、elided 标志、state/next 引用、大型 writer captures，以及 detector/sticky/before-image 等控制字段的 `storage` 引用 |
+| `origin_sets` | 完整 defining-module paths，按 operation 的 `origin_set` 引用 |
+| `stores` | 全部 named store 对象、声明类型、字段与物理引用，包含空 store 和复用 `smallSinkStoreType` 的 `smallSinkStoreNext`；packed enable 的 `words` 也保留在这里 |
+| `functions` | 真实生成函数、所在 TU、拆分前 root function、涉及的 op IDs、该函数实际 locals / chunkFrame 引用 |
+| `nonsink_functions` | `sn_N` 与 execution owner 的对应关系 |
+
+反查时先用 C++ 变量名或 `storage[].reference` 找 value，再沿 producer 找 operation、
+origin_set/source 和 operands；或按函数名查询 source TU、root function 与 operations。
+某些 value 因 inline、view、常量或消除不独立占存储，不能要求每个 GRH value 都有
+同名 C++ local。operation 的 `elided` 和 function/local 映射用于区分这些情况。
+snapshot view 的 `snapshot_source` 指向源 value，`storage` 列出实际复用的字段；
+history 的观察后快照和最终写回、状态初始化及 Publish 也记录对应 operation。
+例如使用 `jq` 定位变量及其 producer：
+
+```sh
+jq --arg name 'val_<origin>_<logic>_vN' \
+  '.values[] | select(.cpp_name == $name)' ptmp/model/code-map.json
+jq --arg id 'o42' \
+  '.operations[] | select(.operation_id == $id)' ptmp/model/code-map.json
+jq --arg id 'o42' \
+  '.functions[] | select(.operations | index($id)) | {name, source, root_function, locals}' \
+  ptmp/model/code-map.json
+```
+
+文本 `opN.g/vN.g` 和 code map 的 `oN/vN` 加 `generation` 都只标识当前
+frozen graph snapshot。clone/load/freeze 重编号后不能拿旧 ID 与新图硬拼；跨产物
+应结合完整 symbol/source/provenance 和对应 checkpoint。文本 origin-set 与 code-map
+origin_set 各自独立编号，必须在本文件的池内解析，不要直接按数字跨文件连接。
+
+四个 emitter attributes 均默认 `on`，可分别设为 `off`；Python 参数为对应 bool：
+
+| Emit attribute | Python 参数 | 关闭后的行为 |
+| --- | --- | --- |
+| `readable-names` | `readable_names=False` | operation/state 恢复 `sN`，value 恢复 `vN` 等紧凑名称 |
+| `source-comments` | `source_comments=False` | 不附加来源/phase 注释 |
+| `readable-dump` | `readable_dump=False` | 不生成 `grhsim.txt`，仍生成 code map |
+| `readable-frames` | `readable_frames=False` | private frame 可使用 5.3 所述旧聚合布局；named stores 仍直接命名 |
+
+验证入口为 `make test_grhsim_readable_store`、`make test_grhsim_readable_python`、
+`make test_grhsim_readable_cpp` 及现有完整 `make test_grhsim_cpu_st_cpp`。
+Python 用真实层级 RTL 经过全部 pipeline，导出各 stage、
+检查默认与四个单项 opt-out 的 sidecar/JSON 不变/16 行预算，并由生成 Makefile
+编译执行 small-state NBA、数组 current/payload 读写、非法 index 与重复 eval。
+2026-10-27 本轮验证结果：StoreText/JSON/origin 三项测试通过；完整
+`test_grhsim_cpu_st_cpp` 首轮通过。补齐 history、初始化、Publish 和跨 chunk
+控制变量的映射后，最终 emitter 生成校验通过，`test_grhsim_readable_cpp`
+的 25 个生成 C++ 执行目标通过，Python 五组默认/单项 opt-out 模型均编译运行通过。
+日志在 `ptmp/grhsim-readable/{store-test,emitter-test,cpp-final-test,python-final-test}.log`。
+
+可直接观察 `ptmp/grhsim-readable/python/default/model/` 内的 `grhsim.txt`、
+`code-map.json`、`grhsim_readable_top.hpp` 和各 TU。该真实层级 RTL 样例中，
+`smallSinkStore.op_core_alu_accumulator_kRegister_o14` 对应 `core$alu$accumulator`；
+writer capture 的 `_captured_data_arg3`、`_captured_index_arg2` 进一步标明操作数职责。
+本轮未重测整机 CoreMark，不据此宣称运行时或编译性能没有变化。
+
+2026-10-27 XiangShan 可读模型已由 r78 的同一 `roundtrip.json` checkpoint
+重新生成到 `ptmp/grhsim-readable/xiangshan/model/`。第一次生成所在 scope 被
+`systemd-oomd` 杀掉，主机日志 14:34:07（UTC+8）记录持续内存压力，随后报告
+该 scope 的 15 个进程被杀；证据在 `ptmp/grhsim-readable/oom-evidence.log`。
+改为上述流式生成后，默认 4 GiB 单文件限额正确拒绝了完整 code map；显式设为
+32 GiB 后生成成功，耗时 483.20 秒、峰值 RSS 62,768,640 KiB（约 59.86 GiB），
+无 swap-in/out，exit status 0。加载 checkpoint 时已达到约 59.86 GiB 峰值，
+不能把它全部归因于 emitter。该结果是 checkpoint re-emit，不是完整 SV pipeline
+性能测量，也未编译或运行这份整机模型。资源/生成日志分别为
+`xiangshan-readable-resource.log`、`xiangshan-readable-reemit.log`（同一目录的上级）。
+
+最终模型含 70,886 个函数、10,008 个 TU，最大函数 1,024 行；默认可读名称、
+注释、直接 frame 均开启。header 为 812,014,312 bytes，`code-map.json` 为
+9,510,851,498 bytes，`grhsim.txt` 为 20,458,548,390 bytes，完整目录约 38 GiB。
+`make inspect_grhsim_readable_model` 对 manifest 和整份 code map 做有界内存
+JSON 校验，已通过；文本显示 `status: validated complete=true`。可先看
+`grhsim_SimTop_tu8391.cpp:37` 的 `pGeneral` 和 header 第 1805 行的 Frontend
+字段来源注释，避免用编辑器一次载入整份多 GiB sidecar。
+
+流式改动后的验证：emitter 生成检查、25 个可读 C++ 执行目标、五组 Python
+API 模型、11 项 execution-counts 校验、16 项 tooling 测试通过；另覆盖
+streaming JSON 与原 writer 的逐字节一致性，以及文件限额失败后的 staging
+清理和恢复生成。日志见 `stream-cpp-test.log`、`stream-budget-final-test.log`
+与 `xiangshan-inspect.log`，均在 `ptmp/grhsim-readable/`。
+
+### 6.2 行为基准与实现入口
+
 行为对比必须明确 SV 来源：XiangShan 的 Verilator 基准使用 plain 版本 SV，
 不能把 aggregate 版本独有的断言失败当成当前 GrhSIM 的偏差。100k 是
 指定周期窗口，可做 NEMU difftest 和输出序列逐条比较，不等于跑完 CoreMark。
@@ -551,6 +725,8 @@ counter graph、sites 和生成源码绑定；跨 chunk 预算比较按原 op/ca
 | SinkSchedule 合约 | [sink-schedule.hpp](../wolvrix/include/transform/grhsim/sink-schedule.hpp) |
 | C++ 六阶段、存储和数组访问 | [cpu-st-cpp.cpp](../wolvrix/lib/emit/grhsim/cpu-st-cpp.cpp) |
 | batch 内 chunk 和 frame | [function-writer.cpp](../wolvrix/lib/emit/grhsim/function-writer.cpp) |
+| 可读 GRH / schedule 导出 | [store_text.cpp](../wolvrix/lib/core/store_text.cpp)、[StoreText API](../wolvrix/include/core/store.hpp) |
+| 可读 Python API 回归 | [test_grhsim_readable.py](../scripts/test_grhsim_readable.py) |
 | 生产 stage/checkpoint/reemit | [grhsim_flow.py](../scripts/grhsim_flow.py)、[Makefile](../Makefile) |
 | 方言/转换回归 | `make test_remove_grhsim_ir_foundation`、`make test_grh_to_grhsim`、`make test_grhsim_transforms` |
 | 分区、schedule、emitter 回归 | `make test_grhsim_virtual_partitions`、`make test_grhsim_sink_schedule`、`make test_grhsim_cpu_st_cpp` |
