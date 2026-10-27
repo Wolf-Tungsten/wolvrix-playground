@@ -88,6 +88,17 @@ nonsink 负责共享计算、状态读取和普通效果调用，按消费者角
 可以在本轮执行。反向/延后活动进入下一轮。每次调用前读取 live activity bit，
 不提前缓存整段 bitmap。
 
+不含 External 操作及 String operand/result 的 nonsink owner，对无 shape、
+宽度不超过 64 bit 的 TwoState Logic boundary 可合并发布激活。相同的完整
+nonsink fanout 至少对应两个实际发射的发布点时，共用一个 dirty flag：各点先执行
+`dirty |= oldSnapshot != computed`，立即复制 snapshot 并同步 small-sink boundary，
+在 owner 末尾按原 current/next 路由激活一次。flag 用普通 local/chunkFrame 保存，
+在 owner 入口显式清零；逐点比较、复制和同步保留原操作来源。
+空 fanout 只需原位置复制与同步，不再比较；非空单点、small-sink enable bitmap
+中的值及其他类型保持原发布路径。含 External/String 的 owner 整体保持即时发布，
+Event/fire 的特殊发布也不变。分组预统计复用实际操作发射的 elision 判断，
+并在 owner 结束时核对实际发布点数，避免把省略操作计入分组。
+
 writer 是 sink 的采样执行代码，**同时包括 small-sink 和 large-sink**，
 不是 nonsink activity 函数，也不能把 `writer_run_batch` 理解成 SmallNonSink。
 只有完全属于一个 writer 的纯参数锥随 writer 移动；共享计算和效果仍在 nonsink。
@@ -667,6 +678,16 @@ origin_set 各自独立编号，必须在本文件的池内解析，不要直接
 | `source-comments` | `source_comments=False` | 不附加来源/phase 注释 |
 | `readable-dump` | `readable_dump=False` | 不生成 `grhsim.txt`，仍生成 code map |
 | `readable-frames` | `readable_frames=False` | private frame 可使用 5.3 所述旧聚合布局；named stores 仍直接命名 |
+
+XiangShan 完整SV流程也透传这些选项：`make xs_grhsim_emu` 的
+`XS_GRHSIM_READABLE_NAMES`、`XS_GRHSIM_SOURCE_COMMENTS`、
+`XS_GRHSIM_READABLE_DUMP`、`XS_GRHSIM_READABLE_FRAMES` 默认均为1，设0
+分别传入 `--no-readable-names`、`--no-source-comments`、
+`--no-readable-dump`、`--no-readable-frames`。大模型可关闭前三项控制
+源码与sidecar体积，同时保留直接命名字段的帧布局；code map仍会生成。
+`XS_GRHSIM_MAX_OUTPUT_FILE_BYTES` 透传 `--max-output-file-bytes`，默认
+4294967296（4GiB），范围为正uint64；对于上述大型code map，可显式设为
+34359738368（32GiB）。该预算仅检查单文件大小，不改变生成C++的内容。
 
 验证入口为 `make test_grhsim_readable_store`、`make test_grhsim_readable_python`、
 `make test_grhsim_readable_cpp` 及现有完整 `make test_grhsim_cpu_st_cpp`。

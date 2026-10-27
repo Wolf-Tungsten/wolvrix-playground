@@ -173,12 +173,17 @@ XS_GRHSIM_RESUME_FROM_FLAT_GRH_JSON ?= 0
 XS_GRHSIM_KEEP_ORIGINS ?= 1
 XS_GRHSIM_EMIT_CPP_DIR ?= $(XS_GRHSIM_BUILD)/model
 XS_GRHSIM_OVERWRITE_CPP ?= 1
+XS_GRHSIM_READABLE_NAMES ?= 1
+XS_GRHSIM_SOURCE_COMMENTS ?= 1
+XS_GRHSIM_READABLE_DUMP ?= 1
+XS_GRHSIM_READABLE_FRAMES ?= 1
 # Activate readers once per enabled memory write group.
 XS_GRHSIM_MEM_WRITE_ACTIVATE ?= on-write
 XS_GRHSIM_MEM_ENABLE_BITMAP ?= on
 # Function and translation-unit budgets apply only inside the emitter.
 XS_GRHSIM_MAX_FUNCTION_LINES ?= 1024
 XS_GRHSIM_MAX_TU_BYTES ?= 1048576
+XS_GRHSIM_MAX_OUTPUT_FILE_BYTES ?= 4294967296
 XS_GRHSIM_CLONE_SHARED_COMPUTE ?= 1
 XS_GRHSIM_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
 # B6 per-partition simplify (M5d-5); disable only for pipeline debugging.
@@ -1896,8 +1901,13 @@ XS_GRHSIM_FLAGS = \
 	$(if $(filter 0,$(XS_GRHSIM_PACK_BIT_REGISTERS)),--no-pack-bit-registers,) \
 	$(if $(strip $(XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE)),--max-op-in-compute-supernode $(XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE),) \
 	--max-function-lines $(XS_GRHSIM_MAX_FUNCTION_LINES) --max-tu-bytes $(XS_GRHSIM_MAX_TU_BYTES) \
+	$(if $(filter-out 4294967296,$(XS_GRHSIM_MAX_OUTPUT_FILE_BYTES)),--max-output-file-bytes $(XS_GRHSIM_MAX_OUTPUT_FILE_BYTES),) \
 	$(if $(strip $(XS_GRHSIM_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_GRHSIM_EMIT_CPP_DIR))",) \
 	$(if $(filter 0,$(XS_GRHSIM_OVERWRITE_CPP)),--no-overwrite-emit-cpp,) \
+	$(if $(filter 0,$(XS_GRHSIM_READABLE_NAMES)),--no-readable-names,) \
+	$(if $(filter 0,$(XS_GRHSIM_SOURCE_COMMENTS)),--no-source-comments,) \
+	$(if $(filter 0,$(XS_GRHSIM_READABLE_DUMP)),--no-readable-dump,) \
+	$(if $(filter 0,$(XS_GRHSIM_READABLE_FRAMES)),--no-readable-frames,) \
 	$(if $(filter-out on-write,$(XS_GRHSIM_MEM_WRITE_ACTIVATE)),--mem-write-activate "$(XS_GRHSIM_MEM_WRITE_ACTIVATE)",) \
 	$(if $(filter-out on,$(XS_GRHSIM_MEM_ENABLE_BITMAP)),--mem-enable-bitmap "$(XS_GRHSIM_MEM_ENABLE_BITMAP)",) \
 	$(if $(filter 1,$(WOLVRIX_GRHSIM_WAVEFORM)),--emit-waveform,) \
@@ -2335,3 +2345,39 @@ clean_vrt_selftest:
 	rm -rf $(VRT_SELFTEST_DIR)
 
 .PHONY: run_vrt_selftest clean_vrt_selftest vrt_inbox
+
+# ---- grhsim-perf-opt goal protocol (separate from legacy benchmark gates) ----
+GRHSIM_SEARCH_BUILD ?=
+GRHSIM_SEARCH_OLD ?=
+GRHSIM_SEARCH_NEW ?=
+GRHSIM_SEARCH_OUTPUT ?=
+GRHSIM_SEARCH_THRESHOLD ?= 10
+GRHSIM_SEARCH_JOBS ?= 32
+GRHSIM_SEARCH_CPU ?= 2
+GRHSIM_SEARCH_MAKE_ARGS ?=
+
+.PHONY: grhsim_perf_search_build grhsim_perf_search_bench test_grhsim_perf_search
+grhsim_perf_search_build:
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_perf_search.py build \
+		--output "$(GRHSIM_SEARCH_BUILD)" --jobs "$(GRHSIM_SEARCH_JOBS)" \
+		--rtl "$(XS_RTL_DIR_ABS)" $(GRHSIM_SEARCH_MAKE_ARGS)
+
+grhsim_perf_search_bench:
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_perf_search.py benchmark \
+		--old "$(GRHSIM_SEARCH_OLD)" --new "$(GRHSIM_SEARCH_NEW)" \
+		--output "$(GRHSIM_SEARCH_OUTPUT)" --threshold "$(GRHSIM_SEARCH_THRESHOLD)" \
+		--cpu "$(GRHSIM_SEARCH_CPU)" --rtl "$(XS_RTL_DIR_ABS)"
+
+test_grhsim_perf_search:
+	@mkdir -p ptmp/grhsim-perf-search-tests
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover \
+		-s scripts -p test_grhsim_perf_search.py -v \
+		2>&1 | tee ptmp/grhsim-perf-search-tests/unittest.log
+
+GRHSIM_NONSINK_MODEL ?=
+GRHSIM_NONSINK_OUTPUT ?=
+.PHONY: analyze_grhsim_nonsink_publications
+analyze_grhsim_nonsink_publications:
+	@test -n "$(GRHSIM_NONSINK_MODEL)" -a -n "$(GRHSIM_NONSINK_OUTPUT)" || { echo "Set GRHSIM_NONSINK_MODEL and GRHSIM_NONSINK_OUTPUT"; exit 1; }
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_nonsink_publication_stats.py \
+		--model "$(GRHSIM_NONSINK_MODEL)" --output "$(GRHSIM_NONSINK_OUTPUT)"

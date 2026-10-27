@@ -117,11 +117,17 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--emit-cpp-dir", type=Path)
     parser.add_argument("--overwrite-emit-cpp", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--emit-waveform", action="store_true")
+    parser.add_argument("--readable-names", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--source-comments", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--readable-dump", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--readable-frames", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--mem-write-activate", choices=["on-change", "on-write"], default="on-write")
     parser.add_argument("--mem-enable-bitmap", choices=["on", "off"], default="on")
     parser.add_argument("--max-function-lines", type=int, default=1024,
                         help="actual line limit for every emitted function, including dispatchers")
     parser.add_argument("--max-tu-bytes", type=int, default=1024 * 1024)
+    parser.add_argument("--max-output-file-bytes", type=int, default=4 * 1024**3,
+                        help="maximum bytes in one generated file (positive uint64)")
     parser.add_argument("--max-round", type=int, default=100000)
     parser.add_argument("--mem-min-bytes", type=int)
     parser.add_argument("--clone-shared-compute", action=argparse.BooleanOptionalAction, default=True)
@@ -146,6 +152,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     args = parser.parse_args(argv)
     if not args.keep_origins:
         parser.error("--no-keep-origins is retired; unified GRH retains origins through conversion")
+    if not 0 < args.max_output_file_bytes < 2**64:
+        parser.error("--max-output-file-bytes must be a positive uint64")
     for name, minimum in (("max_function_lines", 8), ("max_tu_bytes", 1), ("max_round", 1),
                           ("mem_min_bytes", 0), ("max_node_work", 1), ("max_supernode_work", 1),
                           ("sink_enable_guard_min_size", 0), ("clone_shared_compute_max_clones", 1),
@@ -234,6 +242,9 @@ def main() -> int:
                 generation_identity=identity,
                 overwrite=args.overwrite_emit_cpp, max_function_lines=args.max_function_lines,
                 max_tu_bytes=args.max_tu_bytes, max_round=args.max_round, waveform=args.emit_waveform,
+                max_output_file_bytes=args.max_output_file_bytes,
+                readable_names=args.readable_names, source_comments=args.source_comments,
+                readable_dump=args.readable_dump, readable_frames=args.readable_frames,
                 mem_write_activate=args.mem_write_activate, mem_enable_bitmap=args.mem_enable_bitmap == "on"))
     if args.roundtrip_verify:
         with wolvrix.Session() as session:
