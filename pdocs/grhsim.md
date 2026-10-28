@@ -419,6 +419,25 @@ small-sink 的 `read(value)` 优先使用对应消费视图，writer payload 参
 large writer 读取 input/普通 boundary 或局部值，再将 index/data/mask 及有效位另存到
 `largeSink*BoundaryStore`，保证后续 LargeSink 提交不重新读取已变化的源。
 
+General的只读RHS可把真实`kConstant`的≤64位scalar Logic改为同类型literal，
+不追透Assign、DPI或held sample。原constant op、counter、boundary发布、
+small role同步和activity仍在原位置。跨owner仅允许更早nonsink中、任何
+潜在throw之前的纯Logic/ReadState前缀常量；遇到External、非Logic或
+系统函数即截断。这样producer抛异常后再次eval也不会提前看到未发布值。
+Event、Output及取地址路径保留物理快照。字符串使用原op首次调用的静态
+不可变源，stored字符串仍发布至可复位boundary，no-store仍保留原点调用；
+重复init及多实例只共享不可变源，不共享实例store。嵌入NUL沿用既有
+C-string语义。TaskArg的shaped常量仍物化为可取地址对象。
+
+实际替换为literal的窄unsigned逻辑右移保留uint64计算，但零值guard使用
+容器宽64：源已清至语义宽W，W≤count<64自然移出为零，count≥64由guard
+保护。完整count先比较再转size_t，超64位count不截断。此等价写法避开
+Clang22的窄常量向量化指令选择崩溃；signed结果及其他移位路径保持原guard。
+此不可变源机制已在[NO00005](grhsim-perf-opt/NO00005.md)完成整机验证：
+原SV→emu2182.178070秒/32路，全新六次100k/NEMU相对保留NO00002
+新增速度提升51.210858%，CPU2单线程、无PGO/波形/额外计数，输入和
+二进制身份全组不变。该数值是scalar/string机制的合并成绩，未拆分归因。
+
 `grhsim-partition-sink` 仍可依据 GRH 的 fire/priority/enable 身份建立静态 group
 和 runs，分组本身不依赖 C++ store 名称。emitter 在此有序 schedule 上为
 外部动态单 bit writer enable 按 value 分配稠密 bit；共享 enable 共用一个 bit。
@@ -724,6 +743,11 @@ writer capture 的 `_captured_data_arg3`、`_captured_index_arg2` 进一步标�
 JSON 校验，已通过；文本显示 `status: validated complete=true`。可先看
 `grhsim_SimTop_tu8391.cpp:37` 的 `pGeneral` 和 header 第 1805 行的 Frontend
 字段来源注释，避免用编辑器一次载入整份多 GiB sidecar。
+
+2026-10-28 按用户授权清理历史产物时，上述整机可读模型的生成C++、
+文本和code map已删除，保留manifest、generation identity、资源/校验日志
+和小型Python样例。以上数字为历史验证记录；再次检查整机模型前须恢复
+或重建对应checkpoint并重新生成，不能直接运行inspect读取已退役文件。
 
 流式改动后的验证：emitter 生成检查、25 个可读 C++ 执行目标、五组 Python
 API 模型、11 项 execution-counts 校验、16 项 tooling 测试通过；另覆盖

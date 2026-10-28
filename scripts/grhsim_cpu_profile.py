@@ -11,7 +11,7 @@ import struct
 import subprocess
 
 
-def read_profile(data):
+def read_profile(data, keep_stacks=False):
     if len(data) < 40:
         raise ValueError("truncated profile header")
     count, depth, version, period, padding = struct.unpack_from("<5Q", data)
@@ -31,7 +31,7 @@ def read_profile(data):
             break
         if count == 0 or pcs[0] == 0:
             raise ValueError("empty sample record")
-        records.append((count, pcs[0]))
+        records.append((count, pcs if keep_stacks else pcs[0]))
     maps = []
     for line in data[pos:].decode("utf-8").splitlines():
         if not line.strip():
@@ -49,9 +49,10 @@ def read_profile(data):
 
 
 def symbols(binary):
-    # This mapping rule is deliberately restricted to matching ELF LOAD offsets.
+    # Only executable LOAD segments must match code offsets. A data segment
+    # can have a different virtual/file offset without affecting sampled PCs.
     segments = subprocess.check_output(["readelf", "-lW", str(binary)], text=True)
-    loads = re.findall(r"^\s*LOAD\s+(0x[0-9a-f]+)\s+(0x[0-9a-f]+)", segments, re.M)
+    loads = re.findall(r"^\s*LOAD\s+(0x[0-9a-f]+)\s+(0x[0-9a-f]+)\s+0x[0-9a-f]+\s+0x[0-9a-f]+\s+0x[0-9a-f]+\s+[^\n]*E[^\n]*$", segments, re.M)
     if not loads or any(int(offset, 16) != int(addr, 16) for offset, addr in loads):
         raise ValueError("unsupported ELF LOAD virtual/file offset relationship")
     output = subprocess.check_output(["nm", "-n", "-S", "-C", "--defined-only", str(binary)], text=True)
@@ -98,10 +99,14 @@ def six_phase_category(name):
     method = name.split("::", 1)[1]
     if re.match(r"sn_\d+(?:_|\()", method):
         return "general_supernode"
-    for prefix, category in ((r"writer_(?:run)?", "sink_writer"),
-                             (r"commit_(?:run)?", "large_sink_commit")):
+    for prefix, category in ((r"writer_(?:run(?:_batch)?)?", "sink_writer"),
+                             (r"commit_(?:run(?:_batch)?)?", "large_sink_commit")):
         if re.match(rf"{prefix}\d+(?:_chunk\d+)?\(", method):
             return category
+    if re.match(r"pGeneral_active_batch\d+(?:_chunk\d+)?\(", method):
+        return "general_schedule"
+    if re.match(r"pPublish_dirty_batch\d+(?:_chunk\d+)?\(", method):
+        return "publication"
     for prefix, category in (("pGeneral_c", "general_chunk"), ("pMem_c", "mem_chunk"),
                              ("pGeneral_chunk", "general_chunk"), ("pLargeSink_chunk", "large_sink_chunk")):
         if re.match(rf"{prefix}\d+\(", method):
@@ -129,7 +134,7 @@ def six_phase_model(model):
     return bool(re.search(r"void\s+\w+::pMem\(\)\s*\{", model.read_text()))
 
 
-def summarize(profile, binary, model, expected_samples, top):
+def summarize(profile, binary, model, expected_samples, top, output_json=None):
     period, records, maps = read_profile(profile.read_bytes())
     total = sum(count for count, _ in records)
     if total != expected_samples:
@@ -139,7 +144,7 @@ def summarize(profile, binary, model, expected_samples, top):
     six_phase = six_phase_model(model)
     phases = {} if six_phase else task_phases(model)
     functions, categories, pcs_by_symbol = Counter(), Counter(), {}
-    main_maps = [m for m in maps if m[4] and Path(m[4]).resolve() == binary.resolve()]
+    main_maps = [m for m in maps if "x" in m[2] and m[4] and Path(m[4]).resolve() == binary.resolve()]
     if not main_maps or len({m[0] - m[3] for m in main_maps}) != 1:
         raise ValueError("missing or inconsistent executable mapping")
     base = main_maps[0][0] - main_maps[0][3]
@@ -186,6 +191,17 @@ def summarize(profile, binary, model, expected_samples, top):
         offsets = pcs_by_symbol.get(name, Counter()).most_common(5)
         if offsets:
             print("  top_offsets " + " ".join(f"+0x{offset:x}:{n}" for offset, n in offsets))
+    owners = Counter()
+    for name, count in functions.items():
+        owners[re.sub(r"_chunk\d+(?=\()", "", name).split("(", 1)[0]] += count
+    print("owner samples percent")
+    for name, count in owners.most_common(top):
+        print(f"{count} {count / total * 100:.6f} {name}")
+    if output_json is not None:
+        output_json.write_text(json.dumps({"samples": total, "period_us": period,
+            "categories": dict(categories), "owners": dict(owners.most_common()),
+            "functions": dict(functions.most_common()),
+            "offsets": {name: dict(counts) for name, counts in pcs_by_symbol.items()}}, indent=2) + "\n")
     for phase in (() if six_phase else ("compute_task", "commit_task")):
         rows = [(name, count) for name, count in functions.most_common()
                 if (m := re.fullmatch(r"\w+::cpu_task_(\d+)\(\)", name))
@@ -204,5 +220,6 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--expected-samples", type=int, required=True)
     parser.add_argument("--top", type=int, default=25)
+    parser.add_argument("--output-json", type=Path)
     args = parser.parse_args()
-    summarize(args.profile, args.binary, args.model, args.expected_samples, args.top)
+    summarize(args.profile, args.binary, args.model, args.expected_samples, args.top, args.output_json)

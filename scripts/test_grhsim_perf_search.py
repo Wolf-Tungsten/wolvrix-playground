@@ -203,7 +203,23 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(kill.call_args_list, [mock.call(987654, signal.SIGTERM), mock.call(987654, signal.SIGKILL)])
         self.assertEqual(result["terminated_reason"], "full build exceeded 2400 seconds")
 
-    def fake_benchmark(self, host_times=None, alter=None):
+    def test_user_interrupt_stops_entire_group_and_preserves_process_evidence(self):
+        process = SimpleNamespace(pid=987654, poll=lambda: None,
+                                  wait=mock.Mock(return_value=-signal.SIGTERM))
+        output = self.root / "ptmp/process"
+        output.mkdir()
+        with mock.patch.object(search.subprocess, "Popen", return_value=process), \
+                mock.patch.object(search.time, "monotonic", side_effect=[0, 1, 2]), \
+                mock.patch.object(search.time, "sleep", side_effect=KeyboardInterrupt), \
+                mock.patch.object(search.os, "killpg") as kill, self.assertRaises(KeyboardInterrupt):
+            search.run_logged(["make", "run_xs_grhsim_emu"], self.root, {}, output)
+        self.assertEqual(kill.call_args_list, [mock.call(987654, signal.SIGTERM), mock.call(987654, signal.SIGKILL)])
+        self.assertEqual(process.wait.call_count, 2)
+        result = json.loads((output / "process.json").read_text())
+        self.assertEqual(result["terminated_reason"], "interrupted by user")
+        self.assertEqual(result["returncode"], -signal.SIGTERM)
+
+    def fake_benchmark(self, host_times=None, alter=None, extra_args=None):
         calls = []
         times = iter(host_times or [100000, 110000] * 3)
 
@@ -216,7 +232,7 @@ class SearchTests(unittest.TestCase):
                     "process_observations": [{"threads": 1, "cpus_allowed": [2]}]}
 
         with mock.patch.object(search, "run_logged", side_effect=run), contextlib.redirect_stdout(io.StringIO()):
-            status = search.main(self.arguments("benchmark"), root=self.root)
+            status = search.main(self.arguments("benchmark") + (extra_args or []), root=self.root)
         return status, calls, json.loads((self.root / "ptmp/result/summary.json").read_text())
 
     def test_benchmark_six_fixed_runs_original_ms_and_input_hashes(self):
@@ -239,6 +255,79 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertEqual(len(calls), 6)
         self.assertEqual(result["classification"], "failed")
+
+    def test_first_new_over_preregistered_limit_rejects_before_old(self):
+        status, calls, result = self.fake_benchmark(
+            [100001], extra_args=["--max-new-host-ms", "100000"])
+        self.assertEqual(status, 1)
+        self.assertEqual(len(calls), 1)
+        self.assertFalse((self.root / "ptmp/result/2_old").exists())
+        self.assertEqual(result["classification"], "rejected")
+        self.assertEqual(result["completed_runs"], 1)
+        self.assertEqual(result["samples"][0]["host_ms"], 100001)
+        self.assertEqual(result["samples"], json.loads((self.root / "ptmp/result/results.json").read_text()))
+        self.assertEqual(result["max_new_host_ms"], 100000)
+        self.assertIn("exceeds preregistered maximum", result["reason"])
+        self.assertTrue(result["fingerprints_unchanged"])
+        self.assertNotIn("speedup_percent", result)
+        self.assertNotIn("threshold_passed", result)
+        registration = json.loads((self.root / "ptmp/result/preregister.json").read_text())
+        self.assertEqual(registration["max_new_host_ms"], 100000)
+        self.assertIn("early rejection reference only", registration["max_new_host_ms_scope"])
+
+    def test_new_equal_to_limit_continues_all_six_and_does_not_limit_old(self):
+        status, calls, result = self.fake_benchmark(extra_args=["--max-new-host-ms", "100000"])
+        self.assertEqual(status, 0)
+        self.assertEqual(len(calls), 6)
+        self.assertEqual(result["classification"], "passed")
+        self.assertTrue(result["threshold_passed"])
+        self.assertEqual(result["new_host_ms"], [100000] * 3)
+        self.assertEqual(result["old_host_ms"], [110000] * 3)
+
+    def test_later_new_over_limit_preserves_all_completed_raw_samples(self):
+        status, calls, result = self.fake_benchmark(
+            [99999, 110000, 100001], extra_args=["--max-new-host-ms", "100000"])
+        self.assertEqual(status, 1)
+        self.assertEqual(len(calls), 3)
+        self.assertFalse((self.root / "ptmp/result/4_old").exists())
+        self.assertEqual(result["classification"], "rejected")
+        self.assertEqual(result["completed_runs"], 3)
+        self.assertEqual([row["host_ms"] for row in result["samples"]], [99999, 110000, 100001])
+        self.assertEqual([row["mode"] for row in result["samples"]], ["new", "old", "new"])
+        self.assertNotIn("speedup_percent", result)
+        self.assertNotIn("threshold_passed", result)
+
+    def test_new_host_limit_requires_positive_integer_before_running(self):
+        with mock.patch.object(search, "run_logged") as run:
+            for value in ("0", "-1", "1.5", "invalid"):
+                with self.subTest(value=value), contextlib.redirect_stderr(io.StringIO()), \
+                        self.assertRaises(SystemExit) as error:
+                    search.main(self.arguments("benchmark") + ["--max-new-host-ms", value], root=self.root)
+                self.assertEqual(error.exception.code, 2)
+            run.assert_not_called()
+        self.assertFalse((self.root / "ptmp/result").exists())
+
+    def test_changed_input_invalidates_even_when_new_exceeds_limit(self):
+        def alter(index):
+            (self.root / "testcase/xiangshan/ready-to-run/coremark-2-iteration.bin").write_text("changed")
+        status, calls, result = self.fake_benchmark(
+            [100001], alter=alter, extra_args=["--max-new-host-ms", "100000"])
+        self.assertEqual(status, 2)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(result["classification"], "invalid")
+        self.assertNotIn("speedup_percent", result)
+
+    def test_user_interrupt_records_partial_group_without_speedup(self):
+        def alter(index):
+            if index == 2:
+                raise KeyboardInterrupt
+        status, calls, result = self.fake_benchmark(alter=alter)
+        self.assertEqual(status, 130)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(result["classification"], "aborted")
+        self.assertEqual(result["completed_runs"], 1)
+        self.assertNotIn("speedup_percent", result)
+        self.assertNotIn("threshold_passed", result)
 
     def test_changed_input_invalidates_entire_group_without_selecting_samples(self):
         def alter(index):

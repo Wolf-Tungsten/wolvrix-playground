@@ -386,7 +386,9 @@ test_grhsim_virtual_partitions test_grhsim_sink_schedule:
 	TMPDIR=$(CURDIR)/ptmp/remove-grhsim-ir/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/remove-grhsim-ir/ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(grhsim-virtual-partition-tests|grhsim-sink-schedule-tests|grhsim-transform-tests)$$' --output-on-failure
 
 .PHONY: test_ingest_expression_width
-.PHONY: generate_grhsim_cpu_st_cpp test_grhsim_cpu_st_cpp
+GRHSIM_CPU_ST_CPP_JOBS ?= 4
+GRHSIM_CPU_ST_CPP_CASES ?= run
+.PHONY: generate_grhsim_cpu_st_cpp test_grhsim_cpu_st_cpp run_grhsim_cpu_st_cpp
 .PHONY: test_grhsim_readable_store
 test_grhsim_readable_store:
 	mkdir -p $(CURDIR)/ptmp/grhsim-readable/build-tmp $(CURDIR)/ptmp/grhsim-readable/ccache
@@ -427,7 +429,9 @@ generate_grhsim_cpu_st_cpp:
 	TMPDIR=$(CURDIR)/ptmp/remove-grhsim-ir/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/remove-grhsim-ir/ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-cpu-st-cpp-tests -j 4
 	TMPDIR=$(CURDIR)/ptmp/remove-grhsim-ir/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/remove-grhsim-ir/ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-cpu-st-cpp-tests$$' --output-on-failure
 test_grhsim_cpu_st_cpp: generate_grhsim_cpu_st_cpp
-	TMPDIR=$(CURDIR)/ptmp/remove-grhsim-ir/build-tmp $(MAKE) -C $(WOLVRIX_BUILD_DIR)/artifacts/grhsim-cpu-st-cpp -j 4 run
+	$(MAKE) --no-print-directory run_grhsim_cpu_st_cpp
+run_grhsim_cpu_st_cpp:
+	TMPDIR=$(CURDIR)/ptmp/remove-grhsim-ir/build-tmp $(MAKE) -C $(WOLVRIX_BUILD_DIR)/artifacts/grhsim-cpu-st-cpp -j $(GRHSIM_CPU_ST_CPP_JOBS) $(GRHSIM_CPU_ST_CPP_CASES)
 
 REMOVE_GRHSIM_IR_COMPARISON ?= $(CURDIR)/ptmp/remove-grhsim-ir/r5-observations-single-call
 REMOVE_GRHSIM_IR_EFFECT_POLICY ?= single-original-call-source-order
@@ -783,11 +787,23 @@ test_grhsim_cpu_phase_emit: test_grhsim_cpu_st_cpp
 
 .PHONY: analyze_grhsim_cpu_profile
 analyze_grhsim_cpu_profile:
-	$(PYTHON) $(CURDIR)/scripts/grhsim_cpu_profile.py --profile "$(GRHSIM_CPU_PROFILE)" --binary "$(GRHSIM_CPU_PROFILE_BINARY)" --model "$(GRHSIM_CPU_PROFILE_MODEL)" --expected-samples "$(GRHSIM_CPU_PROFILE_SAMPLES)" $(if $(GRHSIM_CPU_PROFILE_TOP),--top "$(GRHSIM_CPU_PROFILE_TOP)",)
+	$(PYTHON) $(CURDIR)/scripts/grhsim_cpu_profile.py --profile "$(GRHSIM_CPU_PROFILE)" --binary "$(GRHSIM_CPU_PROFILE_BINARY)" --model "$(GRHSIM_CPU_PROFILE_MODEL)" --expected-samples "$(GRHSIM_CPU_PROFILE_SAMPLES)" $(if $(GRHSIM_CPU_PROFILE_TOP),--top "$(GRHSIM_CPU_PROFILE_TOP)",) $(if $(GRHSIM_CPU_PROFILE_JSON),--output-json "$(GRHSIM_CPU_PROFILE_JSON)",)
 
 .PHONY: test_grhsim_cpu_profile
 test_grhsim_cpu_profile:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_grhsim_cpu_profile.py
+
+.PHONY: analyze_grhsim_pc_costs
+analyze_grhsim_pc_costs:
+	@test -n "$(GRHSIM_PC_SUMMARY)" -a -n "$(GRHSIM_PC_BINARY)" -a -n "$(GRHSIM_PC_OUTPUT)" || { echo "Set GRHSIM_PC_SUMMARY, GRHSIM_PC_BINARY and GRHSIM_PC_OUTPUT"; exit 1; }
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_pc_costs.py \
+		--summary "$(GRHSIM_PC_SUMMARY)" --binary "$(GRHSIM_PC_BINARY)" \
+		--output "$(GRHSIM_PC_OUTPUT)" $(if $(GRHSIM_PC_PROFILE),--profile "$(GRHSIM_PC_PROFILE)",) \
+		$(if $(GRHSIM_PC_TOP),--top "$(GRHSIM_PC_TOP)",) \
+		$(if $(GRHSIM_PC_FOCUS_SYMBOL),--focus-symbol '$(GRHSIM_PC_FOCUS_SYMBOL)',) \
+		$(if $(GRHSIM_PC_CONSTANT_REPORT),--constant-report "$(GRHSIM_PC_CONSTANT_REPORT)",) \
+		$(if $(filter 1,$(GRHSIM_PC_SKIP_DISASSEMBLY)),--skip-disassembly,) \
+		$(if $(filter 1,$(GRHSIM_PC_CONSTANT_CONTROL_SCAN)),--constant-control-scan,)
 
 .PHONY: test_grhsim_module_attribution
 test_grhsim_module_attribution:
@@ -1037,22 +1053,23 @@ analyze_grhsim_localization:
 	@$(PYTHON) scripts/grhsim_localization_stats.py --flow "$(GRHSIM_LOCALIZATION_FLOW)" \
 		--state-suffix '$(GRHSIM_LOCALIZATION_STATE_SUFFIX)' $(if $(filter 1,$(GRHSIM_LOCALIZATION_DEAD_CONES)),--dead-cones-only,)
 
-# Codegen probe: compile one emitted model translation unit with the production
-# compiler/flags into an analysis output directory (assembly or object), for
-# micro-experiments on generated-code shape. Never links into an emu.
+# Codegen probe: compile one emitted model translation unit into an analysis
+# directory. Pass the retained model PCH to match its production header setup.
 GRHSIM_PROBE_MODEL ?= $(XS_GRHSIM_BUILD_ABS)/model
 GRHSIM_PROBE_MODE ?= asm
+GRHSIM_PROBE_CXXFLAGS ?= -std=c++20 -O3 -march=native -fno-strict-aliasing -DWOLVRIX_GRHSIM_PERF=0 -DWOLVRIX_GRHSIM_SN_TIMING=0
+GRHSIM_PROBE_PCH ?=
 .PHONY: probe_grhsim_ir_codegen
 probe_grhsim_ir_codegen:
 	@test -n "$(GRHSIM_PROBE_SRC)" || { echo "[FAIL] set GRHSIM_PROBE_SRC=<model cpp>"; exit 1; }
 	@test -n "$(GRHSIM_PROBE_OUT)" || { echo "[FAIL] set GRHSIM_PROBE_OUT=<output dir>"; exit 1; }
 	@mkdir -p "$(GRHSIM_PROBE_OUT)"
 	@out="$(GRHSIM_PROBE_OUT)/$$(basename "$(GRHSIM_PROBE_SRC)" .cpp).$(if $(filter asm,$(GRHSIM_PROBE_MODE)),s,o)"; \
-	echo "[PROBE] $(CXX) -std=c++20 -O3 -I$(GRHSIM_PROBE_MODEL) $(GRHSIM_PROBE_SRC) -> $$out"; \
+	echo "[PROBE] $(CXX) $(GRHSIM_PROBE_CXXFLAGS) $(if $(GRHSIM_PROBE_PCH),-include-pch $(GRHSIM_PROBE_PCH),) -I$(GRHSIM_PROBE_MODEL) $(GRHSIM_PROBE_SRC) -> $$out"; \
 	if [ "$(GRHSIM_PROBE_MODE)" = "asm" ]; then \
-		$(CXX) -std=c++20 -O3 -I"$(GRHSIM_PROBE_MODEL)" -S "$(GRHSIM_PROBE_SRC)" -o "$$out"; \
+		$(CXX) $(GRHSIM_PROBE_CXXFLAGS) $(if $(GRHSIM_PROBE_PCH),-include-pch "$(GRHSIM_PROBE_PCH)",) -I"$(GRHSIM_PROBE_MODEL)" -S "$(GRHSIM_PROBE_SRC)" -o "$$out"; \
 	else \
-		$(CXX) -std=c++20 -O3 -I"$(GRHSIM_PROBE_MODEL)" -c "$(GRHSIM_PROBE_SRC)" -o "$$out"; \
+		$(CXX) $(GRHSIM_PROBE_CXXFLAGS) $(if $(GRHSIM_PROBE_PCH),-include-pch "$(GRHSIM_PROBE_PCH)",) -I"$(GRHSIM_PROBE_MODEL)" -c "$(GRHSIM_PROBE_SRC)" -o "$$out"; \
 	fi
 
 .PHONY: analyze_grhsim_predicates
@@ -2352,6 +2369,7 @@ GRHSIM_SEARCH_OLD ?=
 GRHSIM_SEARCH_NEW ?=
 GRHSIM_SEARCH_OUTPUT ?=
 GRHSIM_SEARCH_THRESHOLD ?= 10
+GRHSIM_SEARCH_MAX_NEW_HOST_MS ?=
 GRHSIM_SEARCH_JOBS ?= 32
 GRHSIM_SEARCH_CPU ?= 2
 GRHSIM_SEARCH_MAKE_ARGS ?=
@@ -2366,7 +2384,8 @@ grhsim_perf_search_bench:
 	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_perf_search.py benchmark \
 		--old "$(GRHSIM_SEARCH_OLD)" --new "$(GRHSIM_SEARCH_NEW)" \
 		--output "$(GRHSIM_SEARCH_OUTPUT)" --threshold "$(GRHSIM_SEARCH_THRESHOLD)" \
-		--cpu "$(GRHSIM_SEARCH_CPU)" --rtl "$(XS_RTL_DIR_ABS)"
+		--cpu "$(GRHSIM_SEARCH_CPU)" --rtl "$(XS_RTL_DIR_ABS)" \
+		$(if $(strip $(GRHSIM_SEARCH_MAX_NEW_HOST_MS)),--max-new-host-ms "$(GRHSIM_SEARCH_MAX_NEW_HOST_MS)")
 
 test_grhsim_perf_search:
 	@mkdir -p ptmp/grhsim-perf-search-tests
@@ -2381,3 +2400,42 @@ analyze_grhsim_nonsink_publications:
 	@test -n "$(GRHSIM_NONSINK_MODEL)" -a -n "$(GRHSIM_NONSINK_OUTPUT)" || { echo "Set GRHSIM_NONSINK_MODEL and GRHSIM_NONSINK_OUTPUT"; exit 1; }
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_nonsink_publication_stats.py \
 		--model "$(GRHSIM_NONSINK_MODEL)" --output "$(GRHSIM_NONSINK_OUTPUT)"
+
+GRHSIM_LAZY_SELECT_MODEL ?= ptmp/grhsim-perf-opt/NO00002-v1/model
+GRHSIM_LAZY_SELECT_PROFILE ?= ptmp/grhsim-perf-opt/NO00003-baseline-profile/summary.json
+GRHSIM_LAZY_SELECT_OUTPUT ?= ptmp/grhsim-perf-opt/NO00004-lazy-analysis/summary.json
+GRHSIM_LAZY_SELECT_ARGS ?=
+.PHONY: analyze_grhsim_lazy_select
+analyze_grhsim_lazy_select:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/grhsim_lazy_select_stats.py \
+		--model "$(GRHSIM_LAZY_SELECT_MODEL)" --profile "$(GRHSIM_LAZY_SELECT_PROFILE)" \
+		--output "$(GRHSIM_LAZY_SELECT_OUTPUT)" $(GRHSIM_LAZY_SELECT_ARGS)
+
+# Lossless storage for IR snapshots of failed, retired performance candidates.
+# Keep the active NO00002 baseline and every binary/source/log unchanged.
+GRHSIM_FAILED_IR_NODE ?=
+.PHONY: archive_grhsim_perf_failed_ir restore_grhsim_perf_failed_ir
+archive_grhsim_perf_failed_ir:
+	@case "$(GRHSIM_FAILED_IR_NODE)" in NO00003|NO00004) ;; *) echo "Select a retired NO00003 or NO00004 node"; exit 1;; esac
+	@rg -q '^\| 当前阶段 \| 失败' "pdocs/grhsim-perf-opt/$(GRHSIM_FAILED_IR_NODE).md"
+	@set -euo pipefail; task_dir="$(CURDIR)/ptmp/grhsim-perf-opt/$(GRHSIM_FAILED_IR_NODE)-v1"; \
+	for snapshot in xiangshan_flat_grh.json xiangshan_grhsim.json; do \
+		task_file="$$task_dir/$$snapshot"; \
+		if [ -f "$$task_file" ]; then sha256sum "$$task_file" > "$$task_file.archive.sha256"; fi; \
+		test -s "$$task_file.archive.sha256"; \
+		if [ ! -f "$$task_file.zst" ]; then zstd -q -T4 -3 --check --keep "$$task_file"; fi; \
+		task_expected=$$(cut -d ' ' -f 1 "$$task_file.archive.sha256"); \
+		task_actual=$$(zstd -q -d -c "$$task_file.zst" | sha256sum | cut -d ' ' -f 1); \
+		test "$$task_actual" = "$$task_expected"; \
+		if [ -f "$$task_file" ]; then rm -- "$$task_file"; fi; \
+		printf 'Archived and verified %s\n' "$$snapshot"; \
+	done
+
+restore_grhsim_perf_failed_ir:
+	@case "$(GRHSIM_FAILED_IR_NODE)" in NO00003|NO00004) ;; *) echo "Select a retired NO00003 or NO00004 node"; exit 1;; esac
+	@set -euo pipefail; task_dir="$(CURDIR)/ptmp/grhsim-perf-opt/$(GRHSIM_FAILED_IR_NODE)-v1"; \
+	for snapshot in xiangshan_flat_grh.json xiangshan_grhsim.json; do \
+		task_file="$$task_dir/$$snapshot"; \
+		if [ ! -f "$$task_file" ]; then zstd -q -d --keep "$$task_file.zst"; fi; \
+		sha256sum --check "$$task_file.archive.sha256"; \
+	done

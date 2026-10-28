@@ -3,8 +3,9 @@ from pathlib import Path
 import struct
 import tempfile
 import unittest
+from unittest.mock import patch
 
-from grhsim_cpu_profile import read_profile, six_phase_category, six_phase_model
+from grhsim_cpu_profile import read_profile, six_phase_category, six_phase_model, symbols
 
 
 class ProfileReaderTests(unittest.TestCase):
@@ -19,6 +20,8 @@ class ProfileReaderTests(unittest.TestCase):
         self.assertEqual(records, [(7, 0x8123), (11, 0x8567)])
         self.assertEqual(sum(count for count, _ in records), 18)
         self.assertEqual(maps, [(0x8000, 0x9000, "r-xp", 0, "/model")])
+        _, stacks, _ = read_profile(self.profile(), keep_stacks=True)
+        self.assertEqual(stacks, [(7, (0x8123, 0x8456)), (11, (0x8567,))])
 
     def test_reject_incomplete_or_unsupported(self):
         data = self.profile()
@@ -38,6 +41,10 @@ class ProfileReaderTests(unittest.TestCase):
             "GrhSIM_SimTop::writer_23()": "sink_writer",
             "GrhSIM_SimTop::commit_23_chunk2(GrhSIM_SimTop::chunkFrame_commit_23&)": "large_sink_commit",
             "GrhSIM_SimTop::writer_run7_other()": "main_other",
+            "GrhSIM_SimTop::writer_run_batch7_chunk3(GrhSIM_SimTop::chunkFrame_writer_run_batch7&)": "sink_writer",
+            "GrhSIM_SimTop::commit_run_batch8_chunk2(GrhSIM_SimTop::chunkFrame_commit_run_batch8&)": "large_sink_commit",
+            "GrhSIM_SimTop::pGeneral_active_batch9()": "general_schedule",
+            "GrhSIM_SimTop::pPublish_dirty_batch9_chunk2(GrhSIM_SimTop::Frame&)": "publication",
             "GrhSIM_SimTop::pGeneral_c7()": "general_chunk",
             "GrhSIM_SimTop::pMem_c9()": "mem_chunk",
             "GrhSIM_SimTop::pMem()": "mem_schedule",
@@ -53,6 +60,18 @@ class ProfileReaderTests(unittest.TestCase):
         for name, expected in cases.items():
             with self.subTest(name=name):
                 self.assertEqual(six_phase_category(name), expected)
+
+    def test_data_segment_offset_does_not_invalidate_code_mapping(self):
+        headers = ("  LOAD 0x000000 0x000000 0x000000 0x010000 0x010000 R 0x1000\n"
+                   "  LOAD 0x018000 0x018000 0x018000 0x010000 0x010000 R E 0x1000\n"
+                   "  LOAD 0x033c18 0x034c18 0x034c18 0x001000 0x001000 RW 0x1000\n")
+        with patch("grhsim_cpu_profile.subprocess.check_output", side_effect=[
+                headers, "0000000000018000 0000000000000020 T GrhSIM_top::eval()\n"]):
+            self.assertEqual(symbols(Path("/model")), {0x18000: (0x20, "GrhSIM_top::eval()")})
+        with patch("grhsim_cpu_profile.subprocess.check_output", return_value=headers.replace(
+                "0x018000 0x018000", "0x018000 0x019000", 1)):
+            with self.assertRaisesRegex(ValueError, "unsupported ELF"):
+                symbols(Path("/model"))
 
     def test_model_manifest_replaces_single_source_assumption(self):
         work = Path(__file__).resolve().parents[1] / "ptmp/remove-grhsim-ir/profile-tests"

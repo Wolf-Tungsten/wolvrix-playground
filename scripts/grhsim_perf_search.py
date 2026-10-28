@@ -46,6 +46,16 @@ def save(path: Path, value) -> None:
     path.write_text(json.dumps(value, indent=2) + "\n")
 
 
+def positive_integer(value: str) -> int:
+    try:
+        result = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("must be a positive integer") from None
+    if result <= 0:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return result
+
+
 def clean_environment() -> dict:
     env = {key: value for key, value in os.environ.items()
            if key not in ("CPUPROFILE", "CPUPROFILE_FREQUENCY", "LD_PRELOAD",
@@ -171,44 +181,55 @@ def observe_emu(make_pid: int, binary: Path, cpu: int) -> list[dict]:
     return observations
 
 
+def stop_process_group(process):
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        pass
+    # The group can retain descendants after Make itself exits.
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+
+
 def run_logged(command: list[str], root: Path, env: dict, directory: Path,
                timeout_s: float | None = None, observer=None) -> dict:
     (directory / "command.sh").write_text(shlex.join(command) + "\n")
     start = time.monotonic()
     observations, reason, last_observation = [], None, -math.inf
+    interrupted = False
     with (directory / "make.log").open("w") as log:
         process = subprocess.Popen(command, cwd=root, env=env, stdout=log,
                                    stderr=subprocess.STDOUT, start_new_session=True)
-        while process.poll() is None:
-            elapsed = time.monotonic() - start
-            if timeout_s is not None and elapsed >= timeout_s:
-                reason = "full build exceeded 2400 seconds"
-            if observer is not None and elapsed - last_observation >= (10 if observations else 0.1):
-                try:
-                    observations.extend({"elapsed_s": elapsed, **row} for row in observer(process.pid))
-                except ValueError as error:
-                    reason = str(error)
-                last_observation = elapsed
-            if reason:
-                try:
-                    os.killpg(process.pid, signal.SIGTERM)
-                except ProcessLookupError:
-                    pass
-                try:
-                    process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    pass
-                # The group can retain descendants after Make itself exits.
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                break
-            time.sleep(0.1)
+        try:
+            while process.poll() is None:
+                elapsed = time.monotonic() - start
+                if timeout_s is not None and elapsed >= timeout_s:
+                    reason = "full build exceeded 2400 seconds"
+                if observer is not None and elapsed - last_observation >= (10 if observations else 0.1):
+                    try:
+                        observations.extend({"elapsed_s": elapsed, **row} for row in observer(process.pid))
+                    except ValueError as error:
+                        reason = str(error)
+                    last_observation = elapsed
+                if reason:
+                    stop_process_group(process)
+                    break
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            reason, interrupted = "interrupted by user", True
+            stop_process_group(process)
         status = process.wait()
     result = {"returncode": status, "wall_s": time.monotonic() - start,
               "terminated_reason": reason, "process_observations": observations}
     save(directory / "process.json", result)
+    if interrupted:
+        raise KeyboardInterrupt
     return result
 
 
@@ -315,8 +336,11 @@ def benchmark(args, root: Path) -> int:
                     "diagnostic_sampling": False, "extra_counters": False,
                     "process_metadata_poll_s": 10, "cache_eviction": False,
                     "fingerprints_before": before, "timestamp": time.time()}
+    if args.max_new_host_ms is not None:
+        registration.update(max_new_host_ms=args.max_new_host_ms,
+                            max_new_host_ms_scope="early rejection reference only; not a measured old sample or formal speedup")
     save(output / "preregister.json", registration)
-    results, expected = [], None
+    results, expected, rejection = [], None, None
     try:
         for index, mode in enumerate(ORDER, 1):
             if benchmark_identity(root, rtl, fixed_paths) != before:
@@ -350,12 +374,26 @@ def benchmark(args, root: Path) -> int:
             save(directory / "result.json", result)
             save(output / "results.json", results)
             print(f"DONE {index} {mode}: Host={parsed['host_ms']}ms", flush=True)
+            if mode == "new" and args.max_new_host_ms is not None and parsed["host_ms"] > args.max_new_host_ms:
+                rejection = {"classification": "rejected",
+                             "reason": f"run {index} new: Host {parsed['host_ms']}ms exceeds preregistered maximum {args.max_new_host_ms}ms",
+                             "max_new_host_ms": args.max_new_host_ms,
+                             "completed_runs": len(results), "samples": results,
+                             "action": "Candidate rejected early; no six-run speedup is available."}
+                break
         after = benchmark_identity(root, rtl, fixed_paths)
         save(output / "fingerprints-after.json", after)
         if after != before:
             raise ValueError("binary, input, source code, or measurement configuration changed during six-run group")
-        result = summarize(results, threshold)
+        result = rejection if rejection is not None else summarize(results, threshold)
         result.update(fingerprints_unchanged=True, endpoint=expected, runtime_thread_affinity_verified=True)
+    except KeyboardInterrupt:
+        result = {"classification": "aborted", "reason": "interrupted by user",
+                  "completed_runs": len(results),
+                  "action": "No six-run speedup is available. Record the stop reason before abandoning the candidate or repeating all six runs."}
+        save(output / "summary.json", result)
+        print(json.dumps(result, indent=2), flush=True)
+        return 130
     except (OSError, ValueError) as error:
         try:
             save(output / "fingerprints-after.json", benchmark_identity(root, rtl, fixed_paths))
@@ -368,7 +406,7 @@ def benchmark(args, root: Path) -> int:
         return 2
     save(output / "summary.json", result)
     print(json.dumps(result, indent=2), flush=True)
-    return 0 if result["threshold_passed"] else 1
+    return 0 if result.get("threshold_passed", False) else 1
 
 
 def main(argv=None, root=None) -> int:
@@ -383,6 +421,8 @@ def main(argv=None, root=None) -> int:
     for name in ("old", "new", "output"):
         bench_parser.add_argument(f"--{name}", type=Path, required=True)
     bench_parser.add_argument("--threshold", required=True, help="user-required speedup percentage")
+    bench_parser.add_argument("--max-new-host-ms", type=positive_integer,
+                              help="preregistered early-rejection reference; stop after any complete new run exceeds it")
     bench_parser.add_argument("--cpu", type=int, default=2)
     for command in (build_parser, bench_parser):
         command.add_argument("--rtl", type=Path, default=root / "ptmp/xs/rtl/rtl")
