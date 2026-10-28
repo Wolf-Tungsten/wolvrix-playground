@@ -67,10 +67,10 @@ NO00004复盘后先复用冻结NO00002的125050个真实诊断样本，不新增
 | RAB同值写 | plain-reference真实100k波形，99997个非reset预测均通过7×352状态重建，零不匹配；50200个有写周期中785个七列同时不变，1.563745%。单列rfWen/fpWen/vecWen/v0Wen同值写99.84%/99.97%/100%/100% | 不把单列高同值率外推整entry；缺失vlWen与robIdx，不能证明整条目不变 |
 | immutable常量源 | 90770个writer+nonsink采样均精确定位机器指令；保守model指针追踪确认4430个样本直接读true kConstant的boundary字段，3.542584%。外部样本5782个最近调用者为std::string::_M_mutate | 恢复后核对安全prefix覆盖及下游实际折叠；相关样本不直接等同可省时间 |
 
-RAB统计使用本地独立诊断工具`make -C testcase/xs-components rab-write-stats`；
-该target及`rab_write_stats.cpp`保留为其他工作树改动，未纳入本次提交，
-干净checkout不提供此命令。独立synthetic fixture覆盖lane冲突优先级及
-损坏状态拒绝；真实trace无lane冲突，完整
+RAB统计使用独立诊断工具`make -C testcase/xs-components rab-write-stats`；
+该target及`rab_write_stats.cpp`作为本轮选题诊断单独提交归档。实际波形
+分析需提供本地参考FST；`rab-write-stats-selftest`无需该波形，可独立验证
+lane冲突优先级及损坏状态拒绝。真实trace无lane冲突，完整
 遍历约1.015秒。工具保持原trace不变，按timestamp分组，在posedge前
 settled low phase采样；地址取严格前缀realNeedAlloc的popcount，高lane
 覆盖低lane。仅纳入当前和下一edge都非reset且重建通过的记录；最后一条

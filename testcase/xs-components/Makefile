@@ -381,3 +381,37 @@ clean:
 	rm -rf $(BUILD_DIR) out
 
 include rob.mk
+
+# Read-only diagnostics over the retained plain-reference ROB waveform.
+RAB_WRITE_STATS_WORK ?= $(abspath ../../ptmp/grhsim-perf-opt/NO00005-rab-write-stats)
+RAB_WRITE_STATS_FST ?= $(abspath ../../ptmp/xs-components-rob/trace/xs_ref_rob_coremark100k.fst)
+RAB_WRITE_STATS_SCOPE ?= TOP.SimTop.cpu.l_soc.core_with_l2.core.backend.inner_ctrlBlock.rob.rab
+RAB_WRITE_STATS_RTL ?= $(abspath ../../ptmp/xs/rtl/rtl/RenameBuffer.sv)
+RAB_WRITE_STATS_BIN := $(RAB_WRITE_STATS_WORK)/rab_write_stats
+.PHONY: rab-write-stats-probe rab-write-stats-build rab-write-stats-selftest rab-write-stats
+rab-write-stats-probe: $(ROB_REPO)/build/fst_diff/fst_diff
+	@mkdir -p "$(RAB_WRITE_STATS_WORK)"
+	/usr/bin/time -v "$(ROB_REPO)/build/fst_diff/fst_diff" get \
+		"$(RAB_WRITE_STATS_FST)" "$(RAB_WRITE_STATS_SCOPE).realNeedAlloc_0" \
+		> "$(RAB_WRITE_STATS_WORK)/probe-enable.tsv" 2> "$(RAB_WRITE_STATS_WORK)/probe.time"
+
+$(RAB_WRITE_STATS_BIN): scripts/rab_write_stats.cpp $(ROB_FST_C_OBJS)
+	@mkdir -p "$(RAB_WRITE_STATS_WORK)"
+	$(CXX) -O2 -std=c++20 -Wall -Wextra -I"$(ROB_REPO)/wolvrix/external/libfst/src" \
+		"$<" $(ROB_FST_C_OBJS) -lz -o "$@" > "$(RAB_WRITE_STATS_WORK)/build.log" 2>&1
+
+rab-write-stats-build: $(RAB_WRITE_STATS_BIN)
+
+rab-write-stats-selftest: $(RAB_WRITE_STATS_BIN)
+	"$(RAB_WRITE_STATS_BIN)" --selftest "$(RAB_WRITE_STATS_WORK)/selftest" \
+		> "$(RAB_WRITE_STATS_WORK)/selftest.log" 2>&1
+	@cat "$(RAB_WRITE_STATS_WORK)/selftest.log"
+
+rab-write-stats: rab-write-stats-selftest
+	/usr/bin/time -v "$(RAB_WRITE_STATS_BIN)" "$(RAB_WRITE_STATS_FST)" \
+		"$(RAB_WRITE_STATS_SCOPE)" "$(RAB_WRITE_STATS_WORK)/summary.json" \
+		> "$(RAB_WRITE_STATS_WORK)/run.log" 2> "$(RAB_WRITE_STATS_WORK)/run.time"
+	@cat "$(RAB_WRITE_STATS_WORK)/run.log"
+	sha256sum "$(RAB_WRITE_STATS_FST)" "$(RAB_WRITE_STATS_RTL)" \
+		"$(RAB_WRITE_STATS_BIN)" scripts/rab_write_stats.cpp Makefile \
+		> "$(RAB_WRITE_STATS_WORK)/sources.sha256"
