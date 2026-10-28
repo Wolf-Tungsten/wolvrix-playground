@@ -343,6 +343,103 @@
 | `TNO0331` | `2026-09-20` | [XiangShan residual giant separator audit](./TNO0331_xiangshan_residual_giant_separator_audit_20260920.md) | 残余392-memory ASC 与选择性 mem-to-reg；§7.10 三方案 wrapper -O3：single Host −32.17%、pair −33.69%。追加2026-09-21 §7.11：single+pair 组合、四方案各八次，功能全过；组合最大ASC仍642,580，相对pair复制字节 −0.94%、Host −5.03%、wall −4.84%，7/8轮胜出，eval瓶颈转至part_3。本批波动较大，保留全部成功样本；未改变默认分区管线。§7.12追加同批四方案32线程时空重建图、CSV及离线交互HTML，明确非事件trace。§7.13追加128分区权重/eval/update可选条形图，含三种权重口径与归一化/双轴视图。 |
 | `TNO0332` | `2026-09-22` | [RepCut backend cost models](./TNO0332_repcut_backend_cost_models_20260922.md) | 汇总预估边界、过拟合风险、后端可扩展架构；§5记录可选verilator-v1与测试；§6追加固定四组相关性及combined重新分区，C10000/C30000各8对AB/BA全部获胜，walltime约降2.50%/2.39%，尾部预测仍不足；§7定位part_6宽移位热点，生成器改写后C30000再测8对全部获胜，Host/wall约降10.66%/10.59%，legacy分区与权重不变。§9–10追加part_3热点定位及常量左移memory-write改写：消除2360次宽左移，C30000八对AB/BA全胜，walltime再降5.41%、part_3 eval降6.69%；§11追加连续 memory staging 合并，C30000八对全胜，walltime再降0.66%、eval降0.83%；编译/功能审计通过，分区及通信不变。§12追加当前v3的PMU/机器码/RTL对照，定位refillBuffer逐bit提交和BusPMU逐entry条件更新；区分静态归约数量与动态成本，并补充§11边界勘误。§12.4–12.5追加通用 memory-write-coalesce 结构变换：part_3 移除2040个写端口，C30000八对全胜，Host/wall分别下降7.34%/7.27%，最大分区 eval 下降11.28%；功能、编译和通信审计通过，默认 pipeline 仍未开启。§13.6 新增 `shift_low_bit_v1→const_shift_part3_v2→memory_slice_part3_v3→memory_coalesce_v5` 四阶段 PNG/SVG/交互 HTML 及时间明细，三次优化后 walltime 相对 baseline 下降15.74%、eval下降19.87%。 |
 | `TNO0333` | `2026-09-25` | [RepCut 多线程 GrhSIM 后端](./TNO0333_repcut_grhsim_backend_20260925.md) | 增加同质 GrhSIM 后端，复用阶段调度/all-spin；小模型真实编译运行、Python/flow 验证、Verilator 生成不变性和 32 分区香山 Difftest 链路通过。两批各 8 对 C=30000 AB/BA：GCC-GrhSIM 相对原 Clang-Verilator walltime 中位数减少 8.95%，统一 GCC 对照减少 24.00%。已追加 Clang21/SSE2 错误代码生成根因、独立回归与兼容修复，以及标准流文件描述符边界修正；Clang23.1.2 正常 O3 的最小复现与全量香山验证通过，4 对 AB/BA 相对 Clang21 兼容版 walltime 中位数减少 0.91%。§7 新增 Clang23 三组 Os/O3/GrhSIM 完整编译计时、两个窗口各 12 轮均衡交错与 HTML 时空图；C30000 GrhSIM 相对 Verilator Os/O3 walltime 减少 18.24%/13.82%。 |
+| `TNO0334` | `2026-10-12` | [XiangShan 原生 Verilator 线程扩展](./TNO0334_xiangshan_native_verilator_thread_scaling_20261012.md) | 原生未分区 RTL，标准 XiangShan Makefile、Clang23、无波形/PGO，六档线程模型分布于 node030–node032 编译；性能固定在 node030 CPU96 起连续核，C100000 正反交错窗口。已追加六轮八版本 48 次测量及 HTML：Native 1/2/4/8/16/32 中位数 `213.105/143.075/77.830/45.815/53.360/44.965 s`，RepCut V/G32 为 `22.615/10.995 s`，保留原生高线程档明显波动及端点比较限制。 |
+| `TNO0335` | `2026-10-12` | [XiangShan GrhSIM 旧单线程流程复测](./TNO0335_xiangshan_grhsim_single_thread_old_flow_20261012.md) | 旧单模型流程在 node032 CPU0--7 完成 C=100000 ABBA/BAAB。通用 codegen 候选最终静态库与 baseline 逐字节相同，四对 Host `116603.0→117570.5 ms`（`+0.8297%`）；memory-write-coalesce 使静态库约 `-0.587%`，但 Host `119520.25→119859.25 ms`（`+0.2836%`）。两项均不进入旧单线程默认。 |
+| `TNO0336` | `2026-10-13` | [GrhSIM 现有 ASC 的成本建模与均衡](./TNO0336_grhsim_existing_asc_balance_20261013.md) | 独立 opt-in `grhsim-v1`，不拆 ASC、不改 Verilator；追加阶段成本及 32 次整 ASC 迁移试验。两轮各 8 对 fresh AB/BA：eval 全胜、约 `-2.1%/-2.4%`，但 update `+7.5%/+6.9%`，Host 仅 `-0.29%/-0.55%`。p9 下沿瓶颈减少，p5 update 尾部加重；实际写回字节反而略降，下一步诊断 update 执行效率，实验候选暂不默认。 |
+| `TNO0337` | `2026-10-13` | [GrhSIM 执行成本与划分体系重设计](./TNO0337_grhsim_partition_system_redesign_20261013.md) | 记录文献依据与完整规划；集合/通信评价器、execution-plan、事件/守卫及条件切片完成三份划分对账。已追加第 15 节：带条件的准备/比较/store/activation 特征和首批 compute lowering；第 16 节按实际后端 lowering 补齐 scalar/wide/state/memory/DPIC 形态、operand/word/helper 机制单位、helper 家族展开上界及两沿聚合诊断，producer-dirty concat 与普通 wordwise 分开，96 分区 source audit、20 文件 byte identity、成员守恒通过，unmodeled compute groups 为 0。新增 16.6：实现 mask 保留、互斥 family 和显式 unbucketed 的 GrhSIM backend cost adapter，old/scalar/stage 三份 `backend_cost.csv` 逐 feature 守恒均通过；16.7 新增 mechanism-unit 投影、raw attribution 守恒和 whole/range 相关性诊断，机制单位均无 unmapped；16.8 完成六记录跨变体稳定性筛选，确认 materialization/change-check 需与 commit 发布和 phase 分开；第 18 节完成 phase-specific 三轴 Pareto 表示和 old/scalar/stage 重放守恒；第 19 节新增显式 candidate atom、Pareto dominance 和确定性 lexicographic proposal 原型，通用 fixture/CMake/ASan 通过；19.1 明确当前 partition-level mechanism report 不能回填 ASC phase 权重，新增显式 piece feature adapter，尚未扫描完整 XiangShan 或接入 walltime。约 97.75% 计算操作仍为 generic 待计价，未形成新时间模型或 walltime 收益；Verilator 和默认划分未动。 |
+| `TNO0338` | `2026-10-27` | [从 Verilog 开始的自动 memory 与迁移流程](./TNO0338_grhsim_automatic_rtl_flow_20261027.md) | 固定全核生成、结构 memory 筛选、从头 32 分区及自动迁移策略和来源。 |
+| `TNO0339` | `2026-10-27` | [Clang 23 变化归约错误与兼容处理](./TNO0339_grhsim_clang23_change_reduction_20261027.md) | 独立 fixture 复现丢失 activation，添加通用 no-SLP 保护并完整重建。 |
+| `TNO0340` | `2026-10-27` | [自动初解的完整构建与正式验收](./TNO0340_grhsim_automatic_initial_runtime_20261027.md) | 16 次 C100000 与 THP/对齐通过；walltime 11.015→14.725 s，继续自动 profile 迁移。 |
+| `TNO0341` | `2026-10-27` | [新初解 profile 的自动迁移选择](./TNO0341_grhsim_automatic_migration_selection_20261027.md) | 自动选择来源和目标，72 个提案中唯一预测改善且满足预算者为 p4→p7，1925 个 ASC。 |
+| `TNO0342` | `2026-10-27` | [自动流程完成与迁移验收](./TNO0342_grhsim_automatic_flow_acceptance_20261027.md) | Verilog→emu 全程完成；自动迁移 −0.136%、5/8 胜未接受，保留自动初解，尚未追平恢复版。 |
+
+| `TNO0343` | `2026-10-28` | [固定恢复版 memory 的受控实验](./TNO0343_grhsim_restored_memory_control_20261028.md) | 固定三个 memory 与转换参数，重新分配并自动迁移，统一编译兼容选项。 |
+| `TNO0344` | `2026-10-28` | [固定 memory 初解的正式性能对照](./TNO0344_grhsim_fixed_memory_initial_runtime_20261028.md) | 相同编译设置下13.790→13.190s，配对−4.455%、7/8更快，继续自动迁移。 |
+| `TNO0345` | `2026-10-28` | [恢复版 no-SLP 编译对照](./TNO0345_grhsim_restored_no_slp_control_20261028.md) | 同源码/同归档顺序重编，walltime配对+8.987%、0/8更快。 |
+| `TNO0346` | `2026-10-28` | [固定 memory 自动流程最终验收](./TNO0346_grhsim_fixed_memory_acceptance_20261028.md) | 自动72提案无满足预算的预测改善；同编译恢复版11.190→新初解13.040s，配对+16.325%。 |
+| `TNO0347` | `2026-10-28` | [固定 memory 初始方法对齐](./TNO0347_grhsim_fixed_memory_initial_method_alignment_20261028.md) | 核实 ASC 模型逐字节一致，复用历史六维超图、自动隔离超大节点并重新 31-way 求解；固定完整 preset 和 no-SLP 编译后做新的 AB/BA。 |
+| `TNO0348` | `2026-10-28` | [对齐初解构建与门禁](./TNO0348_grhsim_aligned_initial_build_gate_20261028.md) | 新六维初解的精确复制/通信账本，7857对象完整编译及7249入口64B对齐通过；执行计划检查与生成并行。 |
+| `TNO0349` | `2026-10-28` | [对齐初解walltime验收](./TNO0349_grhsim_aligned_initial_walltime_20261028.md) | 两组各8对fresh AB/BA：相对普通初解−3.595%/8胜，相对同no-SLP恢复版+12.465%/0胜；固定memory及完整preset，36次运行全部通过。 |
+| `TNO0350` | `2026-10-28` | [新旧初解不一致的求解器归因](./TNO0350_grhsim_initial_solver_reproducibility_20261028.md) | 同输入/seed/preset的32及384线程各重复两次均不复现；社区和粗化图已分歧，新初解切边与通信质量劣于历史初解，固定线程不足以复现。 |
+| `TNO0351` | `2026-10-28` | [八份并行初解与km1择优](./TNO0351_grhsim_parallel_eight_initial_selection_20261028.md) | seed0–7各48线程并行，8份独立容量/目标审计通过，自动选seed1/full km1=27,912,141；优于历史初解1.283%，尚未测walltime。 |
+| `TNO0352` | `2026-10-28` | [八份择优初解的后续流程](./TNO0352_grhsim_portfolio_selected_followup_runbook_20261028.md) | 固定seed1标签及完整preset，重建/生成/编译，自动动态迁移，最终与同编译恢复版及历史原binary做独立fresh AB/BA。 |
+| `TNO0353` | `2026-10-28` | [八份择优初解的完整生成与构建检查](./TNO0353_grhsim_portfolio_selected_build_gate_20261028.md) | seed1标签保持不变，32分区计划通过；7,719个对象完成Clang23/O3/native/no-SLP构建，7,116个compute入口全部64B对齐。 |
+| `TNO0354` | `2026-10-28` | [八份择优初解的同编译运行对照](./TNO0354_grhsim_portfolio_initial_runtime_20261028.md) | 8对fresh AB/BA，walltime 9.785→10.350s，配对+5.518%，0/8胜；总eval下降但拖尾上升，继续自动迁移筛选。 |
+| `TNO0355` | `2026-10-28` | [八份择优初解的自动迁移筛选](./TNO0355_grhsim_portfolio_automatic_migration_gate_20261028.md) | 新trace自动选p8/p9/p0，51提案全部完成精确核算，但均不满足原8条通信零增长预算；无迁移，不放宽门槛。 |
+| `TNO0356` | `2026-10-28` | [八份择优后续流程及恢复版最终对照](./TNO0356_grhsim_portfolio_followup_final_comparison_20261028.md) | 流程完成；同编译恢复版9.785→10.350s（+5.518%），原始恢复版8.920→10.360s（+16.002%），均0/8胜，恢复版仍为锚点。 |
+| `TNO0357` | `2026-10-28` | [seed 1 原始编译选项对照计划](./TNO0357_grhsim_seed1_original_flags_runbook_20261028.md) | 同一生成源码全量去掉no-SLP，保留归档顺序和对齐，先功能检查，再对原始恢复版和同seed no-SLP做fresh AB/BA。 |
+| `TNO0358` | `2026-10-28` | [seed 1 原始编译选项构建检查](./TNO0358_grhsim_seed1_original_flags_build_20261028.md) | 原始O3/native、无no-SLP，7719对象全量重编及链接141.92s；7116个compute入口全64B对齐，归档顺序相同。 |
+| `TNO0359` | `2026-10-28` | [seed 1 原始选项与恢复版直接对照](./TNO0359_grhsim_seed1_original_flags_restored_runtime_20261028.md) | 同为原始编译选项，8对fresh AB/BA：walltime 8.925→9.480s，配对+6.352%、0/8胜；功能/THP/对齐均通过。 |
+| `TNO0360` | `2026-10-28` | [同一 seed 1 的 SLP 编译选项对照](./TNO0360_grhsim_seed1_slp_control_runtime_20261028.md) | 同源8对fresh AB/BA，去掉no-SLP后walltime 10.390→9.430s、配对−9.007%、8/8胜；仍慢于恢复版，32次长测和4次smoke全部核验通过。 |
+| `TNO0361` | `2026-10-28` | [可从新 clone 干净重跑的默认流程计划](./TNO0361_grhsim_clean_default_flow_plan_20261028.md) | 从Verilog重新生成六维图和8份初解，自动迁移，去掉中间历史身份/plan gate，构建工具与默认配置进入仓库。 |
+| `TNO0362` | `2026-10-28` | [干净默认生成入口的实现与小型回归](./TNO0362_grhsim_clean_default_implementation_20261028.md) | 一键源码构建、完整preset、自动择优/迁移与本机32核运行；零权重维度fallback修正，实际Verilog八份求解和40项测试通过，全量香山试跑进行中。 |
+| `TNO0363` | `2026-10-28` | [默认运行入口的代码页初始化](./TNO0363_grhsim_portable_startup_20261028.md) | preload移至emu入口，exec与dlmopen的一次性标记分离；实际ELF大页启动及编排回归通过，相关测试增至42项。 |
+| `TNO0364` | `2026-10-28` | [独立目录的纯源码构建](./TNO0364_grhsim_source_only_bootstrap_20261028.md) | 排除旧构建与设计产物后独立构建全部原生工具成功；香山8份求解全可行，自动选seed6/km1=39,450,970，完整发射进行中。 |
+| `TNO0365` | `2026-10-28` | [干净初解的完整构建与最终运行](./TNO0365_grhsim_clean_initial_runtime_20261028.md) | Verilog至32分区emu完成，8259对象原始O3/native；8次C100000功能通过，walltime中位13.394977s，自动迁移评估继续。 |
+| `TNO0366` | `2026-10-28` | [干净默认流程的端到端完成与公开入口复测](./TNO0366_grhsim_clean_default_completion_20261028.md) | 51提案自动选p6→p31，fresh8对+2.277%/0胜后自动保留seed6初解；公开入口8次复测13.102951s，launcher通过，44项测试通过。 |
+| `TNO0367` | `2026-10-28` | [默认路线初解km1增大与旧RTL复用问题](./TNO0367_grhsim_initial_km1_input_drift_20261028.md) | 同一计分器复现旧27,912,141；默认入口复用旧RTL漏掉counter-print改动，超图已变；修正默认重新生成，46项测试通过，尚未全量重测。 |
+| `TNO0368` | `2026-10-28` | [重新生成RTL后的完整32线程流程结果](./TNO0368_grhsim_fresh_rtl_full_flow_result_20261028.md) | 新RTL全流程通过，8份初解自动选seed7/km1=26,547,623；walltime两窗口12.228/12.533s，51迁移提案均不满足通信预算，保留初解，默认入口指向新产物。 |
+| `TNO0369` | `2026-10-28` | [新RTL seed7与恢复版的直接AB/BA](./TNO0369_grhsim_fresh_seed7_vs_restored_20261028.md) | 同为Clang23.1.2原始O3/native、SLP，fresh两轮16对walltime退化9.538%/0胜；eval+10.391%，36次功能、THP和对齐检查通过，恢复版继续为性能锚点。 |
+
+增量更新（2026-10-14）：[TNO0337 第 20 节](./TNO0337_grhsim_partition_system_redesign_20261013.md)
+完成未划分图的操作/融合区域归因，739.8 万条条件记录守恒。223.1 万条 compute 来源是
+scheduler 复制，21,430 个写回体跨不同 ASC membership；old/scalar/stage 中分别有
+2,751/1,288/1,288 个被分散。下一步明确为消费者侧读取与共享 lowering 的 assignment
+派生计账；不是固定六列 piece 权重已可投入搜索。小图、ASan/UBSan、20 文件生成一致性及
+三项回归通过，尚无新 assignment 或 walltime。
+
+增量更新（2026-10-14）：[TNO0337 第 21 节](./TNO0337_grhsim_partition_system_redesign_20261013.md#21-完整-asc-移动后的读取共享写回与边界重建2026-10-14)
+新增显式 ASC assignment 重放及 GrhSIM 消费者/共享正文视图。真实小图重建确认：一个
+ASC 移动可改变共享组、使读取者的调度组从上沿活跃变为两沿活跃，并改变第三分区的输入
+打包和生成代码。CMake/CTest、汇总器及 fixture 的 ASan/UBSan、四组生成模型功能检查
+通过；普通默认路径的 35 份 HGR/assignment 与冻结 reference 一致。下一步是有限
+XiangShan 候选的整图重算对照，尚无新性能数据。
+
+增量更新（2026-10-14）：[TNO0337 第 22 节](./TNO0337_grhsim_partition_system_redesign_20261013.md#22-xiangshan-有限-asc-迁移的完整重建对照2026-10-14)
+完成 scalar 对照及两次独立单 ASC 迁移的全量重建/planner 对账。对照 GRH 与四份工作量
+报告逐字节复现；96 分区的真实通信接口与评价器一致。两次迁移分别改变 6/14 个分区，
+后者仅增加 137 字节却增加 61 个 transfer，并改变 11 个分区的共享写回成员。
+新增通用 `repcutAssignmentDirectImpact`，准确复现直接重建范围；CMake/CTest 和
+ASan/UBSan 通过。下一步区分图/plan 缓存与 activity 固定点传播，尚无新 walltime。
+
+增量更新（2026-10-14）：[TNO0337 第 23 节](./TNO0337_grhsim_partition_system_redesign_20261013.md#23-首个成组-asc-候选先完成搜索到性能的闭环2026-10-14)
+完成首个成组 ASC 搜索到实际性能的闭环：缓存版与完整重算逐项一致，候选将 416 个完整
+ASC 从 p27 搬到 p8，重建 10 个分区。node030 CPU96–127、C100000 共 8 对 fresh AB/BA
+全部通过功能检查；p27 eval −1.335%，但 Host +1.799%、walltime +1.786%、update +10.818%，
+仅 2/8 对胜出，因此不替换性能基线或默认。最大平均 eval 仍是 p2；最大 update-push
+所在 p5 的分区源码未变，说明静态最大分区和通信容量约束仍不足以预测最终关键路径。
+后续转向有限的 update 尾部定位及候选覆盖面调整，不继续扩大缓存/守恒审计。
+
+增量更新（2026-10-14）：[TNO0337 第 24 节](./TNO0337_grhsim_partition_system_redesign_20261013.md#24-从原始-asc-重新分配的首个完整闭环2026-10-14)
+首次从原始未划分 GRH 重新给全部 301,184 个 ASC 分配 32 个新分区，使用
+`closure-aware + grhsim-v1`，不读取旧 assignment 标签。精确重算显示 recurring 最大值不变，
+通信 calls/bytes 分别下降 15.27%/15.04%，falling compute-core 最大值下降 7.07%，
+wide-helper 最大值下降约 49%。同配置真实生成、编译和 node030 CPU96–127 的 8 对
+fresh C=100000 AB/BA 全部通过功能检查；Host 中位数 `11.072→10.9075 s`（逐对 −1.468%，
+5/8 胜出），update −17.647%，但全局 eval +2.418%，最大平均 eval 从旧 p2 转到新 p11，
+因此候选暂不默认。后续定位新 eval 瓶颈的 activation/阶段/同步机制，再做联合目标的少量
+从头候选。
+
+增量更新（2026-10-15）：[TNO0337 第 25 节](./TNO0337_grhsim_partition_system_redesign_20261013.md#25-将从头分配设为首道筛选2026-10-15)
+将流程固化为“原始 GRH 从头分配 → 廉价结构/后端 gate → 少量局部调整 → 生成/编译/运行”。
+新 gate 对 recurring、raw operation、通信峰值和 backend 机制峰值做筛选；当前 from-scratch
+候选通过，head-gate JSON 已生成。随后在 candidate 自身上做的局部成组调整只令 falling
+compute-core 最大值下降 0.021%，没有达到约 0.5% 的继续编译阈值，因此停止在静态层，
+不新增 runtime 候选。后续优先改变从头分配的成本/目标组合，并把局部调整限制为通过 gate
+且有明确后端收益的少数结果。
+
+增量更新（2026-10-15）：[TNO0337 第 26 节](./TNO0337_grhsim_partition_system_redesign_20261013.md#26-通信标量强调的边界总量下降仍可能放大接收端尾部2026-10-15)
+新增通用可选的 `communication_weight_scale`，默认值为 `1`，用于验证通信权重整体放大
+是否能改善从头划分。因子 `2` 的候选总 send calls/bytes 降至 `0.9250/0.8711`，但
+最大 receive calls 升至 `1.0623`，在首道结构 gate 被停止，未进入 backend、编译或
+runtime，也未改变默认行为。后续转向显式建模接收端 incident/call 尾部，而不是继续
+调整单一通信标量。
+
+第 26 节后续探针表明，直接把 receiver exposure 加入 node weight 会造成计算分区严重倾斜；
+改为 closure refine 的接收端二级目标虽能降低最大 receive calls，却使 recurring/raw 总和
+增加约 `1.45%/1.89%`，receive bytes 峰值升至 `1.254` 倍，仍在首道 gate 被停止。当前
+不再继续扫 receiver scale，下一步转向保留 owner/reader 方向的全局多目标 proposal，
+显式约束接收 bytes/calls tail 与复制总量。
 
 增量更新（2026-09-23）：TNO0332 §12.6–12.7 记录冻结 `memory_coalesce_v5` 的
 残余热点复核和后续实验。decoded register table 的 packed 候选数据/逐项提交约占
@@ -1319,11 +1416,396 @@ walltime 均值分别改善 **1.883% / 3.540%**，正式两轮 11/12 对、6/6 �
 同步编译适配。当前源码的 39 项 Python/流程测试与补跑的 4 项 CTest 全部通过，
 具体提交范围见 TNO0333 §7.101 末尾。
 
+2026-10-13 [最新 GrhSIM F/G 交互时空图](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/timeline_8pairs/grhsim_f_g_timeline.html)：
+复用 TNO0333 §7.101 正式八对窗口，不新增或混入其他性能样本。支持 32 线程的
+阶段重建、均值/中位数、逐对样本、分区指标选择和 CSV/SVG 导出，附 PNG。
+当前 input-load 按实际并行实现绘制；灰色不表示实测等待。数据与 83 组浏览器
+交互检查通过，细节追加于该节末尾。
+
+2026-10-13 [逐 cycle 分区耗时 HTML](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/cycle_trace_20261013/viewer/grhsim_cycle_histogram.html)：
+另采 F/G 两对 C100000 AB/BA，支持 cycle 1–100001、两种时钟沿或两沿合计、
+指标选择、独立运行切换和 CSV/SVG 导出。仅用 node030 CPU96–127；本批为
+**4 KiB 代码页诊断数据，不能与此前 THP 平均图直接比较绝对耗时**。完整 HTML
+约 158 MB，离线分块解压；396 项累计值核对和 129 组浏览器检查通过，见
+TNO0333 §7.101 末尾的增量说明。
+
+2026-10-12 [GrhSIM 旧单线程流程复测（TNO0335）](./TNO0335_xiangshan_grhsim_single_thread_old_flow_20261012.md)：
+在 node032 CPU0--7 上对旧单模型流程完成 C=100000 的 ABBA/BAAB。通用
+`packed_array_late_index + local_compute_use_order` 候选的最终静态库与 baseline
+逐字节相同，四对 Host 均值 `116603.0→117570.5 ms`（`+0.8297%`）；
+`memory-write-coalesce` 使静态库约 `-0.587%`，但 Host `119520.25→119859.25 ms`
+（`+0.2836%`）。两项均不进入旧单线程默认。
+
+2026-10-15 [有向 sender/receiver proposal 探针（TNO0337 §27）](./TNO0337_grhsim_partition_system_redesign_20261013.md#27-有向-senderreceiver-proposal-的首个闭环2026-10-15)：
+在 raw assignment 通过首道 gate 后，按真实 writer/reader 集合做受硬约束的宽值消费者
+proposal。首个单 ASC proposal 完成 partition rebuild 和 backend 对账，receiver bytes
+峰值约降 `0.15%`，低于进入编译/runtime 的 `0.5%` 停止线，暂不生成代码；sender 和
+receiver 方向已经独立于无向超图权重，后续继续做成组/交换搜索。
+
+同节已追加 §27.1：接收热点约 98.91% 的成员位宽来自不超过 64 bit 的值，旧探针遗漏了
+这些值拼成的大包。修正后确认多个独立 ASC 可以重新放置；其中本轮选中的两个是受 dump
+条件控制的性能日志输出。因此计算成本与边界通信必须分开评价，接收峰值降低仍需真实
+walltime 验证。
+
+§27.2 另已校正旧静态报告的生成选项差异，并补充同配置机制对照；第 24 节原有 fresh
+AB/BA 的两边生成配置一致，运行时间数据仍有效。
+
+§27.3 已完成全位宽 reader 分组候选的 8 对 fresh AB/BA：相对同配置从头划分参考，
+Host 逐对中位数 −0.952%（7/8 胜出），全局 eval −0.629%，update −1.451%；功能和 THP
+检查通过。收益小且仍有顺序差异，暂不改默认，下一步回到初始分配的联合目标。
+
+2026-10-15 [两阶段从头分配与 fresh AB/BA（TNO0337 §28）](./TNO0337_grhsim_partition_system_redesign_20261013.md#28-从初始分配处理终端-reader2026-10-15)：
+核心 ASC 从原始图重新求解，34 个通信需求占主导的终端消费者随后按精确 writer/reader
+成本做初始放置，未复用旧 assignment 标签。相对上一轮候选，接收容量峰值 −74.55%、
+通信总容量 −10.23%；node030 CPU96–127、C100000 的 8 对 fresh AB/BA 中，Host 配对
+中位数 −5.55%、elapsed −5.53%、eval −2.65%、update −22.32%，均为 8/8 更快。
+最大平均 eval 未改善，input-apply 总和增加，保留局部代价。另确认旧静态 gate 会因
+operand bits 和派生事件条件上界拒绝实际有益候选；本轮保留原判定，并明确以有界诊断
+完成性能核验。保留新实验候选，生产默认与 Verilator 不变，后续优先构造器接口化和
+核心初始计算/写回均衡；完整证据与规划集中在同节。
+
+2026-10-15 同主题已追加 [生产入口接入与回归（TNO0337 §28.4）](./TNO0337_grhsim_partition_system_redesign_20261013.md#284-生产入口接入配置边界与回归2026-10-15)：
+两阶段从头分配已成为独立 GrhSIM 构造器，支持 CLI、Python、脚本和 Make，预算由当前
+输入的参考方案推导，失败时回退。完整香山最终标签及优化后图与已测候选逐字节一致；
+小图生产入口、精确核算及参数/后端路由回归通过，并修正最终权重统计仍指向参考分配的
+问题。通用构建默认保留，当前优化线显式使用新构造器；文档说明了 reg-to-mem 等生成
+配置与普通默认入口的差异，以及后续核心计算/写回均衡的节奏。
+
+2026-10-15 补充新初解的两次完整 cycle trace、低频采样及划分前结构代理诊断：p24 两沿
+均重，p14 偏上升沿，p4 的计算集中于下降沿，最长时长累加在两次运行中均排第一。
+原始 GRH 的标量计算及潜在存储 site 数与平均 eval 的相关系数在两份分法中为
+0.632/0.595，高于原 closure 的 0.318/0.221；同时明确 may 上界与实际半周期工作之间的
+差别。证据、限制及后续初始核心分配节奏见 TNO0337 第 28.5 节。
+
+2026-10-15 同主题追加 [场景/标量驱动的核心初解（TNO0337 §28.6）](./TNO0337_grhsim_partition_system_redesign_20261013.md#286-划分前场景与标量特征驱动的核心初解2026-10-15)：
+实现调用方声明的划分前事件/commit 可见性分析，以显式 unknown 保留派生事件边界；
+独立核心初解增加标量投影和 writer/reader value 超边。与当前最佳 binary 的 8 对
+fresh AB/BA 中，Host 12.8465→12.2575 s，配对中位数 −4.59%，8/8 更快；全局
+eval/update 分别 −5.09%/−10.10%，通信调用条目 −32.44%、存储 byte −10.07%。
+功能、THP、身份及单元/ASan/UBSan 核验通过。相关性尚未全面提高，组合收益仍需
+机制消融；保留为实验候选，生产默认和 Verilator 路线未切换。
+
+2026-10-15 同主题追加 [两项机制消融（TNO0337 §28.7）](./TNO0337_grhsim_partition_system_redesign_20261013.md#287-标量投影与-value-超边的移除消融2026-10-15)：
+各做 8 对 fresh AB/BA，移除 value 超边/标量投影分别使 Host 配对中位数退化
+1.88%/4.63%，完整方案均 8/8 更快，继续保留组合。两种移除的主要退化都在框架
+update 推送：分别 +41.87%/+44.79%，eval 则 −2.67%/+0.58%。96 个发送函数的
+实际复制调用与精确模型逐项一致；明确 update-push 不含模型 commit，静态 byte
+总量仍不能解释动态推送成本。36 次功能/THP 核验通过；仅投影为原端点预算之外的
+诊断对照，预算和放置规则未放宽。补充原始库存审计、相关性边界和有限后续节奏。
+
+2026-10-15 同主题追加 [动态通信与缓存域对照（TNO0337 §28.8）](./TNO0337_grhsim_partition_system_redesign_20261013.md#288-动态推送缓存域与一次固定模型的映射对照2026-10-15)：
+完成三组 12 次 wrapper-only C100000 诊断与原始 ELF 的四次 PMU 核查；仅超边组
+复制 payload 总量 +8.40%，发往不同 L3 域的实际复制 payload 却 +144.09%，逐步
+最慢 sender 增量占 trace 全局 update 增量约 89.52%。进一步只按静态通信矩阵改变
+冻结消融模型的核映射，同一个 ELF 的 4 对 fresh AB/BA 中 Host 配对 −2.191%、
+update −15.238%，均 4/4 更快，确认物理映射的实际影响；不将其混为新的划分收益。
+补充共享行/采样边界、64 B 复制生成热点及下一阶段库存投影与拓扑分层计划。
+
+2026-10-15 同主题追加 [纯标量库存投影对照（TNO0337 §28.9）](./TNO0337_grhsim_partition_system_redesign_20261013.md#289-用纯标量库存替换场景投影的单变量对照2026-10-15)：
+完整方案的 assignment/特征/精确 parts 与 transfers 四份重放逐字节一致；只将求解器
+投影由两沿/unknown 组合换为 scalar-site 库存，保留相同场景验收。4,061 个核心节点
+权重改变（1.35%），候选通过原预算并完成重建，通信存储量 −4.44%、条目 +3.23%。
+记录同原绑核下的静态跨 L3 payload 及实验边界，后续以 8 对 fresh AB/BA 验证。
+
+同轮运行验收已完成：Host 11.3420→10.9935 s，八对配对中位数 **−3.032%**，
+eval/update 分别 −2.879%/−8.119%，均 8/8 改善；18 次功能/THP/配置及身份核验通过。
+纯库存作为下一轮实验对照保留，生产默认未切换。补充实际核心投影与精确并集的
+不同口径：投影/eval 的 Pearson 0.407→0.354，改善 walltime 尚不等于成本预测更准。
+记录后续接口化及显式拓扑分层计划，场景验收仍保留，不开展比例或 seed 扫描。
+
+2026-10-15 同主题追加 [资源层接口化与缓存域映射反例（TNO0337 §28.10）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2810-将资源层接口化并验证缓存域映射约束2026-10-15)：
+将结构特征、求解器投影、精确通信、场景约束和 CPU/L3/NUMA 资源拆成独立只读接口。
+静态跨 L3 payload 由 81,150 降到 79,438 byte，但只改启动绑核映射的 8 对 fresh
+AB/BA 中，Host 仅 −0.456%（5/8），最大分区 update-push **+3.401%（0/8）**，
+update 总和 **+2.651%（0/8）**，不作为下一轮 baseline。定位到 `PhaseWorker` 的
+64 B lane 元数据和连续 lane block 被拆跨 L3；后续资源目标必须先满足框架同步元数据
+局部性，再优化 RTL 通信，生产默认与 Verilator 路线均不变。
+
+2026-10-16 同主题追加 [动态 K/L3 层次化初始分配契约（TNO0337 §28.11）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2811-按运行时-k-与实际-l3-域生成层次化初始分配契约2026-10-16)：
+用实际 `lscpu` 拓扑和输入 assignment 推导域数与每域容量，当前 node030 自然得到
+`[8,8,8,8]`；K=1/2/3/6/8/12/31/32/40 的容量推导验算通过。完整超图 K 路求解后
+再按域容量编号 L3 槽位，动态结构门槛、精确 assignment 重放和 `partitioned.json` 生成均通过；
+send bytes 相对场景初始候选 −2.38%，尚未进行运行时 AB/BA，不宣称 walltime 收益。
+
+2026-10-16 同主题追加 [同一 ELF 的 CPU 映射复测与勘误（TNO0337 §28.12）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2812-勘误固定同一-elf-单独验证-cpu-映射2026-10-16)：
+两边使用同一 ELF、同一分区与 Host p9/CPU105，只在启动时切换 CPU 映射；
+node030 CPU96–127 上 8 对 fresh C100000 AB/BA，18 次功能/配置/THP 核验通过。
+Host 逐对变化中位数 +0.004%，双方各快 4 次，未发现稳定收益。撤回此前由
+`alignas(64)` 推导八 lane 必须同 L3 的硬约束；核实层次化候选另有 11 个 terminal
+ASC 放置变化，不能将其性能变化归因为纯线程映射或代码/缓存布局被破坏。
+
+2026-10-16 同主题追加 [层次化初始分配修正与最佳候选重放（TNO0337 §28.13）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2813-层次化初始分配的修正与最佳候选重放2026-10-16)：
+修正等价线程容量、terminal reader 排序和严格路径投影差异，两边统一最佳纯库存
+投影与求解选项。通用小图核验通过；关闭层次化时，节点权重、核心与完整 assignment、
+特征、精确 parts/transfers 六份输出逐字节重放最佳候选，随后开始独立递归候选闭环。
+
+同节已追加最终闭环：进一步修正超重大 ASC 抬高所有线程上限及两级 imbalance
+叠加的问题，普通投影上限统一为 830,442；原 recurring 总量门槛仍超出 0.57%，
+明确标为诊断候选，不改变原 gate。node030 CPU96–127 上 8 对 fresh C100000
+AB/BA 的 elapsed 中位数 11.925→13.050 s，逐对变化中位数 +9.22%，8/8 对更慢；
+eval +7.72%、update +36.91%。独立逐步诊断将主要尾部定位到 clock=0 eval 与
+clock=1 的 p21 update-push，常见启动偏移低于 1 µs；不能归因为纯线程映射。
+保留最佳纯库存候选，下一阶段优先考虑半周期计算负载、共享复制和定向传输成本，
+L3 拓扑作为通信软目标；未改变生产默认或 Verilator 路线。
+
+2026-10-16 同主题追加 [全局小组划分与集合成本装箱（TNO0337 §28.14）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2814-全局小组划分与集合成本装箱2026-10-16进行中)：
+计划从头生成 `4*K` 个逻辑小组，再按分阶段计算、共享并集和定向 bundle 代价装入
+K 个线程；L3 是通信软目标。通用小图及互补半周期装箱测试通过，完整设计闭环进行中。
+
+同节已追加首个完整闭环：128 个逻辑小组装入 32 线程，集合/通信完整对账及 ASan/UBSan
+通过；原成本 gate 保留拒绝，候选明确按诊断版本验证。node030 CPU96–127 上
+8 对 fresh C100000 AB/BA，elapsed 中位数 11.740→12.540 s，逐对变化中位数
++6.56%，8/8 对更慢；eval +2.92%、update +49.25%。独立两对诊断表明 clock=1
+eval 的改善被 clock=0 抵消，约 64% 的 step 时间增量来自 update；候选 p0 的
+clock=1 收尾 callback 达 9.30 µs，启动时差约 0.013 µs。静态 helper 条目
+2397→6491，新增条目约 81.3% 是窄包，符合推送碎片化的退化方向。
+另确认 28,186 个值在 writer 放置前已有多个 reader 线程，当前部分 assignment
+忽略了非零通信下界；下一步修正这一通用前瞻成本。保留最佳纯库存版本，默认与
+Verilator 路线不变。候选总构建 300.21 s，正式与诊断共 24 次功能/配置/THP 检查通过。
+
+2026-10-16 同主题追加 [writer 未放置时的远端需求前瞻（TNO0337 §28.15）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2815-writer-未放置时的远端需求前瞻2026-10-16进行中)：
+实现 reader 已分散时的远端 bit 下界和合包后 helper 预测；逐次部分 assignment
+重建、小图及完整精确核验通过。仅加前瞻仍因“复制绝对优先”退化成原分区的线程
+编号置换，现继续以有限归一化势能联合考虑复制、阶段负载和通信，开展完整 fresh
+AB/BA 闭环；原成本 gate 独立保留，生产默认及 Verilator 路线不变。
+
+同节已追加完整结果：有限联合成本＋前瞻将旧装箱静态 helper 从 6,491 降至 4,504，
+payload 从 422,319 降至 381,179 byte；但在 node030 CPU96–127 上 8 对 fresh
+C100000 AB/BA，elapsed 中位数 11.580→12.935 s，逐对中位数 +11.66%，8/8 对
+更慢，eval +9.79%、update +38.72%。独立两对诊断定位到 clock=0 p31 eval
+（收尾时 62.98 µs）及 clock=1 p26 update（7.50 µs）；约 69% 的 step 增量来自
+eval。正式与诊断共 24 次功能/配置/身份/完整代码 THP 核验通过。保留最佳纯库存；
+下一步先建模后端活动组、分阶段成本和共激活，再贯穿初始分组与装箱，不再只调
+当前原始计数势能。静态消融、计量边界与全部可复核数据已记录到同节。
+
+2026-10-16 同主题追加 [后端活动上下文贯穿初始构造（TNO0337 §28.16）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2816-后端活动上下文贯穿初始构造2026-10-16进行中)：
+用后端 compute context、共享提交体与成员活动来源重新构造初始小组，再用于最终
+装箱；不复用旧库存小组、不用时间拟合或编译后反馈。已记录六类原语、消费者归属、
+共享体计数、共激活片段及预测边界，按小图/守恒→完整生成→fresh AB/BA 推进。
+
+2026-10-16 同主题追加 [后端活动上下文完整闭环（TNO0337 §28.16）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2816-后端活动上下文贯穿初始构造2026-10-16进行中)：
+全量提取守恒并通过覆盖审计，后端上下文同时用于初始超图和最终装箱；但候选在
+node030 CPU96–127 的 8 对 fresh C100000 AB/BA 中 Host 11.952→14.5945 s、
+elapsed 12.025→14.665 s（+21.95%），最大 eval +58.01%、update-push +36.04%。
+主要问题是新小组造成跨 L3/接收 payload 膨胀并把工作集中到新的尾部，原 gate 拒绝，
+保留基线；下一步先补分区边界到达与 fixed-point 语义。
+
+2026-10-16 同主题追加 [边界到达与本地提交后执行波（TNO0337 §28.17）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2817-将边界到达与本地提交后执行波纳入初始构造2026-10-16)：
+在来源中保留 writer ASC，随分配区分远端下一半步输入与本地提交后的再次计算，
+并用于重新构造初始小组与装箱。小图和独立增量 oracle 已通过，开始全量提取及
+fresh AB/BA；同时补充上一轮预算分母、跨划分 part 编号和通信净增口径的勘误。
+
+2026-10-16 同主题追加 [到达阶段候选完整闭环（TNO0337 §28.17）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2817-将边界到达与本地提交后执行波纳入初始构造2026-10-16)：
+完成新图、119 小组、完整生成及 node030 CPU96–127 的 8 对 fresh C100000 AB/BA。
+elapsed 12.245→17.895 s，逐对中位 +46.32%，8/8 退化；额外 step 时间 90.28%
+来自 eval。两对独立诊断定位上升沿 p10 尾部（82.78%，96.29 µs）。同 assignment
+消融验证标量阶段相关性改善，但宽字成本仍严重失真，综合投影相关性仅 0.109；
+全部 24 次运行/配置/完整代码 THP 检查通过。保留最佳基线，下一步先对账原始预测、
+通用变换后图和实际后端执行计划的成本差异，再形成新候选。
+
+2026-10-16 同主题追加 [全分区计量修正及新划分验证（TNO0337 §28.18）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2818-全分区成本对账先修正原语计量再评价划分目标)：
+完成两套划分共 64 分区的通用 pass/最终 execution-plan 对账，修复窄切片按宽输入
+收费、`grhsim_` 变量被误判为 helper 导致普通表达式漏计两项问题；回归与生成包
+20 文件 byte identity 通过。使用相同 allocator、修正库存重新从头分配 120 小组，
+node030 CPU96–127 上完成 8 对 fresh C100000 AB/BA 和两对独立诊断：elapsed
+11.175→14.650 s，逐对中位 +32.12%，0/8 获胜；额外 step 时间 92.07% 来自 eval。
+新候选上升沿 p20 尾部占 85.69%，模型也预测其标量峰值比基线高 9.99%，暴露
+阶段峰值目标/初始小组放置及“可能活动→真实工作”的剩余缺口。保留计量修复和
+最佳基线，不采用新划分；下一步优先核对上述缺口，不按分区调系数。
+
+2026-10-16 同主题追加 [放置目标与真实活动量归因（TNO0337 §28.19）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2819-放置目标与真实活动量分开归因再验证峰值优先初解)：
+重放全部 120 次放置，确认旧目标会为复制/通信取舍接受更高的阶段峰值；旧候选
+p20 来自四个可移动小组。全分区真实逻辑组计数复现一致，进入库存与未插桩 eval
+的相关性为 0.867～0.967，明显高于静态可能库存。峰值优先方案从头重建并完成
+node030 CPU96–127 的完整验证：相对旧目标 fresh 4 对 walltime −6.91%，4/4
+获胜；相对最佳基线 fresh 8 对 +22.48%，0/8 获胜，保留最佳基线。新候选的
+上升沿 eval 尾部仍为 p20，update 尾部集中到 p27；40 次仿真运行通过功能和完整
+代码 THP 检查。下一步优先核对静态触发/到达沿/条件体，并配套约束通信端峰值。
+
+2026-10-16 同主题追加 [静态触发来源审计与通信预算保护（TNO0337 §28.20）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2820-静态触发来源审计与通信预算保护2026-10-16)：
+对账全部 32 分区计划与 41 个活动过估反例，追到附加异步 reset、门控时钟及远端
+到达阶段；通用事件极性原型收紧 918 个 compute group，下降沿已知库存/eval
+相关性 0.296→0.353，但含 unknown 的可能库存相关性不变。通信超限优先候选从头
+构造并完成 node030 CPU96–127 上 34 次功能/完整 THP 验证：相对最佳基线 fresh
+八对 walltime +31.64%；相对上轮峰值优先 fresh 四对 update −11.59%、eval
++10.46%、walltime +7.23%。保留最佳基线和静态分析原型，下一步将触发原因与到达
+阶段接入原始成本表示，继续避免按观测频率、模块名或分区编号调权。
+
+2026-10-17 同主题追加 [原始图触发原因分解与新划分验证（TNO0337 §28.21）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2821-原始图触发原因分解与从头构造验证2026-10-17)：
+将事件极性和正常时钟/控制风险分解接入原始提取，438,676 个原因及来源归属通过
+对账，ASC 模型与原语库存逐字节不变。新划分完成 node030 CPU96–127 上 34 次
+功能/完整 THP 验证：相对最佳版本 fresh 八对 walltime 12.255→14.775 s，逐对
++20.56%；相对上轮峰值优先 fresh 四对 −1.86%，eval −3.58%、update +10.70%。
+同划分同采样的相关性呈混合结果：最佳基线下降沿 0.369→0.531，候选上升沿
+0.716→0.803，另外两项未改善。继续保留最佳版本；下一步优先检查初始微分组/
+放置造成的通信集中与可行性，保持模型误差的独立检查，不继续只换目标排序。
+
+2026-10-17 同主题追加 [通信集中与初始构造可行性（TNO0337 §28.22）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2822-通信集中与初始构造可行性2026-10-17)：
+确认上轮 p4 的通信集中主要来自一个含 4,439 ASC 的微分组；对该组整体搬迁，
+满足投影容量时最大发送调用只能从 1,038 降到 1,019，不能解决问题。
+完成“冻结后端负载投影＋原始复制/连接切边目标”的直接 K 路候选，最大发送调用
+降为 237，通信/复制预算通过，旧两项场景上限仍未通过。node030 CPU96–127 上
+34 次功能/完整 THP 验证通过：相对最佳 fresh 八对 walltime 11.85→13.98 s
+（逐对 +17.68%）；相对上轮微分组候选 fresh 四对 14.61→14.07 s（−3.49%），
+update −33.56%、各分区 eval 之和 −14.09%，但全局 eval +0.55%。
+继续保留最佳版本；本轮确认了切边目标的结构作用，残余差距主要在计算集中，
+下一步核对 p12 过估与 p11/p15 热点，再完善两沿负载的初始构造。
+
+2026-10-17 同主题追加 [原始成本与实际调度误差分解（TNO0337 §28.23）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2823-原始成本与实际调度的误差分解及两沿初始构造2026-10-17)：
+全分区组进入计数定位了 §28.22 p12 的主要过估：上升沿 60.98% 的生成后库存
+所在组从未进入，预测 291,882 个 scalar 单位、实际进入折算 26,718；后端重建
+只使其库存减少 8.03%。实现了保守的无条件/条件来源分类与六维初始构造原型，
+但有界种子回平衡未满足自身容量，且扩大复制/通信。node030 CPU96–127 上
+40 次功能/完整 THP 验证通过：对最佳 fresh 八对 walltime 11.97→13.91 s
+（逐对 +16.60%）；对上轮候选 fresh 四对 14.165→13.67 s（−3.36%）。
+后者最大分区平均 eval −19.50%，全局 eval 仅 −4.79%，update +10.99%。
+继续保留最佳版本；下一步细化写入与值变化条件，并把多维/复制集合约束前移到
+初始构造，不再增加单权重种子后的修补轮数。
+
+2026-10-17 同主题追加 [细化状态来源与直接计量复制集合（TNO0337 §28.24）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2824-细化状态来源与直接计量复制集合的初始分配2026-10-17)：
+完成独立状态/写者来源、自保持分类及从空分配开始的多维粗化/需求集合计量。
+315,932 个写端口仅新增识别 12 个原使能恒真的简单自保持条件，分类相关性
+未改善。新构造缩小了容量偏差，但仍超限，发送调用 2,397→42,116、recurring
+总量增加 27.62%。node030 CPU96–127 上双方 fresh 八对 walltime
+12.115→18.695 s，逐对 +53.98%、0/8 获胜；eval +42.37%、update +187.89%。
+正式测量的额外单步时间约 68.32% 来自 eval、31.53% 来自 update；独立两对
+诊断确认 eval 退化主要在下降沿。24 次功能/完整 THP 验证通过。归档改用响应
+文件并复用全部 9,849 个编译对象。
+继续保留最佳版本；下一步以独立的多约束 Mt-KaHyPar 研究实现检验完整多级
+求解质量，保留真实复制/通信审计，不继续扩展本轮简化贪心构造或拟合活跃概率。
+
+2026-10-17 同主题追加 [独立多约束 Mt-KaHyPar 静态验证（TNO0337 §28.25）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2825-独立多约束-mt-kahypar-静态验证2026-10-17)：
+在官方多约束研究分支上复用同一六维来源向量和 source/value 图，默认多级求解能够
+结束，但 hard capacity 会显著切开复制关系：最佳静态折中 value-edge×16 相对最佳
+基线 recurring +11.34%、发送调用 +289.48%、发送字节 +23.68%，因此未生成 C++
+或做 walltime AB/BA。确认 atom 5 在四个维度本身超过 5% 分区上限，且图中有
+44,776 个全零节点；在隔离副本修复了 fallback 空目标、负进度和零权重 NaN 边界。
+下一步改研究不可拆超大节点隔离与“容量软约束＋复制/连接目标”的分层求解，生产
+默认、Verilator 路径和当前最佳划分保持冻结。
+
+2026-10-17 同主题追加 [不可拆大节点隔离与完整 GrhSIM 验证（TNO0337 §28.26）](./TNO0337_grhsim_partition_system_redesign_20261013.md#2826-不可拆大节点隔离与完整-grhsim-验证2026-10-17)：
+将最大不可拆 ASC 作为 isolated lane，其余节点做 31-way 容量软约束求解。相对本轮
+control，静态 recurring +5.84%、piece copies +6.93%，但 send bytes −24.51%；
+execution-plan 结构和 transfer 账本完整闭合。补齐通用 `packed_fill_slice_words`
+机制记账后，node030 CPU96–127 上同 library 的 8 对 fresh AB/BA、C=100000
+全部通过功能和完整 THP：Host −6.55%、walltime −6.46%、global eval −5.62%、
+update −11.57%，8/8 获胜。分区 eval 总和 +8.83% 而最大分区 eval −3.28%，说明
+收益来自 barrier 关键路径和 update/通信阶段，不能用总 eval 求和解释。该方法暂不
+设为默认；下一步用 wide-helper 峰值、最大 eval、update push 与通信峰值做联合静态
+门槛，并验证跨 workload/仿真器的泛化。
+
+同节追加的四个次大不可拆节点扫描显示，任意隔离大节点都会使 recurring 和 send calls
+明显恶化，且最大 closure/recurring 仍由原始 atom 5 路径决定；因此后续候选必须按后端
+机制峰值和六维权重联合排序，不能按节点大小单独选择。扫描结果和未进入运行时的静态
+账本见同一文档 §28.26.1。
+进一步实现的 `backend_shape_proxy.py` 保留跨 context 的共享度、fanout 和最大单项，
+但对 `wide_helper` 的全 phase 最大相关性仍只有 0.176；它适合作为候选筛选输入，不能
+替代 lowering 结构回放。
+
+同一条验证线进一步按后端 feature 做了静态归因：whole/rising 中
+`compute.wide.helper.kMux`、`compute.constant.wide_temporary`、
+`compute.wide.helper.kOr` 与 `wide_helper` 的相关性分别为 +0.779、+0.732、+0.554，
+明显强于六维容量轴。新增 raw extractor 的 ASC 级通用 feature 导出正在独立目录
+`activity_context_shape_v1` 中生成；该结果仅用于后续候选排序和结构 gate，不改变默认
+入口或 Verilator 路径。明细见 TNO0337 §28.26 及其
+[`mechanism_feature_correlations.txt`](../../build/repcut_grhsim_balance_20261013/redesign/indivisible_sweep_20261017/mechanism_feature_correlations.txt)。
+
+提取完成后用与 `phase_pareto` 一致的 control 标签复核了公平 ASC 回摊：whole/rising
+的 kMux、wide temporary、kOr 相关性为 +0.783、+0.705、+0.654，峰值都落在 part 30；
+但 source proxy 的量级与 generated mechanism ledger 仍不同，说明后端的
+assignment-dependent cloning、跨分区 demand 和 context coactivation 需要第二阶段
+结构回放。该 proxy 先作为 generic ASC 权重候选，不直接替代完整 cost；下一步是
+candidate assignment 之后、C++ 生成之前的 backend structural replay 与 gate。见
+[`backend_feature_proxy_analysis.txt`](../../build/repcut_grhsim_balance_20261013/redesign/indivisible_sweep_20261017/backend_feature_proxy_analysis.txt)。
+
+2026-10-18 同主题追加 [分析口径勘误、候选工具与直接对照（TNO0337 §28.26.4）](./TNO0337_grhsim_partition_system_redesign_20261013.md#28264-分析口径勘误候选工具与直接对照2026-10-18)：
+补正两组旧静态 probe 的配置与输出目录问题；实际 AB/BA 结果有效，但不能据旧静态
+表归因 batch/input-target 成本，也不能将模型 commit 与框架 update_push 混淆。
+新增配置/完整性校验及有界 whole-ASC 候选工具，预算/Pareto 筛选也已接入，14 项测试通过。node030 CPU96–127
+上的 8 对直接 fresh AB/BA 显示 p12→p21 相对 p12→p15 walltime 配对中位数 −0.76%，
+6/8 对获胜、1 对持平；优势较小，暂沿用 p12→p21 继续验证，保留另一候选。
+
+同节后续的 [共享 piece 合并验证（TNO0337 §28.26.5）](./TNO0337_grhsim_partition_system_redesign_20261013.md#28265-共享-piece-合并的完整-walltime-验证2026-10-18)
+在 p12→p21 起点上将 2,343 个完整 ASC 从 p30 合并到 p29。node030 CPU96–127、
+C=100000、8 对 fresh AB/BA 全部通过：Host −2.05%、walltime −2.02%，8/8 获胜；
+p30 eval 32.70→10.15 µs，p29 22.99→34.90 µs。最大分区平均 eval 反而上升 6.45%，
+但全局 eval 下降 2.73%，因此保留此候选，并按逐 step/分沿关键路径继续评估。
+新的验证线入口与完整身份信息见
+[`retained_candidate_20261018.json`](../../build/repcut_grhsim_balance_20261013/redesign/indivisible_sweep_20261017/retained_candidate_20261018.json)；
+后续比较仍必须重新运行双方，生产默认与 Verilator 路径未改。
+
+2026-10-18 追加 [逐步、分沿瓶颈归因（TNO0337 §28.26.6）](./TNO0337_grhsim_partition_system_redesign_20261013.md#28266-共享集合合并后的逐步分沿瓶颈归因2026-10-18)：
+同一对 binary 的 2 对 C100000 诊断 AB/BA 显示，p30→p29 使全局下降沿 eval
+减少 7.174 µs、上升沿增加 5.121 µs，净减少 1.026 µs/step；约 97% 对应逐步
+最长回调的缩短，框架窗口外时间基本不变。候选 p29 上升沿/p8 下降沿最后完成比例
+为 36.47%/41.01%，下一步优先查 p29 上升沿激活，再查 p8 下降沿。
+[交互 HTML](../../build/repcut_grhsim_balance_20261013/redesign/indivisible_sweep_20261017/p30_phase_trace_20261018/grhsim_edge_bottlenecks.html)
+可切换时钟沿、阶段、AB/BA 和各分区瓶颈指标。诊断时间与此前 8 对普通 walltime
+测量分开，不将运行时间写入划分权重。
+
+2026-10-18 追加 [p29 提交后活动增长与生产者归属（TNO0337 §28.26.7）](./TNO0337_grhsim_partition_system_redesign_20261013.md#28267-p29-提交后活动增长同周期对照与生产者归属2026-10-18)：
+两组各 2 对 C100000 计数 AB/BA 通过，结果逐字节可重放。p29 上升沿始终两轮，
+96.585% 的进入库存增量发生在提交后；同一步重复部分仅 1.558%。同一批 34,921 个
+瓶颈周期中，p29 进入操作库存 42,740.73→102,695.71，独立 trace 均值
+22.40→52.99 µs。精确表达式及依赖路径确认：生产者从远端移到本地，会使原有
+消费者也提前在上升沿激活；p8 下降沿进入工作量未变。保留当前最佳候选，下一步
+据此复核 entry/settle 增量和生产者—消费者成组，计数版耗时不作性能收益证据。
+
+2026-10-19 同主题追加 [entry/settle 账本驱动的部分完整集合回迁验证（TNO0337 §28.26.8）](./TNO0337_grhsim_partition_system_redesign_20261013.md#28268-entrysettle-账本驱动的部分完整集合回迁验证2026-10-19)：从当前 p30→p29 候选回迁一个 1,697-ASC 完整集合到 p30；node030 CPU96–127 上 8 对 fresh AB/BA 的 walltime 配对中位数下降 0.215%，最大分区 eval 下降 4.831%，分区 eval 总和上升 1.713%。结果支持同时约束 phase 关键路径和目标 lane 代码规模的通用方向，候选暂不改生产默认。
+
+2026-10-19 同主题追加 [回迁候选的独立重复验证（TNO0337 §28.26.9）](./TNO0337_grhsim_partition_system_redesign_20261013.md#28269-回迁候选的独立重复验证与结论收束2026-10-19)：第二轮 8 对 fresh AB/BA 中 walltime 配对中位数为 +0.0517%，最大分区 eval 仍下降 3.5594% 而分区 eval 总和上升 1.8775%；候选不晋级默认，后续转向生成前的后端结构 gate。
+
+2026-10-19 同主题追加 [生成前 backend-shape gate 与 629-ASC 候选验证（TNO0337 §28.26.10）](./TNO0337_grhsim_partition_system_redesign_20261013.md#282610-生成前-backend-shape-gate-与-629-asc-候选验证2026-10-19)：静态 v2 gate 在 9 个完整 piece 候选中仅放行 n629；两轮小页 8 对 AB/BA 的 walltime 分别下降 3.596%/3.362%，THP 因 node030 当前 MADV_COLLAPSE 内核资源不足待恢复后复测，候选暂不改默认。
+
+2026-10-20 同主题追加 [从头多约束划分与 warm-start proxy 反例（TNO0337 §28.26.11）](./TNO0337_grhsim_partition_system_redesign_20261013.md#282611-从头多约束划分与-warm-start-proxy-反例2026-10-20)：将 GrhSIM lowering 特征作为硬多约束、value-edge 加权或 scalar 软偏置都会破坏当前最佳共享关系；基于 ASC proxy 自动选择源 lane 还会选中 part 8，而真实生成瓶颈是 p29，24 个局部候选全部被静态通信门槛挡住。后续转向 assignment-dependent backend structural replay 驱动的局部搜索，Verilator 和生产默认入口保持不变。
+
+2026-10-20 同主题追加 [assignment-dependent structural replay 局部搜索的第二步验证（TNO0337 §28.26.12）](./TNO0337_grhsim_partition_system_redesign_20261013.md#282612-assignment-dependent-structural-replay-局部搜索的第二步验证2026-10-20)：n629 的全局结构峰值下降 1.859%，但简单地把回放后最大 lane p0 的唯一 ASC 搬到 p25 会把结构峰值推高 47.325%；这说明 source 选择必须先判断可搬迁的本地 payload，不能每轮直接搬当前最大分区。空分区校验器也已修正，n629 仍等待 THP 复测。
+
+2026-10-20 同主题追加 [p29 第二个局部 piece 的结构与小页复测（TNO0337 §28.26.13）](./TNO0337_grhsim_partition_system_redesign_20261013.md#282613-p29-第二个局部-piece-的结构与小页复测2026-10-20)：stage3 将一个 12-ASC 完整 piece 从 p29 移到 p30，p29 `graph_ops` 再降 5.192%、边界峰值再降 9.087%，并完成 Clang 23/O3 package 编译；两轮小页 AB/BA walltime 分别下降 0.197%/0.541%，但最大分区 eval 轻微上升、update-push 上升，仍保留为 THP-pending 候选。
+
+2026-10-20 同主题追加 [stage3 小页收益的阶段归因与 perf 交叉检查（TNO0337 §28.26.14）](./TNO0337_grhsim_partition_system_redesign_20261013.md#282614-stage3-小页收益的阶段归因与-perf-交叉检查2026-10-20)：逐步计时确认 walltime 变化完全由 input-load、part-eval 和 global-update 三个窗口组成；小页收益主要来自 all-spin 的阶段等待窗口，不是最大 eval 下降。4 对 perf stat 仅用于诊断，显示指令/缓存量几乎不变而代码从 p29 移向 p30；THP 复测前不晋级默认。
+
+2026-10-20 同主题追加 [phase synchronization 窗口的直接拆分（TNO0337 §28.26.15）](./TNO0337_grhsim_partition_system_redesign_20261013.md#282615-phase-synchronization-窗口的直接拆分2026-10-20)：新增仅替换 common wrapper object 的诊断 binary，8 对 node030 CPU96–127 交错样本显示 stage3 的 normal-eval phase 总窗口约 +1.14%，load/update 的小幅改善主要来自 completion wait 尾部变化；p8 仍是最大 eval body，stage3 不晋级默认。
+
+2026-10-22 同主题追加 [p29→p4 完整 piece 迁移与 THP fresh AB/BA（TNO0337 §28.26.20）](./TNO0337_grhsim_partition_system_redesign_20261013.md#282620-p29p4-完整-piece-迁移的后端-gate-与-thp-fresh-abba2026-10-22)：完整源码总量仅增加 `0.033%`，p29 源码下降 `6.33%`、p4 增加 `9.54%`；普通页 8 对 AB/BA walltime `−0.601%`，`--preferred=1` 的 THP 8 对 AB/BA walltime `−0.667%` 且 8/8 获胜，功能和 huge-page audit 全通过。候选保留为 GrhSIM 探索线，不改默认划分。
+
+2026-10-22 同主题追加 [自动来源选择与 p12→p2 复测（TNO0337 §28.26.21）](./TNO0337_grhsim_partition_system_redesign_20261013.md#282621-当前-candidate-起点的自动来源选择与-p12p2-复测2026-10-22)：profile 自动选出当前热点并复现 72 个候选；p12→p2 的最大 eval 下降约 `4%..5%`，但两轮 THP fresh AB/BA 的 walltime 分别为 `−0.517%` 和 `+0.715%`，合并仅 `−0.209%`，update 两轮均增加，候选淘汰。候选入口改为参数化 profile 选择，不绑定分区编号。
+
+2026-10-22 同主题追加 [逐步关键路径与全分区通信筛选（TNO0337 §28.26.22）](./TNO0337_grhsim_partition_system_redesign_20261013.md#282622-以逐步关键路径和全分区通信账本修正候选筛选2026-10-22)：12 次 wrapper-only 诊断确认最大平均 eval 与每步关键路径不同；p12 只占 eval 瓶颈 `2.586%`，却占 update 瓶颈 `54.735%`。迁移还会拆开未移动 sender 的 reader-set 包，p18 调用 `133→158` 而字节减少。工具补齐全分区调用账本与逐步重叠排序，22 项测试通过；自动来源改为 p14/p29/p18，10-ASC p14→p11 进入完整验证。
+
+2026-10-23 同主题追加 [10-ASC p14→p11 完整验证（TNO0337 §28.26.22 增量）](./TNO0337_grhsim_partition_system_redesign_20261013.md#282622-以逐步关键路径和全分区通信账本修正候选筛选2026-10-22)：两轮各 8 对 node030 CPU96–127、C100000、THP fresh AB/BA 的 walltime 分别为 `−2.401%/−1.750%`，合并 `−2.167%` 且 16/16 对获胜，保留为新探索起点。正式 global eval 改善、update 基本持平；诊断 trace 显示 p14 尾部转移到 p11，但插桩版未复现收益，半周期活动投影仍需改进。不改生产默认或 Verilator。
+
+2026-10-23 同主题追加 [来源活动与包布局影响（TNO0337 §28.26.23）](./TNO0337_grhsim_partition_system_redesign_20261013.md#282623-用来源活动补充目的地负载估计2026-10-23进行中)：新增可选来源活动包络与精确包成员/位偏移影响账本，29 项测试通过。自动首位 p11→p10 的两轮 fresh AB/BA walltime `−0.450%/+0.056%`，未获得稳定收益，保留 p14→p11 起点。确认通信总调用/字节不变仍可通过包重排影响其它接收分区；下一步补实际 piece 活动和接收端激活成本。
+
+2026-10-23 同节追加 [动态包活动与分沿共同激活归因](./TNO0337_grhsim_partition_system_redesign_20261013.md#增量更新动态包活动接收端计数与迁移后的分沿共同激活2026-10-23)：14 次 node030 CPU96–127 功能/THP 检查通过，正反序通信及组计数完全重复。实际 copy 调用仅 +0.000820%、字节 −0.0000496%，四个第三方接收者全部组进入计数相同；p11 clock=1 进入 work 只减 0.416%，p10 却增 41.755%，主要在 commit 后。11 组中的 1210 个完全相同表达式由原来 clock=1 不执行变为每组 45038 次；现有生成前 plan 已显示对应相位扩展。下一步接入分沿减量/增量与共同激活风险，保留 p14→p11，不把诊断耗时当作新收益；34 项相关测试通过。
+
+2026-10-24 同主题追加 [phase-risk 门禁与 p11→p5 修正配置复测](./TNO0337_grhsim_partition_system_redesign_20261013.md#增量更新phase-risk-门禁测量配置校验与-p11p5-复测2026-10-24)：修正测量入口，统一使用 preferred NUMA、代码页 THP 和 64-byte compute 对齐，并在运行前后审计；p11→p5 两轮各 8 对 fresh AB/BA 的 walltime 配对中位数为 `−0.816%`、12/16 胜，Host `−0.850%`，global eval `−0.283%`，global update `−1.021%`。phase-risk 保留 rise/fall/unknown 和 range/whole 账本，不拟合时间系数；p11→p5 作为新的 GrhSIM 探索基线，生产默认和 Verilator 不变。
+
+2026-10-26 同主题追加 [输入比较与位级激活的归档顺序勘误及复测](./TNO0337_grhsim_partition_system_redesign_20261013.md#勘误与增量更新统一归档顺序分离输入比较和位级激活2026-10-26)：统一 7851 个 archive member 的顺序，修正此前 dirty tracking 的布局混杂归因。48 对 fresh AB/BA、功能/THP/64-byte 对齐检查通过；现有通用 bit activation 在当前 assignment 上单独改善 Host 8.032%，叠加 dirty tracking 后相对 fresh baseline 改善 Host 8.895%、process elapsed 8.863%。dirty tracking 叠加的两轮 16 对净 Host 增量为 0.403%。逐步 trace 确认 p0 最长占比从 28.883% 降到 5.962%，后续按分沿余量关注 p18/p29/p11/p30；组合版作为探索起点，生产默认和 Verilator 不变。
+
+2026-10-26 重要勘误 [历史二进制直接复测与完整生成配置恢复](./TNO0337_grhsim_partition_system_redesign_20261013.md#增量更新历史二进制直接复测与完整生成配置恢复2026-10-26)：两组 fresh 8 对 AB/BA 确认 combined 比历史最低候选慢 11.828%、比相同 p11→p5 assignment 的旧保留 ELF 慢 11.283%。新生成入口未继承完整历史 preset；旧线原已开启 bit/dirty，并启用布尔归约等其它选项。撤回“combined 超越完整历史最佳”的推断，恢复旧 p11→p5 为性能锚点，正在用当前 emitter 重放完整配置验收；此前 8.895% 仅是新建对照之间的有效消融结果。
+
+同次恢复验证已完成：继承完整历史 preset 后，以当前 emitter 重生成、Clang23/O3 编译；7851 个模型归档成员中 7848 个 payload 与旧线相同。恢复版对旧保留 ELF 的 fresh 8 对 walltime 为 10.355→10.280 s（配对 −0.766%，仅视为恢复到旧线水平）；对遗漏选项 combined 的另 8 对为 11.420→10.195 s（−11.047%，8/8 胜）。本轮共 32 对、64 次正式运行和 8 次 smoke 全部通过。后续继承恢复版完整 `emit.json`，并保留旧 ELF 作为直接回归锚点；不将此次找回已有优化记为新增算法收益。
+
+2026-10-26 同主题追加 [完整 preset 的批次与 ASC 归因](./TNO0337_grhsim_partition_system_redesign_20261013.md#增量更新完整-preset-上的批次与-asc-归因2026-10-26)：重新采集四次 C100000 追踪，完成 p29/p11/p18 的批次计时及独立组计数。p29 上升沿瓶颈样本的进入库存为非瓶颈的 3.54 倍，同一步重复进入仅占 1.15%；主要增量来自提交后多组共同活跃。严格原始 ASC 归因确认热点跨多个逻辑锥，继续关注初始分配及归属改变造成的激活集中；插桩耗时不作新的 walltime 收益。
+
+同次归因已完成 16 次 C100000 与 10 次初始化核验；另将 p11 最集中的三个热批次追到 8 个带状态的末端观测 ASC。后续先按状态依赖与反馈关系扩展 GrhSIM 的终端分类，再验证一个完整初解；保持 ASC、effect 约束和完整 preset，不按分区/信号名选择，不用诊断次数拟合权重。
+
+2026-10-27 同主题追加 [末端状态分类与完整初解验收](./TNO0337_grhsim_partition_system_redesign_20261013.md#增量更新末端状态分类与初始构造2026-10-27)：通用 SCC 分类及从端点向上游的初始放置识别 21457 个状态 ASC，结构预算与 17 次 C100000、2 次初始化检查通过。完整 preset、THP、64-byte 对齐下的 fresh 8 对 AB/BA walltime 为 11.215→12.410 s（配对 +10.656%，0/8 胜）；update −18.169%、分区 eval 之和 −15.383%，全局 eval 却 +16.979%，因此不替换最佳线、不改默认。独立依赖路径确认含 1673 个 sink 的大 ASC 把观测链与功能反馈链连在同一投影环；下一步需在原始状态粒度判断反馈，再映射回完整 ASC。
+
+2026-10-27 同节追加 [值级状态回溯复核](./TNO0337_grhsim_partition_system_redesign_20261013.md#增量更新值级状态回溯复核2026-10-27)：从每个完整 ASC 的 sink 沿 value definition 反向回溯真实 storage read 后，依赖边为 188859989 条、环 SCC 为 7712 个、最大 SCC 为 217542 个 ASC；8 个热点 ASC 仍全部位于该 SCC，末端候选为 18316 个。与旧 ASC 直接投影相比只减少 56 条边，说明大环主要是真实状态依赖和完整 ASC 的耦合，不能靠粗粒度修正释放这些热点；本轮不再继续生成/编译无明确收益的性能候选，保留最佳恢复版作为后续起点。
+
+2026-10-27 同节追加 [最大 SCC 的 sink 锥重叠探针](./TNO0337_grhsim_partition_system_redesign_20261013.md#增量更新最大-scc-的完整-asc-规模与拆分切入点2026-10-27)：最大 SCC 的 217542 个 ASC 合计约 2.67 亿个组合操作，最大 ASC 为 249876 操作/20371 sinks，另一个大 ASC 为 68816 操作/1673 sinks。寄存器/effect sink 之间高度共享，而 memory sink 样本大多独立；下一步将按通用 sink-cone overlap graph 评估可拆分连通块，保持 storage/effect 约束，不按信号名或分区编号特判。
+
+2026-10-27 同节追加 [最大 ASC 的 hard-union 归因与 memory bridge 扫描](./TNO0337_grhsim_partition_system_redesign_20261013.md#增量更新最大-asc-的-hard-union-归因与-memory-bridge-扫描2026-10-27)：ASC 5/89887 的大原子主要由 memory-cone union 的传递闭包形成；只保留 storage/effect hard rule 后分别变为 17,927/1,645 个组件，但 memory fanout 中位数分别为 16/743，直接去掉 bridge 会产生 41,006/5,584 个 component-memory 归属并触发 phase-E 的 memory-read cross 检查。阈值扫描表明这是需要 memory-read forwarding/clone 语义的通用后端问题，暂不改默认 `buildAscs`。
+
+2026-10-27 同节追加 [最小 memory bridge 语义 fixture](./TNO0337_grhsim_partition_system_redesign_20261013.md#增量更新最小-memory-bridge-语义-fixture2026-10-27)：最小图证明加入同 memory 写口后，两个独立 read consumer 会由 2 个 ASC 合并为 1 个；activity-schedule 已能 clone memory read，但 phase-E 仍禁止跨分区 memory-read value。下一步先定义 owner snapshot/forwarding 或合法 read clone 协议，再接入通用 sink-cone overlap 分拆。
+
 ## 来源覆盖
 
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`333`（`TNO0001..TNO0333`）。
+- 当前记录类文档总数：`369`（`TNO0001..TNO0369`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

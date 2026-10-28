@@ -1,6 +1,7 @@
 env.sh
 build/
 /compile_clang23_o3.log
+/scripts/repcut_grhsim_replay
 .metals/
 .scala-build/
 .vscode/

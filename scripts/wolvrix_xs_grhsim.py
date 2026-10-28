@@ -673,6 +673,13 @@ def main() -> int:
         "WOLVRIX_XS_GRHSIM_REG_TO_MEM_DECODED_WRITE_STORAGE",
         default=True,
     )
+    # This pass was originally enabled only by the RepCut flow.  Keep the
+    # legacy single-model flow unchanged by default, but allow an explicit
+    # opt-in so the graph-level transform can be evaluated independently.
+    memory_write_coalesce = env_flag(
+        "WOLVRIX_XS_GRHSIM_MEMORY_WRITE_COALESCE",
+        default=False,
+    )
     full_active_word_consume = env_flag(
         "WOLVRIX_XS_GRHSIM_FULL_ACTIVE_WORD_CONSUME",
         default=False,
@@ -771,6 +778,7 @@ def main() -> int:
         f"reg_to_mem_intent={reg_to_mem_intent} "
         f"reg_to_mem_ordered_writes={reg_to_mem_ordered_writes} "
         f"reg_to_mem_decoded_write_storage={reg_to_mem_decoded_write_storage} "
+        f"memory_write_coalesce={memory_write_coalesce} "
         f"declared_value_compute_node_boundary="
         f"{format_native_default_option(sparse_options, 'declared_value_compute_node_boundary')} "
         f"enable_local_shared_compute="
@@ -1017,6 +1025,16 @@ def main() -> int:
                     top_name,
                     pre_reg_to_mem_json,
                     "write_pre_reg_to_mem_json",
+                )
+
+            if memory_write_coalesce:
+                start = time.perf_counter()
+                log("pass memory-write-coalesce start")
+                diags = sess.run_pass("memory-write-coalesce", design="design.main")
+                require_ok(diags, "pass memory-write-coalesce")
+                log(
+                    "pass memory-write-coalesce done "
+                    f"{int((time.perf_counter() - start) * 1000)}ms"
                 )
 
             for pass_name, pass_kwargs in reg_to_mem_pipeline:

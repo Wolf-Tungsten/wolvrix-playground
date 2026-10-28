@@ -14020,3 +14020,76 @@ XiangShan `c35b27d77` 同步其子模块引用，原有实验分支继续保留�
 RepCut、RepCut cost model 和 GrhSIM compiler compatibility 四项 CTest 全部通过。
 本节前述三项正式 emitter CTest 与 C100000 AB/BA 仍为对应功能和性能证据。
 输入变化跟踪开关保持默认关闭，完整验证线的后续控制版本仍为 **G**。
+
+#### 最新 F/G 平均 step 时空图（2026-10-13）
+
+复用本节 **2026-10-12 正式八对窗口**的 16 次 C100000 运行、512 条分区计时，
+生成最新 GrhSIM F/G 对照图。本次只读取已有成功样本，没有启动新的性能测试；
+不混合原型、首轮四对、旧 Verilator 或其他后续对照窗口。
+
+- [交互 HTML](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/timeline_8pairs/grhsim_f_g_timeline.html)
+- [时空图 PNG](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/timeline_8pairs/grhsim_f_g_timeline.png) / [SVG](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/timeline_8pairs/grhsim_f_g_timeline.svg)
+- [数据 JSON](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/timeline_8pairs/data.json) / [分区统计 CSV](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/timeline_8pairs/part_summary.csv)
+- [生成器](../../scripts/repcut_grhsim_timeline.py) / [HTML 模板](../../scripts/repcut_grhsim_timeline.html) / [浏览器检查](../../scripts/test_repcut_grhsim_timeline.mjs)
+
+HTML 沿用此前浅色主题，支持完整单步/各阶段、F/G 显隐、共用分区排序与横轴、
+缩放、均值/中位数、单独一对样本、逐对原始数据、分区指标选择、相对变化，以及
+CSV/SVG 导出。默认使用跨运行均值，与本节正式八对表一致：walltime
+**11.477500 → 11.071250 s（均值比 −3.540%）**，逐对变化中位数另列为
+**−2.864%**，不混用两种计算。p24 全程平均 eval 为
+**24.070750 → 17.140625 µs**。
+
+图中 input/apply、eval、update/push 都画在对应分区线程上；当前 GrhSIM
+input-load 已并行，不能沿用早期图的 Host 串行 input 画法。生成器核对两侧
+wrapper 的并行 load 调用和空 early phase 列表。顶部为全局阶段跨度，各线程
+callback 起点人为对齐于阶段边界；**灰色不是实测等待或 CPU 空闲时间**。
+本批只有累计计时，不能恢复逐 step 进入/完成时刻或最后完成者。200102 个 step
+包含两种时钟沿及初始化，图中单位为每次半周期求值调用，不是每完整周期。
+
+生成器逐项核对全部原始 timing JSONL、运行配置、功能签名、步骤数和既有
+verification 统计；浏览器通过 83 组交互检查、CSV 下载、SVG 导出、窄屏布局
+及截图检查。内嵌字体覆盖本页所需全部 343 个汉字，离线显示无缺字。
+证据见 [数据核验](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/timeline_8pairs/validation.json)
+和 [浏览器核验](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/timeline_8pairs/browser_validation.json)。
+
+#### 逐 cycle 分区直方图（2026-10-13）
+
+新增 [可选择任意 cycle 的交互 HTML](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/cycle_trace_20261013/viewer/grhsim_cycle_histogram.html)，
+并附 [PNG 示例](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/cycle_trace_20261013/viewer/grhsim_cycle_histogram.png)。
+前一张平均图的累计计时无法恢复单周期，因此本次另行采集了完整逐步数据，
+没有把全程均值或旧版本抽样冒充某一个 cycle。
+
+采集仍仅在 **node030 CPU96–127、NUMA1、N=K=32、all-spin、ASLR off** 上进行；
+F/G 各构建独立诊断二进制，只在 common/load/eval/update 四个外围目标文件加入
+记录，其余各 **7450 个 archive member 字节不变**，原正式性能 ELF/archive 不改。
+记录复用已有时钟读数，callback 计时结束后将原始 ns 写入独占分区缓冲，退出时
+统一落盘。本次新跑 **F→G、G→F 两对 C100000**，另有两次 C100 检查，全部通过。
+本批统一使用经核验的匿名 **4 KiB 代码页**；它不是上一节的 THP 窗口，且诊断
+记录本身可能影响缓存和同步，**不能把绝对耗时与上一张 THP 平均图直接相减，
+也不作为新一轮 ordinary walltime 收益证据**。默认配置未改变。
+
+每次保留 **200102 个 step**：先是 50 个复位周期，再是 100001 个正常周期。
+页面选择范围 **1–100001**，从复位后的第一个完整周期编号；cycle `c` 的原始
+上升沿 step 为 `100 + 2*(c-1) + 1`，下降沿再加 1。此编号不是 RTL perf 或
+退休指令计数。可选上升沿、下降沿、两沿合计，以及 input/eval/update 显隐、
+F/G、两次独立运行、排序、滑条、前后跳转、CSV/SVG 导出；**不跨运行求平均**。
+两沿相加时每个分区分别求和，最大柱不等于整周期关键路径；未采 callback
+绝对时间戳，不将全局阶段减最大 callback 的差解释成精确线程等待。
+
+四次采集共核对 **76839168 个 callback 阶段记录**，校验时钟沿/复位边界、
+缺失值、callback 不超出对应全局阶段，并完成 **396 项累计值核对**，误差均在
+原 JSON 的 500 ns 舍入范围内。HTML 内嵌全部周期、字体和数据，无外部网络请求；
+以 391 个 gzip 区块按需解压，ns 数据无损，完整文件约 **158 MB（151 MiB）**。
+浏览器通过 **129 组检查**，其中 84 项将解码/两沿合计结果直接与原 trace 对照，
+另验证周期边界、切换竞态、指标开关、CSV/SVG 下载和窄屏布局。
+
+入口与复现材料：
+
+- [采集器](../../scripts/repcut_cycle_trace.py) / [计时记录头文件](../../scripts/repcut_cycle_trace.hpp)
+- [HTML 生成器](../../scripts/repcut_grhsim_cycle_view.py) / [模板](../../scripts/repcut_grhsim_cycle_view.html) / [浏览器测试](../../scripts/test_repcut_grhsim_cycle_view.mjs)
+- [成功采集窗口](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/cycle_trace_20261013/runs_small/manifest.json) / [代码页核验](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/cycle_trace_20261013/runs_small/codepage_verification.json)
+- [完整性和累计计时核验](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/cycle_trace_20261013/viewer/validation.json) / [浏览器核验](../../build/repcut_grhsim_20260925/active_dispatch_20261003/dirty_input_bridge_20261012/formal/cycle_trace_20261013/viewer/browser_validation.json)
+
+重生成时以 `scripts/repcut_grhsim_cycle_view.py --source <上述 runs_small 目录>`
+读取本批数据；可用 `--font` 指向前一平均图 assets 内的完整 Noto Sans CJK 字体，
+并通过前一平均图目录的 `fonttools` 设置 `PYTHONPATH`。生成器不再执行仿真。

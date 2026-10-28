@@ -1,0 +1,124 @@
+diff --git a/mt-kahypar/partition/refinement/rebalancing/fallback.cpp b/mt-kahypar/partition/refinement/rebalancing/fallback.cpp
+index 6055a93..4983717 100644
+--- a/mt-kahypar/partition/refinement/rebalancing/fallback.cpp
++++ b/mt-kahypar/partition/refinement/rebalancing/fallback.cpp
+@@ -102,7 +102,8 @@ std::pair<int64_t, size_t> Fallback<GraphAndGainTypes>::runDeadlockFallback(Part
+         const HNWeightConstRef block_weight = weight::toNonAtomic(phg.partWeight(block));
+         float summed_weight = impl::normalizedSum(block_weight, block_weight_normalizers[block]);
+         float weight_of_dim = block_weight_normalizers[block].at(d) * block_weight.at(d);
+-        float ratio = weight_of_dim / summed_weight;
++        float ratio = summed_weight > 0.0f && std::isfinite(summed_weight) ? weight_of_dim / summed_weight : 0.0f;
++        if (!std::isfinite(ratio)) ratio = 0.0f;
+         if (ratio < smallest_ratio) {
+           second_block = best_block;
+           second_smallest_ratio = smallest_ratio;
+@@ -131,47 +132,73 @@ std::pair<int64_t, size_t> Fallback<GraphAndGainTypes>::runDeadlockFallback(Part
+       }
+     }
+
+-    for (PartitionID to = 0; to < context.partition.k; ++to) {
+-      if (from == to) continue;
+-      if (skip_blocks && !impl::hasMatchingDimension(weight, max_dimensions.data(), &is_min_block_dimension[to * phg.dimension()])) continue;
++    // The extremal-dimension filter is a useful fast path, but it is not
++    // guaranteed to leave a target in a multi-constraint instance.  In that
++    // case, rescan all blocks instead of asserting on an empty candidate set.
++    for (int pass = 0; pass < (skip_blocks ? 2 : 1) && best_to_part == kInvalidPartition; ++pass) {
++      const bool restrict_to_matching_dimension = skip_blocks && pass == 0;
++      for (PartitionID to = 0; to < context.partition.k; ++to) {
++        if (from == to) continue;
++        if (restrict_to_matching_dimension &&
++            !impl::hasMatchingDimension(weight, max_dimensions.data(), &is_min_block_dimension[to * phg.dimension()])) continue;
+
+-      float rating = 1.0;
+-      const HNWeightConstRef to_weight = weight::toNonAtomic(phg.partWeight(to));
+-      switch (context.refinement.rebalancing.fallback_block_selection) {
+-        case RbFallbackBlockSelectionPolicy::any_fitting_min_dimension: break;
+-        case RbFallbackBlockSelectionPolicy::by_internal_imbalance: {
+-          rating = 1 / impl::internalImbalanceByDim(to_weight, max_dimensions.data(),  block_weight_normalizers[to]);
+-          break;
++        float rating = 1.0;
++        const HNWeightConstRef to_weight = weight::toNonAtomic(phg.partWeight(to));
++        switch (context.refinement.rebalancing.fallback_block_selection) {
++          case RbFallbackBlockSelectionPolicy::any_fitting_min_dimension: break;
++          case RbFallbackBlockSelectionPolicy::by_internal_imbalance: {
++            rating = 1 / impl::internalImbalanceByDim(to_weight, max_dimensions.data(),  block_weight_normalizers[to]);
++            break;
++          }
++          case RbFallbackBlockSelectionPolicy::by_dot_product: {
++            rating = std::max<float>(impl::dotProduct(weight, context.partition.max_part_weights[to] - to_weight, block_weight_normalizers[to]), 0);
++            break;
++          }
++          case RbFallbackBlockSelectionPolicy::by_progress: {
++            rating = impl::computeBalanceProgress(weight, weight::toNonAtomic(phg.partWeight(from)), context.partition.max_part_weights[from],
++                                                  to_weight.load(std::memory_order_relaxed), context.partition.max_part_weights[to], weight_normalizer).first;
++            float sum = impl::normalizedSum(weight, weight_normalizer);
++            // Zero-weight hypernodes are legal in a multi-constraint input;
++            // their normalized progress is undefined but their move still
++            // must not make the fallback candidate set empty.
++            rating = sum > 0.0f ? (rating + sum) / sum : 0.0f;
++            break;
++          }
++        };
++
++        HyperedgeWeight benefit;
++        if (gain_cache.blockIsAdjacent(hn, to)) {
++          benefit = gain_cache.benefitTerm(hn, to);
++        } else {
++          benefit = gain_cache.recomputeBenefitTerm(phg, hn, to);
+         }
+-        case RbFallbackBlockSelectionPolicy::by_dot_product: {
+-          rating = std::max<float>(impl::dotProduct(weight, context.partition.max_part_weights[to] - to_weight, block_weight_normalizers[to]), 0);
+-          break;
++        HyperedgeWeight gain = benefit - penalty_term;
++        if (context.refinement.rebalancing.fallback_relative_block_priority) {
++          ASSERT(adjacent_weight + gain >= 0);
++          rating *= (adjacent_weight + gain);
+         }
+-        case RbFallbackBlockSelectionPolicy::by_progress: {
+-          rating = impl::computeBalanceProgress(weight, weight::toNonAtomic(phg.partWeight(from)), context.partition.max_part_weights[from],
+-                                                to_weight.load(std::memory_order_relaxed), context.partition.max_part_weights[to], weight_normalizer).first;
+-          float sum = impl::normalizedSum(weight, weight_normalizer);
+-          rating = (rating + sum) / sum;
+-          break;
++        // A deadlock-breaking move can temporarily worsen one or more
++        // dimensions, so its progress rating may be negative.  Keep it as a
++        // ranked fallback candidate instead of aborting the whole solve.
++        if (rating > best_rating || (rating == best_rating && gain > best_gain)) {
++          best_to_part = to;
++          best_rating = rating;
++          best_gain = gain;
+         }
+-      };
+-
+-      HyperedgeWeight benefit;
+-      if (gain_cache.blockIsAdjacent(hn, to)) {
+-        benefit = gain_cache.benefitTerm(hn, to);
+-      } else {
+-        benefit = gain_cache.recomputeBenefitTerm(phg, hn, to);
+-      }
+-      HyperedgeWeight gain = benefit - penalty_term;
+-      if (context.refinement.rebalancing.fallback_relative_block_priority) {
+-        ASSERT(adjacent_weight + gain >= 0);
+-        rating *= (adjacent_weight + gain);
+       }
+-      ASSERT(rating >= 0);
+-      if (rating > best_rating || (rating == best_rating && gain > best_gain)) {
+-        best_to_part = to;
+-        best_rating = rating;
+-        best_gain = gain;
++    }
++    // A malformed/degenerate normalized score (for example, a zero-norm
++    // multi-constraint target) can leave every comparison unordered.  The
++    // fallback is already a deadlock-breaking path, so preserve progress by
++    // selecting any legal target rather than aborting the whole partition.
++    if (best_to_part == kInvalidPartition) {
++      for (PartitionID to = 0; to < context.partition.k; ++to) {
++        if (from != to) {
++          best_to_part = to;
++          best_rating = 0.0f;
++          best_gain = 0;
++          break;
++        }
+       }
+     }
+     ASSERT(best_to_part != kInvalidPartition);

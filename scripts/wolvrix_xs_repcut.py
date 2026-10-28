@@ -38,6 +38,9 @@ def _build_repcut_kwargs(
     }
     if REPCUT_KEEP_INTERMEDIATE_FILES:
         kwargs["keep_intermediate_files"] = True
+    if REPCUT_INITIAL_ASSIGNMENT != "solver":
+        kwargs["initial_assignment"] = REPCUT_INITIAL_ASSIGNMENT
+        kwargs["initial_core_imbalance_factor"] = REPCUT_INITIAL_CORE_IMBALANCE_FACTOR
     return kwargs
 
 # pass targets (edit here if top symbol changes)
@@ -54,9 +57,24 @@ REPCUT_BACKEND = os.environ.get("XS_REPCUT_BACKEND", "verilator").strip().lower(
 if REPCUT_BACKEND not in {"verilator", "grhsim"}:
     raise RuntimeError("XS_REPCUT_BACKEND must be one of: verilator, grhsim")
 REPCUT_WEIGHT_MODE = os.environ.get("XS_REPCUT_WEIGHT_MODE", "closure-aware")
-REPCUT_COST_MODEL = os.environ.get(
-    "XS_REPCUT_COST_MODEL", "legacy" if REPCUT_BACKEND == "grhsim" else "verilator-v1"
+REPCUT_INITIAL_ASSIGNMENT = os.environ.get(
+    "XS_REPCUT_INITIAL_ASSIGNMENT", "solver",
 )
+REPCUT_INITIAL_CORE_IMBALANCE_FACTOR = os.environ.get("XS_REPCUT_INITIAL_CORE_IMBALANCE_FACTOR", "0.05")
+if REPCUT_INITIAL_ASSIGNMENT not in {"solver", "grhsim-terminal-v1", "grhsim-terminal-state-v1"}:
+    raise RuntimeError(
+        "XS_REPCUT_INITIAL_ASSIGNMENT must be one of: solver, grhsim-terminal-v1, grhsim-terminal-state-v1"
+    )
+if REPCUT_INITIAL_ASSIGNMENT in {"grhsim-terminal-v1", "grhsim-terminal-state-v1"} and REPCUT_BACKEND != "grhsim":
+    raise RuntimeError("GrhSIM initial assignment requires XS_REPCUT_BACKEND=grhsim")
+REPCUT_COST_MODEL = os.environ.get(
+    "XS_REPCUT_COST_MODEL", "grhsim-v1" if REPCUT_INITIAL_ASSIGNMENT in {"grhsim-terminal-v1", "grhsim-terminal-state-v1"}
+    else "legacy" if REPCUT_BACKEND == "grhsim" else "verilator-v1"
+)
+if REPCUT_INITIAL_ASSIGNMENT in {"grhsim-terminal-v1", "grhsim-terminal-state-v1"} and (
+    REPCUT_COST_MODEL != "grhsim-v1" or REPCUT_WEIGHT_MODE != "closure-aware"
+):
+    raise RuntimeError("GrhSIM initial assignment requires grhsim-v1 and closure-aware")
 REPCUT_KEEP_INTERMEDIATE_FILES = True
 REPCUT_ENABLE_MEMORY_WRITE_COALESCE = _env_bool(
     "XS_REPCUT_MEMORY_WRITE_COALESCE", True
@@ -72,9 +90,9 @@ if REPCUT_WEIGHT_MODE not in {"baseline", "closure-aware"}:
         "XS_REPCUT_WEIGHT_MODE must be one of: baseline, closure-aware"
     )
 
-if REPCUT_COST_MODEL not in {"legacy", "verilator-v1", "verilator-lowered-v1"}:
+if REPCUT_COST_MODEL not in {"legacy", "verilator-v1", "verilator-lowered-v1", "grhsim-v1"}:
     raise RuntimeError(
-        "XS_REPCUT_COST_MODEL must be one of: legacy, verilator-v1, verilator-lowered-v1"
+        "XS_REPCUT_COST_MODEL must be one of: legacy, verilator-v1, verilator-lowered-v1, grhsim-v1"
     )
 
 if REPCUT_REG_TO_MEM_PROFITABILITY_FILTER not in {"none", "verilator-v1"}:

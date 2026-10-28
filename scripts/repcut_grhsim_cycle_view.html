@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GrhSIM · 逐 cycle 分区耗时直方图</title>
+<style>
+/*__FONT__*/
+:root{font-family:TimelineCJK,system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;color:#22324a;background:#f4f6fa;font-size:14px;--input:#df9b28;--eval:#2873b8;--update:#178476}
+*{box-sizing:border-box}body{margin:0;padding:24px}main{max-width:1780px;margin:auto}h1{font-size:27px;margin:0 0 10px}h2{font-size:19px;margin:0 0 10px}p{line-height:1.8;margin:8px 0}.muted{color:#617088}.small{font-size:12px}.toolbar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:13px 0}label{display:flex;gap:6px;align-items:center}select,button,input[type=number]{font:inherit;border:1px solid #c6d0dd;background:white;padding:7px 10px;border-radius:6px}button,select{cursor:pointer}button:hover{background:#e9f0fb}input{accent-color:#2873b8}input[type=number]{width:125px}input[type=range]{flex:1;min-width:200px}.note{border-left:4px solid #8955ab;background:#f2edf9;padding:12px 16px;line-height:1.85;margin:15px 0}.panel,details,.card{background:white;border:1px solid #dce3ed;border-radius:10px;padding:17px;min-width:0}.panel,details{margin:18px 0}.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}.number{font-size:25px;font-variant-numeric:tabular-nums;margin:9px 0}.plot{max-width:100%;overflow:auto}.plot svg{display:block;font-family:inherit}.plot text{pointer-events:none}.legend{display:flex;flex-wrap:wrap;gap:18px;margin:12px 0}.sw{display:inline-block;width:16px;height:11px;margin-right:5px;vertical-align:middle}#selection{white-space:pre-line;line-height:1.8;min-height:64px}#tip{display:none;position:fixed;pointer-events:none;white-space:pre-line;max-width:440px;background:#203047;color:white;padding:12px 15px;border-radius:7px;font-size:12px;line-height:1.6;z-index:10;box-shadow:0 4px 16px #0003}summary{cursor:pointer;font-weight:600}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;margin-top:12px}th,td{text-align:right;padding:8px;border-bottom:1px solid #e4eaf2;white-space:nowrap}th{background:#f4f6fa}th:first-child,td:first-child{text-align:left}.host{background:#fff4dc}.hash{overflow-wrap:anywhere}.badge{font-size:12px;border-radius:5px;padding:3px 8px;background:#e6f3ee;color:#08766b;margin-right:8px}a{color:#245ead}#status{min-height:21px}button:disabled{opacity:.45;cursor:default}
+@media(max-width:950px){.cards{grid-template-columns:1fr}body{padding:12px}h1{font-size:22px}.panel{padding:12px}}@media print{.toolbar,button{display:none}.plot svg{width:100%!important;min-width:0!important}}
+</style></head><body><main>
+<h1>GrhSIM：选择一个 cycle，查看 32 个分区</h1>
+<p class="muted">node030 / CPU96–127 · NUMA1 · N=K=32 · Host CPU105 / p9 · all-spin · Clang23 · __CODEPAGE__ · ASLR off · 新采集 F/G 两对 AB/BA · C=100000</p>
+<div class="note"><b>这里是真实逐 cycle 记录，不是全程均值。</b>G 是最新保留的完整优化验证线，F 是其此前基线。选择一次运行中的一个周期；不混合两次运行。为了保留每个周期，使用了独立诊断版，有额外的记录开销，不能用它重新宣称 ordinary walltime 收益。</div>
+<div class="small muted">__PAGE_NOTE__</div>
+<section class="panel">
+ <div class="toolbar">
+  <label for="cycle">仿真 cycle <input type="number" id="cycle" min="1" max="100001" step="1" value="100000"></label>
+  <button id="previous" title="上一个周期">← 上一 cycle</button><button id="next" title="下一个周期">下一 cycle →</button>
+  <label>步长 <select id="jump"><option>1</option><option>10</option><option>100</option><option>1000</option></select></label>
+  <label>时钟沿 <select id="edge"><option value="rise">上升沿 · clock=1</option><option value="fall">下降沿 · clock=0</option><option value="both">整周期 · 两沿相加</option></select></label>
+  <label>运行 <select id="pair"><option value="1">第 1 对 · F → G</option><option value="2">第 2 对 · G → F</option></select></label>
+  <label>版本 <select id="variant"><option value="candidate">G · 最新候选</option><option value="baseline">F · 基线</option><option value="both">F / G 同周期对照</option></select></label>
+ </div>
+ <div class="toolbar"><span class="small">1</span><input id="slider" type="range" min="1" max="100001" value="100000" aria-label="选择仿真周期"><span class="small">100001</span></div>
+ <div class="toolbar">
+  <label><input type="checkbox" id="input" checked>input / 输入</label><label><input type="checkbox" id="eval" checked>eval / 计算</label><label><input type="checkbox" id="update" checked>update / 通信</label>
+  <label>排序 <select id="sort"><option value="part">分区编号</option><option value="selected">当前可见耗时降序</option><option value="eval">eval 降序</option><option value="update">update 降序</option></select></label>
+  <label>图宽 <select id="zoom"><option value="1">1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label>
+  <button id="csv" disabled>导出当前周期 CSV</button><button id="svg" disabled>导出直方图 SVG</button><button id="reset">恢复默认</button>
+ </div>
+ <p id="status" class="muted small" role="status" aria-live="polite">正在读取内嵌逐周期数据……</p>
+ <p class="muted small">cycle 从复位后的第一个完整周期记为 1；复位的 50 个周期不在选择范围内。C=100000 在本 harness 中实际执行 100001 个非复位周期。本页 cycle 不是 RTL perf 计数器或退休指令编号。</p>
+</section>
+<div id="cards" class="cards"></div>
+<section class="panel" id="histogram-section">
+ <h2 id="chart-title">各分区 callback 耗时</h2>
+ <div class="legend"><span><i class="sw" style="background:var(--input)"></i>input / apply</span><span><i class="sw" style="background:var(--eval)"></i>eval</span><span><i class="sw" style="background:var(--update)"></i>update / push</span><span>F 浅色、G 深色；悬停看数值，点击或 Enter 固定详情</span><span><i class="sw" style="background:#fff4dc"></i>p9：Host 参与线程</span></div>
+ <div class="plot" id="chart"></div>
+ <p class="muted small">横轴为分区，纵轴为实测耗时 µs。彩条相加表示该分区的 callback 耗时，不是线程从进入到退出 step 的跨度；未包含阶段之间的轮询等待和调度。两沿合计时，每个分区独立相加，不能把最高柱当作整周期关键路径，因为两沿可能由不同分区拖慢。</p>
+</section>
+<div class="panel" id="selection" aria-live="polite">点击一个条形查看分区详情。</div>
+<section class="panel"><h2>全局阶段：包含分发与同步</h2><div class="plot" id="global-chart"></div><p class="muted small">全局三个阶段来自 Host 外围计时。该记录包含 callback、发布任务与等待完成等，但不包含 step() 以外的 testbench 工作；不是进程 walltime。彩条不表示各线程真实开始时间。本页未采集 callback 时间戳，因此不把与最大分区的差值解释成精确调度延迟。</p></section>
+<details><summary>当前 cycle 的 32 分区数据表</summary><div class="tablewrap" id="part-table"></div></details>
+<details><summary>数据来源、校验与编号口径</summary>
+ <p>每个周期都有上升沿与下降沿；保留全部记录，未按耗时筛选周期。每个分区记录 input、eval、update 的原始纳秒耗时，复用了现有时钟读取；记录在 callback 计时区间外写入内存，进程退出时统一落盘。记录动作仍可能影响缓存、同步和运行时间。</p>
+ <p>两对新采集按 F→G、G→F 执行，功能签名、运行参数、代码页配置均验证通过。生成时逐项检查时钟沿、复位边界、记录完整性和 callback 不超出全局阶段，并将所有逐步耗时之和与本次原始 timing JSONL 累计值核对（容许 JSON 小数舍入）。仅外围 4 个目标文件加入记录，各自 7450 个其他目标文件字节不变，原性能二进制未改动。</p>
+ <p>整周期 = 上升沿 + 下降沿；“第 1 对”与“第 2 对”均为真实独立运行，而非均值。F/G 的同周期对照表示相同逻辑进度的两次独立采样，不代表同时发生。G 仍是含非默认选项的保留验证线。</p>
+ <p>所有数据已按周期区块压缩内嵌，可离线打开，不需要服务器或网络。浏览器只解压当前区块；首次打开文件可能需要几秒。需要支持 DecompressionStream 的现代浏览器。</p>
+ <div class="hash" id="identity"></div>
+</details>
+<p class="muted small">时间精度：原始记录为 ns，显示到 0.001 µs；导出 CSV 同时保留原始 ns。页面中的 input / eval / update 开关只影响图形，不删除数据。</p>
+</main><div id="tip" role="tooltip"></div>
+<!--__BLOCKS__-->
+<script>
+'use strict';
+const DATA=/*__DATA__*/null;
+const $=id=>document.getElementById(id), names=['input','eval','update'], colors=['#df9b28','#2873b8','#178476'];
+const cache=new Map(); let generation=0, state=null;
+const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=x=>(x/1000).toFixed(3), sum=a=>a.reduce((x,y)=>x+y,0);
+const txt=(x,y,s,extra='')=>`<text x="${x}" y="${y}" ${extra}>${esc(s)}</text>`;
+const rect=(x,y,w,h,extra='')=>`<rect x="${x}" y="${y}" width="${Math.max(0,w)}" height="${Math.max(0,h)}" ${extra}/>`;
+const svg=(w,h,body)=>`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="分区耗时直方图" style="font-family:TimelineCJK,system-ui,sans-serif;font-size:12px">${body}</svg>`;
+
+async function loadBlock(index){
+ if(cache.has(index))return cache.get(index);
+ const pending=(async()=>{if(typeof DecompressionStream==='undefined')throw Error('浏览器不支持解压，请使用较新的 Chrome、Edge 或 Firefox。');
+  const bytes=Uint8Array.from(atob($('block-'+index).textContent.trim()),c=>c.charCodeAt(0));
+  const buffer=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  const n=Math.min(DATA.block_cycles,DATA.cycles-index*DATA.block_cycles), words=n*2*DATA.words_per_step*DATA.runs.length;
+  if(buffer.byteLength!==words*4)throw Error('区块长度错误');
+  if(DATA.codec!=='gzip-u32-byteplanes-v1')throw Error('不支持的数据编码');
+  const plane=new Uint8Array(buffer), values=new Uint32Array(words);
+  for(let i=0;i<words;i++)values[i]=(plane[i]|plane[i+words]<<8|plane[i+words*2]<<16|plane[i+words*3]<<24)>>>0;
+  return {n,values};})();
+ cache.set(index,pending);try{const result=await pending;while(cache.size>4)cache.delete(cache.keys().next().value);return result;}catch(error){cache.delete(index);throw error;}
+}
+
+async function cycleRows(cycle,pair,variant,edge){
+ const block=Math.floor((cycle-1)/DATA.block_cycles), offset=(cycle-1)%DATA.block_cycles;
+ const {n,values}=await loadBlock(block), steps=n*2, stride=steps*DATA.words_per_step;
+ const edges=edge==='both'?[0,1]:[edge==='rise'?0:1];
+ return DATA.runs.flatMap((run,index)=>{
+  if(run.pair!==Number(pair)||(variant!=='both'&&variant!==run.variant))return [];
+  const base=index*stride, globals=[0,0,0], parts=Array.from({length:32},()=>[0,0,0]);
+  for(const e of edges){const s=offset*2+e, flag=values[base+s*4];if(flag!==1-e)throw Error('时钟/复位记录不匹配');
+   for(let phase=0;phase<3;phase++){globals[phase]+=values[base+s*4+1+phase];
+    for(let p=0;p<32;p++)parts[p][phase]+=values[base+steps*4+p*steps*3+s*3+phase];}}
+  return [{...run,globals,parts,steps:edges.map(e=>DATA.reset_cycles*2+(cycle-1)*2+e+1)}];
+ });
+}
+
+function selection(row,p){return `${DATA.labels[row.variant]} · ${row.name}\ncycle ${state.cycle} · ${state.edgeLabel} · p${p} / CPU${DATA.runtime.part_cpus[p]}${p===DATA.runtime.host_lane?'（Host）':''}\ninput ${fmt(row.parts[p][0])} µs  ·  eval ${fmt(row.parts[p][1])} µs  ·  update ${fmt(row.parts[p][2])} µs\ncallback 合计 ${fmt(sum(row.parts[p]))} µs · 全局阶段合计 ${fmt(sum(row.globals))} µs`}
+
+function histogram(){
+ const rows=state.rows, mask=state.mask, width=Math.round(1540*Number($('zoom').value)), height=490;
+ const left=70,right=24,top=38,bottom=height-68,step=(width-left-right)/32;
+ const score=(p)=>Math.max(...rows.map(r=>$('sort').value==='eval'?r.parts[p][1]:$('sort').value==='update'?r.parts[p][2]:sum(r.parts[p].filter((v,i)=>mask[i]))));
+ const order=Array.from({length:32},(_,i)=>i);if($('sort').value!=='part')order.sort((a,b)=>score(b)-score(a)||a-b);
+ const maximum=Math.max(1000,...rows.flatMap(r=>r.parts.map(a=>sum(a.filter((v,i)=>mask[i])))))*1.12;
+ const scale=(bottom-top)/maximum;
+ let body=rect(0,0,width,height,'fill="white"')+txt(left,20,`耗时 / µs · cycle ${state.cycle} · ${state.edgeLabel}`,'fill="#617088"');
+ for(let tick=0;tick<=5;tick++){const ns=maximum*tick/5,y=bottom-ns*scale;body+=`<line x1="${left}" x2="${width-right}" y1="${y}" y2="${y}" stroke="#e4eaf2"/>`+txt(left-10,y+4,(ns/1000).toFixed(1),'text-anchor="end" fill="#617088"');}
+ order.forEach((p,k)=>{const x=left+step*k;if(p===DATA.runtime.host_lane)body+=rect(x,top,step,bottom-top,'fill="#fff4dc" opacity="0.6"');
+  rows.forEach((r,j)=>{let ns=0;const w=Math.min(28,(step-9)/rows.length),bx=x+(step-w*rows.length)/2+j*w;
+   const tip=selection(r,p);body+=`<g class="bar" data-part="${p}" data-variant="${r.variant}" data-values="${r.parts[p].join(',')}" data-tip="${esc(tip)}" tabindex="0" role="button" aria-label="${esc(tip)}">`;
+   for(let phase=0;phase<3;phase++)if(mask[phase]){const v=r.parts[p][phase];body+=rect(bx,bottom-(ns+v)*scale,w-2,v*scale,`fill="${colors[phase]}" opacity="${r.variant==='baseline'?.46:1}"`);ns+=v;}
+   // Transparent hit region remains usable for tiny/zero callbacks.
+   body+=rect(bx,top,w-2,bottom-top,'fill="transparent"');
+   if(rows.length===2)body+=txt(bx+(w-2)/2,bottom+13,r.variant==='baseline'?'F':'G','text-anchor="middle" font-size="9" fill="#617088"');body+='</g>';});
+  body+=txt(x+step/2,bottom+32,'p'+p,'text-anchor="middle" fill="#22324a"');});
+ if(!mask.some(Boolean))body+=txt(width/2,210,'请至少勾选一个指标','text-anchor="middle" fill="#617088" font-size="17"');
+ return svg(width,height,body);
+}
+
+function globalChart(){
+ const w=1400,h=state.rows.length*65+45,left=155,right=130,maximum=Math.max(...state.rows.map(r=>sum(r.globals)))*1.03;
+ let body=rect(0,0,w,h,'fill="white"');
+ state.rows.forEach((r,i)=>{let x=left;const y=25+i*65;body+=txt(8,y+23,DATA.labels[r.variant],'fill="#22324a"');r.globals.forEach((v,phase)=>{const width=v/maximum*(w-left-right);body+=`<g data-tip="${esc(DATA.labels[r.variant]+' · '+names[phase]+' '+fmt(v)+' µs')}">`+rect(x,y,width,34,`fill="${colors[phase]}" opacity="${r.variant==='baseline'?.46:1}"`);if(width>75)body+=txt(x+width/2,y+22,fmt(v),`text-anchor="middle" fill="${r.variant==='baseline'?'#22324a':'white'}"`);body+='</g>';x+=width;});body+=txt(x+10,y+23,fmt(sum(r.globals))+' µs','fill="#22324a"');});return svg(w,h,body);
+}
+
+function table(){let html='<table><thead><tr><th>版本 / 分区</th><th>CPU</th><th>input / µs</th><th>eval / µs</th><th>update / µs</th><th>合计 / µs</th></tr></thead><tbody>';
+ for(let p=0;p<32;p++)for(const r of state.rows)html+=`<tr class="${p===DATA.runtime.host_lane?'host':''}"><td>${esc(DATA.labels[r.variant])} / p${p}</td><td>${DATA.runtime.part_cpus[p]}</td>${r.parts[p].map(v=>`<td>${fmt(v)}</td>`).join('')}<td>${fmt(sum(r.parts[p]))}</td></tr>`;return html+'</tbody></table>';}
+
+async function render(){
+ const ticket=++generation;
+ try{
+  const parsed=Number($('cycle').value), cycle=Math.max(1,Math.min(DATA.cycles,Number.isFinite(parsed)?Math.trunc(parsed):1));$('cycle').value=cycle;$('slider').value=cycle;
+  $('status').textContent=`正在读取 cycle ${cycle}……`;$('csv').disabled=true;$('svg').disabled=true;
+  const edge=$('edge').value,rows=await cycleRows(cycle,$('pair').value,$('variant').value,edge);
+  if(ticket!==generation)return;
+  state={cycle,edge,edgeLabel:{rise:'上升沿',fall:'下降沿',both:'两沿合计'}[edge],rows,mask:names.map(k=>$(k).checked)};
+  $('chart').innerHTML=histogram();$('global-chart').innerHTML=globalChart();$('part-table').innerHTML=table();
+  $('chart-title').textContent=`cycle ${cycle} · ${state.edgeLabel} · 各分区 callback 耗时`;
+  $('cards').innerHTML=rows.map(r=>{const max=Math.max(...r.parts.map(p=>p[1])),bottlenecks=r.parts.flatMap((p,i)=>p[1]===max?['p'+i]:[]);return `<div class="card"><span class="badge">${esc(DATA.labels[r.variant])}</span><span class="small muted">${esc(r.name)}</span><div class="number">${fmt(max)} µs <span class="small">最大分区 eval · ${bottlenecks.join(' / ')}</span></div><p class="small muted">全局 eval ${fmt(r.globals[1])} µs · 全局 input ${fmt(r.globals[0])} µs · 全局 update ${fmt(r.globals[2])} µs<br>模型阶段合计 ${fmt(sum(r.globals))} µs（含阶段同步，不含 testbench）</p></div>`;}).join('');
+  $('status').textContent=`cycle ${cycle} / ${DATA.cycles} · ${state.edgeLabel} · 原始 step ${rows[0].steps.join(' + ')} · 真实单次记录，无跨运行平均。`;
+  $('previous').disabled=cycle===1;$('next').disabled=cycle===DATA.cycles;
+  $('selection').textContent='点击一个条形查看分区详情。';$('tip').style.display='none';$('csv').disabled=false;$('svg').disabled=false;REPORT.ready=true;
+ }catch(error){$('status').textContent='加载失败：'+error.message;REPORT.error=error.message;throw error;}
+}
+
+function csvRows(){
+ const header=['cycle','edge','pair','run','variant','part','cpu','input_ns','eval_ns','update_ns','total_ns','global_input_ns','global_eval_ns','global_update_ns','raw_steps'];
+ return [header,...state.rows.flatMap(r=>r.parts.map((p,i)=>[state.cycle,state.edge,r.pair,r.name,r.variant,i,DATA.runtime.part_cpus[i],...p,sum(p),...r.globals,r.steps.join('+')]))];
+}
+function download(name,text,type){const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function chartSVG(){const raw=$('chart').innerHTML;return raw.replace(/(<svg\b[^>]*>)/,m=>m+'<style>'+document.querySelector('style').textContent.split(':root')[0]+'</style>');}
+function reset(){for(const [id,value] of Object.entries({cycle:100000,slider:100000,jump:1,edge:'rise',pair:1,variant:'candidate',sort:'part',zoom:1}))$(id).value=value;for(const name of names)$(name).checked=true;return render();}
+for(const id of ['cycle','edge','pair','variant','input','eval','update','sort','zoom'])$(id).addEventListener('change',render);
+let sliderTimer;$('slider').addEventListener('input',()=>{$('cycle').value=$('slider').value;clearTimeout(sliderTimer);sliderTimer=setTimeout(render,80);});
+$('previous').onclick=()=>{$('cycle').value=Number($('cycle').value)-Number($('jump').value);render();};
+$('next').onclick=()=>{$('cycle').value=Number($('cycle').value)+Number($('jump').value);render();};
+$('reset').onclick=reset;
+$('csv').onclick=()=>download(`grhsim_cycle_${state.cycle}_${state.edge}.csv`,'\ufeff'+csvRows().map(r=>r.join(',')).join('\r\n'),'text/csv;charset=utf-8');
+$('svg').onclick=()=>download(`grhsim_cycle_${state.cycle}_${state.edge}.svg`,chartSVG(),'image/svg+xml');
+document.addEventListener('pointermove',e=>{const n=e.target.closest('[data-tip]');if(!n){$('tip').style.display='none';return;}$('tip').textContent=n.dataset.tip;$('tip').style.display='block';const bounds=$('tip').getBoundingClientRect();$('tip').style.left=Math.max(8,Math.min(e.clientX+16,innerWidth-bounds.width-8))+'px';$('tip').style.top=Math.max(8,Math.min(e.clientY+16,innerHeight-bounds.height-8))+'px';});
+document.addEventListener('click',e=>{const n=e.target.closest('[data-tip]');if(n)$('selection').textContent=n.dataset.tip;});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('[data-tip]'))$('selection').textContent=e.target.dataset.tip;});
+$('identity').innerHTML=`<p class="small">数据目录：${esc(DATA.source)}</p>`+DATA.runs.map(r=>`<p class="small">${esc(r.name)} · SHA256 ${r.binary_sha256}</p>`).join('');
+window.REPORT={data:DATA,ready:false,render,cycleRows,csvRows,chartSVG,get state(){return state;}};
+render();
+</script></body></html>

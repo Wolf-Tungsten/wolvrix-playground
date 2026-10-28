@@ -2,7 +2,8 @@ SHELL := /bin/bash
 REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 FST_ROI_DISCOVERY_GOALS := build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery
-ifneq ($(filter $(FST_ROI_DISCOVERY_GOALS),$(MAKECMDGOALS)),)
+GRHSIM32_GOALS := xs_grhsim build_xs_repcut_grhsim run_xs_repcut_grhsim grhsim32_plan
+ifneq ($(filter $(FST_ROI_DISCOVERY_GOALS) $(GRHSIM32_GOALS),$(MAKECMDGOALS)),)
 SKIP_WOLF_ENV_CHECK := 1
 endif
 
@@ -186,7 +187,10 @@ XS_WOLF_REPCUT_JSON ?= $(XS_REPCUT_BUILD)/xs_wolf_repcut.json
 XS_REPCUT_BACKEND ?= verilator
 export XS_REPCUT_BACKEND
 XS_REPCUT_WEIGHT_MODE ?= closure-aware
-XS_REPCUT_COST_MODEL ?= $(if $(filter grhsim,$(XS_REPCUT_BACKEND)),legacy,verilator-v1)
+XS_REPCUT_INITIAL_ASSIGNMENT ?= solver
+XS_REPCUT_INITIAL_CORE_IMBALANCE_FACTOR ?= 0.05
+export XS_REPCUT_INITIAL_ASSIGNMENT XS_REPCUT_INITIAL_CORE_IMBALANCE_FACTOR
+XS_REPCUT_COST_MODEL ?= $(if $(filter grhsim-terminal-v1 grhsim-terminal-state-v1,$(XS_REPCUT_INITIAL_ASSIGNMENT)),grhsim-v1,$(if $(filter grhsim,$(XS_REPCUT_BACKEND)),legacy,verilator-v1))
 XS_REPCUT_MEMORY_WRITE_COALESCE ?= 1
 XS_REPCUT_REG_TO_MEM ?= 1
 XS_REPCUT_REG_TO_MEM_PROFITABILITY_FILTER ?= $(if $(filter grhsim,$(XS_REPCUT_BACKEND)),none,verilator-v1)
@@ -224,6 +228,11 @@ XS_REPCUT_GRHSIM_PACKAGE_DIR_ABS := $(abspath $(XS_REPCUT_GRHSIM_PACKAGE_DIR))
 XS_REPCUT_GRHSIM_WORK_DIR_ABS := $(abspath $(XS_REPCUT_GRHSIM_WORK_DIR))
 XS_REPCUT_GRHSIM_EMU_BUILD_ABS := $(abspath $(XS_REPCUT_GRHSIM_EMU_BUILD))
 
+# Portable clean Verilog -> 32-thread GrhSIM pipeline. It owns all defaults;
+# no historical build product or manually supplied partition pair is an input.
+XS_GRHSIM32_OUTPUT ?= $(BUILD_DIR)/xs/grhsim32
+XS_GRHSIM32_ARGS ?=
+
 XS_DIFFTEST_GEN_DIR ?= $(XS_ROOT)/build/generated-src
 XS_DIFFTEST_GEN_DIR_ABS := $(abspath $(XS_DIFFTEST_GEN_DIR))
 XS_WOLF_INCLUDE_DIRS ?= $(XS_RTL_DIR_ABS) $(XS_VSRC_DIR_ABS) $(XS_DIFFTEST_GEN_DIR_ABS)
@@ -252,7 +261,7 @@ HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
-	build_xs_repcut_grhsim run_xs_repcut_grhsim build_xs_repcut_sim run_xs_repcut_sim \
+	build_xs_repcut_grhsim build_xs_repcut_grhsim_legacy run_xs_repcut_grhsim run_xs_repcut_grhsim_legacy build_xs_repcut_sim run_xs_repcut_sim xs_grhsim grhsim32_plan \
 	xs_no0076_stats clean
 
 all: build
@@ -795,7 +804,19 @@ run_xs_repcut_verilator:
 			$(XS_RAM_TRACE_ARGS) \
 			2>&1 | tee "$$REPCUT_RUN_LOG"
 
-build_xs_repcut_grhsim:
+xs_grhsim build_xs_repcut_grhsim:
+	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --clean \
+		--output "$(abspath $(XS_GRHSIM32_OUTPUT))" $(XS_GRHSIM32_ARGS)
+
+grhsim32_plan:
+	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --dry-run \
+		--output "$(abspath $(XS_GRHSIM32_OUTPUT))" $(XS_GRHSIM32_ARGS)
+
+run_xs_repcut_grhsim:
+	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --run-only \
+		--output "$(abspath $(XS_GRHSIM32_OUTPUT))" $(XS_GRHSIM32_ARGS)
+
+build_xs_repcut_grhsim_legacy:
 	@if [ "$(XS_WAVEFORM)" != "0" ] || [ "$(XS_WAVEFORM_FULL)" != "0" ] || [ "$(WOLVRIX_GRHSIM_WAVEFORM)" != "0" ]; then \
 		echo "[FAIL] xs grhsim repcut: waveform is not supported in partitioned backend yet"; \
 		exit 1; \
@@ -850,7 +871,7 @@ build_xs_repcut_grhsim:
 		exit 1; \
 	fi
 
-run_xs_repcut_grhsim:
+run_xs_repcut_grhsim_legacy:
 	@if [ "$(XS_WAVEFORM)" != "0" ] || [ "$(XS_WAVEFORM_FULL)" != "0" ] || [ "$(WOLVRIX_GRHSIM_WAVEFORM)" != "0" ]; then \
 		echo "[FAIL] xs grhsim repcut: waveform is not supported in partitioned backend yet"; \
 		exit 1; \
