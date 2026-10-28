@@ -539,6 +539,14 @@ General/LargeSink 的计算 locals 已限制在各自 batch 内，不汇总到 p
 
 ### 5.4 数值、数组和运行时边界
 
+- scalar TwoState Logic、宽度≤64的`kMux`与`kPrioritySelect`在原操作
+  位置调用按值`numeric_select(condition, yes, no)`。两侧值沿用原来的
+  符号扩展、截断和清理，helper以`__builtin_unpredictable(condition)`
+  提示选择，不把数据load放在C++条件表达式的两个分支内。例：
+  `mux(c,a,b)`先得到规范化的`a`、`b`，再选择其一；priority的第一个
+  true条件仍优先，全部false时取default。producer仍在原guard及原
+  拓扑位置求值，不新增效果调用，也不改变writer采样顺序。Real、String、
+  超64位及shaped结果保留既有路径，越界、除零和移位保护不经过此helper。
 - CPU execution 只接受显式 TwoState Logic；FourState 在 GRH/JSON 中合法，
   但此 emitter 拒绝，不做隐式 X/Z 投影。scalar Real/String 分别用
   `double/std::string`。当前 CPU emitter 不支持 top-level inout ports。
