@@ -124,6 +124,18 @@ small-sink 的外部动态 enable 同步到稠密位图。连续 eligible writer
 保存的 payload，原地修改大型 current；不重新求 writer 数据锥。
 这使大型数组不需要每轮复制一份完整 next。
 
+bitmap 模式下，具有相同稳定有效捕获条件的大型 writer，可在最终 commit
+条件中引用同一原始 capture bit。控制源限有物理存储的标量 Logic Input、
+Event 或 nonsink General；按 latch 类型、fresh run fire、保存的 fire/enable
+及有序 guards 的 ValueId 身份匹配，选组内最小原始 writer bit。
+General 仍保留完整 bitmap，在原采样位置
+设置每个 writer 自己的 bit；不提前计算 enable，也不压缩或重排位图。
+等价证明包括展开的 run fire gate 和原保存的 fire/enable 读取，因为 Event
+pulse 清零后，nonsink 保存的 OR/Assign fire 仍可能为 true。原 coarse word
+guard、batch/run 边界、counter 位置及独立 payload 快照均保留。例如原 bit 3
+与 70 仍分别在各自捕获后置位，只把两个最终 commit test 都指向 bit 3。
+General 抛异常时不会进入 LargeSink；重试再次执行 General 时先清空位图。
+
 提交记录 dirty / before 信息。对读者的 activity 和下一轮需求在 Publish
 归并；本轮 General 已经结束，不允许提交中的状态变化反过来影响本轮采样。
 数组部分写入、掩码写入及别名源读取必须保留写前快照语义。
@@ -377,7 +389,7 @@ inequality，Real/String 用相应 inequality；history 初始化为类型零/�
 | `smallSinkEnableBoundaryStore` | small-sink enable 锥的跨分区输入字段；可探测的动态 writer enable 另有稠密 `words` 位图 |
 | `smallSinkPayloadBoundaryStore` | small-sink index / data / mask 参数锥的跨分区输入字段 |
 | `largeSinkEnableBoundaryStore` | 大 writer 本 round 的有效位；bitmap 模式使用 `words`，关闭 bitmap 时使用逐 writer bool |
-| `largeSinkPayloadBoundaryStore` | 大 writer 在 General 采样的 index / data / mask，供 LargeSink 提交 |
+| `largeSinkPayloadBoundaryStore` | 大 writer 在 General 采样的 index / data / mask；合格常量改用 literal 后可保留未使用字段以维持布局 |
 | `prevEventStore` | detector 的前一次事件值，每个 Event round 无条件更新 |
 | `eventActStore` | detector 本 round 产生的 fire |
 | `timeslotTriggerStore` | 事件型 monitor/strobe 在本 eval 内累积的 sticky trigger |
@@ -429,14 +441,34 @@ Event、Output及取地址路径保留物理快照。字符串使用原op首次�
 重复init及多实例只共享不可变源，不共享实例store。嵌入NUL沿用既有
 C-string语义。TaskArg的shaped常量仍物化为可取地址对象。
 
+大型 writer 的捕获另有专用常量规则，允许直接 `kConstant` 的无 shape
+TwoState Logic，包括超过 64 位的 `_BitInt`。生成原 General capture 时，
+仅在 constant 与 writer 同 execution owner，或属于更早 nonsink 的上述
+非抛异常前缀时，登记该 `(writer, operand)` 的精确 typed literal；省去该参数
+的 capture copy，LargeSink 改读同一 literal。定义 op、publication、counter、
+其余动态参数和每 writer 有效位仍在原位置。Assign、held sample、shaped
+常量及潜在 throw 后才发布的跨 owner 常量保留原捕获路径，后者在中断重试时
+可能仍应读取初始 0。该规则不扩大普通 General wide operand 的 literal 替换。
+声明的 capture 字段及原模型布局暂保留，但实际语义引用以 code map 为准。
+常量 index 仍遵循原 unsigned 转换与边界检查；常量 mask 不改变 on-write 的
+same-value、zero-mask、touched 范围和下一 round 行为，也不改变 A/B/A 写优先级。
+emitter 属性 `large-capture-specialization=on|off` 默认 on，同时控制此常量规则
+和大型 commit enable alias；off 用于保留原 capture/commit 路径作对照。
+`mem-enable-bitmap=off` 时不共享 bool enable，但仍可省去合格常量的复制。
+manifest 的 `large_capture_specialization` 记录实际开关。
+
 实际替换为literal的窄unsigned逻辑右移保留uint64计算，但零值guard使用
 容器宽64：源已清至语义宽W，W≤count<64自然移出为零，count≥64由guard
 保护。完整count先比较再转size_t，超64位count不截断。此等价写法避开
 Clang22的窄常量向量化指令选择崩溃；signed结果及其他移位路径保持原guard。
-此不可变源机制已在[NO00005](grhsim-perf-opt/NO00005.md)完成整机验证：
+General ≤64 位 scalar/string 不可变源机制已在[NO00005](grhsim-perf-opt/NO00005.md)完成整机验证：
 原SV→emu2182.178070秒/32路，全新六次100k/NEMU相对保留NO00002
 新增速度提升51.210858%，CPU2单线程、无PGO/波形/额外计数，输入和
 二进制身份全组不变。该数值是scalar/string机制的合并成绩，未拆分归因。
+大型capture的常量与共享guard组合已在[NO00012](grhsim-perf-opt/NO00012.md)
+通过全新六次100k/NEMU验证：相对保留NO00008新增吞吐22.802779%，
+旧均值353.788667秒、新均值288.095000秒，原SV完整构建2183.211285秒/32路；
+CPU2单线程、无PGO，最终冻结身份通过。该成绩未分别拆分两个机制的整机贡献。
 
 `grhsim-partition-sink` 仍可依据 GRH 的 fire/priority/enable 身份建立静态 group
 和 runs，分组本身不依赖 C++ store 名称。emitter 在此有序 schedule 上为
@@ -680,6 +712,14 @@ origin_set/source 和 operands；或按函数名查询 source TU、root function
 同名 C++ local。operation 的 `elided` 和 function/local 映射用于区分这些情况。
 snapshot view 的 `snapshot_source` 指向源 value，`storage` 列出实际复用的字段；
 history 的观察后快照和最终写回、状态初始化及 Publish 也记录对应 operation。
+大型 writer 若省去常量 capture copy，`captures` 的 `argument-i` 以及
+`storage` 的 `captured-argument-i` 都记录实际 literal，不指向声明仍在但已不写的
+capture 字段。在 bitmap 模式中，`enable_bit` / `captured-enable` 始终表示该
+writer 自己在 General 设置的有效位；`commit_enable_bit` /
+`captured-commit-enable` 记录最终 commit 读取的位。关闭 bitmap 时，
+`captured-enable` 指向逐 writer 的 bool 字段，own/commit ordinal 相同，
+不生成 `captured-commit-enable` 角色。不能据此推断另一 writer
+已完成捕获。原始字段布局和语义读取位置是两个不同层面的信息。
 例如使用 `jq` 定位变量及其 producer：
 
 ```sh
@@ -790,8 +830,9 @@ clock edge、重复 init、常量/局部 enable、混合时钟优先级和私有
 精确执行计数。`max-function-lines=16/1024` 以及 `mem-enable-bitmap=on/off`
 均由生成代码的编译执行验证；已有 waveform、数组别名和 large capture 回归保留。
 
-描述的工作树基线：root `bb563b9`、wolvrix `0437a9a` 加 small-sink boundary
-修复；更新日期 2026-10-27。
+描述的工作树基线：root `b07c282`、wolvrix `c28191c`，包含已保留NO00008，
+加NO00012的large capture静态元数据实现、回归和功能文档差异；更新日期2026-10-29。
+下节保留2026-10-27历史记录，最新正式搜索成绩以[性能索引](grhsim-perf-opt/index.md)为准。
 
 ## 7. 单线程性能修复记录（2026-10-27）
 
