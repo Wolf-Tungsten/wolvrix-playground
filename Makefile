@@ -315,6 +315,24 @@ test_firrtl_node_attributes test_firrtl_cse_scope:
 	TMPDIR="$(FIRRTL_NODE_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_NODE_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target $(subst _,-,$(patsubst test_%,%,$@)) -j 4
 	TMPDIR="$(FIRRTL_NODE_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_NODE_TEST_WORK)/ccache" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^$(subst _,-,$(patsubst test_%,%,$@))$$' --output-on-failure
 
+FIRRTL_PARSER_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F03
+.PHONY: test_firrtl_parser
+test_firrtl_parser:
+	mkdir -p "$(FIRRTL_PARSER_TEST_WORK)/tmp" "$(FIRRTL_PARSER_TEST_WORK)/ccache"
+	TMPDIR="$(FIRRTL_PARSER_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_PARSER_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(FIRRTL_PARSER_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_PARSER_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target firrtl-parser -j 4
+	TMPDIR="$(FIRRTL_PARSER_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_PARSER_TEST_WORK)/ccache" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^firrtl-parser$$' --output-on-failure
+
+FIRRTL_INPUT ?= $(CURDIR)/ptmp/xs/rtl/rtl/SimTop.fir
+FIRRTL_INSPECT_FLAGS ?=
+.PHONY: inspect_firrtl_inputs
+inspect_firrtl_inputs:
+	mkdir -p "$(FIRRTL_PARSER_TEST_WORK)/tmp" "$(FIRRTL_PARSER_TEST_WORK)/ccache"
+	TMPDIR="$(FIRRTL_PARSER_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_PARSER_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(FIRRTL_PARSER_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_PARSER_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target inspect-firrtl -j 4
+	sha256sum "$(FIRRTL_INPUT)"
+	/usr/bin/time -v $(WOLVRIX_BUILD_DIR)/bin/inspect-firrtl $(FIRRTL_INSPECT_FLAGS) "$(FIRRTL_INPUT)"
+
 REMOVE_GRHSIM_IR_BASELINE ?= $(CURDIR)/ptmp/remove-grhsim-ir/r0-20261024
 .PHONY: capture_remove_grhsim_ir_baseline replay_remove_grhsim_ir_baseline supplement_remove_grhsim_ir_baseline replay_remove_grhsim_ir_fixtures
 capture_remove_grhsim_ir_baseline:

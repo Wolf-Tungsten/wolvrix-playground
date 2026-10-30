@@ -184,6 +184,49 @@ fixture 包括缩进/注释/引号、嵌套语句、版本差异、截断文件�
 退出条件：F00 冻结输入可完成语法和接口扫描，目标构造没有被跳过；资源与
 诊断记录可审查。该阶段通过只说明 parse 成功，不代表行为 lowering 完成。
 
+实施记录（2026-10-30）：parser 和接口索引已实现，wolvrix 提交为 `501360f`
+（`grh/firrtl-ingest`）。本地 SimTop 完成全模块语法验证；F00 的输入冻结、
+完整输入清单和对照基线仍待完成，因此本阶段保持进行中。
+
+- 新增自有 source owner、lexer 和递归下降 parser，不链接或调用 CIRCT。
+  接受版本头 `FIRRTL version 6.0.0`，支持精确 `expectedVersion` 检查；
+  旧版本、未知语句/表达式及截断文件明确诊断。
+- 接口索引保留模块范围、类型、别名、layer、formal 和 annotation 原文；
+  模块主体按需解析为 arena。Unix 文件使用单个只读映射，名称/类型 intern，
+  全量验证逐模块释放 AST。模块实例可引用后定义模块，普通声明遵循词法作用域。
+- Bundle 递归拆字段，Vector 保留外到内 shape，flip 决定叶子方向。
+  位宽推导、Reset、Probe、Analog 和属性类型的待解析状态显式保留，
+  原始字符串参数与带引号字符串区分，大整数参数不截断。
+- CHIRRTL mport 数据继承 memory 的作用域，访问语句保留原条件嵌套，供 F06
+  推导使能。共享 `scanInterfaces` 完整验证主体后返回接口；`readFirrtl`
+  在验证后明确拒绝尚未实现的 lowering，不生成部分可执行设计。
+- 回归覆盖嵌套 node 表达式、属性类型、enum、class/formal、参数、source info、
+  缩进/字符串/注释、版本差异、错误恢复、引用/别名错误、接口 shape、
+  名称碰撞和 source owner 生命周期。语法与 API 合约见
+  [firrtl-parser.md](../../wolvrix/docs/ingest/firrtl-parser.md)。
+
+实际验证通过项目 Makefile，日志在 `ptmp/firrtl-ingest/F03/`：
+
+| Make 命令 | 结果 | 日志 |
+| --- | --- | --- |
+| `make test_firrtl_parser` | 定向 parser 回归通过；后续补充用例由最终全量回归覆盖 | `parser_and_xs_after_mport.log` |
+| `make test_wolvrix` | 最终完整构建和 69/69 CTest 通过，含 parser 与公共 driver 回归 | `final_checks.log` |
+| `make inspect_firrtl_inputs` | 本地 SimTop 所有 10,008 个模块及共享接口签名验证通过，退出码 0 | `final_checks.log` |
+
+本地输入为 `ptmp/xs/rtl/rtl/SimTop.fir`，FIRRTL 6.0.0、circuit `SimTop`，
+大小 1,671,325,062 字节，SHA-256 为
+`cc46aae1a379d9e62132b76b0702685ba67761c87815067f770b0743d7dc754a`。
+共 10,008 个模块（含 521 个 extmodule）、164,537 个源端口、649,436 个
+共享叶子端口，其中 121,756 个标记为仍需类型解析。全模块验证统计
+8,297,452 条语句、45,897,965 个表达式、5,476,900 个 node；最大模块有
+1,225,389 条语句。最终检查耗时 12.24 秒，峰值 RSS 4,694,468 KiB；
+最大模块 AST 仍决定主要额外内存，未声称固定内存上限或仿真性能提升。
+
+命令带 `WOLF_ENV_SOURCED=1`，构建临时目录和 ccache 使用本阶段 `tmp/`、
+`ccache/`；全量 CTest 沿用 Makefile 的 `ptmp/ctest_tmp/`、
+`ptmp/ctest_ccache/`。生成的 FIRRTL、参考材料与日志留在 `ptmp/`。
+类型/行为 lowering、混合链接、完整 node CSE 和 nonsink 利用仍属 F04–F09。
+
 ## F04：类型、组合语义和聚合 lowering
 
 交付：

@@ -1,8 +1,8 @@
 # FIRRTL 输入支持推进文档
 
 建立日期：2026-10-30。已完成 F01 目录/读取层迁移和 F02 属性/作用域基础；
-FIRRTL parser、真实混合读取、完整 node CSE 与 nonsink 消费仍待后续阶段。
-阶段状态及实际验证见下表。
+F03 parser 和接口索引已实现并通过本地香山语法验证，待 F00 输入冻结验收。
+混合读取、完整 node CSE 与 nonsink 消费仍待后续阶段。阶段状态及实际验证见下表。
 
 目标是在 Wolvrix 内实现不依赖 CIRCT 的 FIRRTL 前端，与现有 SV 前端共同
 构建设计。FIRRTL `node` 的表达式归属和结果边界以 op attribute 保存，经过
@@ -16,6 +16,7 @@ FIRRTL parser、真实混合读取、完整 node CSE 与 nonsink 消费仍待后
 | --- | --- |
 | [architecture.md](architecture.md) | 源码组织、混合读取、类型与时序语义、node 属性及分图合约 |
 | [steps.md](steps.md) | F00–F11 的依赖、交付、Make 验证入口及退出条件 |
+| [firrtl-parser.md](../../wolvrix/docs/ingest/firrtl-parser.md) | 已实现 parser 的语法、接口签名、资源与验证边界 |
 
 ## 已确定的设计决策
 
@@ -41,7 +42,7 @@ FIRRTL parser、真实混合读取、完整 node CSE 与 nonsink 消费仍待后
 | F00 | 固定输入、特性清单和对照基线 | 待实施 |
 | F01 | ingest 目录迁移和公共读取边界 | 已完成（2026-10-30，验证见 steps.md） |
 | F02 | node attribute schema、CSE 作用域及验证器 | 已完成（2026-10-30，验证见 steps.md） |
-| F03 | FIRRTL parser、版本检查和模块接口索引 | 待实施 |
+| F03 | FIRRTL parser、版本检查和模块接口索引 | 进行中；实现及本地 SimTop 验证完成，待 F00 冻结输入验收 |
 | F04 | 类型推导、组合语义、Bundle/Vector 和 node lowering | 待实施 |
 | F05 | 寄存器、复位及有序数组写 | 待实施 |
 | F06 | memory、效果及目标版本特性 | 待实施 |
