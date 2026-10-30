@@ -302,6 +302,19 @@ test_wolvrix: build
 	mkdir -p $(CURDIR)/ptmp/ctest_tmp $(CURDIR)/ptmp/ctest_ccache
 	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) --output-on-failure
 
+.PHONY: test_ingest_session
+INGEST_SESSION_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F01/session
+test_ingest_session: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+	PYTHONDONTWRITEBYTECODE=1 INGEST_SESSION_TEST_WORK="$(INGEST_SESSION_TEST_WORK)" $(PYTHON) -m unittest discover -s scripts -p test_ingest_session.py
+
+FIRRTL_NODE_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F02
+.PHONY: test_firrtl_node_attributes test_firrtl_cse_scope
+test_firrtl_node_attributes test_firrtl_cse_scope:
+	mkdir -p "$(FIRRTL_NODE_TEST_WORK)/tmp" "$(FIRRTL_NODE_TEST_WORK)/ccache"
+	TMPDIR="$(FIRRTL_NODE_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_NODE_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(FIRRTL_NODE_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_NODE_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target $(subst _,-,$(patsubst test_%,%,$@)) -j 4
+	TMPDIR="$(FIRRTL_NODE_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_NODE_TEST_WORK)/ccache" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^$(subst _,-,$(patsubst test_%,%,$@))$$' --output-on-failure
+
 REMOVE_GRHSIM_IR_BASELINE ?= $(CURDIR)/ptmp/remove-grhsim-ir/r0-20261024
 .PHONY: capture_remove_grhsim_ir_baseline replay_remove_grhsim_ir_baseline supplement_remove_grhsim_ir_baseline replay_remove_grhsim_ir_fixtures
 capture_remove_grhsim_ir_baseline:

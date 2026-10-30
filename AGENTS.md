@@ -5,7 +5,9 @@
 - Wolvrix tests sit under `wolvrix/tests/{grh,ingest,transform,emit,store}` with module fixtures under `wolvrix/tests/<module>/data`; shared suites live in `testcase/{hdlbits,openc910,xiangshan,xs-bugcase}`. Test-only artifacts are written to `wolvrix/build/artifacts` (created by CMake).
 - Source files:
   - `wolvrix/lib/core/grh.cpp` - GRH (Graph RTL Hierarchy) implementation
-  - `wolvrix/lib/core/ingest.cpp` - Convert SystemVerilog AST to GRH
+  - `wolvrix/lib/ingest/sv.cpp` - Convert SystemVerilog AST to GRH
+  - `wolvrix/lib/ingest/driver.cpp` - Shared ingest requests and frontend dispatch
+  - `wolvrix/lib/ingest/firrtl.cpp` - FIRRTL frontend entry points
   - `wolvrix/lib/core/transform.cpp` - Transformation passes (constant folding, dead code elimination, etc.)
   - `wolvrix/lib/transform/*.cpp` - Built-in transform passes
   - `wolvrix/lib/core/emit.cpp` - Emit base implementation and shared emit infrastructure
@@ -33,7 +35,7 @@
 ## Coding Style & Naming Conventions
 - C++20 code with 4-space indentation and braces on the same line as control statements; keep includes ordered and minimal.
 - Use the `wolvrix` namespace with module-specific sub-namespaces; prefer explicit types unless `auto` improves readability.
-- Keep public headers in `include/core/`, `include/emit/`, or `include/transform/`, aligned with implementations in `lib/core/`, `lib/emit/`, or `lib/transform/`; lean on `std::filesystem::path` for paths and STL containers for ownership.
+- Keep public headers in `include/core/`, `include/ingest/`, `include/emit/`, or `include/transform/`, aligned with implementations in `lib/core/`, `lib/ingest/`, `lib/emit/`, or `lib/transform/`; lean on `std::filesystem::path` for paths and STL containers for ownership.
 - Mirror existing diagnostics/log patterns (e.g., `ConvertDiagnostics`, `PassDiagnostics`, `EmitDiagnostics`) and keep comments terse; avoid introducing non-ASCII identifiers.
 
 ## Testing Guidelines

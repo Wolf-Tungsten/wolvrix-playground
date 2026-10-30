@@ -1,7 +1,7 @@
 """Census case-guard decomposition coverage for muxRegion formation.
 
 Each SV case-derived prioritySelect condition vector has, by ingest construction
-(wolvrix/lib/core/ingest.cpp:2100-2185), the form
+(the SV case lowering in wolvrix/lib/ingest/sv.cpp), the form
 
     cond_i = and(C, m_i, not(m_0 | ... | m_{i-1}))
 

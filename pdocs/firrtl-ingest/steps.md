@@ -1,0 +1,394 @@
+# FIRRTL ingest 分阶段实施
+
+阶段总览见 [index.md](index.md)，接口、属性及语义合约见
+[architecture.md](architecture.md)。以下 Make target 以“现有”或“待新增”标明；
+待新增入口必须先写入项目 Makefile，之后才能运行对应构建、测试或脚本。
+所有临时工作目录使用 `ptmp/firrtl-ingest/Fxx/`。
+
+## 推进顺序与共同退出条件
+
+主线顺序为 F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 →
+F09 → F10 → F11。属性与 node 作用域检查从 F02 开始伴随实现，F08 实现
+完整 node CSE 并验收全流程。混合模块注册表从 F01 设计，F07 完成端到端
+绑定；F09 可在 F02 后使用人工标注 fixture 做独立准备，不能据此宣称真实
+FIRRTL 路线完成。
+
+每阶段共同交付为原子实现、必要回归、相应正式文档、实际命令及证据。发现
+前阶段缺失语义时回到对应阶段修正；不通过移除输入构造来让目标模型通过。
+机械迁移、语言支持、属性/作用域传递、完整 node CSE 与分图策略分别提交。
+
+## F00：固定目标输入和测量口径
+
+交付：
+
+- 固定一份 XiangShan FIRRTL、它对应的 SV 基线、必要的 SV 实现/include/宏、
+  Chisel/生成配置、workload、NEMU 和工具链身份。大文件只记录 manifest/hash。
+- 以自有轻量扫描建立特性清单：版本、module/extmodule、defname/参数、原语、
+  node、Bundle/Vector、reg/regreset、memory/mport、layer/intrinsic、Probe、
+  annotation 和未初始化行为；检查伴随 annotation JSON 中的 SV 路径、资源
+  及内嵌实现。特性统计不代替正式 parser。
+- 分离“原始 FIRRTL 中保留的结构”和“已在 Chisel 中展开的结构”。保留
+  RenameTable 动态写、ROB 字段与一个 memory 模块作为小范围验证候选。
+- 冻结 SV 路线的 correctness、各构建阶段 wall/RSS、分图统计及运行对照。
+  既有 NO00012/13 记录只用于调查，不把历史耗时当作本轮正式样本。
+- 固定 FIRRTL 规范和 ABI 修订版本，建立支持/待支持/明确拒绝矩阵，并列出
+  达到整机目标所需的构造。记录预计资源预算及 1.6 GiB 输入的解析策略。
+- 固定本地 GSIM `a3ecb26` 的 commonExpr、treeOpt 和 pass 顺序作为参照，
+  记录整体判等、实际共享门槛、后继计数及数组/状态排除规则。
+
+验证入口：现有 `make xs_grhsim_emu`、`make run_xs_grhsim_emu`；需要扫描或
+manifest 检查时新增 `make inspect_firrtl_inputs`，避免直接调用 Python 工作流。
+
+退出条件：输入能互相追溯到同一设计配置，SV 基线正确运行，必要 SV 外部
+实现无遗漏，每个目标 FIRRTL 构造有明确的实现阶段或阻塞原因。
+
+## F01：迁移 ingest 目录并建立公共读取层
+
+交付：
+
+- 将 `wolvrix/lib/core/ingest.cpp` 原样迁移为 `lib/ingest/sv.cpp`；公共 SV
+  声明移至 `include/ingest/sv.hpp`，删除旧 `include/core/ingest.hpp`，更新
+  CMake 及全部调用方、测试、Python 绑定和文档示例的 include 路径。
+- 新建 `lib/ingest/firrtl.cpp`、`driver.cpp` 和对应入口头，形成明确的模块
+  扫描、语言前端、specialization 和统一链接边界，空入口返回未支持诊断。
+- 共享 `IngestRequest`、模块/叶子端口签名、带类型参数和诊断结构；与 SV AST
+  类型隔离。保留旧命名空间/API，不能为了迁移就改动 SV lowering。
+- 设计持有全部 source owner 的读取结果，保证 session 替换及失败原子性。
+
+验证入口：现有 `make build`、`make test_wolvrix`、`make py_install`、
+`make test_grhsim_flow`；小样例执行现有 HDLBits Make target。
+
+退出条件：旧 `read_sv` 调用兼容，既有 SV 回归通过，构建只编译新的 sv.cpp
+路径，原 core/ingest.cpp 不再注册；旧 `include/core/ingest.hpp` 已删除，
+无调用方引用旧头路径；不宣称此时已支持 FIRRTL 行为。
+
+实施记录（2026-10-30）：已完成。
+
+- wolvrix 实现提交为 `db11f0d`（`grh/firrtl-ingest`）；实施基点为主仓
+  `20989f59615121b78205340c507d2704e57e50c2`、wolvrix
+  `1101c77c2606a8160e24879be4ceefe5e7077120`。F00 仍待实施；本阶段只验证
+  独立的目录/接口迁移，不引用未冻结的香山输入作验收。
+- `lib/ingest/sv.cpp`、`include/ingest/sv.hpp` 已接替旧路径；SV lowering
+  本体与基点逐字节一致。构建源列表及全部调用方 include 已迁移，旧头已删除。
+- `include/ingest/ingest.hpp` 提供请求、类型化参数、模块/叶子签名、绑定请求、
+  独立源位置诊断及 source owner 集合；driver 保持 SV 读取可用，其余扫描、
+  FIRRTL lowering、显式 specialization、混合链接入口返回未支持错误。
+- Python `read_sv` 使用公共 driver，读取结果和 session clone/copy 持有全部
+  source owner。SV owner 同时保留 compilation 与拥有 SourceManager 的
+  slang driver。失败读取不覆盖旧 design 或其他种类的 session 值。
+- 新增 `ingest-driver` CTest 和 `make test_ingest_session`（3 项 Python 测试）；
+  覆盖指定输入根/顶层、slang 参数文件、源生命周期、独立错误位置、未支持
+  入口、失败替换、重复 key、clone/copy 及同 key 克隆。
+- 正式接口文档见 [reading.md](../../wolvrix/docs/ingest/reading.md)。node attrs、
+  FIRRTL parser 和真实混合绑定仍属 F02 及后续阶段。
+
+实际验证均经项目 Makefile，日志在 `ptmp/firrtl-ingest/F01/`：
+
+| Make 命令 | 结果 | 日志 |
+| --- | --- | --- |
+| `make test_wolvrix`（依赖 `build`） | 完整构建成功；66/66 CTest 通过 | `test_wolvrix.log` |
+| `make py_install PYTHON="$PWD/.venv/bin/python"` | Python 扩展构建与安装成功 | `py_install.log` |
+| `make test_ingest_session SKIP_PY_INSTALL=1 PYTHON="$PWD/.venv/bin/python"` | 3/3 通过 | `test_ingest_session.log` |
+| `make test_grhsim_flow SKIP_PY_INSTALL=1 PYTHON="$PWD/.venv/bin/python" GRHSIM_FLOW_TEST_WORK="$PWD/ptmp/firrtl-ingest/F01/grhsim-flow"` | 2/2 Python 测试及全部 checkpoint 模型编译/运行通过 | `test_grhsim_flow.log` |
+| `make run_hdlbits_test DUT=001 SKIP_PY_INSTALL=1 PYTHON="$PWD/.venv/bin/python"` | 经新前端读取、SV 输出及仿真通过 | `hdlbits_001.log` |
+
+上述命令带 `WOLF_ENV_SOURCED=1`，TMPDIR 和 CCACHE_DIR 分别为
+`$PWD/ptmp/firrtl-ingest/F01/tmp` 与 `.../ccache`；完整构建和 Python 安装
+使用 `CMAKE_BUILD_PARALLEL_LEVEL=8`。测试 fixture 沿用
+`wolvrix/tests/ingest/data/`，CMake 测试产物位于 `wolvrix/build/artifacts/`，
+session/flow 临时产物位于 F01 证据目录，HDLBits 产物位于 `build/hdlbits/001/`。
+
+## F02：定义 node 属性和 CSE 作用域
+
+交付：
+
+- 实现 architecture §7 的 schema v1，以及 node key 构造、属性读取/规范化、
+  union、root result remap、实例路径限定和 verifier。
+- 区分 members、roots 与诊断 origins；多个成员身份须有整体 node 合并或
+  显式变换依据。aliases/constants/dead node 按合约处理，不新增可执行 node op。
+- 检查 JSON 已有属性类型能无损往返，clone/rename/ID 重排不依赖裸实体 ID。
+  单独检查两个同模块实例的 key 不碰撞。
+- 普通 simplify/CSE 和 GrhSIM `cseKey` 分开处理功能判等与合法作用域：
+  node 内可简化/CSE；跨 node 不提取公共内部 op。常量/纯别名可以消除，
+  无注解 SV 保持原规则，但不能与受保护 node 内部 op 跨边界合并。
+- 提供整体 node 合并时的成员与根重定向工具；实际判等和门槛在 F08 实现。
+- 新增属性验证和观察报告，报告真正根映射而非只搜索属性字符串。
+
+验证入口：新增 `make test_firrtl_node_attributes`、`make test_firrtl_cse_scope`，
+复用现有 `make test_transform_simplify`、`make test_grhsim_transforms`，并为 store/load
+必要定向检查先添加 Make target。
+
+退出条件：node 内局部简化正常，两个不同 node 的相同内部 and/add 保持独立，
+纯常量/别名不被过度保护；属性损坏被拒绝，作用域及根映射 JSON 往返通过。
+
+实施记录（2026-10-30）：已完成，wolvrix 实现提交为 `d60f522`
+（`grh/firrtl-ingest`）。
+
+- `ingest/node_attributes.hpp` 和 `lib/ingest/node_attributes.cpp` 提供 schema
+  v1、canonical key、规范化、实例限定、结果映射、合法共享 union、根重定向、
+  verifier 和 inspection report。未知 schema/属性类型、无根活跃成员、重复根、
+  非法 result 序号和损坏 key 均诊断；缺失 members 的片段保留独立作用域并报告。
+- 普通 `simplify` 的 primitive CSE 将功能签名与 node 作用域分开；完整 key
+  只在本轮作用域表内保存，primitive 签名持有瞬时整数作用域。无 schema 的
+  SV 图跳过 node scope 计算。常量、纯别名和 DCE 继续工作。
+- GrhSIM `cseKey` 排除来源 attrs，同时匹配 node 作用域；新 op 复制 members，
+  原地重写保留属性。slice/concat/arrayCreate、NOT/XOR、mux chain 和 masked-OR
+  融合不进入另一个 node 的计算。完整执行 leaf 内可共享，跨 leaf 仍隔离。
+- 根折叠到同作用域结果或常量时迁移 result 映射；转成输入或其他 node 的
+  结果时保留透明 `kAssign`，不把归属写到不相关 producer。真实多结果端口
+  置换核对到实际输出 value；同 op 不同 result 的根重定向及自合并均有
+  定向验证。
+- 持久化回归先制造稀疏 ID，再断言 clone 确实改变 op/value 索引；重命名
+  op/value 后，源 key 与根映射保持一致，inspection 使用新符号定位真实
+  结果。freeze/JSON 重载后报告一致；同模块两份实例限定后的 key 不碰撞。
+- 新增 `firrtl-node-attributes`、`firrtl-cse-scope` CTest 及相应 Make 入口；
+  scope suite 用独立组合求值器检查 normal/GrhSIM 优化和 JSON 重载前后的
+  512 组输入。覆盖局部共享、跨 node/SV 隔离、常量/别名/死节点、根到输入、
+  数组 shape、部分属性丢失、融合边界及同/不同执行 leaf。
+- 真实 parser、混合链接、hier-flatten/phase clone 的全流程属性传递、GSIM
+  完整 node 判等门槛及 nonsink 利用仍属 F03–F09，未将人工标注回归视为
+  FIRRTL 读取完成。正式合约见
+  [node-attributes.md](../../wolvrix/docs/ingest/node-attributes.md)。
+
+实际验证通过项目 Makefile，日志在 `ptmp/firrtl-ingest/F02/`：
+
+| Make 命令 | 结果 | 日志 |
+| --- | --- | --- |
+| `make test_firrtl_node_attributes` | 通过；身份、属性错误、实例限定、实际 ID 重排/重命名、多结果输出映射与 JSON 往返 | `node_attributes.log` |
+| `make test_firrtl_cse_scope` | 通过；primitive 共享范围及独立组合结果检查 | `cse_scope.log` |
+| `make test_wolvrix` | 完整构建和 68/68 CTest 通过（含上述新增回归） | `test_wolvrix.log` |
+
+命令带 `WOLF_ENV_SOURCED=1`；全量构建使用 `CMAKE_BUILD_PARALLEL_LEVEL=8`，
+构建 TMPDIR、CCACHE_DIR 指向本阶段 `tmp/`、`ccache/`。定向 Make 入口内
+设置同样目录，全量 CTest 沿用 Makefile 的 `ptmp/ctest_tmp/`、
+`ptmp/ctest_ccache/`；测试工作产物遵循 `wolvrix/build/artifacts/`。F00 输入冻结仍待完成，
+本阶段未声称整机 FIRRTL 正确性或性能提升。
+
+## F03：自有 parser 和接口索引
+
+交付：
+
+- 在 `firrtl.cpp` 后按需拆分私有 lexer/parser。使用缩进 token 和递归下降
+  表达式解析，支持目标版本的文件头、模块、类型、声明、语句及 source info。
+- 做模块级扫描/解析接口，支持先建立模块符号再解析主体，模块及声明的
+  引用规则服从 FIRRTL，不沿用 SV 文本顺序假设。
+- 版本门控与错误恢复：能识别但尚未 lowering 的构造保留类型化表示并报错，
+  不用静默跳过未知行接受文件。
+- 控制大文件资源：文件文本不多次复制；名称/类型 intern，模块按需解析与
+  lowering，避免同时持有全文件文本副本、完整 AST 和全设计中间图。
+- 报告行列、原始 FIRRTL source info 及当前模块；扫描结果供混合 driver 使用。
+
+验证入口：新增 `make test_firrtl_parser`、`make inspect_firrtl_inputs`。
+fixture 包括缩进/注释/引号、嵌套语句、版本差异、截断文件和错误语法。
+
+退出条件：F00 冻结输入可完成语法和接口扫描，目标构造没有被跳过；资源与
+诊断记录可审查。该阶段通过只说明 parse 成功，不代表行为 lowering 完成。
+
+## F04：类型、组合语义和聚合 lowering
+
+交付：
+
+- 类型/位宽/Reset/flow 解析，以及目标原语、connect、when 和最后连接语义。
+  将 FIRRTL 的定宽和符号规则明确映射到 GRH，不复用 SV 表达式定宽规则。
+- Bundle 递归拆字段、Vector 保留 shape；实现字段/动态索引、整体连接、mux、
+  相等、构造及位布局转换，处理 flip、零宽、extent=1 和名称碰撞。
+- 每个源 node 及拆分叶子产生 schema v1 标注，引用 node 不复制定义；内部
+  primitive op、结果边界、别名与常量可在导出报告中定位，第一次 simplify
+  即执行 F02 的 node 作用域约束。
+- 纯 FIRRTL 组合设计到普通 GRH，再通过既有 GrhSIM emitter 运行；形成早期
+  端到端样例，避免直到整机阶段才发现前后端类型不兼容。
+
+验证入口：新增 `make test_firrtl_comb`、`make test_firrtl_aggregate`、
+`make test_firrtl_widths`；复用 `make test_array_create`、
+`make test_transform_shape_mapping`、`make test_grhsim_cpu_st_cpp`。
+
+退出条件：独立预期结果/参考解释器覆盖组合运算和聚合几何；node attrs 可
+从输入追到优化前 GRH；数组访问没有变成逐槽译码；错误类型有准确诊断。
+
+## F05：时序状态与有序数组写
+
+交付：
+
+- reg/regreset、同步与异步复位、clock/reset 类型解析，生成既有状态/读写族。
+- 条件、部分/整体和动态索引写先建立有序连接意图，再归一化为 writer，
+  保留同目标优先级、复位屏障及采样旧值规则。
+- 为目标初始化/invalid 语义提供显式配置；混合时不能悄悄改变 SV 逻辑域。
+- RenameTable 小用例保留动态索引写，覆盖两端口同地址、不同地址、无写、
+  复位和写数据读旧状态。不是把数组整体复制后逐元素提交作为最终实现。
+
+验证入口：新增 `make test_firrtl_state`；复用现有
+`make test_grh_register_write`、`make test_grh_to_grhsim`、
+`make test_grhsim_cpu_st_cpp`。
+
+退出条件：多周期独立记分板和等价 SV 对照通过；动态写顺序及 old-value
+行为正确；保留 node 的计算不越过状态/事件边界。
+
+## F06：memory、效果及目标版本构造
+
+交付：
+
+- 实现标准 mem 和目标使用的 cmem/smem/mport，明确 clock/enable 推导、
+  latency、mask、read-under-write、冲突及越界语义，复用数组状态和流水寄存器。
+- printf/stop/assert 及所需 intrinsic 映射到现有效果机制，保留触发条件、
+  参数采样、顺序与终止行为。初始化和随机化纳入输入身份。
+- 按清单处理 layer、Probe/引用与 annotations。未知且影响功能/观察的构造
+  明确失败；验证层启用配置可追溯，不做无条件删层或展开。
+- 完成不含外部模块的目标 FIRRTL 模块运行；外部引用保留明确绑定请求，
+  不通过 blackbox-guard 伪装成完整可执行设计。
+
+验证入口：新增 `make test_firrtl_memory`、`make test_firrtl_effects`；
+复用 `make test_transform_memory_read_retime`、`make test_grhsim_cpu_st_cpp`。
+
+退出条件：memory 时序与 mask 记分板通过，effects 的次数/顺序可核验；F00
+目标矩阵里除跨语言链接外的必要构造完成，并且没有静默语义降级。
+
+## F07：混合 SV/FIRRTL 读取与链接
+
+交付：
+
+- 完成 `read_sources` 和 `read_firrtl` 及 Python native 注册，旧 `read_sv`
+  继续有效；请求一次性覆盖两种语言并事务式发布。
+- 实现 FIRRTL extmodule → SV 的 defname/类型化参数 specialization，和
+  SV → FIRRTL 的接口签名声明，支持交替实例化依赖的去重与递归检测。
+- 两类源端口通过显式 ABI adapter 对接；测试扁平端口、聚合端口、flip、
+  嵌套数组、signedness、位布局、宏/include 和参数派生端口宽度。
+- 收集目标使用的 blackbox 路径/资源/内嵌 SV annotation，将内容作为真实
+  SV 源交给 slang，并保留依赖身份；签名声明不进入普通空模块 lowering。
+- 提供非标准外部绑定清单及具名诊断；DPI/host 实现走真实效果调用机制。
+  原型签名声明最后必须全部被绑定或作为错误报告。
+- 完成多 source owner 生命周期、依赖清单、session 失败不变性和重复读取。
+
+验证入口：新增 `make test_ingest_mixed`、`make test_ingest_python`；
+复用 `make py_install`、`make test_grhsim_flow`、`make test_wolvrix`。
+
+退出条件：FIRRTL top → SV → FIRRTL 和 SV top → FIRRTL → SV 均可仿真；
+两组参数生成不同正确实现，未解析/重复模块和端口错误不发布半成品 design。
+这里不能仅以“两个 parser 都执行过”作为混合支持证据。
+
+## F08：GSIM 模式完整 node CSE 和属性保真
+
+交付：
+
+- 审计 XMR、mux-tree-fold、write normalize、memory retime、hier-flatten、
+  普通 simplify/CSE/DCE、grh-to-grhsim、全局仿真优化、phase/sink split 的
+  重写入口，传播根映射和 node 作用域；禁用分图前的跨 node 内部 op 共享。
+- 新增 `grhsim-node-cse`，从有效根和成员构造完整表达式结构视图，先 hash
+  再精确比较功能、完整类型及依赖。等价类分析与实际物理合并分开，上游
+  等价但未合并时，下游仍可利用其等价事实。
+- 首版合并门槛固定为等价组规模 ≥5、结果位宽 >256 或某成员后继数 >1；
+  统计命中和保留原因。数组/状态/效果及无法证明完整的区域不进入整体合并。
+- 将 pass 放在 converted 阶段的局部优化之后、phase/sink split 之前；
+  新增 `firrtl-node-cse=off|gsim`，off 仍保持 F02 作用域，只关闭整体合并。
+- 明确整体合并后的多源身份、根指向输入、多结果、packing、alias 和 DCE
+  规则；origins 不授予跨 node 融合权限。优化策略和执行配置随 checkpoint
+  保存，旧的全局 primitive CSE 图不能补标签后冒充新策略输入。
+- 建立每 checkpoint 的 source node 可用性报告，区分合法简化与信息丢失。
+  store/load、clone、rename/ID 重排后可以重建同样的候选区域。
+- 对大模型检查 attrs 的存储/分配成本：intern 可复用身份，持久化仍是标准
+  attrs；禁止每个 pass 复制完整上游来源闭包。统计 key 重复量及报告大小。
+
+验证入口：新增 `make test_firrtl_node_pipeline`、`make test_grhsim_node_cse`、
+`make inspect_firrtl_node_retention`；复用现有 `make test_grhsim_transforms`、
+`make test_grhsim_flow`、`make test_grhsim_readable_store`。
+
+退出条件：真实 FIRRTL 的完整 node 和作用域可追溯；4/5 个等价 node、
+256/257 bit、1/2 个不同后继的门槛边界通过，等价未合并的下游判等正确。
+公共内部子树不会提前被抽取，hash 碰撞和功能差异不误合并；同模块两实例
+的不同输入不误判。JSON 往返、幂等与配置检查通过，SV 原有语义回归通过。
+
+## F09：利用 node 的 nonsink 分图
+
+交付：
+
+- 新增独立的 `firrtl-nodes=off|prefer|auto` 配置，原型默认 off；配置进入
+  Make/Python/FlowOptions、checkpoint 配置版本和 generation identity。
+  它只控制分图，与 F08 的 node CSE 开关独立。
+- 读取整体 CSE 后的 node DAG，以完整计算单元形成初始工作节点；未达到
+  合并门槛的等价 node 保持独立。显式字段/位拆分保留可验证片段边界；
+  无注解 SV 区域走既有逆向吸收。
+- 在候选 node DAG 上做 coarsen/segment，并让发布、激活与额外重算共同参与
+  决策。真实 op 工作量仍参与预算，超预算完整 node 单独成组并报告，
+  不靠任意切开表达式填充预算；后续拆分必须是有根映射的显式语义变换。
+- 与 bounded clone、叶内 simplify、writer prerequisite 和 emitter 局部值
+  相协调；归属确定后 op 级 CSE 限于同一执行 leaf，不跨 owner 抽取内部
+  子表达式，不形成独立 node 执行器。
+- 报告实际利用的 node 范围、边界持久值、计算复制、超节点规模和拒绝原因；
+  使用 diagnostics 计数观察活动和发布，正式计时关闭计数。
+
+验证入口：扩展现有 `make test_grhsim_virtual_partitions`、
+`make test_grhsim_transforms`；新增 `make test_grhsim_firrtl_nodes`、
+`make inspect_firrtl_partitions`。
+
+退出条件：优化后的完整 node 实际作为初始分组单位；分图 off/prefer 在
+相同 node CSE 配置下结果一致，owner 唯一、quotient 无环、激活完整。
+验证相同内部 op 在不同 owner 保持独立、在同一 leaf 可以共享，并覆盖
+超预算 node、合法语义拆分、少发布及额外重算，不能只测节点变少。
+
+## F10：香山集成和差分正确性
+
+交付：
+
+- 将混合读取接入 `scripts/wolvrix_xs_grhsim.py` 和共享 flow，输入清单只包含
+  FIRRTL 及真正需要的 SV 辅助实现，避免重新读取重复的 FIRRTL 生成 SV。
+- 新增独立香山 Make 入口及输出目录，复用现有 harness/NEMU/workload，
+  纯 SV 入口继续可用。构建 FIRRTL 仿真器本身不依赖生成 SV。
+- 新增 FIRRTL-only 输入生成/检查入口，只需 Chisel 输出和必要 SV 资源；
+  审计 Make 传递依赖，不沿用强制检查 `XS_SIM_TOP_V` 或
+  `check_xs_aggregate_rtl` 的 SV 路线，避免间接调用 firtool。
+- 先做 RenameTable、ROB 和 memory 代表模块的两路线比较，再做整机初始化、
+  短前缀和 CoreMark100k，逐步启用 node prefer 模式。
+- 核对 DPI、assert、初始化和观察配置，记录效果调用差异；新前端不自动
+  继承旧迁移过程中针对特定版本批准的例外。
+- 验证实际 FIRRTL/SV 跨语言调用都完成绑定，node 信息在 flatten 后仍可用。
+
+验证入口：新增 `make xs_firrtl_inputs`、`make xs_firrtl_grhsim_emu`、
+`make run_xs_firrtl_grhsim_emu`；复用现有 `make run_xs_ref_emu`、
+`make run_xs_grhsim_emu` 和必要的 XS 组件 Make target。
+
+退出条件：相同设计配置下混合路线可完成无 CIRCT 的读取至 emu 构建，固定
+100k/NEMU 及必要模块差分通过；所有未解释行为差异解决后再进入性能结论。
+
+## F11：性能消融、默认策略和正式交付
+
+交付：
+
+- 按 architecture §10 固定 A（SV）、B（FIRRTL/mixed + GSIM node CSE +
+  原分图）、C（同 B + node prefer）、D（同 C + 整体 node CSE off）。
+  B/C 从同一分图前 checkpoint 分叉；C/D 从完整 node CSE 前分叉，均保留
+  node 作用域，区分物理共享策略与分图策略的收益。
+- 记录完整构建和各阶段 wall/RSS、属性成本、图规模、超节点/边界、生成代码
+  与 text 大小，区分输入路线、完整 node CSE 和 node 分图带来的变化。
+  A/B 含输入及分图前优化差异，不能全算成 FIRRTL 解析收益。
+- 在正确性通过后，固定 CPU、单线程、无 PGO、seed、CoreMark100k 和 NEMU，
+  A/B/C/D 各测三次，轮换顺序。按耗时总和报告分图收益 B/C、整体 node
+  CSE 收益 D/C 和总收益 A/C，保存完整身份。
+- 诊断结果用于解释边界与重算变化，正式计时不启用波形、profile 或额外计数。
+  对重复测量噪声、资源回退和不同模块/活动的适用范围据实记录。
+- 根据可重复的吞吐与构建结果决定 auto 默认，不能以 node 数下降替代运行
+  提升；必要时保留 opt-in，并具体说明仍需改进的成本。
+- 同步 `wolvrix/docs/ingest/`、`wolvrix/docs/transform/`、Python API、Make
+  用法和本目录；保留源码、回归及可重放 manifest，不提交生成模型。
+
+验证入口：新增 `make benchmark_xs_firrtl_ingest`、
+`make test_firrtl_ingest` 汇总前述必要检查；最终复用 `make test_wolvrix`、
+`make test_grhsim_flow`、`make test_grhsim_cpu_st_cpp` 和相关 HDLBits/XS 检查。
+
+退出条件：原始需求的目录组织、无 CIRCT 读取、混合语言、聚合类型、属性
+全流程传递、nonsink 实际利用及正确性全部有证据。性能结果可重放，并能
+明确区分输入路线、完整 node CSE 和 node 分图收益；未测或未改善的项不能
+写成已实现加速。
+
+## 完成阶段时的记录模板
+
+```text
+阶段：Fxx
+状态：进行中 / 已完成 / 阻塞（具体原因）
+源码提交：主仓库 / wolvrix
+输入与基线 manifest：
+实际 Make 命令：
+结果与退出条件：
+日志及产物：ptmp/firrtl-ingest/Fxx/...
+node 信息变化与正确性：
+资源或性能变化（如已测）：
+尚未完成的事项及下一阶段：
+```
