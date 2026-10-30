@@ -42,6 +42,13 @@ manifest 检查时新增 `make inspect_firrtl_inputs`，避免直接调用 Pytho
 退出条件：输入能互相追溯到同一设计配置，SV 基线正确运行，必要 SV 外部
 实现无遗漏，每个目标 FIRRTL 构造有明确的实现阶段或阻塞原因。
 
+实施记录（2026-10-30）：F03 所需的语法输入身份和目标构造矩阵已提前交付，
+见 [inputs.json](inputs.json) 和 [F03-acceptance.md](F03-acceptance.md)。
+生成日志固定 TLConfig、issue E.b、单核、`--dump-fir` 及 aggregate SV 配置；
+FIRRTL、SV、生成日志、fixture 和规范均有内容校验。F00 仍为进行中，尚需
+完整外部 SV/annotation 依赖核对、workload/NEMU/工具链身份、SV 正确性与
+本轮性能基线等其余交付。F03 的 parser 验收没有代替这些整机验收。
+
 ## F01：迁移 ingest 目录并建立公共读取层
 
 交付：
@@ -184,9 +191,11 @@ fixture 包括缩进/注释/引号、嵌套语句、版本差异、截断文件�
 退出条件：F00 冻结输入可完成语法和接口扫描，目标构造没有被跳过；资源与
 诊断记录可审查。该阶段通过只说明 parse 成功，不代表行为 lowering 完成。
 
-实施记录（2026-10-30）：parser 和接口索引已实现，wolvrix 提交为 `501360f`
-（`grh/firrtl-ingest`）。本地 SimTop 完成全模块语法验证；F00 的输入冻结、
-完整输入清单和对照基线仍待完成，因此本阶段保持进行中。
+实施记录（2026-10-30）：已完成。parser 和接口索引实现提交为 `501360f`
+（`grh/firrtl-ingest`）；资源与源位置边界回归提交为 `c798118`，并补齐冻结
+输入复验。F03 所需的
+输入身份已冻结，全模块语法与接口验收通过；F00 其余整机交付仍为进行中。
+逐项验收和目标构造矩阵见 [F03-acceptance.md](F03-acceptance.md)。
 
 - 新增自有 source owner、lexer 和递归下降 parser，不链接或调用 CIRCT。
   接受版本头 `FIRRTL version 6.0.0`，支持精确 `expectedVersion` 检查；
@@ -212,6 +221,8 @@ fixture 包括缩进/注释/引号、嵌套语句、版本差异、截断文件�
 | `make test_firrtl_parser` | 定向 parser 回归通过；后续补充用例由最终全量回归覆盖 | `parser_and_xs_after_mport.log` |
 | `make test_wolvrix` | 最终完整构建和 69/69 CTest 通过，含 parser 与公共 driver 回归 | `final_checks.log` |
 | `make inspect_firrtl_inputs` | 本地 SimTop 所有 10,008 个模块及共享接口签名验证通过，退出码 0 | `final_checks.log` |
+| `make freeze_firrtl_inputs` | 首次冻结输入及全模块统计；2,146 份生成 SV/头文件纳入内容清单 | `freeze_inputs.log` |
+| `make test_firrtl_parser_inputs verify_firrtl_inputs test_wolvrix` | 4/4 输入校验回归、冻结清单复验和最终 69/69 CTest 通过，含新增宽值/换行/错误数量与嵌套边界回归 | `acceptance.log` |
 
 本地输入为 `ptmp/xs/rtl/rtl/SimTop.fir`，FIRRTL 6.0.0、circuit `SimTop`，
 大小 1,671,325,062 字节，SHA-256 为
@@ -221,6 +232,10 @@ fixture 包括缩进/注释/引号、嵌套语句、版本差异、截断文件�
 8,297,452 条语句、45,897,965 个表达式、5,476,900 个 node；最大模块有
 1,225,389 条语句。最终检查耗时 12.24 秒，峰值 RSS 4,694,468 KiB；
 最大模块 AST 仍决定主要额外内存，未声称固定内存上限或仿真性能提升。
+冻结后复验保留全部语法/接口计数，并在解析前后检查内容身份；验收证据位于
+`ptmp/firrtl-ingest/F03/input-verify/`，逐文件 SV hash 清单为
+`sv-inventory.json`。检查明确要求 `validation=all-module-bodies`，不能以
+`--index-only` 结果通过验收；原冻结清单不会被 capture 自动覆盖。
 
 命令带 `WOLF_ENV_SOURCED=1`，构建临时目录和 ccache 使用本阶段 `tmp/`、
 `ccache/`；全量 CTest 沿用 Makefile 的 `ptmp/ctest_tmp/`、

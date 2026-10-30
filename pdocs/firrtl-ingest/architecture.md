@@ -17,8 +17,9 @@ flatten、simplify，再进入统一 GRH 上的 GrhSIM。
 新增前端的关键交付是让这层源结构到达分图，并实际改变候选分组和成本决策。
 
 本地 `ptmp/xs/rtl/rtl/SimTop.fir` 文件头为 FIRRTL 6.0.0，文件约 1.6 GiB，
-可作为目标输入调查起点；它不是已冻结的验收输入。F00 必须记录真实输入的
-hash、生成参数、Chisel 版本和完整 SV 依赖，不能凭文件名认定同一设计。
+现已由 F03 的 [inputs.json](inputs.json) 冻结为语法与接口验收输入，连同
+生成 SV 的内容清单和生成日志校验。F00 仍需补齐整机依赖、工具链和正确性/
+性能基线；F03 通过不代表混合链接或 FIRRTL/SV 行为等价已经验收。
 
 正式 FIRRTL 路线自行解析和 lowering，不链接 MLIR/CIRCT、不调用 firtool，
 不先把 FIRRTL 转成 SV 再交给 slang。现有 slang 继续处理真正的 SV 源码；

@@ -333,6 +333,23 @@ inspect_firrtl_inputs:
 	sha256sum "$(FIRRTL_INPUT)"
 	/usr/bin/time -v $(WOLVRIX_BUILD_DIR)/bin/inspect-firrtl $(FIRRTL_INSPECT_FLAGS) "$(FIRRTL_INPUT)"
 
+FIRRTL_INPUT_MANIFEST ?= $(CURDIR)/pdocs/firrtl-ingest/inputs.json
+FIRRTL_INPUT_SV_FILELIST ?= $(dir $(FIRRTL_INPUT))filelist.f
+FIRRTL_INPUT_GENERATION_LOG ?= $(CURDIR)/ptmp/xs/rtl/time.log
+FIRRTL_INPUT_SPEC ?= $(FIRRTL_PARSER_TEST_WORK)/reference/spec-v6.md
+.PHONY: build_firrtl_inspector freeze_firrtl_inputs verify_firrtl_inputs test_firrtl_parser_inputs
+build_firrtl_inspector: test_firrtl_parser
+	TMPDIR="$(FIRRTL_PARSER_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_PARSER_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target inspect-firrtl -j 4
+freeze_firrtl_inputs verify_firrtl_inputs test_firrtl_parser_inputs: build_firrtl_inspector
+freeze_firrtl_inputs verify_firrtl_inputs:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/firrtl_parser_inputs.py $(if $(filter freeze_firrtl_inputs,$@),capture,verify) \
+		--root "$(CURDIR)" --firrtl "$(FIRRTL_INPUT)" --sv-filelist "$(FIRRTL_INPUT_SV_FILELIST)" \
+		--generation-log "$(FIRRTL_INPUT_GENERATION_LOG)" --spec "$(FIRRTL_INPUT_SPEC)" \
+		--inspector "$(WOLVRIX_BUILD_DIR)/bin/inspect-firrtl" --manifest "$(FIRRTL_INPUT_MANIFEST)" \
+		--work-dir "$(FIRRTL_PARSER_TEST_WORK)/input-$(if $(filter freeze_firrtl_inputs,$@),capture,verify)"
+test_firrtl_parser_inputs:
+	PYTHONDONTWRITEBYTECODE=1 FIRRTL_INPUT_TEST_WORK="$(FIRRTL_PARSER_TEST_WORK)/input-gate-tests" FIRRTL_INSPECTOR="$(WOLVRIX_BUILD_DIR)/bin/inspect-firrtl" $(PYTHON) -m unittest discover -s scripts -p test_firrtl_parser_inputs.py
+
 REMOVE_GRHSIM_IR_BASELINE ?= $(CURDIR)/ptmp/remove-grhsim-ir/r0-20261024
 .PHONY: capture_remove_grhsim_ir_baseline replay_remove_grhsim_ir_baseline supplement_remove_grhsim_ir_baseline replay_remove_grhsim_ir_fixtures
 capture_remove_grhsim_ir_baseline:
