@@ -323,6 +323,16 @@ test_firrtl_parser:
 	TMPDIR="$(FIRRTL_PARSER_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_PARSER_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target firrtl-parser -j 4
 	TMPDIR="$(FIRRTL_PARSER_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_PARSER_TEST_WORK)/ccache" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^firrtl-parser$$' --output-on-failure
 
+FIRRTL_COMB_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F04
+.PHONY: generate_firrtl_comb test_firrtl_comb test_firrtl_aggregate test_firrtl_widths
+generate_firrtl_comb test_firrtl_aggregate test_firrtl_widths:
+	mkdir -p "$(FIRRTL_COMB_TEST_WORK)/tmp" "$(FIRRTL_COMB_TEST_WORK)/ccache"
+	TMPDIR="$(FIRRTL_COMB_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_COMB_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(FIRRTL_COMB_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_COMB_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target $(if $(filter generate_firrtl_comb,$@),firrtl-comb,$(subst _,-,$(patsubst test_%,%,$@))) -j 4
+	TMPDIR="$(FIRRTL_COMB_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_COMB_TEST_WORK)/ccache" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^$(if $(filter generate_firrtl_comb,$@),firrtl-comb,$(subst _,-,$(patsubst test_%,%,$@)))$$' --output-on-failure
+test_firrtl_comb: generate_firrtl_comb
+	TMPDIR="$(FIRRTL_COMB_TEST_WORK)/tmp" $(MAKE) -C $(WOLVRIX_BUILD_DIR)/artifacts/firrtl-comb -f run.mk run
+
 FIRRTL_INPUT ?= $(CURDIR)/ptmp/xs/rtl/rtl/SimTop.fir
 FIRRTL_INSPECT_FLAGS ?=
 .PHONY: inspect_firrtl_inputs

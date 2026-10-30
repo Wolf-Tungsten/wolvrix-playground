@@ -263,6 +263,26 @@ fixture 包括缩进/注释/引号、嵌套语句、版本差异、截断文件�
 退出条件：独立预期结果/参考解释器覆盖组合运算和聚合几何；node attrs 可
 从输入追到优化前 GRH；数组访问没有变成逐槽译码；错误类型有准确诊断。
 
+实施记录（2026-10-31）：已完成，wolvrix 实现提交为 `5be5cb9`，
+分支为 `grh/firrtl-ingest`。逐项证据和阶段边界见
+[F04-acceptance.md](F04-acceptance.md)，正式合约见
+[firrtl-combinational.md](../../wolvrix/docs/ingest/firrtl-combinational.md)。
+
+- 新增独立类型/位宽/Reset 推导和组合 lowering，连接先汇总再按条件与文本
+  顺序生成最终驱动。Bundle 递归展平、Vector 保留 shape，动态访问直接使用
+  多索引 kSliceArray；组合部分写用 O(rank) 偏移/mask 合并，未逐槽译码。
+- 真实 node 的内部计算和每个物化叶子结果根生成 schema v1 attrs；node
+  引用复用定义，首次 simplify 通过 F02 作用域隔离。FourState 初始图与
+  invalid 策略均显式保留，零宽/空 Vector 不物化非法 GRH value。
+- 三项 FIRRTL 回归、三份 GrhSIM 模型实际编译/运行及完整 72/72 CTest
+  通过；复用 array/create verify 2/2、shape 3/3 和 CPU 生成回归通过。
+  旧 CPU 批量编译中两个用例因验证目录被并行重建而失败，单独重跑通过；
+  失败及重跑日志均保留，没有将首次批量命令记为成功。
+- 冻结输入身份和香山 10,008 个 module body 再验证通过，输入门禁 4/4
+  通过。新 fixture 放在 comb 子目录，原 F03 fixture/manifest 未修改。
+- 证据目录为 `ptmp/firrtl-ingest/F04/`。寄存器、memory/effects、混合
+  FIRRTL/SV 链接及 node 级 CSE/nonsink 消费继续按 F05–F09 推进。
+
 ## F05：时序状态与有序数组写
 
 交付：

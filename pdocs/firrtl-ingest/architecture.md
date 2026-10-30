@@ -239,6 +239,11 @@ input packet : { valid : UInt<1>, data : UInt<32>[4] }[8]
 SV packed struct 布局当成 FIRRTL Bundle 布局。涉及 flip 的非法整体操作
 由类型/flow 检查拒绝。
 
+FIRRTL 6 的 primitive operands 必须是 ground type。上面的聚合相等、构造
+和位布局转换通过合法的字段/元素连接、ground `eq` 及 `cat` 表达；不扩展
+出 `eq(Bundle,Bundle)` 或 `asUInt(Vector)` 语法。F04 验收同时检查这些
+非法 aggregate primitive 被拒绝和合法字段/元素形式的执行结果。
+
 数组长度 1、1-bit 叶子、嵌套 Bundle/Vector、动态索引和跨语言端口都须覆盖。
 若复用 SV 的小数组标量存储优化，必须保留源几何及正确访问映射，不能为了
 共用阈值而丢失 FIRRTL 的数组访问语义。
