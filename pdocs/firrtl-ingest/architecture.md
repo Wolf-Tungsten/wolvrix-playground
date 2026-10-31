@@ -183,6 +183,12 @@ GRH。公开跨语言接口仍必须具有可物化的完整签名。
 就全程宣布 TwoState 并绕过 SV 四态处理。混合图先保留正确逻辑域，再由
 现有 `grh-to-grhsim` 执行显式投影。Reset/AsyncReset 不靠名称判断。
 
+F05 已实现独立的 `FirrtlInitPolicy::{Unknown,Zero}`，默认 Unknown，记录为
+`firrtl.initPolicy`。每个状态叶子有显式 Constant InitSpec；regreset 的 reset
+value 不充当启动值。`FirrtlInvalidPolicy` 单独控制 invalid/OOB 读等；两者都
+不改变初始 FourState 域，也不修改 SV 的读取策略。C++ 请求已提供这些配置，
+Python FIRRTL 入口及混合链接沿 F07 推进。
+
 ### 5.1 有序动态写示例
 
 ```firrtl
@@ -204,6 +210,13 @@ lowering 为一个带 `shape=[32]` 的 kRegister 和两个索引写端口。基�
 不能把上述规则实现为边写边读取 current。复位与整数组写同样参与优先级
 归一化。该文本优先级用于 register/connect，不能推导为任意独立 memory
 端口写冲突的优先级；后者严格依据 memory 契约处理。
+
+F05 的普通写都带 `!reset` 使能，reset 另生成最后一个 whole-state writer。
+同步 reset 的所有 writer 事件为 `[clock]`；异步 reset 的所有 writer 事件
+统一为 `[clock,reset]`，边沿为 `[posedge,posedge]`。reset 断言立即复位，
+reset 解除不触发正常写；索引/使能/data/reset data 均采样旧状态。
+`when` 不门控硬件声明，仅 destination 声明与 connect 之间的 interleaving
+conditions 门控写；寄存器未连接时保持旧值。
 
 ### 5.2 memory 与验证构造
 
@@ -424,6 +437,12 @@ graph metadata 记录 `firrtl.nodeOptimization="gsim-v1"` 和 node CSE 配置，
 | grh-to-grhsim、phase/sink split | 保留计算 attrs；writer/effect 不因标签改变执行阶段 |
 | bit packing、masked-OR、显式语义拆分 | 按新结果重建根与成员，保留片段隔离；不得隐式跨 node 抽取子表达式 |
 | 分图与 bounded clone、叶内 CSE | 遵循最终执行 owner；合法复制保留来源，CSE 不跨 leaf |
+
+F05 时序 node 的 General/Output 双需求促使 phase clone 合约提前落地：复制
+保留原 source key 和 roots/result 映射，标记 boolean `grhsim.nodeClone=true`；
+同 source key 多根必须分处不同非空执行 owner，最多一个未标记原件。同 owner
+重复和未标记重复仍拒绝；标记不参加功能 CSE 签名，根 carrier 继承标记。
+该补齐不代表 F08 完整 clone/重写审计或 F09 node-aware nonsink 已完成。
 
 分图前只有通过完整 node 合并的多个源身份，才能代表同一份已共享表达式；
 分图后同一执行 leaf 内的 op 级 CSE 可合并对应来源，不能据此扩大共享范围。

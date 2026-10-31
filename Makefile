@@ -333,6 +333,16 @@ generate_firrtl_comb test_firrtl_aggregate test_firrtl_widths:
 test_firrtl_comb: generate_firrtl_comb
 	TMPDIR="$(FIRRTL_COMB_TEST_WORK)/tmp" $(MAKE) -C $(WOLVRIX_BUILD_DIR)/artifacts/firrtl-comb -f run.mk run
 
+FIRRTL_STATE_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F05
+.PHONY: generate_firrtl_state test_firrtl_state
+generate_firrtl_state:
+	mkdir -p "$(FIRRTL_STATE_TEST_WORK)/tmp" "$(FIRRTL_STATE_TEST_WORK)/ccache"
+	TMPDIR="$(FIRRTL_STATE_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_STATE_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(FIRRTL_STATE_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_STATE_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target firrtl-state -j 4
+	TMPDIR="$(FIRRTL_STATE_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_STATE_TEST_WORK)/ccache" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^firrtl-state$$' --output-on-failure
+test_firrtl_state: generate_firrtl_state
+	TMPDIR="$(FIRRTL_STATE_TEST_WORK)/tmp" $(MAKE) -C $(WOLVRIX_BUILD_DIR)/artifacts/firrtl-state -f run.mk run
+
 FIRRTL_INPUT ?= $(CURDIR)/ptmp/xs/rtl/rtl/SimTop.fir
 FIRRTL_INSPECT_FLAGS ?=
 .PHONY: inspect_firrtl_inputs

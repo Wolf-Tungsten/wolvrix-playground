@@ -301,6 +301,42 @@ fixture 包括缩进/注释/引号、嵌套语句、版本差异、截断文件�
 退出条件：多周期独立记分板和等价 SV 对照通过；动态写顺序及 old-value
 行为正确；保留 node 的计算不越过状态/事件边界。
 
+实施记录（2026-10-31）：已完成。wolvrix 状态实现提交为 `f38084a`；
+执行复制的 node 根保真修复单独提交为 `a77e6c6`，分支均为
+`grh/firrtl-ingest`。逐项验收见 [F05-acceptance.md](F05-acceptance.md)，
+正式合约见 [firrtl-state.md](../../wolvrix/docs/ingest/firrtl-state.md)。
+
+- reg/regreset 映射到既有 kRegister 和 whole/indexed 读写端口；Bundle
+  拆字段、Vector 保留 shape。每条 connect 生成有序 writer，保留整体/部分
+  覆盖优先级；数据、索引、使能和同步 reset data 均观察旧状态。
+- 同步/异步复位使用最终 whole-state writer 屏障，普通写带 !reset；
+  异步状态的全部 writer 共用 clock/reset posedge 事件域。初始化与 invalid
+  配置独立，初始 FourState 保留至既有显式投影；条件声明按 interleaving
+  条件处理，不把硬件声明本身当作条件执行。
+- 真实时序 node 覆盖 General/Output 双需求；合法执行 owner 间的复制
+  使用 grhsim.nodeClone 保留 source key/roots，同 owner 或无标记重复仍拒绝。
+  该补齐不代表 F08 完整审计或 F09 node-aware nonsink 已完成。
+- RenameTable 和 priority 的多周期独立记分板对照普通 GRH、JSON 重载、
+  simplify 及等价 SV；四份 state 模型实际编译运行，各重复 3 个初始化周期。
+  RenameTable 保留 1 个数组状态和 2 个动态索引写端口，没有逐槽译码。
+- SV 参考输出显式拼接数组槽作观察，规避既有 aggregate state forwarding
+  无驱动问题；参考状态/动态写仍为数组，该限制和检查见正式合约。
+
+实际验证全部通过项目 Makefile，日志在 `ptmp/firrtl-ingest/F05/`：
+
+| Make 命令 | 结果 | 日志 |
+| --- | --- | --- |
+| `make test_firrtl_state test_firrtl_node_attributes test_firrtl_cse_scope` | 定向语义、属性、CSE 作用域通过；四份 state FIRRTL/SV 模型编译运行通过 | `state-final.log` |
+| `make test_wolvrix test_firrtl_state test_firrtl_comb test_grh_register_write test_grh_to_grhsim` | 最终 73/73 CTest、四份 state 及三份组合模型、register-write 1/1、GRH→GrhSIM 3/3 全部通过 | `final-checks.log` |
+| `make test_grhsim_cpu_st_cpp` | 生成 CTest 1/1 和 154 项模型用例编译运行通过 | `cpu_st_cpp.log` |
+| `make run_grhsim_cpu_st_cpp GRHSIM_CPU_ST_CPP_JOBS=8` | 完整 CTest 重生成后，最终 154 项模型用例再次通过，退出码 0 | `cpu-final.log` |
+
+命令带 `WOLF_ENV_SOURCED=1`；完整构建使用
+`CMAKE_BUILD_PARALLEL_LEVEL=8`，TMPDIR/CCACHE_DIR 指向本阶段 tmp/ccache，
+定向入口沿用各模块 Makefile 约定。生成与消费同一模型目录顺序执行，
+产物沿用 `wolvrix/build/artifacts/`。F03 冻结输入及 manifest 未修改；
+memory/effects、混合链接、完整 node CSE/nonsink 利用继续按 F06–F09 推进。
+
 ## F06：memory、效果及目标版本构造
 
 交付：

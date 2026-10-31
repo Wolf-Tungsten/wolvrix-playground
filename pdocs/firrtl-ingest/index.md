@@ -3,6 +3,7 @@
 建立日期：2026-10-30。已完成 F01 目录/读取层迁移和 F02 属性/作用域基础；
 F03 parser 和接口索引已完成，冻结输入通过香山全模块语法与接口验收。
 F04 组合 lowering、Bundle/Vector 和真实 node 标注已完成，验收见 F04-acceptance.md。
+F05 寄存器、复位及有序数组写已完成，验收见 F05-acceptance.md。
 混合读取、完整 node CSE 与 nonsink 消费仍待后续阶段。阶段状态及实际验证见下表。
 
 目标是在 Wolvrix 内实现不依赖 CIRCT 的 FIRRTL 前端，与现有 SV 前端共同
@@ -21,6 +22,8 @@ F04 组合 lowering、Bundle/Vector 和真实 node 标注已完成，验收见 F
 | [F03-acceptance.md](F03-acceptance.md) | F03 逐项验收、目标构造矩阵、冻结输入和复验命令 |
 | [firrtl-combinational.md](../../wolvrix/docs/ingest/firrtl-combinational.md) | F04 类型、连接、聚合、逻辑域及 node lowering 的实际支持范围 |
 | [F04-acceptance.md](F04-acceptance.md) | F04 逐项验收、组合执行样例和实际回归证据 |
+| [firrtl-state.md](../../wolvrix/docs/ingest/firrtl-state.md) | F05 状态类型、初始化、复位屏障及有序读写的实际支持范围 |
+| [F05-acceptance.md](F05-acceptance.md) | F05 逐项验收、FIRRTL/SV 多周期记分板和最终模型回归证据 |
 | [inputs.json](inputs.json) | FIRRTL、生成 SV、fixture、规范及语法统计的冻结身份 |
 
 ## 已确定的设计决策
@@ -49,7 +52,7 @@ F04 组合 lowering、Bundle/Vector 和真实 node 标注已完成，验收见 F
 | F02 | node attribute schema、CSE 作用域及验证器 | 已完成（2026-10-30，验证见 steps.md） |
 | F03 | FIRRTL parser、版本检查和模块接口索引 | 已完成（2026-10-30，冻结输入和验收见 F03-acceptance.md） |
 | F04 | 类型推导、组合语义、Bundle/Vector 和 node lowering | 已完成（2026-10-31，验收见 F04-acceptance.md） |
-| F05 | 寄存器、复位及有序数组写 | 待实施 |
+| F05 | 寄存器、复位及有序数组写 | 已完成（2026-10-31，验收见 F05-acceptance.md） |
 | F06 | memory、效果及目标版本特性 | 待实施 |
 | F07 | FIRRTL/SV 混合 elaboration、链接和 Python API | 待实施 |
 | F08 | GSIM 模式 node 级 CSE、属性传递和 checkpoint | 待实施 |
