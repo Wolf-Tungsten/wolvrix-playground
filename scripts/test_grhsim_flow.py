@@ -30,7 +30,10 @@ class FlowTest(unittest.TestCase):
             "".join(f"    connect y{i}, n{i}\n" for i in range(5)))
         for mode in ("off", "gsim"):
             checkpoints = {}
-            options = FlowOptions(firrtl_node_cse=mode, max_node_work=2, max_supernode_work=4)
+            options = FlowOptions(firrtl_node_cse=mode, max_node_work=2, max_supernode_work=4,
+                                  firrtl_nodes="prefer" if mode == "gsim" else "off",
+                                  cost_model="bytes" if mode == "gsim" else "legacy",
+                                  fuse_leaves=mode == "gsim", nonsink_report=str(work / f"{mode}-partition.txt"))
             with wolvrix.Session() as session:
                 session.diagnostics_raise_min_level = "none"
                 checked(session.read_firrtl(str(source)), "read FIRRTL node fixture")
@@ -44,14 +47,17 @@ class FlowTest(unittest.TestCase):
                 self.assertEqual(set(checkpoints), set(STAGES))
                 emit_cpp(session, design="design.main", top="top", output=work / f"model-{mode}", overwrite=True)
                 identity = json.loads((work / f"model-{mode}/generation-identity.json").read_text())
-                self.assertEqual(identity["firrtl_node_policy"]["firrtl.nodeCseConfig"], f"v1/{mode}/5/256/1")
+                self.assertEqual(identity["firrtl_node_policy"]["firrtl.nodeCseConfig"], f"v2/{mode}/5/256/1")
+                self.assertIn("grhsim.nonsinkConfig", identity["firrtl_node_policy"])
+                self.assertIn("grhsim.nonsinkHintStats", identity["firrtl_node_policy"])
+                self.assertIn(f"requested={options.firrtl_nodes}", (work / f"{mode}-partition.txt").read_text())
             for stage, path in checkpoints.items():
                 with wolvrix.Session() as session:
                     session.diagnostics_raise_min_level = "none"
                     checked(session.read_json_file(str(path), out_design="design.main"), "reload FIRRTL")
                     metadata = session.graph_metadata(design="design.main", top="top")["metadata"]
                     self.assertEqual(FlowOptions.from_metadata(metadata).firrtl_node_cse, mode)
-                    self.assertIn("missing=0", metadata["firrtl.nodeRetention"])
+                    self.assertEqual(metadata["firrtl.nodeRetention"][0], "v2")
                     with self.assertRaisesRegex(ValueError, "policy/configuration differs"):
                         finish_simulation_graph(session, design="design.main", top="top",
                             options=FlowOptions(firrtl_node_cse="gsim" if mode == "off" else "off"))
@@ -60,7 +66,37 @@ class FlowTest(unittest.TestCase):
                     store_checkpoint(session, resumed, design="design.main", top="top")
                     if stage in ("nonsink-partitioned", "sink-partitioned"):
                         self.assertEqual(resumed.read_bytes(), checkpoints["sink-partitioned"].read_bytes())
+                        restored = FlowOptions.from_metadata(session.graph_metadata(design="design.main", top="top")["metadata"])
+                        self.assertEqual(restored.nonsink_options(), options.nonsink_options())
+                        restored.firrtl_nodes = "auto"
+                        with self.assertRaisesRegex(ValueError, "Changed activity configuration"):
+                            finish_simulation_graph(session, design="design.main", top="top", options=restored)
         self.assertNotEqual((work / "off-converted.json").read_bytes(), (work / "gsim-converted.json").read_bytes())
+
+    def test_f09_configuration_validation(self):
+        for policy in ("off", "prefer", "auto"):
+            for cost in ("legacy", "bytes"):
+                config = f"v2/2/4/1/0/1/8/250000/1/{policy}/{cost}/1/op-hints-v1"
+                restored = FlowOptions.from_metadata({"grhsim.nonsinkConfig": config})
+                self.assertEqual((restored.firrtl_nodes, restored.cost_model, restored.fuse_leaves), (policy, cost, True))
+        for config in ("v1/gsim/5/256/1", "v2/bad/5/256/1"):
+            with self.assertRaises(ValueError):
+                FlowOptions.from_metadata({"firrtl.nodeCseConfig": config})
+        for config in ("v2/2/4/1/0/1/8/250000/1/must/legacy/0/op-hints-v1",
+                       "v2/2/4/1/0/1/8/250000/1/off/unknown/0/op-hints-v1"):
+            with self.assertRaises(ValueError):
+                FlowOptions.from_metadata({"grhsim.nonsinkConfig": config})
+        class Checkpoint:
+            def __init__(self, metadata):
+                self.metadata = metadata
+            def graph_metadata(self, **kwargs):
+                return {"metadata": self.metadata}
+        with self.assertRaisesRegex(ValueError, "Legacy nonsink"):
+            finish_simulation_graph(Checkpoint({"grhsim.stage": "sink-partitioned",
+                "grhsim.nonsinkConfig": "2/4/1/0/1/8/250000/1"}), design="test", top="top")
+        with self.assertRaisesRegex(ValueError, "soft-node-v2"):
+            finish_simulation_graph(Checkpoint({"grhsim.stage": "converted", "firrtl.nodeSchema": 1,
+                "firrtl.nodeScopePolicy": "source-node-v1", "firrtl.nodeInventory": []}), design="test", top="top")
 
     def test_retired_api_is_absent(self):
         for name in ("lower_grhsim", "run_grhsim_pass", "run_grhsim_pipeline", "load_grhsim", "store_grhsim"):

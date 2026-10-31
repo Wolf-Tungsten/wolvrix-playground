@@ -6,13 +6,15 @@ F04 组合 lowering、Bundle/Vector 和真实 node 标注已完成，验收见 F
 F05 寄存器、复位及有序数组写已完成，验收见 F05-acceptance.md。
 F06 memory、效果与目标版本特性已完成，验收见 F06-acceptance.md。
 F08 完整 node CSE、属性传播和 checkpoint 已完成，验收见
-F08-acceptance.md。node-aware nonsink 消费仍待 F09。阶段状态及实际验证见下表。
+F08-acceptance.md。F09 已将 node 改为不阻碍 simplify 的 op 级软提示，
+撤除 source-node 隔离并接入统一 nonsink 分图。设计与实际验收分别见
+F09-plan.md、F09-acceptance.md；F02/F08 验收记录保留历史含义。
 
 目标是在 Wolvrix 内实现不依赖 CIRCT 的 FIRRTL 前端，与现有 SV 前端共同
-构建设计。FIRRTL `node` 的表达式归属和结果边界以 op attribute 保存，经过
-普通 GRH 优化与仿真转换后，先按 GSIM 模式比较完整 node 表达式并有条件
-合并，再由 nonsink 分图构建工作节点和超节点。分图前保留不同 node 的内部
-计算边界。数组保留 shape，Bundle 按现有 SV struct 规则递归拆成字段。
+构建设计。FIRRTL `node` 与 ops 的关联以 attribute 保存；普通 GRH 优化与
+仿真转换不受来源标注限制，允许跨 node CSE、内联、重关联和 DCE。分图
+以优化后的真实 op 图为准，参考仍可用的关联，可拆开 node、合并不同 node
+及无提示 SV 区域。数组保留 shape，Bundle 按现有 SV struct 规则递归展平。
 
 ## 文档入口
 
@@ -31,8 +33,10 @@ F08-acceptance.md。node-aware nonsink 消费仍待 F09。阶段状态及实际�
 | [F06-acceptance.md](F06-acceptance.md) | F06 验收矩阵、目标模块执行和专项/全量回归证据 |
 | [mixed.md](../../wolvrix/docs/ingest/mixed.md) | F07 混合读取、参数 specialization、ABI、黑盒源及事务式发布 |
 | [F07-acceptance.md](F07-acceptance.md) | F07 交替层次仿真、负例、Python 和完整回归证据 |
-| [node-cse.md](../../wolvrix/docs/ingest/node-cse.md) | 完整node判等、GSIM门槛、配置和checkpoint合约 |
+| [node-cse.md](../../wolvrix/docs/ingest/node-cse.md) | 当前可选整体 node 判等、软提示策略和配置迁移 |
 | [F08-acceptance.md](F08-acceptance.md) | F08生产变换审计、回归和真实大模块属性成本 |
+| [F09-plan.md](F09-plan.md) | 撤除 simplify 屏障、op 多对多软提示、统一分图及分步验证 |
+| [F09-acceptance.md](F09-acceptance.md) | F09.0–F09.5 实施、结构透明性、回归及真实模块消融结果 |
 | [inputs.json](inputs.json) | FIRRTL、生成 SV、fixture、规范及语法统计的冻结身份 |
 
 ## 已确定的设计决策
@@ -44,11 +48,12 @@ F08-acceptance.md。node-aware nonsink 消费仍待 F09。阶段状态及实际�
 | 公开头文件 | 统一放在 `include/ingest/`；删除旧 `include/core/ingest.hpp`，同步迁移全部调用方 |
 | 混合输入 | 一次读取事务同时接收 FIRRTL 与 SV，先解析接口及跨语言引用，再 elaboration、链接到统一 GRH |
 | 聚合类型 | Bundle/struct 递归拆字段；Vector/数组维度迁移到叶子 shape，端口也保留数组 |
-| node 持久化 | 使用有版本的 `firrtl.node.*` op attrs；整体 node 合并后保留全部源身份 |
-| CSE 粒度 | node 内局部简化；跨 node 只对完整表达式判等，并按 GSIM 门槛合并；分图前不抽取跨 node 的公共内部 op |
-| 初始共享门槛 | 等价组至少 5 个，或结果位宽 >256，或组中至少一个 node 有多个后继；判等和实际合并分开 |
-| node 的使用 | 以优化后的完整 node 为初始工作单位，支持显式语义拆分和超节点合并；归属确定后在同一执行 leaf 内做 op 级 CSE |
-| 无注解输入 | 纯 SV 及原生无 node 信息的区域继续现有分图；FIRRTL 片段仍保留作用域屏障 |
+| node 持久化 | 有版本的 `firrtl.node.*` op attrs，表达当前直接关联，允许多对多、部分保留和降级 |
+| simplify | node 不进入功能键、CSE 作用域或重写准入；优化后合并/更新提示，维护不了则降级，不加属性载体或保活根 |
+| GSIM 策略迁移 | F09 已撤除普通优化屏障；独立整体选项采用 gsim-soft-v2，只消费仍可证明的候选，门槛不限制 primitive CSE |
+| node 的使用 | 在统一 op 图上建议候选或同成本择优，可拆可合可忽略；无强制 atom、预算豁免或结果发布 |
+| 无注解输入 | SV 使用同一算法和成本，不伪造来源；正常优化导致的提示消失/无根允许降级，表示格式仍须合法 |
+| 混合分组 | 链接后的真实 ValueId 连接两种输入，不按 node/wire 名称匹配；语言来源不阻止合法跨界合并 |
 | 正确性 | 混合绑定、旧值采样、写优先级、memory 语义、DPI/效果均纳入验收 |
 | 性能 | 分别测量输入路线、完整 node CSE 和 node 分图的收益；不预先承诺整机提升百分比 |
 
@@ -58,20 +63,20 @@ F08-acceptance.md。node-aware nonsink 消费仍待 F09。阶段状态及实际�
 | --- | --- | --- |
 | F00 | 固定输入、特性清单和对照基线 | 进行中；F03 输入身份已冻结，整机依赖及基线验收待补 |
 | F01 | ingest 目录迁移和公共读取边界 | 已完成（2026-10-30，验证见 steps.md） |
-| F02 | node attribute schema、CSE 作用域及验证器 | 已完成（2026-10-30，验证见 steps.md） |
+| F02 | node attribute schema、CSE 作用域及验证器 | 历史实现已完成；F09 已迁移为 schema 2 / soft-node-v2 |
 | F03 | FIRRTL parser、版本检查和模块接口索引 | 已完成（2026-10-30，冻结输入和验收见 F03-acceptance.md） |
 | F04 | 类型推导、组合语义、Bundle/Vector 和 node lowering | 已完成（2026-10-31，验收见 F04-acceptance.md） |
 | F05 | 寄存器、复位及有序数组写 | 已完成（2026-10-31，验收见 F05-acceptance.md） |
 | F06 | memory、效果及目标版本特性 | 已完成（2026-10-31，验收见 F06-acceptance.md） |
 | F07 | FIRRTL/SV 混合 elaboration、链接和 Python API | 已完成（2026-10-31，完整验收见 F07-acceptance.md） |
-| F08 | GSIM 模式 node 级 CSE、属性传递和 checkpoint | 已完成（2026-10-31，验收见 F08-acceptance.md） |
-| F09 | 利用 node 的 nonsink 分图 | 待实施 |
+| F08 | GSIM 模式 node 级 CSE、属性传递和 checkpoint | 历史实现已验收；F09 已迁移普通优化与独立 CSE 配置 |
+| F09 | op 级软提示与统一 nonsink 分图 | 已完成（2026-10-31），F09.0–F09.5 验收见 F09-acceptance.md |
 | F10 | 香山混合输入和差分正确性 | 待实施 |
 | F11 | 前端/node CSE/分图性能消融、默认策略和正式文档 | 待实施 |
 
-本方案的 CSE 依据是本地 GSIM `a3ecb26` 的 `commonExpr()`：遍历 node 的
-完整表达式树判等，以整个 node 为消除单位，并保留小型、低扇出的重复计算。
-具体作用域、阶段顺序与验收见 [architecture.md](architecture.md) 第 8–10 节。
+F08 曾以本地 GSIM `a3ecb26` 的 `commonExpr()` 为依据保留源表达式边界。
+最新方案保留 node 关联的参考价值，撤销其对普通 simplify 和分图的强制
+边界；迁移及阶段顺序见 [architecture.md](architecture.md) 第 8–10 节。
 
 ## 推进记录规则
 

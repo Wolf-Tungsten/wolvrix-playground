@@ -74,6 +74,8 @@ def default_flow_options() -> FlowOptions:
     # line budgets. Zero retains the new pass's bounded default.
     return FlowOptions(
         firrtl_node_cse=os.environ.get("XS_GRHSIM_FIRRTL_NODE_CSE", "gsim"),
+        firrtl_nodes=os.environ.get("XS_GRHSIM_FIRRTL_NODES", "off"),
+        cost_model=os.environ.get("XS_GRHSIM_COST_MODEL", "legacy"),
         enable_guard_min_size=sink_guard_min_size(),
         segment_penalty=segment_penalty(),
         semantic_nodes=semantic_nodes(),
@@ -142,6 +144,10 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--firrtl-node-cse", choices=["off", "gsim"],
                         default=os.environ.get("XS_GRHSIM_FIRRTL_NODE_CSE", "gsim"))
     parser.add_argument("--masked-or-report", type=Path)
+    parser.add_argument("--firrtl-nodes", choices=["off", "prefer", "auto"], default=os.environ.get("XS_GRHSIM_FIRRTL_NODES", "off"))
+    parser.add_argument("--cost-model", choices=["legacy", "bytes"], default=os.environ.get("XS_GRHSIM_COST_MODEL", "legacy"))
+    parser.add_argument("--fuse-leaves", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--nonsink-report")
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pack-bit-registers-report", type=Path)
     parser.add_argument("--dump-post-conversion-json", type=Path)
@@ -186,6 +192,10 @@ def main() -> int:
     options.recover_masked_or = args.recover_masked_or
     options.masked_or_min_terms = args.masked_or_min_terms
     options.firrtl_node_cse = args.firrtl_node_cse
+    options.firrtl_nodes = args.firrtl_nodes
+    options.cost_model = args.cost_model
+    options.fuse_leaves = args.fuse_leaves
+    options.nonsink_report = args.nonsink_report
     options.partition_simplify = args.phase_simplify
     options.clone_shared = args.clone_shared_compute
     options.max_clones = args.clone_shared_compute_max_clones

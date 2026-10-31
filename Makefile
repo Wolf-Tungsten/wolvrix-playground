@@ -193,6 +193,10 @@ XS_GRHSIM_MASKED_OR ?= 1
 XS_GRHSIM_MASKED_OR_MIN_TERMS ?= 16
 XS_GRHSIM_MASKED_OR_REPORT ?=
 XS_GRHSIM_FIRRTL_NODE_CSE ?= gsim
+XS_GRHSIM_FIRRTL_NODES ?= off
+XS_GRHSIM_COST_MODEL ?= legacy
+XS_GRHSIM_FUSE_LEAVES ?= 0
+XS_GRHSIM_NONSINK_REPORT ?=
 XS_GRHSIM_PACK_BIT_REGISTERS ?= 1
 XS_GRHSIM_PACK_BIT_REGISTERS_REPORT ?=
 XS_SIM_DEFINES ?= DIFFTEST
@@ -329,6 +333,13 @@ test_firrtl_node_attributes test_firrtl_cse_scope:
 	TMPDIR="$(FIRRTL_NODE_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_NODE_TEST_WORK)/ccache" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^$(subst _,-,$(patsubst test_%,%,$@))$$' --output-on-failure
 
 FIRRTL_PARSER_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F03
+FIRRTL_F09_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F09
+.PHONY: test_grhsim_firrtl_nodes
+test_grhsim_firrtl_nodes:
+	mkdir -p "$(FIRRTL_F09_TEST_WORK)/tmp" "$(FIRRTL_F09_TEST_WORK)/ccache"
+	TMPDIR="$(FIRRTL_F09_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F09_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(FIRRTL_F09_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F09_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-firrtl-nodes -j 4
+	TMPDIR="$(FIRRTL_F09_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F09_TEST_WORK)/ccache" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grhsim-firrtl-nodes$$' --output-on-failure
 FIRRTL_F08_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F08
 .PHONY: test_grhsim_node_cse test_firrtl_node_pipeline
 test_grhsim_node_cse test_firrtl_node_pipeline:
@@ -387,6 +398,17 @@ FIRRTL_INPUT ?= $(CURDIR)/ptmp/xs/rtl/rtl/SimTop.fir
 FIRRTL_NODE_MODULE ?= RenameTable
 FIRRTL_NODE_CSE ?= gsim
 .PHONY: inspect_firrtl_node_retention
+FIRRTL_PARTITION_HINTS ?= prefer
+FIRRTL_PARTITION_COST ?= legacy
+FIRRTL_PARTITION_FUSE ?= 0
+FIRRTL_PARTITION_CLONE ?= 0
+.PHONY: inspect_firrtl_partitions
+inspect_firrtl_partitions:
+	mkdir -p "$(FIRRTL_F09_TEST_WORK)/tmp" "$(FIRRTL_F09_TEST_WORK)/ccache"
+	TMPDIR="$(FIRRTL_F09_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F09_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(FIRRTL_F09_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F09_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target inspect-firrtl-nodes -j 4
+	sha256sum "$(FIRRTL_INPUT)"
+	TMPDIR="$(FIRRTL_F09_TEST_WORK)/tmp" /usr/bin/time -v $(WOLVRIX_BUILD_DIR)/bin/inspect-firrtl-nodes "$(FIRRTL_INPUT)" "$(FIRRTL_NODE_MODULE)" "$(FIRRTL_NODE_CSE)" "$(FIRRTL_F09_TEST_WORK)/$(FIRRTL_NODE_MODULE)-$(FIRRTL_PARTITION_HINTS)-$(FIRRTL_PARTITION_COST)-f$(FIRRTL_PARTITION_FUSE)-c$(FIRRTL_PARTITION_CLONE).txt" "$(FIRRTL_PARTITION_HINTS)" "$(FIRRTL_PARTITION_COST)" "$(FIRRTL_PARTITION_FUSE)" "$(FIRRTL_PARTITION_CLONE)"
 inspect_firrtl_node_retention:
 	mkdir -p "$(FIRRTL_F08_TEST_WORK)/tmp" "$(FIRRTL_F08_TEST_WORK)/ccache"
 	TMPDIR="$(FIRRTL_F08_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F08_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
@@ -753,7 +775,9 @@ _GRHSIM_REEMIT_ALLOWED := \
 	GRHSIM_REEMIT_MASKED_OR GRHSIM_REEMIT_MASKED_OR_MIN_TERMS \
 	GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE GRHSIM_REEMIT_SEGMENT_PENALTY \
 	GRHSIM_REEMIT_SINK_GUARD_MIN_SIZE GRHSIM_REEMIT_SEMANTIC_NODES \
-	GRHSIM_REEMIT_MAX_NODE_WORK GRHSIM_REEMIT_MASKED_OR_MIN_TERMS
+	GRHSIM_REEMIT_MAX_NODE_WORK GRHSIM_REEMIT_MASKED_OR_MIN_TERMS \
+	GRHSIM_REEMIT_FIRRTL_NODE_CSE GRHSIM_REEMIT_FIRRTL_NODES \
+	GRHSIM_REEMIT_COST_MODEL GRHSIM_REEMIT_FUSE_LEAVES GRHSIM_REEMIT_NONSINK_REPORT
 .PHONY: check_remove_grhsim_ir_options test_remove_grhsim_ir_tooling
 REMOVE_GRHSIM_IR_AUDIT_REPORT ?= $(CURDIR)/ptmp/remove-grhsim-ir/production-audit.json
 .PHONY: check_remove_grhsim_ir
@@ -952,6 +976,11 @@ reemit_grhsim: check_remove_grhsim_ir_options $(if $(filter 1,$(SKIP_PY_INSTALL)
 		--max-output-file-bytes "$(GRHSIM_REEMIT_MAX_OUTPUT_FILE_BYTES)" \
 		--mem-write-activate "$(GRHSIM_REEMIT_MEM_WRITE_ACTIVATE)" \
 		$(if $(strip $(GRHSIM_REEMIT_FIRRTL_NODE_CSE)),--firrtl-node-cse "$(GRHSIM_REEMIT_FIRRTL_NODE_CSE)",) \
+		$(if $(strip $(GRHSIM_REEMIT_FIRRTL_NODES)),--firrtl-nodes "$(GRHSIM_REEMIT_FIRRTL_NODES)",) \
+		$(if $(strip $(GRHSIM_REEMIT_COST_MODEL)),--cost-model "$(GRHSIM_REEMIT_COST_MODEL)",) \
+		$(if $(filter 1,$(GRHSIM_REEMIT_FUSE_LEAVES)),--fuse-leaves,) \
+		$(if $(filter 0,$(GRHSIM_REEMIT_FUSE_LEAVES)),--no-fuse-leaves,) \
+		$(if $(strip $(GRHSIM_REEMIT_NONSINK_REPORT)),--nonsink-report "$(GRHSIM_REEMIT_NONSINK_REPORT)",) \
 		$(if $(filter 1,$(GRHSIM_REEMIT_EXECUTION_COUNTERS)),--execution-counters,) \
 		$(if $(filter 1,$(GRHSIM_REEMIT_OVERWRITE)),--overwrite,) \
 		$(if $(strip $(GRHSIM_REEMIT_MEM_ENABLE_BITMAP)),--mem-enable-bitmap "$(GRHSIM_REEMIT_MEM_ENABLE_BITMAP)",) \
@@ -2032,6 +2061,10 @@ xs_grhsim_hier_json: $(XS_GRHSIM_FILELIST_ABS) $(XS_GRHSIM_DEPS)
 # Pass only deviations from the Python flow's production defaults.
 XS_GRHSIM_FLAGS = \
 	--firrtl-node-cse $(XS_GRHSIM_FIRRTL_NODE_CSE) \
+	--firrtl-nodes $(XS_GRHSIM_FIRRTL_NODES) \
+	--cost-model $(XS_GRHSIM_COST_MODEL) \
+	$(if $(filter 1,$(XS_GRHSIM_FUSE_LEAVES)),--fuse-leaves,) \
+	$(if $(strip $(XS_GRHSIM_NONSINK_REPORT)),--nonsink-report "$(abspath $(XS_GRHSIM_NONSINK_REPORT))",) \
 	$(if $(filter 1,$(XS_GRHSIM_RESUME_FROM_FLAT_GRH_JSON)),--resume-from-flat-grh,) \
 	$(if $(filter 1,$(XS_GRHSIM_ROUNDTRIP_VERIFY)),,--no-roundtrip-verify) \
 	$(if $(filter 0,$(XS_GRHSIM_KEEP_ORIGINS)),--no-keep-origins,) \

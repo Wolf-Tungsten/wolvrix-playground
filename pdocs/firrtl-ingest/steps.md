@@ -4,6 +4,9 @@
 [architecture.md](architecture.md)。以下 Make target 以“现有”或“待新增”标明；
 待新增入口必须先写入项目 Makefile，之后才能运行对应构建、测试或脚本。
 所有临时工作目录使用 `ptmp/firrtl-ingest/Fxx/`。
+2026-10-31 最新决定将 node 定位为不阻碍 simplify 的 op 级软提示。
+F01–F08 的实施/验收记录保留历史含义；其中 source-node 优化屏障及
+严格根保留合约已由 F09 修正；实际实现见本页 F09 记录与验收文档。
 
 ## 推进顺序与共同退出条件
 
@@ -106,6 +109,9 @@ FIRRTL、SV、生成日志、fixture 和规范均有内容校验。F00 仍为进
 session/flow 临时产物位于 F01 证据目录，HDLBits 产物位于 `build/hdlbits/001/`。
 
 ## F02：定义 node 属性和 CSE 作用域
+
+历史阶段合约：下述 source-node CSE/inline 隔离已实现；按最新决定在
+F09.0 撤除，属性改为不阻碍普通 simplify 的软关联。实施记录保留原义。
 
 交付：
 
@@ -435,6 +441,9 @@ Wolvrix 实现提交：`ad4d9a2`（feat(ingest): link mixed FIRRTL and SystemVer
 
 ## F08：GSIM 模式完整 node CSE 和属性保真
 
+历史阶段合约：下述强隔离、根保留及 GSIM 门槛已实现并验收；F09.0
+修订其默认行为和配置，不能据此继续限制普通 primitive CSE/重写。
+
 交付：
 
 - 审计 XMR、mux-tree-fold、write normalize、memory retime、hier-flatten、
@@ -481,35 +490,73 @@ effects/11个混合编译模型、8个选定CPU模型、Python 3+8+3、HDLBits00
 所有checkpoint missing=0；JSON节点信息增加约1.46MB，报告2504bytes。
 该测量不代表整机或仿真提速。详细审计、命令、成本和边界见
 [F08-acceptance.md](F08-acceptance.md)，日志位于 `ptmp/firrtl-ingest/F08/`。
-F09 node-aware nonsink尚未实施。
+该历史节点尚未实施 F09；当前软提示实现见下一阶段。
 
-## F09：利用 node 的 nonsink 分图
+## F09：op 级软提示与统一 nonsink 分图
 
-交付：
+状态：2026-10-31 已完成 F09.0–F09.5。详细规则及例子见
+[F09-plan.md](F09-plan.md)，实际验收见 [F09-acceptance.md](F09-acceptance.md)。
+已撤除 F02/F08 的 node 优化屏障，以 op 软关联参考统一 nonsink 分图。
 
-- 新增独立的 `firrtl-nodes=off|prefer|auto` 配置，原型默认 off；配置进入
-  Make/Python/FlowOptions、checkpoint 配置版本和 generation identity。
-  它只控制分图，与 F08 的 node CSE 开关独立。
-- 读取整体 CSE 后的 node DAG，以完整计算单元形成初始工作节点；未达到
-  合并门槛的等价 node 保持独立。显式字段/位拆分保留可验证片段边界；
-  无注解 SV 区域走既有逆向吸收。
-- 在候选 node DAG 上做 coarsen/segment，并让发布、激活与额外重算共同参与
-  决策。真实 op 工作量仍参与预算，超预算完整 node 单独成组并报告，
-  不靠任意切开表达式填充预算；后续拆分必须是有根映射的显式语义变换。
-- 与 bounded clone、叶内 simplify、writer prerequisite 和 emitter 局部值
-  相协调；归属确定后 op 级 CSE 限于同一执行 leaf，不跨 owner 抽取内部
-  子表达式，不形成独立 node 执行器。
-- 报告实际利用的 node 范围、边界持久值、计算复制、超节点规模和拒绝原因；
-  使用 diagnostics 计数观察活动和发布，正式计时关闭计数。
+node 表示 op 上可选、多对多的来源关联。普通 simplify 不因该关联限制
+CSE、inline、重关联、折叠、mux/bit packing/写归一化和 DCE；维护不了的
+提示可以降级/清除，不能靠 kAssign 载体或保活根阻止优化。分图以优化后
+真实 op 图为准，统一参考有/无提示；同 node 可以拆，不同 node 可以合。
 
-验证入口：扩展现有 `make test_grhsim_virtual_partitions`、
-`make test_grhsim_transforms`；新增 `make test_grhsim_firrtl_nodes`、
-`make inspect_firrtl_partitions`。
+分步交付，每步独立验证后推进：
 
-退出条件：优化后的完整 node 实际作为初始分组单位；分图 off/prefer 在
-相同 node CSE 配置下结果一致，owner 唯一、quotient 无环、激活完整。
-验证相同内部 op 在不同 owner 保持独立、在同一 leaf 可以共享，并覆盖
-超预算 node、合法语义拆分、少发布及额外重算，不能只测节点变少。
+| 子步骤 | 交付 | 退出条件 |
+| --- | --- | --- |
+| F09.0 撤除提示屏障 | 修订 schema/policy、根/retention、多成员合并；审计普通和 GrhSIM 的 CSE/inline/annotated 短路，明确旧 node CSE 配置迁移 | 关闭独立提示消费者时，有/无标注的普通优化图一致；无额外 kAssign，无 node 保活/源作用域限制 |
+| F09.1 关联索引 | 从当前 ops 建立允许相交、不完整和无根的有界提示集合 | 共享 op/phase copies/不同实例/Vector 正确，不按相交关联传递 union；正常提示消失不报语义错误 |
+| F09.2 软提示分图 | 同一 op 引擎以提示生成候选及确定性 tie-break，固定旧 cost | 同 node 拆分、跨 node/语言合并和忽略提示均通过；真实预算相同，off 复现基线 |
+| F09.3 独立成本改进 | 两条路线共用 bytes/重算代理，必要时试验独立有界亲和度 | 提示/成本/亲和度分别消融，不凭来源猜活动率，发布与额外求值可计数 |
+| F09.4 owner 与 clone | 最终 leaf、合法融合、bounded clone、叶内 simplify 和调度依赖重建 | source key 不新增屏障、不授权跨实际 owner 共享；effects、旧值、writer prerequisite 和预算一致 |
+| F09.5 配置与验收 | Make/Python、版本/恢复迁移、报告与真实代表模块 | 0%/部分/完整提示覆盖和 SV/mixed 回归通过；采用/忽略/降级与元数据成本可审计 |
+
+已实现的 firrtl-nodes=off|prefer|auto 只控制分图是否参考提示，原型默认 off。
+它不改变普通 simplify，也不删除来源或关闭既有语义检查。现有
+firrtl-node-cse=off|gsim 保留为独立整体分析/共享；采用 gsim-soft-v2，
+不完整候选跳过。GSIM 门槛不再控制 primitive CSE；旧 schema/policy 拒绝恢复。
+
+验证入口：复用现有 make test_grhsim_virtual_partitions、
+make test_grhsim_transforms、make test_grhsim_flow、node pipeline 和
+CPU/mixed 检查；已新增 make test_grhsim_firrtl_nodes、
+make inspect_firrtl_partitions。全部入口通过项目 Makefile 运行。
+
+退出条件：F09.0–F09.5 均通过。首先在测试中移除一份图的 node 非功能信息，
+关闭独立提示消费者，验证普通优化结构一致且行为正确；然后固定同一份
+已 simplify checkpoint 的 attrs、cost、clone、leaf 和 trace，只切
+分图 off/prefer。覆盖跨 node 公共子表达式共享、重关联、根消失且无载体、
+DCE、重叠/非凸提示、超预算 node 切分、交错语言、Vector、phase/sink 和
+效果。每 op 唯一 owner、quotient 无环、真实激活/发布正确；不以源 node
+完整率或节点变少作为退出标准。SV/FIRRTL 前端性能另行比较。
+
+### F09 实施记录（2026-10-31）
+
+F09.0–F09.5 已完成；详细矩阵、命令、报告口径及限制见
+[F09-acceptance.md](F09-acceptance.md)，日志位于 `ptmp/firrtl-ingest/F09/`。
+Wolvrix 实现提交：`7e51d14`。
+
+- node schema 2 / soft-node-v2，普通 CSE 不带源作用域；根可丢失、不加
+  carrier、不保活。普通及完整生产流水的有/无标注规范化结构对照通过。
+- 现存 op 的多对多 members 进入有界索引；off/prefer/auto 共用 op DAG，
+  prefer 只排等权 coarsening/同成本 segment，非凸/重叠/无根/超预算可拆。
+- legacy/bytes、leaf fusion、单轮 bounded clone 独立开关；clone 包含所有
+  支持常量的 work，要求 varying input 已到达目的执行 owner。实际 owner、
+  phase/effects、writer prerequisite 和 SinkSchedule 约束保持。
+- Python/Make/XS/reemit 接入选项、v2 恢复检查和 snapshot 报告。旧 source-node
+  checkpoint 要求 re-ingest，旧 nonsink 八字段配置要求从 split 重启。
+- 全量 79/79、Python flow 4 项及 10 份 SV restart 编译模型、FIRRTL 组合/
+  状态/memory/effects/mixed 编译执行、冻结目标 Queue2/SRAM/JTAG/ClockGate
+  和 HDLBits001 通过。新增非凸提示、幂等报告重放、正向 clone 回归通过。
+- RenameTable 六组均使用完全相同 split checkpoint，nonsink 639 ops，
+  提示覆盖 270 ops。prefer/legacy 与 off/legacy 都为 13 SN，提示被切分
+  数 420→416，但 consumer bytes 5044→5071。bytes 为 109 SN；Queue2
+  compute 调用 356→551。未宣称加速，默认维持 off/legacy/unfused。
+
+F09 是软提示机制和代表模块验证，不替代 F00/F10 的整机依赖/差分或 F11
+的正式吞吐、compile wall/RSS 消融；不启用新的默认分图策略。
 
 ## F10：香山集成和差分正确性
 
@@ -539,16 +586,18 @@ F09 node-aware nonsink尚未实施。
 
 交付：
 
-- 按 architecture §10 固定 A（SV）、B（FIRRTL/mixed + GSIM node CSE +
-  原分图）、C（同 B + node prefer）、D（同 C + 整体 node CSE off）。
-  B/C 从同一分图前 checkpoint 分叉；C/D 从完整 node CSE 前分叉，均保留
-  node 作用域，区分物理共享策略与分图策略的收益。
+- 按 architecture §10 固定 A（SV + 普通 simplify + 提示 off）、
+  B（FIRRTL/mixed + 普通 simplify + 提示 off）、C（同 B + 提示 prefer）。
+  B/C 从同一优化后 checkpoint 分叉，保留相同 attrs/cost/clone/leaf 设置；
+  不以旧 source-node 隔离的图充当 B。若独立整体 node 优化保留，再增加
+  D 对照其开关；它不能通过阻止 primitive CSE 制造收益。
 - 记录完整构建和各阶段 wall/RSS、属性成本、图规模、超节点/边界、生成代码
   与 text 大小，区分输入路线、完整 node CSE 和 node 分图带来的变化。
   A/B 含输入及分图前优化差异，不能全算成 FIRRTL 解析收益。
 - 在正确性通过后，固定 CPU、单线程、无 PGO、seed、CoreMark100k 和 NEMU，
-  A/B/C/D 各测三次，轮换顺序。按耗时总和报告分图收益 B/C、整体 node
-  CSE 收益 D/C 和总收益 A/C，保存完整身份。
+  A/B/C 及适用的 D 各测三次，轮换顺序。按耗时总和报告分图收益 B/C 和
+  总收益 A/C；额外整体优化、共同成本改进、亲和度、leaf/clone 分别消融，
+  保存完整配置及身份，不混入提示收益。
 - 诊断结果用于解释边界与重算变化，正式计时不启用波形、profile 或额外计数。
   对重复测量噪声、资源回退和不同模块/活动的适用范围据实记录。
 - 根据可重复的吞吐与构建结果决定 auto 默认，不能以 node 数下降替代运行

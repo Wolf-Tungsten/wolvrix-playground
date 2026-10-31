@@ -62,6 +62,10 @@ def run_pass(session, name: str, *, design: str, top: str, **options):
 @dataclasses.dataclass
 class FlowOptions:
     firrtl_node_cse: str = "gsim"
+    firrtl_nodes: str = "off"
+    cost_model: str = "legacy"
+    fuse_leaves: bool = False
+    nonsink_report: str | None = None
     pack_bit_registers: bool = True
     recover_masked_or: bool = True
     masked_or_min_terms: int = 16
@@ -85,14 +89,20 @@ class FlowOptions:
         config = metadata.get("firrtl.nodeCseConfig")
         if config is not None:
             fields = config.split("/")
-            if len(fields) != 5 or fields[0] != "v1" or fields[1] not in ("off", "gsim") or fields[2:] != ["5", "256", "1"]:
+            if len(fields) != 5 or fields[0] != "v2" or fields[1] not in ("off", "gsim") or fields[2:] != ["5", "256", "1"]:
                 raise ValueError("Unrecognized FIRRTL node CSE configuration; re-ingest the source")
             result.firrtl_node_cse = fields[1]
         if "grhsim.memMinBytes" in metadata:
             result.mem_min_bytes = int(metadata["grhsim.memMinBytes"])
         if "grhsim.nonsinkConfig" in metadata:
             fields = metadata["grhsim.nonsinkConfig"].split("/")
-            if len(fields) != 8:
+            if len(fields) == 13 and fields[0] == "v2" and fields[-1] == "op-hints-v1":
+                result.firrtl_nodes, result.cost_model = fields[9:11]
+                if result.firrtl_nodes not in ("off", "prefer", "auto") or result.cost_model not in ("legacy", "bytes") or fields[11] not in ("0", "1"):
+                    raise ValueError("Unrecognized nonsink hint/cost policy")
+                result.fuse_leaves = bool(int(fields[11]))
+                fields = fields[1:9]
+            elif len(fields) != 8:
                 raise ValueError("Unrecognized grhsim.nonsinkConfig; rebuild from an earlier checkpoint")
             keys = ("max_node_work", "max_supernode_work", "segment_penalty", "semantic_nodes",
                     "clone_shared", "clone_max_fanout", "max_clones", "clone_lossy_compare")
@@ -105,7 +115,8 @@ class FlowOptions:
     def nonsink_options(self) -> dict:
         return {key: getattr(self, key) for key in (
             "max_node_work", "max_supernode_work", "segment_penalty", "semantic_nodes",
-            "clone_shared", "clone_max_fanout", "max_clones", "clone_lossy_compare")}
+            "clone_shared", "clone_max_fanout", "max_clones", "clone_lossy_compare",
+            "firrtl_nodes", "cost_model", "fuse_leaves")}
 
 
 def finish_simulation_graph(session, *, design: str, top: str,
@@ -122,18 +133,26 @@ def finish_simulation_graph(session, *, design: str, top: str,
     options = options or FlowOptions.from_metadata(metadata)
     if options.firrtl_node_cse not in ("off", "gsim"):
         raise ValueError("firrtl-node-cse must be off or gsim")
+    if options.firrtl_nodes not in ("off", "prefer", "auto") or options.cost_model not in ("legacy", "bytes"):
+        raise ValueError("Invalid nonsink hint/cost policy")
     has_nodes = "firrtl.nodeSchema" in metadata or "firrtl.nodeScopePolicy" in metadata
     if has_nodes:
-        if metadata.get("firrtl.nodeScopePolicy") != "source-node-v1" or "firrtl.nodeInventory" not in metadata:
-            raise ValueError("FIRRTL checkpoint lacks source-node scope provenance; re-ingest the source")
+        if metadata.get("firrtl.nodeSchema") != 2 or metadata.get("firrtl.nodeScopePolicy") != "soft-node-v2" or "firrtl.nodeInventory" not in metadata:
+            raise ValueError("FIRRTL checkpoint lacks soft-node-v2 provenance; re-ingest the source")
         config = metadata.get("firrtl.nodeCseConfig")
         if config is not None:
-            if config != f"v1/{options.firrtl_node_cse}/5/256/1" or metadata.get("firrtl.nodeOptimization") != "gsim-v1":
+            if config != f"v2/{options.firrtl_node_cse}/5/256/1" or metadata.get("firrtl.nodeOptimization") != "gsim-soft-v2":
                 raise ValueError("FIRRTL node CSE checkpoint policy/configuration differs")
         elif stage is not None and stage != "converted":
             raise ValueError("FIRRTL checkpoint passed node CSE without policy evidence; re-ingest the source")
     if stage is not None and STAGES.index(stage) > STAGES.index(stop_after):
         raise ValueError("Checkpoint has already passed the requested stop stage")
+    if stage in ("nonsink-partitioned", "sink-partitioned"):
+        restored = FlowOptions.from_metadata(metadata)
+        if options.nonsink_options() != restored.nonsink_options():
+            raise ValueError("Changed activity configuration requires the nonsink-sink-split checkpoint")
+        if not metadata["grhsim.nonsinkConfig"].startswith("v2/"):
+            raise ValueError("Legacy nonsink checkpoint: rebuild from nonsink-sink-split")
 
     def run(name, **kwargs):
         return run_pass(session, name, design=design, top=top, **kwargs)
@@ -173,7 +192,8 @@ def finish_simulation_graph(session, *, design: str, top: str,
     if stage == "nonsink-sink-split":
         if stop_after == stage:
             return
-        run("grhsim-partition-nonsink", **options.nonsink_options())
+        run("grhsim-partition-nonsink", **options.nonsink_options(),
+            **({"report": options.nonsink_report} if options.nonsink_report else {}))
         stage = "nonsink-partitioned"
         if options.partition_simplify:
             run("grhsim-simplify")
@@ -205,7 +225,8 @@ def emit_cpp(session, *, design: str, top: str, output: Path, overwrite: bool = 
             **identity, "emit": {"top": top, "options": options},
             "firrtl_node_policy": {key: value for key, value in
                 session.graph_metadata(design=design, top=top)["metadata"].items()
-                if key in ("firrtl.nodeSchema", "firrtl.nodeScopePolicy", "firrtl.nodeOptimization", "firrtl.nodeCseConfig")},
+                if key in ("firrtl.nodeSchema", "firrtl.nodeScopePolicy", "firrtl.nodeOptimization", "firrtl.nodeCseConfig",
+                           "grhsim.nonsinkConfig", "grhsim.nonsinkHintStats")},
             "generated": generated_identity(candidate)})
         if output.exists():
             os.rename(output, backup)
