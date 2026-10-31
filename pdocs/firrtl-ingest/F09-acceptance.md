@@ -4,9 +4,15 @@
 前置实现：playground `d7d414a`、wolvrix `5f31043`（F08）。设计见
 [F09-plan.md](F09-plan.md)，正式属性合约见
 [node-attributes.md](../../wolvrix/docs/ingest/node-attributes.md)，分图配置见
-[grhsim-transforms.md](../../wolvrix/docs/transform/grhsim-transforms.md#firrtl-soft-hints)。
+[grhsim-transforms.md](../../wolvrix/docs/transform/grhsim-transforms.md#execution-node-construction)。
 Wolvrix F09 实现提交：`7e51d14`。playground 的同阶段提交包含流程接线、
 本验收与子模块指针。
+
+后续决定：有 FIRRTL 提示按提示、无提示按 MFFC 形成统一 node；
+supernode 按 node 数量分组，不感知内部 op 数/work。F09.6 设计见
+[F09-plan.md](F09-plan.md)，现已实施，验收见
+[F09.6-acceptance.md](F09.6-acceptance.md)，已取代“单 node 超 work 预算豁免”
+的规划。本页保留 `7e51d14` 的旧行为和测量，不能用于验收新两层分图。
 
 F09.0–F09.5 已实现并通过本阶段验证。**node 是 op 上可丢失、可重叠的
 关联提示，不能阻碍 simplify，也不规定不可分执行区域。** 本验收不包含

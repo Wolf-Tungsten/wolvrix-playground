@@ -9,12 +9,16 @@ F08 完整 node CSE、属性传播和 checkpoint 已完成，验收见
 F08-acceptance.md。F09 已将 node 改为不阻碍 simplify 的 op 级软提示，
 撤除 source-node 隔离并接入统一 nonsink 分图。设计与实际验收分别见
 F09-plan.md、F09-acceptance.md；F02/F08 验收记录保留历史含义。
+2026-10-31 当前决定：先形成统一 node——有 FIRRTL 提示按提示，无提示按
+MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已实现并验收，见 [F09.6-acceptance.md](F09.6-acceptance.md)，
+取代前次“单 node 超 work 预算豁免”的规划。
 
 目标是在 Wolvrix 内实现不依赖 CIRCT 的 FIRRTL 前端，与现有 SV 前端共同
 构建设计。FIRRTL `node` 与 ops 的关联以 attribute 保存；普通 GRH 优化与
 仿真转换不受来源标注限制，允许跨 node CSE、内联、重关联和 DCE。分图
-以优化后的真实 op 图为准，参考仍可用的关联，可拆开 node、合并不同 node
-及无提示 SV 区域。数组保留 shape，Bundle 按现有 SV struct 规则递归展平。
+以优化后的真实 op 图为准，有提示按提示构建 node，其余按 MFFC。共享和
+语义冲突在 node 构建层规范化；supernode 只组合完整 node，按 node 数
+限制容量。数组保留 shape，Bundle 按现有 SV struct 规则递归展平。
 
 ## 文档入口
 
@@ -35,7 +39,8 @@ F09-plan.md、F09-acceptance.md；F02/F08 验收记录保留历史含义。
 | [F07-acceptance.md](F07-acceptance.md) | F07 交替层次仿真、负例、Python 和完整回归证据 |
 | [node-cse.md](../../wolvrix/docs/ingest/node-cse.md) | 当前可选整体 node 判等、软提示策略和配置迁移 |
 | [F08-acceptance.md](F08-acceptance.md) | F08生产变换审计、回归和真实大模块属性成本 |
-| [F09-plan.md](F09-plan.md) | 撤除 simplify 屏障、op 多对多软提示、统一分图及分步验证 |
+| [F09-plan.md](F09-plan.md) | 当前两层分图设计：提示/MFFC 构建 node，按 node 数划分 supernode；F09.6 已实现 |
+| [F09.6-acceptance.md](F09.6-acceptance.md) | 当前统一 node / Node DAG / 节点容量、迁移及代表模块验收 |
 | [F09-acceptance.md](F09-acceptance.md) | F09.0–F09.5 实施、结构透明性、回归及真实模块消融结果 |
 | [inputs.json](inputs.json) | FIRRTL、生成 SV、fixture、规范及语法统计的冻结身份 |
 
@@ -51,8 +56,9 @@ F09-plan.md、F09-acceptance.md；F02/F08 验收记录保留历史含义。
 | node 持久化 | 有版本的 `firrtl.node.*` op attrs，表达当前直接关联，允许多对多、部分保留和降级 |
 | simplify | node 不进入功能键、CSE 作用域或重写准入；优化后合并/更新提示，维护不了则降级，不加属性载体或保活根 |
 | GSIM 策略迁移 | F09 已撤除普通优化屏障；独立整体选项采用 gsim-soft-v2，只消费仍可证明的候选，门槛不限制 primitive CSE |
-| node 的使用 | 在统一 op 图上建议候选或同成本择优，可拆可合可忽略；无强制 atom、预算豁免或结果发布 |
-| 无注解输入 | SV 使用同一算法和成本，不伪造来源；正常优化导致的提示消失/无根允许降级，表示格式仍须合法 |
+| node 构建 | 有可用 FIRRTL 提示按提示构建 node；其余按 MFFC，均不因 op 数或 work cap 拆分；共享/语义冲突先规范化 |
+| supernode 分组 | 统一 Node DAG，每 node 容量权重为 1，按 max-supernode-nodes 分组，不读取内部 op 数/work |
+| 无注解输入 | SV、FIRRTL 无提示逻辑和混合 glue 都按 MFFC 构建 node，进入同一 Node DAG；无根不等于无提示 |
 | 混合分组 | 链接后的真实 ValueId 连接两种输入，不按 node/wire 名称匹配；语言来源不阻止合法跨界合并 |
 | 正确性 | 混合绑定、旧值采样、写优先级、memory 语义、DPI/效果均纳入验收 |
 | 性能 | 分别测量输入路线、完整 node CSE 和 node 分图的收益；不预先承诺整机提升百分比 |
@@ -70,13 +76,13 @@ F09-plan.md、F09-acceptance.md；F02/F08 验收记录保留历史含义。
 | F06 | memory、效果及目标版本特性 | 已完成（2026-10-31，验收见 F06-acceptance.md） |
 | F07 | FIRRTL/SV 混合 elaboration、链接和 Python API | 已完成（2026-10-31，完整验收见 F07-acceptance.md） |
 | F08 | GSIM 模式 node 级 CSE、属性传递和 checkpoint | 历史实现已验收；F09 已迁移普通优化与独立 CSE 配置 |
-| F09 | op 级软提示与统一 nonsink 分图 | 已完成（2026-10-31），F09.0–F09.5 验收见 F09-acceptance.md |
+| F09 | 统一 node 构建与 nonsink 分图 | F09.0–F09.5 为旧版验收；F09.6 提示/MFFC node + 按 node 数划 SN 已完成（F09.6-acceptance.md） |
 | F10 | 香山混合输入和差分正确性 | 待实施 |
 | F11 | 前端/node CSE/分图性能消融、默认策略和正式文档 | 待实施 |
 
 F08 曾以本地 GSIM `a3ecb26` 的 `commonExpr()` 为依据保留源表达式边界。
-最新方案保留 node 关联的参考价值，撤销其对普通 simplify 和分图的强制
-边界；迁移及阶段顺序见 [architecture.md](architecture.md) 第 8–10 节。
+当前方案保留 simplify 自由：之后才按提示/MFFC 形成执行 node，再按
+node 数形成 SN；迁移及阶段顺序见 [architecture.md](architecture.md) 第 8–10 节。
 
 ## 推进记录规则
 

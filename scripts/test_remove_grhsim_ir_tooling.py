@@ -258,13 +258,13 @@ class ToolingTest(unittest.TestCase):
         self.assertEqual(args.mem_enable_bitmap, "off")
         self.assertFalse(args.phase_simplify)
         with mock.patch.dict(os.environ, {
-            "XS_GRHSIM_SEMANTIC_NODES": "1", "XS_GRHSIM_SEMANTIC_NODE_MAX_OP": "17",
-            "XS_GRHSIM_COARSEN_MAX_OP": "53", "XS_GRHSIM_SEGMENT_PENALTY": "3",
+            "XS_GRHSIM_SEMANTIC_NODES": "1", "XS_GRHSIM_MAX_SUPERNODE_NODES": "17",
+            "XS_GRHSIM_SEGMENT_PENALTY": "3",
             "XS_GRHSIM_SINK_GUARD_MIN": "6",
         }, clear=True):
             options = wolvrix_xs_grhsim.default_flow_options()
-        self.assertEqual((options.semantic_nodes, options.max_node_work, options.max_supernode_work,
-                          options.segment_penalty, options.enable_guard_min_size), (True, 17, 53, 3, 6))
+        self.assertEqual((options.semantic_nodes, options.max_supernode_nodes,
+                          options.segment_penalty, options.enable_guard_min_size), (True, 17, 3, 6))
 
     def test_retired_cli_controls(self):
         entries = (
@@ -273,6 +273,8 @@ class ToolingTest(unittest.TestCase):
             (reemit_grhsim.parse_args, ["--model", "graph.json", "--flow", str(ROOT / "ptmp/remove-grhsim-ir/options")]),
         )
         options = (
+            ["--max-node-work", "128"], ["--max-supernode-work", "128"],
+            ["--max-op-in-compute-supernode", "128"], ["--fuse-leaves"],
             ["--comb-pack"], ["--comb-pack-report", "old.json"], ["--select-state-stores"],
             ["--cpu-target-batch-count", "0"], ["--cpu-helper-max-estimated-lines", "128"],
             ["--cpu-chunk-max-estimated-lines", "128"], ["--cpu-unit-max-estimated-lines", "128"],

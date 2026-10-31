@@ -18,6 +18,16 @@ STAGES = ("converted", "event-output-split", "nonsink-sink-split",
           "nonsink-partitioned", "sink-partitioned")
 
 RETIRED_OPTIONS = {
+    "XS_GRHSIM_SEMANTIC_NODE_MAX_OP": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
+    "XS_GRHSIM_COARSEN_MAX_OP": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
+    "XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
+    "XS_GRHSIM_MAX_NODE_WORK": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
+    "XS_GRHSIM_MAX_SUPERNODE_WORK": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
+    "XS_GRHSIM_FUSE_LEAVES": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
+    "GRHSIM_REEMIT_MAX_NODE_WORK": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
+    "GRHSIM_REEMIT_MAX_SUPERNODE_WORK": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
+    "GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
+    "GRHSIM_REEMIT_FUSE_LEAVES": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
     "XS_WOLF_GRHSIM_IR_COMB_PACK": "comb-pack was removed",
     "XS_WOLF_GRHSIM_IR_COMB_PACK_REPORT": "comb-pack was removed",
     "XS_WOLF_GRHSIM_IR_SELECT_STATE_STORES": "state layout is owned by the emitter",
@@ -31,8 +41,8 @@ RETIRED_OPTIONS = {
     "GRHSIM_REEMIT_USED_BITS": "grhsim-simplify owns this optimization",
     "GRHSIM_REEMIT_CANONICALIZE_COMPUTE": "grhsim-simplify owns this optimization",
     "GRHSIM_REEMIT_HELPER_MAX_ESTIMATED_LINES": "use GRHSIM_REEMIT_MAX_FUNCTION_LINES",
-    "GRHSIM_REEMIT_SEMANTIC_NODE_MAX_OP": "use GRHSIM_REEMIT_MAX_NODE_WORK",
-    "GRHSIM_REEMIT_COARSEN_MAX_OP": "use GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE",
+    "GRHSIM_REEMIT_SEMANTIC_NODE_MAX_OP": "use GRHSIM_REEMIT_MAX_SUPERNODE_NODES (node count)",
+    "GRHSIM_REEMIT_COARSEN_MAX_OP": "use GRHSIM_REEMIT_MAX_SUPERNODE_NODES (node count)",
 }
 
 
@@ -62,17 +72,15 @@ def run_pass(session, name: str, *, design: str, top: str, **options):
 @dataclasses.dataclass
 class FlowOptions:
     firrtl_node_cse: str = "gsim"
-    firrtl_nodes: str = "off"
+    firrtl_nodes: str = "auto"
     cost_model: str = "legacy"
-    fuse_leaves: bool = False
     nonsink_report: str | None = None
     pack_bit_registers: bool = True
     recover_masked_or: bool = True
     masked_or_min_terms: int = 16
     partition_simplify: bool = True
     mem_min_bytes: int = 64
-    max_node_work: int = 128
-    max_supernode_work: int = 128
+    max_supernode_nodes: int = 128
     segment_penalty: int = 1
     semantic_nodes: bool = False
     clone_shared: bool = True
@@ -96,27 +104,31 @@ class FlowOptions:
             result.mem_min_bytes = int(metadata["grhsim.memMinBytes"])
         if "grhsim.nonsinkConfig" in metadata:
             fields = metadata["grhsim.nonsinkConfig"].split("/")
-            if len(fields) == 13 and fields[0] == "v2" and fields[-1] == "op-hints-v1":
-                result.firrtl_nodes, result.cost_model = fields[9:11]
-                if result.firrtl_nodes not in ("off", "prefer", "auto") or result.cost_model not in ("legacy", "bytes") or fields[11] not in ("0", "1"):
-                    raise ValueError("Unrecognized nonsink hint/cost policy")
-                result.fuse_leaves = bool(int(fields[11]))
-                fields = fields[1:9]
-            elif len(fields) != 8:
-                raise ValueError("Unrecognized grhsim.nonsinkConfig; rebuild from an earlier checkpoint")
-            keys = ("max_node_work", "max_supernode_work", "segment_penalty", "semantic_nodes",
+            if len(fields) != 11 or fields[0] != "v3" or fields[-1] != "hint-mffc-v1":
+                raise ValueError("Legacy nonsink checkpoint: rebuild from nonsink-sink-split; op-work limits cannot be converted to node counts")
+            result.firrtl_nodes, result.cost_model = fields[8:10]
+            if result.firrtl_nodes not in ("off", "prefer", "auto") or result.cost_model not in ("legacy", "bytes"):
+                raise ValueError("Unrecognized nonsink hint/cost policy")
+            keys = ("max_supernode_nodes", "segment_penalty", "semantic_nodes",
                     "clone_shared", "clone_max_fanout", "max_clones", "clone_lossy_compare")
-            for key, raw in zip(keys, fields):
-                setattr(result, key, bool(int(raw)) if isinstance(getattr(result, key), bool) else int(raw))
+            for key, raw in zip(keys, fields[1:8]):
+                if isinstance(getattr(result, key), bool) and raw not in ("0", "1"):
+                    raise ValueError("Invalid nonsink boolean configuration")
+                value = int(raw)
+                if not 0 <= value <= 2**32 - 1:
+                    raise ValueError("Invalid nonsink integer configuration")
+                setattr(result, key, bool(value) if isinstance(getattr(result, key), bool) else value)
+            if not result.max_supernode_nodes or not result.clone_max_fanout:
+                raise ValueError("Node capacity and fanout must be positive")
         if "grhsim.sinkConfig" in metadata:
             result.enable_guard_min_size = int(metadata["grhsim.sinkConfig"])
         return result
 
     def nonsink_options(self) -> dict:
         return {key: getattr(self, key) for key in (
-            "max_node_work", "max_supernode_work", "segment_penalty", "semantic_nodes",
+            "max_supernode_nodes", "segment_penalty", "semantic_nodes",
             "clone_shared", "clone_max_fanout", "max_clones", "clone_lossy_compare",
-            "firrtl_nodes", "cost_model", "fuse_leaves")}
+            "firrtl_nodes", "cost_model")}
 
 
 def finish_simulation_graph(session, *, design: str, top: str,
@@ -151,7 +163,7 @@ def finish_simulation_graph(session, *, design: str, top: str,
         restored = FlowOptions.from_metadata(metadata)
         if options.nonsink_options() != restored.nonsink_options():
             raise ValueError("Changed activity configuration requires the nonsink-sink-split checkpoint")
-        if not metadata["grhsim.nonsinkConfig"].startswith("v2/"):
+        if not metadata["grhsim.nonsinkConfig"].startswith("v3/"):
             raise ValueError("Legacy nonsink checkpoint: rebuild from nonsink-sink-split")
 
     def run(name, **kwargs):

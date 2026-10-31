@@ -70,17 +70,15 @@ def recover_masked_or_enabled() -> bool:
 
 
 def default_flow_options() -> FlowOptions:
-    # Legacy exploration caps now map to activity work, independently of emit
-    # line budgets. Zero retains the new pass's bounded default.
+    validate_environment()
     return FlowOptions(
         firrtl_node_cse=os.environ.get("XS_GRHSIM_FIRRTL_NODE_CSE", "gsim"),
-        firrtl_nodes=os.environ.get("XS_GRHSIM_FIRRTL_NODES", "off"),
+        firrtl_nodes=os.environ.get("XS_GRHSIM_FIRRTL_NODES", "auto"),
         cost_model=os.environ.get("XS_GRHSIM_COST_MODEL", "legacy"),
         enable_guard_min_size=sink_guard_min_size(),
         segment_penalty=segment_penalty(),
         semantic_nodes=semantic_nodes(),
-        max_node_work=env_int("XS_GRHSIM_SEMANTIC_NODE_MAX_OP", 0) or 128,
-        max_supernode_work=env_int("XS_GRHSIM_COARSEN_MAX_OP", 0) or 128,
+        max_supernode_nodes=env_int("XS_GRHSIM_MAX_SUPERNODE_NODES", 128, minimum=1),
         recover_masked_or=recover_masked_or_enabled(),
     )
 
@@ -144,9 +142,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--firrtl-node-cse", choices=["off", "gsim"],
                         default=os.environ.get("XS_GRHSIM_FIRRTL_NODE_CSE", "gsim"))
     parser.add_argument("--masked-or-report", type=Path)
-    parser.add_argument("--firrtl-nodes", choices=["off", "prefer", "auto"], default=os.environ.get("XS_GRHSIM_FIRRTL_NODES", "off"))
+    parser.add_argument("--firrtl-nodes", choices=["off", "prefer", "auto"], default=os.environ.get("XS_GRHSIM_FIRRTL_NODES", "auto"))
     parser.add_argument("--cost-model", choices=["legacy", "bytes"], default=os.environ.get("XS_GRHSIM_COST_MODEL", "legacy"))
-    parser.add_argument("--fuse-leaves", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--nonsink-report")
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pack-bit-registers-report", type=Path)
@@ -155,8 +152,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--dump-pre-partition-json", type=Path,
                         help="optimized, unpartitioned converted graph")
     parser.add_argument("--checkpoint-dir", type=Path, help="store each completed graph stage")
-    parser.add_argument("--max-node-work", type=int)
-    parser.add_argument("--max-supernode-work", "--max-op-in-compute-supernode", type=int)
+    parser.add_argument("--max-supernode-nodes", type=int, help="maximum unified nodes per supernode")
     parser.add_argument("--sink-enable-guard-min-size", type=int)
     args = parser.parse_args(argv)
     if not args.keep_origins:
@@ -164,7 +160,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     if not 0 < args.max_output_file_bytes < 2**64:
         parser.error("--max-output-file-bytes must be a positive uint64")
     for name, minimum in (("max_function_lines", 8), ("max_tu_bytes", 1), ("max_round", 1),
-                          ("mem_min_bytes", 0), ("max_node_work", 1), ("max_supernode_work", 1),
+                          ("mem_min_bytes", 0), ("max_supernode_nodes", 1),
                           ("sink_enable_guard_min_size", 0), ("clone_shared_compute_max_clones", 1),
                           ("masked_or_min_terms", 2)):
         value = getattr(args, name)
@@ -194,13 +190,12 @@ def main() -> int:
     options.firrtl_node_cse = args.firrtl_node_cse
     options.firrtl_nodes = args.firrtl_nodes
     options.cost_model = args.cost_model
-    options.fuse_leaves = args.fuse_leaves
     options.nonsink_report = args.nonsink_report
     options.partition_simplify = args.phase_simplify
     options.clone_shared = args.clone_shared_compute
     options.max_clones = args.clone_shared_compute_max_clones
     options.clone_lossy_compare = args.clone_shared_compute_lossy_compare
-    for name in ("mem_min_bytes", "max_node_work", "max_supernode_work"):
+    for name in ("mem_min_bytes", "max_supernode_nodes"):
         if getattr(args, name) is not None:
             setattr(options, name, getattr(args, name))
     if args.sink_enable_guard_min_size is not None:

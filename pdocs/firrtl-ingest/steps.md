@@ -492,18 +492,24 @@ effects/11个混合编译模型、8个选定CPU模型、Python 3+8+3、HDLBits00
 [F08-acceptance.md](F08-acceptance.md)，日志位于 `ptmp/firrtl-ingest/F08/`。
 该历史节点尚未实施 F09；当前软提示实现见下一阶段。
 
-## F09：op 级软提示与统一 nonsink 分图
+## F09：统一 node 构建与 nonsink 分图
 
 状态：2026-10-31 已完成 F09.0–F09.5。详细规则及例子见
 [F09-plan.md](F09-plan.md)，实际验收见 [F09-acceptance.md](F09-acceptance.md)。
 已撤除 F02/F08 的 node 优化屏障，以 op 软关联参考统一 nonsink 分图。
+当前 F09.6 设计：有 FIRRTL 提示按提示、无提示按 MFFC 形成统一 node；
+supernode 在 Node DAG 上按 node 数分组，不感知内部 op 数/work。它取代
+前次“单 node 超 work 预算豁免”的方案。已实现并验收，见
+[F09.6-acceptance.md](F09.6-acceptance.md)。以下 F09.0–F09.5 表及记录是旧 v2 的历史行为，
+不用于验收新的两层分图。
 
 node 表示 op 上可选、多对多的来源关联。普通 simplify 不因该关联限制
 CSE、inline、重关联、折叠、mux/bit packing/写归一化和 DCE；维护不了的
-提示可以降级/清除，不能靠 kAssign 载体或保活根阻止优化。分图以优化后
-真实 op 图为准，统一参考有/无提示；同 node 可以拆，不同 node 可以合。
+提示可以降级/清除，不能靠 kAssign 载体或保活根阻止优化。新流程以优化后
+真实 op 图为准，按提示/MFFC 形成统一 node，再按 node 数组合完整 node
+为 supernode。共享和结构冲突在 node 构建层解决，不交给上层按 op 切片。
 
-分步交付，每步独立验证后推进：
+F09.0–F09.5 的历史交付：
 
 | 子步骤 | 交付 | 退出条件 |
 | --- | --- | --- |
@@ -524,7 +530,7 @@ make test_grhsim_transforms、make test_grhsim_flow、node pipeline 和
 CPU/mixed 检查；已新增 make test_grhsim_firrtl_nodes、
 make inspect_firrtl_partitions。全部入口通过项目 Makefile 运行。
 
-退出条件：F09.0–F09.5 均通过。首先在测试中移除一份图的 node 非功能信息，
+历史退出条件（F09.0–F09.5）：首先在测试中移除一份图的 node 非功能信息，
 关闭独立提示消费者，验证普通优化结构一致且行为正确；然后固定同一份
 已 simplify checkpoint 的 attrs、cost、clone、leaf 和 trace，只切
 分图 off/prefer。覆盖跨 node 公共子表达式共享、重关联、根消失且无载体、
@@ -555,8 +561,24 @@ Wolvrix 实现提交：`7e51d14`。
   数 420→416，但 consumer bytes 5044→5071。bytes 为 109 SN；Queue2
   compute 调用 356→551。未宣称加速，默认维持 off/legacy/unfused。
 
-F09 是软提示机制和代表模块验证，不替代 F00/F10 的整机依赖/差分或 F11
-的正式吞吐、compile wall/RSS 消融；不启用新的默认分图策略。
+### F09.6 当前实施记录（已完成）
+
+2026-10-31 已完成；wolvrix 提交 007c097。完整 CTest 79/79、Python
+4+16+1、10 个阶段恢复编译模型、FIRRTL/mixed 编译执行与 HDLBits001
+均通过。RenameTable 在相同 split checkpoint 下为 off 359 nodes /
+prefer 382 nodes，两者均 4 SN；Queue2 默认容量 compute 均为 356。
+完整命令、日志与限制见 [F09.6-acceptance.md](F09.6-acceptance.md)。
+
+| 步骤 | 交付 | 退出条件 |
+| --- | --- | --- |
+| F09.6a | 提示区域构建 node，剩余区域按 MFFC；解决共享与真实语义冲突 | 实际 op 归属唯一、node 边界不受 op 数/work 限制，两前端同一合约 |
+| F09.6b | 统一 Node DAG 上按 node 数分组，max-supernode-nodes | 每 node 权重为 1；大小 node 等价计数，K/K+1 容量正确 |
+| F09.6c | 新配置/恢复身份，移除旧 work-cap/fusion 耦合；依赖与 SinkSchedule | 旧阈值不静默换单位，新恢复/调度及行为正确 |
+| F09.6d | Make/Python/mixed、透明性、RenameTable/Queue2 及可选 clone 验证 | 两层统计清楚、普通 simplify 不回退，实际性能如实记录 |
+
+F09 是分图机制和代表模块验证，不替代 F00/F10 的整机依赖/差分或 F11
+的正式吞吐、compile wall/RSS 消融。当前默认 auto/legacy/128 nodes，
+直接落实有提示按提示、无提示按 MFFC；不据此宣称性能收益。
 
 ## F10：香山集成和差分正确性
 

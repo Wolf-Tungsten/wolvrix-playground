@@ -30,10 +30,10 @@ class FlowTest(unittest.TestCase):
             "".join(f"    connect y{i}, n{i}\n" for i in range(5)))
         for mode in ("off", "gsim"):
             checkpoints = {}
-            options = FlowOptions(firrtl_node_cse=mode, max_node_work=2, max_supernode_work=4,
+            options = FlowOptions(firrtl_node_cse=mode, max_supernode_nodes=4,
                                   firrtl_nodes="prefer" if mode == "gsim" else "off",
                                   cost_model="bytes" if mode == "gsim" else "legacy",
-                                  fuse_leaves=mode == "gsim", nonsink_report=str(work / f"{mode}-partition.txt"))
+                                  nonsink_report=str(work / f"{mode}-partition.txt"))
             with wolvrix.Session() as session:
                 session.diagnostics_raise_min_level = "none"
                 checked(session.read_firrtl(str(source)), "read FIRRTL node fixture")
@@ -76,14 +76,19 @@ class FlowTest(unittest.TestCase):
     def test_f09_configuration_validation(self):
         for policy in ("off", "prefer", "auto"):
             for cost in ("legacy", "bytes"):
-                config = f"v2/2/4/1/0/1/8/250000/1/{policy}/{cost}/1/op-hints-v1"
+                config = f"v3/4/1/0/1/8/250000/1/{policy}/{cost}/hint-mffc-v1"
                 restored = FlowOptions.from_metadata({"grhsim.nonsinkConfig": config})
-                self.assertEqual((restored.firrtl_nodes, restored.cost_model, restored.fuse_leaves), (policy, cost, True))
+                self.assertEqual((restored.firrtl_nodes, restored.cost_model, restored.max_supernode_nodes), (policy, cost, 4))
         for config in ("v1/gsim/5/256/1", "v2/bad/5/256/1"):
             with self.assertRaises(ValueError):
                 FlowOptions.from_metadata({"firrtl.nodeCseConfig": config})
         for config in ("v2/2/4/1/0/1/8/250000/1/must/legacy/0/op-hints-v1",
-                       "v2/2/4/1/0/1/8/250000/1/off/unknown/0/op-hints-v1"):
+                       "v2/2/4/1/0/1/8/250000/1/off/unknown/0/op-hints-v1",
+                       "v2/2/4/1/0/1/8/250000/1/prefer/legacy/0/op-hints-v1",
+                       "v3/0/1/0/1/8/250000/1/prefer/legacy/hint-mffc-v1",
+                       "v3/4/1/2/1/8/250000/1/prefer/legacy/hint-mffc-v1",
+                       "v3/4/1/0/1/8/250000/1/must/legacy/hint-mffc-v1",
+                       "v3/4/1/0/1/8/250000/1/off/unknown/hint-mffc-v1"):
             with self.assertRaises(ValueError):
                 FlowOptions.from_metadata({"grhsim.nonsinkConfig": config})
         class Checkpoint:
@@ -130,7 +135,7 @@ assign mout = mem[addr];
 assign shadowout = shadow[addr];
 endmodule
 """)
-        options = FlowOptions(mem_min_bytes=4, max_node_work=2, max_supernode_work=4,
+        options = FlowOptions(mem_min_bytes=4, max_supernode_nodes=4,
                               enable_guard_min_size=2)
         checkpoints = {}
         with wolvrix.Session() as session:

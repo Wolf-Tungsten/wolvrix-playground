@@ -143,7 +143,7 @@ class ReadableTest(unittest.TestCase):
 
             finish_simulation_graph(session, design="design.main", top=TOP,
                 options=FlowOptions(pack_bit_registers=False, recover_masked_or=False, mem_min_bytes=4,
-                                    max_node_work=2, max_supernode_work=4, clone_shared=False,
+                                    max_supernode_nodes=4, clone_shared=False,
                                     enable_guard_min_size=2), checkpoint=checkpoint)
             self.assertEqual(saved_stages, set(STAGES))
             checkpoint_before = WORK / "before.json"

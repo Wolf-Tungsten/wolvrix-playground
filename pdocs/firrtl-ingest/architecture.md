@@ -2,9 +2,13 @@
 
 本文定义接口与行为。它与 [steps.md](steps.md) 配套，阶段是否完成
 以 [index.md](index.md) 的看板和实际验证记录为准。
-2026-10-31 最新决定：node 是 op 上的软关联提示，不限制 simplify，也不
-规定不可分区域。F09 已修订 F02/F08 的 source-node 隔离；设计见
+2026-10-31 最新决定：普通 simplify 后，有 FIRRTL 提示按提示形成 node，
+无提示按 MFFC 形成 node；supernode 在统一 Node DAG 上按 node 数量分组。
+源注解仍是可丢弃的非功能信息，不限制 simplify。F09 已修订 F02/F08 的
+source-node 隔离；设计见
 [F09-plan.md](F09-plan.md)，实际验收见 [F09-acceptance.md](F09-acceptance.md)。
+F09.6 的两层分图已实现，验收见 [F09.6-acceptance.md](F09.6-acceptance.md)，取代前次“单 node 超 work 预算豁免”的规划。
+下文区分当前 F09.6 与历史 F09 v2。simplify 透明性继续适用。
 
 ## 1. 当前基础与目标
 
@@ -15,9 +19,9 @@
 flatten、simplify，再进入统一 GRH 上的 GrhSIM。
 
 [nonsink 分图](../../wolvrix/lib/transform/grhsim/partition-nonsink.cpp)
-从 op 图逆向吸收纯计算，以预算限制工作节点，再进行 coarsen 和拓扑区间
-分段。`semantic-nodes` 保护声明锚点；F09 的可选源关联索引独立参与同权/
-同成本择优，既不替代声明锚点，也不规定执行归属。
+历史 v2 从 op 图按 work cap 逆向吸收计算，再 coarsen/segment，FIRRTL
+关联只用于择优。当前 F09.6 已改为先完成统一 node 构建，再按 node 个数形成 SN；
+op work 不再用于决定 node 边界或 SN 容量，详见第 9 节。
 
 本地 `ptmp/xs/rtl/rtl/SimTop.fir` 文件头为 FIRRTL 6.0.0，文件约 1.6 GiB，
 现已由 F03 的 [inputs.json](inputs.json) 冻结为语法与接口验收输入，连同
@@ -314,8 +318,9 @@ IR 或 JSON 方言。带这些属性的 Graph 记录
 module 级图的 instancePath 为空，flatten 后换成实际实例路径。
 
 同一 node 的不同 Bundle 叶子使用不同 fieldPath；保留 Vector shape，不为
-每个数组元素产生 node key。可通过前五项识别原始 node 家族，但不强迫所有
-字段共同激活。members/origins 排序去重；roots 按 `(key,resultIndex)` 排序
+每个数组元素产生 node key。前五项识别源 node 家族；F09.6 构建时不把
+fieldPath 或数组元素数当作 op 容量切分依据，真实语义冲突另行处理。
+members/origins 排序去重；roots 按 `(key,resultIndex)` 排序
 去重，rootResults 同步排列。验证器检查类型、配对长度和结果序号范围。
 
 F09 复用 F02/F08 的存储字段，但已版本化为新的可选关联语义。每 op 的
@@ -346,8 +351,8 @@ node y = mux(n, x, z)
 标成 Y。输入、状态读和效果是其外部依赖，不能由 node 标签改变其执行阶段。
 当前阶段已被归到 writer 私有参数锥的表达式保持其归属，只有留下的 nonsink
 部分进入 node 分图覆盖率统计。
-未被显式 node 包住的组合逻辑沿用当前图分析，可选生成前端表达式分组，但
-必须与真实源 node 分开统计。
+未被显式 node 包住或丢失可用提示的组合逻辑按 MFFC 构建统一 node，
+与提示构建的 node 使用相同分图语义，来源分别统计。
 
 `node n = input` 等别名没有计算区域；允许没有 op 上的结果根映射。
 不为了保留提示引入 kAssign 属性载体、activity bit 或值复制。
@@ -401,7 +406,7 @@ ingest / 普通 GRH transforms / flatten / simplify
 → grh-to-grhsim → grhsim-simplify / bit packing / masked-OR
 → 可选整体 node 分析/额外优化（只消费现存可验证信息）
 → split-event-and-output → split-nonsink-and-sink
-→ partition-nonsink（可参考 op 上的软提示）
+→ partition-nonsink（F09.6：先提示/MFFC node，再按 node 数形成 SN）
 → simplify（遵循实际 leaf owner）→ partition-sink
 ~~~
 
@@ -431,51 +436,66 @@ checkpoint 要求重新 ingest，不能重用其优化历史。
 变换或截断成虚假的完整表达式。格式类型/版本/result 范围仍验证，正常
 优化造成的提示消失、合并和根不可追踪不再触发语义失败。
 
-## 9. nonsink 如何参考软提示
+## 9. 先构建 node，再划分 supernode
 
-详细设计与 F09.0–F09.5 见 [F09-plan.md](F09-plan.md)。统一引擎从当前 op
-DAG 出发，关联 key 只形成允许相交的临时提示集合；不先把完整 node 收缩
-成不可分 atom。node 可拆、不同 node 可合、SV/FIRRTL 混合区域可跨界合。
-无提示 SV 使用相同算法和成本，不需要伪造来源，也不按 node/wire 名称匹配。
+当前设计见 [F09-plan.md](F09-plan.md)，F09.6 已实现。它取代历史 v2
+的 op-work 切分/提示 tie-break，也取代上次“单 node 超 work 预算豁免”。
 
 ~~~text
-当前 nonsink op DAG + 可选 node 关联索引
-→ 同一候选生成 / 逆向吸收 / coarsen / segment
-→ 实际 leaf / supernode → 后续 simplify、partition-sink 和 emitter
+普通 simplify 后的实际 nonsink op DAG
+→ 有可用 FIRRTL 提示：按提示构建 node
+  无可用提示：按 MFFC 构建 node
+→ 统一 Node DAG（每 node 容量权重为 1）
+→ 按 node 数划分 supernode
+→ node 内 simplify → partition-sink / SinkSchedule → emit
 ~~~
 
-首版固定现有物理成本，提示用于候选提议、搜索顺序和同成本 tie-break；
-不是 must-link、cannot-cut 或强制结果发布。候选仍须满足实际依赖、phase、
-effects、声明锚点、预算和 quotient 无环检查。相交提示不做传递 union；
-共享 op 只计费一次，也只能有一个最终 owner。非凸、不完整或无根提示
-不要求恢复成完整表达式，可以部分使用或忽略。
+### 9.1 node 是统一的分图单位
 
-max-node-work、max-supernode-work 对所有来源采用同一规则。源 node 大于
-预算时正常切开，不因提示完整性豁免；只有单个 op 的不可分超限按统一
-基线处理。node 根不强制持久化/激活，跨 owner 的真实消费者决定发布。
-数组仍保留 shape，Bundle 依既有规则展平。
+提示区域依据当前 members 构建；根可缺失，不恢复被优化掉的计算。无提示
+区域按 MFFC（最大无扇出锥）构建：纳入根的上游组合计算，仍有锥外消费者
+的 producer 保持为共享边界。纯 SV、FIRRTL 未显式标注的逻辑、提示丢失
+区域及混合 glue 使用同一规则。两种方式产出的 node 具有相同的分图语义，
+均不按内部 op 数、位宽 work 或 max-node-work 再切片。
 
-source association、最终 leaf 和 supernode 分开：当前 emitter 按 enclosing
-supernode 执行，而 simplify 按完整 leaf owner 隔离。同 supernode 不自动
-获得跨 leaf CSE，合法融合使用共同规则；source 关联不再构成额外边界。
-bounded clone 和叶内简化后复核预算、边界、effects 与 writer prerequisite，
-再建立 SinkSchedule。
+普通 CSE 形成的多成员共享，在构建层规范化为唯一执行归属与真实共享边，
+不撤销 CSE、不为恢复源表达式自动复制、不按提示相交传递 union。非凸、
+跨 phase/state/effects 等结构冲突在此解决，无法采用的提示部分按 MFFC
+处理并报告。node 构建完成后，上层不再读取 source members 重划内部。
 
-已实现的 firrtl-nodes=off|prefer|auto 仅控制分图消费者，原型默认 off；
-任何模式都不能改变普通 simplify。off 忽略提示，prefer 参考可用关联，
-auto 采用相同软策略且无提示即基线。它们与声明锚点策略独立。记录
-requested/resolved、schema/policy、算法及 cost revision；旧八项配置和
-旧 source-node checkpoint 明确迁移，不静默升级。
+source association、统一 node 和 supernode 分开：注解可多对多，统一
+node 具有唯一 op 归属，supernode 是若干完整 node 的执行组。根不强制
+发布；多个真实输出/消费者均可形成边界，按实际依赖验证 quotient 无环。
+Bundle 依既有规则展平、Vector 保留 shape，不按字段/元素数量换算 op 容量。
 
-F09 已提供独立的 cost-model=legacy|bytes；bytes 绕过 greedy coarsening，
-在拓扑 leaf 区间中优化输入 payload bytes、固定调度和 firing×work 代理，
-不是实测活动率或全局最优。fuse-leaves 默认 0；clone 单轮有界，包含常量
-支持 op 的新增工作也必须满足预算，且 varying input 已到达目的执行 owner。
-不凭 node 名称猜活动率。临时 leaf/cluster key 集合最多 256 项，稳定选择，
-不据此证明完整区域。若后续试验亲和度或切边惩罚，必须有界、可关闭、
-版本化并单独消融，不能变成强制同组。报告覆盖/降级、多关联 op、提示评分、
-提示被切分、跨来源合并、leaf/SN、边界 bytes、clone 额外求值和元数据成本。
-提示完整率不是完成或性能成功标准；正式计时关闭诊断计数。
+### 9.2 supernode 只按 node 数量限制容量
+
+新配置为 max-supernode-nodes。每个统一 node 计 1，内部有 1 个或 180 个
+ops 都一样。上限 K 允许最多 K 个完整 node，不切开第 K+1 个 node 来填满
+剩余容量。node 来自 FIRRTL 提示还是 MFFC 对此无影响。
+
+移除 max-node-work 对 node 大小的控制，max-supernode-work 需要显式退出
+新流程，不能沿用旧数值换单位。没有“单 node 超 op-work 预算”的例外。
+旧 bytes 模型的 firing×op-work 项也不再决定新 SN 分组；op/work 只能用于
+诊断。可参考 Node DAG 拓扑/边界开销，但容量不访问 node 内部 op 复杂度。
+后端的分文件/分函数源码尺寸限制独立处理，不改变执行 node/SN 分图。
+
+### 9.3 owner、配置与验收
+
+最终 leaf/node owner 表示统一 node，SN owner 表示其执行组。SN 分组不
+隐含 node 融合；旧 fuse-leaves 与 work cap 已移除。
+无 clone 基线已验收；可选 clone 进入既有目的 node，不增加 node 数；新执行 node 按新增 node 计数，
+node 内局部重写不因 op 数变化改变容量。effects、旧值、writer prerequisites
+和最终 SinkSchedule 继续验证。空 node 删除后重新核对 node 数。
+
+off 模式全部按 MFFC 形成 node；prefer/auto 有提示按提示，其余按 MFFC，
+不再只是同成本 tie-break。新构建策略、node-count 容量和选项使用新的
+config/checkpoint v3 / hint-mffc-v1，默认 auto/legacy/128 nodes；旧 v2 结果要求重新分图，不静默折算旧 work cap。
+
+报告区分 FIRRTL node、MFFC node、共享/冲突降级及各 SN 的 node 数，另记
+边界和运行计数；op/work 是诊断项。来源属性的 64 项资源限制不能变成
+执行 node 的 op 数限制。simplify 透明性、K/K+1 容量、大/小 node 同权、
+混合输入、恢复与真实模块回归共同构成 F09.6 验收。
 
 ## 10. 正确性和性能验收
 
@@ -489,9 +509,9 @@ node 传递测试要包括同模块两实例、整体 node 合并的多源身份
 小电路参考解释器或明确记分板检查可观察结果，并验证 owner 唯一、拓扑无环、
 激活完整、effects/旧值/写优先级不变。不能只断言某种节点数量。
 
-新软提示策略的定向回归同时检查计算结果和普通优化的透明性：
+新两层分图策略的定向回归同时检查计算结果和普通优化的透明性：
 
-| 场景 | 分图前预期 |
+| 场景 | 预期 |
 | --- | --- |
 | 有/无 node 标注，关闭独立提示消费者 | 普通 simplify 的规范化计算结构相同，结果一致 |
 | 完整表达式不同，但内部有相同 and/add | 普通 CSE 可共享并合并直接关联，node 不增加限制 |
@@ -500,24 +520,25 @@ node 传递测试要包括同模块两实例、整体 node 合并的多源身份
 | 内联、重关联、mux/bit packing/写归一化 | 不因带 node attrs 跳过，提示维护失败可降级 |
 | 根折叠为输入/常量，计算变死 | 无属性载体或提示保活，允许根/关联消失 |
 | 共享 op 导致提示重叠，或提示非凸/不完整 | 作为可选局部关联，不强制 union 或整体收缩 |
-| 源 node 超工作预算 | 正常分图可以拆开，预算与无提示路线相同 |
+| FIRRTL 提示区域与无提示区域 | 分别按提示/MFFC 构建统一 node，不按 op 数/work 截断，F09.6 已验证 |
+| node 内部 op 数变化、SN 容量 K/K+1 | 每 node 容量贡献均为 1，SN 只按 node 数限制容量，不拆内部 ops |
 | hash 碰撞、类型/常量/功能 attrs/输入不同 | 精确比较拒绝不合法共享，提示不构成等价证明 |
 | 数组、状态、效果、phase 和实际 owner | 保留普通语义边界；不因 source key 相同越界共享 |
-| 同一 supernode 的不同 leaf / 合法融合后同 leaf | 前者保留实际 owner 限制，后者不因 source key 新增隔离 |
+| 同一 supernode 内多个 node | 保留各 node owner；上层分组不隐含 node 融合或 op 重划 |
 
 性能主对照使用三个配置，可选增加独立整体优化对照：
 
 | 配置 | 输入与分图 | 用途 |
 | --- | --- | --- |
-| A | 冻结 SV 输入，普通 simplify，统一分图提示 off | SV 路线对照 |
-| B | FIRRTL + 必要 SV，软提示 attrs，普通 simplify，分图提示 off | 新 FIRRTL 路线的无提示消费基线 |
-| C | 与 B 相同输入、优化后图和 attrs，分图提示 prefer | 单独测参考提示的分图收益 |
+| A | 冻结 SV 输入，普通 simplify，MFFC 构建 node | SV 路线对照 |
+| B | FIRRTL + 必要 SV，普通 simplify，忽略 attrs、全部 MFFC 成 node | FIRRTL 路线的 MFFC 对照 |
+| C | 与 B 相同输入/优化图/attrs，有提示按提示、其余 MFFC 成 node | 单独测提示指导 node 构建的收益 |
 | D（可选） | 若保留额外整体 node 优化，与 C 对照其独立开关，其余策略相同 | 测该额外优化，不恢复 source-node 屏障 |
 
 B/C 共用分图前 checkpoint、后端源码、其他 pass、编译选项和 workload，
-分别记录 pass 结果及生成模型，唯一主动改变的变量是 node 分图模式。
-两者还固定 cost revision、leaf 融合及 clone 设置；cost 改进、leaf 融合和
-clone 分别做开关对照。两者保留相同 attrs；测试中移除 attrs 只用于前述
+分别记录 node 构建、SN 分组及生成模型，唯一主动改变的变量是 node 构建
+模式。SN 分组策略、max-supernode-nodes 和其他设置相同，基线不含融合
+或 clone；后续额外优化另行消融。两者保留相同 attrs；测试中移除 attrs 只用于前述
 普通优化透明性检查或独立元数据成本实验，不混入分图收益。
 若存在 D，则从额外整体优化前的共同 checkpoint 分叉并记录该开关；
 不能以冻结 primitive CSE 制造该优化收益。若独立选项废弃，D 不再必测。
