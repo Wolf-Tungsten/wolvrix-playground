@@ -343,7 +343,34 @@ generate_firrtl_state:
 test_firrtl_state: generate_firrtl_state
 	TMPDIR="$(FIRRTL_STATE_TEST_WORK)/tmp" $(MAKE) -C $(WOLVRIX_BUILD_DIR)/artifacts/firrtl-state -f run.mk run
 
+FIRRTL_F06_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F06
+.PHONY: generate_firrtl_memory test_firrtl_memory
+generate_firrtl_memory:
+	mkdir -p "$(FIRRTL_F06_TEST_WORK)/tmp" "$(FIRRTL_F06_TEST_WORK)/ccache"
+	TMPDIR="$(FIRRTL_F06_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F06_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(FIRRTL_F06_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F06_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target firrtl-memory -j 4
+	TMPDIR="$(FIRRTL_F06_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F06_TEST_WORK)/ccache" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^firrtl-memory$$' --output-on-failure
+test_firrtl_memory: generate_firrtl_memory
+	TMPDIR="$(FIRRTL_F06_TEST_WORK)/tmp" $(MAKE) -C $(WOLVRIX_BUILD_DIR)/artifacts/firrtl-memory -f run.mk run
+
+.PHONY: generate_firrtl_effects test_firrtl_effects
+generate_firrtl_effects:
+	mkdir -p "$(FIRRTL_F06_TEST_WORK)/tmp" "$(FIRRTL_F06_TEST_WORK)/ccache"
+	TMPDIR="$(FIRRTL_F06_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F06_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(FIRRTL_F06_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F06_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target firrtl-effects -j 4
+	TMPDIR="$(FIRRTL_F06_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F06_TEST_WORK)/ccache" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^firrtl-effects$$' --output-on-failure
+test_firrtl_effects: generate_firrtl_effects
+	TMPDIR="$(FIRRTL_F06_TEST_WORK)/tmp" $(MAKE) -C $(WOLVRIX_BUILD_DIR)/artifacts/firrtl-effects -f run.mk run
+
 FIRRTL_INPUT ?= $(CURDIR)/ptmp/xs/rtl/rtl/SimTop.fir
+.PHONY: generate_firrtl_target test_firrtl_target
+generate_firrtl_target:
+	mkdir -p "$(FIRRTL_F06_TEST_WORK)/tmp" "$(FIRRTL_F06_TEST_WORK)/ccache"
+	TMPDIR="$(FIRRTL_F06_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F06_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(FIRRTL_F06_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F06_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target firrtl-target -j 4
+	TMPDIR="$(FIRRTL_F06_TEST_WORK)/tmp" $(WOLVRIX_BUILD_DIR)/bin/firrtl-target "$(FIRRTL_INPUT)"
+test_firrtl_target: generate_firrtl_target
+	TMPDIR="$(FIRRTL_F06_TEST_WORK)/tmp" $(MAKE) -C $(WOLVRIX_BUILD_DIR)/artifacts/firrtl-target -f run.mk run
 FIRRTL_INSPECT_FLAGS ?=
 .PHONY: inspect_firrtl_inputs
 inspect_firrtl_inputs:

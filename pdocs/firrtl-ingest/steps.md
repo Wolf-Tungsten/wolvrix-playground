@@ -356,6 +356,40 @@ memory/effects、混合链接、完整 node CSE/nonsink 利用继续按 F06–F0
 退出条件：memory 时序与 mask 记分板通过，effects 的次数/顺序可核验；F00
 目标矩阵里除跨语言链接外的必要构造完成，并且没有静默语义降级。
 
+实施记录（2026-10-31）：已完成。memory、效果与冻结目标模块运行及最终
+全量复验通过。
+逐项证据与执行支持边界见 [F06-acceptance.md](F06-acceptance.md)。
+实现提交为 wolvrix `60ee737`，node provenance 修复为 `8f4a4a4`，均位于
+`grh/firrtl-ingest`。
+
+- 标准 mem 与 CHIRRTL cmem/smem/mport 使用统一的 Memory/MemoryPort
+  描述；Bundle 拆字段，Vector 保留 shape，depth 是最外层。复用普通
+  kRegister、数组读写端口及流水状态，不引入后端专用 memory opcode。
+- 延迟/read-under-write、独立时钟重叠、同钟别名、并发写冲突、mask、
+  越界、depth-one 零宽地址与 Bundle rdwr 统一模式均有独立记分板。
+  FourState 回归直接观察 X，TwoState 投影仍由既有转换显式选择。
+- printf/stop/assert/assume/cover 和目标 ifelsefatal 使用既有 SystemTask；
+  compiled driver 对照旧值采样、效果顺序/次数、精确输出及终止状态。
+- layer 显式选择并记录 metadata；Probe 使用无条件且唯一完整的 define，
+  忽略 invalidate 并拒绝聚合 connect 绕过。接口保留待解析的 Probe ABI。
+- 五类冻结 annotation 使用严格 schema，DontTouch 保留符号，inline SV
+  payload 保留到 F07；未知可观察语义失败，实例具名请求外部实现/模块绑定。
+- 原始 SimTop 文件中的 Queue2、138-bit SRAM 和 JTAG 三个无外部依赖
+  模块通过完整后端运行；JTAG 启用 Verification.Assert 并校验 fatal。
+- node verifier 允许死 node 留在共享字面量上的 provenance；非字面量
+  无 root 的活计算仍拒绝，直接回归及 JSON 往返覆盖这一区别。
+
+新增工作流入口为 `make test_firrtl_memory`、`make test_firrtl_effects` 和
+`make test_firrtl_target`；证据日志位于 `ptmp/firrtl-ingest/F06/`。
+定向最终命令 `make test_firrtl_memory test_firrtl_effects
+test_firrtl_node_attributes test_firrtl_target` 退出 0，日志为
+`final-boundaries-target.log`；全量最终命令 `make test_wolvrix
+test_transform_memory_read_retime run_grhsim_cpu_st_cpp test_firrtl_memory
+test_firrtl_effects test_firrtl_parser_inputs verify_firrtl_inputs` 退出 0，
+日志为 `final-acceptance.log`。结果为 75/75 CTest、154 个 CPU 模型、
+37 个 memory 模型、8 个 effects 模型、输入校验 4/4 和冻结身份复验通过。
+F07 混合链接、F08 完整 node CSE 和 F09 node-aware nonsink 仍待实施。
+
 ## F07：混合 SV/FIRRTL 读取与链接
 
 交付：

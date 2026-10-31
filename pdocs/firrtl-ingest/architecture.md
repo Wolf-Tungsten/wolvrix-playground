@@ -230,6 +230,33 @@ layer/layerblock、intrinsic、Probe/引用与 annotation 根据 F00 清单逐�
 展开”的兼容捷径。影响初始化、memory、外部实现或可观察性的 annotation
 必须解释或报错；已确认仅用于物理实现的 annotation 可按白名单忽略并记录。
 
+F06 的具体合约见 [firrtl-memory.md](../../wolvrix/docs/ingest/firrtl-memory.md)
+和 [firrtl-effects.md](../../wolvrix/docs/ingest/firrtl-effects.md)。标准 mem 与
+CHIRRTL 先进入同一内部 Memory/MemoryPort 描述，再复用普通 GRH kRegister、
+kRegisterReadArrayPort 和 kRegisterWriteArrayMaskPort；不新增 backend
+memory opcode。写端口 operands 为 `[enable,address,data,bitmask,clock]`，
+eventEdge 为 posedge，regSymbol 关联数组状态；Bundle 按字段拆开，depth
+作为 shape 最外层。latency 上限 1024，超限明确报错。
+
+old 延迟读数据，new 延迟地址/使能再读当前存储；undefined 以读 token
+和待完成写 token 跟踪重叠地址。独立时钟在所有策略下跟踪重叠，时钟
+保持高电平不重复触发；完成的读结果不会因后续写边沿误标冲突。存储及
+数据流水使用 initPolicy，禁用/OOB/冲突使用 invalidPolicy。跟踪事件的
+history/collision 状态明确初始化为零，避免把仿真历史当作未知用户状态。
+node/wire 时钟别名归一后判断同钟；CHIRRTL rdwr 的写模式跨 Bundle
+全部叶子统一，部分写 mask 仍只更新被写字段。
+
+验证层使用 `FirrtlOptions.enabledLayers` 的完整路径，选子层隐含选祖先；
+配置入 JSON metadata。define 不受 when 条件限制，Probe 按叶子/数组位
+检查唯一、完整定义。
+connect 不允许通过聚合类型绕过 Probe 限制；invalidate 忽略 Probe，
+不替代 define。接口签名仍保留 Probe/RWProbe 和 ABI 待解析标记。
+效果沿现有 SystemTask 调度实现旧值采样和源顺序；cover 采用 hit trace
+并发出非 formal coverage 警告。annotation 使用冻结
+输入五类严格 schema 白名单；DontTouch 锚定符号，其余优化来源及 inline SV
+payload 保留 metadata，未知初始化/随机化请求报错。实例引用报告具名链接/
+外部绑定请求，保留接口、defname 和参数，不发布伪 blackbox 可执行设计。
+
 ## 6. Bundle 展平、Vector 保留
 
 复用 [SV 聚合规范](../../wolvrix/docs/ingest/aggregate-types.md) 的 GRH 终态：
