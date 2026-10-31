@@ -464,6 +464,25 @@ Wolvrix 实现提交：`ad4d9a2`（feat(ingest): link mixed FIRRTL and SystemVer
 公共内部子树不会提前被抽取，hash 碰撞和功能差异不误合并；同模块两实例
 的不同输入不误判。JSON 往返、幂等与配置检查通过，SV 原有语义回归通过。
 
+### F08 实施记录（2026-10-31）
+
+Wolvrix 实现提交：`5f31043`。
+
+已完成完整node signature/hash精确判等、独立等价分析/门槛合并、多源根/成员
+传播和 source-node policy/inventory/retention。普通生产重写及全局仿真优化
+按源作用域保守保留；XMR和ROM/RAM retime补齐结果根/output重绑专项。
+converted局部优化后执行，off/gsim配置、revision和generation identity随
+checkpoint保存；所有stage恢复、旧policy/改配置拒绝及幂等通过。
+
+最终 `make test_grhsim_node_cse test_firrtl_node_pipeline test_wolvrix
+inspect_firrtl_node_retention` 通过，完整 CTest 78/78；组合/时序/memory/
+effects/11个混合编译模型、8个选定CPU模型、Python 3+8+3、HDLBits001
+普通SV/GrhSIM均通过。RenameTable自包含层次2230源nodes，gsim合并8个，
+所有checkpoint missing=0；JSON节点信息增加约1.46MB，报告2504bytes。
+该测量不代表整机或仿真提速。详细审计、命令、成本和边界见
+[F08-acceptance.md](F08-acceptance.md)，日志位于 `ptmp/firrtl-ingest/F08/`。
+F09 node-aware nonsink尚未实施。
+
 ## F09：利用 node 的 nonsink 分图
 
 交付：

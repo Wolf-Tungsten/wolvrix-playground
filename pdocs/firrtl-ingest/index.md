@@ -5,8 +5,8 @@ F03 parser 和接口索引已完成，冻结输入通过香山全模块语法与
 F04 组合 lowering、Bundle/Vector 和真实 node 标注已完成，验收见 F04-acceptance.md。
 F05 寄存器、复位及有序数组写已完成，验收见 F05-acceptance.md。
 F06 memory、效果与目标版本特性已完成，验收见 F06-acceptance.md。
-F07 混合读取与链接已完成，验收见 F07-acceptance.md。完整 node CSE 与
-nonsink 消费仍待 F08/F09。阶段状态及实际验证见下表。
+F08 完整 node CSE、属性传播和 checkpoint 已完成，验收见
+F08-acceptance.md。node-aware nonsink 消费仍待 F09。阶段状态及实际验证见下表。
 
 目标是在 Wolvrix 内实现不依赖 CIRCT 的 FIRRTL 前端，与现有 SV 前端共同
 构建设计。FIRRTL `node` 的表达式归属和结果边界以 op attribute 保存，经过
@@ -31,6 +31,8 @@ nonsink 消费仍待 F08/F09。阶段状态及实际验证见下表。
 | [F06-acceptance.md](F06-acceptance.md) | F06 验收矩阵、目标模块执行和专项/全量回归证据 |
 | [mixed.md](../../wolvrix/docs/ingest/mixed.md) | F07 混合读取、参数 specialization、ABI、黑盒源及事务式发布 |
 | [F07-acceptance.md](F07-acceptance.md) | F07 交替层次仿真、负例、Python 和完整回归证据 |
+| [node-cse.md](../../wolvrix/docs/ingest/node-cse.md) | 完整node判等、GSIM门槛、配置和checkpoint合约 |
+| [F08-acceptance.md](F08-acceptance.md) | F08生产变换审计、回归和真实大模块属性成本 |
 | [inputs.json](inputs.json) | FIRRTL、生成 SV、fixture、规范及语法统计的冻结身份 |
 
 ## 已确定的设计决策
@@ -62,7 +64,7 @@ nonsink 消费仍待 F08/F09。阶段状态及实际验证见下表。
 | F05 | 寄存器、复位及有序数组写 | 已完成（2026-10-31，验收见 F05-acceptance.md） |
 | F06 | memory、效果及目标版本特性 | 已完成（2026-10-31，验收见 F06-acceptance.md） |
 | F07 | FIRRTL/SV 混合 elaboration、链接和 Python API | 已完成（2026-10-31，完整验收见 F07-acceptance.md） |
-| F08 | GSIM 模式 node 级 CSE、属性传递和 checkpoint | 待实施 |
+| F08 | GSIM 模式 node 级 CSE、属性传递和 checkpoint | 已完成（2026-10-31，验收见 F08-acceptance.md） |
 | F09 | 利用 node 的 nonsink 分图 | 待实施 |
 | F10 | 香山混合输入和差分正确性 | 待实施 |
 | F11 | 前端/node CSE/分图性能消融、默认策略和正式文档 | 待实施 |

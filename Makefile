@@ -192,6 +192,7 @@ XS_GRHSIM_PHASE_SIMPLIFY ?= 1
 XS_GRHSIM_MASKED_OR ?= 1
 XS_GRHSIM_MASKED_OR_MIN_TERMS ?= 16
 XS_GRHSIM_MASKED_OR_REPORT ?=
+XS_GRHSIM_FIRRTL_NODE_CSE ?= gsim
 XS_GRHSIM_PACK_BIT_REGISTERS ?= 1
 XS_GRHSIM_PACK_BIT_REGISTERS_REPORT ?=
 XS_SIM_DEFINES ?= DIFFTEST
@@ -328,6 +329,14 @@ test_firrtl_node_attributes test_firrtl_cse_scope:
 	TMPDIR="$(FIRRTL_NODE_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_NODE_TEST_WORK)/ccache" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^$(subst _,-,$(patsubst test_%,%,$@))$$' --output-on-failure
 
 FIRRTL_PARSER_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F03
+FIRRTL_F08_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F08
+.PHONY: test_grhsim_node_cse test_firrtl_node_pipeline
+test_grhsim_node_cse test_firrtl_node_pipeline:
+	mkdir -p "$(FIRRTL_F08_TEST_WORK)/tmp" "$(FIRRTL_F08_TEST_WORK)/ccache"
+	TMPDIR="$(FIRRTL_F08_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F08_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(FIRRTL_F08_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F08_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target $(subst _,-,$(patsubst test_%,%,$@)) -j 4
+	TMPDIR="$(FIRRTL_F08_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F08_TEST_WORK)/ccache" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^$(subst _,-,$(patsubst test_%,%,$@))$$' --output-on-failure
+
 .PHONY: test_firrtl_parser
 test_firrtl_parser:
 	mkdir -p "$(FIRRTL_PARSER_TEST_WORK)/tmp" "$(FIRRTL_PARSER_TEST_WORK)/ccache"
@@ -375,6 +384,15 @@ test_firrtl_effects: generate_firrtl_effects
 	TMPDIR="$(FIRRTL_F06_TEST_WORK)/tmp" $(MAKE) -C $(WOLVRIX_BUILD_DIR)/artifacts/firrtl-effects -f run.mk run
 
 FIRRTL_INPUT ?= $(CURDIR)/ptmp/xs/rtl/rtl/SimTop.fir
+FIRRTL_NODE_MODULE ?= RenameTable
+FIRRTL_NODE_CSE ?= gsim
+.PHONY: inspect_firrtl_node_retention
+inspect_firrtl_node_retention:
+	mkdir -p "$(FIRRTL_F08_TEST_WORK)/tmp" "$(FIRRTL_F08_TEST_WORK)/ccache"
+	TMPDIR="$(FIRRTL_F08_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F08_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(FIRRTL_F08_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F08_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target inspect-firrtl-nodes -j 4
+	sha256sum "$(FIRRTL_INPUT)"
+	TMPDIR="$(FIRRTL_F08_TEST_WORK)/tmp" /usr/bin/time -v $(WOLVRIX_BUILD_DIR)/bin/inspect-firrtl-nodes "$(FIRRTL_INPUT)" "$(FIRRTL_NODE_MODULE)" "$(FIRRTL_NODE_CSE)" "$(FIRRTL_F08_TEST_WORK)/$(FIRRTL_NODE_MODULE)-$(FIRRTL_NODE_CSE)-retention.txt"
 .PHONY: generate_firrtl_target test_firrtl_target
 generate_firrtl_target:
 	mkdir -p "$(FIRRTL_F06_TEST_WORK)/tmp" "$(FIRRTL_F06_TEST_WORK)/ccache"
@@ -933,6 +951,7 @@ reemit_grhsim: check_remove_grhsim_ir_options $(if $(filter 1,$(SKIP_PY_INSTALL)
 		--max-function-lines "$(GRHSIM_REEMIT_MAX_FUNCTION_LINES)" --max-tu-bytes "$(GRHSIM_REEMIT_MAX_TU_BYTES)" \
 		--max-output-file-bytes "$(GRHSIM_REEMIT_MAX_OUTPUT_FILE_BYTES)" \
 		--mem-write-activate "$(GRHSIM_REEMIT_MEM_WRITE_ACTIVATE)" \
+		$(if $(strip $(GRHSIM_REEMIT_FIRRTL_NODE_CSE)),--firrtl-node-cse "$(GRHSIM_REEMIT_FIRRTL_NODE_CSE)",) \
 		$(if $(filter 1,$(GRHSIM_REEMIT_EXECUTION_COUNTERS)),--execution-counters,) \
 		$(if $(filter 1,$(GRHSIM_REEMIT_OVERWRITE)),--overwrite,) \
 		$(if $(strip $(GRHSIM_REEMIT_MEM_ENABLE_BITMAP)),--mem-enable-bitmap "$(GRHSIM_REEMIT_MEM_ENABLE_BITMAP)",) \
@@ -2012,6 +2031,7 @@ xs_grhsim_hier_json: $(XS_GRHSIM_FILELIST_ABS) $(XS_GRHSIM_DEPS)
 
 # Pass only deviations from the Python flow's production defaults.
 XS_GRHSIM_FLAGS = \
+	--firrtl-node-cse $(XS_GRHSIM_FIRRTL_NODE_CSE) \
 	$(if $(filter 1,$(XS_GRHSIM_RESUME_FROM_FLAT_GRH_JSON)),--resume-from-flat-grh,) \
 	$(if $(filter 1,$(XS_GRHSIM_ROUNDTRIP_VERIFY)),,--no-roundtrip-verify) \
 	$(if $(filter 0,$(XS_GRHSIM_KEEP_ORIGINS)),--no-keep-origins,) \

@@ -385,7 +385,7 @@ Node 的做法一致，后续扩展另列语义与性能证据。
 
 ### 8.2 判等与实际共享分离
 
-拟新增普通 GRH 仿真 pass `grhsim-node-cse`，执行以下步骤：
+普通 GRH 仿真 pass `grhsim-node-cse` 执行以下步骤：
 
 1. 按依赖拓扑遍历候选 node，计算完整表达式的结构 hash。
 2. 同 hash 仅产生候选，继续精确比较 op kind、结果完整类型、功能 attrs、
@@ -445,6 +445,15 @@ graph metadata 记录 `firrtl.nodeOptimization="gsim-v1"` 和 node CSE 配置，
 与 schema 一并往返。checkpoint 明确标识 node CSE 已执行的 revision/配置；
 重新读取时验证或重建 analysis，不能在不同 pass 阶段重复物理合并，也不能
 在已做全局 primitive CSE 的旧图上仅补 attrs 宣称符合新策略。
+
+F08已实现 `firrtl.nodeScopePolicy=source-node-v1`、source inventory和
+`firrtl.nodeCseConfig=v1/<off|gsim>/5/256/1`。策略在源lowering时建立；
+同配置重入只验证，shared flow恢复时跳过已完成的converted局部优化。
+每个mutating pass后记录source-result census；DCE工作列表才可记合法删除，
+partition-sink在生成revision-local schedule前记录，避免之后修改使其失效。
+availability census不等同原始primitive checksum，内部作用域由重写合约与
+回归保证。正式规则见[node-cse.md](../../wolvrix/docs/ingest/node-cse.md)，
+审计和实测见[F08-acceptance.md](F08-acceptance.md)。
 
 ### 8.4 跨 pass 属性传递
 

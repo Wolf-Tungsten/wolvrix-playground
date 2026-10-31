@@ -61,6 +61,7 @@ def run_pass(session, name: str, *, design: str, top: str, **options):
 
 @dataclasses.dataclass
 class FlowOptions:
+    firrtl_node_cse: str = "gsim"
     pack_bit_registers: bool = True
     recover_masked_or: bool = True
     masked_or_min_terms: int = 16
@@ -81,6 +82,12 @@ class FlowOptions:
     @classmethod
     def from_metadata(cls, metadata: dict) -> FlowOptions:
         result = cls()
+        config = metadata.get("firrtl.nodeCseConfig")
+        if config is not None:
+            fields = config.split("/")
+            if len(fields) != 5 or fields[0] != "v1" or fields[1] not in ("off", "gsim") or fields[2:] != ["5", "256", "1"]:
+                raise ValueError("Unrecognized FIRRTL node CSE configuration; re-ingest the source")
+            result.firrtl_node_cse = fields[1]
         if "grhsim.memMinBytes" in metadata:
             result.mem_min_bytes = int(metadata["grhsim.memMinBytes"])
         if "grhsim.nonsinkConfig" in metadata:
@@ -113,6 +120,18 @@ def finish_simulation_graph(session, *, design: str, top: str,
     if stop_after not in STAGES:
         raise ValueError(f"Unknown stop stage: {stop_after}")
     options = options or FlowOptions.from_metadata(metadata)
+    if options.firrtl_node_cse not in ("off", "gsim"):
+        raise ValueError("firrtl-node-cse must be off or gsim")
+    has_nodes = "firrtl.nodeSchema" in metadata or "firrtl.nodeScopePolicy" in metadata
+    if has_nodes:
+        if metadata.get("firrtl.nodeScopePolicy") != "source-node-v1" or "firrtl.nodeInventory" not in metadata:
+            raise ValueError("FIRRTL checkpoint lacks source-node scope provenance; re-ingest the source")
+        config = metadata.get("firrtl.nodeCseConfig")
+        if config is not None:
+            if config != f"v1/{options.firrtl_node_cse}/5/256/1" or metadata.get("firrtl.nodeOptimization") != "gsim-v1":
+                raise ValueError("FIRRTL node CSE checkpoint policy/configuration differs")
+        elif stage is not None and stage != "converted":
+            raise ValueError("FIRRTL checkpoint passed node CSE without policy evidence; re-ingest the source")
     if stage is not None and STAGES.index(stage) > STAGES.index(stop_after):
         raise ValueError("Checkpoint has already passed the requested stop stage")
 
@@ -127,7 +146,7 @@ def finish_simulation_graph(session, *, design: str, top: str,
         run("grh-to-grhsim", logic_domain="2state")
         stage = "converted"
         saved()
-    if stage == "converted":
+    if stage == "converted" and (not has_nodes or "firrtl.nodeCseConfig" not in metadata):
         run("grhsim-simplify")
         if options.pack_bit_registers:
             run("grhsim-pack-bit-registers", **({"report": options.pack_report} if options.pack_report else {}))
@@ -136,7 +155,10 @@ def finish_simulation_graph(session, *, design: str, top: str,
             run("grhsim-recover-masked-or", min_terms=options.masked_or_min_terms,
                 **({"report": options.masked_or_report} if options.masked_or_report else {}))
             run("grhsim-simplify")
+        if has_nodes:
+            run("grhsim-node-cse", firrtl_node_cse=options.firrtl_node_cse)
         saved()
+    if stage == "converted":
         if stop_after == stage:
             return
         run("grhsim-split-event-and-output")
@@ -180,7 +202,11 @@ def emit_cpp(session, *, design: str, top: str, output: Path, overwrite: bool = 
         identity = generation_identity if generation_identity is not None else capture_generation("api-emit")
         checked(session.emit_grhsim_cpu_st_cpp(design=design, top=[top], output=str(candidate), **options), "emit grhsim-cpu-st-cpp")
         write_identity(candidate / "generation-identity.json", {
-            **identity, "emit": {"top": top, "options": options}, "generated": generated_identity(candidate)})
+            **identity, "emit": {"top": top, "options": options},
+            "firrtl_node_policy": {key: value for key, value in
+                session.graph_metadata(design=design, top=top)["metadata"].items()
+                if key in ("firrtl.nodeSchema", "firrtl.nodeScopePolicy", "firrtl.nodeOptimization", "firrtl.nodeCseConfig")},
+            "generated": generated_identity(candidate)})
         if output.exists():
             os.rename(output, backup)
         try:

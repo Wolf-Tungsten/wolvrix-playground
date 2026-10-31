@@ -73,6 +73,7 @@ def default_flow_options() -> FlowOptions:
     # Legacy exploration caps now map to activity work, independently of emit
     # line budgets. Zero retains the new pass's bounded default.
     return FlowOptions(
+        firrtl_node_cse=os.environ.get("XS_GRHSIM_FIRRTL_NODE_CSE", "gsim"),
         enable_guard_min_size=sink_guard_min_size(),
         segment_penalty=segment_penalty(),
         semantic_nodes=semantic_nodes(),
@@ -138,6 +139,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--recover-masked-or", action=argparse.BooleanOptionalAction,
                         default=recover_masked_or_enabled())
     parser.add_argument("--masked-or-min-terms", type=int, default=16)
+    parser.add_argument("--firrtl-node-cse", choices=["off", "gsim"],
+                        default=os.environ.get("XS_GRHSIM_FIRRTL_NODE_CSE", "gsim"))
     parser.add_argument("--masked-or-report", type=Path)
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pack-bit-registers-report", type=Path)
@@ -182,6 +185,7 @@ def main() -> int:
     options.pack_bit_registers = args.pack_bit_registers
     options.recover_masked_or = args.recover_masked_or
     options.masked_or_min_terms = args.masked_or_min_terms
+    options.firrtl_node_cse = args.firrtl_node_cse
     options.partition_simplify = args.phase_simplify
     options.clone_shared = args.clone_shared_compute
     options.max_clones = args.clone_shared_compute_max_clones

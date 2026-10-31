@@ -19,6 +19,49 @@ WORK = Path(os.environ.get("GRHSIM_FLOW_TEST_WORK", ROOT / "ptmp/remove-grhsim-i
 
 
 class FlowTest(unittest.TestCase):
+    def test_firrtl_node_modes_and_resume(self):
+        work = WORK / "firrtl-nodes"
+        work.mkdir(parents=True, exist_ok=True)
+        source = work / "top.fir"
+        source.write_text("FIRRTL version 6.0.0\ncircuit top :\n  public module top :\n"
+            "    input a : UInt<8>\n    input b : UInt<8>\n" +
+            "".join(f"    output y{i} : UInt<8>\n" for i in range(5)) +
+            "".join(f"    node n{i} = not(and(a, b))\n" for i in range(5)) +
+            "".join(f"    connect y{i}, n{i}\n" for i in range(5)))
+        for mode in ("off", "gsim"):
+            checkpoints = {}
+            options = FlowOptions(firrtl_node_cse=mode, max_node_work=2, max_supernode_work=4)
+            with wolvrix.Session() as session:
+                session.diagnostics_raise_min_level = "none"
+                checked(session.read_firrtl(str(source)), "read FIRRTL node fixture")
+                for name, pass_options in GRH_PIPELINE:
+                    checked(session.run_pass(name, design="design.main", **pass_options), name)
+                def checkpoint(stage):
+                    path = work / f"{mode}-{stage}.json"
+                    store_checkpoint(session, path, design="design.main", top="top")
+                    checkpoints[stage] = path
+                finish_simulation_graph(session, design="design.main", top="top", options=options, checkpoint=checkpoint)
+                self.assertEqual(set(checkpoints), set(STAGES))
+                emit_cpp(session, design="design.main", top="top", output=work / f"model-{mode}", overwrite=True)
+                identity = json.loads((work / f"model-{mode}/generation-identity.json").read_text())
+                self.assertEqual(identity["firrtl_node_policy"]["firrtl.nodeCseConfig"], f"v1/{mode}/5/256/1")
+            for stage, path in checkpoints.items():
+                with wolvrix.Session() as session:
+                    session.diagnostics_raise_min_level = "none"
+                    checked(session.read_json_file(str(path), out_design="design.main"), "reload FIRRTL")
+                    metadata = session.graph_metadata(design="design.main", top="top")["metadata"]
+                    self.assertEqual(FlowOptions.from_metadata(metadata).firrtl_node_cse, mode)
+                    self.assertIn("missing=0", metadata["firrtl.nodeRetention"])
+                    with self.assertRaisesRegex(ValueError, "policy/configuration differs"):
+                        finish_simulation_graph(session, design="design.main", top="top",
+                            options=FlowOptions(firrtl_node_cse="gsim" if mode == "off" else "off"))
+                    finish_simulation_graph(session, design="design.main", top="top")
+                    resumed = work / f"{mode}-{stage}-resumed.json"
+                    store_checkpoint(session, resumed, design="design.main", top="top")
+                    if stage in ("nonsink-partitioned", "sink-partitioned"):
+                        self.assertEqual(resumed.read_bytes(), checkpoints["sink-partitioned"].read_bytes())
+        self.assertNotEqual((work / "off-converted.json").read_bytes(), (work / "gsim-converted.json").read_bytes())
+
     def test_retired_api_is_absent(self):
         for name in ("lower_grhsim", "run_grhsim_pass", "run_grhsim_pipeline", "load_grhsim", "store_grhsim"):
             self.assertFalse(hasattr(wolvrix.Session, name), name)

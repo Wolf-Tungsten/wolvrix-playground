@@ -38,6 +38,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--recover-masked-or", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--masked-or-min-terms", type=int)
+    parser.add_argument("--firrtl-node-cse", choices=["off", "gsim"])
     parser.add_argument("--partition-simplify", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--max-node-work", type=int)
     parser.add_argument("--max-supernode-work", "--max-op-in-compute-supernode", type=int)
