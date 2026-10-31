@@ -413,6 +413,26 @@ F07 混合链接、F08 完整 node CSE 和 F09 node-aware nonsink 仍待实施�
 两组参数生成不同正确实现，未解析/重复模块和端口错误不发布半成品 design。
 这里不能仅以“两个 parser 都执行过”作为混合支持证据。
 
+### 实施记录（2026-10-31）
+
+实现和完整证据见 [F07-acceptance.md](F07-acceptance.md)；公开合约见
+[mixed.md](../../wolvrix/docs/ingest/mixed.md)。本阶段已落实：
+
+- 请求级模块注册表与依赖遍历，FIRRTL实例直接落GRH，SV保持slang elaboration；
+  接口声明不作为空行为实现，参数wrapper在导入真实实现后删除。
+- 两向交替层次、跨FIRRTL源的显式绑定、类型化参数及等价specialization去重；
+  端口名/方向/位宽/逻辑域/shape检查，等宽布局和符号差异采用显式view。
+- 路径/资源/内嵌SV annotation按可达extmodule收集；所有schema仍验证，
+  依赖保留内容身份，未使用payload保留pending，读入失败不发布design。
+- 多owner诊断使用自有坐标，clone保留owner；层次展开为node身份逐级追加
+  instance path。F08完整node CSE与F09 nonsink消费没有提前纳入支持声明。
+- 11个编译混合模型及负例通过；最新Python包8/8、全量CTest76/76、
+  checkpoint流程2/2和生成模型通过。原始香山ClockGate混合路径、Queue、
+  SRAM和JTAG四个目标以及冻结输入身份通过；CPU154模型最终顺序回归通过。
+
+工作流和日志位于 `ptmp/firrtl-ingest/F07/`，验证均通过Makefile入口。
+Wolvrix 实现提交：`ad4d9a2`（feat(ingest): link mixed FIRRTL and SystemVerilog sources）。
+
 ## F08：GSIM 模式完整 node CSE 和属性保真
 
 交付：

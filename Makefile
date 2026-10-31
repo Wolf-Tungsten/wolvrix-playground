@@ -307,6 +307,18 @@ INGEST_SESSION_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F01/session
 test_ingest_session: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
 	PYTHONDONTWRITEBYTECODE=1 INGEST_SESSION_TEST_WORK="$(INGEST_SESSION_TEST_WORK)" $(PYTHON) -m unittest discover -s scripts -p test_ingest_session.py
 
+INGEST_MIXED_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F07
+.PHONY: generate_ingest_mixed test_ingest_mixed test_ingest_python
+generate_ingest_mixed:
+	mkdir -p "$(INGEST_MIXED_TEST_WORK)/tmp" "$(INGEST_MIXED_TEST_WORK)/ccache"
+	TMPDIR="$(INGEST_MIXED_TEST_WORK)/tmp" CCACHE_DIR="$(INGEST_MIXED_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(INGEST_MIXED_TEST_WORK)/tmp" CCACHE_DIR="$(INGEST_MIXED_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target ingest-mixed -j 4
+	TMPDIR="$(INGEST_MIXED_TEST_WORK)/tmp" CCACHE_DIR="$(INGEST_MIXED_TEST_WORK)/ccache" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^ingest-mixed$$' --output-on-failure
+test_ingest_mixed: generate_ingest_mixed
+	TMPDIR="$(INGEST_MIXED_TEST_WORK)/tmp" $(MAKE) -C $(WOLVRIX_BUILD_DIR)/artifacts/ingest-mixed -f run.mk run
+test_ingest_python: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+	PYTHONDONTWRITEBYTECODE=1 INGEST_MIXED_TEST_WORK="$(INGEST_MIXED_TEST_WORK)/python" $(PYTHON) -m unittest discover -s scripts -p 'test_ingest*.py'
+
 FIRRTL_NODE_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F02
 .PHONY: test_firrtl_node_attributes test_firrtl_cse_scope
 test_firrtl_node_attributes test_firrtl_cse_scope:

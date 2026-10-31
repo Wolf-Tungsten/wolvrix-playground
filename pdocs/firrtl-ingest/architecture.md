@@ -37,7 +37,8 @@ wolvrix/
   lib/ingest/
     sv.cpp                 # 原 lib/core/ingest.cpp，第一步只迁移
     firrtl.cpp             # FIRRTL 前端入口
-    driver.cpp             # 混合源编排、specialization、链接和事务
+    driver.cpp             # 公共入口及语言分派
+    mixed.cpp              # 混合源编排、specialization、链接和事务
     node_attributes.cpp    # 属性验证、重定向、合并及实例限定
     firrtl/                # 私有 lexer/parser/type/lowering 实现，按阶段拆分
   tests/ingest/
@@ -77,7 +78,8 @@ flowchart LR
 FIRRTL 版本/语义选项、外部模块绑定和顶层可观察性配置。路径和参数纳入输入
 身份；相对路径以请求指定的输入根目录解析，不依赖碰巧所在的工作目录。
 
-Python 拟提供如下入口；字段在 F07 实现时与 C++ 请求逐项对应：
+Python 提供如下入口；字段与 C++ 请求逐项对应，实际合约见
+[mixed.md](../../wolvrix/docs/ingest/mixed.md)：
 
 ```python
 session.read_sources(
@@ -103,8 +105,8 @@ session.read_sources(
 SV owner 同时持有 compilation 及拥有 SourceManager 的 slang driver，克隆
 共享全部 owner。后续 SV specialization 与 FIRRTL 源索引沿用该集合。
 读取诊断使用拥有文本的文件/行列位置；FIRRTL 不伪造 slang SourceLocation。
-F07 在混合链接时扩展后续 transform 的多 owner 诊断解析，不能仅取第一个
-SourceManager 解释来自其他 compilation 的位置。
+混合 transform 诊断使用 GRH 自有 filename/line/column；多个 owner 的
+SourceManager 不混用 buffer ID。读取诊断保留自有源码片段。
 
 ## 4. 混合 elaboration 与链接
 
@@ -187,7 +189,7 @@ F05 已实现独立的 `FirrtlInitPolicy::{Unknown,Zero}`，默认 Unknown，记
 `firrtl.initPolicy`。每个状态叶子有显式 Constant InitSpec；regreset 的 reset
 value 不充当启动值。`FirrtlInvalidPolicy` 单独控制 invalid/OOB 读等；两者都
 不改变初始 FourState 域，也不修改 SV 的读取策略。C++ 请求已提供这些配置，
-Python FIRRTL 入口及混合链接沿 F07 推进。
+Python FIRRTL 入口及混合链接已在 F07 实现，实际支持范围见 mixed.md。
 
 ### 5.1 有序动态写示例
 
