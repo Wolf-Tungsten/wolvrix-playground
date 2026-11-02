@@ -85,7 +85,7 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | F09 | 统一 node 构建与 nonsink 分图 | F09.0–F09.5 为旧版验收；F09.6 提示/MFFC node + 按 node 数划 SN 已完成（F09.6-acceptance.md） |
 | F10 | 香山混合输入和差分正确性 | 实施中；full20 已在 20min 硬时限由 SIGKILL 终止（第二轮 mux-tree-fold），尚无最终 C++、整机 emu/运行 |
 | F12 | FIRRTL ingest 性能分解与实现加速 | 初步版本收尾；已保留完整语义优化并移除原生插桩。收尾版固定 CPU 0 为 293.761 s，完整 40.95 GB 图 hash 与 6,007 条诊断对照通过；81/81 CTest、65/65 workflow 和指定 Make 门禁通过。完整 FIRRTL→C++ 20 分钟目标留待后续整机工作 |
-| F13 | 层次展平、GRH 化简与 core 数据搬运优化 | 已完成（2026-11-02）；五项实现、代码审查、81/81 CTest 及指定 Make/Python/flow 门禁通过；未新增性能测量，详见 F13-grh-performance-plan.md |
+| F13 | 层次展平、GRH 化简与 core 数据搬运优化 | 已完成（2026-11-02）；五项实现及正确性门禁通过。后续完整默认 40 分钟试跑推进至后端 simplify，仍无 C++；flatten 381.999 s，普通 simplify 首轮 603.358 s，详见 F13-grh-performance-plan.md |
 | F11 | 前端/node CSE/分图性能消融、默认策略和正式文档 | 待实施；依赖 F12、F13 |
 
 F08 曾以本地 GSIM `a3ecb26` 的 `commonExpr()` 为依据保留源表达式边界。

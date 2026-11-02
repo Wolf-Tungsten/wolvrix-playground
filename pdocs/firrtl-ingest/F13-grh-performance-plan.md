@@ -3,7 +3,8 @@
 建立日期：2026-11-02。
 
 状态：已完成（2026-11-02）。五项实现、代码审查和正确性门禁均通过。以下各节保留实施前的
-问题和约束；实际实现与验证记录见文末。本阶段不新增性能测量。
+问题和约束；实际实现与验证记录见文末。实现阶段未新增性能测量；完成后
+按用户新要求运行的一次 40 分钟整机试跑另记在本文最后一节。
 
 ## 目标与范围
 
@@ -148,3 +149,60 @@ users 遍历中的 enqueue 只修改本地队列。限定 key 的全部源借用
 `wolvrix/build/artifacts/`，未提交生成模型。
 
 未新增 profiling、性能 A/B 或整机计时；本记录不宣称定量加速或 F10 整机完成。
+
+## 完成后：40 分钟香山 FIRRTL→C++ 试跑
+
+2026-11-02 用户新要求以 40 分钟预算检查完整原始 FIRRTL→C++。本次在
+F13 提交 `c134542` / 主仓 `b418597` 后，从冻结的 `SimTop.fir` 全新开始，
+目录为 `ptmp/firrtl-ingest/F13/full40m/`。内层 Make 参数为
+`XS_FIRRTL_GENERATION_TIMEOUT=40m`，外层观察器以 monotonic 2400 秒硬截止
+覆盖 harness/manifest 准备及完整生成 Make；到期杀死 Make 与嵌套 timeout
+的全部后代进程组。实际 **2400.008 秒** 后 SIGKILL，Popen returncode 为
+**-9**（shell signal 状态对应 137）。观察器成功返回不表示 producer 成功。
+
+**结论：40 分钟仍未完成 FIRRTL→C++。** 停于后端 `grhsim-simplify`，
+该 pass 已完成两轮（163.513 / 71.219 秒，均 `changed=1`），截止时仍未完成；
+从阶段开始到截止共 269.548 秒，剩余未记录时间不能精确归于下一轮。
+未进入 packing、后续分区或 C++ 发射；没有 model 目录、C++ 文件、final
+GRH 或 roundtrip GRH。已成功发布 flat GRH **12,286,806,235 bytes**，
+并完成 `grh-to-grhsim`。不从此 checkpoint 续跑或重置预算。
+
+| 阶段 | 本次秒数 | 上次 F12 40 分钟样本 |
+| --- | ---: | ---: |
+| FIRRTL/mixed ingest | 272.581 | 293.093 |
+| hier-flatten | 381.999 | 467.958 |
+| 普通 GRH simplify 首轮 | 603.358 | 999.972 |
+| 首轮 const-fold | 366.424 | 593.627 |
+| 首轮 redundant-elim | 213.258 | 303.085 |
+| 首轮 DCE | 23.676 | 103.259 |
+| 普通 GRH simplify 全阶段 | 1060.191，八轮后返回，末轮仍有改动 | 40 分钟终止时仅完成前五轮 |
+| 保存 flat checkpoint | 42.861，累计 2055.856 秒完成 | 未到达 |
+| grh-to-grhsim | 70.357，累计 2127.352 秒完成 | 未到达 |
+| 后端 grhsim-simplify | 累计 2130.460 秒开始，截止时未完成 | 未到达 |
+
+本次 flatten 比该历史样本短约 **18.4%**，普通 simplify 首轮短约
+**39.7%**。这是一次前后整机尝试的阶段对照，未做交替重复或单因素 A/B，
+不能将差异精确归因到某个 F13 子项，也没有端到端成功时间可计算加速比。
+当前主要剩余成本是普通 GRH simplify（17 分 40 秒）及后端 simplify；
+本次在 40 分钟内比旧样本推进到更下游，但 F10 整机生成仍未完成。
+
+输入仍为 1,671,325,062 bytes、SHA-256
+`cc46aae1a379d9e62132b76b0702685ba67761c87815067f770b0743d7dc754a`。
+七个冻结 harness 文件与 F12 相同；manifest 与完整配置仅规范化 trial
+目录后相等。保留 full pipeline、annotations on、gsim/auto、全部默认优化、
+simplify 轮次、packing/masked-OR/phase/clone、checkpoint、roundtrip 和 readable
+选项，未使用 resume。实际 producer `/proc/maps` 与生成 identity 均确认加载
+F13 核心库 SHA-256
+`1e82df05f900634e93d5cd00766da003d4fdbde1ac78bdbdc8e5b89704b38ff3`。
+
+每五秒观察实际进程树，采样合计 RSS 峰值 **106.595 GiB**，实际 producer
+观测到的 VmHWM **107.044 GiB**。前者有采样误差并重复计入共享页，后者是
+单进程高水位；没有把 timeout 进程 RSS 当作生成峰值。日志显示 52 个假环
+全部修复、无真环，前后 GRH 校验均通过；未进行生成 C++ 的编译或仿真。
+
+实际入口：`make -f ptmp/firrtl-ingest/F13/full40m/Makefile run`，内部仅调用
+既有 `make -j1 xs_firrtl_harness_inputs xs_firrtl_grhsim`；完整 argv 和环境
+在 `preflight.json` / `run.json`。结束后经同一临时 Makefile 的 `summarize`
+目标归集。最终证据：`result.json`、`summary.md`、`driver.log`、
+`stage-events.jsonl`、`resource-samples.jsonl`、`mapped-libraries.json` 和
+`harness-inputs/snapshot-identity.json`。
