@@ -11,7 +11,7 @@ F01–F08 的实施/验收记录保留历史含义；其中 source-node 优化�
 ## 推进顺序与共同退出条件
 
 主线顺序为 F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 →
-F09 → F10 → F12 → F11。属性与 node 作用域检查从 F02 开始伴随实现，F08 实现
+F09 → F10 → F12 → F13 → F11。属性与 node 作用域检查从 F02 开始伴随实现，F08 实现
 完整 node CSE 并验收全流程。混合模块注册表从 F01 设计，F07 完成端到端
 绑定；F09 可在 F02 后使用人工标注 fixture 做独立准备，不能据此宣称真实
 FIRRTL 路线完成。
@@ -788,6 +788,35 @@ F12 的第一门槛是 FIRRTL/mixed ingest 降至 300 秒以内，伸展目标�
 退出条件：阶段计时能解释至少 95% 的 ingest；baseline/candidate 的 GRH
 identity、diagnostics、JSON roundtrip、mixed binding 和代表模块执行一致；
 无 profile 正式测量可复现；完整整机试跑的停止阶段、RSS 和预算消耗有记录。
+
+## F13：层次展平、GRH 化简与 core 数据搬运优化
+
+状态：2026-11-02 已完成。五项实现、代码审查和指定正确性回归均通过；
+未新增性能测量。
+详细位置、实施边界和正确性要求见
+[F13-grh-performance-plan.md](F13-grh-performance-plan.md)。
+
+交付顺序：
+
+1. F13.1：redundant-elim 改用仅校验错误的入口，避免无用的完整 node census。
+2. F13.2：CF/DCE 使用借用接口，消除筛选前完整 Operation 快照和中间副本。
+3. F13.3：常量清理直接查询端口标记和 users，避免逐端口扫描与 fanout 复制。
+4. F13.4：展平直接构造并移动最终限定的 node attributes。
+5. F13.5：增加 Graph 自用的 consuming freeze，避免复制后立即销毁 builder。
+
+退出条件：五项实现经代码审查和相应 Make 正确性回归，功能、node 属性、
+诊断、SrcLoc、借用生命周期和 freeze 失败契约保持一致；逐项登记实际提交
+和验证结果。本阶段不要求新增性能测量，也不承诺量化加速或整机时间目标。
+临时产物目录为 `ptmp/firrtl-ingest/F13/`。
+
+实施记录：wolvrix `c134542659e46bc029d5485c82171d2c5304cb7a` 完成以上
+五项及必要回归；同时保留跨 mutation 的邻接/value IDs/端口快照，修复
+frozen view 首次 thaw 的借用生命周期。`make test_wolvrix` 为 81/81；
+`make test_transform_simplify test_firrtl_node_attributes test_firrtl_cse_scope`
+通过；最终 `make py_install` 后 `make test_ingest_python` 9/9、
+`make test_grhsim_flow` 5/5 及全部生成模型编译执行/八组 annotations trace
+比较通过。完整命令、逐项证据和 freeze 所有权边界见专项计划文末。
+F10 整机和 F11 性能消融仍按各自退出条件推进。
 
 ## F11：性能消融、默认策略和正式交付
 
