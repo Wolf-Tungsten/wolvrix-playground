@@ -43,6 +43,7 @@ def main():
     p.add_argument('--historical',type=Path)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--pairs',type=int,default=8)
     p.add_argument('--cycles',type=int,default=100000)
+    p.add_argument('--candidate-sim-primitives', choices=['none','priority-encode','popcount'], default='priority-encode')
     p.add_argument('--image',type=Path,default=XS/'ready-to-run/coremark-2-iteration.bin')
     p.add_argument('--nemu',type=Path,default=XS/'ready-to-run/riscv64-nemu-interpreter-so')
     p.add_argument('--baseline-header',type=Path);p.add_argument('--candidate-header',type=Path)
@@ -68,7 +69,8 @@ def main():
     for name,binary in names.items():
         config=argparse.Namespace(output=out/name,binary=binary,image=args.image,nemu=args.nemu,
             compiler='/nfs/home/tanghaojin/LLVM-23.1.2-Linux-X64/bin/clang++',tools_dir=None,
-            sim_primitives='none' if name!='B' else 'priority-encode',cpu=96,jobs=1,cycles=args.cycles,repeats=args.pairs)
+            sim_primitives='none' if name!='B' else args.candidate_sim_primitives,
+            cpu=96,jobs=1,cycles=args.cycles,repeats=args.pairs)
         runners[name]=Baseline(config);prepared[name]=runners[name].prepare_measurement()
     def run(name,label,cycles=None,seed=0,extra=()):
         return runners[name].run_sample(prepared[name],label,cycles or args.cycles,seed,extra)
