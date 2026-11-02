@@ -824,6 +824,20 @@ SIGKILL，已发布 12.29 GB flat GRH、完成转换；后端 `grhsim-simplify`
 首轮由历史样本 999.972 秒降为 603.358 秒。完整配置/输入/库身份和测量边界
 见 F13 计划末节，证据目录 `ptmp/firrtl-ingest/F13/full40m/`；不构成 F10 完成。
 
+## F14：GSIM FIRRTL→C++ 性能基线
+
+状态：2026-11-02 已完成。使用 `reference/gsim` 的现有 `compile` Make
+目标，直接读取冻结 `SimTop.fir`，配置为 `dutName=default-xiangshan`，
+默认 `--supernode-max-size=2`、`--cpp-max-size-KB=8192`。外层 Make/监督器
+墙钟为 **778.590 秒（12 分 58.6 秒）**，GSIM 内部 `Timer.main().total`
+为 758.455 秒，退出码 0。
+
+成功生成 244 个 C++ 文件，C++ 字节数为 2,456,873,139，模型目录总大小
+为 2,565,377,923 bytes；最大 RSS 为 106,753,048 KiB（约 101.8 GiB）。
+本次只覆盖 FIRRTL→C++ 生成，没有编译生成的 C++ 或运行 emu。输入、工具
+身份、完整命令和日志见 [F14-gsim-performance.md](F14-gsim-performance.md)，
+证据目录为 `ptmp/gsim-firrtl/full40m/`。
+
 ## F11：性能消融、默认策略和正式交付
 
 交付：
