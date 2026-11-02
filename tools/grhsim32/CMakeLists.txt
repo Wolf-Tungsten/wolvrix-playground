@@ -10,10 +10,19 @@ foreach(pair IN ITEMS "frontend;frontend.cpp" "initial_graph;fine_state_probe.cp
         "partition;../../scripts/repcut_grhsim_partition.cpp"
         "replay;../../scripts/repcut_grhsim_replay.cpp"
         "context;../../scripts/repcut_grhsim_context_probe.cpp"
-        "assignment_eval;../../scripts/repcut_grhsim_assignment_eval.cpp")
+        "assignment_eval;../../scripts/repcut_grhsim_assignment_eval.cpp"
+        "execution_plan;../../scripts/repcut_grhsim_execution_plan.cpp"
+        "source_asc;source_asc.cpp"
+        "source_map_fixture;source_map_fixture.cpp"
+        "pattern_emit;pattern_emit.cpp"
+        "rtl_rewrite;rtl_rewrite.cpp")
     list(GET pair 0 name)
     list(GET pair 1 source)
-    add_executable(grhsim32_${name} "${source}")
+    if(name MATCHES "^(execution_plan|source_asc|source_map_fixture|rtl_rewrite|pattern_emit)$")
+        add_executable(grhsim32_${name} EXCLUDE_FROM_ALL "${source}")
+    else()
+        add_executable(grhsim32_${name} "${source}")
+    endif()
     target_link_libraries(grhsim32_${name} PRIVATE wolvrix::lib)
     target_include_directories(grhsim32_${name} PRIVATE "${REPO}/scripts")
     target_compile_options(grhsim32_${name} PRIVATE -Wno-subobject-linkage)

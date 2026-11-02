@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chisel／Verilog 仿真表达调查</title>
+<style>
+:root{font:15px/1.65 system-ui,"Noto Sans CJK SC",sans-serif;color:#203149;background:#f5f7fb}
+body{max-width:1440px;margin:auto;padding:30px}h1{font-size:28px;margin:0}h2{margin:32px 0 12px;color:#123d63}h3{margin:12px 0}
+p{max-width:1100px}a{color:#17649a}small,.muted{color:#627185}.cards{display:flex;gap:16px;flex-wrap:wrap;margin:22px 0}
+.card{background:white;border:1px solid #dce4ee;border-radius:10px;padding:14px 22px;min-width:140px}.card b{display:block;font-size:25px;color:#163d62}
+.controls{display:flex;gap:12px;flex-wrap:wrap;position:sticky;top:0;background:#f5f7fb;padding:12px 0;z-index:2}input,select{padding:9px;border:1px solid #bac9d9;border-radius:6px;background:white;font:inherit}input{min-width:300px}
+.table{overflow:auto;background:white;border:1px solid #dce4ee;border-radius:8px}table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:10px 12px;border-bottom:1px solid #e5eaf1;text-align:left;vertical-align:top}th{background:#eaf0f7;white-space:nowrap}td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.good{color:#097644}.bad{color:#a33b29}
+code{font:13px ui-monospace,monospace;word-break:break-word}details{background:white;border:1px solid #dce4ee;border-radius:8px;margin:10px 0;padding:12px 16px}summary{cursor:pointer;font-weight:650}.note{border-left:4px solid #ddb455;padding:10px 16px;background:#fff9e9}.links{display:flex;gap:12px;flex-wrap:wrap}.pattern{padding-bottom:8px}.hidden{display:none}
+@media(max-width:700px){body{padding:16px}input{min-width:220px}h1{font-size:23px}}
+</style>
+<h1>Chisel／Verilog 仿真表达调查</h1>
+<p class="muted">从真实库实现、设计结构和生成代码出发，比较硬件表达与软件表达。所有结果均为独立实验；硬件 PPA 与整机加速尚未测量。</p>
+<div id="cards" class="cards"></div>
+<p class="note">先看组合计算体，再看完整 eval。直连控制本身也有模块调度开销；不能把完整 eval 与软件 helper 的全部差额归因到某个算子。状态例子比较的是完整独立组件。</p>
+<h2>实验实例</h2>
+<div class="controls">
+<input id="query" placeholder="搜索：PopCount、旋转、队列、实例名…">
+<select id="scope"><option value="kernel">组合计算体</option><option value="state">有状态组件</option><option value="eval">完整 eval（全部实例）</option></select>
+<select id="distribution"><option value="random">随机输入</option><option value="sparse">稀疏输入</option><option value="dense">密集输入</option><option value="toggle1">单 bit 变化</option><option value="hold99">约 99% 输入保持</option></select>
+</div>
+<p id="scopeNote" class="muted"></p><div class="table"><table><thead><tr><th>模式 / 实例</th><th>生成代码 ns</th><th>软件 ns</th><th>软件耗时变化</th><th>8 对变化范围</th><th>源码与验证</th></tr></thead><tbody id="results"></tbody></table></div>
+<div id="caseDetails"></div>
+<h2>实际香山：分散状态槽中的 MSHR 计数</h2>
+<p>直接抽取 <code>p0 / compute batch 116 / group 928</code> 的原始三个 C++ 表达式，保留 16 个 MSHR valid 和 2 个 pipe valid 的槽位位置。验证全部 262,144 种输入，另加两组各 100,000 个随机输入。</p>
+<div class="table"><table><thead><tr><th>替代表达</th><th>原表达式 ns</th><th>替代 ns</th><th>口径</th></tr></thead><tbody id="frozen"></tbody></table></div>
+<section id="crcControl" class="hidden"><h2>CRC 复核：调用上下文会改变结论</h2><p class="note">原两个 CRC 例子的生成计算体源码相同，但独立 binary 中的基线时间不同。改用同一 binary、共同调用循环复核后，查表没有胜过生成体。原始结果全部保留；当前不据原百分比推荐改写 CRC。</p><p>此复核另验证 1,000,000 个向量，五种分布各完成 8 对 AB/BA。生成计算体已经使用 AVX-512 <code>vpopcntq</code>。尚未确定原差异的微架构原因。</p><div class="table"><table><thead><tr><th>分布</th><th>候选</th><th>生成体 ns</th><th>候选 ns</th><th>配对变化</th></tr></thead><tbody id="crcRows"></tbody></table></div><p id="crcLinks" class="links"></p></section>
+<h2>开放式模式目录</h2><p class="muted">目录来自源码审阅与词法扫描。词法命中不证明当前配置实例化；有明确语义限制的候选也保留，供后续研究。搜索同时作用于目录。</p><div id="patterns"></div>
+<h2>源码覆盖与复现</h2><div id="coverage" class="table"></div><p id="environment"></p><div id="exports" class="links"></div>
+<script>
+const D=__STUDY_DATA__;
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const file=(p,label)=>`<a href="${esc('file://'+p)}">${esc(label)}</a>`;
+const median=a=>{a=[...a].sort((x,y)=>x-y);return (a[(a.length-1)>>1]+a[a.length>>1])/2};
+const title=n=>D.patterns.filter(p=>p.benchmark_cases.includes(n)).map(p=>p.title).join(' / ')||'校准控制';
+document.querySelector('#cards').innerHTML=[[D.source_files,'Scala 源文件'],[D.patterns.length,'开放候选'],[Object.keys(D.cases).length,'已验证实例'],[D.total_verified.toLocaleString(),'输入／周期检查']].map(([n,l])=>`<div class="card"><b>${n}</b>${l}</div>`).join('');
+function render(){
+ const q=document.querySelector('#query').value.toLowerCase(),scope=document.querySelector('#scope').value,dist=document.querySelector('#distribution').value;
+ const selected=Object.entries(D.cases).filter(([n,c])=>(scope==='eval'||(scope==='state'?c.stateful:!c.stateful))&&`${n} ${title(n)}`.toLowerCase().includes(q));
+ document.querySelector('#scopeNote').textContent=scope==='kernel'?'组合体保留生成的算式与 slot 物化，去掉外层活动派发；两侧采用同一调用 ABI。低变化率下，它与按活动跳过的完整 eval 口径不同。':scope==='state'?'状态实例包含时钟沿前后输出检查、复位和定向握手用例。软件模型不包含整个香山的分区通信和外部读者激活。':'完整模块 eval 与软件 helper 的差额同时包含输入检测、派发、状态提交及输出处理；请结合直连和原生加法控制。';
+ document.querySelector('#results').innerHTML=selected.map(([n,c])=>{const s=c.summary.find(r=>r.distribution===dist),k=scope==='kernel',delta=s[k?'kernel_delta_percent':'eval_delta_percent'],a=s[k?'compute_slice_ns':'generated_ns'],b=s[k?'slice_software_ns':'software_ns'];return `<tr><td>${esc(title(n))}<br><code>${esc(n)}</code>${D.crc_control&&n.startsWith("crc16")?'<br><a href="#crcControl">※ 请结合共同调用复核</a>':''}</td><td class="num">${a.toFixed(2)}</td><td class="num">${b.toFixed(2)}</td><td class="num ${delta< -10?'good':delta>10?'bad':''}">${delta.toFixed(1)}%</td><td class="num">${s[k?'kernel_delta_min':'eval_delta_min'].toFixed(1)}% ～ ${s[k?'kernel_delta_max':'eval_delta_max'].toFixed(1)}%</td><td><a href="#case-${n}">展开证据</a> · ${c.verified_vectors.toLocaleString()} 次</td></tr>`}).join('');
+ document.querySelector('#caseDetails').innerHTML=selected.map(([n,c])=>`<details id="case-${n}"><summary>${esc(n)}：来源、边界和机器码</summary><p>${esc(D.scopes[n]||'直接调用固定版本真实库；具体参数和包装见 PatternStudy.scala。')}</p><p>生成 C++：${c.generated_cpp_bytes.toLocaleString()} 字节；处理策略：${esc(c.normalization)}。${c.stateful?'已比较时钟沿前后输出。':'抽取组合体与正常 eval 逐样本比较。'}</p><div class="links">${file(D.wrapper_path,'Chisel 包装与参数')}${file(c.rtl_path,'Verilog')}${file(c.graph_path,'GRH')}${file(c.model_path,'C++ 目录')}${file(c.artifact_dir+'/assembly.txt','机器码')}${file(c.measurement.path,'逐对计时')}${file(c.build.path,'构建身份')}</div><p><code>${esc(JSON.stringify(c.assembly))}</code></p></details>`).join('');
+ document.querySelector('#patterns').innerHTML=D.patterns.filter(p=>`${p.id} ${p.title} ${p.symbols.join(' ')} ${p.suspected_cost}`.toLowerCase().includes(q)).map(p=>`<details class="pattern"><summary>${esc(p.title)} <small>${esc(p.id)} · ${p.source_files} 个源码文件有线索</small></summary><p><b>当前处置：</b>${esc(p.disposition)}</p><p><b>硬件结构目的：</b>${esc(p.hardware_intent)}（未测 PPA）</p><p><b>成本假设：</b>${esc(p.suspected_cost)}</p><p><b>候选实现：</b>${esc(p.software_alternative)}</p><p><b>语义边界：</b>${esc(p.semantic_boundary)}</p><p><b>已有优化与实证：</b>${esc(p.reviewed_evidence)}</p><p><b>后续条件：</b>${esc(p.next_step)}</p><p><b>实验：</b>${esc(p.benchmark_cases.join('、')||'结构候选；尚未证明独立残留成本，需专用模型或进一步证据')}</p><div class="links">${p.source_seed_locations.slice(0,6).map(s=>file(s.path,s.file.split('/').slice(-3).join('/'))).join('')}</div></details>`).join('');
+}
+['query','scope','distribution'].forEach(id=>document.getElementById(id).addEventListener(id==='query'?'input':'change',render));
+document.addEventListener('click',e=>{const a=e.target.closest('a[href^="#case-"]');if(a){const d=document.querySelector(a.getAttribute('href'));if(d)d.open=true;}});
+if(D.frozen)document.querySelector('#frozen').innerHTML=['direct_sum','gather_popcount','packed_lower_bound'].map(v=>{const a=D.frozen.samples.filter(s=>s.variant===v&&s.distribution==='random');const label={direct_sum:'直接相加',gather_popcount:'收集位后 popcount',packed_lower_bound:'预先打包的 popcount'}[v];return `<tr><td>${label}</td><td>${median(a.map(x=>x.tree_ns)).toFixed(2)}</td><td>${median(a.map(x=>x.candidate_ns)).toFixed(2)}</td><td>${v==='packed_lower_bound'?'不计打包成本，仅为下界，不能直接替换':'保持原始分散槽位布局'}</td></tr>`}).join('');
+else document.querySelector('#frozen').innerHTML='<tr><td colspan="4">本报告未提供冻结实例实验；上述说明为实验方法。</td></tr>';
+document.querySelector('#coverage').innerHTML='<table><tr><th>源码组</th><th>文件数</th><th>声明数</th><th>未命中目录模式</th></tr>'+Object.entries(D.groups).map(([n,g])=>`<tr><td>${esc(n)}</td><td>${g.files}</td><td>${g.declarations}</td><td>${g.unclassified}</td></tr>`).join('')+'</table>';
+if(D.crc_control){document.querySelector('#crcControl').classList.remove('hidden');document.querySelector('#crcRows').innerHTML=D.crc_control.summary.map(r=>`<tr><td>${esc(r.distribution)}</td><td>${r.variant==='serial'?'位串行':'查表'}</td><td>${r.generated_ns.toFixed(3)}</td><td>${r.candidate_ns.toFixed(3)}</td><td>${r.delta_percent.toFixed(1)}%</td></tr>`).join('');document.querySelector('#crcLinks').innerHTML=file(D.crc_control.path+'/manifest.json','复核身份')+file(D.crc_control.path+'/assembly.txt','共同循环机器码')+file(D.crc_control.path+'/measurement.json','复核逐对计时');}
+document.querySelector('#environment').textContent=`计时机器：${D.environment.host}，CPU ${D.environment.cpu}。编译选项：-std=c++20 -O3 -march=native。${D.environment.compiler.split('\n')[0]}。独立实例采用生产末端归一化策略，但没有运行整机分区和 walltime 对照。`;
+document.querySelector('#exports').innerHTML=file(D.result_csv,'完整实验 CSV')+file(D.coverage_csv,'源码覆盖 CSV')+file(D.findings_csv,'模式处置 CSV')+file(D.design_path,'双实现与 IR 接入设计');render();
+</script></html>

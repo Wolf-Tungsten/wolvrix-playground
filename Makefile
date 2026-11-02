@@ -2,7 +2,7 @@ SHELL := /bin/bash
 REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 FST_ROI_DISCOVERY_GOALS := build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery
-GRHSIM32_GOALS := xs_grhsim build_xs_repcut_grhsim run_xs_repcut_grhsim grhsim32_plan
+GRHSIM32_GOALS := xs_grhsim build_xs_repcut_grhsim run_xs_repcut_grhsim grhsim32_plan xs_grhsim_critical_path
 ifneq ($(filter $(FST_ROI_DISCOVERY_GOALS) $(GRHSIM32_GOALS),$(MAKECMDGOALS)),)
 SKIP_WOLF_ENV_CHECK := 1
 endif
@@ -261,7 +261,7 @@ HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
-	build_xs_repcut_grhsim build_xs_repcut_grhsim_legacy run_xs_repcut_grhsim run_xs_repcut_grhsim_legacy build_xs_repcut_sim run_xs_repcut_sim xs_grhsim grhsim32_plan \
+	build_xs_repcut_grhsim build_xs_repcut_grhsim_legacy run_xs_repcut_grhsim run_xs_repcut_grhsim_legacy build_xs_repcut_sim run_xs_repcut_sim xs_grhsim grhsim32_plan xs_grhsim_critical_path \
 	xs_no0076_stats clean
 
 all: build
@@ -807,6 +807,11 @@ run_xs_repcut_verilator:
 xs_grhsim build_xs_repcut_grhsim:
 	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --clean \
 		--output "$(abspath $(XS_GRHSIM32_OUTPUT))" $(XS_GRHSIM32_ARGS)
+
+XS_GRHSIM_CRITICAL_ARGS ?=
+xs_grhsim_critical_path:
+	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim_critical_path.py" run \
+		--build "$(abspath $(XS_GRHSIM32_OUTPUT))" $(XS_GRHSIM_CRITICAL_ARGS)
 
 grhsim32_plan:
 	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --dry-run \

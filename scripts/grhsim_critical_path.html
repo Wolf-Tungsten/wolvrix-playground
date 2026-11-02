@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>GrhSIM · RTL 仿真关键路径</title>
+<style>
+:root{font:15px system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;color:#172334;background:#f3f6fa}
+body{max-width:1500px;margin:1.5rem auto;padding:0 1.2rem}h1{margin-bottom:.35rem}h2{margin:.2rem 0 1rem;font-size:1.2rem}
+p{line-height:1.6}.muted{color:#53677e}.lead{font-size:1.02rem}.cards{display:flex;gap:1rem;flex-wrap:wrap}
+.card{background:#fff;border:1px solid #d8e0ea;border-radius:9px;padding:.8rem 1rem;min-width:10rem}.card b{display:block;font-size:1.25rem}
+section{background:#fff;border:1px solid #d8e0ea;padding:1rem;margin:1rem 0;border-radius:9px;box-shadow:0 1px 2px #1723340b}
+table{width:100%;border-collapse:collapse;font-size:.88rem}th,td{padding:.55rem .6rem;text-align:left;border-bottom:1px solid #e1e7ee;vertical-align:top}th{background:#eaf0f6;position:sticky;top:0;z-index:1}tr.pick:hover{background:#eef7ff;cursor:pointer}
+#dynamic-top{table-layout:fixed;min-width:900px}#dynamic-top td{overflow-wrap:anywhere}#dynamic-top th:nth-child(1){width:6%}#dynamic-top th:nth-child(2){width:9%}#dynamic-top th:nth-child(3){width:10%}#dynamic-top th:nth-child(4){width:17%}#dynamic-top th:nth-child(5){width:24%}#dynamic-top th:nth-child(6){width:22%}#dynamic-top th:nth-child(7){width:12%}#dynamic-top td small{display:block;margin-top:.25rem}
+.scroll{max-height:620px;overflow:auto}.path{border:1px solid #d8e0ea;border-radius:8px;margin:.7rem 0;padding:.75rem;background:#fbfcfe}.path h3{margin:.1rem 0 .5rem;font-size:1rem}.node{display:inline-block;border:1px solid #b8c9dc;border-radius:6px;background:#fff;padding:.35rem .5rem;margin:.2rem .1rem;vertical-align:top;max-width:260px}.arrow{display:inline-block;color:#69809a;font-size:1.2rem;padding:.45rem .1rem}.node small{display:block;color:#52657a;margin-top:.25rem}.node code{display:block;word-break:break-word;font:12px ui-monospace,monospace;margin-top:.2rem}.node .chisel{color:#286b4f}.tag{display:inline-block;border-radius:999px;padding:.18rem .5rem;background:#e7eff8;margin-right:.3rem;font-size:.8rem}.unknown{color:#6d586e;background:#f1edf3}.source{margin:.45rem 0;padding:.55rem;background:#f5f8fb;border-left:3px solid #aac1da}.source pre{margin:.3rem 0;white-space:pre-wrap;word-break:break-word;font:12px ui-monospace,monospace}
+input,select,button{font:inherit;padding:.5rem;border:1px solid #b9c6d5;border-radius:5px;background:#fff}button{cursor:pointer}.grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+<h1>GrhSIM · RTL 仿真关键路径</h1>
+<p class="lead">先看每个分区的动态第一名：哪个 batch 实际最耗时，关联哪些 RTL 模块、信号和 Chisel 源码。静态组合路径在下方单独列出。</p>
+<section><div id="summary" class="cards"></div><p id="runtime" class="muted"></p><p class="muted">源码行用于定位对应 RTL；同一 batch 可能包含多个源码位置，因此不能把 batch 时间重复分摊到每一行。</p></section>
+<section><h2>一、动态第一名 · 每个分区、每个 clock</h2>
+<p class="muted">第一名按 batch 实测累计时间选出，包含组合计算和状态提交。“全局稳定拖尾”只看独立追踪中反复最后完成的步骤；“分区全部采样”列出该分区自身最耗时的 batch。模块与信号是关联集合，不能据此画出逐信号的实测因果链。</p>
+<label>统计范围 <select id="dynamic-scope"><option value="stable_last">全局稳定拖尾采样</option><option value="all_sampled">分区全部采样</option></select></label>
+<label>时钟电平 <select id="dynamic-clock"><option value="">全部</option><option value="0">clock=0</option><option value="1">clock=1</option></select></label>
+<p id="dynamic-summary" class="muted"></p><div class="scroll"><table id="dynamic-top"></table></div>
+<div id="dynamic-detail"><p class="muted">点击第一名查看 RTL / Chisel 位置、分轮次耗时和重复结果。</p></div></section>
+<section><h2>二、静态组合路径第一名</h2><p class="muted">每个分区、每个 clock 的静态最长路径，优先显示动态拖尾分区。箭头来自 GRH 组合依赖；静态工作量不是实测耗时。</p><div class="scroll"><div id="paths"></div></div></section>
+<section><h2>三、动态拖尾分区</h2><label>时钟沿 <select id="clock"><option value="">全部</option><option value="0">clock=0</option><option value="1">clock=1</option></select></label> <label>阶段 <select id="phase"><option value="eval">求值</option><option value="update">跨分区发布</option><option value="input">输入分发</option></select></label><div class="scroll"><table id="parts"></table></div></section>
+<section><h2>四、关键 batch 对应的模块和信号</h2><input id="filter" placeholder="搜索分区、batch、模块或信号" style="width:min(32rem,90%)"><div class="scroll"><table id="batches"></table></div><div id="batch-detail"><p class="muted">点击一行查看模块、信号和源码位置。</p></div></section>
+<section><h2>五、数据边界</h2><ul id="limits"></ul></section>
+<script id="payload" type="application/json">__REPORT_JSON__</script>
+<script>
+'use strict';
+const d=JSON.parse(document.querySelector('#payload').textContent),q=s=>document.querySelector(s);
+const cell=(tag,value)=>{const e=document.createElement(tag);e.textContent=value;return e};
+const source=(id)=>d.sources[id];
+const percent=x=>(100*x).toFixed(1)+'%';
+const statusZh=x=>({'unique':'唯一同名候选','best-signal-match':'标识符最匹配候选','ambiguous':'多个候选','unmapped':'未定位','not-found':'未找到候选'}[x]||'源码匹配候选');
+const hotspotByKey=new Map(d.hotspots.map(x=>[x.batch_key,x]));
+function dynamicDetail(r){
+  const box=q('#dynamic-detail');box.replaceChildren();
+  box.append(cell('h3',`p${r.part} · clock=${r.clock} · ${r.phase_label} batch ${r.batch}`));
+  box.append(cell('p',`${r.scope_label}：累计 ${(r.ns/1000).toFixed(3)} µs，占该分区该 clock 采样批次时间的 ${percent(r.share)}；采样 ${r.sampled_steps??'未知'} 步、调用 ${r.calls} 次。`));
+  box.append(cell('p',`单次平均 ${(r.mean_call_ns/1000).toFixed(3)} µs，最大 ${(r.max_call_ns/1000).toFixed(3)} µs。首轮 ${((r.waves.first||0)/1000).toFixed(3)} µs；提交后传播 ${((r.waves.after_commit||0)/1000).toFixed(3)} µs；后续传播 ${((r.waves.later||0)/1000).toFixed(3)} µs。`));
+  const repeat=cell('p',`${r.probe_runs} 次重复独立排名：${r.repeats.map(x=>`第 ${x.repeat+1} 次 ${x.top_keys.join(' / ')||'无样本'}（${x.top_ns===null?'—':(x.top_ns/1000).toFixed(3)} µs）`).join('；')}。${r.repeated_top?'重复第一名一致。':'第一名未在各次重复中一致出现。'}`);
+  if(!r.repeated_top)repeat.className='unknown';box.append(repeat);
+  if(r.tied_keys.length>1)box.append(cell('p','累计时间并列：'+r.tied_keys.join('、')));
+  if(r.phase==='compute'){
+    const warning=cell('p',`入口掩码为零的调用时间占 ${percent(r.entry_zero_share)}。它表示入口检查时没有活动标记，不能将这部分时间直接归因给某个 RTL 信号。`);
+    if(r.entry_zero_share>.5)warning.className='unknown';box.append(warning);
+  }
+  box.append(cell('p','关联 RTL 模块：'+r.modules.map(m=>`${m.name}（${m.operations} 个静态操作）`).join('、')));
+  const b=hotspotByKey.get(r.batch_key);
+  if(b?.asc_ids?.length)box.append(cell('p',`可精确映射的 ASC：${b.asc_ids.slice(0,40).join('、')}${b.asc_ids.length>40?'……':''}`));
+  else box.append(cell('p','该 batch 的原始 ASC 尚无精确映射；RTL 来源按生成节点直接定位。'));
+  box.append(cell('p','以下为批次的关联源码集合；代表信号按静态操作来源选取，不表示已测得信号耗时。'));
+  for(const signal of r.signals){
+    const s=source(signal.source_span_id),e=document.createElement('div');e.className='source';
+    e.append(cell('b',`${signal.module||'模块未映射'}.${signal.signal}`));
+    e.append(cell('div',sourceText(signal.source_span_id)));
+    if(s?.source_line)e.append(cell('pre',s.source_line));
+    const cs=s?.chisel_selected?[s.chisel_selected]:(s?.chisel_candidates||[]).slice(0,4);
+    e.append(cell('div',cs.length?'Chisel 候选：'+cs.map(c=>`${c.qualified} · ${c.relative}:${c.line}`).join('；'):'Chisel：尚未定位'));
+    box.append(e);
+  }
+}
+function dynamicTop(){
+  const dynamic=d.dynamic_top1||{rows:[],parts:[],measured_parts:[]};
+  const rows=dynamic.rows.filter(r=>r.scope===q('#dynamic-scope').value&&(!q('#dynamic-clock').value||String(r.clock)===q('#dynamic-clock').value));
+  const measured=rows.filter(r=>r.batch_key),table=q('#dynamic-top');table.replaceChildren();
+  const h=document.createElement('tr');['分区 / clock','动态第一名','累计 µs / 占比','关联 RTL 模块','代表信号','Chisel 候选','重复第一名 / 采样步数'].forEach(x=>h.append(cell('th',x)));table.append(h);
+  for(const r of rows){
+    const tr=document.createElement('tr');tr.dataset.part=r.part;tr.dataset.clock=r.clock;
+    const first=cell('td',`p${r.part} / ${r.clock}`);tr.append(first);
+    if(!r.batch_key){const empty=cell('td',r.status_label);empty.colSpan=6;empty.className='muted';tr.append(empty);table.append(tr);continue;}
+    tr.className='pick';tr.dataset.batch=r.batch_key;
+    [r.phase_label+' '+r.batch+(r.tied_keys.length>1?'（并列）':''),`${(r.ns/1000).toFixed(3)} / ${percent(r.share)}`,
+     r.modules.slice(0,3).map(m=>m.name).join('、')||'未映射',r.signals.slice(0,3).map(s=>s.signal).join('、')||'未映射',
+     r.chisel.slice(0,2).map(c=>c.qualified).join('、')||'未定位',`${r.repeat_top_agreement}/${r.probe_runs} · ${r.sampled_steps??'未知'} 步`].forEach(x=>tr.append(cell('td',x)));
+    if(!r.repeated_top||r.entry_zero_share>.5){const note=cell('small',r.entry_zero_share>.5?' 入口零掩码时间为主':' 重复排名不一致');note.className='unknown';tr.lastChild.append(note)}
+    tr.onclick=()=>dynamicDetail(r);table.append(tr);
+  }
+  q('#dynamic-summary').textContent=`已细测 ${dynamic.measured_parts.length}/${dynamic.parts.length} 个分区；当前显示 ${rows.length} 项，其中 ${measured.length} 项有动态第一名。占比的分母是同分区同 clock 的采样 batch 时间，不是全局 walltime。`;
+  const top=measured.slice().sort((a,b)=>b.ns-a.ns)[0];
+  if(top)dynamicDetail(top);else q('#dynamic-detail').replaceChildren(cell('p','本范围没有可排名的动态样本。'));
+}
+function sourceText(id){const s=source(id);if(!s)return '来源未映射';return `${s.file}:${s.line}:${s.column}${s.module?' · 模块 '+s.module:''}`}
+function renderSummary(){q('#summary').replaceChildren();const items=[['来源覆盖',(d.mapping.operation_coverage*100).toFixed(2)+'%'],['结构工作量覆盖',(d.mapping.work_coverage*100).toFixed(2)+'%'],['batch 数',d.mapping.batch_count],['稳定拖尾步骤',d.stable_eval_steps||'—']];items.forEach(([name,value])=>{const e=document.createElement('div');e.className='card';e.append(cell('span',name),cell('b',value));q('#summary').append(e)});const r=d.runtime||{};q('#runtime').textContent=r.codepages?`诊断页面：${r.codepages}；CPU：${(r.cpus||[]).join(', ')}；预热 ${r.warmup_cycles} cycles；采集 ${r.window_cycles} cycles × ${r.repeats}；batch 每 ${r.batch_cycle_stride} cycles 采样。`:''}
+function nodeBox(n){const box=document.createElement('span');box.className='node';const title=document.createElement('b');title.textContent=n.module?`${n.module} · ${n.label}`:n.label;box.append(title);const op=document.createElement('small');op.textContent=`${n.operation} · ${n.op_kind||'生成节点'}`;box.append(op);if(n.source_span_id){const loc=document.createElement('small');loc.textContent=sourceText(n.source_span_id);box.append(loc);const ss=source(n.source_span_id);if(ss?.source_line){const pre=document.createElement('code');pre.textContent=ss.source_line;box.append(pre)}if(n.chisel_selected){const c=document.createElement('small');c.className='chisel';c.textContent=`Chisel：${n.chisel_selected.qualified} · ${n.chisel_selected.relative}:${n.chisel_selected.line}（${statusZh(n.chisel_status)}）`;box.append(c)}else{const c=document.createElement('small');c.className='unknown';c.textContent=`Chisel：${n.chisel_status?statusZh(n.chisel_status):'未解析'}`;box.append(c)}}else{const u=document.createElement('small');u.className='unknown';u.textContent='RTL 来源未映射';box.append(u)}return box}
+function pathCard(p,index){const article=document.createElement('article');article.className='path';const h=document.createElement('h3');h.textContent=`${index+1}. ${p.id} · p${p.part} · clock=${p.clock} · 静态名次 ${p.rank}`;article.append(h);const tags=document.createElement('div');[['模块',p.modules.join('、')||'未映射'],['静态工作量',p.structural_work],['节点来源',`${p.mapped_nodes}/${p.nodes.length}`],['运行时',p.dynamic_status]].forEach(([a,b])=>{const x=cell('span',`${a}：${b}`);x.className='tag'+(String(b).includes('未')?' unknown':'');tags.append(x)});article.append(tags);if(p.chisel_modules?.length)article.append(cell('p','Chisel 模块：'+p.chisel_modules.map(x=>`${x.qualified}（${x.relative}:${x.line}）`).join('、')));if(p.signals.length)article.append(cell('p','信号/表达式：'+p.signals.join('、')));const chain=document.createElement('div');let nodes=p.nodes;if(nodes.length>36)nodes=nodes.slice(0,28).concat([{module:null,label:`… 中间省略 ${nodes.length-33} 个节点 …`,operation:'路径摘要',op_kind:'省略'}],nodes.slice(-5));nodes.forEach((n,i)=>{if(i){const arrow=cell('span','→');arrow.className='arrow';chain.append(arrow)}chain.append(nodeBox(n))});article.append(chain);if(p.nodes.length>nodes.length)article.append(cell('p',`完整路径有 ${p.nodes.length} 个节点，已在页面中折叠；完整顺序见 rtl_paths.json。`));if(p.longest_body_disagrees)article.append(cell('p',`提示：该分区有 ${p.longest_body_disagrees} 个样本是最后完成者，但不是最长函数体，不能只按函数体长度归因。`));return article}
+function paths(){const box=q('#paths');box.replaceChildren();d.paths.forEach((p,i)=>box.append(pathCard(p,i)))}
+function parts(){const rows=d.parts.filter(r=>r.phase===q('#phase').value&&(!q('#clock').value||String(r.clock)===q('#clock').value));const table=q('#parts');table.replaceChildren();const h=document.createElement('tr');['分区','clock','最后完成次数','独占拖尾总计（µs）','最后完成但不是最长函数体'].forEach(x=>h.append(cell('th',x)));table.append(h);rows.forEach(r=>{const tr=document.createElement('tr');[r.part,r.clock,r.last_count,(r.exclusive_tail_ns/1000).toFixed(2),r.last_not_longest_count].forEach(x=>tr.append(cell('td',x)));table.append(tr)})}
+function detail(r){const box=q('#batch-detail');box.replaceChildren();box.append(cell('h3',`p${r.part} · ${r.phase_label} · batch ${r.batch}`));box.append(cell('p',`关键采样 ${(r.critical_sample_ns/1000).toFixed(2)} µs；调用 ${r.calls} 次；结构操作 ${r.operations} 个；未映射 ${r.unmapped_operations} 个。`));if(r.asc_ids?.length)box.append(cell('p',`原始 ASC：${r.asc_ids.length} 个，编号 ${r.asc_ids.slice(0,60).join('、')}${r.asc_ids.length>60?'……':''}`));const modules=document.createElement('p');modules.append(cell('b','RTL 模块：'));r.modules.forEach(x=>modules.append(cell('span',`${x.name}（${x.operations}）`)));box.append(modules);if(r.chisel_modules?.length)box.append(cell('p',`Chisel 模块：${r.chisel_modules.join('、')}`));const sig=document.createElement('p');sig.append(cell('b','代表信号：'));r.signals.forEach(x=>sig.append(cell('span',`${x.module||'模块未映射'}.${x.signal} · ${sourceText(x.source_span_id)}；`)));box.append(sig);const ul=document.createElement('div');r.source_entries.slice(0,24).forEach(x=>{const ss=source(x.source_span_id);const e=document.createElement('div');e.className='source';e.append(cell('b',`${sourceText(x.source_span_id)} · ${x.operations} 个操作`));if(ss?.signals?.length)e.append(cell('div','信号：'+ss.signals.join('、')));if(ss?.chisel_selected)e.append(cell('div',`Chisel：${ss.chisel_selected.qualified} · ${ss.chisel_selected.relative}:${ss.chisel_selected.line}（${statusZh(ss.chisel_status)}）`));if(ss?.source_line)e.append(cell('pre',ss.source_line));ul.append(e)});box.append(ul)}
+function batches(){const needle=q('#filter').value.toLowerCase();const table=q('#batches');table.replaceChildren();const h=document.createElement('tr');['batch','阶段','模块','代表信号','关键采样（µs）','调用次数','来源位置数'].forEach(x=>h.append(cell('th',x)));table.append(h);d.hotspots.filter(r=>`${r.batch_key} ${r.modules.map(x=>x.name).join(' ')} ${r.signals.map(x=>x.signal).join(' ')}`.toLowerCase().includes(needle)).forEach(r=>{const tr=document.createElement('tr');tr.className='pick';[r.batch_key,r.phase_label,r.modules.map(x=>x.name).join('、')||'未映射',r.signals.map(x=>x.signal).join('、')||'未映射',(r.critical_sample_ns/1000).toFixed(2),r.calls,r.source_count].forEach(x=>tr.append(cell('td',x)));tr.onclick=()=>detail(r);table.append(tr)})}
+d.limits.forEach(x=>q('#limits').append(cell('li',x)));q('#clock').onchange=parts;q('#phase').onchange=parts;q('#filter').oninput=batches;q('#dynamic-scope').onchange=dynamicTop;q('#dynamic-clock').onchange=dynamicTop;renderSummary();dynamicTop();paths();parts();batches();
+</script>
+</html>

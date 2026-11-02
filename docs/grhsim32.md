@@ -106,3 +106,11 @@ python3 scripts/grhsim32.py --clean --rtl /path/to/rtl --generated /path/to/gene
 Changing the workload's memory names or top module requires a corresponding
 configuration. A different machine using the same XiangShan input uses the
 default configuration without editing it.
+
+## Optional RTL critical-path report
+
+After a successful clean build, `make xs_grhsim_critical_path` creates an
+independent diagnostic package and an interactive RTL/batch report. It leaves
+the default build and production executable alone. See the
+[critical-path analysis and AST rewrite guide](../wolvrix/docs/emit/grhsim-critical-path.md)
+for sampling, source-mapping limits, page-mode control and validation commands.

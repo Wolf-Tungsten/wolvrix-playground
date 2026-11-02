@@ -380,6 +380,27 @@
 | `TNO0367` | `2026-10-28` | [默认路线初解km1增大与旧RTL复用问题](./TNO0367_grhsim_initial_km1_input_drift_20261028.md) | 同一计分器复现旧27,912,141；默认入口复用旧RTL漏掉counter-print改动，超图已变；修正默认重新生成，46项测试通过，尚未全量重测。 |
 | `TNO0368` | `2026-10-28` | [重新生成RTL后的完整32线程流程结果](./TNO0368_grhsim_fresh_rtl_full_flow_result_20261028.md) | 新RTL全流程通过，8份初解自动选seed7/km1=26,547,623；walltime两窗口12.228/12.533s，51迁移提案均不满足通信预算，保留初解，默认入口指向新产物。 |
 | `TNO0369` | `2026-10-28` | [新RTL seed7与恢复版的直接AB/BA](./TNO0369_grhsim_fresh_seed7_vs_restored_20261028.md) | 同为Clang23.1.2原始O3/native、SLP，fresh两轮16对walltime退化9.538%/0胜；eval+10.391%，36次功能、THP和对齐检查通过，恢复版继续为性能锚点。 |
+| `TNO0370` | `2026-10-28` | [RTL 关键路径首版实现与香山诊断](./TNO0370_grhsim_rtl_critical_path_first_report_20261028.md) | 独立一键报告；7,412 batches、98.16% 操作来源覆盖；8 次完整 THP 诊断；37 项测试与两组 100,000-cycle Verilator 差分通过。 |
+| `TNO0371` | `2026-10-28` | [关键路径中文 RTL 视图](./TNO0371_grhsim_rtl_critical_path_chinese_view_20261028.md) | 报告首页改为中文 RTL-first 路径清单，直接列出 module、信号/表达式、源码行、batch 和运行时证据；新增 Markdown/CSV/JSON 路径输出。 |
+| `TNO0372` | `2026-10-28` | [RTL 关键路径到 Chisel 模块映射](./TNO0372_grhsim_rtl_to_chisel_path_mapping_20261028.md) | 按模块名和信号证据映射 Chisel package/class；唯一、最佳、歧义和未解析结果均显式记录。 |
+| `TNO0373` | `2026-10-29` | [32 分区动态关键路径第一名](./TNO0373_grhsim_dynamic_top1_all_partitions_20261029.md) | 66 次完整 THP 诊断；64 个分区/clock 全部采样，58 项重复第一名一致；独立展示稳定拖尾与分区全部采样，附 RTL/Chisel 来源和重复证据。 |
+| `TNO0374` | `2026-10-29` | [p0/clock=1/commit batch 345 详细分析](./TNO0374_grhsim_p0_commit_batch345_detail_20261029.md) | 拆解 5,986 个提交操作、4.53 MB C++ 函数、102 个 RTL 文件、Chisel 候选和动态计时；确认它是大规模状态提交 supernode，而非单一 RTL 组合路径。 |
+| `TNO0375` | `2026-10-29` | [Chisel／Verilog 仿真表达广泛调查：范围与进度](./TNO0375_chisel_simulation_pattern_survey_progress_20261029.md) | 持续记录库与设计扫描、新模式、基准约束及未决问题；实验结果另篇归档。 |
+| `TNO0376` | `2026-10-29` | [首轮微基准、校准与反例](./TNO0376_chisel_pattern_first_microbench_20261029.md) | 30 个真实发射实例；区分 eval 与计算体，记录排序/CRC 退化、已优化算子及失败修正。 |
+| `TNO0377` | `2026-10-29` | [参数扩展、生产末端规则与广泛调查结果](./TNO0377_chisel_pattern_expanded_evidence_20261029.md) | 51 项候选、47 个实例、五种分布；记录归一化规则、参数差异、反例及明确语义限制。 |
+| `TNO0378` | `2026-10-29` | [真实 MSHRCtl 计数：打包成本改变结论](./TNO0378_chisel_pattern_frozen_mshr_count_20261029.md) | 原样抽取 group 928 的分散槽位计数，穷举 2^18 输入；区分 gather+popcount 与预打包下界。 |
+| `TNO0379` | `2026-10-29` | [CRC 共同调用复核](./TNO0379_chisel_crc_call_context_control_20261029.md) | 保留调用上下文反证；同 binary 复核后撤回通用 LUT 收益判断。 |
+| `TNO0380` | `2026-10-29` | [广泛调查交付与双实现设计](./TNO0380_chisel_pattern_delivery_and_ir_design_20261029.md) | 1,583 文件、51 项逐项处置、47 个实验；记录接口工作边界、验证和后续优先级。 |
+| `TNO0381` | `2026-10-30` | [专用单线程基线口径](./TNO0381_chisel_native_single_thread_baseline_scope_20261030.md) | 明确使用 Wolvrix 专用完整模型流程；记录 A/A、配对测量、身份冻结和计时边界，未产生新性能数字。 |
+| `TNO0382` | `2026-10-30` | [Chisel 新生成专用单线程基线](./TNO0382_chisel_native_single_thread_fresh_build_20261030.md) | node030 新生成 RTL/绑定/完整模型；CPU96 固定测量，持续记录构建与产物身份。 |
+| `TNO0383` | `2026-10-30` | [CPU96 专用单线程 walltime 基线](./TNO0383_native_single_thread_cpu96_walltime_baseline_20261030.md) | 新 Chisel→RTL→完整 GrhSIM→emu；100k cycles × 8，均值 118.525 秒、CV 1.59%；已追加 no-SLP/远端代码页勘误，不能直接作为统一局部性分母。 |
+| `TNO0384` | `2026-10-30` | [专用单线程历史对照](./TNO0384_native_single_thread_historical_comparison_20261030.md) | CPU96 4 对复测 96.055→114.298 秒、慢 19.0%；确认 no-SLP 和远端代码页两个混杂因素。 |
+| `TNO0385` | `2026-10-30` | [同一 emu 代码页局部性控制](./TNO0385_native_single_thread_code_page_locality_control_20261030.md) | 相同 SHA 的原文件/本地代码页副本，2 对 114.869→109.738 秒、减少 4.47%；不作为新正式基线。 |
+| `TNO0386` | `2026-10-30` | [从 Makefile 生成器移除默认 no-SLP](./TNO0386_grhsim_generated_makefile_default_slp_20261030.md) | 生成器源头删除 no-SLP，脚本原样；131 对象重编译、C100k 与 22 项测试通过，保留 Clang23 已知失败复现。 |
+| `TNO0387` | `2026-10-30` | [默认 SLP 单线程本地 NUMA 重测](./TNO0387_native_single_thread_slp_local_numa_measurement_20261030.md) | CPU96；emu/NEMU/库预先本地化，运行中严格检查匿名及文件页；已完成，结果见 TNO0388。 |
+| `TNO0388` | `2026-10-30` | [默认 SLP、本地 NUMA 单线程基线结果](./TNO0388_native_single_thread_slp_local_baseline_results_20261030.md) | CPU96 100k × 8，均值 98.579 秒、CV 1.04%；161 次 NUMA 快照和 1575 次线程快照全部通过。 |
+| `TNO0389` | `2026-10-30` | [IntrinsicExpr PriorityEncoder64 Verilog 实验](./TNO0389_intrinsic_expr_priority_encoder_verilog_20261030.md) | Scala 开关：常规链 / 组合 DPI 均成功生成；自定义 intrinsic 名称被拒绝；停在 Verilog。 |
+| `TNO0390` | `2026-10-30` | [明确原语的仿真实现归属讨论](./TNO0390_intrinsic_simulation_implementation_ownership_20261030.md) | 建议标准原语由库表达语义、后端提供实现，专用功能保留用户扩展；仅记录讨论，未推进后端。 |
 
 增量更新（2026-10-14）：[TNO0337 第 20 节](./TNO0337_grhsim_partition_system_redesign_20261013.md)
 完成未划分图的操作/融合区域归因，739.8 万条条件记录守恒。223.1 万条 compute 来源是
@@ -1806,6 +1827,6 @@ p30 eval 32.70→10.15 µs，p29 22.99→34.90 µs。最大分区平均 eval 反
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`369`（`TNO0001..TNO0369`）。
+- 当前记录类文档总数：`390`（`TNO0001..TNO0390`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

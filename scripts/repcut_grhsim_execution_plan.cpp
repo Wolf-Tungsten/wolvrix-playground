@@ -5,6 +5,7 @@
 #include "emit/grhsim_activity_model.hpp"
 #include "transform/activity_schedule.hpp"
 #include "transform/repcut_cost_model.hpp"
+#include "grhsim_source_export.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -306,6 +307,8 @@ int main(int argc, char **argv)
                 const auto m = summarize(u);
                 for (const auto &[key, val] : m) summary << u.instance << ',' << (precise ? "range" : "whole") << ',' << key << ',' << val << '\n';
                 if (!precise) { u.coarseSummary = m; continue; }
+                if (std::getenv("GRHSIM_SOURCE_MAP"))
+                    grhsim_source_export::write(*u.graph, u.plan, u.report, u.weights, u.instance, out);
                 for (const auto &group : u.plan.groups)
                 {
                     uint64_t w = 0, rise = 0, fall = 0;

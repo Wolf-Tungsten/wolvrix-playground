@@ -89,6 +89,7 @@ make run_c910_ref_test
 make run_xs_diff -j
 
 make xs_grhsim  # clean Verilog -> automatic 32-way partitioning -> emu + walltime
+make xs_grhsim_critical_path  # optional RTL / batch diagnostic report of that build
 
 make -C testcase/xs-bugcase/CASE_006 run
 
