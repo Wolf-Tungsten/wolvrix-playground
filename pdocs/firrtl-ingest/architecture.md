@@ -115,6 +115,135 @@ SV owner 同时持有 compilation 及拥有 SourceManager 的 slang driver，克
 混合 transform 诊断使用 GRH 自有 filename/line/column；多个 owner 的
 SourceManager 不混用 buffer ID。读取诊断保留自有源码片段。
 
+### 3.1 有界功能 bringup 配置
+
+FIRRTL 源 node 注解默认开启：Python 的 `node_annotations` 默认 `True`，
+香山 Make 入口的 `XS_FIRRTL_NODE_ANNOTATIONS` 默认 `on`，输入 manifest
+记录实际布尔值。显式 `off` 关闭可选的源 node 关联及对应的策略、inventory
+与 retention 元数据；BlackBox 等外部实现 annotation、源位置、类型/链接/
+语义检查仍按原合约处理。它不改变 FIRRTL 的功能语义。
+
+默认 `XS_GRHSIM_PIPELINE_PROFILE=full` 保留现有完整普通 GRH 流程；
+下游默认仍为 `XS_GRHSIM_FIRRTL_NODE_CSE=gsim` 和
+`XS_GRHSIM_FIRRTL_NODES=auto`。先验证功能链路时，可显式选择以下配置，
+并为该次尝试使用独立输出目录：
+
+```sh
+XS_GRHSIM_PIPELINE_PROFILE=bringup make xs_firrtl_grhsim \
+  XS_FIRRTL_INPUT=ptmp/xs/rtl/rtl/SimTop.fir \
+  XS_FIRRTL_BUILD=ptmp/firrtl-ingest/functional-bringup \
+  XS_FIRRTL_NODE_ANNOTATIONS=off \
+  XS_GRHSIM_FIRRTL_NODE_CSE=off \
+  XS_GRHSIM_FIRRTL_NODES=off \
+  XS_GRHSIM_SIMPLIFY=0 XS_GRHSIM_PACK_BIT_REGISTERS=0 \
+  XS_GRHSIM_MASKED_OR=0 XS_GRHSIM_PHASE_SIMPLIFY=0 \
+  XS_GRHSIM_CLONE_SHARED_COMPUTE=0 XS_GRHSIM_ROUNDTRIP_VERIFY=0
+```
+
+输入、SV 资源、include 和 harness 配置仍需与该次冻结输入匹配。这里的
+两个下游 `off` 分别关闭源 node 整体 CSE 和 nonsink 的源提示消费；不能
+仅设置上游注解开关，就把本次配置记成同一消融实验。
+
+`bringup` 普通 GRH 恢复七阶段，依次为 `xmr-resolve`、`multidriven-guard`、
+`blackbox-guard`、`latch-transparent-read`、`hier-flatten`、
+`comb-loop-elim`、`memory-init-check`。full33 曾试加一次 raw DCE，但整机
+未按预算完成，现已撤回。此 profile 省去普通 GRH `simplify` 及包围它
+的两次显式 `grh.verify`；`grh-to-grhsim` 在转换前后执行的完整结构验证
+继续保留，后续 GrhSIM 优化、分图和 emit 仍走共享流程。
+上例另显式关闭 backend simplify、bit packing、masked-OR、分图后
+simplify 和 clone；仅选择 GRH bringup profile 本身不会关闭这些优化。
+`ROUNDTRIP_VERIFY=0` 只省去 emit 后额外 JSON 重载/重建 schedule/重存比较，
+不跳过转换的结构验证或首次分图/SinkSchedule 构建。上述开关均保留原默认值。
+
+`xs_firrtl_grhsim` 对整个 FIRRTL→C++ producer 使用
+`timeout --signal=KILL 20m`。从 producer 启动起，读取 FIRRTL、ingest、
+所有 GRH pass、checkpoint、转换、分图和 C++ emit 共用同一个 20 分钟
+预算；到时立即 SIGKILL，checkpoint 或 profile 均不重置预算。
+此配置是功能 bringup 的使用方式，不表示整机生成、仿真或等价验收已完成。
+保留注解的原 `full`/`prefer` 验收及正式性能消融仍须分别完成。
+
+2026-11-01 的 full30 实测仍未跑通：mixed ingest 388057 ms、flatten
+218300 ms、comb-loop-elim 37757 ms、flat checkpoint 保存 97076 ms、
+`grh-to-grhsim` 38041 ms；已发布 flat GRH 为 34,973,290,367 bytes。
+首次 backend `grhsim-simplify` 完成的 7 轮合计 381786 ms，全部仍变化，
+该 pass 尚未完成即在 07:04:29 UTC 被完整 producer 的 20 分钟
+SIGKILL 终止，Make 报 Error 137；没有整机 C++、emu 或运行结果。
+full31 已按上例显式关闭 backend 可选优化。shared flow 5 项、workflow
+56 项，以及 backend optimized/bringup × annotations on/off 四组模型的
+实际 C++ 编译执行通过；四组各 4608 次独立 rename scoreboard，实际输出
+逐字节一致。四组都采用 GRH 七阶段 bringup，这些结果不代表默认 full/
+prefer 或整机通过。full31 于 07:06:55 UTC 从同一 frozen FIRRTL/full27
+harness 在新目录重新开始，单次 20 分钟 SIGKILL 硬截止约为 07:26:56 UTC；
+实际配置、输入和库冻结已独立核对。两个必要拆分阶段分别耗时 151669 和
+147814 ms；到时在 nonsink 分区被 SIGKILL，Make 报 Error 137，外层于
+07:26:58 UTC 返回。无整机 C++、emu 或运行结果，不续跑 checkpoint。
+后续可显式设置 `XS_GRHSIM_STORE_GRH_CHECKPOINTS=0` 省略自动 flat/final
+JSON，同时须有 C++ 输出目录及关闭 JSON roundtrip；显式 dump 不受影响。
+设置 `XS_GRHSIM_READABLE_DUMP=0` 只省略额外整图文本导出。上述默认均保持。
+full32 已显式关闭这些导出以及 source comments，保留默认 readable names/
+frames；在 81/81 native、5 项 shared flow、57 项 workflow 和四组实际
+rename 模型回归通过后，于 07:33:11 UTC 从原始冻结 FIRRTL 完整重跑。
+mixed ingest 389656 ms、flatten 251875 ms、comb-loop-elim 37792 ms、
+memory-init-check 7373 ms、转换 39590 ms，两个拆分分别为 149841 和
+108937 ms。52 个 flatten 假环全部修复，无真环。nonsink 分区运行约
+205 秒以上仍未完成，约 07:53:12 UTC 达到同一个 20 分钟 SIGKILL 硬截止；
+内部 Error 137，外层于 07:53:14 UTC 返回 2。无自动 flat/final/text，
+无整机 C++、emu 或运行结果。
+
+full33 仅在显式 bringup 的 `comb-loop-elim` 后、`memory-init-check` 前
+增加一次既有 `dead-code-elim`，保持声明符号保护、所有 guard 及后续验证；
+默认 full 不变，也不启用完整 simplify。先完成包含该顺序的状态模型执行
+回归：shared flow 5 项、workflow 57 项及四组 rename 各 4608 次检查通过，
+实际 trace 一致。此次没有原生实现改动或新安装。随后于 07:54:34 UTC
+从冻结 FIRRTL/full27 harness 在 `full33/` 新目录完整重跑，启动前已冻结
+生产源码/库，其余 flags 同 full32；单次 20 分钟硬截止约 08:14:35 UTC，
+不恢复 checkpoint。本轮 mixed ingest 389466 ms、flatten 224039 ms、
+comb-loop-elim 37602 ms、raw DCE 126359 ms、memory-init-check 24460 ms、
+转换 37413 ms，两个拆分为 134398 和 100509 ms。转换计数为 401484
+operations、169336 states，并非全图规模；52 个 flatten 假环全部修复。
+该轮仍在 nonsink 分区未完成时达到 20 分钟硬截止，内部 Error 137，外层
+08:14:36 UTC 返回 2；无自动 flat/final/text、整机 C++、emu 或运行结果。
+
+raw DCE 未改善总进度，因此撤回为上述七阶段。full34 的 shared flow
+5 项、workflow 57 项及 backend default/skip/one-round × annotations on/off
+六组实际编译状态模型回归已通过；各组 4608 次检查，五次 trace 比较一致。
+六组仍共同采用 raw GRH bringup，不构成默认 full/prefer 验收；原生库未变。
+full34 于 08:16:37 UTC 从冻结 FIRRTL/full27 harness 在新目录完整启动，
+硬截止约 08:36:38 UTC。设置 `XS_GRHSIM_SIMPLIFY=1` 和
+`XS_GRHSIM_SIMPLIFY_MAX_ROUNDS=1`，仅在 converted 阶段运行既有
+`grhsim-simplify -max-rounds=1`；pack/recover/phase/clone 关闭，其余 flags
+同 full33，默认 full 不变。实际 mixed ingest 385066 ms、flatten 217892 ms、
+comb-loop-elim 37667 ms、memory-init-check 18687 ms、转换 48030 ms；
+单轮 simplify 总计 233906 ms，round 为 213082 ms、fold/share 181695 ms，
+`changed=1` 并按限制报告尚未收敛。两个拆分为 48482 和 36201 ms，nonsink
+分区完成 108280 ms，随后 sink 分区未完成即被 20 分钟 SIGKILL；内部
+Error 137，外层于 08:36:39 UTC 返回 2。52 个 flatten 假环全部修复。
+无自动 flat/final/text、整机 C++、emu 或运行结果。
+
+full35 只选择现有 `XS_GRHSIM_COST_MODEL=bytes` 和
+`XS_GRHSIM_READABLE_NAMES=0`，保留七阶段 raw GRH、converted 单轮
+simplify 及 full34 其它 flags，readable frames 保持默认，不新增原生优化。
+生产原生实现/库未改变。shared flow 5 项、workflow 57 项及 default/skip/
+one-round/one-round-bytes × annotations on/off 八组编译状态回归通过，
+每组 4608 次检查、七次实际 trace 比较一致；bytes/short-names CLI 无自动
+checkpoint 也完成生成、编译和 256 输入执行检查。八组都采用 raw GRH
+bringup，不能当作默认 full/prefer 或整机验收。
+full35 外层于 08:39:21 UTC 启动，08:57:33 UTC 主动 SIGINT 中断，退出
+130；不是超时。最后进入 sink 分区，无整机 C++ 或执行结果。用户已明确
+拒绝减少 simplify 轮次、关闭优化的取舍；上述 bringup/单轮/skip 尝试均
+只保留历史记录。当前只优化实现，保留完整默认 pass、轮次和校验。
+单次 FIRRTL→C++ 继续共用 20 分钟硬截止，到时立即 SIGKILL，不恢复
+checkpoint 或拆分重置预算。
+保留完整优化的 full36 于 09:43:49–10:03:49 UTC 按预算 SIGKILL，退出
+137：ingest 516.645 秒，flatten 396.894 秒，完成阶段合计 1171.053 秒，
+停于普通 simplify 之前的 grh.verify，尚无整机 C++。
+实现加速、严格等价对照及完整计时见
+[pass-optimization-20261101.md](pass-optimization-20261101.md)，不据 fixture
+提速声称整机达标。
+阶段记录和证据见 [F10-plan.md](F10-plan.md) 及
+`ptmp/firrtl-ingest/F10/full30-stop-reason.txt`、`full31-stop-reason.txt`、
+`full32-stop-reason.txt`、`full33-stop-reason.txt` 和 `full34-stop-reason.txt`。
+
 ## 4. 混合 elaboration 与链接
 
 跨语言模块引用必须在 elaboration 前可见，链接后再运行任何会删除未驱动值、
@@ -182,6 +311,14 @@ Bundle 的 flip 逐路径累计，决定叶子方向；顶层 input Bundle 不�
 | 数组 | 元素/子数组使用多索引端口或 kSliceArray；不先展开成逐槽 eq/mux 后再恢复 |
 | memory | 显式处理端口、读写延迟、mask、read-under-write、时钟与冲突语义；落到数组状态及必要流水状态 |
 | 效果 | printf/stop/assert 等映射到已有系统任务/效果机制，保留 clock、enable、次数和顺序 |
+
+lowering 的执行成本目标是减少最终 C++ 仿真器在固定工作负载中实际执行的
+指令、分支和访存。
+保留数组、索引和精确的局部更新语义，使后端能够消除重复的宽值选择、
+拼装及复制。比较实现方案时核对生成 C++、必要的机器码和固定输入执行
+证据；IR 节点数、C++ 行数或源码循环数减少不能单独作为优化成功判据。
+机器码静态计数与实际执行计数分别记录；静态合计没有活动频率权重，
+不能替代动态指令、分支、访存或吞吐测量。正式构建与吞吐消融按 F11 记录。
 
 位宽推导使用可诊断的约束求解，报告无解、未定宽、零宽和溢出位置。
 支持范围内的零宽中间项按规范消除；不把零宽 value 或非法 shape 直接放入

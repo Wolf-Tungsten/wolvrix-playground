@@ -5,13 +5,14 @@ import os
 import shutil
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import wolvrix
 
-from grhsim_flow import FlowOptions, STAGES, checked, emit_cpp, finish_simulation_graph, store_checkpoint
+from grhsim_flow import FlowOptions, STAGES, checked, emit_cpp, finish_simulation_graph, run_pass, store_checkpoint
 from grhsim_supernode_origin_stats import build_grh_manifest
 from grhsim_provenance import generated_identity
-from wolvrix_xs_grhsim import GRH_PIPELINE
+from wolvrix_xs_grhsim import GRH_PIPELINE, grh_pipeline
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +20,91 @@ WORK = Path(os.environ.get("GRHSIM_FLOW_TEST_WORK", ROOT / "ptmp/remove-grhsim-i
 
 
 class FlowTest(unittest.TestCase):
+    def test_firrtl_node_annotations_compiled(self):
+        work = WORK / "firrtl-node-annotations"
+        work.mkdir(parents=True, exist_ok=True)
+        fixtures = ROOT / "wolvrix/tests/ingest/data/firrtl/state"
+        driver = r'''#include "model/grhsim_top.hpp"
+#include "workload.hpp"
+#include <fstream>
+int main() {
+    std::ofstream output("outputs.txt");
+    output.exceptions(std::ios::badbit | std::ios::failbit);
+    GrhSIM_top model;
+    for (unsigned epoch=0; epoch<3; ++epoch) {
+        model.init();
+        firrtl_state_test::renameTrace([&](const auto& in, const auto& expected) {
+            model.clk=in.at("clk"); model.reset=in.at("reset");
+            model.en0=in.at("en0"); model.en1=in.at("en1"); model.copy=in.at("copy");
+            model.addr0=in.at("addr0"); model.addr1=in.at("addr1");
+            model.data0=in.at("data0"); model.data1=in.at("data1");
+            for (unsigned i=0; i<4; ++i) model.initialValue[i]=(in.at("initialValue")>>(8*i))&255;
+            model.eval();
+            uint64_t packed=0;
+            for (unsigned i=0; i<4; ++i) packed |= uint64_t(model.tableOut[i])<<(8*i);
+            if (packed!=expected.at("tableOut") || model.readOut!=expected.at("readOut"))
+                throw std::runtime_error("node annotation compiled rename scoreboard mismatch");
+            output << packed << ' ' << uint64_t(model.readOut) << '\n';
+        });
+    }
+}
+'''
+        cases = [(profile, annotations) for profile in ("optimized", "bringup", "one-round", "one-round-bytes")
+                 for annotations in (True, False)]
+        for profile, annotations in cases:
+            case = work / f"{profile}-{'on' if annotations else 'off'}"
+            case.mkdir(parents=True, exist_ok=True)
+            with self.subTest(profile=profile, node_annotations=annotations), wolvrix.Session() as session:
+                session.diagnostics_raise_min_level = "none"
+                checked(session.read_firrtl(str(fixtures / "rename.fir"), tops=["top"],
+                    firrtl_options={"node_annotations": annotations, "init_policy": "zero",
+                                    "invalid_policy": "zero"}), "read FIRRTL annotation fixture")
+                metadata = session.graph_metadata(design="design.main", top="top")["metadata"]
+                self.assertEqual("firrtl.nodeScopePolicy" in metadata, annotations)
+                with mock.patch.dict(os.environ, {"XS_GRHSIM_PIPELINE_PROFILE": "bringup"}):
+                    for name, pass_options in grh_pipeline():
+                        checked(session.run_pass(name, design="design.main", **pass_options), name)
+                options = FlowOptions(firrtl_node_cse="off", firrtl_nodes="off", max_supernode_nodes=4)
+                if profile != "optimized":
+                    options.simplify = profile.startswith("one-round")
+                    options.pack_bit_registers = False
+                    options.recover_masked_or = False
+                    options.partition_simplify = False
+                    options.clone_shared = False
+                if profile.startswith("one-round"):
+                    options.simplify_max_rounds = 1
+                if profile == "one-round-bytes":
+                    options.cost_model = "bytes"
+                with mock.patch("grhsim_flow.run_pass", wraps=run_pass) as passes:
+                    finish_simulation_graph(session, design="design.main", top="top", options=options)
+                executed = [call.args[1] for call in passes.call_args_list]
+                for name in ("grh-to-grhsim", "grhsim-split-event-and-output",
+                             "grhsim-split-nonsink-and-sink", "grhsim-partition-nonsink",
+                             "grhsim-partition-sink"):
+                    self.assertIn(name, executed)
+                self.assertEqual("grhsim-simplify" in executed, profile != "bringup")
+                for name in ("grhsim-pack-bit-registers", "grhsim-recover-masked-or"):
+                    self.assertEqual(name in executed, profile == "optimized")
+                if profile.startswith("one-round"):
+                    simplified = [call for call in passes.call_args_list if call.args[1] == "grhsim-simplify"]
+                    self.assertEqual(len(simplified), 1)
+                    self.assertEqual(simplified[0].kwargs["max_rounds"], 1)
+                metadata = session.graph_metadata(design="design.main", top="top")["metadata"]
+                if annotations:
+                    self.assertEqual(metadata["firrtl.nodeCseConfig"], "v2/off/5/256/1")
+                else:
+                    self.assertFalse(any(key.startswith("firrtl.node") for key in metadata))
+                emit_cpp(session, design="design.main", top="top", output=case / "model",
+                         overwrite=True, waveform=False, readable_names=profile != "one-round-bytes")
+            shutil.copyfile(fixtures / "workload.hpp", case / "workload.hpp")
+            self.write_driver(case, driver_text=driver, top="top")
+        names = [f"{profile}-{'on' if annotations else 'off'}" for profile, annotations in cases]
+        make = ".PHONY: run " + " ".join(names) + "\nrun: " + " ".join(names) + "\n"
+        for name in names[1:]:
+            make += f"\tcmp optimized-on/outputs.txt {name}/outputs.txt\n"
+        make += " ".join(names) + ":\n\t$(MAKE) -C $@ -f run.mk run\n"
+        (work / "run.mk").write_text(make)
+
     def test_firrtl_node_modes_and_resume(self):
         work = WORK / "firrtl-nodes"
         work.mkdir(parents=True, exist_ok=True)
@@ -220,14 +306,15 @@ endmodule
                 self.assertEqual((destination / "generation-identity.json").read_bytes(), identity)
 
         cases = [f"{stage}-b{budget}" for stage in STAGES for budget in (16, 1024)]
+        cases.append("firrtl-node-annotations")
         make = ".PHONY: run " + " ".join(cases) + "\nrun: " + " ".join(cases) + "\n"
         for case in cases:
             make += f"{case}:\n\t$(MAKE) -C {case} -f run.mk run\n"
         (WORK / "Makefile").write_text(make)
 
     @staticmethod
-    def write_driver(case):
-        (case / "driver.cpp").write_text(r'''#include "model/grhsim_flow_top.hpp"
+    def write_driver(case, *, driver_text=None, top="flow_top"):
+        (case / "driver.cpp").write_text(driver_text if driver_text is not None else r'''#include "model/grhsim_flow_top.hpp"
 #include <array>
 #include <cassert>
 #include <cstdio>
@@ -270,7 +357,7 @@ driver: driver.cpp model/libgrhsim_flow_top.a
 run: driver
 	./driver
 .PHONY: run
-""")
+""".replace("grhsim_flow_top", f"grhsim_{top}"))
 
 
 if __name__ == "__main__":

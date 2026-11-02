@@ -6,9 +6,11 @@ import dataclasses
 import json
 import os
 import shutil
+import stat
 import sys
 import tempfile
 import time
+import uuid
 from pathlib import Path
 
 from grhsim_provenance import capture_generation, generated_identity, write_identity
@@ -62,6 +64,7 @@ def checked(diagnostics: list[dict], action: str) -> list[dict]:
 
 def run_pass(session, name: str, *, design: str, top: str, **options):
     start = time.perf_counter()
+    print(f"[grhsim] {name} start", file=sys.stderr, flush=True)
     diagnostics = session.run_pass(name, design=design, top=top, **options)
     checked(diagnostics, name)
     session.print_diagnostics(diagnostics, min_level="info")
@@ -75,6 +78,8 @@ class FlowOptions:
     firrtl_nodes: str = "auto"
     cost_model: str = "legacy"
     nonsink_report: str | None = None
+    simplify: bool = True
+    simplify_max_rounds: int = 8
     pack_bit_registers: bool = True
     recover_masked_or: bool = True
     masked_or_min_terms: int = 16
@@ -178,14 +183,17 @@ def finish_simulation_graph(session, *, design: str, top: str,
         stage = "converted"
         saved()
     if stage == "converted" and (not has_nodes or "firrtl.nodeCseConfig" not in metadata):
-        run("grhsim-simplify")
+        if options.simplify:
+            run("grhsim-simplify", max_rounds=options.simplify_max_rounds)
         if options.pack_bit_registers:
             run("grhsim-pack-bit-registers", **({"report": options.pack_report} if options.pack_report else {}))
-            run("grhsim-simplify")
+            if options.simplify:
+                run("grhsim-simplify", max_rounds=options.simplify_max_rounds)
         if options.recover_masked_or:
             run("grhsim-recover-masked-or", min_terms=options.masked_or_min_terms,
                 **({"report": options.masked_or_report} if options.masked_or_report else {}))
-            run("grhsim-simplify")
+            if options.simplify:
+                run("grhsim-simplify", max_rounds=options.simplify_max_rounds)
         if has_nodes:
             run("grhsim-node-cse", firrtl_node_cse=options.firrtl_node_cse)
         saved()
@@ -207,8 +215,8 @@ def finish_simulation_graph(session, *, design: str, top: str,
         run("grhsim-partition-nonsink", **options.nonsink_options(),
             **({"report": options.nonsink_report} if options.nonsink_report else {}))
         stage = "nonsink-partitioned"
-        if options.partition_simplify:
-            run("grhsim-simplify")
+        if options.simplify and options.partition_simplify:
+            run("grhsim-simplify", max_rounds=options.simplify_max_rounds)
         saved()
     if stage == "nonsink-partitioned":
         if stop_after == stage:
@@ -256,5 +264,23 @@ def emit_cpp(session, *, design: str, top: str, output: Path, overwrite: bool = 
 
 
 def store_checkpoint(session, path: Path, *, design: str, top: str) -> None:
+    path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    checked(session.store_json(design=design, top=[top], output=str(path)), f"store {path}")
+    start = time.perf_counter()
+    print(f"[grhsim] store checkpoint {path} start", file=sys.stderr, flush=True)
+    pending = path.with_name(f".{path.name}.{uuid.uuid4().hex}.pending")
+    descriptor = os.open(pending, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o666)
+    os.close(descriptor)
+    try:
+        checked(session.store_json(design=design, top=[top], mode="pretty-compact", output=str(pending)),
+                f"store {path}")
+        size = pending.stat().st_size
+        if not size:
+            raise RuntimeError(f"store {path}: empty checkpoint")
+        if path.exists():
+            pending.chmod(stat.S_IMODE(path.stat().st_mode))
+        pending.replace(path)
+        print(f"[grhsim] store checkpoint {path} done {round((time.perf_counter() - start) * 1000)}ms bytes={size}",
+              file=sys.stderr, flush=True)
+    finally:
+        pending.unlink(missing_ok=True)

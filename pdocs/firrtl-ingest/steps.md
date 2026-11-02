@@ -11,7 +11,7 @@ F01–F08 的实施/验收记录保留历史含义；其中 source-node 优化�
 ## 推进顺序与共同退出条件
 
 主线顺序为 F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 →
-F09 → F10 → F11。属性与 node 作用域检查从 F02 开始伴随实现，F08 实现
+F09 → F10 → F12 → F11。属性与 node 作用域检查从 F02 开始伴随实现，F08 实现
 完整 node CSE 并验收全流程。混合模块注册表从 F01 设计，F07 完成端到端
 绑定；F09 可在 F02 后使用人工标注 fixture 做独立准备，不能据此宣称真实
 FIRRTL 路线完成。
@@ -576,7 +576,8 @@ prefer 382 nodes，两者均 4 SN；Queue2 默认容量 compute 均为 356。
 | F09.6c | 新配置/恢复身份，移除旧 work-cap/fusion 耦合；依赖与 SinkSchedule | 旧阈值不静默换单位，新恢复/调度及行为正确 |
 | F09.6d | Make/Python/mixed、透明性、RenameTable/Queue2 及可选 clone 验证 | 两层统计清楚、普通 simplify 不回退，实际性能如实记录 |
 
-F09 是分图机制和代表模块验证，不替代 F00/F10 的整机依赖/差分或 F11
+F09 是分图机制和代表模块验证，不替代 F00/F10 的整机依赖/差分、F12 的
+ingest 性能专项或 F11
 的正式吞吐、compile wall/RSS 消融。当前默认 auto/legacy/128 nodes，
 直接落实有提示按提示、无提示按 MFFC；不据此宣称性能收益。
 
@@ -603,6 +604,190 @@ F09 是分图机制和代表模块验证，不替代 F00/F10 的整机依赖/差
 
 退出条件：相同设计配置下混合路线可完成无 CIRCT 的读取至 emu 构建，固定
 100k/NEMU 及必要模块差分通过；所有未解释行为差异解决后再进入性能结论。
+
+实施中（2026-11-01）：独立 mixed/Chisel-only、harness 快照及 build-only
+入口已接入；全量 native 79/79 和相关生成模型回归通过。full16 在
+1332.641 秒完成冻结整机输入的 mixed ingest，后在 flatten 长时间未返回，
+验证批量 inventory 修复后主动中止并启动 full17。full17 读取/配置及此前
+共享 pass 通过，flatten 时因持续内存增长、swap 近耗尽主动中止，退出 130；
+未观察到 OOM kill。源图存储修复通过定向、79/79 及 mixed 编译执行回归，
+已安装并在 full18 重试；该次已完成 mixed ingest、flatten 及 flatten 后
+52 个假环的全部修复，GRH 验证通过，随后因 checkpoint 保存时的内存增长
+主动中止，退出 130；正在修复 JSON 文件存读的内存峰值，尚未构建/执行整机 emu。
+JSON 文件存读修复后，全量 80/80、Session/工作流及各阶段 checkpoint 重载的
+生成模型编译执行通过；已安装并在独立 full19 重试，整机退出条件仍待完成。
+full19 mixed ingest 在 1289.608 秒完成，423 个候选环全部为假环且修复；
+严格配置 44/44、输入/harness/flow 一致性 50/50 和 143 项 provider 源码
+检查通过，当前进入共享 GRH 优化，最终模型/emu/两路线运行仍待验证。
+随后整机 flatten 在 2727.420 秒完成，flatten 后 52 个假环全部修复，
+GRH 验证通过；pre-simplify checkpoint 在 159.493 秒成功发布，共
+56,437,233,305 bytes。随后按用户新要求立即终止超出 20 分钟的生成进程，
+原 session 退出 130，停止位置为 simplify；尚无最终模型、emu 或运行结果。
+后续 FIRRTL→C++ 总生成时限为 20 分钟，超时强制杀死；不通过阶段恢复
+重置总计时，也不原样重跑仅 ingest 就超过上限的配置。
+随后独立的 full20 连续实测中，mixed ingest 为 896.914 秒，xmr-resolve
+为 34.554 秒，第一轮 mux-tree-fold 为 191.367 秒，
+register-write-normalize 为 50.230 秒；第二轮 mux-tree-fold 在硬超时边界
+被 SIGKILL，Make 返回 137。没有发布 flat/final GRH、整机 C++、emu 或
+运行产物。默认两轮 mux 顺序保持不变，F10 继续实施中。
+后续显式 bringup 的 full26、full27、full28 也均在完整 producer 的
+20 分钟硬截止处被 SIGKILL，停止位置为 hier-flatten。full28 的 mixed
+ingest 为 895.472 秒；仍无整机 C++/emu/运行产物。随后修正 dense map
+共享端口的首次映射语义，并减少静态 bounds scaffold、未使用 wire mask、
+不必要的 flatten 名称映射及重复节点 key qualification；验证和下一轮
+整机结果见 F10-plan，未将这些改动视为整机完成证据。
+full29 mixed ingest 已降为 588.498 秒，Rob lowering 操作数降到 5,830,973，
+仍在 flatten 触发同一个 20 分钟 SIGKILL。随后先验证显式关闭可选 node
+注解的功能 bringup：81/81、shared flow、on/off 各 4608 次实际 C++ scoreboard
+及 56 项工作流检查通过。full30 的 mixed ingest、flatten、comb-loop-elim、
+flat store 和转换分别为 388057、218300、37757、97076、38041 ms；
+已发布 34,973,290,367 bytes 的 flat GRH。随后首次 `grhsim-simplify`
+完成 7 轮仍均 `changed=1`，七轮合计 381786 ms，该 pass 未完成，
+完整 producer 在 2026-11-01 07:04:29 UTC 到达 20 分钟硬截止并被
+SIGKILL，Make 报 Error 137。无整机 C++、emu 或整机运行结果，F10 未跑通；
+详细阶段计时及停止证据见 `full30-stop-reason.txt` 和 F10-plan。
+full31 已显式跳过 backend 可选 `grhsim-simplify`、bit packing、masked-OR、
+分图后 simplify 和 clone，保留转换验证、拆分、分图/SinkSchedule 和 emit；
+emit 后额外 JSON roundtrip 关闭。shared flow 5 项和 workflow 56 项通过；
+backend optimized/bringup × annotations on/off 四组均实际编译执行，
+每组 4608 次独立 scoreboard，四个输出 trace 逐字节相同。四组共同使用
+GRH 七阶段 bringup，不能称作默认 full/prefer 对照通过。
+full31 于 2026-11-01 07:06:55 UTC 从原始冻结 FIRRTL 在新目录开始，
+在约 07:26:56 UTC 达到完整 producer 的 20 分钟 SIGKILL 硬截止；
+输入、full27 harness、源码及加载库冻结已独立核对。两个拆分分别完成于
+151669 和 147814 ms，在 nonsink 分区终止，Make 报 Error 137；仍无整机
+C++、emu 或运行结果。后续显式省略非必要自动 JSON/text 导出，并仅合并
+输入完全相同的重复分区 DAG 检查；必要验证和功能语义保留。不续跑
+checkpoint 或用阶段恢复重置总预算；最终 full/prefer 与正式性能对照继续未完成。
+随后 full32 关闭自动 flat/final JSON、整图文本和 source comments，保留
+readable names/frames、identity 和所有必要验证；81/81 native、shared flow
+5 项、workflow 57 项及四组 rename 模型各 4608 次执行检查通过后，从同一
+冻结 FIRRTL/full27 harness 于 07:33:11 UTC 完整重跑。mixed ingest
+389656 ms、flatten 251875 ms、comb-loop-elim 37792 ms、memory-init-check
+7373 ms、转换 39590 ms，两个拆分分别为 149841 和 108937 ms；52 个
+flatten 假环全部修复，无真环。nonsink 分区运行约 205 秒以上仍未完成，
+约 07:53:12 UTC 被完整 producer 的 20 分钟 SIGKILL 终止；内部 Error 137，
+外层于 07:53:14 UTC 返回 2。本轮没有自动 flat/final/text 输出，也没有
+整机 C++、emu 或运行结果。完整计时见 F10-plan 和 `full32-stop-reason.txt`。
+full33 只在显式 bringup 的 comb-loop 后、memory-init 前增加单次既有
+`dead-code-elim`，保持声明锚点和必要 guard，不启用全 simplify，不改变
+默认 full，无原生代码改动或新安装。shared flow 5 项、workflow 57 项及
+四组状态模型各 4608 次实际执行检查已通过，输出 trace 一致；随后于
+07:54:34 UTC 从原始冻结 FIRRTL/full27 harness 在新目录启动单次 20 分钟
+完整生成，硬截止约 08:14:35 UTC。其余 flags 与 full32 相同，启动前
+已冻结生产源码/库。实际 mixed ingest 389466 ms、flatten 224039 ms、
+comb-loop-elim 37602 ms、raw DCE 126359 ms、memory-init-check 24460 ms、
+转换 37413 ms，两个拆分分别为 134398 和 100509 ms；转换计数为
+401484 operations、169336 states，并非全图 op 数。52 个 flatten 假环
+全部修复。nonsink 分区仍未完成即被单次 20 分钟 SIGKILL 终止，内部
+Error 137，外层于 08:14:36 UTC 返回 2；无自动 flat/final/text、整机
+C++、emu 或运行结果。完整计时和证据见 `full33-stop-reason.txt`。
+raw DCE 未改善总进度，bringup 撤回为七阶段。full34 的 shared flow 5 项、
+workflow 57 项及 backend default/skip/one-round × annotations on/off 六组
+状态模型编译执行通过，各 4608 次检查，五次 trace 比较全部一致；六组均
+使用 raw GRH 七阶段 bringup，不替代默认 full/prefer 验收。原生库未改变。
+full34 于 08:16:37 UTC 从原始冻结 FIRRTL/full27 harness 在新目录完整
+启动，只在 converted 阶段运行 `grhsim-simplify -max-rounds=1`，pack/
+recover/phase/clone 保持关闭，其余 flags 同 full33；硬截止约 08:36:38 UTC。
+本轮实际 mixed ingest 385066 ms、flatten 217892 ms、comb-loop-elim
+37667 ms、memory-init-check 18687 ms、转换 48030 ms；单轮 simplify 总计
+233906 ms（round 213082 ms、fold/share 181695 ms，`changed=1` 按限制
+尚未收敛）。两个拆分为 48482 和 36201 ms，nonsink 分区完成 108280 ms，
+随后 sink 分区未完成即到达 20 分钟 SIGKILL；内部 Error 137，外层
+08:36:39 UTC 返回 2。52 个 flatten 假环全部修复，无真环。无自动
+flat/final/text、整机 C++、emu 或运行结果；完整记录见 `full34-stop-reason.txt`。
+full35 只切现有 bytes 成本模型和 `readable_names=False`，沿用 raw GRH
+七阶段、converted 单轮 simplify，其它 flags 同 full34，不新增原生优化。
+readable frames 保持 True，生产原生实现/库均未改变。shared flow 5 项、
+workflow 57 项，以及 default/skip/one-round/one-round-bytes × annotations
+on/off 八组实际编译状态模型已通过，各 4608 次检查、七次 trace 比较一致；
+bytes/short-names CLI 无自动 checkpoint 也完成编译执行 256 个输入值。
+这些组件结果不构成默认 full/prefer 或整机通过。full35 外层于
+08:39:21 UTC 启动，在用户拒绝缩减优化后于 08:57:33 UTC 主动 SIGINT
+中断，退出 130，停于 sink 分区；不是超时。该路线已撤回，后续保留
+完整默认 pass、simplify 轮次、packing/masked-OR/phase/clone 和校验，
+只优化实现。仍从原始 FIRRTL 完整开始，共用一个 20 分钟 SIGKILL
+截止，不恢复 checkpoint 或分段重置预算，F10 仍未跑通。
+完整默认配置的 full36 于 09:43:49–10:03:49 UTC 按时 SIGKILL，退出
+137；flatten 396.894 秒，已完成阶段合计 1171.053 秒，停在 grh.verify，
+尚未进入 simplify 或 emit。实现优化已有严格 fixture A/B 和 native/编译
+执行回归，但不构成整机完成，详见
+[pass-optimization-20261101.md](pass-optimization-20261101.md)。
+代表模块差分、原始 SV 的独立 100k/NEMU 及真实
+LoadUnit lowering 的机器码成本证据见 [F10-plan.md](F10-plan.md)、
+[F10-components.md](F10-components.md) 和 [F10-replacer.md](F10-replacer.md)。
+这些结果不替代 native 整机退出条件，F10 保持实施中。
+
+## F12：FIRRTL ingest 性能专项
+
+2026-11-02 用户决定：以保留完整语义的 ingest 优化初版收尾，检查明显的
+重复工作后移除临时插桩并提交。20 分钟整机目标不再作为本次初版提交门槛，
+下文阶段实验记录保留历史上下文；收尾版 ingest 293.761 s，完整图 hash/诊断对照与 Make 门禁通过，
+最终收尾证据见专项计划。
+
+
+F12 先于 F11 执行，专门修复 FIRRTL/mixed ingest 的输入成本。当前完整路线
+约 514–517 秒，纯 SV 对照约 45–49 秒；两者差异必须拆成 parser、类型和
+语义 lowering、GRH 构建以及 mixed link，不能把整段时间笼统归因于 SV。
+
+计划与验收详见 [F12-ingest-performance-plan.md](F12-ingest-performance-plan.md)。
+该专项固定原始 FIRRTL、辅助 SV、harness 和库身份，建立按阶段和 module 的
+低开销 profile，先解释至少 95% 的 ingest wall time，再逐项优化解析/索引、
+lowering/GRH 构建和 mixed link。所有优化必须保持完整语义、annotations、
+诊断、确定性顺序、roundtrip 和现有回归；不允许关闭 pass、减少 simplify、
+恢复 checkpoint 或把阶段测量当作整机通过。
+
+已实施 F12.0/F12.1 的第一版：`WOLVRIX_FIRRTL_INGEST_PROFILE=1` 输出
+index/validate/parse、接口推导、lowering、事务和 top-20 module 计时；
+`make benchmark_xs_firrtl_ingest` 保存固定 manifest、RSS、diagnostics 和
+profile 日志。已实施的首个候选在接口推导到 lowering 之间复用 ModuleBody，
+每个 module lowering 后释放；设置 `WOLVRIX_FIRRTL_PARSE_CACHE=0` 可运行严格
+无缓存 A/B。小型 fixture 的 parse 调用从每 module 3 次降为 2 次，GRH/JSON
+阶段 hash 保持一致；香山整机 profile 已完成：缓存开启 486.2 s、关闭
+514.6 s，主要成本为 interface resolve 86.0 s、lowering 321.3 s 和 linked
+design verify 51.8 s；重新安装扩展后的 self-time 复跑为 484.0 s，阶段为
+resolve 85.2 s、lowering 320.3 s、verify 51.2 s。首轮香山数据还显示
+`resolve_module_calls=28,461`，即
+9,487 个 module 在固定点推导中完整重跑 3 轮；top-20 的 resolve 时间是递归
+包含子模块的 inclusive time，不能直接相加。profile 现已增加 `resolve_self_us`；
+width/Reset 依赖 worklist 已验证能减少无关重跑，lowering 继续拆分 source
+location、expression/access、leaves、GRH 建立和 annotation 成本。该结果仍需
+F12.5 正确性验收。已完成的 SrcLoc 单扫描候选
+将同一 `Range` 的两次 `Source::position()` 合并，整机 profile 降到 452.8 s，
+其中 lowering 为 290.1 s；随后完成的 width/Reset 依赖 worklist 将 profile 降到
+409.2 s，resolve 调用从 28,461 降到 9,818；`make test_wolvrix` 81/81 和
+`make test_xs_firrtl_workflow` 59/59 通过，图/属性/诊断未见变化。加入
+Semantics 内部 leaf cache 后，历史 profile 为 378.8 s（resolve 46.7 s、
+lowering 254.4 s、verify 49.6 s），同一 manifest 的无 profile 复测为 381.4 s，
+峰值 RSS 72,129,188 KiB。随后对 source line map 和 schema-ready 做了单因素
+A/B：source line map profile 为 329.499 s，schema-ready profile/no-profile 为
+327.163/329.988 s，均未保留。当前保留的 operation operand reserve 候选 profile
+为 324.235 s（resolve 47.490 s、lowering 199.633 s、verify 49.403 s），无
+profile 三次为 319.421 s、324.111 s 和最终清理后二进制的 322.146 s；峰值 RSS
+分别为 72,105,260、71,269,820、72,098,572 和 72,117,672 KiB。证据位于
+`ptmp/firrtl-ingest/F12/operand-reserve-profile/`、
+`operand-reserve-noprofile/`、`operand-reserve-noprofile-repeat/` 和 `final-noprofile/`；撤回证据位于
+`source-line-index-profile/` 与 `schema-ready-*`。SrcLoc、Lowerer leaf cache、
+canonical node write、worklist 和容量预留均保留完整检查与 annotation；comb/state/
+memory/effects 局部回归及 81/81 CTest 通过。上述为历史记录；最新实际安装库
+身份校正和单因素测量见专项计划，不能从未刷新 Python 安装库的历史候选推断
+性能收益。最新无分配 canonical key 校验候选三次无 profile 为
+297.350/298.779/297.960 s；完整 41,790,354,702 字节 JSON roundtrip 的
+SHA-256 一致，81/81 CTest 和指定 Make 功能门禁已通过。但后续全图对照发现
+source-info 缓存悬空，旧图自洽 roundtrip 不能证明原文正确；上述性能仅保留为
+历史记录。缓存已改为拥有字符串，并修复生成 SV 事务路径的非确定性。
+最新直接提取 source-info 的固定 CPU 0 单因素 A/B 为 **305.431→290.600 s**，
+完整 40,947,736,294 字节图 SHA-256、6,007 条诊断、依赖和 metadata keys
+一致。81/81 CTest、指定 Make 门禁和 64/64 workflow 通过；候选重复计时、
+最终 profile/no-profile roundtrip 和完整 20 分钟端到端验收仍待完成。
+
+F12 的第一门槛是 FIRRTL/mixed ingest 降至 300 秒以内，伸展目标为 180 秒；
+完整 FIRRTL→C++ 仍使用单个 20 分钟 SIGKILL 预算，最终是否通过以整机试跑为准。
+证据目录统一为 `ptmp/firrtl-ingest/F12/`，构建和测试全部经 Makefile。
+
+退出条件：阶段计时能解释至少 95% 的 ingest；baseline/candidate 的 GRH
+identity、diagnostics、JSON roundtrip、mixed binding 和代表模块执行一致；
+无 profile 正式测量可复现；完整整机试跑的停止阶段、RSS 和预算消耗有记录。
 
 ## F11：性能消融、默认策略和正式交付
 

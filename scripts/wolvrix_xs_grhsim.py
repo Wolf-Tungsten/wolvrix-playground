@@ -41,6 +41,31 @@ GRH_PIPELINE: list[tuple[str, dict]] = [
     ("memory-init-check", {}),
 ]
 
+# The default pipeline keeps the full lowering and cleanup sequence.  A
+# bring-up run can omit the optional graph-size reduction passes so that a
+# frozen full-chip input reaches flatten/emit within the producer's hard
+# wall-clock budget.  This profile is intentionally opt-in; it is for proving
+# end-to-end behavior before spending time on instruction-count tuning.
+GRH_BRINGUP_PIPELINE: list[tuple[str, dict]] = [
+    ("xmr-resolve", {}),
+    ("multidriven-guard", {}),
+    ("blackbox-guard", {}),
+    ("latch-transparent-read", {}),
+    ("hier-flatten", {}),
+    ("comb-loop-elim", {}),
+    # grh-to-grhsim performs full verification before and after conversion.
+    ("memory-init-check", {}),
+]
+
+
+def grh_pipeline() -> list[tuple[str, dict]]:
+    profile = os.environ.get("XS_GRHSIM_PIPELINE_PROFILE", "full").strip().lower()
+    if profile == "full":
+        return GRH_PIPELINE
+    if profile == "bringup":
+        return GRH_BRINGUP_PIPELINE
+    raise ValueError(f"XS_GRHSIM_PIPELINE_PROFILE must be 'full' or 'bringup', got {profile!r}")
+
 
 def env_int(name: str, default: int, *, minimum: int = 0, maximum: int = 2147483647) -> int:
     raw = os.environ.get(name, str(default)).strip()
@@ -112,8 +137,12 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("roundtrip_json")
     parser.add_argument("read_args_file")
     parser.add_argument("log_level", nargs="?", default="info")
+    parser.add_argument("--sources-manifest", type=Path,
+                        help="mixed FIRRTL/SV read_sources request; bypass the SV filelist")
     parser.add_argument("--resume-from-flat-grh", action="store_true")
     parser.add_argument("--roundtrip-verify", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--store-grh-checkpoints", action=argparse.BooleanOptionalAction, default=True,
+                        help="write automatic flat/final GRH JSON checkpoints; explicit dumps remain independent")
     parser.add_argument("--keep-origins", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--emit-cpp-dir", type=Path)
     parser.add_argument("--overwrite-emit-cpp", action=argparse.BooleanOptionalAction, default=True)
@@ -134,6 +163,10 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--clone-shared-compute", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--clone-shared-compute-max-clones", type=int, default=250000)
     parser.add_argument("--clone-shared-compute-lossy-compare", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--simplify", action=argparse.BooleanOptionalAction, default=True,
+                        help="run grhsim-simplify before and after optional transforms and partitioning")
+    parser.add_argument("--simplify-max-rounds", type=int, default=8,
+                        help="maximum rewrite rounds for each grhsim-simplify pass")
     parser.add_argument("--phase-simplify", action=argparse.BooleanOptionalAction, default=True,
                         help="simplify within each complete leaf after activity partitioning")
     parser.add_argument("--recover-masked-or", action=argparse.BooleanOptionalAction,
@@ -155,6 +188,11 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--max-supernode-nodes", type=int, help="maximum unified nodes per supernode")
     parser.add_argument("--sink-enable-guard-min-size", type=int)
     args = parser.parse_args(argv)
+    if not args.store_grh_checkpoints:
+        if args.emit_cpp_dir is None:
+            parser.error("--no-store-grh-checkpoints requires --emit-cpp-dir")
+        if args.roundtrip_verify:
+            parser.error("--no-store-grh-checkpoints requires --no-roundtrip-verify")
     if not args.keep_origins:
         parser.error("--no-keep-origins is retired; unified GRH retains origins through conversion")
     if not 0 < args.max_output_file_bytes < 2**64:
@@ -162,7 +200,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     for name, minimum in (("max_function_lines", 8), ("max_tu_bytes", 1), ("max_round", 1),
                           ("mem_min_bytes", 0), ("max_supernode_nodes", 1),
                           ("sink_enable_guard_min_size", 0), ("clone_shared_compute_max_clones", 1),
-                          ("masked_or_min_terms", 2)):
+                          ("masked_or_min_terms", 2), ("simplify_max_rounds", 1)):
         value = getattr(args, name)
         if value is not None and not minimum <= value <= 2147483647:
             parser.error(f"--{name.replace('_', '-')} must be in [{minimum},2147483647]")
@@ -181,9 +219,43 @@ def read_slang_args(filelist: Path, top: str, read_args_file: Path) -> list[str]
     return result
 
 
+def read_source_manifest(path: Path, top: str) -> dict:
+    """Resolve explicit inputs without collecting generated FIRRTL-to-SV files."""
+    path = path.resolve()
+    request = json.loads(path.read_text(encoding="utf-8"))
+    allowed = {"schema", "sources", "tops", "input_root", "slang_args",
+               "firrtl_options", "external_bindings"}
+    if not isinstance(request, dict) or set(request) - allowed:
+        raise ValueError("invalid mixed sources manifest fields")
+    if request.pop("schema", None) != "wolvrix.xs.firrtl-inputs.v1":
+        raise ValueError("unsupported mixed sources manifest schema")
+    sources = request.get("sources")
+    if not isinstance(sources, list) or not sources or not any(
+            source.get("language") == "firrtl" for source in sources if isinstance(source, dict)):
+        raise ValueError("mixed sources manifest requires a FIRRTL source")
+    root = Path(request.get("input_root", "."))
+    if not root.is_absolute():
+        root = path.parent / root
+    request["input_root"] = str(root.resolve())
+    for source in sources:
+        if not isinstance(source, dict) or source.get("language") not in ("firrtl", "sv"):
+            raise ValueError("invalid mixed source language")
+        source_path = Path(source["path"])
+        if not source_path.is_absolute():
+            source_path = root / source_path
+        if not source_path.is_file():
+            raise ValueError(f"mixed input not found: {source_path}")
+        source["path"] = str(source_path.resolve())
+    if request.setdefault("tops", [top]) != [top]:
+        raise ValueError("mixed sources manifest top differs from selected top")
+    return request
+
+
 def main() -> int:
     args = parse_args()
     options = default_flow_options()
+    options.simplify = args.simplify
+    options.simplify_max_rounds = args.simplify_max_rounds
     options.pack_bit_registers = args.pack_bit_registers
     options.recover_masked_or = args.recover_masked_or
     options.masked_or_min_terms = args.masked_or_min_terms
@@ -205,15 +277,24 @@ def main() -> int:
         if argument:
             argument.resolve().parent.mkdir(parents=True, exist_ok=True)
             setattr(options, field, str(argument.resolve()))
+    pipeline = grh_pipeline()
+    log("pipeline profile=" + os.environ.get("XS_GRHSIM_PIPELINE_PROFILE", "full"))
     log("configuration " + json.dumps(vars(options), sort_keys=True))
     flat_path = Path(args.flat_grh_json).resolve()
     final_path = Path(args.grhsim_json).resolve()
     roundtrip_path = Path(args.roundtrip_json).resolve()
     started = time.perf_counter()
     from grhsim_provenance import capture_generation, write_identity
-    identity = capture_generation("flat-grh-resume" if args.resume_from_flat_grh else "original-sv",
-        inputs=({"flat_grh": flat_path} if args.resume_from_flat_grh else
-                {"filelist": args.filelist, "read_args": args.read_args_file}),
+    mixed_request = read_source_manifest(args.sources_manifest, args.top) if args.sources_manifest else None
+    inputs = {"filelist": args.filelist, "read_args": args.read_args_file}
+    if mixed_request:
+        inputs = {"sources_manifest": args.sources_manifest}
+        inputs.update({f"source_{i}": source["path"] for i, source in enumerate(mixed_request["sources"])})
+        for i, name in enumerate(mixed_request.get("firrtl_options", {}).get("annotation_files", [])):
+            inputs[f"annotation_{i}"] = Path(mixed_request["input_root"]) / name
+    identity = capture_generation("flat-grh-resume" if args.resume_from_flat_grh else
+                                  "original-firrtl-mixed" if mixed_request else "original-sv",
+        inputs=({"flat_grh": flat_path} if args.resume_from_flat_grh else inputs),
         configuration={"arguments": vars(args), "flow": vars(options)})
     write_identity(final_path.with_name(final_path.stem + ".generation-identity.json"), identity)
     with wolvrix.Session() as session:
@@ -222,14 +303,22 @@ def main() -> int:
         if args.resume_from_flat_grh:
             checked(timed("load flat GRH", lambda: session.read_json_file(str(flat_path), out_design="design.main")), "load flat GRH")
         else:
-            slang_args = read_slang_args(Path(args.filelist).resolve(), args.top, Path(args.read_args_file).resolve())
-            checked(timed("ingest RTL", lambda: session.read_sv(None, out_design="design.main", slang_args=slang_args)), "ingest RTL")
-            for name, pass_options in GRH_PIPELINE:
+            if mixed_request:
+                checked(timed("ingest FIRRTL/mixed RTL", lambda: session.read_sources(
+                    **mixed_request, out_design="design.main")), "ingest FIRRTL/mixed RTL")
+            else:
+                slang_args = read_slang_args(Path(args.filelist).resolve(), args.top, Path(args.read_args_file).resolve())
+                checked(timed("ingest RTL", lambda: session.read_sv(None, out_design="design.main", slang_args=slang_args)), "ingest RTL")
+            identity["ingest_dependencies"] = session.graph_metadata(
+                design="design.main", top=args.top)["metadata"].get("ingest.dependencies", [])
+            write_identity(final_path.with_name(final_path.stem + ".generation-identity.json"), identity)
+            for name, pass_options in pipeline:
                 if name == "simplify" and args.dump_pre_simplify_json:
                     store_checkpoint(session, args.dump_pre_simplify_json.resolve(), design="design.main", top=args.top)
                 checked(timed(f"GRH pass {name}", lambda name=name, opts=pass_options: session.run_pass(
                     name, design="design.main", keep_declared_symbols=True, **opts)), name)
-            store_checkpoint(session, flat_path, design="design.main", top=args.top)
+            if args.store_grh_checkpoints:
+                store_checkpoint(session, flat_path, design="design.main", top=args.top)
         converted_count = 0
 
         def checkpoint(stage):
@@ -244,7 +333,8 @@ def main() -> int:
                 store_checkpoint(session, args.checkpoint_dir.resolve() / f"{stage}.json", design="design.main", top=args.top)
 
         finish_simulation_graph(session, design="design.main", top=args.top, options=options, checkpoint=checkpoint)
-        store_checkpoint(session, final_path, design="design.main", top=args.top)
+        if args.store_grh_checkpoints:
+            store_checkpoint(session, final_path, design="design.main", top=args.top)
         if args.emit_cpp_dir:
             timed("emit grhsim-cpu-st-cpp", lambda: emit_cpp(
                 session, design="design.main", top=args.top, output=args.emit_cpp_dir,

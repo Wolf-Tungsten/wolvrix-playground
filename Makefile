@@ -165,6 +165,7 @@ XS_GRHSIM_HIER_JSON ?= $(XS_GRHSIM_BUILD)/xs_grhsim_hier.json
 XS_GRHSIM_HIER_JSON_ROUNDTRIP ?= 1
 XS_GRHSIM_HIER_JSON_SKIP_SAFE_PASSES ?= 0
 XS_GRHSIM_ROUNDTRIP_VERIFY ?= 1
+XS_GRHSIM_STORE_GRH_CHECKPOINTS ?= 1
 XS_GRHSIM_FLAT_GRH_JSON ?= $(XS_GRHSIM_BUILD)/xiangshan_flat_grh.json
 XS_GRHSIM_JSON ?= $(XS_GRHSIM_BUILD)/xiangshan_grhsim.json
 XS_GRHSIM_ROUNDTRIP_JSON ?= $(XS_GRHSIM_BUILD)/xiangshan_grhsim_roundtrip.json
@@ -186,6 +187,8 @@ XS_GRHSIM_MAX_TU_BYTES ?= 1048576
 XS_GRHSIM_MAX_OUTPUT_FILE_BYTES ?= 4294967296
 XS_GRHSIM_CLONE_SHARED_COMPUTE ?= 1
 XS_GRHSIM_CLONE_SHARED_COMPUTE_MAX_CLONES ?= 250000
+XS_GRHSIM_SIMPLIFY ?= 1
+XS_GRHSIM_SIMPLIFY_MAX_ROUNDS ?= 8
 # B6 per-partition simplify (M5d-5); disable only for pipeline debugging.
 XS_GRHSIM_PHASE_SIMPLIFY ?= 1
 # B7 mask/array reduction recovery (aggregate CoreMark 100k: -2.96% Host time).
@@ -228,6 +231,28 @@ XS_GRHSIM_DEFINE_FLAGS := $(foreach d,$(XS_SIM_DEFINES),-D "$(d)")
 XS_DIFFTEST_MACROS := $(XS_ROOT)/build/generated-src/DifftestMacros.svh
 XS_DIFFTEST_GSIM_EXTMODULE := $(XS_ROOT)/build/generated-src/difftest-extmodule.cpp
 XS_GSIM_BIN ?= $(REF_GSIM_BIN)
+
+# Native FIRRTL route: separate generator and model directories, no generated SV.
+XS_FIRRTL_RTL_BUILD ?= $(XS_WORK_BASE)/firrtl-rtl
+XS_FIRRTL_BUILD ?= $(XS_WORK_BASE)/firrtl-grhsim
+XS_FIRRTL_GENERATE_DEFAULT := $(if $(filter undefined,$(origin XS_FIRRTL_INPUT)),1,0)
+XS_FIRRTL_INPUT ?= $(abspath $(XS_FIRRTL_RTL_BUILD))/rtl/$(XS_SIM_TOP).fir
+XS_FIRRTL_MANIFEST ?= $(XS_FIRRTL_BUILD)/sources.json
+XS_FIRRTL_HARNESS_INPUTS ?= $(XS_FIRRTL_BUILD)/harness-inputs
+XS_FIRRTL_HARNESS_SOURCE ?= $(XS_DIFFTEST_GEN_DIR_ABS)
+XS_FIRRTL_HARNESS_REFRESH ?= 0
+# SimJTAG has no source annotation in the frozen Chisel FIRRTL.
+XS_FIRRTL_SV_SOURCES ?= $(XS_VSRC_DIR_ABS)/SimJTAG.v
+XS_FIRRTL_INCLUDE_DIRS ?= $(XS_VSRC_DIR_ABS) $(XS_DIFFTEST_GEN_DIR_ABS)
+XS_FIRRTL_RESOURCE_ROOTS ?= $(XS_VSRC_DIR_ABS)
+XS_FIRRTL_ANNOTATION_FILES ?=
+XS_FIRRTL_NODE_ANNOTATIONS ?= on
+XS_FIRRTL_INIT_POLICY ?= unknown
+XS_FIRRTL_INVALID_POLICY ?= unknown
+XS_FIRRTL_ENABLED_LAYERS ?= Verification.Assert Verification.Assume Verification.Cover
+XS_GRHSIM_MODEL_OUTPUT ?= $(XS_GRHSIM_EMIT_CPP_DIR)
+FIRRTL_INGEST_BENCH_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F12/whole-chip
+FIRRTL_INGEST_BENCH_ARGS ?=
 
 # HDLBits paths
 HDLBITS_DUT_SRC := $(HDLBITS_ROOT)/dut/dut_$(DUT).v
@@ -323,6 +348,17 @@ test_ingest_mixed: generate_ingest_mixed
 	TMPDIR="$(INGEST_MIXED_TEST_WORK)/tmp" $(MAKE) -C $(WOLVRIX_BUILD_DIR)/artifacts/ingest-mixed -f run.mk run
 test_ingest_python: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
 	PYTHONDONTWRITEBYTECODE=1 INGEST_MIXED_TEST_WORK="$(INGEST_MIXED_TEST_WORK)/python" $(PYTHON) -m unittest discover -s scripts -p 'test_ingest*.py'
+
+INGEST_INDEX_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F10/ingest-indexes
+.PHONY: build_ingest_indexes test_ingest_indexes benchmark_ingest_indexes
+build_ingest_indexes:
+	mkdir -p "$(INGEST_INDEX_TEST_WORK)/tmp" "$(INGEST_INDEX_TEST_WORK)/ccache"
+	TMPDIR="$(INGEST_INDEX_TEST_WORK)/tmp" CCACHE_DIR="$(INGEST_INDEX_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR="$(INGEST_INDEX_TEST_WORK)/tmp" CCACHE_DIR="$(INGEST_INDEX_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target ingest-indexes -j 4
+test_ingest_indexes: build_ingest_indexes
+	TMPDIR="$(INGEST_INDEX_TEST_WORK)/tmp" ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^ingest-indexes$$' --output-on-failure
+benchmark_ingest_indexes: build_ingest_indexes
+	TMPDIR="$(INGEST_INDEX_TEST_WORK)/tmp" $(WOLVRIX_BUILD_DIR)/bin/ingest-indexes --benchmark
 
 FIRRTL_NODE_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F02
 .PHONY: test_firrtl_node_attributes test_firrtl_cse_scope
@@ -505,6 +541,50 @@ probe_remove_grhsim_ir_simplify:
 REMOVE_GRHSIM_IR_PASS_BENCH ?= $(CURDIR)/ptmp/remove-grhsim-ir/pass-bench
 REMOVE_GRHSIM_BENCH_PASSES ?= grhsim-simplify
 REMOVE_GRHSIM_BENCH_ROUNDS ?= 8
+FIRRTL_PASS_BENCH_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F10/pass-opt/current
+FIRRTL_PASS_BENCH_ARGS ?=
+FIRRTL_PASS_PROFILE ?= grhsim-simplify
+FIRRTL_PASS_COMPARE_ARGS ?=
+.PHONY: benchmark_firrtl_passes profile_firrtl_passes compare_firrtl_pass_benchmarks
+compare_firrtl_pass_benchmarks:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_firrtl_pass_benchmarks.py $(FIRRTL_PASS_COMPARE_ARGS)
+benchmark_firrtl_passes:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/benchmark_firrtl_passes.py --work "$(FIRRTL_PASS_BENCH_WORK)" $(FIRRTL_PASS_BENCH_ARGS)
+profile_firrtl_passes:
+	@mkdir -p "$(FIRRTL_PASS_BENCH_WORK)"
+	@test -p "$(FIRRTL_PASS_BENCH_WORK)/control" || mkfifo "$(FIRRTL_PASS_BENCH_WORK)/control"
+	@test -p "$(FIRRTL_PASS_BENCH_WORK)/ack" || mkfifo "$(FIRRTL_PASS_BENCH_WORK)/ack"
+	perf record --no-buildid-cache -e cpu-clock:u -F 499 --delay=-1 --control="fifo:$(FIRRTL_PASS_BENCH_WORK)/control,$(FIRRTL_PASS_BENCH_WORK)/ack" --call-graph dwarf,8192 -o "$(FIRRTL_PASS_BENCH_WORK)/perf.data" $(MAKE) --no-print-directory benchmark_firrtl_passes FIRRTL_PASS_BENCH_ARGS="$(FIRRTL_PASS_BENCH_ARGS) --profile-pass $(FIRRTL_PASS_PROFILE) --perf-control $(FIRRTL_PASS_BENCH_WORK)/control --perf-ack $(FIRRTL_PASS_BENCH_WORK)/ack"
+	perf report --stdio --no-children -i "$(FIRRTL_PASS_BENCH_WORK)/perf.data" > "$(FIRRTL_PASS_BENCH_WORK)/perf.txt"
+FIRRTL_INGEST_COMPARE_BASELINE ?= $(FIRRTL_INGEST_BENCH_WORK)
+FIRRTL_INGEST_COMPARE_CANDIDATE ?= $(FIRRTL_INGEST_BENCH_WORK)
+FIRRTL_INGEST_COMPARE_OUTPUT ?= $(FIRRTL_INGEST_BENCH_WORK)/comparison.json
+FIRRTL_INGEST_COMPARE_ARGS ?=
+.PHONY: compare_xs_firrtl_ingest
+compare_xs_firrtl_ingest:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_xs_firrtl_ingest.py \
+		--baseline "$(FIRRTL_INGEST_COMPARE_BASELINE)" \
+		--candidate "$(FIRRTL_INGEST_COMPARE_CANDIDATE)" \
+		--output "$(FIRRTL_INGEST_COMPARE_OUTPUT)" $(FIRRTL_INGEST_COMPARE_ARGS)
+
+.PHONY: benchmark_xs_firrtl_ingest
+benchmark_xs_firrtl_ingest: xs_firrtl_inputs $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+	@mkdir -p "$(abspath $(FIRRTL_INGEST_BENCH_WORK))"
+	@set -o pipefail; $(PYTHON) scripts/benchmark_xs_firrtl_ingest.py \
+		--manifest "$(abspath $(XS_FIRRTL_MANIFEST))" \
+		--output "$(abspath $(FIRRTL_INGEST_BENCH_WORK))" \
+		$(FIRRTL_INGEST_BENCH_ARGS) 2>&1 | tee "$(abspath $(FIRRTL_INGEST_BENCH_WORK))/benchmark.log"
+
+SV_INGEST_BENCH_FILELIST ?= $(XS_GRHSIM_FILELIST_ABS)
+SV_INGEST_BENCH_READ_ARGS ?= $(XS_GRHSIM_BUILD_ABS)/wolvrix_read_args.txt
+.PHONY: benchmark_xs_sv_ingest
+benchmark_xs_sv_ingest: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+	@mkdir -p "$(abspath $(FIRRTL_INGEST_BENCH_WORK))"
+	@set -o pipefail; $(PYTHON) scripts/benchmark_xs_firrtl_ingest.py \
+		--sv-filelist "$(abspath $(SV_INGEST_BENCH_FILELIST))" \
+		--sv-read-args "$(abspath $(SV_INGEST_BENCH_READ_ARGS))" --top "$(XS_SIM_TOP)" \
+		--output "$(abspath $(FIRRTL_INGEST_BENCH_WORK))" \
+		$(FIRRTL_INGEST_BENCH_ARGS) 2>&1 | tee "$(abspath $(FIRRTL_INGEST_BENCH_WORK))/benchmark.log"
 .PHONY: bench_remove_grhsim_ir_passes profile_remove_grhsim_ir_passes
 bench_remove_grhsim_ir_passes:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/bench_remove_grhsim_ir_passes.py --model "$(REMOVE_GRHSIM_IR_SIMPLIFY_MODEL)" \
@@ -540,8 +620,8 @@ GRHSIM_CPU_ST_CPP_CASES ?= run
 test_grhsim_readable_store:
 	mkdir -p $(CURDIR)/ptmp/grhsim-readable/build-tmp $(CURDIR)/ptmp/grhsim-readable/ccache
 	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
-	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target store-text store-json store-load-origin-attrs -j 4
-	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(store-text|store-json|store-load-origin-attrs)$$' --output-on-failure
+	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target store-text store-json store-load-origin-attrs load-json-file -j 4
+	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(store-text|store-json|store-load-origin-attrs|load-json-file)$$' --output-on-failure
 
 .PHONY: test_grhsim_readable_python
 test_grhsim_readable_python:
@@ -1077,6 +1157,92 @@ prepare_remove_grhsim_ir_phase_probe:
 .PHONY: test_xs_workflow
 test_xs_workflow:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_xs_workflow.py
+
+.PHONY: test_xs_firrtl_workflow
+test_xs_firrtl_workflow: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_xs_firrtl*.py'
+
+XS_FIRRTL_COMPARE_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F10/components
+XS_FIRRTL_COMPARE_SV_DIR ?= $(abspath $(XS_RTL_BUILD))/rtl
+XS_FIRRTL_COMPARE_TOPS ?= RenameTable sram_array_1p128x138m69s1h0l1b_icache_meta Rob
+XS_FIRRTL_COMPARE_CYCLES ?= 10000
+XS_FIRRTL_COMPARE_EXTRA_ARGS ?=
+XS_FIRRTL_COMPARE_ARGS = --firrtl "$(abspath $(XS_FIRRTL_INPUT))" \
+	--sv-dir "$(XS_FIRRTL_COMPARE_SV_DIR)" --output "$(XS_FIRRTL_COMPARE_WORK)" \
+	--cycles "$(XS_FIRRTL_COMPARE_CYCLES)" \
+	$(foreach top,$(XS_FIRRTL_COMPARE_TOPS),--top "$(top)") \
+	$(foreach dir,$(XS_FIRRTL_INCLUDE_DIRS),--include-dir "$(dir)") \
+	$(XS_FIRRTL_COMPARE_EXTRA_ARGS)
+.PHONY: generate_xs_firrtl_compare xs_firrtl_compare_drivers xs_firrtl_compare_trace test_xs_firrtl_components run_xs_firrtl_components
+generate_xs_firrtl_compare: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_compare.py generate $(XS_FIRRTL_COMPARE_ARGS)
+xs_firrtl_compare_drivers:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_compare.py drivers $(XS_FIRRTL_COMPARE_ARGS)
+xs_firrtl_compare_trace:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_compare.py trace-activity $(XS_FIRRTL_COMPARE_ARGS)
+.PHONY: xs_firrtl_compare_observe
+xs_firrtl_compare_observe:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_compare.py observe-sv $(XS_FIRRTL_COMPARE_ARGS)
+.PHONY: xs_firrtl_compare_observe_audit
+xs_firrtl_compare_observe_audit:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_compare.py audit-sv-observation $(XS_FIRRTL_COMPARE_ARGS)
+.PHONY: xs_firrtl_compare_prefix
+xs_firrtl_compare_prefix:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_compare.py compare-prefix $(XS_FIRRTL_COMPARE_ARGS)
+.PHONY: xs_firrtl_compare_inputs_audit
+xs_firrtl_compare_inputs_audit:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_compare.py audit-inputs $(XS_FIRRTL_COMPARE_ARGS)
+.PHONY: xs_firrtl_compare_rob_oob_audit
+xs_firrtl_compare_rob_oob_audit:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_rob_oob_audit.py --work "$(XS_FIRRTL_COMPARE_WORK)/Rob" --firrtl "$(XS_FIRRTL_INPUT)" --sv-dir "$(XS_FIRRTL_COMPARE_SV_DIR)"
+.PHONY: xs_firrtl_compare_defined
+xs_firrtl_compare_defined:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_rob_oob_audit.py --defined-comparison --work "$(XS_FIRRTL_COMPARE_WORK)/Rob" --firrtl "$(XS_FIRRTL_INPUT)" --sv-dir "$(XS_FIRRTL_COMPARE_SV_DIR)"
+test_xs_firrtl_components: generate_xs_firrtl_compare
+	$(MAKE) --no-print-directory run_xs_firrtl_components
+run_xs_firrtl_components:
+	$(MAKE) --no-print-directory -C "$(XS_FIRRTL_COMPARE_WORK)" -f run.mk run
+
+XS_FIRRTL_REPLACER_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F10/replacer
+XS_FIRRTL_REPLACER_ARGS = --firrtl "$(abspath $(XS_FIRRTL_INPUT))" \
+	--sv-dir "$(XS_FIRRTL_COMPARE_SV_DIR)" --output "$(XS_FIRRTL_REPLACER_WORK)" \
+	$(foreach dir,$(XS_FIRRTL_INCLUDE_DIRS),--include-dir "$(dir)")
+.PHONY: test_xs_firrtl_replacer_oracle generate_xs_firrtl_replacer xs_firrtl_replacer_drivers test_xs_firrtl_replacer run_xs_firrtl_replacer analyze_xs_firrtl_replacer monitor_xs_firrtl_replacer
+test_xs_firrtl_replacer_oracle:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_xs_firrtl_replacer.py
+generate_xs_firrtl_replacer:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_replacer.py generate $(XS_FIRRTL_REPLACER_ARGS)
+xs_firrtl_replacer_drivers:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_replacer.py drivers $(XS_FIRRTL_REPLACER_ARGS)
+test_xs_firrtl_replacer: generate_xs_firrtl_replacer
+	$(MAKE) --no-print-directory run_xs_firrtl_replacer
+run_xs_firrtl_replacer:
+	$(MAKE) --no-print-directory -C "$(XS_FIRRTL_REPLACER_WORK)" -f run.mk run
+analyze_xs_firrtl_replacer:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_replacer.py diagnose --output "$(XS_FIRRTL_REPLACER_WORK)"
+monitor_xs_firrtl_replacer:
+	$(MAKE) --no-print-directory -C "$(XS_FIRRTL_REPLACER_WORK)/verilator" -f run.mk monitor
+.PHONY: test_xs_firrtl_replacer_noopt
+test_xs_firrtl_replacer_noopt:
+	$(MAKE) --no-print-directory -C "$(XS_FIRRTL_REPLACER_WORK)/verilator" -f run.mk run-noopt
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_replacer.py compare-noopt --output "$(XS_FIRRTL_REPLACER_WORK)"
+	$(MAKE) --no-print-directory analyze_xs_firrtl_replacer
+.PHONY: xs_firrtl_replacer_minimal_inputs test_xs_firrtl_replacer_minimal
+xs_firrtl_replacer_minimal_inputs:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_replacer.py minimal --output "$(XS_FIRRTL_REPLACER_WORK)"
+test_xs_firrtl_replacer_minimal: xs_firrtl_replacer_minimal_inputs
+	$(MAKE) --no-print-directory -C "$(XS_FIRRTL_REPLACER_WORK)/minimal" -f run.mk run
+XS_FIRRTL_REFERENCE_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F10/reference-noopt
+XS_FIRRTL_REFERENCE_LANGUAGE ?=
+.PHONY: capture_xs_firrtl_reference_identity capture_xs_firrtl_reference_result
+capture_xs_firrtl_reference_identity:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_replacer.py reference-identity \
+		--firrtl "$(abspath $(XS_FIRRTL_INPUT))" --sv-dir "$(XS_FIRRTL_COMPARE_SV_DIR)" \
+		--output "$(XS_FIRRTL_REFERENCE_WORK)" --reference-vflags "$(XS_SIM_VFLAGS)" \
+		$(foreach dir,$(XS_FIRRTL_INCLUDE_DIRS),--include-dir "$(dir)") \
+		$(if $(strip $(XS_FIRRTL_REFERENCE_LANGUAGE)),--reference-language "$(XS_FIRRTL_REFERENCE_LANGUAGE)",)
+capture_xs_firrtl_reference_result:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_replacer.py reference-result --output "$(XS_FIRRTL_REFERENCE_WORK)"
 
 # ---------------------------------------------------------------------------
 # Sim-model refactor M0: golden baseline capture and diff harness.
@@ -1977,6 +2143,44 @@ run_c910_ref_test:
 	fi
 
 # XiangShan: generate sim-verilog
+.PHONY: xs_firrtl_rtl xs_firrtl_inputs xs_firrtl_harness_inputs xs_firrtl_grhsim xs_firrtl_grhsim_emu xs_firrtl_grhsim_build_emu run_xs_firrtl_grhsim_emu
+xs_firrtl_rtl:
+	@mkdir -p "$(abspath $(XS_FIRRTL_RTL_BUILD))" "$(XS_LOG_DIR_ABS)"
+	@set -o pipefail; $(XS_MILL_ENV) NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT) sim-verilog \
+		BUILD_DIR="$(abspath $(XS_FIRRTL_RTL_BUILD))" NUM_CORES=$(XS_NUM_CORES) \
+		CHISEL_TARGET=chirrtl RTL_SUFFIX=fir FIRTOOL= PRESERVE_AGGREGATE= \
+		2>&1 | tee "$(XS_LOG_DIR_ABS)/xs_firrtl_generation_$(RUN_ID).log"
+	@test -f "$(abspath $(XS_FIRRTL_RTL_BUILD))/rtl/$(XS_SIM_TOP).fir" || { echo "[FAIL] Chisel did not produce $(XS_SIM_TOP).fir"; exit 1; }
+
+# Default generation delegates freshness checks to XiangShan's Makefile.
+# Explicit inputs are frozen artifacts and are never regenerated implicitly.
+$(abspath $(XS_FIRRTL_INPUT)): $(if $(filter 1,$(XS_FIRRTL_GENERATE_DEFAULT)),xs_firrtl_rtl,)
+	@test -f "$@" || { echo "[FAIL] FIRRTL input not found: $@"; exit 1; }
+
+xs_firrtl_inputs: $(abspath $(XS_FIRRTL_INPUT))
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_inputs.py \
+		--firrtl "$(abspath $(XS_FIRRTL_INPUT))" --top "$(XS_SIM_TOP)" --output "$(abspath $(XS_FIRRTL_MANIFEST))" \
+		$(foreach s,$(XS_FIRRTL_SV_SOURCES),--sv-source "$(s)") \
+		$(foreach d,$(XS_FIRRTL_INCLUDE_DIRS),--include-dir "$(d)") \
+		$(foreach d,$(XS_SIM_DEFINES),--define "$(d)") \
+		$(foreach d,$(XS_FIRRTL_RESOURCE_ROOTS),--resource-root "$(d)") \
+		$(foreach a,$(XS_FIRRTL_ANNOTATION_FILES),--annotation-file "$(a)") \
+		$(foreach l,$(XS_FIRRTL_ENABLED_LAYERS),--enabled-layer "$(l)") \
+		--node-annotations "$(XS_FIRRTL_NODE_ANNOTATIONS)" \
+		--init-policy "$(XS_FIRRTL_INIT_POLICY)" --invalid-policy "$(XS_FIRRTL_INVALID_POLICY)"
+
+xs_firrtl_harness_inputs: $(abspath $(XS_FIRRTL_INPUT))
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/xs_firrtl_harness.py \
+		--firrtl "$(abspath $(XS_FIRRTL_INPUT))" --generated-dir "$(abspath $(XS_FIRRTL_HARNESS_SOURCE))" \
+		--xs-root "$(XS_ROOT_ABS)" --output-dir "$(abspath $(XS_FIRRTL_HARNESS_INPUTS))" \
+		--configuration "NUM_CORES=$(XS_NUM_CORES)" --configuration "WITH_CHISELDB=$(XS_WITH_CHISELDB)" \
+		--configuration "WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN)" --configuration "GRHSIM=1" \
+		--configuration "SIM_TOP=$(XS_SIM_TOP)" --configuration "CC=$(CC)" --configuration "CXX=$(CXX)" \
+		--configuration "AR=$(AR)" --configuration "MAKE=$(MAKE)" --configuration "PYTHON=$(PYTHON)" \
+		--configuration "MODEL_CXXFLAGS=-std=c++20 -O3 -march=native -fno-strict-aliasing -DWOLVRIX_GRHSIM_PERF=$(WOLVRIX_GRHSIM_PERF) -DWOLVRIX_GRHSIM_SN_TIMING=$(WOLVRIX_GRHSIM_SN_TIMING)" \
+		--configuration "WOLVRIX_GRHSIM_WAVEFORM=$(WOLVRIX_GRHSIM_WAVEFORM)" \
+		$(if $(filter 1,$(XS_FIRRTL_HARNESS_REFRESH)),--refresh,)
+
 $(XS_SIM_TOP_V):
 	@echo "[RUN] Generating XiangShan sim-verilog into $(XS_RTL_BUILD_ABS)..."
 	@mkdir -p "$(XS_LOG_DIR_ABS)"
@@ -2064,10 +2268,13 @@ XS_GRHSIM_FLAGS = \
 	$(if $(strip $(XS_GRHSIM_NONSINK_REPORT)),--nonsink-report "$(abspath $(XS_GRHSIM_NONSINK_REPORT))",) \
 	$(if $(filter 1,$(XS_GRHSIM_RESUME_FROM_FLAT_GRH_JSON)),--resume-from-flat-grh,) \
 	$(if $(filter 1,$(XS_GRHSIM_ROUNDTRIP_VERIFY)),,--no-roundtrip-verify) \
+	$(if $(filter 0,$(XS_GRHSIM_STORE_GRH_CHECKPOINTS)),--no-store-grh-checkpoints,) \
 	$(if $(filter 0,$(XS_GRHSIM_KEEP_ORIGINS)),--no-keep-origins,) \
 	$(if $(strip $(XS_GRHSIM_MEM_MIN_BYTES)),--mem-min-bytes $(XS_GRHSIM_MEM_MIN_BYTES),) \
 	$(if $(filter 0,$(XS_GRHSIM_CLONE_SHARED_COMPUTE)),--no-clone-shared-compute,) \
 	$(if $(filter-out 250000,$(XS_GRHSIM_CLONE_SHARED_COMPUTE_MAX_CLONES)),--clone-shared-compute-max-clones $(XS_GRHSIM_CLONE_SHARED_COMPUTE_MAX_CLONES),) \
+	$(if $(filter 0,$(XS_GRHSIM_SIMPLIFY)),--no-simplify,) \
+	$(if $(filter-out 8,$(XS_GRHSIM_SIMPLIFY_MAX_ROUNDS)),--simplify-max-rounds $(XS_GRHSIM_SIMPLIFY_MAX_ROUNDS),) \
 	$(if $(filter 0,$(XS_GRHSIM_PHASE_SIMPLIFY)),--no-phase-simplify,) \
 	$(if $(filter 0,$(XS_GRHSIM_MASKED_OR)),--no-recover-masked-or,) \
 	$(if $(filter-out 16,$(XS_GRHSIM_MASKED_OR_MIN_TERMS)),--masked-or-min-terms $(XS_GRHSIM_MASKED_OR_MIN_TERMS),) \
@@ -2076,7 +2283,7 @@ XS_GRHSIM_FLAGS = \
 	--max-supernode-nodes $(XS_GRHSIM_MAX_SUPERNODE_NODES) \
 	--max-function-lines $(XS_GRHSIM_MAX_FUNCTION_LINES) --max-tu-bytes $(XS_GRHSIM_MAX_TU_BYTES) \
 	$(if $(filter-out 4294967296,$(XS_GRHSIM_MAX_OUTPUT_FILE_BYTES)),--max-output-file-bytes $(XS_GRHSIM_MAX_OUTPUT_FILE_BYTES),) \
-	$(if $(strip $(XS_GRHSIM_EMIT_CPP_DIR)),--emit-cpp-dir "$(abspath $(XS_GRHSIM_EMIT_CPP_DIR))",) \
+	$(if $(strip $(XS_GRHSIM_MODEL_OUTPUT)),--emit-cpp-dir "$(abspath $(XS_GRHSIM_MODEL_OUTPUT))",) \
 	$(if $(filter 0,$(XS_GRHSIM_OVERWRITE_CPP)),--no-overwrite-emit-cpp,) \
 	$(if $(filter 0,$(XS_GRHSIM_READABLE_NAMES)),--no-readable-names,) \
 	$(if $(filter 0,$(XS_GRHSIM_SOURCE_COMMENTS)),--no-source-comments,) \
@@ -2119,6 +2326,33 @@ xs_grhsim: check_remove_grhsim_ir_options $(XS_GRHSIM_FILELIST_ABS) $(XS_GRHSIM_
 	echo "[EXIT] xs_grhsim $$status" | tee -a "$(XS_GRHSIM_LOG_FILE)"; \
 	exit $$status
 
+xs_firrtl_grhsim: XS_GRHSIM_MODEL_OUTPUT = $(XS_FIRRTL_BUILD)/model
+xs_firrtl_grhsim: xs_firrtl_inputs check_remove_grhsim_ir_options $(XS_GRHSIM_DEPS)
+	@mkdir -p "$(abspath $(XS_FIRRTL_BUILD))" "$(XS_LOG_DIR_ABS)"
+	@set -o pipefail; timeout --signal=KILL 20m $(PYTHON) "$(XS_GRHSIM_SCRIPT)" \
+		"$(abspath $(XS_FIRRTL_MANIFEST))" "$(XS_SIM_TOP)" \
+		"$(abspath $(XS_FIRRTL_BUILD))/xiangshan_flat_grh.json" \
+		"$(abspath $(XS_FIRRTL_BUILD))/xiangshan_grhsim.json" \
+		"$(abspath $(XS_FIRRTL_BUILD))/xiangshan_grhsim_roundtrip.json" \
+		"$(abspath $(XS_FIRRTL_MANIFEST))" "$(WOLF_LOG)" \
+		--sources-manifest "$(abspath $(XS_FIRRTL_MANIFEST))" \
+		$(XS_GRHSIM_FLAGS) \
+		2>&1 | tee "$(XS_LOG_DIR_ABS)/xs_firrtl_grhsim_$(RUN_ID).log"
+
+xs_firrtl_grhsim_emu: xs_firrtl_harness_inputs
+	@$(MAKE) --no-print-directory xs_firrtl_grhsim \
+		XS_FIRRTL_INCLUDE_DIRS="$(abspath $(XS_FIRRTL_HARNESS_INPUTS))/generated-src $(XS_FIRRTL_INCLUDE_DIRS)"
+	@$(MAKE) --no-print-directory xs_firrtl_grhsim_build_emu XS_FIRRTL_HARNESS_REFRESH=0
+
+xs_firrtl_grhsim_build_emu: xs_firrtl_harness_inputs
+	@$(MAKE) --no-print-directory _xs_grhsim_build_emu \
+		XS_GRHSIM_BUILD="$(abspath $(XS_FIRRTL_BUILD))" XS_GRHSIM_EMIT_CPP_DIR="$(abspath $(XS_FIRRTL_BUILD))/model" \
+		XS_DIFFTEST_GEN_DIR="$(abspath $(XS_FIRRTL_HARNESS_INPUTS))/generated-src" \
+		THIS_MAKEFILE="$(abspath $(XS_FIRRTL_HARNESS_INPUTS))/build-identity.json"
+
+run_xs_firrtl_grhsim_emu:
+	@$(MAKE) --no-print-directory _run_xs_grhsim_emu XS_GRHSIM_BUILD="$(abspath $(XS_FIRRTL_BUILD))"
+
 
 .PHONY: clean_xs_grhsim clean_xs_rtl clean_xs_retired xs_grhsim_reemit xs_grhsim_emu xs_grhsim_build_emu
 clean_xs_retired:
@@ -2157,6 +2391,10 @@ xs_grhsim_emu: xs_grhsim
 
 # Match the accepted aggregate benchmarks on the build host without extra flags.
 xs_grhsim_build_emu: check_xs_aggregate_rtl
+	@$(MAKE) --no-print-directory _xs_grhsim_build_emu
+
+.PHONY: _xs_grhsim_build_emu _run_xs_grhsim_emu
+_xs_grhsim_build_emu:
 	@test -n "$(XS_GRHSIM_EMIT_CPP_DIR)" && test -f "$(XS_GRHSIM_EMIT_CPP_DIR)/Makefile" || { echo "[FAIL] Generate the GrhSIM C++ model before build-only emu"; exit 1; }
 	@echo "[RUN] Building XiangShan emu with the GrhSIM generated model..."
 	@NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
@@ -2247,7 +2485,7 @@ xs_ref_emu: check_xs_aggregate_rtl
 	@echo "[LOG] Capturing build output to: $(XS_BUILD_LOG_FILE)"
 	@printf '' > "$(XS_BUILD_LOG_FILE)"
 	@echo "[CMD] NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu BUILD_DIR=$(XS_REF_BUILD_ABS) GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) RTL_DIR=$(XS_RTL_DIR_ABS) SIM_TOP_V=$(XS_SIM_TOP_V) NUM_CORES=$(XS_NUM_CORES) RTL_SUFFIX=$(XS_RTL_SUFFIX) EMU_THREADS=$(XS_EMU_THREADS) VM_BUILD_JOBS=$(XS_VM_BUILD_JOBS) EMU_RANDOMIZE=0 SIM_VFLAGS=\"$(XS_SIM_VFLAGS)\" WITH_CHISELDB=$(XS_WITH_CHISELDB) WITH_CONSTANTIN=$(XS_WITH_CONSTANTIN) $(if $(filter 1,$(XS_WAVEFORM)),EMU_TRACE=fst,)" | tee -a "$(XS_BUILD_LOG_FILE)"
-	NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
+	@set -o pipefail; NOOP_HOME=$(XS_NOOP_HOME) $(MAKE) -C $(XS_ROOT)/difftest emu \
 		BUILD_DIR=$(XS_REF_BUILD_ABS) \
 		GEN_CSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
 		GEN_VSRC_DIR=$(XS_DIFFTEST_GEN_DIR_ABS) \
@@ -2467,6 +2705,9 @@ run_xs_gsim_emu: check_xs_aggregate_rtl
 
 .PHONY: run_xs_grhsim_emu
 run_xs_grhsim_emu: check_xs_aggregate_rtl
+	@$(MAKE) --no-print-directory _run_xs_grhsim_emu
+
+_run_xs_grhsim_emu:
 	@test -x "$(XS_GRHSIM_BUILD_ABS)/emu/emu" || { echo "[FAIL] Build the GrhSIM emu before running"; exit 1; }
 	@if { [ "$(XS_WAVEFORM)" != "0" ] || [ -n "$(XS_WAVEFORM_PATH)" ]; } && [ "$(WOLVRIX_GRHSIM_WAVEFORM)" != "1" ]; then \
 		echo "[FAIL] xs grhsim: runtime waveform requested, but model was emitted without waveform support; rebuild with WOLVRIX_GRHSIM_WAVEFORM=1"; \

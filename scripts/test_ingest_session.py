@@ -83,6 +83,33 @@ class IngestSessionTest(unittest.TestCase):
         self.read_good(replace=True)
         self.assertEqual(self.session.kind("design.main"), "design")
 
+    def test_json_file_failure_preserves_existing_design_and_value(self):
+        self.read_good()
+        before = self.snapshot()
+        valid = WORK / "valid-file-copy.json"
+        valid.write_text(json.dumps(before))
+        late = json.loads(valid.read_text())
+        late["graphs"][-1]["ops"].append({"sym": "late_bad_file_op", "kind": "kAssign",
+                                            "in": ["missing_file_value"], "out": []})
+        unknown = WORK / "late-invalid-file.json"
+        unknown.write_text(json.dumps(late))
+        truncated = WORK / "truncated-file.json"
+        truncated.write_text(valid.read_text()[:-1])
+        missing = WORK / "missing-file-checkpoint.json"
+        missing.unlink(missing_ok=True)
+        self.session.put("kept.value", {"kept": True}, kind="fixture")
+        for path in (unknown, truncated, missing):
+            with self.subTest(path=path.name):
+                for key in ("design.main", "kept.value", "failed.file"):
+                    diagnostics = self.session.read_json_file(str(path), out_design=key, replace=True)
+                    self.assertTrue(any(d["kind"] == "error" for d in diagnostics), diagnostics)
+                self.assertEqual(self.snapshot(), before)
+                self.assertEqual(self.session.get("kept.value"), {"kept": True})
+                self.assertNotIn("failed.file", self.session.keys())
+        diagnostics = self.session.read_json_file(str(valid), out_design="kept.value", replace=True)
+        self.assertFalse(any(d["kind"] == "error" for d in diagnostics), diagnostics)
+        self.assertEqual(self.snapshot("kept.value"), before)
+
 
 if __name__ == "__main__":
     unittest.main()
