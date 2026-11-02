@@ -108,7 +108,7 @@ class Baseline:
         self.ar = str(Path(self.cxx).with_name('llvm-ar'))
         self.model = self.out / 'model'
         self.generated = self.out / 'chisel-home/build/generated-src'
-        self.tools = self.out / 'tools'
+        self.tools = args.tools_dir.resolve() if args.tools_dir else self.out / 'tools'
 
     def stage(self, name):
         record = dict(stage=name, time=time.time(), host=platform.node(), pid=os.getpid())
@@ -157,13 +157,16 @@ class Baseline:
         save(self.out/'scala_inputs.json',records)
         configuration=dict(flow='native-single-model',host=platform.node(),runtime_cpu=self.args.cpu,
             compile_cpus=sorted(os.sched_getaffinity(0)),jobs=self.args.jobs,cycles=self.args.cycles,
-            repeats=self.args.repeats,config='TLConfig',guest_cores=1,compiler=identity(self.cxx),
+            repeats=self.args.repeats,config='TLConfig',guest_cores=1,sim_primitives=self.args.sim_primitives,compiler=identity(self.cxx),
             model_flags='-std=c++20 -O3 -march=native',harness_flags='-O3',pgo=False,bolt=False,
             diagnostic_instrumentation=False,source_driver=identity(__file__),python=sys.executable,
             image=identity(XS/'ready-to-run/coremark-2-iteration.bin'),nemu=identity(XS/'ready-to-run/riscv64-nemu-interpreter-so'))
         save(self.out/'configuration.json',configuration)
 
     def build_tools(self):
+        if self.args.tools_dir:
+            self.run(['cmake','--build',self.tools,'--target','wolvrix_python','-j',self.args.jobs], 'tools-build')
+            return
         self.run(['cmake','-S',ROOT/'wolvrix','-B',self.tools,'-G','Unix Makefiles','-DCMAKE_BUILD_TYPE=Release',
             '-DCMAKE_C_COMPILER=/usr/bin/gcc','-DCMAKE_CXX_COMPILER=/usr/bin/g++',
             '-DWOLVRIX_ENABLE_MT_KAHYPAR=OFF','-DSKBUILD_PLATLIB_DIR=.', '-DSKBUILD_PURELIB_DIR=.',
@@ -173,7 +176,8 @@ class Baseline:
     def rtl(self):
         env=dict(self.env,NOOP_HOME=str(self.out/'chisel-home'))
         self.run(['make','-C',XS,'sim-verilog',f'BUILD_DIR={self.out / "rtl"}',
-            'CONFIG=TLConfig','NUM_CORES=1','RTL_SUFFIX=sv','WITH_CHISELDB=0','WITH_CONSTANTIN=0'], 'rtl',env)
+            'CONFIG=TLConfig','NUM_CORES=1','RTL_SUFFIX=sv','WITH_CHISELDB=0','WITH_CONSTANTIN=0',
+            'SIM_ARGS=--wolvrix-sim-primitives '+self.args.sim_primitives], 'rtl',env)
         if not (self.generated/'DifftestMacros.svh').is_file():
             raise RuntimeError('fresh Difftest generated sources absent')
         files=sorted((self.out/'rtl/rtl').rglob('*.sv'))+sorted((self.out/'rtl/rtl').rglob('*.v'))
@@ -224,7 +228,7 @@ class Baseline:
         self.compile()
         self.stage('build complete')
 
-    def measure(self):
+    def prepare_measurement(self):
         self.stage('measure native single-thread emu on CPU '+str(self.args.cpu))
         if self.args.binary:
             binary=self.args.binary.resolve()
@@ -274,89 +278,116 @@ class Baseline:
               '-i',str(directory/'runtime/image/workload.bin'),'--diff',str(directory/'runtime/ref/nemu.so'),
               '-b','0','-e','0','-s','0']
         self.run(['taskset','-c',str(cpu),'numactl',f'--membind={nodes[0]}','setarch',platform.machine(),'-R','true'],'runtime-placement-check')
+        return dict(directory=directory, binary=binary, frozen=frozen, original_binary=original_binary, cpu=cpu, nodes=nodes, siblings=siblings, plan=plan, runtime=runtime, base=base)
+
+    def run_sample(self, prepared, name, cycles, seed=0, extra_args=()):
+        directory=prepared['directory']
+        binary=prepared['binary']
+        frozen=prepared['frozen']
+        original_binary=prepared['original_binary']
+        cpu=prepared['cpu']
+        nodes=prepared['nodes']
+        siblings=prepared['siblings']
+        plan=prepared['plan']
+        runtime=prepared['runtime']
+        base=prepared['base']
+        self.stage('CPU96 runtime '+name)
+        attempts=[]
+        for attempt in range(60):
+            before=cpu_counters(siblings);time.sleep(3);after=cpu_counters(siblings)
+            idle=idle_percent(before,after);attempts.append(dict(time=time.time(),idle=idle))
+            if min(idle.values())>=98:break
+        else:raise RuntimeError('CPU96 or SMT sibling remains busy; placement is fixed, no fallback CPU')
+        save(directory/(name+'.preflight.json'),attempts)
+        base=list(base);base[-1]=str(seed)
+        command=base+['-C',str(cycles),*extra_args]
+        save(directory/(name+'.command.json'),command)
+        start_counters=cpu_counters(siblings)
+        start=time.monotonic();records=[];placement_seen=False;placement_bad=[];max_threads=0
+        numa_records=[];numa_bad=[];next_numa=0.0
+        numa_directory=directory/(name+'.numa');numa_directory.mkdir()
+        with (directory/(name+'.log')).open('w') as stream:
+            process=subprocess.Popen(command,cwd=binary.parent,env=runtime,stdout=stream,stderr=subprocess.STDOUT)
+            exited=threading.Event();completion={}
+            def wait_for_exit():
+                completion['returncode']=process.wait()
+                completion['wall_s']=time.monotonic()-start
+                exited.set()
+            watcher=threading.Thread(target=wait_for_exit);watcher.start()
+            while not exited.is_set():
+                try:
+                    proc=Path('/proc')/str(process.pid)
+                    if (proc/'exe').resolve()==binary.resolve():
+                        tasks=list((proc/'task').iterdir());max_threads=max(max_threads,len(tasks))
+                        sample=dict(time=time.monotonic()-start,threads=len(tasks),tasks=[])
+                        for task in tasks:
+                            status=dict(line.split(':',1) for line in (task/'status').read_text().splitlines() if ':' in line)
+                            affinity=status['Cpus_allowed_list'].strip()
+                            stat=(task/'stat').read_text().split(') ',1)[1].split()
+                            sample['tasks'].append(dict(tid=int(task.name),affinity=affinity,processor=int(stat[36]),
+                                user_ticks=int(stat[11]),system_ticks=int(stat[12]),
+                                voluntary_switches=int(status['voluntary_ctxt_switches']),
+                                involuntary_switches=int(status['nonvoluntary_ctxt_switches'])))
+                            if affinity!=str(cpu) or int(stat[36])!=cpu:placement_bad.append(sample['tasks'][-1])
+                        if not placement_seen:
+                            for fname in ('status','maps','smaps','numa_maps','personality'):
+                                (directory/(name+'.'+fname)).write_text((proc/fname).read_text())
+                            placement_seen=True
+                        if sample['time']>=next_numa:
+                            maps=(proc/'maps').read_text();numa=(proc/'numa_maps').read_text()
+                            record=inspect_locality(maps,numa,plan)
+                            record.update(time=sample['time'])
+                            prefix=numa_directory/f'{len(numa_records):04d}'
+                            prefix.with_suffix('.maps').write_text(maps)
+                            prefix.with_suffix('.numa_maps').write_text(numa)
+                            numa_records.append(record)
+                            numa_bad.extend(locality_errors(record,nodes[0]))
+                            next_numa=sample['time']+5
+                        records.append(sample)
+                except (FileNotFoundError,ProcessLookupError):pass
+                exited.wait(.5 if placement_seen else .05)
+            watcher.join();code=completion['returncode']
+        wall=completion['wall_s']
+        save(directory/(name+'.monitor.json'),records)
+        save(directory/(name+'.locality.json'),numa_records)
+        seen={path for row in numa_records for path in row['seen_files']}
+        # The NEMU reference is dlopen'ed by Difftest and can be unmapped before
+        # the final /proc snapshot (short smoke runs commonly do this). Its
+        # copied bytes are still prefaulted and its use is checked by the
+        # Difftest log/trace. The native emu and private loader libraries must
+        # remain mapped and local throughout the measured process.
+        required={entry['destination'] for entry in plan['files'] if entry['role'] in ('binary','library')}
+        if not required.issubset(seen):numa_bad.append(dict(missing_runtime_mappings=sorted(required-seen)))
+        if not any(row['groups'].get('anonymous',{}).get('pages',{}).get(str(nodes[0]),0) for row in numa_records):
+            numa_bad.append(dict(missing_anonymous_memory=True))
+        if numa_bad:
+            save(directory/(name+'.rejected.json'),dict(reason='NUMA locality',errors=numa_bad))
+            raise RuntimeError(f'{name}: NUMA locality failed; raw logs retained, sample excluded')
+        if code:raise RuntimeError(f'{name} emu exit {code}')
+        if not placement_seen or placement_bad or max_threads!=1:
+            raise RuntimeError(f'{name}: not a verified single thread on CPU96')
+        result=parse_run((directory/(name+'.log')).read_text(),cycles)
+        result.update(name=name,seed=seed,diagnostic=bool(extra_args),external_wall_s=wall,cpu=cpu,max_threads=max_threads,
+                      sibling_idle=idle_percent(start_counters,cpu_counters(siblings)),binary_sha256=frozen['sha256'],
+                      locality_pass=True,locality_samples=len(numa_records),numa_node=nodes[0],
+                      reference_mapped=any(entry['destination'] in seen for entry in plan['files']
+                                           if entry['role']=='reference'))
+        if any(result['sibling_idle'][c]<98 for c in siblings if c!=cpu):
+            save(directory/(name+'.rejected.json'),dict(reason='SMT sibling busy',result=result))
+            raise RuntimeError(f'{name}: SMT sibling busy; sample excluded')
+        if identity(binary)!=frozen:raise ValueError('binary changed while measuring')
+        for entry in plan['files']:
+            if identity(entry['destination'])!=entry['copy']:raise ValueError('runtime file changed while measuring')
+        save(directory/(name+'.json'),result)
+        print(json.dumps(result),flush=True)
+        return result
+
+    def measure(self):
+        prepared=self.prepare_measurement()
+        directory=prepared['directory'];frozen=prepared['frozen'];original_binary=prepared['original_binary']
         samples=[]
         for name,cycles in [('smoke',10000),('warmup',self.args.cycles)]+[(f'run{i:02d}',self.args.cycles) for i in range(1,self.args.repeats+1)]:
-            self.stage('CPU96 runtime '+name)
-            attempts=[]
-            for attempt in range(60):
-                before=cpu_counters(siblings);time.sleep(3);after=cpu_counters(siblings)
-                idle=idle_percent(before,after);attempts.append(dict(time=time.time(),idle=idle))
-                if min(idle.values())>=98:break
-            else:raise RuntimeError('CPU96 or SMT sibling remains busy; placement is fixed, no fallback CPU')
-            save(directory/(name+'.preflight.json'),attempts)
-            command=base+['-C',str(cycles)]
-            save(directory/(name+'.command.json'),command)
-            start_counters=cpu_counters(siblings)
-            start=time.monotonic();records=[];placement_seen=False;placement_bad=[];max_threads=0
-            numa_records=[];numa_bad=[];next_numa=0.0
-            numa_directory=directory/(name+'.numa');numa_directory.mkdir()
-            with (directory/(name+'.log')).open('w') as stream:
-                process=subprocess.Popen(command,cwd=binary.parent,env=runtime,stdout=stream,stderr=subprocess.STDOUT)
-                exited=threading.Event();completion={}
-                def wait_for_exit():
-                    completion['returncode']=process.wait()
-                    completion['wall_s']=time.monotonic()-start
-                    exited.set()
-                watcher=threading.Thread(target=wait_for_exit);watcher.start()
-                while not exited.is_set():
-                    try:
-                        proc=Path('/proc')/str(process.pid)
-                        if (proc/'exe').resolve()==binary.resolve():
-                            tasks=list((proc/'task').iterdir());max_threads=max(max_threads,len(tasks))
-                            sample=dict(time=time.monotonic()-start,threads=len(tasks),tasks=[])
-                            for task in tasks:
-                                status=dict(line.split(':',1) for line in (task/'status').read_text().splitlines() if ':' in line)
-                                affinity=status['Cpus_allowed_list'].strip()
-                                stat=(task/'stat').read_text().split(') ',1)[1].split()
-                                sample['tasks'].append(dict(tid=int(task.name),affinity=affinity,processor=int(stat[36]),
-                                    user_ticks=int(stat[11]),system_ticks=int(stat[12]),
-                                    voluntary_switches=int(status['voluntary_ctxt_switches']),
-                                    involuntary_switches=int(status['nonvoluntary_ctxt_switches'])))
-                                if affinity!=str(cpu) or int(stat[36])!=cpu:placement_bad.append(sample['tasks'][-1])
-                            if not placement_seen:
-                                for fname in ('status','maps','smaps','numa_maps','personality'):
-                                    (directory/(name+'.'+fname)).write_text((proc/fname).read_text())
-                                placement_seen=True
-                            if sample['time']>=next_numa:
-                                maps=(proc/'maps').read_text();numa=(proc/'numa_maps').read_text()
-                                record=inspect_locality(maps,numa,plan)
-                                record.update(time=sample['time'])
-                                prefix=numa_directory/f'{len(numa_records):04d}'
-                                prefix.with_suffix('.maps').write_text(maps)
-                                prefix.with_suffix('.numa_maps').write_text(numa)
-                                numa_records.append(record)
-                                numa_bad.extend(locality_errors(record,nodes[0]))
-                                next_numa=sample['time']+5
-                            records.append(sample)
-                    except (FileNotFoundError,ProcessLookupError):pass
-                    exited.wait(.5 if placement_seen else .05)
-                watcher.join();code=completion['returncode']
-            wall=completion['wall_s']
-            save(directory/(name+'.monitor.json'),records)
-            save(directory/(name+'.locality.json'),numa_records)
-            seen={path for row in numa_records for path in row['seen_files']}
-            required={entry['destination'] for entry in plan['files'] if entry['role'] in ('binary','reference','library')}
-            if not required.issubset(seen):numa_bad.append(dict(missing_runtime_mappings=sorted(required-seen)))
-            if not any(row['groups'].get('anonymous',{}).get('pages',{}).get(str(nodes[0]),0) for row in numa_records):
-                numa_bad.append(dict(missing_anonymous_memory=True))
-            if numa_bad:
-                save(directory/(name+'.rejected.json'),dict(reason='NUMA locality',errors=numa_bad))
-                raise RuntimeError(f'{name}: NUMA locality failed; raw logs retained, sample excluded')
-            if code:raise RuntimeError(f'{name} emu exit {code}')
-            if not placement_seen or placement_bad or max_threads!=1:
-                raise RuntimeError(f'{name}: not a verified single thread on CPU96')
-            result=parse_run((directory/(name+'.log')).read_text(),cycles)
-            result.update(name=name,external_wall_s=wall,cpu=cpu,max_threads=max_threads,
-                          sibling_idle=idle_percent(start_counters,cpu_counters(siblings)),binary_sha256=frozen['sha256'],
-                          locality_pass=True,locality_samples=len(numa_records),numa_node=nodes[0])
-            if any(result['sibling_idle'][c]<98 for c in siblings if c!=cpu):
-                save(directory/(name+'.rejected.json'),dict(reason='SMT sibling busy',result=result))
-                raise RuntimeError(f'{name}: SMT sibling busy; sample excluded')
-            if identity(binary)!=frozen:raise ValueError('binary changed while measuring')
-            for entry in plan['files']:
-                if identity(entry['destination'])!=entry['copy']:raise ValueError('runtime file changed while measuring')
-            save(directory/(name+'.json'),result)
-            print(json.dumps(result),flush=True)
+            result=self.run_sample(prepared,name,cycles)
             if name.startswith('run'):
                 signature={k:result[k] for k in ('pc','instr_count','cycle_count','guest_cycles')}
                 if samples and signature!={k:samples[0][k] for k in signature}:
@@ -381,6 +412,8 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--compiler',default='/nfs/home/tanghaojin/LLVM-23.1.2-Linux-X64/bin/clang++')
     parser.add_argument('--jobs',type=int,default=64)
+    parser.add_argument('--sim-primitives',choices=['none','priority-encode'],default='none')
+    parser.add_argument('--tools-dir',type=Path,help='shared tool build for matched A/B generation')
     parser.add_argument('--cpu',type=int,default=96)
     parser.add_argument('--cycles',type=int,default=100000)
     parser.add_argument('--repeats',type=int,default=8)

@@ -401,6 +401,12 @@
 | `TNO0388` | `2026-10-30` | [默认 SLP、本地 NUMA 单线程基线结果](./TNO0388_native_single_thread_slp_local_baseline_results_20261030.md) | CPU96 100k × 8，均值 98.579 秒、CV 1.04%；161 次 NUMA 快照和 1575 次线程快照全部通过。 |
 | `TNO0389` | `2026-10-30` | [IntrinsicExpr PriorityEncoder64 Verilog 实验](./TNO0389_intrinsic_expr_priority_encoder_verilog_20261030.md) | Scala 开关：常规链 / 组合 DPI 均成功生成；自定义 intrinsic 名称被拒绝；停在 Verilog。 |
 | `TNO0390` | `2026-10-30` | [明确原语的仿真实现归属讨论](./TNO0390_intrinsic_simulation_implementation_ownership_20261030.md) | 建议标准原语由库表达语义、后端提供实现，专用功能保留用户扩展；仅记录讨论，未推进后端。 |
+| `TNO0391` | `2026-11-02` | [优先编码原语接入进度](./TNO0391_priority_intrinsic_integration_progress_20261102.md) | 同名 utility、全位宽纯组合 IR 与单线程 A/B 实施中。 |
+| `TNO0392` | `2026-11-02` | [条件调用与原语契约回归](./TNO0392_priority_intrinsic_when_and_validation_20261102.md) | Uncache when 作用域隔离、严格纯组合契约、完整动态库冻结及验证记录。 |
+| `TNO0393` | `2026-11-02` | [完整香山 A/B 功能与单线程门禁](./TNO0393_priority_intrinsic_full_xs_ab_gate_20261102.md) | 466 调用、两组逐字段轨迹、8 对 CPU96 AB/BA；当前整机 +0.439982%。 |
+| `TNO0394` | `2026-11-02` | [全位宽微基准结果](./TNO0394_priority_intrinsic_width_matrix_results_20261102.md) | 31 位宽×两布局、62248366 个功能向量；packed 大宽度受益，65 位 lanes 明显退化。 |
+| `TNO0395` | `2026-11-02` | [优先编码原语输入布局门控](./TNO0395_priority_intrinsic_input_layout_policy_20261102.md) | `Vec[Bool]`/`Seq[Bool]` 保留原硬件；65 位 lanes 回退消失，完整香山 +0.383271% 且 CI 跨零。 |
+| `TNO0396` | `2026-11-02` | [移除显式 Vec.asUInt](./TNO0396_priority_intrinsic_explicit_vec_asUInt_removal_20261102.md) | 三个调用改为分布式输入；v7 完成功能校验和 8 对 CPU96 AB/BA，B 平均 +0.482634%，CI 跨零。 |
 
 增量更新（2026-10-14）：[TNO0337 第 20 节](./TNO0337_grhsim_partition_system_redesign_20261013.md)
 完成未划分图的操作/融合区域归因，739.8 万条条件记录守恒。223.1 万条 compute 来源是
@@ -1827,6 +1833,6 @@ p30 eval 32.70→10.15 µs，p29 22.99→34.90 µs。最大分区平均 eval 反
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`390`（`TNO0001..TNO0390`）。
+- 当前记录类文档总数：`396`（`TNO0001..TNO0396`）。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

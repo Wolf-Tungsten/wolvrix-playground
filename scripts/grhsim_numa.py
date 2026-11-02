@@ -28,11 +28,15 @@ def runtime_plan(binary, reference, image, directory, cpu, node, env):
     for role, source, relative in [('binary', binary, 'bin/emu'),
                                     ('reference', reference, 'ref/nemu.so'),
                                     ('image', image, 'image/workload.bin')]:
+        if source is None:
+            continue
         entries.append(dict(role=role, source=file_identity(source),
                             destination=str(directory / relative)))
     libraries = {}
     ldd_logs = {}
     for source in [binary, reference]:
+        if source is None:
+            continue
         output = subprocess.check_output(['ldd', str(source)], text=True, env=env)
         ldd_logs[str(source)] = output
         if 'not found' in output:
