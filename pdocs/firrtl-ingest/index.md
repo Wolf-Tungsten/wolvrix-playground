@@ -25,7 +25,7 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | 文档 | 内容 |
 | --- | --- |
 | [architecture.md](architecture.md) | 源码组织、混合读取、类型与时序语义、node 属性及分图合约 |
-| [steps.md](steps.md) | F00–F14 的依赖、交付、Make 验证入口及退出条件 |
+| [steps.md](steps.md) | F00–F16 的依赖、交付、Make 验证入口及退出条件 |
 | [firrtl-parser.md](../../wolvrix/docs/ingest/firrtl-parser.md) | 已实现 parser 的语法、接口签名、资源与验证边界 |
 | [F03-acceptance.md](F03-acceptance.md) | F03 逐项验收、目标构造矩阵、冻结输入和复验命令 |
 | [firrtl-combinational.md](../../wolvrix/docs/ingest/firrtl-combinational.md) | F04 类型、连接、聚合、逻辑域及 node lowering 的实际支持范围 |
@@ -45,6 +45,10 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | [F12-ingest-performance-plan.md](F12-ingest-performance-plan.md) | FIRRTL ingest 分阶段计时、热点定位和无语义损失加速计划；F11 的前置专项 |
 | [F13-grh-performance-plan.md](F13-grh-performance-plan.md) | 层次展平、普通 GRH 化简与 core 数据搬运的五项优化及验收记录 |
 | [F14-gsim-performance.md](F14-gsim-performance.md) | GSIM 直接从香山 FIRRTL 生成 C++ 的性能基线 |
+| [F15-grhsim-performance-plan.md](F15-grhsim-performance-plan.md) | GrhSIM simplify、node key/cache 与并行 FIRRTL lowering 优化 |
+| [F15-ingest-flatten-perf.md](F15-ingest-flatten-perf.md) | 10T ingest 到 hier-flatten 的 perf 热点、allocator 全堆扫描和 Operation 快照复制 |
+| [F16-ingest-flatten-performance-plan.md](F16-ingest-flatten-performance-plan.md) | ingest→hier-flatten 的分配器策略、Operation 快照与字符串/符号表三项修复计划 |
+| [F16-ingest-flatten-results.md](F16-ingest-flatten-results.md) | F16 逐项实现、native 身份、完整图正确性和性能证据 |
 | [pass-optimization-20261101.md](pass-optimization-20261101.md) | 保留完整优化的 flatten/simplify 实现加速、严格 A/B 与 20 分钟整机复测 |
 | [F10-components.md](F10-components.md) | 真实代表模块的双路线比较、激励、记分板及当前证据 |
 | [F10-replacer.md](F10-replacer.md) | AheadBtbReplacer 独立 PLRU 记分板、四路线执行与 reference 断言缩减 |
@@ -88,7 +92,9 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | F12 | FIRRTL ingest 性能分解与实现加速 | 初步版本收尾；已保留完整语义优化并移除原生插桩。收尾版固定 CPU 0 为 293.761 s，完整 40.95 GB 图 hash 与 6,007 条诊断对照通过；81/81 CTest、65/65 workflow 和指定 Make 门禁通过。完整 FIRRTL→C++ 20 分钟目标留待后续整机工作 |
 | F13 | 层次展平、GRH 化简与 core 数据搬运优化 | 已完成（2026-11-02）；五项实现及正确性门禁通过。后续完整默认 40 分钟试跑推进至后端 simplify，仍无 C++；flatten 381.999 s，普通 simplify 首轮 603.358 s，详见 F13-grh-performance-plan.md |
 | F14 | GSIM FIRRTL→C++ 性能基线 | 已完成（2026-11-02）；`default-xiangshan` 直接生成 244 个 C++ 文件，外层墙钟 778.590 s（12 分 58.6 秒）；详见 F14-gsim-performance.md |
-| F11 | 前端/node CSE/分图性能消融、默认策略和正式文档 | 待实施；依赖 F12、F13 |
+| F11 | 前端/node CSE/分图性能消融、默认策略和正式文档 | 待实施；依赖 F12、F13、F15、F16 |
+| F15 | GrhSIM 化简诊断与 dirty 调度、node key/cache、并行 FIRRTL lowering | 核心实现完成；ingest 1/2/10T 与展平 perf 已记录，完整 FIRRTL→C++ A/B 待测 |
+| F16 | ingest→hier-flatten 分配器、Operation 快照和字符串查询修复 | 已完成（2026-11-03）；三轮中位数 513.804→308.525 s，完整图/诊断及最终 perf 通过；F16.3 额外提速未证实，见实施结果 |
 
 F08 曾以本地 GSIM `a3ecb26` 的 `commonExpr()` 为依据保留源表达式边界。
 当前方案保留 simplify 自由：之后才按提示/MFFC 形成执行 node，再按

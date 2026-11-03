@@ -8,7 +8,10 @@ from pathlib import Path
 
 def create_manifest(firrtl, *, top, sv_sources=(), include_dirs=(), defines=(),
                     resource_roots=(), annotation_files=(), init_policy="unknown",
-                    invalid_policy="unknown", enabled_layers=(), node_annotations=True):
+                    invalid_policy="unknown", enabled_layers=(), node_annotations=True,
+                    lower_threads=1):
+    if isinstance(lower_threads, bool) or not isinstance(lower_threads, int) or lower_threads < 1:
+        raise ValueError("lower_threads must be a positive integer")
     firrtl = Path(firrtl).resolve()
     with firrtl.open(encoding="utf-8") as stream:
         if not stream.readline().startswith("FIRRTL version "):
@@ -39,7 +42,8 @@ def create_manifest(firrtl, *, top, sv_sources=(), include_dirs=(), defines=(),
                           + [arg for define in defines for arg in ("-D", define)],
             "firrtl_options": {"node_annotations": node_annotations, "init_policy": init_policy,
                                "invalid_policy": invalid_policy, "resource_roots": roots,
-                               "annotation_files": annotations, "enabled_layers": list(enabled_layers)}}
+                               "annotation_files": annotations, "enabled_layers": list(enabled_layers),
+                               "lower_threads": lower_threads}}
 
 
 def main():
@@ -56,11 +60,14 @@ def main():
     parser.add_argument("--init-policy", choices=["unknown", "zero"], default="unknown")
     parser.add_argument("--invalid-policy", choices=["unknown", "zero"], default="unknown")
     parser.add_argument("--node-annotations", choices=["on", "off"], default="on")
+    parser.add_argument("--lower-threads", type=int, default=1,
+                        help="number of private FIRRTL lowerers (default: 1)")
     args = parser.parse_args()
     manifest = create_manifest(args.firrtl, top=args.top, sv_sources=args.sv_source,
         include_dirs=args.include_dir, defines=args.define, resource_roots=args.resource_root,
         annotation_files=args.annotation_file, init_policy=args.init_policy, invalid_policy=args.invalid_policy,
-        enabled_layers=args.enabled_layer, node_annotations=args.node_annotations == "on")
+        enabled_layers=args.enabled_layer, node_annotations=args.node_annotations == "on",
+        lower_threads=args.lower_threads)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     print(f"FIRRTL mixed inputs: {args.output} ({len(manifest['sources'])} explicit sources)")

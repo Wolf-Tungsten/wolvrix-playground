@@ -84,6 +84,14 @@ class XsFirrtlWorkflowTests(unittest.TestCase):
         self.assertIs(request["firrtl_options"]["node_annotations"], False)
         self.assertEqual(request["firrtl_options"]["init_policy"], "unknown")
 
+    def test_lower_threads_is_published_in_manifest(self):
+        manifest = create_manifest(self.firrtl, top="SimTop", lower_threads=4)
+        self.assertEqual(manifest["firrtl_options"]["lower_threads"], 4)
+        with self.assertRaisesRegex(ValueError, "positive integer"):
+            create_manifest(self.firrtl, top="SimTop", lower_threads=0)
+        with self.assertRaisesRegex(ValueError, "positive integer"):
+            create_manifest(self.firrtl, top="SimTop", lower_threads=True)
+
     def test_prebuilt_firrtl_needs_no_generated_sv(self):
         unused = self.work / "unused-rtl"
         result = subprocess.run(["make", "--no-print-directory", "xs_firrtl_inputs",
@@ -99,15 +107,18 @@ class XsFirrtlWorkflowTests(unittest.TestCase):
         self.assertEqual(manifest["sources"][1], {"language": "sv", "unit": "helpers",
             "path": str(ROOT / "testcase/xiangshan/difftest/src/test/vsrc/common/SimJTAG.v")})
         self.assertIs(manifest["firrtl_options"]["node_annotations"], True)
+        self.assertEqual(manifest["firrtl_options"]["lower_threads"], 1)
         result = subprocess.run(["make", "--no-print-directory", "xs_firrtl_inputs",
             f"XS_FIRRTL_INPUT={self.firrtl}", f"XS_FIRRTL_BUILD={self.work / 'flow-off'}",
             f"XS_RTL_BUILD={unused}", "XS_FIRRTL_NODE_ANNOTATIONS=off",
+            "XS_FIRRTL_LOWER_THREADS=4",
             f"PYTHON={sys.executable}"], cwd=ROOT,
             env={**os.environ, "WOLF_ENV_SOURCED": "1", "MAKEFLAGS": ""},
             text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         self.assertEqual(result.returncode, 0, result.stdout)
         disabled = json.loads((self.work / "flow-off/sources.json").read_text())
         self.assertIs(disabled["firrtl_options"]["node_annotations"], False)
+        self.assertEqual(disabled["firrtl_options"]["lower_threads"], 4)
 
     def test_chisel_generation_uses_firrtl_target(self):
         xs = self.work / "xiangshan"
@@ -252,7 +263,8 @@ emu:
     def test_generation_hard_deadline_and_exit_status(self):
         real_timeout = shutil.which("timeout")
         self.assertIsNotNone(real_timeout)
-        for mode, status in (("success", 0), ("failure", 7), ("blocked", 137), ("ignore-term", 137)):
+        for mode, status in (("success", 0), ("failure", 7), ("blocked", 137),
+                             ("ignore-term", 137), ("override-deadline", 137)):
             with self.subTest(mode=mode):
                 work = self.work / mode
                 harness = work / "xiangshan/difftest"
@@ -271,7 +283,7 @@ emu:
                 script.write_text("import ctypes, signal, sys\nfrom pathlib import Path\n"
                     "print('mock-generation-started', flush=True)\n"
                     f"mode = {mode!r}\n"
-                    "if mode in ('blocked', 'ignore-term'):\n"
+                    "if mode in ('blocked', 'ignore-term', 'override-deadline'):\n"
                     "    if mode == 'ignore-term': signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
                     "    signal.alarm(5)  # Independent cleanup if the Make deadline regresses.\n"
                     "    ctypes.CDLL(None).pause()\n"
@@ -282,8 +294,9 @@ emu:
                 shim_dir.mkdir()
                 invocations = work / "timeout-invocations.jsonl"
                 shim = shim_dir / "timeout"
+                deadline = "40m" if mode == "override-deadline" else "20m"
                 shim.write_text(f"#!{sys.executable}\nimport json, os, sys\nfrom pathlib import Path\n"
-                    "assert sys.argv[1:3] == ['--signal=KILL', '20m'], sys.argv\n"
+                    f"assert sys.argv[1:3] == ['--signal=KILL', {deadline!r}], sys.argv\n"
                     f"assert sys.argv[3:5] == {[sys.executable, str(script)]!r}, sys.argv\n"
                     f"with Path({str(invocations)!r}).open('a') as log: log.write(json.dumps(sys.argv[1:]) + '\\n')\n"
                     f"os.execv({real_timeout!r}, [{real_timeout!r}, '--signal=KILL', '1s', *sys.argv[3:]])\n")
@@ -293,7 +306,8 @@ emu:
                     f"XS_ROOT={work / 'xiangshan'}", f"XS_FIRRTL_BUILD={flow}",
                     f"XS_FIRRTL_INPUT={self.firrtl}", f"XS_GRHSIM_SCRIPT={script}",
                     "XS_FIRRTL_SV_SOURCES=", "SKIP_PY_INSTALL=1", "RUN_ID=deadline",
-                    f"PYTHON={sys.executable}", f"XS_LOG_DIR={logs}"], cwd=ROOT,
+                    f"PYTHON={sys.executable}", f"XS_LOG_DIR={logs}",
+                    *(["XS_FIRRTL_GENERATION_TIMEOUT=40m"] if mode == "override-deadline" else [])], cwd=ROOT,
                     env={**os.environ, "WOLF_ENV_SOURCED": "1", "MAKEFLAGS": "",
                         "PATH": str(shim_dir) + os.pathsep + os.environ["PATH"]},
                     text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=10)

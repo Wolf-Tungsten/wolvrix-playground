@@ -46,6 +46,27 @@ keys 和 CPU affinity 也全部通过严格对照。证据为
 视为等量输入成本。SV 输入经过 firtool 的前置 lowering/优化，两条路线的
 工作边界和保留的 GRH 规模不同。
 
+## 收尾后：40 分钟 FIRRTL→C++ 实跑
+
+2026-11-02 按用户要求扩大完整试跑预算为 40 分钟；外层覆盖 harness/manifest
+准备与整个 Make 生成目标，内层超时通过 `XS_FIRRTL_GENERATION_TIMEOUT=40m`
+显式覆盖，默认仍为 20m。回归验证默认值、40m 参数转发和 SIGKILL 行为，
+`make SKIP_PY_INSTALL=1 test_xs_firrtl_workflow` 65/65 通过。
+
+`full40m/` 在 **2400.009 s** 被外层 SIGKILL，退出 **137**，未发布 flat
+checkpoint 或 C++ model。保持 full pipeline、annotations on、全部默认优化、
+checkpoint/roundtrip on，未从 checkpoint 恢复。ingest **293.093 s**，
+hier-flatten **467.958 s**，环路处理 **44.981 s**，后续全图校验 **22.856 s**。
+超时时仍在普通 GRH `simplify`；已完成五轮均 `changed=1`，分别为
+**999.972、84.451、83.542、80.144、81.833 s**。首轮 const-fold
+**593.627 s**、redundant-elim **303.085 s**、DCE **103.259 s**。
+这证明当前默认配置下 40 分钟仍不足以从原始 FIRRTL 生成 C++，也尚未到后端
+分区/发射阶段。下一性能瓶颈是普通 GRH 化简，不能将本轮结果归因于 ingest。
+
+证据：`ptmp/firrtl-ingest/F12/full40m/{result.json,summary.md,driver.log}`；
+包含实际加载库身份、完整配置和冻结输入/harness 关联。外层 GNU time 不能在
+SIGKILL 后归集被杀后代的 CPU/RSS，其 timeout 进程 RSS 不代表生成峰值内存。
+
 ## 测量证据更正：安装库身份
 
 ### source-info 正确性更正

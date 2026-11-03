@@ -11,7 +11,7 @@ F01–F08 的实施/验收记录保留历史含义；其中 source-node 优化�
 ## 推进顺序与共同退出条件
 
 主线顺序为 F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 →
-F09 → F10 → F12 → F13 → F11。属性与 node 作用域检查从 F02 开始伴随实现，F08 实现
+F09 → F10 → F12 → F13 → F14 → F15 → F16 → F11。属性与 node 作用域检查从 F02 开始伴随实现，F08 实现
 完整 node CSE 并验收全流程。混合模块注册表从 F01 设计，F07 完成端到端
 绑定；F09 可在 F02 后使用人工标注 fixture 做独立准备，不能据此宣称真实
 FIRRTL 路线完成。
@@ -884,3 +884,39 @@ node 信息变化与正确性：
 资源或性能变化（如已测）：
 尚未完成的事项及下一阶段：
 ```
+
+## F15：GrhSIM 性能路径实现
+
+F15 的差距分析和实现记录见 [F15-grhsim-performance-plan.md](F15-grhsim-performance-plan.md)。普通 simplify 已加入逐图 dirty worklist，GrhSIM simplify 在 owner 分组上维护 deterministic dirty-owner 传播并记录逐轮计数；node 属性验证使用 graph revision cache，flatten qualification 与 GrhSIM CSE 字符串使用 transient node-key IDs；FIRRTL transaction 通过 `FirrtlOptions::lowerThreads` 支持固定线程池，各 worker 直接写最终 owner 的 unpublished graph，并按原依赖顺序移动发布，不复制整图。`test_ingest_driver` 检查串行/并行完整 JSON 和诊断顺序，冻结香山输入已有同库 1T/2T 与 10T 到展平终点的实测。完整 FIRRTL→C++ A/B 仍待测。
+
+2026-11-03 的 [ingest→hier-flatten perf 分析](F15-ingest-flatten-perf.md) 定位到
+flatten 的 mimalloc 周期性全堆扫描，两项 collect 叶函数占 58.90% 用户 CPU；
+另记录 ingest 字符串/符号表查找与前置 pass 的完整 Operation 快照复制。
+本轮只新增诊断与报告，未修改 native 性能实现。
+
+## F16：ingest 到 hier-flatten 的三项性能修复
+
+状态：2026-11-03 已完成实现与验收。详细范围、源码落点和验收见
+[F16-ingest-flatten-performance-plan.md](F16-ingest-flatten-performance-plan.md)，
+完整结果见 [F16-ingest-flatten-results.md](F16-ingest-flatten-results.md)。
+
+交付顺序：
+
+1. F16.1：对照默认 mimalloc、提高周期扫描间隔和关闭 slang 全局 new/delete
+   替换，选择适合大图构建的分配器策略；保留 slang arena 机制。
+2. F16.2：前置 pass 先筛 kind、按需借用字段，消除完整 Operation 只读快照；
+   保持跨 mutation 的数据生命周期和来源信息。
+3. F16.3：减少 ingest/flatten 的重复字符串查找、hash 和临时分配，
+   使用图内 ID 与显式跨图映射，保留符号、annotation 和诊断契约。
+
+退出条件：三项逐项记录实现/实验处置、完整图及有序诊断对照、阶段耗时与
+峰值 RSS；最终完成同配置重复计时和 perf 复核。范围截止于展平返回，包含
+八个默认前置 pass，沿用 10T direct-publish 基线，不以 simplify 或仿真运行时
+收益代替本阶段结果。构建、测试和测量均经 Make，证据目录为
+`ptmp/firrtl-ingest/F16/`。
+
+验收结果：基线和最终版各三轮连续前缀中位数 **513.804→308.525 s**，
+缩短 **39.95%**，峰值 RSS 基本持平；三个变体的 ingest/flatten 完整图、
+metadata、来源和有序诊断均与基线一致。C++ **81/81**、工作流 **71/71**
+及相关生成模型门禁通过，最终 perf 完成。主要收益由分配器策略和只读快照
+消除支撑；F16.3 额外整体提速未证实。最终前缀仍为 F14 GSIM 的 **4.033×**。

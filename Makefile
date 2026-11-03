@@ -47,6 +47,9 @@ LOG_ONLY_SIM ?= 0
 
 BUILD_DIR ?= build
 WOLVRIX_BUILD_DIR ?= $(WOLVRIX_DIR)/build
+WOLVRIX_CMAKE_ARGS ?=
+WOLVRIX_TEST_TMP ?= $(CURDIR)/ptmp/ctest_tmp
+WOLVRIX_TEST_CCACHE ?= $(CURDIR)/ptmp/ctest_ccache
 FST_ROI_DISCOVERY_DIR := $(REPO_ROOT)/tools/fst_tools/roi_discovery
 CMAKE ?= cmake
 WOLVRIX_APP := $(WOLVRIX_BUILD_DIR)/bin/wolvrix
@@ -235,6 +238,7 @@ XS_GSIM_BIN ?= $(REF_GSIM_BIN)
 # Native FIRRTL route: separate generator and model directories, no generated SV.
 XS_FIRRTL_RTL_BUILD ?= $(XS_WORK_BASE)/firrtl-rtl
 XS_FIRRTL_BUILD ?= $(XS_WORK_BASE)/firrtl-grhsim
+XS_FIRRTL_GENERATION_TIMEOUT ?= 20m
 XS_FIRRTL_GENERATE_DEFAULT := $(if $(filter undefined,$(origin XS_FIRRTL_INPUT)),1,0)
 XS_FIRRTL_INPUT ?= $(abspath $(XS_FIRRTL_RTL_BUILD))/rtl/$(XS_SIM_TOP).fir
 XS_FIRRTL_MANIFEST ?= $(XS_FIRRTL_BUILD)/sources.json
@@ -247,6 +251,7 @@ XS_FIRRTL_INCLUDE_DIRS ?= $(XS_VSRC_DIR_ABS) $(XS_DIFFTEST_GEN_DIR_ABS)
 XS_FIRRTL_RESOURCE_ROOTS ?= $(XS_VSRC_DIR_ABS)
 XS_FIRRTL_ANNOTATION_FILES ?=
 XS_FIRRTL_NODE_ANNOTATIONS ?= on
+XS_FIRRTL_LOWER_THREADS ?= 1
 XS_FIRRTL_INIT_POLICY ?= unknown
 XS_FIRRTL_INVALID_POLICY ?= unknown
 XS_FIRRTL_ENABLED_LAYERS ?= Verification.Assert Verification.Assume Verification.Cover
@@ -305,7 +310,7 @@ build:
 	env -u MAKE_TERMOUT $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_C_COMPILER=$(CC) \
-		-DCMAKE_CXX_COMPILER=$(CXX)
+		-DCMAKE_CXX_COMPILER=$(CXX) $(WOLVRIX_CMAKE_ARGS)
 	$(CMAKE) --build $(WOLVRIX_BUILD_DIR)
 
 build_fst_roi_discovery:
@@ -329,8 +334,14 @@ $(WOLVRIX_APP): build
 
 .PHONY: test_wolvrix
 test_wolvrix: build
-	mkdir -p $(CURDIR)/ptmp/ctest_tmp $(CURDIR)/ptmp/ctest_ccache
-	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) --output-on-failure
+	mkdir -p $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) --output-on-failure
+
+.PHONY: test_ingest_driver
+test_ingest_driver: build
+	mkdir -p $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target ingest-driver -j 4
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^ingest-driver$$' --output-on-failure
 
 .PHONY: test_ingest_session
 INGEST_SESSION_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F01/session
@@ -574,6 +585,109 @@ benchmark_xs_firrtl_ingest: xs_firrtl_inputs $(if $(filter 1,$(SKIP_PY_INSTALL))
 		--manifest "$(abspath $(XS_FIRRTL_MANIFEST))" \
 		--output "$(abspath $(FIRRTL_INGEST_BENCH_WORK))" \
 		$(FIRRTL_INGEST_BENCH_ARGS) 2>&1 | tee "$(abspath $(FIRRTL_INGEST_BENCH_WORK))/benchmark.log"
+
+# F15 uses already-frozen manifests so the benchmark cannot regenerate or
+# overwrite the input description between thread-count runs.
+F15_FIRRTL_MANIFEST ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F15/manifests/threads-1.json
+F15_FIRRTL_BENCH_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F15/threads-1
+F15_FIRRTL_BENCH_ARGS ?= --store-identity
+.PHONY: prepare_f15_firrtl_manifests
+F15_FIRRTL_MANIFEST_DIR ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F15/manifests
+F15_FIRRTL_INPUT ?= $(REPO_ROOT)/ptmp/xs/rtl/rtl/SimTop.fir
+F15_FIRRTL_HARNESS_INCLUDE ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F13/full40m/harness-inputs/generated-src
+F15_FIRRTL_INCLUDE_DIRS ?= $(F15_FIRRTL_HARNESS_INCLUDE) $(REPO_ROOT)/testcase/xiangshan/difftest/src/test/vsrc/common $(REPO_ROOT)/testcase/xiangshan/build/generated-src
+prepare_f15_firrtl_manifests:
+	@mkdir -p "$(abspath $(F15_FIRRTL_MANIFEST_DIR))"
+	@$(MAKE) --no-print-directory xs_firrtl_inputs XS_FIRRTL_INPUT="$(abspath $(F15_FIRRTL_INPUT))" XS_FIRRTL_BUILD="$(abspath $(F15_FIRRTL_MANIFEST_DIR))/build-1" XS_FIRRTL_MANIFEST="$(abspath $(F15_FIRRTL_MANIFEST_DIR))/threads-1.json" XS_FIRRTL_INCLUDE_DIRS="$(F15_FIRRTL_INCLUDE_DIRS)" XS_FIRRTL_LOWER_THREADS=1
+	@$(MAKE) --no-print-directory xs_firrtl_inputs XS_FIRRTL_INPUT="$(abspath $(F15_FIRRTL_INPUT))" XS_FIRRTL_BUILD="$(abspath $(F15_FIRRTL_MANIFEST_DIR))/build-2" XS_FIRRTL_MANIFEST="$(abspath $(F15_FIRRTL_MANIFEST_DIR))/threads-2.json" XS_FIRRTL_INCLUDE_DIRS="$(F15_FIRRTL_INCLUDE_DIRS)" XS_FIRRTL_LOWER_THREADS=2
+	@$(MAKE) --no-print-directory xs_firrtl_inputs XS_FIRRTL_INPUT="$(abspath $(F15_FIRRTL_INPUT))" XS_FIRRTL_BUILD="$(abspath $(F15_FIRRTL_MANIFEST_DIR))/build-4" XS_FIRRTL_MANIFEST="$(abspath $(F15_FIRRTL_MANIFEST_DIR))/threads-4.json" XS_FIRRTL_INCLUDE_DIRS="$(F15_FIRRTL_INCLUDE_DIRS)" XS_FIRRTL_LOWER_THREADS=4
+	@$(MAKE) --no-print-directory xs_firrtl_inputs XS_FIRRTL_INPUT="$(abspath $(F15_FIRRTL_INPUT))" XS_FIRRTL_BUILD="$(abspath $(F15_FIRRTL_MANIFEST_DIR))/build-8" XS_FIRRTL_MANIFEST="$(abspath $(F15_FIRRTL_MANIFEST_DIR))/threads-8.json" XS_FIRRTL_INCLUDE_DIRS="$(F15_FIRRTL_INCLUDE_DIRS)" XS_FIRRTL_LOWER_THREADS=8
+	@$(MAKE) --no-print-directory xs_firrtl_inputs XS_FIRRTL_INPUT="$(abspath $(F15_FIRRTL_INPUT))" XS_FIRRTL_BUILD="$(abspath $(F15_FIRRTL_MANIFEST_DIR))/build-10" XS_FIRRTL_MANIFEST="$(abspath $(F15_FIRRTL_MANIFEST_DIR))/threads-10.json" XS_FIRRTL_INCLUDE_DIRS="$(F15_FIRRTL_INCLUDE_DIRS)" XS_FIRRTL_LOWER_THREADS=10
+.PHONY: benchmark_f15_firrtl_ingest
+benchmark_f15_firrtl_ingest: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+	@mkdir -p "$(abspath $(F15_FIRRTL_BENCH_WORK))"
+	@set -o pipefail; $(PYTHON) scripts/benchmark_xs_firrtl_ingest.py \
+		--manifest "$(abspath $(F15_FIRRTL_MANIFEST))" \
+		--output "$(abspath $(F15_FIRRTL_BENCH_WORK))" \
+		$(F15_FIRRTL_BENCH_ARGS) 2>&1 | tee "$(abspath $(F15_FIRRTL_BENCH_WORK))/benchmark.log"
+
+F15_FIRRTL_PROFILE_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F15/perf-10t-20261103
+F15_FIRRTL_PROFILE_MANIFEST ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F15/manifests/threads-10.json
+F15_FIRRTL_PROFILE_REPORT_ARGS ?=
+.PHONY: profile_f15_firrtl_ingest report_f15_firrtl_profile
+profile_f15_firrtl_ingest:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/profile_xs_firrtl_ingest.py record \
+		--work "$(abspath $(F15_FIRRTL_PROFILE_WORK))" --manifest "$(abspath $(F15_FIRRTL_PROFILE_MANIFEST))"
+report_f15_firrtl_profile:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/profile_xs_firrtl_ingest.py report \
+		--work "$(abspath $(F15_FIRRTL_PROFILE_WORK))" $(F15_FIRRTL_PROFILE_REPORT_ARGS)
+
+F16_FIRRTL_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F16/baseline
+F16_FIRRTL_MANIFEST ?= $(F15_FIRRTL_PROFILE_MANIFEST)
+F16_NATIVE_DIR ?=
+F16_FIRRTL_BENCH_ARGS ?= --through-flatten
+F16_GENERIC_COLLECT ?=
+F16_COMPARE_BASELINE ?=
+F16_COMPARE_CANDIDATE ?=
+F16_EVIDENCE_OUTPUT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F16/comparison.json
+F16_COMPARE_ARGS ?=
+F16_TIMING_RUNS ?=
+F16_PYTHON_FLAGS = $(if $(strip $(F16_NATIVE_DIR)),-S)
+F16_ENV = env -u MIMALLOC_GENERIC_COLLECT \
+	$(if $(strip $(F16_GENERIC_COLLECT)),MIMALLOC_GENERIC_COLLECT=$(F16_GENERIC_COLLECT)) \
+	$(if $(strip $(F16_NATIVE_DIR)),LD_LIBRARY_PATH="$(abspath $(F16_NATIVE_DIR))") \
+	$(if $(strip $(F16_NATIVE_DIR)),PYTHONPATH="$(abspath $(F16_NATIVE_DIR))/python") \
+	PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+.PHONY: benchmark_f16_firrtl_prefix verify_f16_firrtl_prefix snapshot_f16_native package_f16_native compare_f16_firrtl_prefix summarize_f16_firrtl_prefix check_f16_allocator check_f16_native
+check_f16_allocator:
+	@$(F16_ENV) $(PYTHON) $(F16_PYTHON_FLAGS) -c 'import json, wolvrix; print(json.dumps(wolvrix._native.allocator_configuration(), sort_keys=True))'
+
+check_f16_native:
+	@$(F16_ENV) $(PYTHON) $(F16_PYTHON_FLAGS) -c 'import sys, json; sys.path.insert(0, "scripts"); from benchmark_xs_firrtl_ingest import native_identity; print(json.dumps(native_identity(), indent=2))'
+
+benchmark_f16_firrtl_prefix:
+	@mkdir -p "$(abspath $(F16_FIRRTL_WORK))"
+	@set -o pipefail; $(F16_ENV) $(PYTHON) $(F16_PYTHON_FLAGS) scripts/benchmark_xs_firrtl_ingest.py \
+		--manifest "$(abspath $(F16_FIRRTL_MANIFEST))" \
+		--output "$(abspath $(F16_FIRRTL_WORK))" \
+		$(F16_FIRRTL_BENCH_ARGS) 2>&1 | tee "$(abspath $(F16_FIRRTL_WORK))/benchmark.log"
+
+verify_f16_firrtl_prefix:
+	@$(MAKE) --no-print-directory benchmark_f16_firrtl_prefix F16_FIRRTL_BENCH_ARGS="--prefix-identity --discard-identity-json"
+
+compare_f16_firrtl_prefix:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/f16_firrtl_evidence.py compare \
+		--baseline "$(abspath $(F16_COMPARE_BASELINE))" --candidate "$(abspath $(F16_COMPARE_CANDIDATE))" \
+		--output "$(abspath $(F16_EVIDENCE_OUTPUT))" $(F16_COMPARE_ARGS)
+
+summarize_f16_firrtl_prefix:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/f16_firrtl_evidence.py summarize \
+		--runs $(F16_TIMING_RUNS) --output "$(abspath $(F16_EVIDENCE_OUTPUT))"
+
+# Snapshot a fully installed variant, including its private runtime dependencies.
+snapshot_f16_native:
+	@test -n "$(F16_NATIVE_DIR)" || { echo "Set F16_NATIVE_DIR"; exit 1; }
+	@mkdir -p "$(abspath $(F16_NATIVE_DIR))"
+	cp $(REPO_ROOT)/.venv/lib/python3.12/site-packages/wolvrix/libwolvrix-lib.so \
+		$(REPO_ROOT)/.venv/lib/python3.12/site-packages/wolvrix/libtbb.so.12 \
+		$(REPO_ROOT)/.venv/lib/python3.12/site-packages/wolvrix/libtbbmalloc.so.2 \
+		"$(abspath $(F16_NATIVE_DIR))/"
+	cp "$(WOLVRIX_DIR)/build/skbuild/libwolvrix-lib.so" "$(abspath $(F16_NATIVE_DIR))/libwolvrix-lib.unstripped.so"
+	cp "$(REPO_ROOT)/.venv/lib/python3.12/site-packages/wolvrix/_wolvrix.so" "$(abspath $(F16_NATIVE_DIR))/_wolvrix.so"
+	cp "$(WOLVRIX_DIR)/build/skbuild/python/wolvrix/_wolvrix.so" "$(abspath $(F16_NATIVE_DIR))/_wolvrix.unstripped.so"
+	@$(MAKE) --no-print-directory package_f16_native
+	cp "$(WOLVRIX_DIR)/build/skbuild/CMakeCache.txt" "$(abspath $(F16_NATIVE_DIR))/CMakeCache.txt"
+	git -C "$(WOLVRIX_DIR)" diff --binary > "$(abspath $(F16_NATIVE_DIR))/source.diff"
+	git -C "$(WOLVRIX_DIR)" ls-files --others --exclude-standard -z | \
+		tar -C "$(WOLVRIX_DIR)" --null -T - -czf "$(abspath $(F16_NATIVE_DIR))/untracked-source.tar.gz"
+	sha256sum "$(abspath $(F16_NATIVE_DIR))/libwolvrix-lib.so" > "$(abspath $(F16_NATIVE_DIR))/sha256.txt"
+
+package_f16_native:
+	@test -f "$(abspath $(F16_NATIVE_DIR))/_wolvrix.so" || { echo "Snapshot the native binding first"; exit 1; }
+	mkdir -p "$(abspath $(F16_NATIVE_DIR))/python/wolvrix"
+	cp "$(REPO_ROOT)/.venv/lib/python3.12/site-packages/wolvrix/__init__.py" "$(abspath $(F16_NATIVE_DIR))/python/wolvrix/"
+	cp -R "$(REPO_ROOT)/.venv/lib/python3.12/site-packages/wolvrix/adapters" "$(abspath $(F16_NATIVE_DIR))/python/wolvrix/"
+	ln -sf ../../_wolvrix.so "$(abspath $(F16_NATIVE_DIR))/python/wolvrix/_wolvrix.so"
 
 SV_INGEST_BENCH_FILELIST ?= $(XS_GRHSIM_FILELIST_ABS)
 SV_INGEST_BENCH_READ_ARGS ?= $(XS_GRHSIM_BUILD_ABS)/wolvrix_read_args.txt
@@ -839,9 +953,10 @@ debug_remove_grhsim_ir_rob:
 
 .PHONY: test_grhsim_flow
 GRHSIM_FLOW_TEST_WORK ?= $(CURDIR)/ptmp/remove-grhsim-ir/r6-flow-tests
+GRHSIM_FLOW_TEST_TMP ?= $(CURDIR)/ptmp/remove-grhsim-ir/build-tmp
 test_grhsim_flow: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
 	PYTHONDONTWRITEBYTECODE=1 GRHSIM_FLOW_TEST_WORK="$(GRHSIM_FLOW_TEST_WORK)" $(PYTHON) -m unittest discover -s scripts -p test_grhsim_flow.py
-	TMPDIR=$(CURDIR)/ptmp/remove-grhsim-ir/build-tmp $(MAKE) -C "$(GRHSIM_FLOW_TEST_WORK)" -j 4 run
+	TMPDIR=$(GRHSIM_FLOW_TEST_TMP) $(MAKE) -C "$(GRHSIM_FLOW_TEST_WORK)" -j 4 run
 
 # Check even explicitly empty/zero settings: retired controls must never be
 # mistaken for accepted options. The exact historical names live in the
@@ -930,10 +1045,10 @@ test_ingest_struct_array_write:
 
 .PHONY: test_grh_register_write
 test_grh_register_write:
-	mkdir -p $(CURDIR)/ptmp/register_write_tmp $(CURDIR)/ptmp/register_write_ccache
-	TMPDIR=$(CURDIR)/ptmp/register_write_tmp CCACHE_DIR=$(CURDIR)/ptmp/register_write_ccache $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
-	TMPDIR=$(CURDIR)/ptmp/register_write_tmp CCACHE_DIR=$(CURDIR)/ptmp/register_write_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-mux-tree-fold -j 2
-	TMPDIR=$(CURDIR)/ptmp/register_write_tmp CCACHE_DIR=$(CURDIR)/ptmp/register_write_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-mux-tree-fold$$' --output-on-failure
+	mkdir -p $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-mux-tree-fold -j 2
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-mux-tree-fold$$' --output-on-failure
 
 .PHONY: probe_rob_register_write
 probe_rob_register_write:
@@ -978,9 +1093,9 @@ test_grhsim_split_phases: test_grhsim_virtual_partitions
 
 .PHONY: test_transform_simplify
 test_transform_simplify:
-	mkdir -p $(CURDIR)/ptmp/ctest_tmp $(CURDIR)/ptmp/ctest_ccache
-	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-simplify -j 2
-	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-simplify$$' --output-on-failure
+	mkdir -p $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-simplify -j 2
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-simplify$$' --output-on-failure
 
 .PHONY: test_transform_shape_mapping
 test_transform_shape_mapping:
@@ -996,9 +1111,9 @@ test_transform_comb_loop_elim:
 
 .PHONY: test_transform_memory_read_retime
 test_transform_memory_read_retime:
-	mkdir -p $(CURDIR)/ptmp/ctest_tmp $(CURDIR)/ptmp/ctest_ccache
-	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-memory-read-retime -j 2
-	TMPDIR=$(CURDIR)/ptmp/ctest_tmp CCACHE_DIR=$(CURDIR)/ptmp/ctest_ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-memory-read-retime$$' --output-on-failure
+	mkdir -p $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-memory-read-retime -j 2
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-memory-read-retime$$' --output-on-failure
 
 .PHONY: test_grhsim_event_lowering
 test_grhsim_event_lowering: test_grh_to_grhsim test_grhsim_virtual_partitions
@@ -2167,6 +2282,7 @@ xs_firrtl_inputs: $(abspath $(XS_FIRRTL_INPUT))
 		$(foreach a,$(XS_FIRRTL_ANNOTATION_FILES),--annotation-file "$(a)") \
 		$(foreach l,$(XS_FIRRTL_ENABLED_LAYERS),--enabled-layer "$(l)") \
 		--node-annotations "$(XS_FIRRTL_NODE_ANNOTATIONS)" \
+		--lower-threads "$(XS_FIRRTL_LOWER_THREADS)" \
 		--init-policy "$(XS_FIRRTL_INIT_POLICY)" --invalid-policy "$(XS_FIRRTL_INVALID_POLICY)"
 
 xs_firrtl_harness_inputs: $(abspath $(XS_FIRRTL_INPUT))
@@ -2329,7 +2445,7 @@ xs_grhsim: check_remove_grhsim_ir_options $(XS_GRHSIM_FILELIST_ABS) $(XS_GRHSIM_
 xs_firrtl_grhsim: XS_GRHSIM_MODEL_OUTPUT = $(XS_FIRRTL_BUILD)/model
 xs_firrtl_grhsim: xs_firrtl_inputs check_remove_grhsim_ir_options $(XS_GRHSIM_DEPS)
 	@mkdir -p "$(abspath $(XS_FIRRTL_BUILD))" "$(XS_LOG_DIR_ABS)"
-	@set -o pipefail; timeout --signal=KILL 20m $(PYTHON) "$(XS_GRHSIM_SCRIPT)" \
+	@set -o pipefail; timeout --signal=KILL "$(XS_FIRRTL_GENERATION_TIMEOUT)" $(PYTHON) "$(XS_GRHSIM_SCRIPT)" \
 		"$(abspath $(XS_FIRRTL_MANIFEST))" "$(XS_SIM_TOP)" \
 		"$(abspath $(XS_FIRRTL_BUILD))/xiangshan_flat_grh.json" \
 		"$(abspath $(XS_FIRRTL_BUILD))/xiangshan_grhsim.json" \
