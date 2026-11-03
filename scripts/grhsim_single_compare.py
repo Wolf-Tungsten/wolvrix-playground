@@ -43,7 +43,7 @@ def main():
     p.add_argument('--historical',type=Path)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--pairs',type=int,default=8)
     p.add_argument('--cycles',type=int,default=100000)
-    p.add_argument('--candidate-sim-primitives', choices=['none','priority-encode','popcount'], default='priority-encode')
+    p.add_argument('--candidate-sim-primitives', choices=['none','priority-encode','popcount','popcount-ge4'], default='priority-encode')
     p.add_argument('--image',type=Path,default=XS/'ready-to-run/coremark-2-iteration.bin')
     p.add_argument('--nemu',type=Path,default=XS/'ready-to-run/riscv64-nemu-interpreter-so')
     p.add_argument('--baseline-header',type=Path);p.add_argument('--candidate-header',type=Path)

@@ -408,6 +408,7 @@
 | `TNO0395` | `2026-11-02` | [优先编码原语输入布局门控](./TNO0395_priority_intrinsic_input_layout_policy_20261102.md) | `Vec[Bool]`/`Seq[Bool]` 保留原硬件；65 位 lanes 回退消失，完整香山 +0.383271% 且 CI 跨零。 |
 | `TNO0396` | `2026-11-02` | [移除显式 Vec.asUInt](./TNO0396_priority_intrinsic_explicit_vec_asUInt_removal_20261102.md) | 三个调用改为分布式输入；v7 完成功能校验和 8 对 CPU96 AB/BA，B 平均 +0.482634%，CI 跨零。 |
 | `TNO0397` | `2026-11-03` | [PopCount 紧凑布局替换与单线程实测](./TNO0397_popcount_intrinsic_packed_layout_walltime_20261103.md) | 1,095 个 packed 调用进入 `kCountOnes`，7,140 个分布式调用保留硬件；8 对 CPU96 walltime B 平均 +0.665717%，0/8 胜。 |
+| `TNO0398` | `2026-11-03` | [仅替换四位及以上 PopCount](./TNO0398_popcount_ge4_intrinsic_walltime_20261103.md) | 405 个 packed 调用进入 intrinsic，1–3 位的 690 个调用保留硬件；8 对 CPU96 walltime B 平均 +1.136902%，3/8 胜，CI 跨零。 |
 
 增量更新（2026-10-14）：[TNO0337 第 20 节](./TNO0337_grhsim_partition_system_redesign_20261013.md)
 完成未划分图的操作/融合区域归因，739.8 万条条件记录守恒。223.1 万条 compute 来源是
@@ -1834,7 +1835,7 @@ p30 eval 32.70→10.15 µs，p29 22.99→34.90 µs。最大分区平均 eval 反
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`397`（`TNO0001..TNO0397`）。
+- 当前记录类文档总数：`398`（`TNO0001..TNO0398`）。
 - 2026-11-03 新增 [TNO0397：PopCount 的紧凑布局替换与香山单线程实测](./TNO0397_popcount_intrinsic_packed_layout_walltime_20261103.md)：完整香山生成中识别到 1,095 个 packed `PopCount.Bits`、7,140 个分布式 `Vec/Seq` 调用保留硬件；B 的 `kCountOnes` native 模型功能和两组 100,000 周期 trace 全部通过，但 node030 CPU96 的 8 对单线程 walltime 为 `+0.665717%`（0/8 胜，95% CI `[+0.421713%, +0.925537%]`）。静态模型略小而运行略慢，下一步优先消融 1–3 位高频调用和后端活动形态，不启用默认 PopCount。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
