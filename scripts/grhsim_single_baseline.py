@@ -55,7 +55,8 @@ def cpus(text):
 def clean_environment():
     prefixes = ('WOLVRIX_', 'WOLVI_', 'XS_', 'EMU_', 'REPCUT_', 'PGO_', 'BOLT_', 'MILL_', 'CMAKE_', 'SKBUILD_')
     remove = {'LD_PRELOAD', 'LD_LIBRARY_PATH', 'PYTHONPATH', 'MAKEFLAGS', 'MFLAGS', 'CXXFLAGS', 'CFLAGS', 'LDFLAGS',
-              'CONFIG', 'NUM_CORES', 'JAVA_TOOL_OPTIONS', '_JAVA_OPTIONS', 'JDK_JAVA_OPTIONS'}
+              'CONFIG', 'NUM_CORES', 'NO_DIFF', 'DISABLE_DIFFTEST',
+              'JAVA_TOOL_OPTIONS', '_JAVA_OPTIONS', 'JDK_JAVA_OPTIONS'}
     return {k: v for k, v in os.environ.items() if not k.startswith(prefixes) and k not in remove}
 
 
@@ -74,17 +75,49 @@ def idle_percent(before,after):
             for cpu,value in before.items()}
 
 
-def parse_run(log,cycles):
+def validate_difftest_modes(rtl, runtime):
+    if rtl not in ('on', 'off') or runtime not in ('on', 'off'):
+        raise ValueError('DiffTest modes must be on or off')
+    if rtl == 'off' and runtime == 'on':
+        raise ValueError('runtime DiffTest requires generated DiffTest hardware')
+
+
+def parse_run(log,cycles,runtime_difftest='on'):
     log=re.sub(r'\x1b\[[0-9;]*m','',log)
     if re.search(r'ABORT|HIT BAD TRAP|mismatch|Assertion.*failed',log,re.I):
         raise ValueError('functional failure in emu log')
-    if 'Difftest enabled' not in log or 'EXCEEDING CYCLE/INSTR LIMIT' not in log:
-        raise ValueError('Difftest or cycle-limit completion absent')
-    patterns=dict(host_ms=r'Host time spent:\s*([\d,]+)ms',guest_cycles=r'Guest cycle spent:\s*([\d,]+)',
-                  instr_count=r'instrCnt = (\d+), cycleCnt = \d+',
-                  cycle_count=r'instrCnt = \d+, cycleCnt = (\d+)',
-                  pc=r'EXCEEDING CYCLE/INSTR LIMIT at pc = (0x[0-9a-fA-F]+)')
-    result={}
+    patterns=dict(host_ms=r'Host time spent:\s*([\d,]+)ms',guest_cycles=r'Guest cycle spent:\s*([\d,]+)')
+    result=dict(pc=None,instr_count=None,cycle_count=None,runtime_difftest=runtime_difftest)
+    if runtime_difftest == 'on':
+        if 'Difftest enabled' not in log or 'EXCEEDING CYCLE/INSTR LIMIT' not in log:
+            raise ValueError('Difftest or cycle-limit completion absent')
+        if '[DIFFTEST_MODE] disabled' in log:
+            raise ValueError('runtime DiffTest mode differs from request')
+        patterns.update(instr_count=r'instrCnt = (\d+), cycleCnt = \d+',
+                        cycle_count=r'instrCnt = \d+, cycleCnt = (\d+)',
+                        pc=r'EXCEEDING CYCLE/INSTR LIMIT at pc = (0x[0-9a-fA-F]+)')
+        result['stop_reason']='cycle-limit'
+        # UART bytes share stdout with periodic harness messages, sometimes
+        # without a newline between them. Preserve UART across those messages.
+        output=re.findall(r'The first instruction of core 0 has commited\. Difftest enabled\.[^\n]*\n(.*?)Core 0: ',
+                          log,re.S)
+        if len(output)==1:
+            result['workload_output']=re.sub(r'\[CYCLE_LIMIT\][^\n]*\n','',output[0])
+    elif runtime_difftest == 'off':
+        marker='[DIFFTEST_MODE] disabled (CONFIG_NO_DIFFTEST): collection=off checking=off'
+        if log.count(marker)!=1 or re.search(r'Difftest enabled|\[DIFFTEST_INIT\]|The reference model is',log):
+            raise ValueError('runtime DiffTest not completely disabled')
+        completion=re.findall(r'\[EMU_COMPLETION\] reason=(\S+) cycles=(\d+)$',log,re.M)
+        if completion != [('cycle-limit',str(cycles))]:
+            raise ValueError('missing/incorrect no-DiffTest cycle-limit completion')
+        # This interval includes UART output and any diagnostics after loading
+        # the workload. Keep it verbatim for matched no-DiffTest runs.
+        output=re.findall(r'^The image is [^\n]*\n(.*?)\[EMU_COMPLETION\]',log,re.M|re.S)
+        if len(output)!=1:raise ValueError('missing/ambiguous workload output interval')
+        result['workload_output']=output[0]
+        result['stop_reason']='cycle-limit'
+    else:
+        raise ValueError('runtime DiffTest mode must be on or off')
     for key,pattern in patterns.items():
         values=re.findall(pattern,log)
         if len(values)!=1:raise ValueError('missing/ambiguous runtime field: '+key)
@@ -97,6 +130,9 @@ def parse_run(log,cycles):
 class Baseline:
     def __init__(self, args):
         self.args = args
+        self.rtl_difftest = getattr(args, 'rtl_difftest', 'on')
+        self.runtime_difftest = getattr(args, 'runtime_difftest', 'on')
+        validate_difftest_modes(self.rtl_difftest, self.runtime_difftest)
         self.out = args.output.resolve()
         self.out.mkdir(parents=True, exist_ok=True)
         self.env = clean_environment()
@@ -158,9 +194,11 @@ class Baseline:
         configuration=dict(flow='native-single-model',host=platform.node(),runtime_cpu=self.args.cpu,
             compile_cpus=sorted(os.sched_getaffinity(0)),jobs=self.args.jobs,cycles=self.args.cycles,
             repeats=self.args.repeats,config='TLConfig',guest_cores=1,sim_primitives=self.args.sim_primitives,compiler=identity(self.cxx),
+            rtl_difftest=self.rtl_difftest,runtime_difftest=self.runtime_difftest,
             model_flags='-std=c++20 -O3 -march=native',harness_flags='-O3',pgo=False,bolt=False,
             diagnostic_instrumentation=False,source_driver=identity(__file__),python=sys.executable,
-            image=identity(XS/'ready-to-run/coremark-2-iteration.bin'),nemu=identity(XS/'ready-to-run/riscv64-nemu-interpreter-so'))
+            image=identity(XS/'ready-to-run/coremark-2-iteration.bin'),
+            nemu=identity(XS/'ready-to-run/riscv64-nemu-interpreter-so') if self.runtime_difftest=='on' else None)
         save(self.out/'configuration.json',configuration)
 
     def build_tools(self):
@@ -177,9 +215,13 @@ class Baseline:
         env=dict(self.env,NOOP_HOME=str(self.out/'chisel-home'))
         self.run(['make','-C',XS,'sim-verilog',f'BUILD_DIR={self.out / "rtl"}',
             'CONFIG=TLConfig','NUM_CORES=1','RTL_SUFFIX=sv','WITH_CHISELDB=0','WITH_CONSTANTIN=0',
+            'DISABLE_DIFFTEST='+str(int(self.rtl_difftest=='off')),
             'SIM_ARGS=--wolvrix-sim-primitives '+self.args.sim_primitives], 'rtl',env)
         if not (self.generated/'DifftestMacros.svh').is_file():
             raise RuntimeError('fresh Difftest generated sources absent')
+        profile=json.loads((self.generated/'difftest_profile.json').read_text())
+        if bool(profile['bundles']) != (self.rtl_difftest=='on'):
+            raise RuntimeError('generated DiffTest interfaces differ from requested mode')
         files=sorted((self.out/'rtl/rtl').rglob('*.sv'))+sorted((self.out/'rtl/rtl').rglob('*.v'))
         save(self.out/'rtl_manifest.json',[identity(p) for p in files])
         save(self.out/'difftest_generated_manifest.json',[identity(p) for p in sorted(self.generated.rglob('*')) if p.is_file()])
@@ -190,7 +232,8 @@ class Baseline:
         files=sorted({p.resolve() for base in (rtl,common) for p in base.rglob('*') if p.suffix in ('.sv','.v')})
         (self.out/'input.f').write_text(''.join(str(p)+'\n' for p in files))
         save(self.out/'input_manifest.json',[identity(p) for p in files])
-        (self.out/'read_args.txt').write_text(f'-I {rtl}\n-I {self.generated}\n-I {common}\n-D DIFFTEST\n')
+        defines='-D DIFFTEST\n' if self.runtime_difftest=='on' else ''
+        (self.out/'read_args.txt').write_text(f'-I {rtl}\n-I {self.generated}\n-I {common}\n'+defines)
         env=dict(self.env,PYTHONPATH=str(self.tools/'python'),LD_LIBRARY_PATH=str(self.tools),
             WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON='0',WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON='0',
             WOLVRIX_XS_GRHSIM_POST_STATS_JSON=str(self.out/'post_stats.json'),
@@ -208,6 +251,7 @@ class Baseline:
         self.run(['make','-C',XS/'difftest','emu','-j',self.args.jobs,f'BUILD_DIR={self.out/"emu"}',
             f'GEN_CSRC_DIR={self.generated}',f'GEN_VSRC_DIR={self.generated}',f'GRHSIM_MODEL_DIR={self.model}',
             'GRHSIM=1','NUM_CORES=1','EMU_THREADS=0','EMU_RANDOMIZE=0','WITH_CHISELDB=0','WITH_CONSTANTIN=0',
+            'NO_DIFF='+str(int(self.runtime_difftest=='off')),
             'WOLVRIX_GRHSIM_WAVEFORM=0','WOLVRIX_GRHSIM_PERF=0','EMU_OPTIMIZE=-O3','PGO_BOLT=0',
             f'GRHSIM_MODEL_BUILD_JOBS={self.args.jobs}',f'VM_BUILD_JOBS={self.args.jobs}',
             f'CXX={self.cxx}',f'CC={self.cc}',f'AR={self.ar}','GRHSIM_MODEL_CXXFLAGS=-std=c++20 -O3 -march=native'], 'compile')
@@ -233,18 +277,24 @@ class Baseline:
         if self.args.binary:
             binary=self.args.binary.resolve()
             frozen=identity(binary)
-            settings=dict(image=identity(self.args.image),nemu=identity(self.args.nemu))
+            settings=dict(image=identity(self.args.image),
+                          nemu=identity(self.args.nemu) if self.runtime_difftest=='on' else None)
         else:
             binary=self.out/'emu/grhsim-compile/emu'
             frozen=json.loads((self.out/'binary.json').read_text())
             if identity(binary)!=frozen:raise ValueError('baseline binary changed')
             settings=json.loads((self.out/'configuration.json').read_text())
+            if settings.get('runtime_difftest','on')!=self.runtime_difftest:
+                raise ValueError('runtime DiffTest mode differs from frozen build')
         original_binary=frozen
         for key in ('image','nemu'):
+            if settings[key] is None:continue
             if identity(settings[key]['path'])!=settings[key]:raise ValueError('baseline input changed: '+key)
         symbols=subprocess.check_output(['nm','--demangle',str(binary)],text=True)
         if 'GrhSIM_SimTop::eval()' not in symbols or 'GrhSIM_Gpart_' in symbols:
             raise ValueError('measurement requires the native single-model GrhSIM binary')
+        if self.runtime_difftest=='off' and re.search(r'\b(?:v_difftest_|difftest_init\(|difftest_nstep\()',symbols):
+            raise ValueError('no-DiffTest binary still contains collection/checking code')
         cpu=self.args.cpu
         if cpu!=96:raise ValueError('user requested CPU96 for walltime')
         siblings=cpus(Path(f'/sys/devices/system/cpu/cpu{cpu}/topology/thread_siblings_list').read_text())
@@ -255,7 +305,8 @@ class Baseline:
         runtime=dict(self.env,EMU_PHASE_TIMING='0',EMU_PROGRESS_EVERY_CYCLES='0')
         directory=self.out/'runs'
         directory.mkdir(exist_ok=False)
-        plan=runtime_plan(binary,settings['nemu']['path'],settings['image']['path'],
+        reference=settings['nemu']['path'] if self.runtime_difftest=='on' else None
+        plan=runtime_plan(binary,reference,settings['image']['path'],
                           directory/'runtime',cpu,nodes[0],runtime)
         save(directory/'runtime_plan.json',plan)
         self.run(['taskset','-c',str(cpu),'numactl',f'--membind={nodes[0]}',sys.executable,
@@ -274,8 +325,9 @@ class Baseline:
             library_path=runtime['LD_LIBRARY_PATH'],
             locality_poll_seconds=5,system_loader=plan['interpreter'],
             cycles=self.args.cycles,repeats=self.args.repeats))
+        diff_args=['--diff',str(directory/'runtime/ref/nemu.so')] if self.runtime_difftest=='on' else ['--no-diff']
         base=['taskset','-c',str(cpu),'numactl',f'--membind={nodes[0]}','setarch',platform.machine(),'-R',str(binary),
-              '-i',str(directory/'runtime/image/workload.bin'),'--diff',str(directory/'runtime/ref/nemu.so'),
+              '-i',str(directory/'runtime/image/workload.bin'),*diff_args,
               '-b','0','-e','0','-s','0']
         self.run(['taskset','-c',str(cpu),'numactl',f'--membind={nodes[0]}','setarch',platform.machine(),'-R','true'],'runtime-placement-check')
         return dict(directory=directory, binary=binary, frozen=frozen, original_binary=original_binary, cpu=cpu, nodes=nodes, siblings=siblings, plan=plan, runtime=runtime, base=base)
@@ -335,6 +387,8 @@ class Baseline:
                             placement_seen=True
                         if sample['time']>=next_numa:
                             maps=(proc/'maps').read_text();numa=(proc/'numa_maps').read_text()
+                            if self.runtime_difftest=='off' and re.search(r'nemu[^\n]*\.so',maps,re.I):
+                                numa_bad.append(dict(unexpected_reference_mapping=True))
                             record=inspect_locality(maps,numa,plan)
                             record.update(time=sample['time'])
                             prefix=numa_directory/f'{len(numa_records):04d}'
@@ -366,7 +420,7 @@ class Baseline:
         if code:raise RuntimeError(f'{name} emu exit {code}')
         if not placement_seen or placement_bad or max_threads!=1:
             raise RuntimeError(f'{name}: not a verified single thread on CPU96')
-        result=parse_run((directory/(name+'.log')).read_text(),cycles)
+        result=parse_run((directory/(name+'.log')).read_text(),cycles,self.runtime_difftest)
         result.update(name=name,seed=seed,diagnostic=bool(extra_args),external_wall_s=wall,cpu=cpu,max_threads=max_threads,
                       sibling_idle=idle_percent(start_counters,cpu_counters(siblings)),binary_sha256=frozen['sha256'],
                       locality_pass=True,locality_samples=len(numa_records),numa_node=nodes[0],
@@ -413,6 +467,8 @@ def main():
     parser.add_argument('--compiler',default='/nfs/home/tanghaojin/LLVM-23.1.2-Linux-X64/bin/clang++')
     parser.add_argument('--jobs',type=int,default=64)
     parser.add_argument('--sim-primitives',choices=['none','priority-encode','popcount','popcount-ge4','gray-decode'],default='none')
+    parser.add_argument('--rtl-difftest',choices=['on','off'],default='on')
+    parser.add_argument('--runtime-difftest',choices=['on','off'],default='on')
     parser.add_argument('--tools-dir',type=Path,help='shared tool build for matched A/B generation')
     parser.add_argument('--cpu',type=int,default=96)
     parser.add_argument('--cycles',type=int,default=100000)

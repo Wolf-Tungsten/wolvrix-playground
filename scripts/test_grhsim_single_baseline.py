@@ -1,6 +1,11 @@
 import unittest
+import argparse
+import json
+from pathlib import Path
+import tempfile
+from unittest.mock import Mock
 
-from grhsim_single_baseline import parse_run
+from grhsim_single_baseline import Baseline, parse_run, validate_difftest_modes
 from grhsim_numa import inspect_locality, locality_errors
 
 
@@ -26,6 +31,79 @@ class BaselineLogTests(unittest.TestCase):
                      self.LOG.replace('12,345ms', '0ms')]:
             with self.subTest(log=text), self.assertRaises(ValueError):
                 parse_run(text, 100000)
+
+    def test_enabled_uart_output_with_interleaved_cycle_messages(self):
+        log=('The first instruction of core 0 has commited. Difftest enabled. \n'
+             'Running CoreM[CYCLE_LIMIT] cycles=10000 max_cycles=100000\n'
+             'ark for 2 iterations\n[CYCLE_LIMIT] cycles=100000 max_cycles=100000\n'
+             'Core 0: '+self.LOG.removeprefix('Difftest enabled.\n'))
+        row=parse_run(log,100000)
+        self.assertEqual(row['workload_output'],'Running CoreMark for 2 iterations\n')
+        self.assertEqual(row['stop_reason'],'cycle-limit')
+        self.assertEqual(row['instr_count'],240349)
+
+
+class NoDiffLogTests(unittest.TestCase):
+    LOG = ('[DIFFTEST_MODE] disabled (CONFIG_NO_DIFFTEST): collection=off checking=off\n'
+           'The image is /run/workload.bin\n'
+           'Running CoreMark for 2 iterations\n'
+           '[EMU_COMPLETION] reason=cycle-limit cycles=100000\n'
+           'Seed=0 Guest cycle spent: 100001\n'
+           'Host time spent: 12,345ms\n')
+
+    def test_no_diff_completion_without_architectural_fields(self):
+        row=parse_run(self.LOG,100000,'off')
+        self.assertEqual(row['host_ms'],12345)
+        self.assertEqual(row['workload_output'],'Running CoreMark for 2 iterations\n')
+        for key in ('pc','instr_count','cycle_count'):
+            self.assertIsNone(row[key])
+        with self.assertRaises(ValueError):parse_run(self.LOG,100000)
+
+    def test_completion_can_follow_unterminated_uart_output(self):
+        log=self.LOG.replace('Running CoreMark for 2 iterations\n','Running CoreM')
+        row=parse_run(log,100000,'off')
+        self.assertEqual(row['workload_output'],'Running CoreM')
+
+    def test_wrong_mode_failures_and_incomplete_work_are_rejected(self):
+        for text in [self.LOG.replace('[DIFFTEST_MODE]','[OTHER]'),
+                     self.LOG+'Difftest enabled.\n',self.LOG+'[DIFFTEST_INIT] core=0\n',
+                     self.LOG+'The reference model is /ref/nemu.so\n',
+                     self.LOG.replace('reason=cycle-limit','reason=other'),
+                     self.LOG.replace('cycles=100000','cycles=99999'),
+                     self.LOG.replace('spent: 100001','spent: 100000'),
+                     self.LOG+'ABORT\n',self.LOG+'Host time spent: 12ms\n']:
+            with self.subTest(log=text), self.assertRaises(ValueError):
+                parse_run(text,100000,'off')
+
+
+class DifftestBuildModeTests(unittest.TestCase):
+    def test_invalid_hardware_runtime_combination(self):
+        for rtl,runtime in [('on','on'),('on','off'),('off','off')]:
+            validate_difftest_modes(rtl,runtime)
+        with self.assertRaises(ValueError):validate_difftest_modes('off','on')
+
+    def test_modes_reach_generation_frontend_and_compilation(self):
+        for rtl,runtime in [('on','on'),('on','off'),('off','off')]:
+            with self.subTest(rtl=rtl,runtime=runtime), tempfile.TemporaryDirectory() as directory:
+                work=Baseline(argparse.Namespace(output=Path(directory),compiler='/usr/bin/clang++',
+                    tools_dir=None,sim_primitives='none',rtl_difftest=rtl,runtime_difftest=runtime,jobs=1))
+                work.run=Mock()
+                work.generated.mkdir(parents=True)
+                (work.generated/'DifftestMacros.svh').write_text('')
+                (work.generated/'difftest_profile.json').write_text(json.dumps(
+                    dict(bundles=[{}] if rtl=='on' else [])))
+                work.rtl()
+                self.assertIn('DISABLE_DIFFTEST='+str(int(rtl=='off')),work.run.call_args.args[0])
+                work.emit()
+                self.assertEqual('-D DIFFTEST' in (work.out/'read_args.txt').read_text(),runtime=='on')
+                binary=work.out/'emu/grhsim-compile/emu'
+                binary.parent.mkdir(parents=True);binary.write_bytes(b'fixture')
+                work.compile()
+                command=next(c.args[0] for c in work.run.call_args_list if c.args[1]=='compile')
+                self.assertIn('NO_DIFF='+str(int(runtime=='off')),command)
+                (work.generated/'difftest_profile.json').write_text(json.dumps(
+                    dict(bundles=[] if rtl=='on' else [{}])))
+                with self.assertRaises(RuntimeError):work.rtl()
 
 
 class NumaLocalityTests(unittest.TestCase):

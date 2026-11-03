@@ -4,10 +4,16 @@ import tempfile
 import unittest
 
 from grhsim_difftrace import build_comparator, compare_traces
-from grhsim_single_compare import pair_order, summarize
+from grhsim_single_compare import compare_footprints, pair_order, run_signature, runtime_modes, summarize
 
 
 class PairTests(unittest.TestCase):
+    def test_independent_runtime_modes_preserve_variant_labels(self):
+        self.assertEqual(runtime_modes('on'),dict(A='on',B='on'))
+        self.assertEqual(runtime_modes('off'),dict(A='off',B='off'))
+        self.assertEqual(runtime_modes('on',baseline='off'),dict(A='off',B='on'))
+        self.assertEqual(runtime_modes('off',candidate='on'),dict(A='off',B='on'))
+
     def test_order_and_paired_statistics(self):
         self.assertEqual(pair_order(4), [('A','B'),('B','A'),('A','B'),('B','A')])
         result = summarize([{'A':{'host_ms':1000+i*100},
@@ -15,6 +21,36 @@ class PairTests(unittest.TestCase):
         self.assertAlmostEqual(result['delta_percent_mean'], -10)
         self.assertAlmostEqual(result['delta_percent_ci95'][0], -10)
         self.assertEqual(result['candidate_faster_pairs'], 8)
+
+
+class FootprintTests(unittest.TestCase):
+    def test_matched_nonempty_memory_and_uart_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths=[Path(directory)/name for name in ('A','B')]
+            for path in paths:path.write_bytes(bytes(range(16)))
+            row=dict(guest_cycles=100001,workload_output='Running CoreMark\n')
+            result=compare_footprints(paths,[row,row])
+            self.assertEqual(result['status'],'pass')
+            for payload in (b'',b'bad',bytes(16)):
+                paths[1].write_bytes(payload)
+                with self.assertRaises(ValueError):compare_footprints(paths,[row,row])
+            paths[1].write_bytes(paths[0].read_bytes())
+            for change in (dict(guest_cycles=100000),dict(workload_output=''),dict(workload_output='wrong')):
+                with self.assertRaises(ValueError):compare_footprints(paths,[row,dict(row,**change)])
+
+    def test_no_diff_signature_includes_workload_output(self):
+        row=dict(pc=None,instr_count=None,cycle_count=None,guest_cycles=100001,
+                 runtime_difftest='off',stop_reason='cycle-limit',workload_output='CoreMark\n')
+        self.assertNotEqual(run_signature(row),run_signature(dict(row,workload_output='')))
+
+    def test_mixed_modes_compare_shared_observations_without_fabricating_pc(self):
+        off=dict(pc=None,instr_count=None,cycle_count=None,guest_cycles=100001,
+                 runtime_difftest='off',stop_reason='cycle-limit',workload_output='CoreMark\n')
+        on=dict(off,pc='0x80000c0c',instr_count=240349,cycle_count=99996,runtime_difftest='on')
+        self.assertEqual(run_signature(off,True),run_signature(on,True))
+        self.assertNotEqual(run_signature(off),run_signature(on))
+        for change in (dict(guest_cycles=100000),dict(workload_output='wrong'),dict(stop_reason='other')):
+            self.assertNotEqual(run_signature(off,True),run_signature(dict(on,**change),True))
 
 
 class TraceTests(unittest.TestCase):
