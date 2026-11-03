@@ -412,7 +412,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--compiler',default='/nfs/home/tanghaojin/LLVM-23.1.2-Linux-X64/bin/clang++')
     parser.add_argument('--jobs',type=int,default=64)
-    parser.add_argument('--sim-primitives',choices=['none','priority-encode','popcount','popcount-ge4'],default='none')
+    parser.add_argument('--sim-primitives',choices=['none','priority-encode','popcount','popcount-ge4','gray-decode'],default='none')
     parser.add_argument('--tools-dir',type=Path,help='shared tool build for matched A/B generation')
     parser.add_argument('--cpu',type=int,default=96)
     parser.add_argument('--cycles',type=int,default=100000)
