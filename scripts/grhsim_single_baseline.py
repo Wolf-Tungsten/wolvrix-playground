@@ -143,6 +143,13 @@ class Baseline:
         self.runtime_difftest = getattr(args, 'runtime_difftest', 'on')
         self.model_difftest = getattr(args, 'model_difftest', self.runtime_difftest)
         self.compile_difftest = getattr(args, 'compile_difftest', self.model_difftest)
+        self.difftest_relax_intermediate_wires = bool(
+            getattr(args, 'difftest_relax_intermediate_wires', False)
+        )
+        self.difftest_config = getattr(args, 'difftest_config', None)
+        self.difftest_packed_delay_regs = bool(
+            getattr(args, 'difftest_packed_delay_regs', False)
+        )
         # Decode-table mode has two independent backend pieces: the source-side
         # table intrinsic (including the CSR tables) and the backend proof that
         # a table has a constant result.  Keep the latter explicit so historical
@@ -225,6 +232,9 @@ class Baseline:
             rtl_difftest=self.rtl_difftest,model_difftest=self.model_difftest,
             compile_difftest=self.compile_difftest,
             runtime_difftest=self.runtime_difftest,
+            difftest_relax_intermediate_wires=self.difftest_relax_intermediate_wires,
+            difftest_config=self.difftest_config,
+            difftest_packed_delay_regs=self.difftest_packed_delay_regs,
             constant_decode_fold=self.constant_decode_fold,
             model_flags='-std=c++20 -O3 -march=native',harness_flags='-O3',pgo=False,bolt=False,
             diagnostic_instrumentation=False,source_driver=identity(__file__),python=sys.executable,
@@ -244,10 +254,17 @@ class Baseline:
 
     def rtl(self):
         env=dict(self.env,NOOP_HOME=str(self.out/'chisel-home'))
+        sim_args = ['--wolvrix-sim-primitives', self.args.sim_primitives]
+        if self.difftest_relax_intermediate_wires:
+            sim_args.append('--difftest-relax-intermediate-wires')
+        if self.difftest_config:
+            sim_args.extend(['--difftest-config', self.difftest_config])
+        if self.difftest_packed_delay_regs:
+            sim_args.append('--difftest-packed-delay-regs')
         self.run(['make','-C',XS,'sim-verilog',f'BUILD_DIR={self.out / "rtl"}',
             'CONFIG=TLConfig','NUM_CORES=1','RTL_SUFFIX=sv','WITH_CHISELDB=0','WITH_CONSTANTIN=0',
             'DISABLE_DIFFTEST='+str(int(self.rtl_difftest=='off')),
-            'SIM_ARGS=--wolvrix-sim-primitives '+self.args.sim_primitives], 'rtl',env)
+            'SIM_ARGS='+' '.join(sim_args)], 'rtl',env)
         if not (self.generated/'DifftestMacros.svh').is_file():
             raise RuntimeError('fresh Difftest generated sources absent')
         profile=json.loads((self.generated/'difftest_profile.json').read_text())
@@ -515,6 +532,9 @@ def main():
     parser.add_argument('--sim-primitives',choices=['none','priority-encode','popcount','popcount-ge4','gray-decode','decode-table'],default='none')
     parser.add_argument('--rtl-difftest',choices=['on','off'],default='on')
     parser.add_argument('--runtime-difftest',choices=['on','off'],default='on')
+    parser.add_argument('--difftest-relax-intermediate-wires',action='store_true')
+    parser.add_argument('--difftest-config',help='explicit DiffTest Gateway config, e.g. U or H')
+    parser.add_argument('--difftest-packed-delay-regs',action='store_true')
     parser.add_argument('--tools-dir',type=Path,help='shared tool build for matched A/B generation')
     parser.add_argument('--cpu',type=int,default=96)
     parser.add_argument('--cycles',type=int,default=100000)

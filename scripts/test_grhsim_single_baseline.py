@@ -97,6 +97,35 @@ class NoDiffLogTests(unittest.TestCase):
 
 
 class DifftestBuildModeTests(unittest.TestCase):
+    def test_explicit_gateway_config_reaches_chisel_generation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work=Baseline(argparse.Namespace(output=Path(directory),compiler='/usr/bin/clang++',
+                tools_dir=None,sim_primitives='none',rtl_difftest='on',runtime_difftest='off',
+                difftest_config='U',jobs=1))
+            work.run=Mock()
+            work.generated.mkdir(parents=True)
+            (work.generated/'DifftestMacros.svh').write_text('')
+            (work.generated/'difftest_profile.json').write_text(json.dumps(dict(bundles=[{}])))
+            work.rtl()
+            command=work.run.call_args.args[0]
+            sim_args=next(str(arg) for arg in command if str(arg).startswith('SIM_ARGS='))
+            self.assertIn('--difftest-config U',sim_args)
+
+    def test_packed_delay_option_reaches_chisel_generation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work=Baseline(argparse.Namespace(output=Path(directory),compiler='/usr/bin/clang++',
+                tools_dir=None,sim_primitives='none',rtl_difftest='on',runtime_difftest='off',
+                difftest_packed_delay_regs=True,jobs=1))
+            work.run=Mock()
+            work.generated.mkdir(parents=True)
+            (work.generated/'DifftestMacros.svh').write_text('')
+            (work.generated/'difftest_profile.json').write_text(json.dumps(dict(bundles=[{}])))
+            work.rtl()
+            command=work.run.call_args.args[0]
+            sim_args=next(str(arg) for arg in command if str(arg).startswith('SIM_ARGS='))
+            self.assertIn('--difftest-packed-delay-regs',sim_args)
+
+
     def test_invalid_hardware_runtime_combination(self):
         for rtl,runtime in [('on','on'),('on','off'),('off','off')]:
             validate_difftest_modes(rtl,runtime)

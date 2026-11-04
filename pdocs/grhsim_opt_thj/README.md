@@ -1872,5 +1872,6 @@ p30 eval 32.70→10.15 µs，p29 22.99→34.90 µs。最大分区平均 eval 反
 - 初始来源整理形成的 TNO 主题文档数：`20`。
 - 当前记录类文档总数：`433`（`TNO0001..TNO0433`）。
 - 2026-11-03 新增 [TNO0397：PopCount 的紧凑布局替换与香山单线程实测](./TNO0397_popcount_intrinsic_packed_layout_walltime_20261103.md)：完整香山生成中识别到 1,095 个 packed `PopCount.Bits`、7,140 个分布式 `Vec/Seq` 调用保留硬件；B 的 `kCountOnes` native 模型功能和两组 100,000 周期 trace 全部通过，但 node030 CPU96 的 8 对单线程 walltime 为 `+0.665717%`（0/8 胜，95% CI `[+0.421713%, +0.925537%]`）。静态模型略小而运行略慢，下一步优先消融 1–3 位高频调用和后端活动形态，不启用默认 PopCount。
+- 2026-11-05 新增 [TNO0434：DiffTest RTL 结构审计与候选改写](./TNO0434_difftest_rtl_audit_20261105.md)：检查了中间 `dontTouch`、packed source、整包延迟寄存器和无效 payload 置零。前三项没有缩小 GRH 调度结构，最后一项反而增加 RTL 组合逻辑；当前主要成本集中在物理寄存器观察器、Preprocess 动态映射和完整接口集合，下一步应转向 observer-side GRH 组织，保留 S3 功能。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
