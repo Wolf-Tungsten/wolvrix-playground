@@ -664,6 +664,233 @@ summarize_f16_firrtl_prefix:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/f16_firrtl_evidence.py summarize \
 		--runs $(F16_TIMING_RUNS) --output "$(abspath $(F16_EVIDENCE_OUTPUT))"
 
+F17_FIRRTL_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F17/prefix
+F17_FIRRTL_ALLOCATIONS_WORK ?= $(F17_FIRRTL_WORK)-allocations
+F17_FIRRTL_MANIFEST ?= $(F16_FIRRTL_MANIFEST)
+F17_FIRRTL_CPUS ?= 0-31
+F17_NATIVE_DIR ?=
+F17_PERF_BASELINE ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F16/perf-final
+F17_PERF_CANDIDATE ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F17/soa-hash/perf
+F17_PERF_OUTPUT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F17/soa-hash/self-hotspot-comparison
+F17_PERF_TIMING ?=
+F17_FIRRTL_BENCH_ARGS ?= --through-flatten --fused-prefix
+F17_FIRRTL_ALLOCATIONS_ARGS ?= --through-flatten --fused-prefix --allocator-stats
+F17_FIRRTL_IDENTITY_ARGS ?= --prefix-identity --fused-prefix --discard-identity-json
+F17_PERF_RECORD_ARGS ?=
+F17_PERF_REPORT_ARGS ?=
+.PHONY: profile_f17_firrtl_prefix report_f17_firrtl_profile verify_f17_firrtl_prefix
+profile_f17_firrtl_prefix: F16_NATIVE_DIR = $(F17_NATIVE_DIR)
+profile_f17_firrtl_prefix:
+	@test -n "$(F17_NATIVE_DIR)" || { echo "Set F17_NATIVE_DIR to a packaged normal native snapshot"; exit 1; }
+	taskset -c "$(F17_FIRRTL_CPUS)" $(F16_ENV) $(PYTHON) $(F16_PYTHON_FLAGS) scripts/profile_xs_firrtl_ingest.py record \
+		--work "$(abspath $(F17_PERF_CANDIDATE))" --manifest "$(abspath $(F17_FIRRTL_MANIFEST))" \
+		--native-dir "$(abspath $(F17_NATIVE_DIR))" --fused-prefix $(F17_PERF_RECORD_ARGS)
+
+report_f17_firrtl_profile:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/profile_xs_firrtl_ingest.py report \
+		--work "$(abspath $(F17_PERF_CANDIDATE))" $(F17_PERF_REPORT_ARGS)
+
+verify_f17_firrtl_prefix:
+	taskset -c "$(F17_FIRRTL_CPUS)" $(MAKE) --no-print-directory benchmark_f16_firrtl_prefix \
+		F16_FIRRTL_WORK="$(abspath $(F17_FIRRTL_WORK))" \
+		F16_FIRRTL_MANIFEST="$(abspath $(F17_FIRRTL_MANIFEST))" F16_NATIVE_DIR="$(F17_NATIVE_DIR)" \
+		F16_FIRRTL_BENCH_ARGS="$(F17_FIRRTL_IDENTITY_ARGS)"
+
+.PHONY: compare_f17_storage_perf test_f17_storage_perf
+test_f17_storage_perf:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_f17_storage_perf.py
+
+compare_f17_storage_perf:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_f17_storage_perf.py \
+		--baseline "$(abspath $(F17_PERF_BASELINE))" --candidate "$(abspath $(F17_PERF_CANDIDATE))" \
+		--output "$(abspath $(F17_PERF_OUTPUT))" $(if $(strip $(F17_PERF_TIMING)),--timing "$(abspath $(F17_PERF_TIMING))")
+
+.PHONY: benchmark_f17_firrtl_prefix benchmark_f17_firrtl_allocations
+benchmark_f17_firrtl_prefix:
+	taskset -c "$(F17_FIRRTL_CPUS)" $(MAKE) --no-print-directory benchmark_f16_firrtl_prefix \
+		F16_FIRRTL_WORK="$(abspath $(F17_FIRRTL_WORK))" \
+		F16_FIRRTL_MANIFEST="$(abspath $(F17_FIRRTL_MANIFEST))" F16_NATIVE_DIR="$(F17_NATIVE_DIR)" \
+		F16_FIRRTL_BENCH_ARGS="$(F17_FIRRTL_BENCH_ARGS)"
+
+# Use a separately snapshotted WOLVRIX_MIMALLOC_STATS=ON native variant.
+# The benchmark rejects an instrumented library for the formal timing target.
+benchmark_f17_firrtl_allocations:
+	taskset -c "$(F17_FIRRTL_CPUS)" $(MAKE) --no-print-directory benchmark_f16_firrtl_prefix \
+		F16_FIRRTL_WORK="$(abspath $(F17_FIRRTL_ALLOCATIONS_WORK))" \
+		F16_FIRRTL_MANIFEST="$(abspath $(F17_FIRRTL_MANIFEST))" F16_NATIVE_DIR="$(F17_NATIVE_DIR)" \
+		F16_FIRRTL_BENCH_ARGS="$(F17_FIRRTL_ALLOCATIONS_ARGS)"
+
+# Reuse the installed-package build cache and never create another dependency
+# tree for this native-only diagnostic. This deliberately enables MI_STAT=1.
+F17_GRH_ALLOC_BUILD_DIR ?= $(WOLVRIX_DIR)/build/skbuild
+F17_GRH_ALLOC_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F17/soa-hash/alloc-bench
+F17_GRH_ALLOC_JOBS ?= 4
+F17_GRH_ALLOC_ARGS ?=
+F17_GRH_ALLOC_SKIP_BUILD ?= 0
+.PHONY: build_grh_allocation_bench benchmark_grh_allocations
+build_grh_allocation_bench:
+	@test -f "$(abspath $(F17_GRH_ALLOC_BUILD_DIR))/CMakeCache.txt" || { echo "An existing F17_GRH_ALLOC_BUILD_DIR cache is required"; exit 1; }
+	mkdir -p "$(abspath $(F17_GRH_ALLOC_WORK))/tmp"
+	TMPDIR="$(abspath $(F17_GRH_ALLOC_WORK))/tmp" $(CMAKE) -S "$(WOLVRIX_DIR)" \
+		-B "$(abspath $(F17_GRH_ALLOC_BUILD_DIR))" -DWOLVRIX_MIMALLOC_STATS=ON \
+		> "$(abspath $(F17_GRH_ALLOC_WORK))/configure.log" 2>&1
+	TMPDIR="$(abspath $(F17_GRH_ALLOC_WORK))/tmp" $(CMAKE) --build "$(abspath $(F17_GRH_ALLOC_BUILD_DIR))" \
+		--target grh-allocation-bench -j "$(F17_GRH_ALLOC_JOBS)" \
+		> "$(abspath $(F17_GRH_ALLOC_WORK))/build.log" 2>&1
+
+benchmark_grh_allocations: $(if $(filter 1,$(F17_GRH_ALLOC_SKIP_BUILD)),,build_grh_allocation_bench)
+	mkdir -p "$(abspath $(F17_GRH_ALLOC_WORK))/tmp"
+	cp "$(abspath $(F17_GRH_ALLOC_BUILD_DIR))/CMakeCache.txt" "$(abspath $(F17_GRH_ALLOC_WORK))/CMakeCache.txt"
+	cp "$(WOLVRIX_DIR)/tests/grh/bench_grh_allocations.cpp" "$(abspath $(F17_GRH_ALLOC_WORK))/bench_grh_allocations.cpp"
+	git -C "$(WOLVRIX_DIR)" rev-parse HEAD > "$(abspath $(F17_GRH_ALLOC_WORK))/source-revision.txt"
+	git -C "$(WOLVRIX_DIR)" diff --binary > "$(abspath $(F17_GRH_ALLOC_WORK))/source.diff"
+	sha256sum "$(abspath $(F17_GRH_ALLOC_BUILD_DIR))/bin/grh-allocation-bench" \
+		"$(abspath $(F17_GRH_ALLOC_BUILD_DIR))/libwolvrix-lib.so" \
+		"$(WOLVRIX_DIR)/tests/grh/bench_grh_allocations.cpp" \
+		> "$(abspath $(F17_GRH_ALLOC_WORK))/sha256.txt"
+	@set -o pipefail; env -u LD_PRELOAD LD_LIBRARY_PATH="$(abspath $(F17_GRH_ALLOC_BUILD_DIR))" \
+		TMPDIR="$(abspath $(F17_GRH_ALLOC_WORK))/tmp" \
+		"$(abspath $(F17_GRH_ALLOC_BUILD_DIR))/bin/grh-allocation-bench" \
+		--output "$(abspath $(F17_GRH_ALLOC_WORK))/results.json" $(F17_GRH_ALLOC_ARGS) \
+		2>&1 | tee "$(abspath $(F17_GRH_ALLOC_WORK))/run.log"
+
+# One translation unit, separate executables and separately pinned runtime DSOs.
+# Reuse the existing cache; this target does not change allocator build options.
+F17_GRH_ORACLE_BUILD_DIR ?= $(WOLVRIX_DIR)/build/skbuild
+F17_GRH_ORACLE_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F17/oracle
+F17_GRH_ORACLE_JOBS ?= 4
+F17_GRH_ORACLE_SKIP_BUILD ?= 0
+F17_GRH_ORACLE_LEGACY_SOURCE ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F17/baseline-source
+F17_GRH_ORACLE_LEGACY_NATIVE ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F17/native/baseline-allocations
+.PHONY: build_f17_grh_oracle verify_f17_grh_storage_oracle
+build_f17_grh_oracle:
+	@test -f "$(abspath $(F17_GRH_ORACLE_BUILD_DIR))/CMakeCache.txt" || { echo "An existing F17_GRH_ORACLE_BUILD_DIR cache is required"; exit 1; }
+	mkdir -p "$(abspath $(F17_GRH_ORACLE_WORK))/tmp" "$(abspath $(F17_GRH_ORACLE_WORK))/provenance"
+	@set -euo pipefail; cd "$(WOLVRIX_DIR)"; \
+		rg --files include lib app tests external/slang CMakeLists.txt | LC_ALL=C sort | \
+		xargs -d '\n' sha256sum > "$(abspath $(F17_GRH_ORACLE_WORK))/provenance/candidate-source.sha256"
+	TMPDIR="$(abspath $(F17_GRH_ORACLE_WORK))/tmp" $(CMAKE) -S "$(WOLVRIX_DIR)" \
+		-B "$(abspath $(F17_GRH_ORACLE_BUILD_DIR))" \
+		-DWOLVRIX_GRH_ORACLE_LEGACY_SOURCE="$(abspath $(F17_GRH_ORACLE_LEGACY_SOURCE))" \
+		-DWOLVRIX_GRH_ORACLE_LEGACY_NATIVE="$(abspath $(F17_GRH_ORACLE_LEGACY_NATIVE))" \
+		> "$(abspath $(F17_GRH_ORACLE_WORK))/configure.log" 2>&1
+	TMPDIR="$(abspath $(F17_GRH_ORACLE_WORK))/tmp" $(CMAKE) --build "$(abspath $(F17_GRH_ORACLE_BUILD_DIR))" \
+		--target grh-storage-oracle grh-storage-oracle-legacy -j "$(F17_GRH_ORACLE_JOBS)" \
+		> "$(abspath $(F17_GRH_ORACLE_WORK))/build.log" 2>&1
+	@set -euo pipefail; cd "$(WOLVRIX_DIR)"; \
+		sha256sum --check --strict "$(abspath $(F17_GRH_ORACLE_WORK))/provenance/candidate-source.sha256" \
+		> "$(abspath $(F17_GRH_ORACLE_WORK))/provenance/source-build-check.log"
+
+verify_f17_grh_storage_oracle: $(if $(filter 1,$(F17_GRH_ORACLE_SKIP_BUILD)),,build_f17_grh_oracle)
+	@set -euo pipefail; \
+		work="$(abspath $(F17_GRH_ORACLE_WORK))"; \
+		build="$(abspath $(F17_GRH_ORACLE_BUILD_DIR))"; \
+		legacy="$(abspath $(F17_GRH_ORACLE_LEGACY_NATIVE))"; \
+		mkdir -p "$$work/tmp" "$$work/provenance"; \
+		test ! -e "$$work/baseline" -a ! -e "$$work/candidate" || { echo "Oracle output already exists; select a fresh F17_GRH_ORACLE_WORK"; exit 1; }; \
+		mkdir -p "$$work/baseline/runtime" "$$work/candidate/runtime"; \
+		cp "$$build/CMakeCache.txt" "$$work/provenance/CMakeCache.txt"; \
+		cp "$(WOLVRIX_DIR)/tests/grh/grh_storage_oracle.cpp" "$$work/provenance/grh_storage_oracle.cpp"; \
+		cp "$(WOLVRIX_DIR)/CMakeLists.txt" "$$work/provenance/CMakeLists.txt"; \
+		cp "$(REPO_ROOT)/Makefile" "$$work/provenance/Makefile"; \
+		git -C "$(WOLVRIX_DIR)" rev-parse HEAD > "$$work/provenance/candidate-revision.txt"; \
+		git -C "$(WOLVRIX_DIR)" diff --binary > "$$work/provenance/candidate-source.diff"; \
+		git -C "$(WOLVRIX_DIR)" submodule status --recursive > "$$work/provenance/candidate-submodules.txt"; \
+		git -C "$(WOLVRIX_DIR)/external/slang" diff --binary > "$$work/provenance/candidate-slang.diff"; \
+		cp "$$legacy/source-manifest.json" "$$work/provenance/baseline-source-manifest.json"; \
+		cp "$$legacy/source.diff" "$$work/provenance/baseline-source.diff"; \
+		cp "$$legacy/CMakeCache.txt" "$$work/provenance/baseline-CMakeCache.txt"; \
+		(cd "$(abspath $(F17_GRH_ORACLE_LEGACY_SOURCE))"; \
+			rg --files include lib app tests CMakeLists.txt | LC_ALL=C sort | xargs -d '\n' sha256sum) \
+			> "$$work/provenance/baseline-source.sha256"; \
+		if test -f "$$work/provenance/candidate-source.sha256"; then \
+			(cd "$(WOLVRIX_DIR)"; sha256sum --check --strict "$$work/provenance/candidate-source.sha256") \
+				> "$$work/provenance/source-run-check.log"; \
+		else \
+			echo "Missing build-time source manifest; run build_f17_grh_oracle with this work directory first"; exit 1; \
+		fi; \
+		cp "$$legacy/libwolvrix-lib.so" "$$legacy/libtbb.so.12" "$$legacy/libtbbmalloc.so.2" "$$work/baseline/runtime/"; \
+		cp "$$build/libwolvrix-lib.so" "$$work/candidate/runtime/"; \
+		env -u LD_PRELOAD LD_LIBRARY_PATH="$$build" ldd "$$build/libwolvrix-lib.so" > "$$work/provenance/candidate-library-ldd.txt"; \
+		while read -r dependency; do cp "$$dependency" "$$work/candidate/runtime/"; done < <( \
+			awk '/libtbb(malloc)?\.so/ && $$2 == "=>" { print $$3 }' "$$work/provenance/candidate-library-ldd.txt"); \
+		cp "$$build/bin/grh-storage-oracle-legacy" "$$work/baseline/oracle"; \
+		cp "$$build/bin/grh-storage-oracle" "$$work/candidate/oracle"; \
+		for side in baseline candidate; do \
+			sha256sum "$$work/$$side/oracle" "$$work/$$side/runtime/"* > "$$work/$$side/binaries.sha256"; \
+			env -u LD_PRELOAD LD_LIBRARY_PATH="$$work/$$side/runtime" ldd "$$work/$$side/oracle" > "$$work/$$side/ldd.txt"; \
+			env -u LD_PRELOAD LD_LIBRARY_PATH="$$work/$$side/runtime" TMPDIR="$$work/tmp" \
+				"$$work/$$side/oracle" "$$work/$$side/checkpoints" \
+				> "$$work/$$side/trace.txt" 2> "$$work/$$side/stderr.txt"; \
+			test "$$(cat "$$work/$$side/checkpoints/runtime-library.txt")" = "$$(readlink -f "$$work/$$side/runtime/libwolvrix-lib.so")" || \
+				{ echo "$$side loaded an unexpected GRH library"; exit 1; }; \
+			(cd "$$work/$$side/checkpoints"; rg --files -g '*.json' | LC_ALL=C sort) > "$$work/$$side/checkpoints.list"; \
+		done; \
+		cmp "$$work/baseline/trace.txt" "$$work/candidate/trace.txt"; \
+		cmp "$$work/baseline/stderr.txt" "$$work/candidate/stderr.txt"; \
+		cmp "$$work/baseline/checkpoints.list" "$$work/candidate/checkpoints.list"; \
+		while IFS= read -r checkpoint; do \
+			cmp "$$work/baseline/checkpoints/$$checkpoint" "$$work/candidate/checkpoints/$$checkpoint"; \
+		done < "$$work/baseline/checkpoints.list"; \
+		sha256sum "$$work/provenance/"* > "$$work/provenance.sha256"; \
+		echo "PASS: identical public API trace and $$(wc -l < "$$work/baseline/checkpoints.list") complete checkpoint JSON files" | tee "$$work/result.txt"
+
+F17_ROUNDTRIP_INPUT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F17/identity-final/ingest.json
+F17_ROUNDTRIP_OUTPUT ?= $(dir $(abspath $(F17_ROUNDTRIP_INPUT)))
+F17_ROUNDTRIP_NATIVE_DIR ?= $(F17_NATIVE_DIR)
+.PHONY: verify_f17_grh_roundtrip
+verify_f17_grh_roundtrip: F16_NATIVE_DIR = $(F17_ROUNDTRIP_NATIVE_DIR)
+verify_f17_grh_roundtrip:
+	@test -n "$(F17_ROUNDTRIP_NATIVE_DIR)" || { echo "Set F17_NATIVE_DIR or F17_ROUNDTRIP_NATIVE_DIR to a packaged snapshot"; exit 1; }
+	taskset -c "$(F17_FIRRTL_CPUS)" $(F16_ENV) $(PYTHON) $(F16_PYTHON_FLAGS) scripts/verify_grh_json_roundtrip.py \
+		--input "$(abspath $(F17_ROUNDTRIP_INPUT))" --output "$(abspath $(F17_ROUNDTRIP_OUTPUT))" \
+		--native-dir "$(abspath $(F17_ROUNDTRIP_NATIVE_DIR))"
+
+F17_INSTALLED_PACKAGE := $(REPO_ROOT)/.venv/lib/python3.12/site-packages/wolvrix
+F17_NATIVE_BINARIES := libwolvrix-lib.so _wolvrix.so libtbb.so.12 libtbbmalloc.so.2
+.PHONY: check_f17_native_snapshot restore_f17_native check_f17_restored_native
+check_f17_native_snapshot:
+	@test -n "$(F17_NATIVE_DIR)" || { echo "Set F17_NATIVE_DIR to the measured normal snapshot"; exit 1; }
+	@rg -q '^WOLVRIX_MIMALLOC_STATS:BOOL=OFF$$' "$(abspath $(F17_NATIVE_DIR))/CMakeCache.txt" || { echo "Refusing a snapshot without WOLVRIX_MIMALLOC_STATS=OFF"; exit 1; }
+	@for binary in $(F17_NATIVE_BINARIES); do \
+		test -f "$(abspath $(F17_NATIVE_DIR))/$$binary" || { echo "Missing snapshot binary: $$binary"; exit 1; }; \
+	done
+	@set -o pipefail; cd "$(abspath $(F17_NATIVE_DIR))" && \
+		awk '{ print $$1 "  libwolvrix-lib.so" }' sha256.txt | sha256sum --check --strict -
+
+# Restore only installed binaries; keep source and build outputs untouched.
+restore_f17_native: check_f17_native_snapshot
+	@test -d "$(F17_INSTALLED_PACKAGE)" || { echo "Installed wolvrix package not found"; exit 1; }
+	cp $(foreach binary,$(F17_NATIVE_BINARIES),"$(abspath $(F17_NATIVE_DIR))/$(binary)") "$(F17_INSTALLED_PACKAGE)/"
+	@$(MAKE) --no-print-directory check_f17_restored_native F17_NATIVE_DIR="$(abspath $(F17_NATIVE_DIR))"
+
+check_f17_restored_native: check_f17_native_snapshot
+	@for binary in $(F17_NATIVE_BINARIES); do \
+		cmp --quiet "$(abspath $(F17_NATIVE_DIR))/$$binary" "$(F17_INSTALLED_PACKAGE)/$$binary" || { echo "Installed binary differs from snapshot: $$binary"; exit 1; }; \
+	done
+	sha256sum $(foreach binary,$(F17_NATIVE_BINARIES),"$(F17_INSTALLED_PACKAGE)/$(binary)")
+
+F17_BASELINE_SOURCE ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F17/baseline-source
+F17_BASELINE_NATIVE ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F17/native/baseline-allocations
+F17_BASELINE_PATCH ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F17/baseline-allocator-only.diff
+F17_BASELINE_MANIFEST ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F17/baseline-source-manifest.json
+.PHONY: snapshot_f17_allocator_baseline
+snapshot_f17_allocator_baseline:
+	@test -f "$(F17_BASELINE_PATCH)" -a -f "$(F17_BASELINE_MANIFEST)" || { echo "Prepare the archived allocator baseline and provenance first"; exit 1; }
+	@mkdir -p "$(abspath $(F17_BASELINE_NATIVE))"
+	cp $(REPO_ROOT)/.venv/lib/python3.12/site-packages/wolvrix/libwolvrix-lib.so \
+		$(REPO_ROOT)/.venv/lib/python3.12/site-packages/wolvrix/libtbb.so.12 \
+		$(REPO_ROOT)/.venv/lib/python3.12/site-packages/wolvrix/libtbbmalloc.so.2 \
+		"$(abspath $(F17_BASELINE_NATIVE))/"
+	cp "$(F17_BASELINE_SOURCE)/build/skbuild/libwolvrix-lib.so" "$(abspath $(F17_BASELINE_NATIVE))/libwolvrix-lib.unstripped.so"
+	cp $(REPO_ROOT)/.venv/lib/python3.12/site-packages/wolvrix/_wolvrix.so "$(abspath $(F17_BASELINE_NATIVE))/_wolvrix.so"
+	cp "$(F17_BASELINE_SOURCE)/build/skbuild/python/wolvrix/_wolvrix.so" "$(abspath $(F17_BASELINE_NATIVE))/_wolvrix.unstripped.so"
+	@$(MAKE) --no-print-directory package_f16_native F16_NATIVE_DIR="$(abspath $(F17_BASELINE_NATIVE))"
+	cp "$(F17_BASELINE_SOURCE)/build/skbuild/CMakeCache.txt" "$(abspath $(F17_BASELINE_NATIVE))/CMakeCache.txt"
+	cp "$(F17_BASELINE_PATCH)" "$(abspath $(F17_BASELINE_NATIVE))/source.diff"
+	cp "$(F17_BASELINE_MANIFEST)" "$(abspath $(F17_BASELINE_NATIVE))/source-manifest.json"
+	sha256sum "$(abspath $(F17_BASELINE_NATIVE))/libwolvrix-lib.so" > "$(abspath $(F17_BASELINE_NATIVE))/sha256.txt"
+
 # Snapshot a fully installed variant, including its private runtime dependencies.
 snapshot_f16_native:
 	@test -n "$(F16_NATIVE_DIR)" || { echo "Set F16_NATIVE_DIR"; exit 1; }

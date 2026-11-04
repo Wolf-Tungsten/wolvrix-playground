@@ -22,6 +22,29 @@ def allocator_configuration() -> dict | None:
     return query() if query is not None else None
 
 
+def graph_profile_stats() -> dict | None:
+    """Read optional logical storage counters without enabling instrumentation."""
+    import wolvrix
+    query = getattr(wolvrix._native, "graph_profile_stats", None)
+    return query() if query is not None else None
+
+
+def allocator_statistics() -> dict | None:
+    """Read actual native C++ allocations from a separate MI_STAT=1 build."""
+    import wolvrix
+    query = getattr(wolvrix._native, "allocator_statistics", None)
+    return query() if query is not None else None
+
+
+def allocation_delta(before: dict, after: dict) -> int:
+    if not before["all_threads_merged"] or not after["all_threads_merged"]:
+        raise RuntimeError("allocator counters omit live worker threads that have not merged their statistics")
+    result = after["allocations"] - before["allocations"]
+    if result < 0:
+        raise RuntimeError("allocator counters decreased between stage snapshots")
+    return result
+
+
 def native_identity() -> list[dict]:
     """Fingerprint the libraries actually mapped by this benchmark process."""
     import wolvrix
@@ -146,10 +169,14 @@ def main() -> None:
                         help="run the full production GRH prefix through hier-flatten after ingest")
     parser.add_argument("--prefix-identity", action="store_true",
                         help="separate correctness run: store full ingest and flatten graph identities")
+    parser.add_argument("--fused-prefix", action="store_true",
+                        help="use the explicit parallel grh-pre-flatten ingest endpoint")
     parser.add_argument("--discard-identity-json", action="store_true",
                         help="remove each prefix correctness graph JSON after storing its hash")
     parser.add_argument("--profile-timestamps", action="store_true",
                         help="record CLOCK_MONOTONIC stage intervals for perf --clockid mono")
+    parser.add_argument("--allocator-stats", action="store_true",
+                        help="diagnostic run with bundled mimalloc MI_STAT=1; excludes Python/libc allocations")
     args = parser.parse_args()
     if args.through_flatten and (args.verify_roundtrip or args.store_identity):
         parser.error("--through-flatten measures the in-memory prefix without JSON serialization")
@@ -158,6 +185,8 @@ def main() -> None:
     if args.discard_identity_json and not args.prefix_identity:
         parser.error("--discard-identity-json requires --prefix-identity")
     run_prefix = args.through_flatten or args.prefix_identity
+    if args.fused_prefix and (not run_prefix or args.sv_filelist):
+        parser.error("--fused-prefix requires a manifest and --through-flatten or --prefix-identity")
     if args.cpu is not None:
         if not hasattr(os, "sched_setaffinity"):
             parser.error("--cpu requires OS support for process CPU affinity")
@@ -166,6 +195,11 @@ def main() -> None:
         os.sched_setaffinity(0, {args.cpu})
     # Pin before native imports can initialize a frontend worker pool.
     import wolvrix
+    initial_allocator_stats = allocator_statistics()
+    if args.allocator_stats and initial_allocator_stats is None:
+        parser.error("--allocator-stats requires a WOLVRIX_MIMALLOC_STATS=ON native build")
+    if initial_allocator_stats is not None and not args.allocator_stats:
+        parser.error("MI_STAT=1 is a diagnostic build; use --allocator-stats or rebuild with WOLVRIX_MIMALLOC_STATS=OFF")
     output = args.output.resolve()
     manifest = (args.manifest or args.sv_filelist).resolve()
     if not manifest.is_relative_to(ROOT / "ptmp"):
@@ -212,6 +246,7 @@ def main() -> None:
         "manifest_sha256": manifest_sha256,
         "route": route,
         "configuration": {"profile": False, "parse_cache": "on",
+                          "fused_prefix": args.fused_prefix,
                           "profile_timestamps": args.profile_timestamps,
                           "measurement_mode": "prefix-identity" if args.prefix_identity else
                           "through-flatten" if args.through_flatten else "ingest"},
@@ -221,6 +256,9 @@ def main() -> None:
         "allocator_configuration": allocator_configuration(),
         "source_bytes": source_bytes,
     }
+    if args.allocator_stats:
+        report["configuration"]["allocator_statistics"] = "bundled-mimalloc-MI_STAT=1"
+        report["allocator_statistics_scope"] = "native C++ allocations; current and exited threads; Python/libc excluded"
     prefix_identity = None
     if args.prefix_identity:
         prefix_identity = {
@@ -237,27 +275,37 @@ def main() -> None:
     with wolvrix.Session() as session:
         session.log_level = "info"
         session.diagnostics_raise_min_level = "none"
+        allocation_before = allocator_statistics() if args.allocator_stats else None
         usage_before = resource.getrusage(resource.RUSAGE_SELF)
         started = time.perf_counter()
         profile_started_ns = time.monotonic_ns()
         if args.sv_filelist:
             diagnostics = session.read_sv(None, slang_args=request["slang_args"], out_design="design.main")
         else:
-            diagnostics = session.read_sources(**request, out_design="design.main")
+            diagnostics = session.read_sources(**request, out_design="design.main",
+                pipeline="grh-pre-flatten" if args.fused_prefix and not args.prefix_identity else "ingest")
         profile_ended_ns = time.monotonic_ns()
         elapsed = time.perf_counter() - started
-        record_profile_stage("ingest", profile_started_ns, profile_ended_ns)
+        record_profile_stage("ingest-pre-flatten" if args.fused_prefix and not args.prefix_identity else "ingest",
+                             profile_started_ns, profile_ended_ns)
         usage_after = resource.getrusage(resource.RUSAGE_SELF)
+        allocation_after = allocator_statistics() if args.allocator_stats else None
         user_s = usage_after.ru_utime - usage_before.ru_utime
         system_s = usage_after.ru_stime - usage_before.ru_stime
         report.update({"ingest_s": elapsed,
                        "ingest_user_s": user_s,
                        "ingest_system_s": system_s,
                        "ingest_cpu_s": user_s + system_s,
+                       "graph_profile_stats": graph_profile_stats(),
                        "thread_affinity": thread_affinity(),
                        "maxrss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
                        "diagnostics": diagnostics,
                        "success": not any(str(entry.get("kind", "")).lower() == "error" for entry in diagnostics)})
+        if args.allocator_stats:
+            report["ingest_allocator_statistics"] = {
+                "before": allocation_before, "after": allocation_after,
+                "allocations": allocation_delta(allocation_before, allocation_after),
+            }
         (output / "timing.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         checked(diagnostics, "ingest " + report["route"] + " RTL")
         top = request.get("tops", [None])[0]
@@ -287,12 +335,49 @@ def main() -> None:
         if run_prefix:
             from wolvrix_xs_grhsim import GRH_PIPELINE
             stages = []
+            prefix_wall = 0.0
+            if args.fused_prefix:
+                if args.prefix_identity:
+                    # The raw identity above belongs to an independent ingest.
+                    # Restart from the sources for the fused endpoint identity.
+                    session.delete("design.main")
+                    fused_started = time.perf_counter()
+                    fused_usage = resource.getrusage(resource.RUSAGE_SELF)
+                    fused_diagnostics = session.read_sources(**request, out_design="design.main",
+                        pipeline="grh-pre-flatten")
+                    report["ingest_prefix_s"] = time.perf_counter() - fused_started
+                    fused_after = resource.getrusage(resource.RUSAGE_SELF)
+                    report["ingest_prefix_cpu_s"] = (fused_after.ru_utime - fused_usage.ru_utime +
+                        fused_after.ru_stime - fused_usage.ru_stime)
+                    checked(fused_diagnostics, "fused ingest prefix")
+                else:
+                    fused_diagnostics = diagnostics
+                    report["ingest_prefix_s"] = elapsed
+                    report["ingest_prefix_cpu_s"] = user_s + system_s
+                    report["ingest_s"] = None
+                    report["ingest_cpu_s"] = None
+                    report["ingest_user_s"] = None
+                    report["ingest_system_s"] = None
+                prefix_report = session.get("design.main.prefix")
+                prefix_wall = prefix_report["prefix_wall_s"]
+                report["prefix_wall_s"] = prefix_wall
+                stages.extend(dict(row, options=options, keep_declared_symbols=True)
+                    for row, (name, options) in zip(prefix_report["stages"], GRH_PIPELINE)
+                    if row["pass"] == name)
+                if len(stages) != 8:
+                    raise RuntimeError("fused ingest prefix did not report the eight production stages")
+                diagnostics = fused_diagnostics[:prefix_report["ingest_diagnostic_count"]]
+                if not args.prefix_identity:
+                    report["diagnostics"] = diagnostics
             report["post_ingest_stages"] = stages
             report["measurement_scope"] = ("correctness run with ingest/flatten serialization; not formal prefix timing"
                                            if args.prefix_identity else
                                            "original sources through full production hier-flatten prefix")
             for name, options in GRH_PIPELINE:
+                if args.fused_prefix and name != "hier-flatten":
+                    continue
                 print(f"[benchmark] start GRH pass {name}", flush=True)
+                stage_allocation_before = allocator_statistics() if args.allocator_stats else None
                 stage_usage = resource.getrusage(resource.RUSAGE_SELF)
                 stage_started = time.perf_counter()
                 profile_started_ns = time.monotonic_ns()
@@ -302,12 +387,19 @@ def main() -> None:
                 stage_elapsed = time.perf_counter() - stage_started
                 record_profile_stage(f"{len(stages):02d}-{name}", profile_started_ns, profile_ended_ns)
                 stage_after = resource.getrusage(resource.RUSAGE_SELF)
+                stage_allocation_after = allocator_statistics() if args.allocator_stats else None
                 stages.append({"pass": name, "options": options, "wall_s": stage_elapsed,
                                "keep_declared_symbols": True,
                                "cpu_s": (stage_after.ru_utime - stage_usage.ru_utime +
                                          stage_after.ru_stime - stage_usage.ru_stime),
                                "maxrss_kib": stage_after.ru_maxrss,
+                               "graph_profile_stats": graph_profile_stats(),
                                "diagnostics": stage_diagnostics})
+                if args.allocator_stats:
+                    stages[-1]["allocator_statistics"] = {
+                        "before": stage_allocation_before, "after": stage_allocation_after,
+                        "allocations": allocation_delta(stage_allocation_before, stage_allocation_after),
+                    }
                 report["success"] = report["success"] and not any(
                     str(entry.get("kind", "")).lower() == "error" for entry in stage_diagnostics)
                 (output / "timing.json").write_text(
@@ -316,10 +408,13 @@ def main() -> None:
                 print(f"[benchmark] done GRH pass {name}: {stage_elapsed:.3f} s", flush=True)
                 if name == "hier-flatten":
                     report["hier_flatten_s"] = stage_elapsed
-                    report["pre_flatten_passes_s"] = sum(row["wall_s"] for row in stages[:-1])
-                    report["ingest_plus_hier_flatten_s"] = elapsed + stage_elapsed
-                    report["through_flatten_stage_sum_s"] = elapsed + sum(row["wall_s"] for row in stages)
+                    report["pre_flatten_passes_s"] = prefix_wall if args.fused_prefix else sum(row["wall_s"] for row in stages[:-1])
+                    report["ingest_plus_hier_flatten_s"] = None if args.fused_prefix else elapsed + stage_elapsed
+                    report["through_flatten_stage_sum_s"] = (report["ingest_prefix_s"] + stage_elapsed if args.fused_prefix
+                        else elapsed + sum(row["wall_s"] for row in stages))
                     report["through_flatten_maxrss_kib"] = stage_after.ru_maxrss
+                    if args.allocator_stats:
+                        report["through_flatten_allocations"] = allocation_delta(allocation_before, stage_allocation_after)
                     if args.through_flatten:
                         report["through_flatten_wall_s"] = time.perf_counter() - started
                     else:
@@ -345,8 +440,11 @@ def main() -> None:
         "source_bytes": report["source_bytes"], "diagnostics": len(diagnostics),
     }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (output / "rss.txt").write_text(f"maxrss_kib={report['maxrss_kib']}\n", encoding="utf-8")
-    summary = ["# Ingest benchmark", "", f"- ingest: {elapsed:.3f} s",
-               f"- max RSS: {report['maxrss_kib']} KiB", "- native performance instrumentation: removed"]
+    scope = "ingest plus production pre-flatten prefix" if args.fused_prefix and not args.prefix_identity else "ingest"
+    summary = ["# Ingest benchmark", "", f"- {scope}: {elapsed:.3f} s",
+               f"- max RSS: {report['maxrss_kib']} KiB",
+               "- native allocator instrumentation: MI_STAT=1 diagnostic" if args.allocator_stats else
+               "- native allocator instrumentation: disabled"]
     if args.through_flatten:
         summary += [f"- hier-flatten: {report['hier_flatten_s']:.3f} s",
                     f"- production prefix through flatten: {report['through_flatten_wall_s']:.3f} s"]

@@ -67,6 +67,32 @@ def grh_pipeline() -> list[tuple[str, dict]]:
     raise ValueError(f"XS_GRHSIM_PIPELINE_PROFILE must be 'full' or 'bringup', got {profile!r}")
 
 
+def read_source_pipeline(session, request: dict, pipeline: list[tuple[str, dict]], *,
+                         out_design: str = "design.main"):
+    """Read sources and return diagnostics, remaining passes, and prefix evidence."""
+    prefix = GRH_PIPELINE[:8]
+    if pipeline[:len(prefix)] != prefix:
+        return session.read_sources(**request, out_design=out_design), pipeline, None
+    try:
+        diagnostics = session.read_sources(**request, out_design=out_design, pipeline="grh-pre-flatten")
+    except TypeError as error:
+        # Historical native libraries reject the added keyword before starting
+        # ingest. Preserve those comparison/replay callers' original route.
+        message = str(error)
+        if "'pipeline'" not in message or "keyword" not in message or not any(
+                word in message for word in ("invalid", "unexpected")):
+            raise
+        return session.read_sources(**request, out_design=out_design), pipeline, None
+    report = dict(session.get(out_design + ".prefix"))
+    if not any(str(entry.get("kind", "")).lower() == "error" for entry in diagnostics):
+        if [row["pass"] for row in report["stages"]] != [name for name, _ in prefix]:
+            raise RuntimeError("ingest prefix report does not match the production pass order")
+    report["ingest_diagnostics"] = diagnostics[:report["ingest_diagnostic_count"]]
+    report["pipeline"] = [{"pass": name, "options": options, "keep_declared_symbols": True}
+                          for name, options in prefix]
+    return diagnostics, pipeline[len(prefix):], report
+
+
 def env_int(name: str, default: int, *, minimum: int = 0, maximum: int = 2147483647) -> int:
     raw = os.environ.get(name, str(default)).strip()
     try:
@@ -304,8 +330,16 @@ def main() -> int:
             checked(timed("load flat GRH", lambda: session.read_json_file(str(flat_path), out_design="design.main")), "load flat GRH")
         else:
             if mixed_request:
-                checked(timed("ingest FIRRTL/mixed RTL", lambda: session.read_sources(
-                    **mixed_request, out_design="design.main")), "ingest FIRRTL/mixed RTL")
+                diagnostics, pipeline, prefix_report = timed("ingest FIRRTL/mixed RTL", lambda:
+                    read_source_pipeline(session, mixed_request, pipeline))
+                if prefix_report is not None:
+                    report_path = flat_path.with_name(flat_path.stem + ".prefix-report.json")
+                    report_path.parent.mkdir(parents=True, exist_ok=True)
+                    report_path.write_text(json.dumps(prefix_report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+                    identity["ingest_prefix_report"] = str(report_path)
+                    identity["ingest_pipeline"] = "grh-pre-flatten"
+                    log("production pre-flatten prefix wall_s=" + str(prefix_report["prefix_wall_s"]))
+                checked(diagnostics, "ingest FIRRTL/mixed RTL")
             else:
                 slang_args = read_slang_args(Path(args.filelist).resolve(), args.top, Path(args.read_args_file).resolve())
                 checked(timed("ingest RTL", lambda: session.read_sv(None, out_design="design.main", slang_args=slang_args)), "ingest RTL")

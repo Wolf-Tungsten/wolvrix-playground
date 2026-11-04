@@ -12,7 +12,7 @@ import wolvrix
 from grhsim_flow import FlowOptions, STAGES, checked, emit_cpp, finish_simulation_graph, run_pass, store_checkpoint
 from grhsim_supernode_origin_stats import build_grh_manifest
 from grhsim_provenance import generated_identity
-from wolvrix_xs_grhsim import GRH_PIPELINE, grh_pipeline
+from wolvrix_xs_grhsim import GRH_PIPELINE, GRH_BRINGUP_PIPELINE, grh_pipeline, read_source_pipeline
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +20,42 @@ WORK = Path(os.environ.get("GRHSIM_FLOW_TEST_WORK", ROOT / "ptmp/remove-grhsim-i
 
 
 class FlowTest(unittest.TestCase):
+    def test_production_prefix_selection_and_historical_native_compatibility(self):
+        request = {"sources": [{"language": "firrtl", "path": "input.fir"}]}
+        report = {"prefix_wall_s": 1.25, "ingest_diagnostic_count": 0,
+                  "stages": [{"pass": name} for name, _ in GRH_PIPELINE[:8]]}
+        session = mock.Mock()
+        session.read_sources.return_value = []
+        session.get.return_value = report
+        diagnostics, remaining, actual = read_source_pipeline(session, request, GRH_PIPELINE)
+        self.assertEqual(diagnostics, [])
+        self.assertEqual(remaining, GRH_PIPELINE[8:])
+        self.assertEqual(actual["stages"], report["stages"])
+        self.assertEqual(actual["ingest_diagnostics"], [])
+        self.assertEqual([(row["pass"], row["options"]) for row in actual["pipeline"]], GRH_PIPELINE[:8])
+        session.read_sources.assert_called_once_with(**request, out_design="design.main", pipeline="grh-pre-flatten")
+        session.get.assert_called_once_with("design.main.prefix")
+        session.reset_mock()
+        session.read_sources.side_effect = [TypeError("'pipeline' is an invalid keyword argument for this function"), []]
+        diagnostics, remaining, actual = read_source_pipeline(session, request, GRH_PIPELINE)
+        self.assertEqual(remaining, GRH_PIPELINE)
+        self.assertIsNone(actual)
+        self.assertEqual(session.read_sources.call_args_list[-1], mock.call(**request, out_design="design.main"))
+        session.get.assert_not_called()
+        session.reset_mock(side_effect=True)
+        session.read_sources.return_value = []
+        _, remaining, actual = read_source_pipeline(session, request, GRH_BRINGUP_PIPELINE)
+        self.assertEqual(remaining, GRH_BRINGUP_PIPELINE)
+        self.assertIsNone(actual)
+        session.read_sources.assert_called_once_with(**request, out_design="design.main")
+        session.read_sources.side_effect = TypeError("unrelated conversion failure")
+        with self.assertRaisesRegex(TypeError, "unrelated conversion failure"):
+            read_source_pipeline(session, request, GRH_PIPELINE)
+        session.read_sources.side_effect = None
+        session.get.return_value = {**report, "stages": []}
+        with self.assertRaisesRegex(RuntimeError, "production pass order"):
+            read_source_pipeline(session, request, GRH_PIPELINE)
+
     def test_firrtl_node_annotations_compiled(self):
         work = WORK / "firrtl-node-annotations"
         work.mkdir(parents=True, exist_ok=True)

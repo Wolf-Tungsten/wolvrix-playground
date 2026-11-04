@@ -56,7 +56,7 @@ def text_identity(path: Path) -> dict:
             "sha256": digest.hexdigest()}
 
 
-def prepare_symbols(work: Path) -> list[dict]:
+def prepare_symbols(work: Path, native_dir: Path | None = None) -> list[dict]:
     symbols = work / "symbols"
     symfs = work / "symfs"
     symbols.mkdir(exist_ok=True)
@@ -73,7 +73,10 @@ def prepare_symbols(work: Path) -> list[dict]:
     result = []
     for library in native_identity():
         installed = Path(library["path"])
-        source = source_roots.get(installed.name)
+        source = (native_dir / (installed.stem + ".unstripped.so") if native_dir else
+                  source_roots.get(installed.name))
+        if native_dir and installed.resolve() != (native_dir / installed.name).resolve():
+            raise RuntimeError(f"Profile loaded outside the selected native snapshot: {installed}")
         if source is None or not source.is_file():
             raise RuntimeError(f"No unstripped build counterpart for {installed}")
         before = text_identity(installed)
@@ -138,12 +141,14 @@ def record(args) -> None:
         raise RuntimeError(f"perf permission/capability probe failed ({completed.returncode}); "
                            f"see {work / 'probe.log'}")
     print("perf probe passed; checking unstripped symbol snapshots", flush=True)
-    metadata["symbols"] = prepare_symbols(work)
+    metadata["symbols"] = prepare_symbols(work, args.native_dir)
+    benchmark_args = "--through-flatten --profile-timestamps" + (" --fused-prefix" if args.fused_prefix else "")
+    python = sys.executable + (" -S" if args.native_dir else "")
     command = perf_prefix(args.perf) + ["-o", str(work / "perf.data"), "--", "make",
         "--no-print-directory", "benchmark_f15_firrtl_ingest", "SKIP_PY_INSTALL=1",
-        f"PYTHON={sys.executable}", f"F15_FIRRTL_MANIFEST={args.manifest}",
+        f"PYTHON={python}", f"F15_FIRRTL_MANIFEST={args.manifest}",
         f"F15_FIRRTL_BENCH_WORK={work / 'run'}",
-        "F15_FIRRTL_BENCH_ARGS=--through-flatten --profile-timestamps"]
+        f"F15_FIRRTL_BENCH_ARGS={benchmark_args}"]
     metadata.update({"record_command": command, "status": "recording",
                      "started_at_unix": time.time()})
     write_json(work / "record.json", metadata)
@@ -213,24 +218,32 @@ def sample_quality(path: Path) -> dict:
     }
 
 
+def stage_windows(stages: list[dict]) -> list[dict]:
+    """Keep the fused endpoint as one observed interval; never split its CPU."""
+    if (not stages or stages[0]["name"] not in ("ingest", "ingest-pre-flatten") or
+            not stages[-1]["name"].endswith("hier-flatten")):
+        raise RuntimeError("Incomplete ingest-through-flatten stage boundaries")
+    for index, row in enumerate(stages):
+        if (row["end_ns"] <= row["start_ns"] or not re.fullmatch(r"[A-Za-z0-9_-]+", row["name"]) or
+                (index and stages[index - 1]["end_ns"] > row["start_ns"])):
+            raise RuntimeError(f"Invalid stage boundary: {row}")
+    if stages[0]["name"] == "ingest-pre-flatten" and len(stages) != 2:
+        raise RuntimeError("Fused ingest prefix must have one joint interval and hier-flatten")
+    spans = list(stages)
+    spans.append({"name": "whole", "start_ns": stages[0]["start_ns"], "end_ns": stages[-1]["end_ns"]})
+    if stages[0]["name"] == "ingest" and len(stages) > 2:
+        spans.append({"name": "pre-flatten", "start_ns": stages[1]["start_ns"], "end_ns": stages[-2]["end_ns"]})
+    priority = {stages[0]["name"]: 0, stages[-1]["name"]: 1, "whole": 2, "pre-flatten": 3}
+    return sorted(spans, key=lambda row: priority.get(row["name"], 4))
+
+
 def report(args) -> None:
     work = args.work
     data = json.loads((work / "run/profile-stages.json").read_text())
     if data.get("clock") != "monotonic":
         raise RuntimeError("Profile stages must use the monotonic clock")
     stages = data["stages"]
-    if not stages or stages[0]["name"] != "ingest" or not stages[-1]["name"].endswith("hier-flatten"):
-        raise RuntimeError("Incomplete ingest-through-flatten stage boundaries")
-    for row in stages:
-        if row["end_ns"] <= row["start_ns"] or not re.fullmatch(r"[A-Za-z0-9_-]+", row["name"]):
-            raise RuntimeError(f"Invalid stage boundary: {row}")
-    spans = list(stages)
-    spans.append({"name": "whole", "start_ns": stages[0]["start_ns"], "end_ns": stages[-1]["end_ns"]})
-    if len(stages) > 2:
-        spans.append({"name": "pre-flatten", "start_ns": stages[1]["start_ns"],
-                      "end_ns": stages[-2]["end_ns"]})
-    priority = {"ingest": 0, stages[-1]["name"]: 1, "whole": 2, "pre-flatten": 3}
-    spans.sort(key=lambda row: priority.get(row["name"], 4))
+    spans = stage_windows(stages)
     if args.stage:
         names = {row["name"] for row in spans}
         if set(args.stage) - names:
@@ -273,11 +286,11 @@ def report(args) -> None:
                   "--sort", "dso,symbol", "--percent-limit", "0"]
         variants = [("self", ["--no-children", "-g", "none"]),
                     ("inclusive", ["--children", "-g", "none"])]
-        if row["name"] == "ingest" or row["name"].endswith("hier-flatten"):
+        if row["name"] in ("ingest", "ingest-pre-flatten") or row["name"].endswith("hier-flatten"):
             variants.append(("calltree", ["--children", "-g", "graph,0.5,caller"]))
         for label, options in variants:
             execute(row, label, common + options)
-        if row["name"] in ("ingest", "whole") or row["name"].endswith("hier-flatten"):
+        if row["name"] in ("ingest", "ingest-pre-flatten", "whole") or row["name"].endswith("hier-flatten"):
             stats = execute(row, "stats", common + ["--no-children", "-g", "none", "--stats", "--header"])
             samples = execute(row, "samples", [args.perf, "script", "--hide-call-graph", "--ns",
                 "--show-lost-events", "--symfs", str(work / "symfs"), "-i", str(work / "perf.data"),
@@ -299,6 +312,8 @@ def main() -> None:
     parser.add_argument("--work", type=Path, default=DEFAULT_WORK)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--perf", default="perf")
+    parser.add_argument("--fused-prefix", action="store_true", help="record the joint ingest/pre-flatten endpoint")
+    parser.add_argument("--native-dir", type=Path, help="load and symbolize an immutable packaged native snapshot")
     parser.add_argument("--report-dir", type=Path,
                         help="separate output directory under work for offline analysis variants")
     parser.add_argument("--stage", action="append", help="report only selected stage names")
@@ -307,6 +322,8 @@ def main() -> None:
     args = parser.parse_args()
     args.work = args.work.resolve()
     args.manifest = args.manifest.resolve()
+    if args.native_dir:
+        args.native_dir = args.native_dir.resolve()
     if not args.work.is_relative_to(ROOT / "ptmp/firrtl-ingest"):
         parser.error("work must be under repository ptmp/firrtl-ingest")
     if Path.cwd().resolve() != ROOT:

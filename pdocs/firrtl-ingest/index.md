@@ -49,6 +49,11 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | [F15-ingest-flatten-perf.md](F15-ingest-flatten-perf.md) | 10T ingest 到 hier-flatten 的 perf 热点、allocator 全堆扫描和 Operation 快照复制 |
 | [F16-ingest-flatten-performance-plan.md](F16-ingest-flatten-performance-plan.md) | ingest→hier-flatten 的分配器策略、Operation 快照与字符串/符号表三项修复计划 |
 | [F16-ingest-flatten-results.md](F16-ingest-flatten-results.md) | F16 逐项实现、native 身份、完整图正确性和性能证据 |
+| [F16-node-attribute-ablation.md](F16-node-attribute-ablation.md) | node 关闭单轮与旧开启基线对照：308.525→205.778 s，缩短 33.3% |
+| [F16-remaining-pipeline-analysis.md](F16-remaining-pipeline-analysis.md) | 剩余重复解析/语义分析、串行检查、逐实例构图和前置 pass 扫描的优化方向 |
+| [F17-ingest-flatten-structural-plan.md](F17-ingest-flatten-structural-plan.md) | ingest→flatten 三项结构性方案：单一 SoA core 存储（基础）、列块拼接 flatten、一次解析/分析的模块流水 |
+| [F17.1-grh-storage-results.md](F17.1-grh-storage-results.md) | F17.1/2/3 单一 GRH 存储、列块 flatten、单遍流水的完整正确性与最终实测；性能预算未达项按实测记录 |
+| [F18-ingest-flatten-unit-cost-plan.md](F18-ingest-flatten-unit-cost-plan.md) | F17 未达预期的实测原因（node 文本、名字、Rob 长尾）及 F18 方案；含 F17 formal 数字更正 |
 | [pass-optimization-20261101.md](pass-optimization-20261101.md) | 保留完整优化的 flatten/simplify 实现加速、严格 A/B 与 20 分钟整机复测 |
 | [F10-components.md](F10-components.md) | 真实代表模块的双路线比较、激励、记分板及当前证据 |
 | [F10-replacer.md](F10-replacer.md) | AheadBtbReplacer 独立 PLRU 记分板、四路线执行与 reference 断言缩减 |
@@ -95,6 +100,8 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | F11 | 前端/node CSE/分图性能消融、默认策略和正式文档 | 待实施；依赖 F12、F13、F15、F16 |
 | F15 | GrhSIM 化简诊断与 dirty 调度、node key/cache、并行 FIRRTL lowering | 核心实现完成；ingest 1/2/10T 与展平 perf 已记录，完整 FIRRTL→C++ A/B 待测 |
 | F16 | ingest→hier-flatten 分配器、Operation 快照和字符串查询修复 | 已完成（2026-11-03）；三轮中位数 513.804→308.525 s，完整图/诊断及最终 perf 通过；F16.3 额外提速未证实，见实施结果 |
+| F17 | ingest→hier-flatten 结构性提速：单一 SoA core 存储、列块拼接 flatten、单遍模块流水 | 已完成（2026-11-04）；F17.1/2/3 代码、81/81 CTest、Python/workflow、oracle、完整图 identity 与 roundtrip 全部通过；最终 fused 约 195.45 s、峰值 RSS 约 67.2 GiB，≤50/10/60 s 与热点 ≤25% 预算按实测未达 |
+| F18 | ingest→hier-flatten 单位成本：node 结构化、内部名延迟生成、flatten 真批量化、Rob 模块内并行 | 方案（2026-11-04）；未实施，formal 基线 167.85 s，目标 ≤ 75 s，见 F18-ingest-flatten-unit-cost-plan.md |
 
 F08 曾以本地 GSIM `a3ecb26` 的 `commonExpr()` 为依据保留源表达式边界。
 当前方案保留 simplify 自由：之后才按提示/MFFC 形成执行 node，再按

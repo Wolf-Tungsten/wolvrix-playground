@@ -24,6 +24,7 @@ def configuration(work: Path, report: dict) -> dict:
                 "graph_identity" not in report and "roundtrip" not in report):
             result["measurement_mode"] = "through-flatten"
     result.setdefault("profile_timestamps", (work / "profile-stages.json").is_file())
+    result.setdefault("fused_prefix", False)
     return result
 
 
@@ -41,15 +42,18 @@ def prefix_stages(report: dict) -> list[dict]:
 
 def measurements(report: dict) -> dict:
     stages = prefix_stages(report)
+    fused = report["configuration"].get("fused_prefix", False)
+    local_cpu = None if fused else sum(row["cpu_s"] for row in stages[:-1])
     return {
         "ingest": {"wall_s": report["ingest_s"], "cpu_s": report["ingest_cpu_s"],
                    "maxrss_kib": report["maxrss_kib"]},
-        "pre_flatten": {"wall_s": sum(row["wall_s"] for row in stages[:-1]),
-                        "cpu_s": sum(row["cpu_s"] for row in stages[:-1]),
-                        "maxrss_kib": max(row["maxrss_kib"] for row in stages[:-1])},
+        "pre_flatten": {"wall_s": report["prefix_wall_s"] if fused else sum(row["wall_s"] for row in stages[:-1]),
+                        "cpu_s": local_cpu,
+                        "maxrss_kib": report["maxrss_kib"] if fused else max(row["maxrss_kib"] for row in stages[:-1])},
         "flatten": {key: stages[-1][key] for key in ("wall_s", "cpu_s", "maxrss_kib")},
         "prefix": {"wall_s": report.get("through_flatten_wall_s"),
-                   "cpu_s": report["ingest_cpu_s"] + sum(row["cpu_s"] for row in stages),
+                   "cpu_s": (report["ingest_prefix_cpu_s"] + stages[-1]["cpu_s"] if fused else
+                             report["ingest_cpu_s"] + sum(row["cpu_s"] for row in stages)),
                    "maxrss_kib": report["through_flatten_maxrss_kib"]},
     }
 
@@ -133,11 +137,13 @@ def compare_prefix(baseline: Path, candidate: Path, *, timing_only: bool = False
         validate_native_libraries(report["native_libraries"])
         validate_allocator_configuration(report.get("allocator_configuration"))
     stages = [prefix_stages(report) for report in (before, after)]
+    configurations = [configuration(work, report) for work, report in ((baseline, before), (candidate, after))]
+    implementations = [item.pop("fused_prefix") for item in configurations]
     result = compare(baseline, candidate, timing_only=True)
     result["graph_checked"] = not timing_only
     result["checks"].update({
         "success": before["success"] is True and after["success"] is True,
-        "configuration": configuration(baseline, before) == configuration(candidate, after),
+        "configuration": configurations[0] == configurations[1],
         "source_bytes": before["source_bytes"] == after["source_bytes"],
         "prefix_diagnostics": diagnostics_identity([row["diagnostics"] for row in stages[0]]) ==
                               diagnostics_identity([row["diagnostics"] for row in stages[1]]),
@@ -157,6 +163,7 @@ def compare_prefix(baseline: Path, candidate: Path, *, timing_only: bool = False
                                                          diagnostics_identity(right["diagnostics"]))
         result["prefix_identity"] = identities
     result["measurements"] = [measurements(report) for report in (before, after)]
+    result["fused_prefix"] = implementations
     result["allocator_environment"] = [report.get("allocator_environment", {}) for report in (before, after)]
     result["allocator_configuration"] = [report.get("allocator_configuration") for report in (before, after)]
     result["note"] = ("Correctness runs serialize both endpoints; only dedicated --through-flatten runs "
@@ -186,6 +193,8 @@ def summarize(runs: list[Path]) -> dict:
             raise ValueError("continuous prefix wall time is missing")
     comparisons = [compare_prefix(runs[0], work, timing_only=True) for work in runs]
     checks = {"repeated_configuration_and_diagnostics": all(item["equal"] for item in comparisons),
+              "prefix_implementation": all(configuration(work, report)["fused_prefix"] ==
+                  configuration(runs[0], reports[0])["fused_prefix"] for work, report in zip(runs, reports)),
               "native_libraries": all(sorted(item["sha256"] for item in report["native_libraries"]) ==
                                       sorted(item["sha256"] for item in reports[0]["native_libraries"])
                                       for report in reports),
@@ -199,8 +208,9 @@ def summarize(runs: list[Path]) -> dict:
         summary[phase] = {}
         for metric in metrics:
             samples = [row[phase][metric] for row in values]
-            summary[phase][metric] = {"samples": samples, "median": median(samples),
-                                      "min": min(samples), "max": max(samples)}
+            known = all(value is not None for value in samples)
+            summary[phase][metric] = {"samples": samples, "median": median(samples) if known else None,
+                                      "min": min(samples) if known else None, "max": max(samples) if known else None}
     return {"runs": [str(work.resolve()) for work in runs], "run_count": len(runs),
             "checks": checks, "equal": all(checks.values()), "summary": summary,
             "native_libraries": reports[0]["native_libraries"],

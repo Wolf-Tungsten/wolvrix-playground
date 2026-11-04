@@ -14,7 +14,8 @@ from unittest import mock
 import wolvrix
 
 from benchmark_xs_firrtl_ingest import (
-    ROOT, allocator_configuration, checked, native_identity, request_from_manifest, verify_roundtrip,
+    ROOT, allocation_delta, allocator_configuration, allocator_statistics, checked,
+    native_identity, request_from_manifest, verify_roundtrip,
 )
 from compare_xs_firrtl_ingest import compare, profile_report
 from f16_firrtl_evidence import compare_prefix, summarize
@@ -55,6 +56,16 @@ class FirrtlIngestBenchmarkTest(unittest.TestCase):
     def test_benchmark_supports_native_variants_without_allocator_diagnostics(self):
         with mock.patch.object(wolvrix, "_native", object()):
             self.assertIsNone(allocator_configuration())
+            self.assertIsNone(allocator_statistics())
+
+    def test_allocator_stage_delta_requires_all_worker_statistics(self):
+        before = {"allocations": 100, "all_threads_merged": True}
+        after = {"allocations": 160, "all_threads_merged": True}
+        self.assertEqual(allocation_delta(before, after), 60)
+        with self.assertRaisesRegex(RuntimeError, "live worker"):
+            allocation_delta(before, {**after, "all_threads_merged": False})
+        with self.assertRaisesRegex(RuntimeError, "decreased"):
+            allocation_delta(after, before)
 
     def test_prefix_identity_checks_both_endpoints_separately_from_timing(self):
         work_root = ROOT / "ptmp" / "firrtl-ingest" / "F16"
@@ -83,7 +94,7 @@ circuit top :
                 "slang_args": [], "firrtl_options": {"node_annotations": True, "lower_threads": 2},
                 "external_bindings": []}))
             for label, flags in (("before", "--prefix-identity"),
-                                 ("after", "--prefix-identity --discard-identity-json")):
+                                 ("after", "--prefix-identity --fused-prefix --discard-identity-json")):
                 command = ["make", "--no-print-directory", "benchmark_f15_firrtl_ingest",
                     "SKIP_PY_INSTALL=1", f"PYTHON={sys.executable}",
                     f"F15_FIRRTL_MANIFEST={manifest}", f"F15_FIRRTL_BENCH_WORK={work / label}",
