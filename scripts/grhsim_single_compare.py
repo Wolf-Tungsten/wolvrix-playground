@@ -59,6 +59,13 @@ def runtime_modes(common, baseline=None, candidate=None):
     return dict(A=baseline or common,B=candidate or common)
 
 
+def build_modes(settings, runtime):
+    rtl=settings.get('rtl_difftest','on')
+    model=settings.get('model_difftest',runtime)
+    compile_mode=settings.get('compile_difftest',model)
+    return dict(rtl=rtl,model=model,compile=compile_mode)
+
+
 def run_signature(row, common_only=False):
     if common_only:
         return {key:row[key] for key in ('guest_cycles','stop_reason','workload_output')}
@@ -76,10 +83,12 @@ def main():
     p.add_argument('--runtime-difftest',choices=['on','off'],default='on')
     p.add_argument('--baseline-runtime-difftest',choices=['on','off'])
     p.add_argument('--candidate-runtime-difftest',choices=['on','off'])
-    p.add_argument('--candidate-sim-primitives', choices=['none','priority-encode','popcount','popcount-ge4','gray-decode'], default='priority-encode')
+    p.add_argument('--candidate-sim-primitives', choices=['none','priority-encode','popcount','popcount-ge4','gray-decode','decode-table'], default='priority-encode')
     p.add_argument('--image',type=Path,default=XS/'ready-to-run/coremark-2-iteration.bin')
     p.add_argument('--nemu',type=Path,default=XS/'ready-to-run/riscv64-nemu-interpreter-so')
     p.add_argument('--baseline-header',type=Path);p.add_argument('--candidate-header',type=Path)
+    p.add_argument('--verification-from',type=Path,
+                   help='Reuse completed DiffTest traces after checking frozen binary/input identities')
     args=p.parse_args()
     modes=runtime_modes(args.runtime_difftest,args.baseline_runtime_difftest,args.candidate_runtime_difftest)
     mixed_modes=modes['A']!=modes['B']
@@ -94,44 +103,68 @@ def main():
     if args.historical:names['H']=resolve_binary(args.historical)
     aroot=Path(args.baseline).resolve() if Path(args.baseline).is_dir() else names['A'].parents[2]
     broot=Path(args.candidate).resolve() if Path(args.candidate).is_dir() else names['B'].parents[2]
-    build_configs={}
+    build_configs={};build_difftest_modes={}
     for name,binary in names.items():
         path=binary.parents[2]/'configuration.json'
         settings=json.loads(path.read_text()) if path.is_file() else {}
         if settings and settings.get('runtime_difftest','on')!=modes[name]:
             raise ValueError(f'{name}: runtime DiffTest mode differs from build')
         build_configs[name]=settings
+        build_difftest_modes[name]=build_modes(settings,modes[name])
     headers=[];comparator=None
     if all_on:
         headers=[args.baseline_header or aroot/'chisel-home/build/generated-src/difftest-state.h',
                  args.candidate_header or broot/'chisel-home/build/generated-src/difftest-state.h']
         if identity(headers[0])['sha256']!=identity(headers[1])['sha256']:raise ValueError('Difftest schemas differ')
         comparator=build_comparator(headers[0],out/'trace-comparator')
-    save(out/'manifest.json',dict(binaries={k:identity(v) for k,v in names.items()},image=identity(args.image),
+    manifest=dict(binaries={k:identity(v) for k,v in names.items()},image=identity(args.image),
         nemu=identity(args.nemu) if 'on' in modes.values() else None,
         runtime_difftest='mixed' if mixed_modes else modes['A'],runtime_difftest_by_variant=modes,
         build_configurations=build_configs,
         headers=[identity(x) for x in headers],pairs=args.pairs,cycles=args.cycles,
         driver=identity(__file__),runner=identity(ROOT/'scripts/grhsim_single_baseline.py'),
-        numa=identity(ROOT/'scripts/grhsim_numa.py'),order=pair_order(args.pairs),cpu=96))
+        numa=identity(ROOT/'scripts/grhsim_numa.py'),order=pair_order(args.pairs),cpu=96,
+        verification_from=str(args.verification_from.resolve()) if args.verification_from else None)
+    if args.verification_from:
+        if not all_on:raise ValueError('trace reuse requires DiffTest on in both variants')
+        previous=json.loads((args.verification_from/'manifest.json').read_text())
+        for key in ('binaries','image','nemu','headers','runtime_difftest_by_variant','cycles'):
+            if manifest[key]!=previous[key]:raise ValueError('verification inputs changed: '+key)
+        for seed in (0,1):
+            check=json.loads((args.verification_from/f'trace-s{seed}.json').read_text())
+            if not check['pass_'] or check['records']<args.cycles:
+                raise ValueError('previous trace verification incomplete')
+    save(out/'manifest.json',manifest)
     runners={};prepared={}
     for name,binary in names.items():
         config=argparse.Namespace(output=out/name,binary=binary,image=args.image,nemu=args.nemu,
             compiler='/nfs/home/tanghaojin/LLVM-23.1.2-Linux-X64/bin/clang++',tools_dir=None,
             sim_primitives='none' if name!='B' else args.candidate_sim_primitives,
-            rtl_difftest=build_configs[name].get('rtl_difftest','on'),runtime_difftest=modes[name],
+            rtl_difftest=build_difftest_modes[name]['rtl'],
+            model_difftest=build_difftest_modes[name]['model'],
+            compile_difftest=build_difftest_modes[name]['compile'],
+            runtime_difftest=modes[name],
             cpu=96,jobs=1,cycles=args.cycles,repeats=args.pairs)
         runners[name]=Baseline(config);prepared[name]=runners[name].prepare_measurement()
+    if args.verification_from:
+        for name in ('A','B'):
+            previous_plan=json.loads((args.verification_from/name/'runs/runtime_plan.json').read_text())
+            before=[(entry['role'],entry['source']) for entry in previous_plan['files']]
+            after=[(entry['role'],entry['source']) for entry in prepared[name]['plan']['files']]
+            if before!=after:raise ValueError(f'{name}: verification runtime dependencies changed')
     def run(name,label,cycles=None,seed=0,extra=()):
         return runners[name].run_sample(prepared[name],label,cycles or args.cycles,seed,extra)
     for name in names:run(name,'smoke',10000)
     trace_checks=[];footprint_check=None
     if all_on:
         for seed in [0,1]:
-            for name in ['A','B']:
-                # Difftest currently has a fixed 32-byte trace-name buffer.
-                run(name,f'verify-s{seed}',seed=seed,extra=['--dump-difftrace',f'./trace_s{seed}'])
-            paths=[prepared[n]['binary'].parent/f'trace_s{seed}' for n in ['A','B']]
+            if args.verification_from:
+                paths=[args.verification_from/n/'runs/runtime/bin'/f'trace_s{seed}' for n in ['A','B']]
+            else:
+                for name in ['A','B']:
+                    # Difftest currently has a fixed 32-byte trace-name buffer.
+                    run(name,f'verify-s{seed}',seed=seed,extra=['--dump-difftrace',f'./trace_s{seed}'])
+                paths=[prepared[n]['binary'].parent/f'trace_s{seed}' for n in ['A','B']]
             trace_checks.append(compare_traces(comparator,*paths,out/f'trace-s{seed}.json'))
     else:
         # XiangShan's default 8 TiB RAM would reserve a 1 TiB footprint bitmap.
@@ -157,6 +190,10 @@ def main():
             if signature is None:signature=current
             if current!=signature:raise ValueError('functional signatures differ across A/B')
             pair[name]=row
+        if all(build_difftest_modes[n]['compile']=='on' for n in ('A','B')):
+            for field in ('pc','instr_count','cycle_count'):
+                if pair['A'][field]!=pair['B'][field]:
+                    raise ValueError(f'{field} differs across A/B')
         results.append(pair);save(out/'pairs.json',results)
     if 'H' in names:anchors.append(run('H','anchor-after'))
     if 'H' in names and signature is not None:
@@ -168,6 +205,7 @@ def main():
     save(out/'summary.json',dict(**summarize(results),samples=results,historical=anchors,
         trace_checks=trace_checks,footprint_check=footprint_check,
         runtime_difftest='mixed' if mixed_modes else modes['A'],runtime_difftest_by_variant=modes,
+        build_difftest_modes=build_difftest_modes,
         variant_functional_signatures=variant_signatures,
         functional_signature=signature,scope='Native full SimTop; Host time includes harness'))
     with (out/'pairs.csv').open('w') as f:

@@ -82,28 +82,37 @@ def validate_difftest_modes(rtl, runtime):
         raise ValueError('runtime DiffTest requires generated DiffTest hardware')
 
 
-def parse_run(log,cycles,runtime_difftest='on'):
+def parse_run(log,cycles,runtime_difftest='on',compile_difftest=None):
+    if compile_difftest is None:
+        compile_difftest=runtime_difftest
     log=re.sub(r'\x1b\[[0-9;]*m','',log)
     if re.search(r'ABORT|HIT BAD TRAP|mismatch|Assertion.*failed',log,re.I):
         raise ValueError('functional failure in emu log')
     patterns=dict(host_ms=r'Host time spent:\s*([\d,]+)ms',guest_cycles=r'Guest cycle spent:\s*([\d,]+)')
     result=dict(pc=None,instr_count=None,cycle_count=None,runtime_difftest=runtime_difftest)
-    if runtime_difftest == 'on':
-        if 'Difftest enabled' not in log or 'EXCEEDING CYCLE/INSTR LIMIT' not in log:
+    if runtime_difftest == 'on' or compile_difftest == 'on':
+        if (('Difftest enabled' not in log and '[DIFFTEST_INIT]' not in log)
+                or 'EXCEEDING CYCLE/INSTR LIMIT' not in log):
             raise ValueError('Difftest or cycle-limit completion absent')
-        if '[DIFFTEST_MODE] disabled' in log:
+        if runtime_difftest == 'on' and '[DIFFTEST_MODE] disabled' in log:
             raise ValueError('runtime DiffTest mode differs from request')
+        if runtime_difftest == 'off' and re.search(r'The reference model is',log):
+            raise ValueError('runtime DiffTest reference checking unexpectedly enabled')
         patterns.update(instr_count=r'instrCnt = (\d+), cycleCnt = \d+',
                         cycle_count=r'instrCnt = \d+, cycleCnt = (\d+)',
                         pc=r'EXCEEDING CYCLE/INSTR LIMIT at pc = (0x[0-9a-fA-F]+)')
         result['stop_reason']='cycle-limit'
         # UART bytes share stdout with periodic harness messages, sometimes
         # without a newline between them. Preserve UART across those messages.
-        output=re.findall(r'The first instruction of core 0 has commited\. Difftest enabled\.[^\n]*\n(.*?)Core 0: ',
-                          log,re.S)
+        output=re.findall(r'The image is [^\n]*\n(.*?)Core 0: ',log,re.S)
+        if len(output)!=1:
+            output=re.findall(r'The first instruction of core 0 has commited\.[^\n]*\n(.*?)Core 0: ',log,re.S)
         if len(output)==1:
-            result['workload_output']=re.sub(r'\[CYCLE_LIMIT\][^\n]*\n','',output[0])
-    elif runtime_difftest == 'off':
+            value=re.sub(r'^(?:\[DIFFTEST_INIT\][^\n]*|The reference model is [^\n]*|'
+                         r'The first instruction of core 0 has commited\.[^\n]*|'
+                         r'Difftest enabled\.[^\n]*)\n','',output[0],flags=re.M)
+            result['workload_output']=re.sub(r'\[CYCLE_LIMIT\][^\n]*\n','',value)
+    elif runtime_difftest == 'off' and compile_difftest == 'off':
         marker='[DIFFTEST_MODE] disabled (CONFIG_NO_DIFFTEST): collection=off checking=off'
         if log.count(marker)!=1 or re.search(r'Difftest enabled|\[DIFFTEST_INIT\]|The reference model is',log):
             raise ValueError('runtime DiffTest not completely disabled')
@@ -132,7 +141,26 @@ class Baseline:
         self.args = args
         self.rtl_difftest = getattr(args, 'rtl_difftest', 'on')
         self.runtime_difftest = getattr(args, 'runtime_difftest', 'on')
+        self.model_difftest = getattr(args, 'model_difftest', self.runtime_difftest)
+        self.compile_difftest = getattr(args, 'compile_difftest', self.model_difftest)
+        # Decode-table mode has two independent backend pieces: the source-side
+        # table intrinsic (including the CSR tables) and the backend proof that
+        # a table has a constant result.  Keep the latter explicit so historical
+        # ablations can disable it without changing the mode name.  New
+        # decode-table builds enable it by default.
+        requested_fold = getattr(args, 'constant_decode_fold', None)
+        if requested_fold is None:
+            requested_fold = self.args.sim_primitives == 'decode-table'
+        self.constant_decode_fold = bool(requested_fold)
         validate_difftest_modes(self.rtl_difftest, self.runtime_difftest)
+        if self.model_difftest not in ('on', 'off'):
+            raise ValueError('model DiffTest mode must be on or off')
+        if self.model_difftest == 'on' and self.rtl_difftest == 'off':
+            raise ValueError('model DiffTest requires generated DiffTest hardware')
+        if self.compile_difftest not in ('on', 'off'):
+            raise ValueError('compile DiffTest mode must be on or off')
+        if self.compile_difftest == 'off' and self.model_difftest == 'on':
+            raise ValueError('compile DiffTest support is required by the model')
         self.out = args.output.resolve()
         self.out.mkdir(parents=True, exist_ok=True)
         self.env = clean_environment()
@@ -194,7 +222,10 @@ class Baseline:
         configuration=dict(flow='native-single-model',host=platform.node(),runtime_cpu=self.args.cpu,
             compile_cpus=sorted(os.sched_getaffinity(0)),jobs=self.args.jobs,cycles=self.args.cycles,
             repeats=self.args.repeats,config='TLConfig',guest_cores=1,sim_primitives=self.args.sim_primitives,compiler=identity(self.cxx),
-            rtl_difftest=self.rtl_difftest,runtime_difftest=self.runtime_difftest,
+            rtl_difftest=self.rtl_difftest,model_difftest=self.model_difftest,
+            compile_difftest=self.compile_difftest,
+            runtime_difftest=self.runtime_difftest,
+            constant_decode_fold=self.constant_decode_fold,
             model_flags='-std=c++20 -O3 -march=native',harness_flags='-O3',pgo=False,bolt=False,
             diagnostic_instrumentation=False,source_driver=identity(__file__),python=sys.executable,
             image=identity(XS/'ready-to-run/coremark-2-iteration.bin'),
@@ -232,12 +263,22 @@ class Baseline:
         files=sorted({p.resolve() for base in (rtl,common) for p in base.rglob('*') if p.suffix in ('.sv','.v')})
         (self.out/'input.f').write_text(''.join(str(p)+'\n' for p in files))
         save(self.out/'input_manifest.json',[identity(p) for p in files])
-        defines='-D DIFFTEST\n' if self.runtime_difftest=='on' else ''
+        defines='-D DIFFTEST\n' if self.model_difftest=='on' else ''
         (self.out/'read_args.txt').write_text(f'-I {rtl}\n-I {self.generated}\n-I {common}\n'+defines)
         env=dict(self.env,PYTHONPATH=str(self.tools/'python'),LD_LIBRARY_PATH=str(self.tools),
             WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON='0',WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON='0',
             WOLVRIX_XS_GRHSIM_POST_STATS_JSON=str(self.out/'post_stats.json'),
             WOLVRIX_XS_GRHSIM_PRE_REG_TO_MEM_JSON=str(self.out/'pre_reg_to_mem.json'))
+        # The C++ pass consumes this as a generation-time option.  Prefer the
+        # explicit configuration, while accepting the old research variable
+        # when a diagnostic driver deliberately set it on the runner.
+        if 'WOLVRIX_FOLD_CONSTANT_DECODE' in self.env:
+            fold_constant_decode = self.env['WOLVRIX_FOLD_CONSTANT_DECODE']
+        elif 'WOLVRIX_RESEARCH_FOLD_CONSTANT_DECODE' in self.env:
+            fold_constant_decode = self.env['WOLVRIX_RESEARCH_FOLD_CONSTANT_DECODE']
+        else:
+            fold_constant_decode = str(int(self.constant_decode_fold))
+        env['WOLVRIX_FOLD_CONSTANT_DECODE'] = fold_constant_decode
         save(self.out/'generation_environment.json',{k:v for k,v in env.items() if k.startswith(('WOLVRIX','PYTHON','LD_LIBRARY'))})
         self.run([sys.executable,'-c','import wolvrix; print(wolvrix.__file__)'],'python-binding',env)
         self.run([sys.executable,ROOT/'scripts/wolvrix_xs_grhsim.py',self.out/'input.f','SimTop',self.model,
@@ -251,7 +292,7 @@ class Baseline:
         self.run(['make','-C',XS/'difftest','emu','-j',self.args.jobs,f'BUILD_DIR={self.out/"emu"}',
             f'GEN_CSRC_DIR={self.generated}',f'GEN_VSRC_DIR={self.generated}',f'GRHSIM_MODEL_DIR={self.model}',
             'GRHSIM=1','NUM_CORES=1','EMU_THREADS=0','EMU_RANDOMIZE=0','WITH_CHISELDB=0','WITH_CONSTANTIN=0',
-            'NO_DIFF='+str(int(self.runtime_difftest=='off')),
+            'NO_DIFF='+str(int(self.compile_difftest=='off')),
             'WOLVRIX_GRHSIM_WAVEFORM=0','WOLVRIX_GRHSIM_PERF=0','EMU_OPTIMIZE=-O3','PGO_BOLT=0',
             f'GRHSIM_MODEL_BUILD_JOBS={self.args.jobs}',f'VM_BUILD_JOBS={self.args.jobs}',
             f'CXX={self.cxx}',f'CC={self.cc}',f'AR={self.ar}','GRHSIM_MODEL_CXXFLAGS=-std=c++20 -O3 -march=native'], 'compile')
@@ -293,7 +334,7 @@ class Baseline:
         symbols=subprocess.check_output(['nm','--demangle',str(binary)],text=True)
         if 'GrhSIM_SimTop::eval()' not in symbols or 'GrhSIM_Gpart_' in symbols:
             raise ValueError('measurement requires the native single-model GrhSIM binary')
-        if self.runtime_difftest=='off' and re.search(r'\b(?:v_difftest_|difftest_init\(|difftest_nstep\()',symbols):
+        if self.compile_difftest=='off' and re.search(r'\b(?:v_difftest_|difftest_init\(|difftest_nstep\()',symbols):
             raise ValueError('no-DiffTest binary still contains collection/checking code')
         cpu=self.args.cpu
         if cpu!=96:raise ValueError('user requested CPU96 for walltime')
@@ -332,7 +373,7 @@ class Baseline:
         self.run(['taskset','-c',str(cpu),'numactl',f'--membind={nodes[0]}','setarch',platform.machine(),'-R','true'],'runtime-placement-check')
         return dict(directory=directory, binary=binary, frozen=frozen, original_binary=original_binary, cpu=cpu, nodes=nodes, siblings=siblings, plan=plan, runtime=runtime, base=base)
 
-    def run_sample(self, prepared, name, cycles, seed=0, extra_args=()):
+    def run_sample(self, prepared, name, cycles, seed=0, extra_args=(), process_observer=None):
         directory=prepared['directory']
         binary=prepared['binary']
         frozen=prepared['frozen']
@@ -360,6 +401,8 @@ class Baseline:
         numa_directory=directory/(name+'.numa');numa_directory.mkdir()
         with (directory/(name+'.log')).open('w') as stream:
             process=subprocess.Popen(command,cwd=binary.parent,env=runtime,stdout=stream,stderr=subprocess.STDOUT)
+            if process_observer is not None:
+                process_observer.start(process.pid, start)
             exited=threading.Event();completion={}
             def wait_for_exit():
                 completion['returncode']=process.wait()
@@ -401,6 +444,8 @@ class Baseline:
                 except (FileNotFoundError,ProcessLookupError):pass
                 exited.wait(.5 if placement_seen else .05)
             watcher.join();code=completion['returncode']
+            if process_observer is not None:
+                process_observer.finish()
         wall=completion['wall_s']
         save(directory/(name+'.monitor.json'),records)
         save(directory/(name+'.locality.json'),numa_records)
@@ -420,7 +465,8 @@ class Baseline:
         if code:raise RuntimeError(f'{name} emu exit {code}')
         if not placement_seen or placement_bad or max_threads!=1:
             raise RuntimeError(f'{name}: not a verified single thread on CPU96')
-        result=parse_run((directory/(name+'.log')).read_text(),cycles,self.runtime_difftest)
+        result=parse_run((directory/(name+'.log')).read_text(),cycles,
+                         self.runtime_difftest,self.compile_difftest)
         result.update(name=name,seed=seed,diagnostic=bool(extra_args),external_wall_s=wall,cpu=cpu,max_threads=max_threads,
                       sibling_idle=idle_percent(start_counters,cpu_counters(siblings)),binary_sha256=frozen['sha256'],
                       locality_pass=True,locality_samples=len(numa_records),numa_node=nodes[0],
@@ -466,7 +512,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--compiler',default='/nfs/home/tanghaojin/LLVM-23.1.2-Linux-X64/bin/clang++')
     parser.add_argument('--jobs',type=int,default=64)
-    parser.add_argument('--sim-primitives',choices=['none','priority-encode','popcount','popcount-ge4','gray-decode'],default='none')
+    parser.add_argument('--sim-primitives',choices=['none','priority-encode','popcount','popcount-ge4','gray-decode','decode-table'],default='none')
     parser.add_argument('--rtl-difftest',choices=['on','off'],default='on')
     parser.add_argument('--runtime-difftest',choices=['on','off'],default='on')
     parser.add_argument('--tools-dir',type=Path,help='shared tool build for matched A/B generation')

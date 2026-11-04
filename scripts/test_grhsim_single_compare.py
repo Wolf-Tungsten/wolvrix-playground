@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from grhsim_difftrace import build_comparator, compare_traces
-from grhsim_single_compare import compare_footprints, pair_order, run_signature, runtime_modes, summarize
+from grhsim_single_compare import build_modes, compare_footprints, pair_order, run_signature, runtime_modes, summarize
 
 
 class PairTests(unittest.TestCase):
@@ -13,6 +13,16 @@ class PairTests(unittest.TestCase):
         self.assertEqual(runtime_modes('off'),dict(A='off',B='off'))
         self.assertEqual(runtime_modes('on',baseline='off'),dict(A='off',B='on'))
         self.assertEqual(runtime_modes('off',candidate='on'),dict(A='off',B='on'))
+
+    def test_model_and_compile_modes_are_independent_of_runtime(self):
+        self.assertEqual(build_modes(dict(rtl_difftest='on'), 'off'),
+                         dict(rtl='on',model='off',compile='off'))
+        self.assertEqual(build_modes(dict(rtl_difftest='on',model_difftest='on',
+                                          compile_difftest='on'), 'off'),
+                         dict(rtl='on',model='on',compile='on'))
+        self.assertEqual(build_modes(dict(rtl_difftest='on',model_difftest='on',
+                                          compile_difftest='on'), 'on'),
+                         dict(rtl='on',model='on',compile='on'))
 
     def test_order_and_paired_statistics(self):
         self.assertEqual(pair_order(4), [('A','B'),('B','A'),('A','B'),('B','A')])

@@ -408,10 +408,38 @@
 | `TNO0395` | `2026-11-02` | [优先编码原语输入布局门控](./TNO0395_priority_intrinsic_input_layout_policy_20261102.md) | `Vec[Bool]`/`Seq[Bool]` 保留原硬件；65 位 lanes 回退消失，完整香山 +0.383271% 且 CI 跨零。 |
 | `TNO0396` | `2026-11-02` | [移除显式 Vec.asUInt](./TNO0396_priority_intrinsic_explicit_vec_asUInt_removal_20261102.md) | 三个调用改为分布式输入；v7 完成功能校验和 8 对 CPU96 AB/BA，B 平均 +0.482634%，CI 跨零。 |
 | `TNO0397` | `2026-11-03` | [PopCount 紧凑布局替换与单线程实测](./TNO0397_popcount_intrinsic_packed_layout_walltime_20261103.md) | 1,095 个 packed 调用进入 `kCountOnes`，7,140 个分布式调用保留硬件；8 对 CPU96 walltime B 平均 +0.665717%，0/8 胜。 |
+| `TNO0429` | `2026-11-04` | [译码表优化重新启用与顺序探索起点](./TNO0429_decode_table_reenable_and_order_exploration_start_20261104.md) | `decode-table` 默认同时启用 CSR 译码表接入和恒定 `kDecodeTable` 折叠；历史消融可显式关闭，相关 native/Python 测试通过。 |
 | `TNO0398` | `2026-11-03` | [仅替换四位及以上 PopCount](./TNO0398_popcount_ge4_intrinsic_walltime_20261103.md) | 405 个 packed 调用进入 intrinsic，1–3 位的 690 个调用保留硬件；8 对 CPU96 walltime B 平均 +1.136902%，3/8 胜，CI 跨零。 |
 | `TNO0399` | `2026-11-03` | [PopCount 同 binary A/A 控制](./TNO0399_popcount_walltime_aa_control_20261103.md) | 同一 binary 的 8 对控制均值差 -1.342466%，单对波动超过 7%；当前约 1% 的 PopCount 差异不足以作稳定收益结论。 |
 | `TNO0400` | `2026-11-03` | [Gray-to-binary intrinsic 接入与 GrhSIM lowering](./TNO0400_gray_decode_intrinsic_20261103.md) | 新增 packed `utility.GrayToBinary`、`gray-decode` 模式和 `kGrayDecode`；32/65 位 Verilog、GRH、C++ lowering 与 16 位穷举/10 万向量检查通过，尚未发现可直接替换的真实 XiangShan 调用。 |
 | `TNO0401` | `2026-11-03` | [生成阶段关闭 DiffTest 的单线程实测](./TNO0401_difftest_generation_off_walltime_20261103.md) | 两端运行时采集与检查均完全关闭；生成阶段关闭 DiffTest 后，CPU96 的 8 对平均配对耗时下降 10.410040%，8/8 更快，95% CI [-10.777662%, -10.063447%]；访存/UART 与运行环境检查通过。 |
+| `TNO0402` | `2026-11-03` | [译码表 intrinsic 契约与实施](./TNO0402_decode_table_intrinsic_contract_20261103.md) | 真实香山译码表、NEMU 分层匹配调研、DontCare 约束验证；实施中。 |
+| `TNO0403` | `2026-11-03` | [译码表完整覆盖与功能验证](./TNO0403_decode_table_full_coverage_20261103.md) | 106 次调用、70 次替换、24 张真实表；整机生成中，未作性能结论。 |
+| `TNO0404` | `2026-11-03` | [译码表原生构建与整机等价](./TNO0404_decode_table_native_build_and_equivalence_20261103.md) | 两组 100,000 周期逐条 DiffTest 一致；CPU96 NUMA 核验通过，正式配对进行中。 |
+| `TNO0405` | `2026-11-03` | [译码表配对脚本修复与续测](./TNO0405_decode_table_pair_runner_resume_20261103.md) | 保留中断样本；复用已验证轨迹和相同输入，v2 重新采集完整 8 对。 |
+| `TNO0406` | `2026-11-03` | [译码表单线程整机 walltime](./TNO0406_decode_table_whole_walltime_20261103.md) | A 99.255 s → B 97.229 s；8 对均快，配对均值 −2.041%，全部 NUMA/DiffTest 通过。 |
+| `TNO0407` | `2026-11-03` | [译码表局部实证与最终交付](./TNO0407_decode_table_local_results_and_delivery_20261103.md) | 24 表、1,968 对局部样本；保留两类退化，中文逐表报告及 JSON/CSV 完整落盘。 |
+| `TNO0408` | `2026-11-03` | [退化译码表机制与 CSR 字节读取对照](./TNO0408_decode_table_regression_mechanisms_20261103.md) | 恒零表残留活动依赖；CSR LUT 已化位测试，字节读取对照 80 对确认宽读取代价。 |
+| `TNO0409` | `2026-11-03` | [译码表 lowering 调整](./TNO0409_decode_table_lowering_adjustments_20261103.md) | 常量表在调度前消除依赖；布尔位图保留窄读取，开始新旧版本同场复测。 |
+| `TNO0410` | `2026-11-03` | [调整后 24 张表的局部复验](./TNO0410_decode_table_adjusted_local_verification_20261103.md) | 全部原始向量通过；恒零表依赖消除，CSR 确认窄读，22 张表机器码相同。 |
+| `TNO0411` | `2026-11-03` | [调整版整机构建与周期轨迹验证](./TNO0411_decode_table_tuned_whole_build_and_equivalence_20261103.md) | 61 个表操作，恒零实例消除；两组 C100000 分别对照原硬件和旧 intrinsic 全部通过。 |
+| `TNO0412` | `2026-11-03` | [CSR 局部与整机布局差异](./TNO0412_decode_table_local_vs_whole_codegen_20261103.md) | 整机输入原已寄存器打包；新约束产生额外掩码，局部改善不能直接推断整机收益。 |
+| `TNO0413` | `2026-11-03` | [调整后八组整机 walltime](./TNO0413_decode_table_tuned_whole_walltime_20261103.md) | C 比旧 intrinsic 慢 0.617%，8/8；仍比原 RTL 快 1.428%，保留全部样本与局部环境拒绝证据。 |
+| `TNO0414` | `2026-11-03` | [两处调整的局部复测与最终结论](./TNO0414_decode_table_tuned_local_results_and_conclusion_20261103.md) | 24张表1,968对；局部退化修复，但整机慢0.617%，不更新性能基线。 |
+| `TNO0415` | `2026-11-03` | [CSR lowering 单项消融](./TNO0415_decode_table_csr_ablation_setup_20261103.md) | 只移除布尔位图／读取约束，保留常量折叠，开始 B/C/D 同场对照。 |
+| `TNO0416` | `2026-11-03` | [CSR 消融结构一致性](./TNO0416_decode_table_csr_ablation_structure_20261103.md) | GRH、全部C++、布局和调度与C完全一致，仅CSR helper恢复B；smoke通过。 |
+| `TNO0417` | `2026-11-04` | [CSR lowering 消融结果](./TNO0417_decode_table_csr_ablation_results_20261104.md) | D/C四胜四负、区间跨零；D仍8/8慢于旧B，撤回CSR未追回整机收益。 |
+| `TNO0418` | `2026-11-04` | [恢复CSR并关闭恒定表折叠](./TNO0418_decode_table_csr_only_setup_20261104.md) | E只保留CSR优化，普通常量传播不变；启动B/C/E同场对照。 |
+| `TNO0419` | `2026-11-04` | [CSR-only结构恢复与验证](./TNO0419_decode_table_csr_only_structure_20261104.md) | E/B图、129个C++及布局相同；仅CSR对象.text增加4字节，针对性验证通过。 |
+| `TNO0420` | `2026-11-04` | [仅CSR优化的整机结果](./TNO0420_decode_table_csr_only_results_20261104.md) | E/C快0.558%、8/8；E/B四胜四负、区间跨零，恢复旧版水平；保留末轮时间漂移。 |
+| `TNO0421` | `2026-11-04` | [恒零译码表回退：冻结对照与调查启动](./TNO0421_decode_constant_investigation_start_20261104.md) | C/E 同场八对复测、频率观察及阶段诊断启动。 |
+| `TNO0422` | `2026-11-04` | [恒零译码表前端差分与频率观察](./TNO0422_decode_constant_frontend_diff_20261104.md) | 净删除 49 个操作、17 个 Mux 改写均局限于译码锥；捕获 APERF/MPERF 档位变化。 |
+| `TNO0423` | `2026-11-04` | [恒零表回退同场复现与频率证据](./TNO0423_decode_constant_reproduced_walltime_20261104.md) | E/C −0.628%、8/8，同场完整保留降频配对；回退再次成立。 |
+| `TNO0424` | `2026-11-04` | [恒零表消除后的调度扩散证据](./TNO0424_decode_constant_schedule_divergence_20261104.md) | 完整导出字节一致；source 顺序、4,835 次共享归属差异；额外节点在初次创建时出现。 |
+| `TNO0425` | `2026-11-04` | [恒零表回退的动态执行计数](./TNO0425_decode_constant_dynamic_execution_counts_20261104.md) | 相同窗口逐项稳定；C 多 0.584% fire、1.026% 活动写入，PMU 指令少 0.571%。 |
+| `TNO0426` | `2026-11-04` | [恒零表调查的 source-order 重放门禁](./TNO0426_decode_constant_source_order_replay_rejected_20261104.md) | 重放严格拒绝：pre-reg-to-mem 快照与后阶段 source 集合不兼容；没有把失败运行当作因果变体。 |
+| `TNO0427` | `2026-11-04` | [恒零表回退的 PMU、IP 采样与调查结论](./TNO0427_decode_constant_pmu_and_ip_sampling_conclusion_20261104.md) | E walltime −0.628%、C 后端活动写入 +1.026%；IP 采样按语义组对齐，结构链仍待合法单变量重放确认。 |
+| `TNO0428` | `2026-11-04` | [恒零表 post-reg-to-mem 顺序干预与 walltime](./TNO0428_decode_constant_post_reg_to_mem_order_intervention_20261104.md) | 合法快照下 C 使用 E 顺序后 compute node 1,069,057→1,067,572；动态活动写入降 1.080%，但 X/E walltime −0.270%、区间跨零。 |
 
 增量更新（2026-10-14）：[TNO0337 第 20 节](./TNO0337_grhsim_partition_system_redesign_20261013.md)
 完成未划分图的操作/融合区域归因，739.8 万条条件记录守恒。223.1 万条 compute 来源是
@@ -1838,7 +1866,7 @@ p30 eval 32.70→10.15 µs，p29 22.99→34.90 µs。最大分区平均 eval 反
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`401`（`TNO0001..TNO0401`）。
+- 当前记录类文档总数：`429`（`TNO0001..TNO0429`）。
 - 2026-11-03 新增 [TNO0397：PopCount 的紧凑布局替换与香山单线程实测](./TNO0397_popcount_intrinsic_packed_layout_walltime_20261103.md)：完整香山生成中识别到 1,095 个 packed `PopCount.Bits`、7,140 个分布式 `Vec/Seq` 调用保留硬件；B 的 `kCountOnes` native 模型功能和两组 100,000 周期 trace 全部通过，但 node030 CPU96 的 8 对单线程 walltime 为 `+0.665717%`（0/8 胜，95% CI `[+0.421713%, +0.925537%]`）。静态模型略小而运行略慢，下一步优先消融 1–3 位高频调用和后端活动形态，不启用默认 PopCount。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。

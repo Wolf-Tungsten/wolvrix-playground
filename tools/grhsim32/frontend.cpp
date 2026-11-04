@@ -45,7 +45,14 @@ int main(int argc, char **argv)
         options.enableLogging = true;
         options.logLevel = LogLevel::Info;
         ingest::ConvertDriver converter(options);
-        auto design = converter.convert(compilation->getRoot());
+        auto design = [&]() {
+            try { return converter.convert(compilation->getRoot()); }
+            catch (...) {
+                converter.diagnostics().flushThreadLocal();
+                for (const auto& d : converter.diagnostics().messages()) std::cerr << d.message << '\n';
+                throw;
+            }
+        }();
         converter.diagnostics().flushThreadLocal();
         if (converter.diagnostics().hasError()) throw std::runtime_error("RTL conversion failed");
         std::cerr << "[frontend] converted RTL; lowering graph\n" << std::flush;

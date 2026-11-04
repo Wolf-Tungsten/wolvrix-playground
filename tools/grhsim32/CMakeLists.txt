@@ -14,11 +14,12 @@ foreach(pair IN ITEMS "frontend;frontend.cpp" "initial_graph;fine_state_probe.cp
         "execution_plan;../../scripts/repcut_grhsim_execution_plan.cpp"
         "source_asc;source_asc.cpp"
         "source_map_fixture;source_map_fixture.cpp"
+        "activity_trace_fixture;activity_trace_fixture.cpp"
         "pattern_emit;pattern_emit.cpp"
         "rtl_rewrite;rtl_rewrite.cpp")
     list(GET pair 0 name)
     list(GET pair 1 source)
-    if(name MATCHES "^(execution_plan|source_asc|source_map_fixture|rtl_rewrite|pattern_emit)$")
+    if(name MATCHES "^(execution_plan|source_asc|source_map_fixture|activity_trace_fixture|rtl_rewrite|pattern_emit)$")
         add_executable(grhsim32_${name} EXCLUDE_FROM_ALL "${source}")
     else()
         add_executable(grhsim32_${name} "${source}")
