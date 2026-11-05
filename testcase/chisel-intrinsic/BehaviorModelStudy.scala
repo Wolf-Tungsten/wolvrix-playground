@@ -37,6 +37,9 @@ class CommitRatBehaviorStudy(useBehavior: Boolean) extends Module {
       commitBoundary = "commitValid",
       updateGroup = "commit-rat",
     ) { ctx =>
+      ctx.capability("commit")
+      ctx.capability("rat")
+      ctx.capability("architectural-state")
       val commitValid = ctx.input("commit.valid", io.commitValid)
       val commitDest = ctx.input("commit.dest", io.commitDest)
       val commitData = ctx.input("commit.data", io.commitData)
@@ -60,6 +63,8 @@ class CommitRatBehaviorStudy(useBehavior: Boolean) extends Module {
 
       ctx.output("arch.state", VecInit(archRegs.map(_.read)).asUInt)
       ctx.output("rat.state", VecInit(ratRegs.map(_.read)).asUInt)
+      ctx.check("arch.state", VecInit(archRegs.map(_.read)).asUInt)
+      ctx.check("rat.state", VecInit(ratRegs.map(_.read)).asUInt)
     }
   } else {
     val archRegs = RegInit(VecInit(Seq.fill(32)(0.U(64.W))))

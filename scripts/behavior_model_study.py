@@ -50,6 +50,10 @@ def main() -> None:
     model = manifests["B"]["models"][0]
     if len(model["states"]) != 64 or len(model["inputs"]) != 6 or len(model["outputs"]) != 2:
         raise RuntimeError("unexpected behavior model manifest shape")
+    if model.get("capabilities") != ["commit", "rat", "architectural-state"]:
+        raise RuntimeError("behavior model capabilities were not recorded")
+    if [check["name"] for check in model.get("checks", [])] != ["arch.state", "rat.state"]:
+        raise RuntimeError("behavior model check outputs were not recorded")
     if len(model["updates"]) != 64:
         raise RuntimeError("unexpected behavior model update count")
     sv_a = (out / "A/CommitRatBehaviorA.sv").read_text()

@@ -16,8 +16,8 @@
 ```
 
 API 支持输入、同步 register、小型 memory、更新条件和输出声明。模型生成
-`simulation_models.json`，记录模型版本、observer-only、时钟/复位、状态、输入输出和
-更新组。默认 `hardware` 模式不生成模型记录，也不改变原有 RTL。
+`simulation_models.json`，记录模型版本、observer-only、时钟/复位、状态、输入输出、
+debug capability、检查输出和更新组。默认 `hardware` 模式不生成模型记录，也不改变原有 RTL。
 
 `commit-rat` fixture 声明 32 个架构寄存器、32 个 RAT 寄存器、6 个输入和 2 个状态输出。
 行为模型与硬件模型的 Chisel 端口相同。
