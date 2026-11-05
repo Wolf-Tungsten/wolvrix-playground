@@ -25,6 +25,13 @@ def semantic_stats(session, design: str) -> dict:
     return stats
 
 
+def semantic_validation(session, design: str) -> dict:
+    result = session.semantic_validate(design=design)
+    if result["module_path_duplicates"] or result["register_symbol_mismatches"]:
+        raise RuntimeError(f"SemanticTree validation failed: {json.dumps(result, sort_keys=True)}")
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, type=Path)
@@ -32,9 +39,13 @@ def main() -> int:
     parser.add_argument("--native-dir", required=True, type=Path, help="packaged native snapshot")
     parser.add_argument("--semantic", action="store_true",
                         help="require and compare non-empty SemanticTree/SemanticId statistics on native graphs")
+    parser.add_argument("--f20", action="store_true",
+                        help="also validate unique instance paths and hierarchical register symbols")
     parser.add_argument("--existing", action="store_true",
                         help="validate an existing roundtrip.json without storing it again")
     args = parser.parse_args()
+    if args.f20:
+        args.semantic = True
     original = args.input.resolve()
     output = args.output.resolve()
     native_dir = args.native_dir.resolve()
@@ -87,6 +98,9 @@ def main() -> int:
                     stats = semantic_stats(session, "design.main")
                     report["original_semantics"] = stats
                     report["roundtrip_semantics"] = stats
+                if args.f20:
+                    report["original_validation"] = semantic_validation(session, "design.main")
+                    report["roundtrip_validation"] = report["original_validation"]
                 report["existing_roundtrip"] = True
             else:
                 stage_started = time.perf_counter()
@@ -94,6 +108,8 @@ def main() -> int:
                 report["load_s"] = time.perf_counter() - stage_started
                 if args.semantic:
                     report["original_semantics"] = semantic_stats(session, "design.main")
+                if args.f20:
+                    report["original_validation"] = semantic_validation(session, "design.main")
                 stage_started = time.perf_counter()
                 checked(session.store_json(design="design.main", output=str(restored)), "store roundtrip JSON")
                 report["store_s"] = time.perf_counter() - stage_started
@@ -103,6 +119,8 @@ def main() -> int:
                     checked(session.read_json_file(str(restored), out_design="design.main"), "load roundtrip JSON")
                     report["roundtrip_load_s"] = time.perf_counter() - stage_started
                     report["roundtrip_semantics"] = semantic_stats(session, "design.main")
+                if args.f20:
+                    report["roundtrip_validation"] = semantic_validation(session, "design.main")
         report["roundtrip"] = json_identity(restored)
         if file_signature(original) != signature:
             raise RuntimeError("input changed during roundtrip verification")

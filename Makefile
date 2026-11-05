@@ -362,6 +362,23 @@ test_f19_semantic_json_asan:
 	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(F19_ASAN_BUILD_DIR) --target store-semantic-tree-json grh-semantic-tree firrtl-semantic-tree -j 4
 	ASAN_OPTIONS=detect_leaks=1 TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(F19_ASAN_BUILD_DIR) -R '^(store-semantic-tree-json|grh-semantic-tree|firrtl-semantic-tree)$$' --output-on-failure
 
+F20_BARE_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F20/align-bare
+F20_BARE_MANIFEST ?= $(F15_FIRRTL_PROFILE_MANIFEST)
+.PHONY: f20_grh_bare_flatten
+f20_grh_bare_flatten:
+	@$(MAKE) --no-print-directory benchmark_f16_firrtl_prefix \
+		F16_FIRRTL_WORK="$(abspath $(F20_BARE_WORK))" \
+		F16_FIRRTL_MANIFEST="$(abspath $(F20_BARE_MANIFEST))" \
+		F16_FIRRTL_BENCH_ARGS="--prefix-identity --align-bare"
+
+F20_COVERAGE_INPUT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F20/align-bare/flatten.json
+F20_COVERAGE_OUTPUT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F20/coverage/flatten-semantic-by-kind.txt
+F20_COVERAGE_ARGS ?=
+.PHONY: f20_semantic_coverage
+f20_semantic_coverage:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -S scripts/check_f20_semantic_coverage.py \
+		--input "$(abspath $(F20_COVERAGE_INPUT))" --output "$(abspath $(F20_COVERAGE_OUTPUT))" $(F20_COVERAGE_ARGS)
+
 .PHONY: test_ingest_driver
 test_ingest_driver: build
 	mkdir -p $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
@@ -990,7 +1007,7 @@ test_f19_python_json: test_f19_semantic_json
 	@$(MAKE) --no-print-directory verify_f19_semantic_json_roundtrip \
 		F19_ROUNDTRIP_INPUT="$(abspath $(F19_PYTHON_INPUT))" F19_ROUNDTRIP_OUTPUT="$(abspath $(F19_PYTHON_WORK))/file" \
 		F19_ROUNDTRIP_NATIVE_DIR="$(F19_ROUNDTRIP_NATIVE_DIR)"
-	$(F16_ENV) $(PYTHON) $(F16_PYTHON_FLAGS) -c 'import sys; sys.path.insert(0,"scripts"); from pathlib import Path; import wolvrix; from benchmark_xs_firrtl_ingest import checked; source=Path("$(abspath $(F19_PYTHON_INPUT))"); output=Path("$(abspath $(F19_PYTHON_WORK))/text"); output.mkdir(parents=True,exist_ok=True); text=source.read_text(encoding="utf-8"); restored=output/"roundtrip.json"; session=wolvrix.Session(); session.__enter__(); checked(session.load_json_text(text,out_design="design.main"),"load_json_text"); checked(session.store_json(design="design.main",output=str(restored)),"store_json after load_json_text"); stats=session.semantic_stats(design="design.main"); expected={"trees":1,"nodes":11,"name_bytes":29,"value_rows":1,"operation_rows":1,"semantic_ids":5}; assert stats == expected, stats; session.__exit__(None,None,None); assert restored.read_bytes() == source.read_bytes(); print("PASS: Python load_json_text/store_json SemanticTree roundtrip")'
+	$(F16_ENV) $(PYTHON) $(F16_PYTHON_FLAGS) -c 'import sys; sys.path.insert(0,"scripts"); from pathlib import Path; import wolvrix; from benchmark_xs_firrtl_ingest import checked; source=Path("$(abspath $(F19_PYTHON_INPUT))"); output=Path("$(abspath $(F19_PYTHON_WORK))/text"); output.mkdir(parents=True,exist_ok=True); text=source.read_text(encoding="utf-8"); restored=output/"roundtrip.json"; session=wolvrix.Session(); session.__enter__(); checked(session.load_json_text(text,out_design="design.main"),"load_json_text"); checked(session.store_json(design="design.main",output=str(restored)),"store_json after load_json_text"); stats=session.semantic_stats(design="design.main"); expected={"trees":1,"nodes":11,"name_bytes":30,"value_rows":1,"operation_rows":2,"semantic_ids":192,"semantic_pool_ids":128,"semantic_lists":2}; assert stats == expected, stats; session.__exit__(None,None,None); assert restored.read_bytes() == source.read_bytes(); print("PASS: Python load_json_text/store_json SemanticTree roundtrip")'
 
 F17_INSTALLED_PACKAGE := $(REPO_ROOT)/.venv/lib/python3.12/site-packages/wolvrix
 F17_NATIVE_BINARIES := libwolvrix-lib.so _wolvrix.so libtbb.so.12 libtbbmalloc.so.2

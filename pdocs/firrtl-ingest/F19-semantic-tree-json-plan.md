@@ -18,8 +18,9 @@ F18 的 SemanticTree 只在内存中工作，StoreJson/LoadJson 不保存它。F
 4. **SemanticId 只是当前树内的本地节点编号。** 删除高 32 位实例、低 32 位定义节点的组合，
    删除 `semanticScope/qualifiedSemantic/semanticInstance/semanticLocalId`。复制后统一重新编号。
 5. **删除 Instance 节点。** SemanticNodeKind 只保留 Module、Declaration、Expression、Field、Element。
-   源 Module 根节点作为普通子树复制，因此来源路径表达 `Top/Child/n.bits` 这样的定义来源；
-   实例名由电路层次和 flatten 后 symbol 表达，不在 SemanticTree 中重复保存。
+   源 Module 根节点作为普通子树复制。**由 F20.P1 修正：**复制根使用规范化并唯一化后的实例名，
+   来源路径表达 `Top/core0/n/bits` 这样的实例来源；不再以来源模块定义名作为复制根，
+   也不恢复独立 Instance 节点，SemanticId 仍为当前树内的本地编号。
 6. **统一 GRH JSON 直接替换为 v4。** writer 只写 v4，loader 只接受 v4；v2、v3、无版本输入
    一律拒绝，不做迁移、双格式输出、旧属性回填或兼容开关。
 
@@ -110,7 +111,7 @@ newId(sourceId) = newSourceRoot + sourceId - 1
   "circuit": "circuit",
   "nodes": [
     {"parent": 0, "kind": "module", "name": "Top"},
-    {"parent": 1, "kind": "module", "name": "Child"},
+    {"parent": 1, "kind": "module", "name": "core0"},
     {"parent": 2, "kind": "declaration", "name": "n"},
     {"parent": 3, "kind": "field", "name": "bits"},
     {"parent": 4, "kind": "element", "name": "", "index": 0}
@@ -150,7 +151,7 @@ value/op/ports/def/users 仍使用当前 Graph 内的正整数结构 ID，但 v4
       "circuit": "circuit",
       "nodes": [
         {"parent": 0, "kind": "module", "name": "Top"},
-        {"parent": 1, "kind": "module", "name": "Child"},
+        {"parent": 1, "kind": "module", "name": "core0"},
         {"parent": 2, "kind": "declaration", "name": "n"}
       ]
     },
@@ -247,7 +248,9 @@ JSON 补缺，不把小幅波动宣称为额外性能收益；正式结果达到
 ### 6.3 正确性
 
 - `make test_f19_semantic_json`：6/6 CTest 通过，含三种排版、文本/文件 loader、真实 FIRRTL ingest/flatten
-  往返、旧格式与非法树拒绝；语义统计为 1 树、11 节点、29 名称字节、5 个 SemanticId。
+  往返、旧格式与非法树拒绝。当前用例为 1 树、11 节点、2 个操作来源行、192 个逻辑 SemanticId；
+  F20 性能修正对 64 项及以上列表启用共享后，底层为 128 个存储 ID 和 2 个驻留列表。F19 示例为 29 名称字节，
+  F20.P1 将复制根改为 `first`/`second` 后更新为 30 名称字节。
 - `make test_f19_semantic_json_asan`：3/3 通过，包括几何增长修复后的复验。
 - `make test_f19_python_json`：`read_json_file`、`load_json_text` 和二次 `store_json` 均通过，
   字节数/SHA-256 和语义统计一致。

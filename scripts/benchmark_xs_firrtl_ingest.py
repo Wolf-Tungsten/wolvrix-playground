@@ -169,6 +169,8 @@ def main() -> None:
                         help="run the full production GRH prefix through hier-flatten after ingest")
     parser.add_argument("--prefix-identity", action="store_true",
                         help="separate correctness run: store full ingest and flatten graph identities")
+    parser.add_argument("--align-bare", action="store_true",
+                        help="with --prefix-identity, run only hier-flatten after ingest")
     parser.add_argument("--fused-prefix", action="store_true",
                         help="use the explicit parallel grh-pre-flatten ingest endpoint")
     parser.add_argument("--discard-identity-json", action="store_true",
@@ -184,6 +186,8 @@ def main() -> None:
         parser.error("--prefix-identity is a separate correctness mode")
     if args.discard_identity_json and not args.prefix_identity:
         parser.error("--discard-identity-json requires --prefix-identity")
+    if args.align_bare and (not args.prefix_identity or args.through_flatten or args.fused_prefix):
+        parser.error("--align-bare requires --prefix-identity without --through-flatten or --fused-prefix")
     run_prefix = args.through_flatten or args.prefix_identity
     if args.fused_prefix and (not run_prefix or args.sv_filelist):
         parser.error("--fused-prefix requires a manifest and --through-flatten or --prefix-identity")
@@ -301,6 +305,8 @@ def main() -> None:
                        "maxrss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
                        "diagnostics": diagnostics,
                        "success": not any(str(entry.get("kind", "")).lower() == "error" for entry in diagnostics)})
+        if args.align_bare or args.through_flatten:
+            report["ingest_semantic_stats"] = session.semantic_stats(design="design.main")
         if args.allocator_stats:
             report["ingest_allocator_statistics"] = {
                 "before": allocation_before, "after": allocation_after,
@@ -374,7 +380,7 @@ def main() -> None:
                                            if args.prefix_identity else
                                            "original sources through full production hier-flatten prefix")
             for name, options in GRH_PIPELINE:
-                if args.fused_prefix and name != "hier-flatten":
+                if (args.fused_prefix or args.align_bare) and name != "hier-flatten":
                     continue
                 print(f"[benchmark] start GRH pass {name}", flush=True)
                 stage_allocation_before = allocator_statistics() if args.allocator_stats else None
@@ -431,6 +437,8 @@ def main() -> None:
                         report["prefix_correctness_wall_s"] = time.perf_counter() - started
                         (output / "prefix-identity.json").write_text(
                             json.dumps(prefix_identity, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+                    if args.align_bare or args.through_flatten:
+                        report["flatten_semantic_stats"] = session.semantic_stats(design="design.main")
                     (output / "timing.json").write_text(
                         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
                     break

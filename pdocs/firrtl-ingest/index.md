@@ -55,6 +55,7 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | [F17.1-grh-storage-results.md](F17.1-grh-storage-results.md) | F17.1/2/3 单一 GRH 存储、列块 flatten、单遍流水的完整正确性与最终实测；性能预算未达项按实测记录 |
 | [F18-ingest-flatten-unit-cost-plan.md](F18-ingest-flatten-unit-cost-plan.md) | F17 未达预期的实测原因（node 文本、名字、Rob 长尾）及 F18 方案；含 F17 formal 数字更正 |
 | [F19-semantic-tree-json-plan.md](F19-semantic-tree-json-plan.md) | 自包含 SemanticTree：字符数组、批量深拷贝、本地 ID 与单一 v4 JSON，不兼容旧格式 |
+| [F20-gsim-init-alignment-plan.md](F20-gsim-init-alignment-plan.md) | 无重写 pass 的 flatten 图与 GSIM Init 图的对齐实验：对齐键、统计采集、指标及判定门槛 |
 | [pass-optimization-20261101.md](pass-optimization-20261101.md) | 保留完整优化的 flatten/simplify 实现加速、严格 A/B 与 20 分钟整机复测 |
 | [F10-components.md](F10-components.md) | 真实代表模块的双路线比较、激励、记分板及当前证据 |
 | [F10-replacer.md](F10-replacer.md) | AheadBtbReplacer 独立 PLRU 记分板、四路线执行与 reference 断言缩减 |
@@ -104,6 +105,7 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | F17 | ingest→hier-flatten 结构性提速：单一 SoA core 存储、列块拼接 flatten、单遍模块流水 | 已完成（2026-11-04）；F17.1/2/3 代码、81/81 CTest、Python/workflow、oracle、完整图 identity 与 roundtrip 全部通过；最终 fused 约 195.45 s、峰值 RSS 约 67.2 GiB，≤50/10/60 s 与热点 ≤25% 预算按实测未达 |
 | F18 | ingest→hier-flatten 单位成本：SemanticTree 来源模型、内部名延迟生成、flatten 真批量化、Rob 并行可行性结论 | 已完成（2026-11-05）；三轮 formal 中位数 70.64 s、flatten 19.60 s，达到 ≤75 s 目标；F18.4 不做模块内并行，见 F18-ingest-flatten-unit-cost-plan.md |
 | F19 | 自包含 SemanticTree 底层改造与统一 JSON 导入导出 | 功能与性能达标；生产默认省略 def/users/loc，实测体积减少 65.54%，调试时可显式开启，见 F19-semantic-tree-json-plan.md |
+| F20 | ingest→flatten 与 GSIM AST2Graph 对齐实验 | 计划已写，门槛待确认；F20.P1/P2 已实施，定向与 ASAN 回归通过，完整 CTest 维持 F19 的 77/84、无新增失败；全量覆盖、路径/符号及 JSON 往返复核通过；SemanticId 性能修正采用 64 项驻留阈值和有界缓存，最终生产 formal 中位数 89.226 s（同机旧库单次 93.09 s），最终 bare 为 105.628 s（同口径旧实现 128.327 s），checkpoint 字节/SHA-256 不变；对齐实验未开始；见 F20-gsim-init-alignment-plan.md |
 
 F08 曾以本地 GSIM `a3ecb26` 的 `commonExpr()` 为依据保留源表达式边界。
 当前方案保留 simplify 自由：之后才按提示/MFFC 形成执行 node，再按
