@@ -31,7 +31,8 @@ debug capability、检查输出和更新组。默认 `hardware` 模式不生成�
 - 两个版本均由 Wolvrix frontend 和 GrhSIM C++ emitter 处理。
 - A/B GRH operation 数均为 591，两个数组都沿现有普通 Chisel state 路径展开为 64 个
   `kRegister`、`kRegisterReadPort` 和 `kRegisterWritePort`，其他 operation kind 也完全一致。
-- Clang 23/O2 生成模型通过 1,001 个采样点的随机 commit/RAT 状态轨迹比较。
+- Clang 23/O2 生成模型通过 1,002 个采样点（含两次 reset、1,000 次随机更新）的
+  commit/RAT 状态轨迹比较。
 
 ## 结论
 
