@@ -48,18 +48,24 @@ def main() -> None:
     if manifests["B"]["mode"] != "commit-rat" or len(manifests["B"]["models"]) != 1:
         raise RuntimeError("behavior fixture did not emit one commit-rat model")
     model = manifests["B"]["models"][0]
-    if len(model["states"]) != 64 or len(model["inputs"]) != 6 or len(model["outputs"]) != 2:
+    if len(model["states"]) != 2 or len(model["inputs"]) != 6 or len(model["outputs"]) != 2:
         raise RuntimeError("unexpected behavior model manifest shape")
+    if [(state["name"], state["kind"], state["rows"]) for state in model["states"]] != [
+        ("arch", "array", 32), ("rat", "array", 32)
+    ]:
+        raise RuntimeError("behavior model did not preserve the high-level arrays")
     if model.get("capabilities") != ["commit", "rat", "architectural-state"]:
         raise RuntimeError("behavior model capabilities were not recorded")
     if [check["name"] for check in model.get("checks", [])] != ["arch.state", "rat.state"]:
         raise RuntimeError("behavior model check outputs were not recorded")
-    if len(model["updates"]) != 64:
+    if [(update["state"], update["kind"]) for update in model["updates"]] != [
+        ("arch", "array"), ("rat", "array")
+    ]:
         raise RuntimeError("unexpected behavior model update count")
     sv_a = (out / "A/CommitRatBehaviorA.sv").read_text()
     sv_b = (out / "B/CommitRatBehaviorB.sv").read_text()
-    if "behavior_arch_x0" not in sv_b or "behavior_rat_x0" not in sv_b:
-        raise RuntimeError("behavior state names are absent from generated RTL")
+    if "behavior_arch" not in sv_b or "behavior_rat" not in sv_b:
+        raise RuntimeError("behavior array names are absent from generated RTL")
     summary = {
         "scope": "Chisel elaboration and SystemVerilog emission",
         "fixture": str(FIXTURE),
@@ -87,7 +93,7 @@ def main() -> None:
         if grh["A"] != grh["B"]:
             raise RuntimeError("hardware and behavior fixture GRH operation shapes differ")
         if grh["B"]["operation_kinds"].get("kRegister", 0) != 64:
-            raise RuntimeError("behavior fixture did not lower to the expected ordinary registers")
+            raise RuntimeError("behavior fixture did not lower to the expected array state")
         summary["grh"] = grh
     save(out / "summary.json", summary)
 

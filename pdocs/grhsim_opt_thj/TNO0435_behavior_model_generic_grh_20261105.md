@@ -19,17 +19,18 @@ API 支持输入、同步 register、小型 memory、更新条件和输出声明
 `simulation_models.json`，记录模型版本、observer-only、时钟/复位、状态、输入输出、
 debug capability、检查输出和更新组。默认 `hardware` 模式不生成模型记录，也不改变原有 RTL。
 
-`commit-rat` fixture 声明 32 个架构寄存器、32 个 RAT 寄存器、6 个输入和 2 个状态输出。
-行为模型与硬件模型的 Chisel 端口相同。
+`commit-rat` fixture 以两个长度为 32 的可索引状态数组表达架构寄存器和 RAT，声明 6 个
+输入和 2 个状态输出。行为模型只需要两次 `array.update(valid, index, value)`，与硬件模型
+具有相同的 Chisel 端口和更新语义。
 
 ## 验证
 
 - XiangShan/utility focused Scala 编译通过。
 - Python 驱动和 manifest 校验通过。
-- hardware manifest 的 models 数为 0；commit-rat manifest 含 64 个 register state。
+- hardware manifest 的 models 数为 0；commit-rat manifest 含两个 32 行 array state 和两组更新。
 - 两个版本均由 Wolvrix frontend 和 GrhSIM C++ emitter 处理。
-- A/B GRH operation 数均为 591，`kRegister`、`kRegisterReadPort`、
-  `kRegisterWritePort` 各 64 个，其他 operation kind 也完全一致。
+- A/B GRH operation 数均为 591，两个数组都沿现有普通 Chisel state 路径展开为 64 个
+  `kRegister`、`kRegisterReadPort` 和 `kRegisterWritePort`，其他 operation kind 也完全一致。
 - Clang 23/O2 生成模型通过 1,001 个采样点的随机 commit/RAT 状态轨迹比较。
 
 ## 结论

@@ -47,24 +47,17 @@ class CommitRatBehaviorStudy(useBehavior: Boolean) extends Module {
       val ratDest = ctx.input("rat.dest", io.ratDest)
       val ratPhy = ctx.input("rat.phy", io.ratPhy)
 
-      val archRegs = (0 until 32).map(i => ctx.register(s"arch.x$i", 0.U(64.W)))
-      val ratRegs = (0 until 32).map(i => ctx.register(s"rat.x$i", 0.U(6.W)))
+      val archRegs = ctx.array("arch", 32, 0.U(64.W))
+      val ratRegs = ctx.array("rat", 32, 0.U(6.W))
+      archRegs.update(commitValid, commitDest, commitData)
+      ratRegs.update(ratValid, ratDest, ratPhy)
+      archState := archRegs.values
+      ratState := ratRegs.values
 
-      archRegs.zipWithIndex.foreach { case (state, index) =>
-        val hit = commitValid && commitDest === index.U
-        state.update(hit, Mux(hit, commitData, state.read))
-        archState(index) := state.read
-      }
-      ratRegs.zipWithIndex.foreach { case (state, index) =>
-        val hit = ratValid && ratDest === index.U
-        state.update(hit, Mux(hit, ratPhy, state.read))
-        ratState(index) := state.read
-      }
-
-      ctx.output("arch.state", VecInit(archRegs.map(_.read)).asUInt)
-      ctx.output("rat.state", VecInit(ratRegs.map(_.read)).asUInt)
-      ctx.check("arch.state", VecInit(archRegs.map(_.read)).asUInt)
-      ctx.check("rat.state", VecInit(ratRegs.map(_.read)).asUInt)
+      ctx.output("arch.state", archRegs.values.asUInt)
+      ctx.output("rat.state", ratRegs.values.asUInt)
+      ctx.check("arch.state", archRegs.values.asUInt)
+      ctx.check("rat.state", ratRegs.values.asUInt)
     }
   } else {
     val archRegs = RegInit(VecInit(Seq.fill(32)(0.U(64.W))))
