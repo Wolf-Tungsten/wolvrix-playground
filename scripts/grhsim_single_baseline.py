@@ -140,6 +140,7 @@ class Baseline:
     def __init__(self, args):
         self.args = args
         self.rtl_difftest = getattr(args, 'rtl_difftest', 'on')
+        self.sim_models = getattr(args, 'sim_models', 'hardware')
         self.runtime_difftest = getattr(args, 'runtime_difftest', 'on')
         self.model_difftest = getattr(args, 'model_difftest', self.runtime_difftest)
         self.compile_difftest = getattr(args, 'compile_difftest', self.model_difftest)
@@ -160,6 +161,8 @@ class Baseline:
             requested_fold = self.args.sim_primitives == 'decode-table'
         self.constant_decode_fold = bool(requested_fold)
         validate_difftest_modes(self.rtl_difftest, self.runtime_difftest)
+        if self.sim_models not in ('hardware', 'commit-rat'):
+            raise ValueError('simulation model mode must be hardware or commit-rat')
         if self.model_difftest not in ('on', 'off'):
             raise ValueError('model DiffTest mode must be on or off')
         if self.model_difftest == 'on' and self.rtl_difftest == 'off':
@@ -229,6 +232,7 @@ class Baseline:
         configuration=dict(flow='native-single-model',host=platform.node(),runtime_cpu=self.args.cpu,
             compile_cpus=sorted(os.sched_getaffinity(0)),jobs=self.args.jobs,cycles=self.args.cycles,
             repeats=self.args.repeats,config='TLConfig',guest_cores=1,sim_primitives=self.args.sim_primitives,compiler=identity(self.cxx),
+            sim_models=self.sim_models,
             rtl_difftest=self.rtl_difftest,model_difftest=self.model_difftest,
             compile_difftest=self.compile_difftest,
             runtime_difftest=self.runtime_difftest,
@@ -255,6 +259,7 @@ class Baseline:
     def rtl(self):
         env=dict(self.env,NOOP_HOME=str(self.out/'chisel-home'))
         sim_args = ['--wolvrix-sim-primitives', self.args.sim_primitives]
+        sim_args.extend(['--wolvrix-sim-models', self.sim_models])
         if self.difftest_relax_intermediate_wires:
             sim_args.append('--difftest-relax-intermediate-wires')
         if self.difftest_config:
@@ -267,6 +272,13 @@ class Baseline:
             'SIM_ARGS='+' '.join(sim_args)], 'rtl',env)
         if not (self.generated/'DifftestMacros.svh').is_file():
             raise RuntimeError('fresh Difftest generated sources absent')
+        model_manifest = self.out/'chisel-home/build/simulation_models.json'
+        if not model_manifest.is_file():
+            raise RuntimeError('fresh simulation model manifest absent')
+        model_report = json.loads(model_manifest.read_text())
+        if model_report.get('mode') != self.sim_models:
+            raise RuntimeError('generated simulation model mode differs from requested mode')
+        save(self.out/'simulation_models_manifest.json', identity(model_manifest))
         profile=json.loads((self.generated/'difftest_profile.json').read_text())
         if bool(profile['bundles']) != (self.rtl_difftest=='on'):
             raise RuntimeError('generated DiffTest interfaces differ from requested mode')
@@ -285,7 +297,8 @@ class Baseline:
         env=dict(self.env,PYTHONPATH=str(self.tools/'python'),LD_LIBRARY_PATH=str(self.tools),
             WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON='0',WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON='0',
             WOLVRIX_XS_GRHSIM_POST_STATS_JSON=str(self.out/'post_stats.json'),
-            WOLVRIX_XS_GRHSIM_PRE_REG_TO_MEM_JSON=str(self.out/'pre_reg_to_mem.json'))
+            WOLVRIX_XS_GRHSIM_PRE_REG_TO_MEM_JSON=str(self.out/'pre_reg_to_mem.json'),
+            WOLVRIX_SIMULATION_MODELS_MANIFEST=str(self.out/'chisel-home/build/simulation_models.json'))
         # The C++ pass consumes this as a generation-time option.  Prefer the
         # explicit configuration, while accepting the old research variable
         # when a diagnostic driver deliberately set it on the runner.
@@ -530,6 +543,7 @@ def main():
     parser.add_argument('--compiler',default='/nfs/home/tanghaojin/LLVM-23.1.2-Linux-X64/bin/clang++')
     parser.add_argument('--jobs',type=int,default=64)
     parser.add_argument('--sim-primitives',choices=['none','priority-encode','popcount','popcount-ge4','gray-decode','decode-table'],default='none')
+    parser.add_argument('--sim-models',choices=['hardware','commit-rat'],default='hardware')
     parser.add_argument('--rtl-difftest',choices=['on','off'],default='on')
     parser.add_argument('--runtime-difftest',choices=['on','off'],default='on')
     parser.add_argument('--difftest-relax-intermediate-wires',action='store_true')

@@ -920,6 +920,29 @@ def main() -> int:
 
     cpp_out_dir.mkdir(parents=True, exist_ok=True)
 
+    # Behavior models are currently represented by ordinary GRH state and
+    # combinational operations.  Preserve the elaboration manifest beside the
+    # generated model so later model-specific lowering can validate the same
+    # model boundary without turning it into an opaque black box.
+    model_manifest_env = os.environ.get("WOLVRIX_SIMULATION_MODELS_MANIFEST")
+    if model_manifest_env:
+        manifest_path = Path(model_manifest_env)
+        if not manifest_path.is_file():
+            raise RuntimeError(f"simulation model manifest not found: {manifest_path}")
+        try:
+            model_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            raise RuntimeError(f"invalid simulation model manifest: {manifest_path}: {error}") from error
+        if model_manifest.get("version") != 1 or "mode" not in model_manifest:
+            raise RuntimeError(f"unsupported simulation model manifest: {manifest_path}")
+        (cpp_out_dir / "simulation_model_manifest.json").write_text(
+            json.dumps(model_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        log(
+            f"simulation model manifest mode={model_manifest['mode']} "
+            f"models={len(model_manifest.get('models', []))} copied to {cpp_out_dir}"
+        )
+
     with wolvrix.Session() as sess:
         sess.log_level = log_level
         sess.diagnostics_raise_min_level = "none"

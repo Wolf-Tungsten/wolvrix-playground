@@ -140,6 +140,7 @@ def main():
         config=argparse.Namespace(output=out/name,binary=binary,image=args.image,nemu=args.nemu,
             compiler='/nfs/home/tanghaojin/LLVM-23.1.2-Linux-X64/bin/clang++',tools_dir=None,
             sim_primitives='none' if name!='B' else args.candidate_sim_primitives,
+            sim_models=build_configs[name].get('sim_models', 'hardware'),
             rtl_difftest=build_difftest_modes[name]['rtl'],
             model_difftest=build_difftest_modes[name]['model'],
             compile_difftest=build_difftest_modes[name]['compile'],
