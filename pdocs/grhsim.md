@@ -22,11 +22,10 @@ use-def 和 JSON。输入是完成层次展开、必要的数组规范化、组�
   不把这些结果序列化成另一套可执行 CPU plan；可读文本和 code map 只是
   inspection sidecar，帮助从生成代码反查当前 GRH，不参与执行或 checkpoint 恢复。
 
-JSON 的 per-graph `formatVersion=3`；方言版本为 `grh:2`、`grhsim:1`，
+JSON 在 Design 根部使用 `formatVersion=4`；方言版本为 `grh:2`、`grhsim:1`，
 使用 CPU 优化 op 时还有 `grhsim.cpu:1`。类型、stage、归属和配置随 JSON
-保存，session 中的 schedule 和 emitter 私有分析不随 JSON 保存。版本 2
-字符串引用 checkpoint 仍可加载，重新保存时升级为版本 3 的局部整数引用；
-局部 ID 只在单个 Graph JSON 内表达结构关联。
+保存，session 中的 schedule 和 emitter 私有分析不随 JSON 保存。旧 checkpoint
+不兼容，必须从源重新生成；局部实体 ID 和 SemanticTree 节点 ID 只在单个 Graph JSON 内表达结构关联。
 
 实现入口：[方言定义](../wolvrix/include/transform/grhsim/ops.hpp)、
 [共享流程](../scripts/grhsim_flow.py)、

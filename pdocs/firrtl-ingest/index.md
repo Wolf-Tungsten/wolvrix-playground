@@ -54,6 +54,7 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | [F17-ingest-flatten-structural-plan.md](F17-ingest-flatten-structural-plan.md) | ingest→flatten 三项结构性方案：单一 SoA core 存储（基础）、列块拼接 flatten、一次解析/分析的模块流水 |
 | [F17.1-grh-storage-results.md](F17.1-grh-storage-results.md) | F17.1/2/3 单一 GRH 存储、列块 flatten、单遍流水的完整正确性与最终实测；性能预算未达项按实测记录 |
 | [F18-ingest-flatten-unit-cost-plan.md](F18-ingest-flatten-unit-cost-plan.md) | F17 未达预期的实测原因（node 文本、名字、Rob 长尾）及 F18 方案；含 F17 formal 数字更正 |
+| [F19-semantic-tree-json-plan.md](F19-semantic-tree-json-plan.md) | 自包含 SemanticTree：字符数组、批量深拷贝、本地 ID 与单一 v4 JSON，不兼容旧格式 |
 | [pass-optimization-20261101.md](pass-optimization-20261101.md) | 保留完整优化的 flatten/simplify 实现加速、严格 A/B 与 20 分钟整机复测 |
 | [F10-components.md](F10-components.md) | 真实代表模块的双路线比较、激励、记分板及当前证据 |
 | [F10-replacer.md](F10-replacer.md) | AheadBtbReplacer 独立 PLRU 记分板、四路线执行与 reference 断言缩减 |
@@ -69,7 +70,7 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | 公开头文件 | 统一放在 `include/ingest/`；删除旧 `include/core/ingest.hpp`，同步迁移全部调用方 |
 | 混合输入 | 一次读取事务同时接收 FIRRTL 与 SV，先解析接口及跨语言引用，再 elaboration、链接到统一 GRH |
 | 聚合类型 | Bundle/struct 递归拆字段；Vector/数组维度迁移到叶子 shape，端口也保留数组 |
-| node 持久化 | 有版本的 `firrtl.node.*` op attrs，表达当前直接关联，允许多对多、部分保留和降级 |
+| 来源持久化 | F19 使用 Graph 自包含 SemanticTree 和本地 SemanticId 列表；JSON 只支持 v4，不再生成旧 `firrtl.node.*` 来源属性 |
 | simplify | node 不进入功能键、CSE 作用域或重写准入；优化后合并/更新提示，维护不了则降级，不加属性载体或保活根 |
 | GSIM 策略迁移 | F09 已撤除普通优化屏障；独立整体选项采用 gsim-soft-v2，只消费仍可证明的候选，门槛不限制 primitive CSE |
 | node 构建 | 有可用 FIRRTL 提示按提示构建 node；其余按 MFFC，均不因 op 数或 work cap 拆分；共享/语义冲突先规范化 |
@@ -102,6 +103,7 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | F16 | ingest→hier-flatten 分配器、Operation 快照和字符串查询修复 | 已完成（2026-11-03）；三轮中位数 513.804→308.525 s，完整图/诊断及最终 perf 通过；F16.3 额外提速未证实，见实施结果 |
 | F17 | ingest→hier-flatten 结构性提速：单一 SoA core 存储、列块拼接 flatten、单遍模块流水 | 已完成（2026-11-04）；F17.1/2/3 代码、81/81 CTest、Python/workflow、oracle、完整图 identity 与 roundtrip 全部通过；最终 fused 约 195.45 s、峰值 RSS 约 67.2 GiB，≤50/10/60 s 与热点 ≤25% 预算按实测未达 |
 | F18 | ingest→hier-flatten 单位成本：SemanticTree 来源模型、内部名延迟生成、flatten 真批量化、Rob 并行可行性结论 | 已完成（2026-11-05）；三轮 formal 中位数 70.64 s、flatten 19.60 s，达到 ≤75 s 目标；F18.4 不做模块内并行，见 F18-ingest-flatten-unit-cost-plan.md |
+| F19 | 自包含 SemanticTree 底层改造与统一 JSON 导入导出 | 功能与性能达标；生产默认省略 def/users/loc，实测体积减少 65.54%，调试时可显式开启，见 F19-semantic-tree-json-plan.md |
 
 F08 曾以本地 GSIM `a3ecb26` 的 `commonExpr()` 为依据保留源表达式边界。
 当前方案保留 simplify 自由：之后才按提示/MFFC 形成执行 node，再按

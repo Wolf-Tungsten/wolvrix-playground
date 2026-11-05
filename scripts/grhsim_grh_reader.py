@@ -55,21 +55,46 @@ def logical_type(record, declaration=False):
 class GraphReader:
     """Indexes of native snapshot records, scoped to one graph and snapshot.
 
-    No IDs or operations are invented, rewritten, scheduled, or made executable.
-    In particular, ports remain values and edge histories remain detector attrs.
+    Numeric graph-local references are resolved to declared symbols for diagnostics.
+    No operations are invented, scheduled, or made executable. Ports remain values
+    and edge histories remain detector attrs.
     """
 
     def __init__(self, model, top=None):
         self.graph = graph_snapshot(model, top)
         self.declared = declared_symbols(self.graph)
-        self.ops = self._index(self.graph["ops"], "operation")
-        self.values = self._index(self.graph["vals"], "value")
+        raw_ops, raw_values = self.graph["ops"], self.graph["vals"]
+        self.ops = self._index(raw_ops, "operation")
+        self.values = self._index(raw_values, "value")
+        operation_ids = self._local_ids(raw_ops, "operation")
+        value_ids = self._local_ids(raw_values, "value")
+        if operation_ids or value_ids:
+            normalized_ops = []
+            for row in raw_ops:
+                normalized = dict(row)
+                normalized["in"] = [value_ids.get(value, value) for value in row["in"]]
+                normalized["out"] = [value_ids.get(value, value) for value in row["out"]]
+                normalized_ops.append(normalized)
+            normalized_values = []
+            for row in raw_values:
+                normalized = dict(row)
+                if "def" in row:
+                    normalized["def"] = operation_ids.get(row["def"], row["def"])
+                if "users" in row:
+                    normalized["users"] = [
+                        {**user, "op": operation_ids.get(user["op"], user["op"])}
+                        for user in row["users"]
+                    ]
+                normalized_values.append(normalized)
+            self.ops = self._index(normalized_ops, "operation")
+            self.values = self._index(normalized_values, "value")
         self.states = {name: op for name, op in self.ops.items() if op["kind"] in STATE_KINDS}
         self.inputs = {}
         for port in self.graph.get("ports", {}).get("in", []):
-            if port["val"] not in self.values:
+            value = value_ids.get(port["val"], port["val"])
+            if value not in self.values:
                 raise ValueError(f"input port references missing value {port['val']!r}")
-            self.inputs.setdefault(port["val"], []).append(port["name"])
+            self.inputs.setdefault(value, []).append(port["name"])
         self.producer, self.writes = {}, defaultdict(list)
         for name, op in self.ops.items():
             for value in op["in"] + op["out"]:
@@ -86,7 +111,7 @@ class GraphReader:
                 if op["kind"] in WRITE_KINDS:
                     self.writes[target].append(name)
         for value, record in self.values.items():
-            if record.get("def") != self.producer.get(value):
+            if "def" in record and record["def"] != self.producer.get(value):
                 raise ValueError(f"inconsistent producer for {value!r}")
             # GRH may retain unreferenced value symbols after rewrites. Keep
             # these records; a missing producer is an error only if traversed.
@@ -99,6 +124,18 @@ class GraphReader:
             if not isinstance(name, str) or not name or name in result:
                 raise ValueError(f"duplicate or invalid {label} symbol {name!r}")
             result[name] = row
+        return result
+
+    @staticmethod
+    def _local_ids(rows, label):
+        result = {}
+        for row in rows:
+            if "id" not in row:
+                continue
+            identity = row["id"]
+            if identity in result:
+                raise ValueError(f"duplicate {label} local ID {identity!r}")
+            result[identity] = row["sym"]
         return result
 
     @staticmethod

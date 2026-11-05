@@ -90,6 +90,35 @@ class ReaderTests(unittest.TestCase):
         self.assertEqual(universe["member_bits"], 8)
         self.assertEqual(universe["declared_non_logic_states"], 1)
 
+    def test_slim_checkpoint_uses_operation_edges(self):
+        fixture = Fixture()
+        for value in fixture.graph["vals"]:
+            value.pop("def", None)
+            value.pop("users", None)
+        reader = GraphReader(fixture.model)
+        self.assertEqual(reader.producer["next"], "xor")
+        self.assertEqual(reader.cone(["next"]), {"read", "one", "xor"})
+
+    def test_v4_numeric_references_use_declared_symbols(self):
+        fixture = Fixture()
+        value_ids = {row["sym"]: index for index, row in enumerate(fixture.graph["vals"], 1)}
+        operation_ids = {row["sym"]: index for index, row in enumerate(fixture.graph["ops"], 1)}
+        for row in fixture.graph["ops"]:
+            row["id"] = operation_ids[row["sym"]]
+            row["in"] = [value_ids[value] for value in row["in"]]
+            row["out"] = [value_ids[value] for value in row["out"]]
+        for row in fixture.graph["vals"]:
+            row["id"] = value_ids[row["sym"]]
+            if "def" in row:
+                row["def"] = operation_ids[row["def"]]
+            row.pop("users", None)
+        for port in fixture.graph["ports"]["in"]:
+            port["val"] = value_ids[port["val"]]
+        reader = GraphReader(fixture.model)
+        self.assertEqual(reader.producer["next"], "xor")
+        self.assertEqual(reader.cone(["next"]), {"read", "one", "xor"})
+        self.assertEqual(set(reader.inputs), {"fire", "enable", "address"})
+
     def family_fixture(self):
         fixture = Fixture()
         for index in range(2):

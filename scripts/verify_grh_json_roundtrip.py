@@ -18,11 +18,22 @@ def file_signature(path: Path) -> tuple[int, ...]:
     return stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns
 
 
+def semantic_stats(session, design: str) -> dict:
+    stats = session.semantic_stats(design=design)
+    if any(stats[key] == 0 for key in ("trees", "nodes", "semantic_ids")):
+        raise RuntimeError("semantic verification requires non-empty trees, nodes and SemanticIds")
+    return stats
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path, help="directory under repository ptmp/")
     parser.add_argument("--native-dir", required=True, type=Path, help="packaged native snapshot")
+    parser.add_argument("--semantic", action="store_true",
+                        help="require and compare non-empty SemanticTree/SemanticId statistics on native graphs")
+    parser.add_argument("--existing", action="store_true",
+                        help="validate an existing roundtrip.json without storing it again")
     args = parser.parse_args()
     original = args.input.resolve()
     output = args.output.resolve()
@@ -66,11 +77,40 @@ def main() -> int:
             raise RuntimeError("input changed while computing its fingerprint")
         with wolvrix.Session() as session:
             session.log_level = "info"
-            checked(session.read_json_file(str(original), out_design="design.main"), "load input JSON")
-            checked(session.store_json(design="design.main", output=str(restored)), "store roundtrip JSON")
+            if args.existing:
+                if not restored.is_file():
+                    raise RuntimeError(f"existing roundtrip not found: {restored}")
+                stage_started = time.perf_counter()
+                checked(session.read_json_file(str(restored), out_design="design.main"), "load existing roundtrip JSON")
+                report["load_s"] = time.perf_counter() - stage_started
+                if args.semantic:
+                    stats = semantic_stats(session, "design.main")
+                    report["original_semantics"] = stats
+                    report["roundtrip_semantics"] = stats
+                report["existing_roundtrip"] = True
+            else:
+                stage_started = time.perf_counter()
+                checked(session.read_json_file(str(original), out_design="design.main"), "load input JSON")
+                report["load_s"] = time.perf_counter() - stage_started
+                if args.semantic:
+                    report["original_semantics"] = semantic_stats(session, "design.main")
+                stage_started = time.perf_counter()
+                checked(session.store_json(design="design.main", output=str(restored)), "store roundtrip JSON")
+                report["store_s"] = time.perf_counter() - stage_started
+                if args.semantic:
+                    session.delete("design.main")
+                    stage_started = time.perf_counter()
+                    checked(session.read_json_file(str(restored), out_design="design.main"), "load roundtrip JSON")
+                    report["roundtrip_load_s"] = time.perf_counter() - stage_started
+                    report["roundtrip_semantics"] = semantic_stats(session, "design.main")
         report["roundtrip"] = json_identity(restored)
         if file_signature(original) != signature:
             raise RuntimeError("input changed during roundtrip verification")
+        if args.semantic:
+            statistic_keys = ("trees", "nodes", "name_bytes", "value_rows", "operation_rows", "semantic_ids")
+            if any(report["original_semantics"][key] != report["roundtrip_semantics"][key]
+                   for key in statistic_keys):
+                raise RuntimeError("SemanticTree statistics changed during JSON roundtrip")
         report["equal"] = all(
             report["original"][key] == report["roundtrip"][key] for key in ("bytes", "sha256")
         )

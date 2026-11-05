@@ -344,6 +344,24 @@ test_grh_semantic_tree:
 	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grh-semantic-tree -j 4
 	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grh-semantic-tree$$' --output-on-failure
 
+.PHONY: test_f19_semantic_json
+test_f19_semantic_json:
+	mkdir -p $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target store-semantic-tree-json store-json load-json-file grh-tests grh-semantic-tree firrtl-semantic-tree -j 4
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(store-semantic-tree-json|store-json|load-json-file|grh-tests|grh-semantic-tree|firrtl-semantic-tree)$$' --output-on-failure
+
+F19_ASAN_BUILD_DIR ?= $(WOLVRIX_DIR)/build/asan-f19
+F19_ASAN_FLAGS := -fsanitize=address -fno-omit-frame-pointer
+.PHONY: test_f19_semantic_json_asan
+test_f19_semantic_json_asan:
+	mkdir -p $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) -S $(WOLVRIX_DIR) -B $(F19_ASAN_BUILD_DIR) \
+		-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS="$(F19_ASAN_FLAGS)" -DCMAKE_CXX_FLAGS="$(F19_ASAN_FLAGS)" \
+		-DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address" -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=address"
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(F19_ASAN_BUILD_DIR) --target store-semantic-tree-json grh-semantic-tree firrtl-semantic-tree -j 4
+	ASAN_OPTIONS=detect_leaks=1 TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(F19_ASAN_BUILD_DIR) -R '^(store-semantic-tree-json|grh-semantic-tree|firrtl-semantic-tree)$$' --output-on-failure
+
 .PHONY: test_ingest_driver
 test_ingest_driver: build
 	mkdir -p $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
@@ -751,6 +769,24 @@ summarize_f18_firrtl_formal:
 		       "$(abspath $(F18_FIRRTL_FORMAL_ROOT))/run3" \
 		--output "$(abspath $(F18_FIRRTL_FORMAL_SUMMARY))"
 
+F19_FIRRTL_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F19/benchmark
+F19_FIRRTL_BENCH_ARGS ?= --through-flatten --fused-prefix
+F19_FIRRTL_FORMAL_ROOT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F19/formal
+.PHONY: benchmark_f19_firrtl_ingest benchmark_f19_firrtl_formal_repeats summarize_f19_firrtl_formal
+benchmark_f19_firrtl_ingest:
+	@$(MAKE) --no-print-directory benchmark_f18_firrtl_ingest \
+		F18_FIRRTL_WORK="$(abspath $(F19_FIRRTL_WORK))" \
+		F18_FIRRTL_BENCH_ARGS="$(F19_FIRRTL_BENCH_ARGS)" F18_FIRRTL_INGEST_PROFILE=0
+
+benchmark_f19_firrtl_formal_repeats:
+	@$(MAKE) --no-print-directory benchmark_f18_firrtl_formal_repeats \
+		F18_FIRRTL_FORMAL_ROOT="$(abspath $(F19_FIRRTL_FORMAL_ROOT))"
+
+summarize_f19_firrtl_formal:
+	@$(MAKE) --no-print-directory summarize_f18_firrtl_formal \
+		F18_FIRRTL_FORMAL_ROOT="$(abspath $(F19_FIRRTL_FORMAL_ROOT))" \
+		F18_FIRRTL_FORMAL_SUMMARY="$(abspath $(F19_FIRRTL_FORMAL_ROOT))/summary.json"
+
 F18_FIRRTL_FP_NATIVE_DIR ?=
 F18_FIRRTL_PERF_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F18/perf-fp
 F18_FIRRTL_PERF_RECORD_ARGS ?= --call-graph fp
@@ -921,6 +957,40 @@ verify_f17_grh_roundtrip:
 	taskset -c "$(F17_FIRRTL_CPUS)" $(F16_ENV) $(PYTHON) $(F16_PYTHON_FLAGS) scripts/verify_grh_json_roundtrip.py \
 		--input "$(abspath $(F17_ROUNDTRIP_INPUT))" --output "$(abspath $(F17_ROUNDTRIP_OUTPUT))" \
 		--native-dir "$(abspath $(F17_ROUNDTRIP_NATIVE_DIR))"
+
+F19_ROUNDTRIP_INPUT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F19/identity/flatten.json
+F19_ROUNDTRIP_OUTPUT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F19/roundtrip
+F19_ROUNDTRIP_NATIVE_DIR ?=
+F19_FIRRTL_CPUS ?= 0-31
+F19_VERIFY_ARGS ?=
+.PHONY: verify_f19_semantic_json_roundtrip
+verify_f19_semantic_json_roundtrip: F16_NATIVE_DIR = $(F19_ROUNDTRIP_NATIVE_DIR)
+verify_f19_semantic_json_roundtrip:
+	@test -n "$(F19_ROUNDTRIP_NATIVE_DIR)" || { echo "Set F19_ROUNDTRIP_NATIVE_DIR to a packaged v4 native snapshot"; exit 1; }
+	taskset -c "$(F19_FIRRTL_CPUS)" $(F16_ENV) $(PYTHON) $(F16_PYTHON_FLAGS) scripts/verify_grh_json_roundtrip.py \
+		--input "$(abspath $(F19_ROUNDTRIP_INPUT))" --output "$(abspath $(F19_ROUNDTRIP_OUTPUT))" \
+		--native-dir "$(abspath $(F19_ROUNDTRIP_NATIVE_DIR))" --semantic $(F19_VERIFY_ARGS)
+
+F19_SIZE_INPUT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F19/identity/flatten.json
+F19_SIZE_OUTPUT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F19/size-experiment
+.PHONY: experiment_f19_json_size
+experiment_f19_json_size: F16_NATIVE_DIR = $(F19_ROUNDTRIP_NATIVE_DIR)
+experiment_f19_json_size:
+	@test -n "$(F19_ROUNDTRIP_NATIVE_DIR)" || { echo "Set F19_ROUNDTRIP_NATIVE_DIR to a packaged v4 native snapshot"; exit 1; }
+	taskset -c "$(F19_FIRRTL_CPUS)" $(F16_ENV) $(PYTHON) $(F16_PYTHON_FLAGS) scripts/experiment_f19_json_size.py \
+		--input "$(abspath $(F19_SIZE_INPUT))" --output "$(abspath $(F19_SIZE_OUTPUT))" \
+		--native-dir "$(abspath $(F19_ROUNDTRIP_NATIVE_DIR))"
+
+F19_PYTHON_INPUT ?= $(WOLVRIX_BUILD_DIR)/artifacts/emit/semantic-tree-v4-1.json
+F19_PYTHON_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F19/python-small
+.PHONY: test_f19_python_json
+test_f19_python_json: F16_NATIVE_DIR = $(F19_ROUNDTRIP_NATIVE_DIR)
+test_f19_python_json: test_f19_semantic_json
+	@test -n "$(F19_ROUNDTRIP_NATIVE_DIR)" || { echo "Set F19_ROUNDTRIP_NATIVE_DIR to a packaged v4 native snapshot"; exit 1; }
+	@$(MAKE) --no-print-directory verify_f19_semantic_json_roundtrip \
+		F19_ROUNDTRIP_INPUT="$(abspath $(F19_PYTHON_INPUT))" F19_ROUNDTRIP_OUTPUT="$(abspath $(F19_PYTHON_WORK))/file" \
+		F19_ROUNDTRIP_NATIVE_DIR="$(F19_ROUNDTRIP_NATIVE_DIR)"
+	$(F16_ENV) $(PYTHON) $(F16_PYTHON_FLAGS) -c 'import sys; sys.path.insert(0,"scripts"); from pathlib import Path; import wolvrix; from benchmark_xs_firrtl_ingest import checked; source=Path("$(abspath $(F19_PYTHON_INPUT))"); output=Path("$(abspath $(F19_PYTHON_WORK))/text"); output.mkdir(parents=True,exist_ok=True); text=source.read_text(encoding="utf-8"); restored=output/"roundtrip.json"; session=wolvrix.Session(); session.__enter__(); checked(session.load_json_text(text,out_design="design.main"),"load_json_text"); checked(session.store_json(design="design.main",output=str(restored)),"store_json after load_json_text"); stats=session.semantic_stats(design="design.main"); expected={"trees":1,"nodes":11,"name_bytes":29,"value_rows":1,"operation_rows":1,"semantic_ids":5}; assert stats == expected, stats; session.__exit__(None,None,None); assert restored.read_bytes() == source.read_bytes(); print("PASS: Python load_json_text/store_json SemanticTree roundtrip")'
 
 F17_INSTALLED_PACKAGE := $(REPO_ROOT)/.venv/lib/python3.12/site-packages/wolvrix
 F17_NATIVE_BINARIES := libwolvrix-lib.so _wolvrix.so libtbb.so.12 libtbbmalloc.so.2
