@@ -1,6 +1,6 @@
 # F20：FIRRTL ingest→flatten 与 GSIM AST2Graph 对齐实验计划
 
-日期：2026-11-05。状态：计划，门槛待确认。F20.P1/P2 已实施，定向与 ASAN 回归通过，完整 CTest 维持 F19 的 77/84、无新增失败；全量覆盖、路径/符号及 JSON 往返复核通过，单次 ingest→flatten 为 123.04 s（三轮 formal 未做），GSIM 对齐实验尚未开始。
+日期：2026-11-05。状态：计划，门槛待确认。F20.P1/P2 及 SemanticId 性能修正已实施并通过最终回归；生产 formal 中位数 89.226 s，最终 bare ingest→flatten 为 105.628 s；全量覆盖、路径/符号及 store→load→store 字节一致性复核通过，完整 CTest 维持 F19 的 77/84、无新增失败；GSIM 对齐实验尚未开始。
 §2 的数字是本计划预检的实测值，其余门槛都是实验前登记的提案，不是结果。
 
 ## 1. 要回答的问题
@@ -266,7 +266,7 @@ SemanticId 为本地编号、整段复制”的决定不变。
   `c49b10b5a41a4cfdd286127fb089f0157fe264494c165ecc3788d5f5e8a6dffd`。
 - 单次 ingest→hier-flatten 为 123.04 s，低于 150 s 提案门槛；未执行三轮 formal，不能记作中位数验收。
 
-**P2 性能修正（2026-11-05，最终往返回验中）：**
+**P2 性能修正（2026-11-05，已完成）：**
 - SemanticId 的对外内容、顺序和 JSON 格式不变。单 ID 及不足 64 项的列表直接追加；64 项及以上列表按内容驻留，
   热缓存最多 4096 项，淘汰缓存入口不影响任何 op/value 已保存的 range。setter、compact、clone 和 JSON load 共用该存储路径。
 - block remap 改为线性映射，不再逐项 `std::find`；目标子树按块检查一次，整数池按实际写入量几何增长，
@@ -285,6 +285,8 @@ SemanticId 为本地编号、整段复制”的决定不变。
   flatten 的逻辑 ID 仍为 104,797,236，实际池 ID 为 56,714,040，驻留列表 19 个；峰值 RSS 从 55,392,704 KiB
   降至 52,396,516 KiB。ingest 与 flatten checkpoint 的字节数和 SHA-256 均与优化前一致。
 - 最终定向测试、ASAN 3/3 和 Python JSON 往返通过；完整 CTest 仍为 77/84，失败名单与 F19 基线一致，无新增失败。
+- 最终全量 flatten 的 store→load→store 返回 `equal=true`，11,187,261,802 字节及 SHA-256 完全一致；
+  原图与重载图的逻辑 ID 均为 104,797,236，Module 路径重复数及 2,414 个声明寄存器符号不匹配数均为 0。
 
 P1、P2 之前产生的 checkpoint（含 `F19/identity`、`F19/size-experiment`）路径和归属都是旧语义，不能用于 Node 对齐，
 只保留 §2 的计数用途。
