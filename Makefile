@@ -337,6 +337,13 @@ test_wolvrix: build
 	mkdir -p $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
 	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) --output-on-failure
 
+.PHONY: test_grh_semantic_tree
+test_grh_semantic_tree:
+	mkdir -p $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grh-semantic-tree -j 4
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^grh-semantic-tree$$' --output-on-failure
+
 .PHONY: test_ingest_driver
 test_ingest_driver: build
 	mkdir -p $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
@@ -372,8 +379,8 @@ benchmark_ingest_indexes: build_ingest_indexes
 	TMPDIR="$(INGEST_INDEX_TEST_WORK)/tmp" $(WOLVRIX_BUILD_DIR)/bin/ingest-indexes --benchmark
 
 FIRRTL_NODE_TEST_WORK ?= $(CURDIR)/ptmp/firrtl-ingest/F02
-.PHONY: test_firrtl_node_attributes test_firrtl_cse_scope
-test_firrtl_node_attributes test_firrtl_cse_scope:
+.PHONY: test_firrtl_node_attributes test_firrtl_cse_scope test_firrtl_semantic_tree
+test_firrtl_node_attributes test_firrtl_cse_scope test_firrtl_semantic_tree:
 	mkdir -p "$(FIRRTL_NODE_TEST_WORK)/tmp" "$(FIRRTL_NODE_TEST_WORK)/ccache"
 	TMPDIR="$(FIRRTL_NODE_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_NODE_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
 	TMPDIR="$(FIRRTL_NODE_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_NODE_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target $(subst _,-,$(patsubst test_%,%,$@)) -j 4
@@ -695,6 +702,75 @@ verify_f17_firrtl_prefix:
 		F16_FIRRTL_WORK="$(abspath $(F17_FIRRTL_WORK))" \
 		F16_FIRRTL_MANIFEST="$(abspath $(F17_FIRRTL_MANIFEST))" F16_NATIVE_DIR="$(F17_NATIVE_DIR)" \
 		F16_FIRRTL_BENCH_ARGS="$(F17_FIRRTL_IDENTITY_ARGS)"
+
+# F18 keeps the F15 ten-worker frozen manifest so timing changes are
+# attributable to the runtime temporary-object and flatten work.  The native
+# stage timer is only enabled for the diagnostic target; formal repeats disable
+# it and still record the normal ingest/flatten timing.
+F18_FIRRTL_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F18/benchmark
+F18_FIRRTL_MANIFEST ?= $(F15_FIRRTL_PROFILE_MANIFEST)
+F18_FIRRTL_CPUS ?= 0-31
+F18_FIRRTL_BENCH_ARGS ?= --through-flatten --profile-timestamps
+F18_FIRRTL_INGEST_PROFILE ?= 1
+# WOLVRIX_MIMALLOC_STATS already defaults to OFF; leave pip config empty unless
+# a diagnostic run explicitly overrides it.
+F18_FIRRTL_PY_INSTALL_ARGS ?=
+.PHONY: benchmark_f18_firrtl_ingest
+benchmark_f18_firrtl_ingest: PIP_CONFIG_SETTINGS = $(F18_FIRRTL_PY_INSTALL_ARGS)
+benchmark_f18_firrtl_ingest: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+	@mkdir -p "$(abspath $(F18_FIRRTL_WORK))"
+	@set -o pipefail; taskset -c "$(F18_FIRRTL_CPUS)" env \
+		WOLVRIX_FIRRTL_INGEST_PROFILE="$(F18_FIRRTL_INGEST_PROFILE)" \
+		$(PYTHON) scripts/benchmark_xs_firrtl_ingest.py \
+			--manifest "$(abspath $(F18_FIRRTL_MANIFEST))" \
+			--output "$(abspath $(F18_FIRRTL_WORK))" \
+			$(F18_FIRRTL_BENCH_ARGS) 2>&1 | tee "$(abspath $(F18_FIRRTL_WORK))/benchmark.log"
+
+F18_FIRRTL_FORMAL_ROOT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F18/formal
+# Keep the formal comparison on the same fused ingest/prefix endpoint used by
+# the F17 final-r2 baseline.  A non-fused run is useful as a diagnostic, but
+# cannot serve as the F17 A/B timing evidence.
+F18_FIRRTL_FORMAL_ARGS ?= --through-flatten --fused-prefix
+F18_FIRRTL_FORMAL_SUMMARY ?= $(F18_FIRRTL_FORMAL_ROOT)/summary.json
+.PHONY: benchmark_f18_firrtl_formal_repeats summarize_f18_firrtl_formal
+benchmark_f18_firrtl_formal_repeats:
+	@$(MAKE) --no-print-directory benchmark_f18_firrtl_ingest \
+		F18_FIRRTL_WORK="$(abspath $(F18_FIRRTL_FORMAL_ROOT))/run1" \
+		F18_FIRRTL_BENCH_ARGS="$(F18_FIRRTL_FORMAL_ARGS)" F18_FIRRTL_INGEST_PROFILE=0
+	@$(MAKE) --no-print-directory benchmark_f18_firrtl_ingest \
+		F18_FIRRTL_WORK="$(abspath $(F18_FIRRTL_FORMAL_ROOT))/run2" \
+		F18_FIRRTL_BENCH_ARGS="$(F18_FIRRTL_FORMAL_ARGS)" F18_FIRRTL_INGEST_PROFILE=0
+	@$(MAKE) --no-print-directory benchmark_f18_firrtl_ingest \
+		F18_FIRRTL_WORK="$(abspath $(F18_FIRRTL_FORMAL_ROOT))/run3" \
+		F18_FIRRTL_BENCH_ARGS="$(F18_FIRRTL_FORMAL_ARGS)" F18_FIRRTL_INGEST_PROFILE=0
+
+summarize_f18_firrtl_formal:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/f16_firrtl_evidence.py summarize \
+		--runs "$(abspath $(F18_FIRRTL_FORMAL_ROOT))/run1" \
+		       "$(abspath $(F18_FIRRTL_FORMAL_ROOT))/run2" \
+		       "$(abspath $(F18_FIRRTL_FORMAL_ROOT))/run3" \
+		--output "$(abspath $(F18_FIRRTL_FORMAL_SUMMARY))"
+
+F18_FIRRTL_FP_NATIVE_DIR ?=
+F18_FIRRTL_PERF_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F18/perf-fp
+F18_FIRRTL_PERF_RECORD_ARGS ?= --call-graph fp
+F18_FIRRTL_PERF_REPORT_ARGS ?=
+.PHONY: prepare_f18_firrtl_fp_native profile_f18_firrtl_ingest report_f18_firrtl_profile
+prepare_f18_firrtl_fp_native:
+	@test -n "$(F18_FIRRTL_FP_NATIVE_DIR)" || { echo "Set F18_FIRRTL_FP_NATIVE_DIR to a new packaged snapshot directory"; exit 1; }
+	@env CXXFLAGS=-fno-omit-frame-pointer $(MAKE) --no-print-directory py_install
+	@$(MAKE) --no-print-directory snapshot_f16_native F16_NATIVE_DIR="$(abspath $(F18_FIRRTL_FP_NATIVE_DIR))"
+
+profile_f18_firrtl_ingest: prepare_f18_firrtl_fp_native
+	@$(MAKE) --no-print-directory profile_f17_firrtl_prefix \
+		F17_NATIVE_DIR="$(abspath $(F18_FIRRTL_FP_NATIVE_DIR))" \
+		F17_PERF_CANDIDATE="$(abspath $(F18_FIRRTL_PERF_WORK))" \
+		F17_PERF_RECORD_ARGS="$(F18_FIRRTL_PERF_RECORD_ARGS)"
+
+report_f18_firrtl_profile:
+	@$(MAKE) --no-print-directory report_f17_firrtl_profile \
+		F17_PERF_CANDIDATE="$(abspath $(F18_FIRRTL_PERF_WORK))" \
+		F17_PERF_REPORT_ARGS="$(F18_FIRRTL_PERF_REPORT_ARGS)"
 
 .PHONY: compare_f17_storage_perf test_f17_storage_perf
 test_f17_storage_perf:

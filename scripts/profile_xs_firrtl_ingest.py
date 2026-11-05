@@ -110,9 +110,9 @@ def environment(work: Path) -> dict:
     return env
 
 
-def perf_prefix(perf: str) -> list[str]:
+def perf_prefix(perf: str, call_graph: str) -> list[str]:
     return [perf, "record", "--no-buildid-cache", "-e", "cpu-clock:u", "-F", "199",
-            "--call-graph", "dwarf,8192", "--clockid", "mono"]
+            "--call-graph", call_graph, "--clockid", "mono"]
 
 
 def record(args) -> None:
@@ -125,9 +125,9 @@ def record(args) -> None:
     metadata = {"work": str(work), "manifest": str(args.manifest),
                 "manifest_sha256": sha256(args.manifest),
                 "perf_version": version.stdout.strip(), "perf_version_returncode": version.returncode,
-                "python": sys.executable, "status": "preparing"}
+                "call_graph": args.call_graph, "python": sys.executable, "status": "preparing"}
     write_json(work / "record.json", metadata)
-    probe = perf_prefix(args.perf) + ["-o", str(work / "probe.perf.data"), "--", sys.executable,
+    probe = perf_prefix(args.perf, args.call_graph) + ["-o", str(work / "probe.perf.data"), "--", sys.executable,
         "-c", "import time\nend = time.monotonic() + 0.3\nwhile time.monotonic() < end: pass"]
     for path in (work / "probe.perf.data", work / "probe.perf.data.old"):
         path.unlink(missing_ok=True)
@@ -144,7 +144,7 @@ def record(args) -> None:
     metadata["symbols"] = prepare_symbols(work, args.native_dir)
     benchmark_args = "--through-flatten --profile-timestamps" + (" --fused-prefix" if args.fused_prefix else "")
     python = sys.executable + (" -S" if args.native_dir else "")
-    command = perf_prefix(args.perf) + ["-o", str(work / "perf.data"), "--", "make",
+    command = perf_prefix(args.perf, args.call_graph) + ["-o", str(work / "perf.data"), "--", "make",
         "--no-print-directory", "benchmark_f15_firrtl_ingest", "SKIP_PY_INSTALL=1",
         f"PYTHON={python}", f"F15_FIRRTL_MANIFEST={args.manifest}",
         f"F15_FIRRTL_BENCH_WORK={work / 'run'}",
@@ -312,6 +312,8 @@ def main() -> None:
     parser.add_argument("--work", type=Path, default=DEFAULT_WORK)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--perf", default="perf")
+    parser.add_argument("--call-graph", default="dwarf,8192", choices=("dwarf,8192", "fp"),
+                        help="perf call-stack collection mode")
     parser.add_argument("--fused-prefix", action="store_true", help="record the joint ingest/pre-flatten endpoint")
     parser.add_argument("--native-dir", type=Path, help="load and symbolize an immutable packaged native snapshot")
     parser.add_argument("--report-dir", type=Path,
