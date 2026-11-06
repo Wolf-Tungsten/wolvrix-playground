@@ -384,11 +384,11 @@ memory opcode。写端口 operands 为 `[enable,address,data,bitmask,clock]`，
 eventEdge 为 posedge，regSymbol 关联数组状态；Bundle 按字段拆开，depth
 作为 shape 最外层。latency 上限 1024，超限明确报错。
 
-old 延迟读数据，new 延迟地址/使能再读当前存储；undefined 以读 token
-和待完成写 token 跟踪重叠地址。独立时钟在所有策略下跟踪重叠，时钟
-保持高电平不重复触发；完成的读结果不会因后续写边沿误标冲突。存储及
-数据流水使用 initPolicy，禁用/OOB/冲突使用 invalidPolicy。跟踪事件的
-history/collision 状态明确初始化为零，避免把仿真历史当作未知用户状态。
+old 延迟读数据，new 延迟地址/使能再读当前存储；undefined 只延迟地址，
+采用 new-value 碰撞行为，不为读结果额外延迟 enable。独立时钟复用相同的
+组合方式，时钟保持高电平不重复触发。存储及流水使用 initPolicy；显式
+old/new 的禁用/OOB 读使用 invalidPolicy，undefined 的禁用/OOB 读由后端
+安全数组读取结果确定，不再生成 history/collision 状态。
 node/wire 时钟别名归一后判断同钟；CHIRRTL rdwr 的写模式跨 Bundle
 全部叶子统一，部分写 mask 仍只更新被写字段。
 

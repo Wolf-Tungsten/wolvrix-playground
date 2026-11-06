@@ -1,6 +1,6 @@
 # F20：FIRRTL ingest→flatten 与 GSIM AST2Graph 对齐实验计划
 
-日期：2026-11-05。状态：计划，门槛待确认。F20.P1/P2 及 SemanticId 性能修正已实施并通过最终回归；生产 formal 中位数 89.226 s，最终 bare ingest→flatten 为 105.628 s；全量覆盖、路径/符号及 store→load→store 字节一致性复核通过，完整 CTest 维持 F19 的 77/84、无新增失败；GSIM 对齐实验尚未开始。
+日期：2026-11-05；2026-11-06 追加 memory lowering 修复后复核。状态：F20.P1/P2 已完成，§3.7 的 bare 状态元件对齐、写口覆盖及 JSON 往返复核已完成；其余 G1–G5 结构对齐实验尚未开始。此前 P1/P2 回归结论保留作历史基线，不替代本轮证据。
 §2 的数字是本计划预检的实测值，其余门槛都是实验前登记的提案，不是结果。
 
 ## 1. 要回答的问题
@@ -29,6 +29,7 @@ GSIM 按实例计数。设计有 9,487 个模块、10,271 条 `inst` 语句，�
 | 项目 | Init 实测 |
 | --- | ---: |
 | Node 总数（不含 `NODE_MEMORY`，见 §2.4） | 7,826,232 |
+| `NODE_MEMORY`（另计） | 3,324 |
 | `NODE_OTHERS` | 7,413,352 |
 | `NODE_REG_SRC` / `NODE_REG_DST` | 197,268 / 197,268 |
 | `NODE_READER` / `WRITER` / `READWRITER` | 4,295 / 4,648 / 290 |
@@ -102,9 +103,9 @@ GSIM 按实例计数。设计有 9,487 个模块、10,271 条 `inst` 语句，�
 
 这支持 Node/ENode 对应的假设，但不是全部相等（`kLt` 带 ID 64,008，`OP_LT` 44,447），定义计数与实例计数为何恰好相等也尚未解释。
 
-寄存器的线索：原始 `kRegister` 200,896 = 带 ID 195,155 + 无 ID 5,741。其中 4,613 行含 `firrtl.memory`，若它们都无 ID，
-则余 1,128 个可能是 `pipeline()` 寄存器。GSIM 的 197,268 含 `$$ADDR` 地址寄存器，若其余 195,155 一一对应，地址寄存器约 2,113 个。
-这只是待 G1 验证的假设。
+早期曾按原始 `kRegister` 200,896 = 带 ID 195,155 + 无 ID 5,741 推测 `pipeline()` 约 1,128 个、`$$ADDR` 约 2,113 个。
+该估算已被 §3.6 的 flat 和 GSIM Init 名称统计推翻：修复前原始模块定义图的分类为 plain 195,167、memory 4,613、pipeline 672、
+clockHistory 220、collision 224；修复前 flat 的分类见 §3.6。GSIM 精确后缀为 `$$ADDR` 的寄存器实际是 488 个。
 
 ### 2.4 GSIM AST2Graph 如何构造边界和 memory
 
@@ -205,8 +206,8 @@ SemanticId 为本地编号、整段复制”的决定不变。
 | 2 | `connect`（含 `define`/`read`、`adapt`、位布局、分支合并、`drive`） | 被驱动叶子的 `driver.semantic`（`lower.cpp:525` 已取得 `driver`） |
 | 3 | 复位写 | 该寄存器叶子 |
 | 4 | `stateRead`、状态写口 | 读口归使用它的 Node，写口归被写寄存器。删除 `lower.cpp:483–486` 的清零；统计时读口归“引用”类，不计入运算（对应 GSIM 引用叶子） |
-| 5 | `memories()` | 存储 `kRegister` 归 memory 声明；CHIRRTL 声明按下文补齐。端口的地址、使能、掩码、越界、冲突、poison、`pipeline()` 都归该端口叶子（`findDriver(port.name, leaf.fields).semantic`），冲突逻辑涉及两个写口时归发起写的端口 |
-| 6 | 共享且被缓存的 `guard()`（`guards_`，`lower.cpp:503–513`）、`clockPulse()`（`clockPulses_`） | **不能归第一个使用者。** 在树中新增专门的 `expression` 生成节点。guard 是决策图节点，**不**与 GSIM 的 `WHEN_COND` 一一对应，G3 按透明节点处理（§4） |
+| 5 | `memories()` | 存储 `kRegister` 归 memory 声明；CHIRRTL 声明按下文补齐。端口的地址、使能、掩码、越界和 `pipeline()` 都归该端口叶子（`findDriver(port.name, leaf.fields).semantic`）。不再生成 collision/poison 或 clockHistory；写-写覆盖由显式 `writerOrder` 表达 |
+| 6 | 共享且被缓存的 `guard()`（`guards_`） | **不能归第一个使用者。** 在树中新增专门的 `expression` 生成节点。guard 是决策图节点，**不**与 GSIM 的 `WHEN_COND` 一一对应，G3 按透明节点处理（§4）。event history 只由后端 `kEdgeDetect` 建立，裸 GRH 无 `clockPulse()` 节点 |
 | 7 | `effects()`、`instances()` | `kSystemTask` 及其参数没有声明可归属，新增 `expression` 节点（名称含语句位置，供与 `NODE_SPECIAL` 按行号匹配）。`kInstance` 归实例声明，flatten 后消失 |
 | 8 | `hier-flatten` 生成的边界 `kAssign`（`mapInputPortType`、`mapOutputPortType`） | 该端口叶子 |
 | 9 | 无 SemanticTree 的来源图（SV，如 `SimJTAG.v`） | 这些 op 归 flatten 时父图中的实例声明，对应 GSIM 的 `NODE_EXT`。SV 自身不建 SemanticTree，ingest 覆盖统计时跳过，仍不在范围内 |
@@ -335,7 +336,7 @@ K = 实例路径 + "$" + 声明名 + "__DOT__" + 字段路径
 - **GrhSIM：** K 由 SemanticId 的树路径得到：去掉顶层根，Module 节点依次以 `$` 连接为实例路径，再加声明和字段。
 - **实例端口自然合并：** P1 之后，父图声明 `cpu` 的字段 `x`（路径 `top/cpu/x`）和子图副本 `cpu` 的声明 `x`（路径同为 `top/cpu/x`）得到同一个 K，
   对应 GSIM 的单个 Node `cpu$x`。K 按路径文本比较，不看节点 kind。两个 value 合并后留下哪些 SemanticId 须在 F20.1 确认。
-- **生成类别：** GRH 的 guard、clockPulse、效果节点（规则 6、7）和 GSIM 的 `WHEN_COND_*`、`port__DOT__ADDR*`、`NODE_EXT` 不走名字匹配，按 §3.4 处理。
+- **生成类别：** GRH 的 guard、效果节点（规则 6、7）和 GSIM 的 `WHEN_COND_*`、`port__DOT__ADDR*`、`NODE_EXT` 不走名字匹配，按 §3.4 处理。
 - **独立交叉校验：** 见 P1 退出条件 4，并在 G0 中对 `align-bare` 产物复查。
 - **第二键：** FIRRTL 行号（GSIM `Node::lineno` 与 GRH SrcLoc），用于效果对象匹配和未匹配项诊断。
 
@@ -378,14 +379,188 @@ F14 记录本机缺 `gmp.h` 无法重建 GSIM，本次复查仍未找到，须�
 | `port$$ADDR` 寄存器对 | 读延迟的 `pipeline()` 寄存器 | 按所属端口匹配，数量差异须解释 |
 | `NODE_SPECIAL` | `kSystemTask` 组 | 按行号和类型匹配 |
 | `NODE_EXT*` | `kDpicCall` 或规则 9 的 SV 展开组 | 按实例匹配；内部 op 不比 |
-| `WHEN_COND_*` | guard 生成节点 | 不一一对应，G3 中两边都按透明节点收缩 |
+| `WHEN_COND_*` | guard 生成节点 | 不一一对应；条件函数签名单独比较，DAG 中作为条件生成节点处理，不得直接丢弃条件依赖 |
 | ENode 运算 | Operation | 按联合分类表比较，不是 1:1 |
 | 引用叶子 `OP_EMPTY` | operand、读口 | 读口计入“引用”类，不计入运算 |
 | `OP_INDEX_INT`/`OP_INDEX` | `kSliceArray` | 静态索引也可能折叠进别的形式 |
-| `OP_WHEN`/`OP_MUX` | `kMux` | `when` 还隐含保持分支 |
+| `OP_WHEN`/`OP_MUX` | `kMux` 及条件更新结构 | 完整赋值可规范化为 mux；缺省分支按 latch/invalid 处理；寄存器和 memory 写按写使能处理 |
 | `OP_PAD`、`OP_CVT`、`OP_AS*` | `kConcat`、`kSliceStatic`、`kAssign` | GRH lowering 显式展开（`firrtl-combinational.md`） |
 
-未决：`clockOptimize`、`invalidArrayOptimize` 对 Node 的影响，以及 `writer2Reg`（`AST2Graph.cpp:1721`，把部分 memory 写转成寄存器，触发条件未读）。这些在 F20.1 确定。
+未决：`clockOptimize`、`invalidArrayOptimize` 对 Node 的影响，以及 24 个 `$$copy$$copySrc` 派生状态的生成原因，留待 F20.1 确定。
+`writer2Reg` 的 depth=1 且非数据数组转换规则及 1,553 个实例已由 §3.6 实测闭合。
+
+### 3.5 `when` 与条件更新语义（2026-11-05 补充）
+
+- GSIM 为每个 `when` 建立 `WHEN_COND_<lineno>`（`NODE_OTHERS`），用 `whenTrace` 记录嵌套分支，并通过
+  `growWhenTrace()` 形成 `OP_WHEN(cond, trueValue, falseValue)`。空分支表示该路径无更新，不是可以忽略的语法细节。
+  源码显式 `mux` 使用 `OP_MUX`，与 `OP_WHEN` 区分。
+- 完整双分支赋值，或赋值前已有默认值的组合逻辑，可规范化为 mux。组合节点缺省分支可能形成 latch/保持；
+  显式 `invalid` 则按未初始化策略处理，不能与 latch 混为一类。寄存器及 memory 写按写使能处理，不按组合 latch 处理。
+- `invalidArrayOptimize()` 只在数组等适用场景把空缺补成 `OP_INVALID`，不是所有节点的统一 `OP_WHEN → OP_MUX` 转换。
+  后端 `instsWhen()` 也只在两个分支均有有效值等条件满足时转成 `instsMux()`。因此主比较仍使用 Init 图。
+- 对齐键采用“**目标 K + 条件函数 + 数据来源 K**”。GSIM 遍历 `OP_WHEN` 到实际赋值叶子并记录路径条件；
+  GrhSIM 分别读取普通信号的 `kMux(enable, data, previous)`、寄存器写使能和 memory 写使能/掩码。
+  条件函数另行比较来源和规范化签名；不能按 `OP_WHEN`/`kMux` 个数一一匹配，也不能只收缩 `WHEN_COND`/guard 而不保留条件语义。
+
+### 3.6 状态元件数量首次闭合（2026-11-05）
+
+输入为最终 `optimized-final-bare/flatten.json` 和 GSIM `SimTop_0Init.json`。`NODE_REG_DST` 与对应 SRC 是同一状态实体，
+不得重复计数。这里比较的是数量及生成类别，不比较 Init 尚未推断的宽度。
+
+| 类别 | GrhSIM | GSIM | 判定 |
+| --- | ---: | ---: | --- |
+| 普通 FIRRTL 寄存器，按规范化名字 join | 195,155 | 195,155 | 精确匹配 |
+| SV 实现中的状态 | 15 | 不由 `NODE_REG_SRC` 表达 | 外部实现单独处理，不计为缺失 FIRRTL 声明 |
+| 零宽寄存器 | 0（被 elide） | 48 | 已知表示差异，不计入非零状态匹配 |
+| depth=1 memory 转寄存器 | 1,553 个带 `firrtl.memory` 的 `kRegister` | 1,553 对 REG_SRC/DST | 转换类别匹配，不属于 `NODE_MEMORY` |
+| 其余 memory storage | 3,324 | 3,324 个 `NODE_MEMORY` | 精确匹配 |
+| 同步读地址 pipeline | 488（`memoryPipeline` 的一部分） | 488 个精确后缀 `$$ADDR` 的 REG_SRC | 按端口继续比较 |
+| 同步读使能、数据等额外 pipeline | 976 | 没有同名 `$$ADDR` | GrhSIM 实现特有的额外状态，不能全并入 `$$ADDR` |
+| memory collision token | 488 | 无直接 Init 状态 | 当前 lowering 额外生成，属实现错误待修正，不作为合法对齐基线 |
+| memory clock history | 484 | 无直接 Init 状态 | 当前 lowering 额外生成，属实现错误待修正，不作为合法对齐基线 |
+| `$$copy$$copySrc` 派生状态 | 未找到同名 `kRegister` | 24 | 单列生成类别，下一步定位生成原因，不归入普通寄存器 |
+
+**实现分层修正：** GRH 写口的 enable 与 event 独立，同 regSymbol 写口按显式 `writerOrder` 升序应用，
+同地址重叠位由较大值覆盖，ops 数组位置不参与优先级判定；
+事件历史由 `grh-to-grhsim` 的 `kEdgeDetect` 在后端建立，不在 FIRRTL lowering 生成 `kRegister`。
+修复前 `clockPulse()` 在 GRH 层制造 clockHistory，后续 memory 读路径又制造 collision token 和冲突 mux，
+既违反分层，也把本应由写口优先级决定的同址写结果改成 `invalid`。该 lowering 已删除；
+`read-under-write=undefined` 固定采用 old 路径并逐 memory 发出 warning。下面的 484+488 只保留为修复前诊断数据，
+不是合法对齐基线；修复后数量由本轮新 checkpoint 另行复核。
+
+修复前数量闭式为：
+
+```text
+GrhSIM kRegister 202,483（修复前）
+= 195,155 普通匹配 + 15 SV + 4,877 memory storage
+  + 1,464 memoryPipeline + 484 clockHistory + 488 collision
+
+GSIM REG_SRC 197,268
+= 195,155 普通匹配 + 48 零宽 + 1,553 depth=1 转换
+  + 488 $$ADDR + 24 copy 派生状态
+```
+
+其中：
+
+- GrhSIM 的 `memoryPipeline = 1,464 = 3 × 488`，包含地址、使能和数据等寄存器；
+  GSIM 的 `$$ADDR` 只表示地址寄存器，不能用全部 1,464 与 `$$ADDR` 直接比较。
+- GrhSIM 的 depth=1 memory 共 1,569 个，其中 1,553 个被 GSIM 转成 REG_SRC/DST，
+  其余 16 个仍保留为 `NODE_MEMORY`。memory storage 因而闭合为 `4,877 = 3,324 + 1,553`。
+- `NODE_REG_DST` 不增加状态数量。`NODE_READER/WRITER/READWRITER` 是端口，不是额外 storage。
+
+结论：**修复前状态元件的数量可按类别解释，但原始 `kRegister` 总数与 `NODE_REG_SRC` 总数没有直接可比性。**
+下一步先复核已匹配普通寄存器的 K，再逐端口核对 `$$ADDR` 与 memory storage；
+24 个 copy 派生状态须先定位生成原因，不能计入普通声明对齐。
+
+证据：`ptmp/firrtl-ingest/F20/state-analysis/` 下的
+`grh-register-categories.json`、`grh-memory-depth-categories.json`、`ordinary-register-name-join.json`、
+`gsim-init-generated-reg-names.json`、`gsim-only-register-breakdown.json`，以及
+`gsim-build/default-xiangshan/model/SimTop_0Init.json`。
+
+### 3.7 memory lowering 修复后复核（2026-11-06，old 方案，已被 §3.8 取代）
+
+输入为当前实现生成的 `writer-order-bare-v2/flatten.json`，native 快照为 `writer-order-native-v2`；
+只经过 ingest→hier-flatten，不进入 GrhSIM 后半段。统计器同时复核旧 `optimized-final-bare/flatten.json`，
+采用与旧分析一致的原名精确比较，仅将 GSIM `$$` 映射为 GRH `__DOT__`，不折叠其他 `$` 或下划线。
+
+| 类别 | 修复前 GRH | 修复后 GRH | GSIM | 结论 |
+| --- | ---: | ---: | ---: | --- |
+| 普通寄存器原名精确匹配 | 195,155 | 195,155 | 195,155 | 保持一致；GRH 另有 15 个 SV 状态 |
+| memory storage | 4,877 | 4,877 | 3,324 NODE_MEMORY + 1,553 转换项 | 数量及全部 depth 分布不变 |
+| memoryPipeline | 1,464 | 488 | 488 个 `$$ADDR` | 数量相同，但语义角色不同，见下文 |
+| memory clock history | 484 | 0 | 无 | 错误辅助状态已删除 |
+| memory collision token | 488 | 0 | 无 | 错误辅助状态已删除 |
+| **kRegister 合计** | **202,483** | **200,535** | 197,268 REG_SRC | 减少 1,948，不能只比较原始总数 |
+
+修复后的数量闭式为：
+
+```text
+GRH kRegister 200,535
+= 195,155 普通匹配 + 15 SV + 4,877 memory storage + 488 读数据 pipeline
+
+GSIM REG_SRC 197,268
+= 195,155 普通匹配 + 48 零宽 + 1,553 depth=1 转换 + 488 $$ADDR + 24 copy 派生状态
+
+GRH - GSIM = 3,267 = 15 SV + 3,324 NODE_MEMORY - 48 零宽 - 24 copy
+```
+
+本闭式只比较 `kRegister`。另有 410 个 `kLatch`，与修复前相同，不混入 GSIM `NODE_REG_SRC` 的数量比较。
+
+`memoryPipeline` 剩余 488 个来自 old/undefined 路径的“请求时组合读，再延迟数据”。
+删除的 976 个是旧 collision 处理中按读阶段保存地址和使能的寄存器；另外删除 484 个 clock history
+和 488 个 collision token，合计 `976 + 484 + 488 = 1,948`。因此这里的 **488 与 GSIM `$$ADDR` 数量相同只是数值闭合，
+不是地址寄存器的一一对应**。旧文档把 1,464 分为 488 地址和 976 其他 pipeline 的描述只属于修复前结构。
+后续应按端口比较“地址延迟”和“读数据延迟”的角色，不得宣称这部分语义已完全对齐。
+
+全部 446,481 个写口都有唯一、非负的显式 `writerOrder`，缺失、负数和同状态重复均为 0；
+修复前同一统计器报告 448,429 个写口缺少该属性。写口数减少 1,948，与删除的状态一一对应。
+F20 SemanticId 检查覆盖 34,199,688 个 op，缺失为 0，SV 图也在本轮具有 SemanticTree。
+全输入共 879 个 `read-under-write=undefined` memory，均发出固定采用 old 的 warning，没有将其当作 lowering 错误。
+
+单次计时为 ingest 62.280 s、hier-flatten 90.068 s、连续 152.348 s，峰值 RSS 39,216,684 KiB；
+旧对应值为 52.283 s、53.345 s、105.628 s 和 44,156,080 KiB。初次实现曾让每个新状态扫描整张图，
+导致 ingest 长时间无法完成；当前已改为每图一次初始化。以上仅为单次同机测量，不作为正式性能回归结论。
+
+全量 store→load→store 返回 `equal=true`，原图与往返图均为 11,198,307,685 字节，SHA-256 均为
+`212a4a4b57ad9baa9f2a96fdb1ad6255cea581baa3e950e7529379bcff0fdca7`。两轮的 SemanticTree
+节点数 13,221,574、operation rows 34,199,688、SemanticIds 104,781,256 均一致；2,414 个声明寄存器
+符号不匹配数为 0，Module 完整实例路径重复数为 0。memory、state 定向测试及 ASAN 3/3 通过；
+GrhSIM 后半段按后续重构计划另行复核，不属于本次 bare 状态对齐的验证范围。
+
+证据：`ptmp/firrtl-ingest/F20/writer-order-state/{baseline-stats.json,current-stats.json,coverage.txt}`、
+`writer-order-state/roundtrip/roundtrip-identity.json`、
+`writer-order-bare-v2/{timing.json,prefix-identity.json,flatten-graph-identity.json}` 和
+`writer-order-bare-v2/benchmark.log`。
+
+### 3.8 undefined 地址延迟与 GSIM `$$ADDR` 对齐（2026-11-06）
+
+§3.7 的 undefined→old 方案虽合法，但与 GSIM 在同址冲突时选择不同。当前实现改为：显式 old 仍延迟读数据，
+显式 new 仍延迟地址和 enable；**undefined 只延迟地址，再组合读当前存储**，不再生成独立 enable pipeline，
+并保留原始 `firrtl.readUnderWrite="undefined"` 属性。这样选择 new-value 碰撞行为；禁用读和 OOB 读不保证
+沿用之前的 invalidPolicy 值，而由后端安全数组访问给出 don't-care 结果。写使能、写模式和写路径不变。
+
+对 F20 原始 CHIRRTL 的词法复核发现 224 个同步读端口声明（198 个 `read`、26 个 `rdwr`）全部有显式
+`when` guard；guard 已体现在地址 wire 的驱动中。展开后的 488 个 GSIM `$$ADDR` 对应 198 个
+`NODE_READER` 和 290 个 `NODE_READWRITER`，所以省略的是重复的读有效状态，不是假定源端口没有使能。
+
+输入为 `undefined-address-bare/flatten.json`，native 快照为 `undefined-address-native`，仍只经过
+ingest→hier-flatten。端口 join 使用 GRH pipeline 的 SemanticId、memory 路径和 GSIM 全名精确比较：
+
+| 检查项 | 结果 |
+| --- | ---: |
+| GRH `firrtl.memoryPipeline` | 488 |
+| 与 GSIM `$$ADDR` 全名精确匹配 | **488 / 488** |
+| GRH 缺失语义端口名 / GSIM 缺失 / GSIM 多余 | 0 / 0 / 0 |
+| NODE_READER / NODE_READWRITER | 198 / 290 |
+| 地址宽度符合对应 memory depth | **488 / 488** |
+| 地址 pipeline 总位数 | 4,977 bit |
+| §3.7 读数据 pipeline 总位数 | 41,128 bit |
+| 减少状态位数 | **36,151 bit** |
+
+因此这 488 个状态不再只是数量闭合，而是**端口、生成角色和地址宽度均对齐**。没有另外 488 个 enable
+状态。普通寄存器匹配、memory storage、写口和总状态数不变：普通匹配 195,155，memory storage 4,877，
+`kRegister` 合计 200,535，446,481 个写口的 `writerOrder` 检查仍全部通过。数量闭式更新为：
+
+```text
+GRH kRegister 200,535
+= 195,155 普通匹配 + 15 SV + 4,877 memory storage + 488 地址 pipeline
+
+GRH - GSIM REG_SRC = 3,267
+= 15 SV + 3,324 NODE_MEMORY - 48 零宽 - 24 copy 派生状态
+```
+
+`make test_firrtl_memory test_firrtl_state test_grh_to_grhsim` 全部通过；测试新增两拍 undefined 只生成
+两个地址宽度状态的断言，并覆盖 new-value 冲突和未门控禁用读。完整 CTest 为 76/84；剩余 8 项是此前未
+收敛的 provenance、sink schedule 和 `firrtl-node-pipeline` 问题，memory、state 和 CPU 后端均通过。
+879 个 undefined memory 仍逐 memory 发出 warning，文本已改为 new-value 碰撞及未门控禁用/OOB 读。
+
+本次只证明 bare GRH 的结构和端口角色对齐，不把无效/OOB 的具体输出值视为对齐目标，也未宣称 GrhSIM
+后半段已与 GSIM 动态等价。15 个 SV 状态、48 个零宽项和 24 个 copy 派生状态仍按原类别单列；copy 的
+生成原因尚未查清。
+
+证据：`ptmp/firrtl-ingest/F20/undefined-address-state/{current-stats.json,port-join.json}`、
+`undefined-address-port-join.py`、`undefined-address-bare/{timing.json,prefix-identity.json}`、
+`undefined-address-tests.log` 和 `undefined-address-full-ctest.log`。
 
 ## 4. 指标与判定
 
@@ -430,7 +605,7 @@ F14 记录本机缺 `gmp.h` 无法重建 GSIM，本次复查仍未找到，须�
 | Probe 转发链匹配率 | 单独报告 |
 | 实例端口匹配率 | 单独报告 |
 
-预设的解释类别（须经实测核实）：零宽信号被 elide、GSIM 生成节点（`WHEN_COND_*`、`port$$ADDR`）、GRH 生成节点（guard、clockPulse、效果）、
+预设的解释类别（须经实测核实）：零宽信号被 elide、GSIM 生成节点（`WHEN_COND_*`、`port$$ADDR`）、GRH 生成节点（guard、效果）、
 GSIM 的 `clockOptimize`/`invalidArrayOptimize`/`writer2Reg`。
 
 ### G3 Node DAG（核心指标）
@@ -438,7 +613,7 @@ GSIM 的 `clockOptimize`/`invalidArrayOptimize`/`writer2Reg`。
 把 GRH op 图按 K 投影：一条 Node→Node 边表示 K₂ 的组内 op 读取了 K₁ 的值。P2 之后每个 op 都有归属，投影不再丢边。
 GSIM 取 `prev/next`，不含 `depPrev/depNext`。这项指标不依赖两边 op 分解是否相同，且分图、激活传播都建立在这个 DAG 上，因此权重最高。
 
-**生成节点收缩：** 比较前把两端的生成节点（GRH guard、clockPulse；GSIM `WHEN_COND_*`）收缩为透明，边直接连到它们的来源。
+**生成节点收缩：** 比较前把两端的生成节点（GRH guard；GSIM `WHEN_COND_*`）收缩为透明，边直接连到它们的来源。
 两边条件的组织方式不同（GRH 是决策图，GSIM 是每个 `when` 一个节点），不收缩会产生大量假差异。收缩前后的结果都报告。
 
 | 指标 | 门槛 |
@@ -457,7 +632,7 @@ SemanticId 覆盖已由 P2 和 G0 保证，这里不再设门槛。ENode 用活�
 | 运算 | 归属 Node 的算术、逻辑、比较、mux、切片、拼接 | 比值门槛 |
 | 引用 | 读口、纯 `kAssign`（对应 GSIM 引用叶子） | 只报告 |
 | memory 展开 | 规则 5 的端口逻辑 | 不比数量，按端口报告展开倍数；异常倍数须解释 |
-| 生成 | guard、clockPulse、flatten 边界 | 只报告 |
+| 生成 | guard、flatten 边界 | 只报告 |
 
 | 指标 | 门槛 |
 | --- | ---: |
