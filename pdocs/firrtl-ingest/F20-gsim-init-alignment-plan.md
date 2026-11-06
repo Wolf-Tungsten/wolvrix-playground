@@ -211,7 +211,7 @@ SemanticId 为本地编号、整段复制”的决定不变。
 | 7 | `effects()`、`instances()` | `kSystemTask` 及其参数没有声明可归属，新增 `expression` 节点（名称含语句位置，供与 `NODE_SPECIAL` 按行号匹配）。`kInstance` 归实例声明，flatten 后消失 |
 | 8 | `hier-flatten` 生成的边界 `kAssign`（`mapInputPortType`、`mapOutputPortType`） | 该端口叶子 |
 | 9 | 无 SemanticTree 的来源图（SV，如 `SimJTAG.v`） | 这些 op 归 flatten 时父图中的实例声明，对应 GSIM 的 `NODE_EXT`。SV 自身不建 SemanticTree，ingest 覆盖统计时跳过，仍不在范围内 |
-| 10 | ingest 内 `comb-loop-elim` 的 loop 拆分 | 与 `originModules` 一致，新 op 继承整个 loop 的 SemanticId 并集；不得按生成顺序取第一个 loop op |
+| 10 | flatten 后 `comb-loop-elim` 的 loop 拆分 | fragment value 继承原 value 的 SemanticId（无直接标注时取原定义 op）；克隆 op 继承其原 op 的 SemanticId 与 `originModules`；辅助 slice/concat 归被视图化的 value。禁止整环并集；`fragment-map-path` 导出原 value/op、位段和 fragment 的显式映射 |
 
 规则 5 的 **CHIRRTL 补充约束**（本实验全部 memory 都属于此类）：
 
@@ -271,8 +271,8 @@ SemanticId 为本地编号、整段复制”的决定不变。
 - SemanticId 的对外内容、顺序和 JSON 格式不变。单 ID 及不足 64 项的列表直接追加；64 项及以上列表按内容驻留，
   热缓存最多 4096 项，淘汰缓存入口不影响任何 op/value 已保存的 range。setter、compact、clone 和 JSON load 共用该存储路径。
 - block remap 改为线性映射，不再逐项 `std::find`；目标子树按块检查一次，整数池按实际写入量几何增长，
-  不按未去重总量预留。loop 并集使用哈希集合去重，同时保留首次出现顺序。
-- 回归覆盖 300 项 loop 并集、相同长列表共享、5000 组列表缓存淘汰、单 ID 别名扩容和 64 项列表 JSON 往返；
+  不按未去重总量预留。当时的整环并集实现使用哈希集合去重并保留首次出现顺序；现已被规则 10 的逐来源继承取代。
+- 回归覆盖 300 项分组来源、fragment 映射及位段覆盖、相同长列表共享、5000 组列表缓存淘汰、单 ID 别名扩容和 64 项列表 JSON 往返；
   `semantic_stats` 同时报告逻辑 ID、实际池 ID 和驻留列表数，池大小只作性能观测，不作为 load 等价门禁。
 - 初版对所有多 ID 列表驻留曾使生产三轮 formal 中位数退化到 94.50 s；8 项阈值将 op-loop 从约 201 s 降至约 108 s，
   但仍未达到优化前的 77.27 s 单次生产结果，因此最终采用 64 项阈值并继续验收，不能把中间版本视为性能通过。
@@ -295,10 +295,13 @@ P1、P2 之前产生的 checkpoint（含 `F19/identity`、`F19/size-experiment`�
 ### 3.1 GrhSIM 端：`align-bare`
 
 ```text
-read_sources(pipeline="ingest", <F19 同一 manifest>) → hier-flatten → store_json(v4)
+read_sources(pipeline="ingest", <F19 同一 manifest>)
+  → hier-flatten（保存 flatten.json）
+  → comb-loop-elim(fail_on_true_loop=True，保存 post-elim.json）
 ```
 
-只跑 hier-flatten，移除全部 prefix pass：
+除 flatten 后的消环外，不运行其他 prefix pass；ingest 内不再提前执行 `comb-loop-elim`。生产 pipeline 本来就是
+`hier-flatten → comb-loop-elim`，本次只是移除提前消环并显式保留真实环失败语义。移除的其他 prefix pass 如下：
 
 | pass | 处置依据 |
 | --- | --- |
@@ -312,7 +315,9 @@ read_sources(pipeline="ingest", <F19 同一 manifest>) → hier-flatten → stor
 
 若 flatten 因移除 pass 报错，只加回**最少**的 pass，并在报告中记录原因和影响。
 
-这只是诊断路线，**不改变生产 pipeline**。
+本次后移前的 `undefined-address-bare/flatten.json` 属于“ingest 已提前消环、flatten 后未再消环”的旧阶段；
+本次生成的 `post-elim.json` 才用于与 GSIM `splitArray` 后的结构比较。此前的状态、Node 和 DAG 数字继续作为旧阶段诊断，
+不得与新 checkpoint 混作同一阶段验收。
 
 **Probe 不是 XMR，不关闭也不能关闭。** `SimTop.fir` 的跨模块引用都是 FIRRTL Probe：111,089 个 `output Probe<UInt/SInt>` 端口和同样数量的
 `define`（全部在模块顶层，其中 13,196 个为 `define x = probe(y)`，其余逐层转发），以及 13,196 个 `connect a, read(b)`；没有
@@ -561,6 +566,170 @@ GRH - GSIM REG_SRC = 3,267
 证据：`ptmp/firrtl-ingest/F20/undefined-address-state/{current-stats.json,port-join.json}`、
 `undefined-address-port-join.py`、`undefined-address-bare/{timing.json,prefix-identity.json}`、
 `undefined-address-tests.log` 和 `undefined-address-full-ctest.log`。
+
+### 3.9 后置 comb-loop-elim 与 GSIM splitArray 对比（2026-11-06）
+
+ingest 不再提前执行 `comb-loop-elim`，真实组合环及 `firrtl.pendingCombLoopCheck` 保留到 `hier-flatten` 后。
+生产 pipeline 继续保持 `hier-flatten → comb-loop-elim`，并显式设置 `fail_on_true_loop=True`，避免真实环降级为 warning。
+F20 `align-bare` 同时保存 `flatten.json` 和 `post-elim.json`，后者才是本节输入。定向测试覆盖 flatten 后真实环失败、
+两个 false loop 修复及并行身份；完整 CTest 为 **76/84**，与修改前相同，仍有既有 8 项 provenance/sink/node-pipeline 失败。
+
+GSIM 使用已有二进制依次执行 `splitArray`、`detectLoop`、`topoSort`。日志为主循环拆 856 个数组、可选数组拆 233,875 个，
+`NO Loop!`。`TopoSort` 含 9,631,690 个 Node 和 14,466,797 条 `prev/next` 边。采用 `TopoSort` 而不是 `SplitArray`
+导出，因为后者仍读旧 `allNodes`，不能完整表示新拆节点。拆分成员按原 Node ID 和数组形状 coarsen 到原始 K；
+2,051,495 个新拆节点全部归入可映射、ambiguous 和未解析类别，其中 110,334 个后两类不强行匹配。
+共同普通组合候选为 **7,242,474**，覆盖旧候选 7,253,776 的 99.84%。
+
+`post-elim.json` 含 34,365,358 个 op，SemanticId 缺失为 0。原始 DAG 和 loop-only 诊断归一化结果如下。
+归一化只剔除已归因的 loop-only 差异，不是删除生产边，也不是 G3 验收。
+
+| 指标 | 原始投影 | 剔除 loop-only 差异后的诊断口径 |
+| --- | ---: | ---: |
+| GSIM 边 | 11,063,175 | 不变 |
+| GRH 边 | 13,641,883 | 11,080,122 |
+| 共同边 | 11,060,347 | 不变 |
+| GSIM 独有 | 2,828 | 不变 |
+| GRH 独有 | 2,581,536 | 19,775 |
+| 精确率 | **81.0764%** | **99.8215%** |
+| 召回率 | **99.9744%** | **99.9744%** |
+
+2,561,761 条多余边（99.24%）来自 loop 的 SemanticId 并集及其下游传播；非 loop 单 ID op 直接见证为 19,707 条，
+其余 68 条未直接归因。loop 涉及 10,611 个组、1,130,705 个多 ID op，最大组为 815。差异高度集中在浮点除法器、
+`vsMergeBuffer`、向量归约和其他矩阵结构。只删除多 ID op 本身产生的边并不够，后续单 ID `kAssign` 也会传播整组来源。
+
+GSIM 独有的 2,828 条边中，530 条源 SemanticId 没有生产 op，2,298 条源有 op 但被其他结构绕过；后者尚未完全分类。
+因此，**原始 G3 不通过，诊断口径显示的是较强的条件对齐，而不是已经证明两边消环后的图等价。** 下一步应优先给
+loop split 增加逐 fragment 的精确归属或 range-aware 投影，再处理非 loop 边界和缺失边；暂不在此阶段比较表达式内容。
+
+证据：`post-elim-bare/{flatten.json,post-elim.json,timing.json,prefix-identity.json,semantic-coverage.txt}`、
+`post-elim-gsim/{SimTop_1TopoSort.json,SimTop_1TopoSort_Stats.json,split-map-stats.json}`、
+`post-elim-dag/{dag-report.json,edge-attribution.json,missing-source-ops.json}` 和
+`post-elim-full-ctest-2.log`。本阶段计时与其他验证重叠，只用于流程诊断，不作为正式性能结论。
+
+### 3.10 显式 splitArray/fragment 映射与逐来源消环（2026-11-06）
+
+GSIM 新增 `--dump-split-array-map=PATH`，直接导出 `splitArrayMap` 的父 Node、成员序号和成员 Node，不再从名称后缀猜测。
+完整导出含 246,037 个父 Node、2,051,495 个成员；按 Node ID 对照 Init/TopoSort 后全部命中，名称不一致和未解析均为 0。
+其中 104 个重名名称对应 208 个不同父节点的成员；旧 dump 的边只有名称，DAG 比较单独剔除这 208 个节点涉及的 352 条边，
+其余 2,051,287 个成员按 ID 还原。`splitArray`/`splitOptionalArray` 数量仍为 856/233,875，与旧运行一致。
+
+GRH `comb-loop-elim` 不再给新 op 盖整个 SCC 的 SemanticId 并集：fragment 继承原 value 归属，克隆 op 继承原 op 归属，
+辅助 slice/concat 继承被视图化 value 的归属。`fragment-map-path` 导出的 ID 使用与 StoreJson 相同的图枚举顺序；
+后续图变换后须重新导出。完整导出共 1,091,832 条 fragment、36,767 个原 value/op；全量校验的来源标注、fragment 标注、
+位宽、位段覆盖和缺失实体错误均为 0。454 个 false-loop 仍全部修复，拆分计数不变，消环耗时为 43.810 s（旧值 42.751 s）。
+post-elim op 数仍为 34,365,358，SemanticId 缺失为 0；SemanticId 总数从 185,257,660 降为 43,641,632。
+序列化 ID 修正前后图 SHA-256 均为 `7bf377787096882f154f3f9dd70d81482d2a8498cf184c6515a482e76a38e998`，因此 DAG 结果复用。
+
+| 指标 | §3.9 原始投影 | 显式映射与逐来源投影 |
+| --- | ---: | ---: |
+| GSIM 边 | 11,063,175 | 11,062,228 |
+| GRH 边 | 13,641,883 | 11,080,118 |
+| 共同边 | 11,060,347 | 11,059,400 |
+| GSIM 独有 | 2,828 | 2,828 |
+| GRH 独有 | 2,581,536 | 20,718 |
+| 精确率 | **81.0764%** | **99.8130%** |
+| 召回率 | **99.9744%** | **99.9744%** |
+
+两端出度 p50/p90/p99 均为 1/1/7，入度均为 1/2/3。loop-only 差异降为 **0**；剩余 GRH 独有边中 20,689 条来自非 loop 单 ID op，
+29 条未直接归因，GSIM 独有的 2,828 条仍需按 §3.9 的类别继续核查。G3 的精确率、召回率和 p99 偏差门槛已通过，
+但不能据此宣称全部结构差异已解释或完整 GrhSIM 后端等价。投影组配对次数从 53,024,488,651 降为 30,819,171，
+最大 op 组从 815 降为 1，guard 收缩后的残余 SCC 为 0。
+
+定向消环回归覆盖逐组来源、位段覆盖、fragment JSON 和带 tombstone 的 StoreJson 往返，均通过；相关 ingest/memory 测试通过。
+完整 CTest 仍为 **76/84**，失败仍是 §3.9 的既有 8 项。证据：`split-array-explicit/`、`post-elim-explicit-bare/`、
+`post-elim-explicit-dag/`、`fragment-map-full-ctest.log`、`fragment-map-tombstone-test-3.log`。
+
+### 3.11 非 loop 单 ID 多余边的闭合归因（2026-11-06）
+
+对 §3.10 剩余 20,689 条非 loop 单 ID 边，逐条联合检查 witness op、TopoSort `prev/next` 可达性和 Init `prev/next` 可达性。
+下表互斥且合计闭合。`Topo 可达` 包括路径长度 2/3/4/5/6/>6，分别为 5,983/2,298/674/209/130/3 条；
+`仅 Init 可达` 包括 Init 直达 1,369 条和两跳 3 条。clock 分类采用大小写不敏感名称匹配，共 3,690 条。
+
+| witness kind | Topo 可达 | clock alias | memory 专用边界 | 仅 Init 可达 | Init 也不可达 | 合计 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `kAssign` | 2,068 | 3,690 | 0 | 1,108 | 1,603 | 8,469 |
+| `kAssign+kSliceStatic` | 304 | 0 | 0 | 0 | 0 | 304 |
+| `kConcat` | 292 | 0 | 0 | 188 | 166 | 646 |
+| `kConcat+kLt` | 0 | 0 | 545 | 0 | 0 | 545 |
+| `kConcat+kRegisterReadArrayPort` | 0 | 0 | 24 | 0 | 0 | 24 |
+| `kLt+kRegisterReadArrayPort` | 0 | 0 | 1,587 | 0 | 0 | 1,587 |
+| `kLt+kSliceArray` | 0 | 0 | 1,707 | 0 | 0 | 1,707 |
+| `kMux` | 707 | 0 | 0 | 0 | 125 | 832 |
+| `kSliceArray` | 4,787 | 0 | 0 | 76 | 436 | 5,299 |
+| `kSliceStatic` | 1,139 | 0 | 0 | 0 | 137 | 1,276 |
+| **合计** | **9,297** | **3,690** | **3,863** | **1,372** | **2,467** | **20,689** |
+
+各类含义如下。
+
+1. **Topo 可达不是缺边，而是直达边与多跳边不同。** 例如浮点 `bits(cat(T10,0),55,41)` 在 GRH 被归约为 `bits(T10,54,40)`，
+   GSIM 保留 `_T_10 → _T_11 → nxt_pre → target`；`new_vec` 和端口字段也有 source→中间节点→target 的路径。
+   这些差异应做 alias/路径归一化，不应删除生产依赖。
+2. **clock alias。** GSIM `clockOptimize()` 把中间 clock 重写为实际输入时钟，普通 DAG 不再保留逐级转发。
+   GRH 的 `kAssign` 投影仍有这些边，应独立归一化，不能按组合数据流差异处理。
+3. **memory 专用边界共 3,863 条。** `kLt` 的 3,839 条全部来自 `inBounds()`（`lower.cpp:820`），另 24 条是同类读口数据依赖。
+   GRH 的 `kRegisterReadArrayPort` 还直接读取存储值；GSIM 的普通 `prev/next` 不表达这些存储/写侧关系。
+   这些边应归 G1 memory 端口检查，不能按普通组合 DAG 缺边判错，也不能为对齐而删除越界保护。
+4. **仅 Init 可达的 1,372 条是 SplitArray 后消失的直达依赖。** 数组拆分会改变最后连接和成员引用方式，需逐类检查 GSIM 的删除是否合理；
+   当前结果不能作为“GSIM 必然正确”的证明。
+5. **Init 也不可达的 2,467 条主要来自 last-connect/累计部分写和端口转发的中间形式。** 例如 `arFIFOMap` 先整体连接 `_arFIFOMap_WIRE`，
+   随后逐元素覆盖；GRH 的部分写累积器仍带目标 K 的中间 op，GSIM `AST2Graph.cpp:963` 则清除被覆盖的旧赋值。
+   `new_vec` 先清零再覆盖部分 bit、`IQSelUop/allSrcState` 的字段转发也属于这种形态差异。
+   这表示两边的直接 K 投影不同，**不自动等于最终值不同，也不自动等于 GRH 实现正确**；需要 final-driver/last-connect
+   感知投影及 G5 表达式签名复核。禁止只为消除数字而删生产边。
+
+证据：`post-elim-explicit-dag/{nonloop-operation-examples.json,nonloop-edge-kinds.json,gsim-path-attribution.json,gsim-init-path-attribution.json}`。
+上述计数与 `nonloop-operation-examples.json` 的 20,689 条 witness 集合逐类核对一致。29 条 guard-contracted-only 余量及 GSIM 独有的 2,828 条不在本节范围内。
+
+### 3.12 删除 memory port 的重复 inBounds（2026-11-06）
+
+§3.11 的 `kLt` 分析暴露出 `lower.cpp:820` 重复把地址越界比较并入 memory 读写 enable。本次仅删除该 memory 专用生成点，
+不把其他动态状态索引比较或设计自身比较列为删除对象。memory 文档同步改为：enable 不再重复携带前端地址比较，
+越界由后续状态读写路径处理。
+
+全量结果：`kLt` 从 110,379 降为 99,593，删除 10,786 个；post-elim op 总数从 34,365,358 降为 34,307,850，减少 57,508。
+454 个 false-loop 仍全部修复，fragment 的 1,091,832 条映射校验仍为全零错误，SemanticId 缺失仍为 0。
+memory/ingest 定向测试通过，完整 CTest 仍是既有 8 项失败（76/84），无新增失败。
+
+**DAG 没有因此改善，也不应要求它改善。** 修改前后 `grh-contracted-edges.u64` 完全逐字节一致，SHA-256 均为
+`9fa5583e375ad5f00d0716109d9336ac77b264cb56ef6888270443c9f4277556`。精确率仍为 99.8130%，召回率仍为 99.9744%，
+因为读口/写口本来就需要地址和存储数据依赖，删除比较 op 不等于删除真实依赖。
+
+剩余 2,286 条 `kLt` witness 分解为 `kConcat+kLt` 545、`kLt+kRegisterReadArrayPort` 34、`kLt+kSliceArray` 1,707，
+样例来自 `ibuffer.outputEntries`、debug halted status 等动态状态数组访问，不是刚删除的 memory port 比较。
+另有 1,553 条纯 `kRegisterReadArrayPort` 的存储读数据依赖继续保留，不能借“删除重复保护”一并删除。
+所以本次修正确认的是**多余比较 op 被移除**，不是 memory 边界语义或读写依赖被消除。
+
+证据：`remove-memory-bounds-bare/{post-elim.json,post-elim-fragments.json,fragment-map-check.json,semantic-coverage.txt}`、
+`remove-memory-bounds-dag/{dag-report.json,edge-attribution.json,nonloop-operation-examples.json}` 和
+`remove-memory-bounds-{tests-2.log,full-ctest-2.log}`。
+
+### 3.13 F20 验收结论（2026-11-06）
+
+**F20 按 `ingest → hier-flatten → comb-loop-elim` 路线验收通过。** 本结论接受当前结构对齐程度，
+不要求原始 op 数、原始状态总数或所有中间表达式形态一致，也不把 GrhSIM 后端动态等价、G4 表达式规模或 G5 表达式签名纳入本次验收。
+接受依据如下。
+
+| 层面 | 验收结果 |
+| --- | --- |
+| 普通 FIRRTL 寄存器 | 195,155 / 195,155，原名精确匹配 |
+| memory storage | 4,877 = 3,324 NODE_MEMORY + 1,553 depth=1 转换项，depth 分布一致 |
+| 同步读地址 pipeline | 488 / 488，端口角色、地址宽度与 `$$ADDR` 全部匹配 |
+| 写口 | 446,481 个写口的 `writerOrder` 全部合法且唯一 |
+| 普通组合候选 | 7,242,474，覆盖旧候选的 99.84% |
+| SplitArray 成员 | 2,051,495 个全部按 ID 映射，未解析为 0 |
+| false loop | 454 / 454 修复，SemanticId 缺失为 0 |
+| Node DAG | 精确率 99.8130%，召回率 99.9744%，两端出度 p50/p90/p99 均为 1/1/7、入度均为 1/2/3 |
+
+状态总数差 `200,535 - 197,268 = 3,267` 按 `15 SV + 3,324 NODE_MEMORY - 48 零宽 - 24 copy` 解释；
+410 个 `kLatch` 单列。DAG 共同边为 11,059,400，GRH 独有 20,718 条，GSIM 独有 2,828 条，loop-only 差异为 0。
+104 个重名名称涉及 208 个节点，DAG 比较仅排除其 352 条边，不再做名称猜测。
+
+验收后仍需单列而非推翻本结论的事项：24 个 `$$copy$$copySrc` 派生状态原因未查清；20,718 + 2,828 条边差异需继续按类别复核；
+last-connect/final-driver 和表达式签名属于后续 G4/G5 工作；GrhSIM 后端动态等价不在本次范围内。
+memory 重复 `kLt` 已在 §3.12 删除，但真实地址与存储依赖保留，因此 DAG 数值不变化是预期结果，不是验收失败。
+
+本次提交前的定向 memory、ingest、消环、JSON 往返和 fragment 校验均通过；完整 CTest 为 **76/84**，
+失败仍是既有 8 项，未把完整测试集记为全绿。最终证据见 §3.10–§3.12 及本节所述 checkpoint。
 
 ## 4. 指标与判定
 

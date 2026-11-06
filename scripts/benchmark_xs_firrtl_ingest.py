@@ -170,7 +170,7 @@ def main() -> None:
     parser.add_argument("--prefix-identity", action="store_true",
                         help="separate correctness run: store full ingest and flatten graph identities")
     parser.add_argument("--align-bare", action="store_true",
-                        help="with --prefix-identity, run only hier-flatten after ingest")
+                        help="with --prefix-identity, run hier-flatten followed by comb-loop-elim after ingest")
     parser.add_argument("--fused-prefix", action="store_true",
                         help="use the explicit parallel grh-pre-flatten ingest endpoint")
     parser.add_argument("--discard-identity-json", action="store_true",
@@ -380,8 +380,12 @@ def main() -> None:
                                            if args.prefix_identity else
                                            "original sources through full production hier-flatten prefix")
             for name, options in GRH_PIPELINE:
-                if (args.fused_prefix or args.align_bare) and name != "hier-flatten":
+                if args.fused_prefix and not args.align_bare and name != "hier-flatten":
                     continue
+                if args.align_bare and name not in {"hier-flatten", "comb-loop-elim"}:
+                    continue
+                if args.align_bare and name == "comb-loop-elim":
+                    options = {**options, "fragment_map_path": str(output / "post-elim-fragments.json")}
                 print(f"[benchmark] start GRH pass {name}", flush=True)
                 stage_allocation_before = allocator_statistics() if args.allocator_stats else None
                 stage_usage = resource.getrusage(resource.RUSAGE_SELF)
@@ -439,6 +443,26 @@ def main() -> None:
                             json.dumps(prefix_identity, indent=2, sort_keys=True) + "\n", encoding="utf-8")
                     if args.align_bare or args.through_flatten:
                         report["flatten_semantic_stats"] = session.semantic_stats(design="design.main")
+                    (output / "timing.json").write_text(
+                        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+                    if not args.align_bare:
+                        break
+                if args.align_bare and name == "comb-loop-elim":
+                    report["post_elim_s"] = stage_elapsed
+                    report["post_elim_semantic_stats"] = session.semantic_stats(design="design.main")
+                    stored = store_identity(session, output, stage="post-elim", discard_json=args.discard_identity_json)
+                    prefix_identity["stages"]["post_elim"] = {
+                        "graph": {key: stored[key] for key in ("bytes", "sha256")},
+                        "metadata": session.graph_metadata(design="design.main", top=top),
+                        "diagnostics": [row["diagnostics"] for row in stages],
+                        "store_and_hash_s": stored["store_and_hash_s"],
+                    }
+                    prefix_identity["pipeline"] = [
+                        {key: row[key] for key in ("pass", "options", "keep_declared_symbols")}
+                        for row in stages]
+                    report["prefix_correctness_wall_s"] = time.perf_counter() - started
+                    (output / "prefix-identity.json").write_text(
+                        json.dumps(prefix_identity, indent=2, sort_keys=True) + "\n", encoding="utf-8")
                     (output / "timing.json").write_text(
                         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
                     break

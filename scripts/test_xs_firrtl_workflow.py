@@ -46,7 +46,7 @@ class XsFirrtlWorkflowTests(unittest.TestCase):
                 ("blackbox-guard", {}),
                 ("latch-transparent-read", {}),
                 ("hier-flatten", {}),
-                ("comb-loop-elim", {}),
+                ("comb-loop-elim", {"fail_on_true_loop": True}),
                 ("memory-init-check", {}),
             ])
         # This profile controls only ordinary GRH cleanup. The shared simulation

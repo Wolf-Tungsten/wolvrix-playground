@@ -31,7 +31,7 @@ GRH_PIPELINE: list[tuple[str, dict]] = [
     ("blackbox-guard", {}),
     ("latch-transparent-read", {}),
     ("hier-flatten", {}),
-    ("comb-loop-elim", {}),
+    ("comb-loop-elim", {"fail_on_true_loop": True}),
     # Stage-07 hardening: verify shape/op invariants before and after the
     # simplify fixed point (cheap, ~4s on XiangShan) instead of discovering
     # geometry violations deep inside const-fold or at the grhsim boundary.
@@ -52,7 +52,7 @@ GRH_BRINGUP_PIPELINE: list[tuple[str, dict]] = [
     ("blackbox-guard", {}),
     ("latch-transparent-read", {}),
     ("hier-flatten", {}),
-    ("comb-loop-elim", {}),
+    ("comb-loop-elim", {"fail_on_true_loop": True}),
     # grh-to-grhsim performs full verification before and after conversion.
     ("memory-init-check", {}),
 ]
