@@ -24,6 +24,7 @@ import threading
 import time
 
 from grhsim_numa import inspect_locality, locality_errors, runtime_plan
+from simulation_model_modes import model_mode, selected_models
 
 ROOT = Path(__file__).resolve().parents[1]
 XS = ROOT / 'testcase/xiangshan'
@@ -141,6 +142,13 @@ class Baseline:
         self.args = args
         self.rtl_difftest = getattr(args, 'rtl_difftest', 'on')
         self.sim_models = getattr(args, 'sim_models', 'hardware')
+        self.behavior_state_lowering = getattr(args, 'behavior_state_lowering', 'ordinary')
+        self.behavior_compute_lowering = getattr(args, 'behavior_compute_lowering', 'ordinary')
+        self.emit_runtime_profile = bool(getattr(args, 'emit_runtime_profile', False))
+        self.profile_perf = bool(getattr(args, 'profile_perf', False))
+        self.reuse_rtl_from = Path(args.reuse_rtl_from).resolve() if getattr(args, 'reuse_rtl_from', None) else None
+        self.runtime_profile_dir = (Path(args.runtime_profile_dir).resolve()
+                                    if getattr(args, 'runtime_profile_dir', None) else None)
         self.runtime_difftest = getattr(args, 'runtime_difftest', 'on')
         self.model_difftest = getattr(args, 'model_difftest', self.runtime_difftest)
         self.compile_difftest = getattr(args, 'compile_difftest', self.model_difftest)
@@ -151,6 +159,10 @@ class Baseline:
         self.difftest_packed_delay_regs = bool(
             getattr(args, 'difftest_packed_delay_regs', False)
         )
+        # Research runs may deliberately proceed while other jobs use the
+        # reserved sibling CPUs.  Placement/NUMA/thread checks remain active;
+        # only the external-idle admission check is bypassed explicitly.
+        self.skip_idle_check = bool(getattr(args, 'skip_idle_check', False))
         # Decode-table mode has two independent backend pieces: the source-side
         # table intrinsic (including the CSR tables) and the backend proof that
         # a table has a constant result.  Keep the latter explicit so historical
@@ -161,8 +173,15 @@ class Baseline:
             requested_fold = self.args.sim_primitives == 'decode-table'
         self.constant_decode_fold = bool(requested_fold)
         validate_difftest_modes(self.rtl_difftest, self.runtime_difftest)
-        if self.sim_models not in ('hardware', 'commit-rat'):
-            raise ValueError('simulation model mode must be hardware or commit-rat')
+        selected = selected_models(self.sim_models)
+        if self.behavior_state_lowering not in ('ordinary', 'grouped') or (
+            self.behavior_state_lowering == 'grouped' and 'commit-rat' not in selected
+        ):
+            raise ValueError('grouped behavior state requires commit-rat')
+        if self.behavior_compute_lowering not in ('ordinary', 'grouped') or (
+            self.behavior_compute_lowering == 'grouped' and not selected.difference({'commit-rat'})
+        ):
+            raise ValueError('grouped behavior compute requires a functional model')
         if self.model_difftest not in ('on', 'off'):
             raise ValueError('model DiffTest mode must be on or off')
         if self.model_difftest == 'on' and self.rtl_difftest == 'off':
@@ -233,6 +252,11 @@ class Baseline:
             compile_cpus=sorted(os.sched_getaffinity(0)),jobs=self.args.jobs,cycles=self.args.cycles,
             repeats=self.args.repeats,config='TLConfig',guest_cores=1,sim_primitives=self.args.sim_primitives,compiler=identity(self.cxx),
             sim_models=self.sim_models,
+            behavior_state_lowering=self.behavior_state_lowering,
+            behavior_compute_lowering=self.behavior_compute_lowering,
+            emit_runtime_profile=self.emit_runtime_profile,
+            profile_perf=self.profile_perf,
+            reuse_rtl_from=str(self.reuse_rtl_from) if self.reuse_rtl_from else None,
             rtl_difftest=self.rtl_difftest,model_difftest=self.model_difftest,
             compile_difftest=self.compile_difftest,
             runtime_difftest=self.runtime_difftest,
@@ -242,8 +266,8 @@ class Baseline:
             constant_decode_fold=self.constant_decode_fold,
             model_flags='-std=c++20 -O3 -march=native',harness_flags='-O3',pgo=False,bolt=False,
             diagnostic_instrumentation=False,source_driver=identity(__file__),python=sys.executable,
-            image=identity(XS/'ready-to-run/coremark-2-iteration.bin'),
-            nemu=identity(XS/'ready-to-run/riscv64-nemu-interpreter-so') if self.runtime_difftest=='on' else None)
+            image=identity(self.args.image),
+            nemu=identity(self.args.nemu) if self.runtime_difftest=='on' else None)
         save(self.out/'configuration.json',configuration)
 
     def build_tools(self):
@@ -258,18 +282,37 @@ class Baseline:
 
     def rtl(self):
         env=dict(self.env,NOOP_HOME=str(self.out/'chisel-home'))
+        if self.reuse_rtl_from is not None:
+            source_rtl = self.reuse_rtl_from / 'rtl'
+            source_chisel = self.reuse_rtl_from / 'chisel-home'
+            if not (source_rtl.is_dir() and source_chisel.is_dir()):
+                raise RuntimeError(f'reuse RTL source is incomplete: {self.reuse_rtl_from}')
+            for name, source in (('rtl', source_rtl), ('chisel-home', source_chisel)):
+                target = self.out / name
+                if target.exists() or target.is_symlink():
+                    if target.is_symlink() or target.is_file():
+                        target.unlink()
+                    else:
+                        shutil.rmtree(target)
+                target.symlink_to(source, target_is_directory=True)
+            print(f'[single-baseline] reusing frozen RTL/chisel output from {self.reuse_rtl_from}', flush=True)
+            # The remainder of this method validates the reused manifests just
+            # like a freshly elaborated model.
         sim_args = ['--wolvrix-sim-primitives', self.args.sim_primitives]
         sim_args.extend(['--wolvrix-sim-models', self.sim_models])
+        sim_args.extend(['--wolvrix-behavior-state-lowering', self.behavior_state_lowering])
+        sim_args.extend(['--wolvrix-behavior-compute-lowering', self.behavior_compute_lowering])
         if self.difftest_relax_intermediate_wires:
             sim_args.append('--difftest-relax-intermediate-wires')
         if self.difftest_config:
             sim_args.extend(['--difftest-config', self.difftest_config])
         if self.difftest_packed_delay_regs:
             sim_args.append('--difftest-packed-delay-regs')
-        self.run(['make','-C',XS,'sim-verilog',f'BUILD_DIR={self.out / "rtl"}',
-            'CONFIG=TLConfig','NUM_CORES=1','RTL_SUFFIX=sv','WITH_CHISELDB=0','WITH_CONSTANTIN=0',
-            'DISABLE_DIFFTEST='+str(int(self.rtl_difftest=='off')),
-            'SIM_ARGS='+' '.join(sim_args)], 'rtl',env)
+        if self.reuse_rtl_from is None:
+            self.run(['make','-C',XS,'sim-verilog',f'BUILD_DIR={self.out / "rtl"}',
+                'CONFIG=TLConfig','NUM_CORES=1','RTL_SUFFIX=sv','WITH_CHISELDB=0','WITH_CONSTANTIN=0',
+                'DISABLE_DIFFTEST='+str(int(self.rtl_difftest=='off')),
+                'SIM_ARGS='+' '.join(sim_args)], 'rtl',env)
         if not (self.generated/'DifftestMacros.svh').is_file():
             raise RuntimeError('fresh Difftest generated sources absent')
         model_manifest = self.out/'chisel-home/build/simulation_models.json'
@@ -278,6 +321,10 @@ class Baseline:
         model_report = json.loads(model_manifest.read_text())
         if model_report.get('mode') != self.sim_models:
             raise RuntimeError('generated simulation model mode differs from requested mode')
+        if model_report.get('lowering','ordinary') != self.behavior_state_lowering:
+            raise RuntimeError('generated state lowering differs from requested mode')
+        if model_report.get('compute_lowering','ordinary') != self.behavior_compute_lowering:
+            raise RuntimeError('generated compute lowering differs from requested mode')
         save(self.out/'simulation_models_manifest.json', identity(model_manifest))
         profile=json.loads((self.generated/'difftest_profile.json').read_text())
         if bool(profile['bundles']) != (self.rtl_difftest=='on'):
@@ -309,10 +356,17 @@ class Baseline:
         else:
             fold_constant_decode = str(int(self.constant_decode_fold))
         env['WOLVRIX_FOLD_CONSTANT_DECODE'] = fold_constant_decode
-        save(self.out/'generation_environment.json',{k:v for k,v in env.items() if k.startswith(('WOLVRIX','PYTHON','LD_LIBRARY'))})
+        if self.emit_runtime_profile:
+            # The native emitter consumes this legacy option name directly;
+            # keep it generation-only so ordinary models remain uninstrumented.
+            env['GRHSIM_EMIT_RUNTIME_PROFILE'] = '1'
+        save(self.out/'generation_environment.json',{k:v for k,v in env.items() if k.startswith(('WOLVRIX','GRHSIM_','PYTHON','LD_LIBRARY'))})
         self.run([sys.executable,'-c','import wolvrix; print(wolvrix.__file__)'],'python-binding',env)
         self.run([sys.executable,ROOT/'scripts/wolvrix_xs_grhsim.py',self.out/'input.f','SimTop',self.model,
-                  self.out/'graph.json',self.out/'read_args.txt','info','--waveform','off','--perf','off'],'emit',env)
+                  self.out/'graph.json',self.out/'read_args.txt','info','--waveform','off',
+                  '--perf','eval' if self.profile_perf else 'off',
+                  '--behavior-state-lowering',self.behavior_state_lowering,
+                  '--behavior-compute-lowering',self.behavior_compute_lowering],'emit',env)
         if list(self.model.glob('*repcut*')) or list(self.model.glob('*Gpart*')):
             raise RuntimeError('unexpected partitioned package in native flow')
         save(self.out/'model_manifest.json',[identity(p) for p in sorted(self.model.glob('*')) if p.is_file()])
@@ -323,7 +377,7 @@ class Baseline:
             f'GEN_CSRC_DIR={self.generated}',f'GEN_VSRC_DIR={self.generated}',f'GRHSIM_MODEL_DIR={self.model}',
             'GRHSIM=1','NUM_CORES=1','EMU_THREADS=0','EMU_RANDOMIZE=0','WITH_CHISELDB=0','WITH_CONSTANTIN=0',
             'NO_DIFF='+str(int(self.compile_difftest=='off')),
-            'WOLVRIX_GRHSIM_WAVEFORM=0','WOLVRIX_GRHSIM_PERF=0','EMU_OPTIMIZE=-O3','PGO_BOLT=0',
+            'WOLVRIX_GRHSIM_WAVEFORM=0','WOLVRIX_GRHSIM_PERF='+str(int(self.profile_perf)),'EMU_OPTIMIZE=-O3','PGO_BOLT=0',
             f'GRHSIM_MODEL_BUILD_JOBS={self.args.jobs}',f'VM_BUILD_JOBS={self.args.jobs}',
             f'CXX={self.cxx}',f'CC={self.cc}',f'AR={self.ar}','GRHSIM_MODEL_CXXFLAGS=-std=c++20 -O3 -march=native'], 'compile')
         binary=self.out/'emu/grhsim-compile/emu'
@@ -373,7 +427,12 @@ class Baseline:
         if len(nodes)!=1:raise ValueError('cannot determine CPU96 NUMA node')
         monitor=next(c for c in sorted(os.sched_getaffinity(0)) if c not in siblings)
         os.sched_setaffinity(0,{monitor})
-        runtime=dict(self.env,EMU_PHASE_TIMING='0',EMU_PROGRESS_EVERY_CYCLES='0')
+        runtime=dict(self.env,EMU_PHASE_TIMING='1' if self.profile_perf else '0',EMU_PROGRESS_EVERY_CYCLES='0')
+        if self.runtime_profile_dir is not None:
+            self.runtime_profile_dir.mkdir(parents=True, exist_ok=True)
+            runtime['EMU_RUNTIME_PROFILE'] = '1'
+            runtime['WOLVRIX_GRHSIM_SUPERNODE_TSV'] = str(self.runtime_profile_dir/'grhsim_supernode_fire.tsv')
+            runtime['WOLVRIX_GRHSIM_BEHAVIOR_COMPUTE_TSV'] = str(self.runtime_profile_dir/'grhsim_behavior_compute.tsv')
         directory=self.out/'runs'
         directory.mkdir(exist_ok=False)
         reference=settings['nemu']['path'] if self.runtime_difftest=='on' else None
@@ -416,11 +475,15 @@ class Baseline:
         base=prepared['base']
         self.stage('CPU96 runtime '+name)
         attempts=[]
-        for attempt in range(60):
-            before=cpu_counters(siblings);time.sleep(3);after=cpu_counters(siblings)
-            idle=idle_percent(before,after);attempts.append(dict(time=time.time(),idle=idle))
-            if min(idle.values())>=98:break
-        else:raise RuntimeError('CPU96 or SMT sibling remains busy; placement is fixed, no fallback CPU')
+        if self.skip_idle_check:
+            attempts.append(dict(time=time.time(), skipped=True,
+                                 reason='explicit skip_idle_check experiment option'))
+        else:
+            for attempt in range(60):
+                before=cpu_counters(siblings);time.sleep(3);after=cpu_counters(siblings)
+                idle=idle_percent(before,after);attempts.append(dict(time=time.time(),idle=idle))
+                if min(idle.values())>=98:break
+            else:raise RuntimeError('CPU96 or SMT sibling remains busy; placement is fixed, no fallback CPU')
         save(directory/(name+'.preflight.json'),attempts)
         base=list(base);base[-1]=str(seed)
         command=base+['-C',str(cycles),*extra_args]
@@ -502,7 +565,7 @@ class Baseline:
                       locality_pass=True,locality_samples=len(numa_records),numa_node=nodes[0],
                       reference_mapped=any(entry['destination'] in seen for entry in plan['files']
                                            if entry['role']=='reference'))
-        if any(result['sibling_idle'][c]<98 for c in siblings if c!=cpu):
+        if not self.skip_idle_check and any(result['sibling_idle'][c]<98 for c in siblings if c!=cpu):
             save(directory/(name+'.rejected.json'),dict(reason='SMT sibling busy',result=result))
             raise RuntimeError(f'{name}: SMT sibling busy; sample excluded')
         if identity(binary)!=frozen:raise ValueError('binary changed while measuring')
@@ -543,9 +606,23 @@ def main():
     parser.add_argument('--compiler',default='/nfs/home/tanghaojin/LLVM-23.1.2-Linux-X64/bin/clang++')
     parser.add_argument('--jobs',type=int,default=64)
     parser.add_argument('--sim-primitives',choices=['none','priority-encode','popcount','popcount-ge4','gray-decode','decode-table'],default='none')
-    parser.add_argument('--sim-models',choices=['hardware','commit-rat'],default='hardware')
+    parser.add_argument('--sim-models',type=model_mode,default='hardware')
+    parser.add_argument('--behavior-state-lowering',choices=['ordinary','grouped'],default='ordinary')
+    parser.add_argument('--behavior-compute-lowering',choices=['ordinary','grouped'],default='ordinary')
+    parser.add_argument('--emit-runtime-profile',action='store_true',
+        help='emit runtime-profile counters into the generated native model')
+    parser.add_argument('--profile-perf',action='store_true',
+        help='compile PerfCounters and phase timing for diagnostic runs')
+    parser.add_argument('--reuse-rtl-from',type=Path,
+        help='reuse a frozen output directory containing rtl/ and chisel-home/')
+    parser.add_argument('--runtime-profile-dir',type=Path,
+        help='write runtime profile TSVs into this directory during measure')
     parser.add_argument('--rtl-difftest',choices=['on','off'],default='on')
     parser.add_argument('--runtime-difftest',choices=['on','off'],default='on')
+    parser.add_argument('--model-difftest',choices=['on','off'],
+        help='DiffTest collection/checking expected by the generated model')
+    parser.add_argument('--compile-difftest',choices=['on','off'],
+        help='whether the emu harness is compiled with DiffTest support')
     parser.add_argument('--difftest-relax-intermediate-wires',action='store_true')
     parser.add_argument('--difftest-config',help='explicit DiffTest Gateway config, e.g. U or H')
     parser.add_argument('--difftest-packed-delay-regs',action='store_true')
@@ -554,6 +631,8 @@ def main():
     parser.add_argument('--cycles',type=int,default=100000)
     parser.add_argument('--repeats',type=int,default=8)
     parser.add_argument('--binary',type=Path,help='measure an existing frozen native binary in a new output directory')
+    parser.add_argument('--skip-idle-check',action='store_true',
+        help='proceed without checking external activity on CPU96/SMT sibling; keep placement/NUMA checks')
     parser.add_argument('--image',type=Path,default=XS/'ready-to-run/coremark-2-iteration.bin')
     parser.add_argument('--nemu',type=Path,default=XS/'ready-to-run/riscv64-nemu-interpreter-so')
     args=parser.parse_args()

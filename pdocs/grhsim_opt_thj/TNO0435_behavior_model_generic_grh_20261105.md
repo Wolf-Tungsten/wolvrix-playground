@@ -43,3 +43,15 @@ lowering 必须显式暴露输入、状态、更新和输出依赖，不能退�
 
 本记录没有进行香山整机 walltime；下一步应先把 `commit-rat` 模型接到实际 DiffTest
 字段裁剪和检查适配器，再测量 generic behavior path 与 S3 baseline。
+
+## 增量更新：数组 API 封装（2026-11-05）
+
+`BehaviorArray.values` 已变成 utility 内部实现；作者使用 `read`/`snapshot`/`update`。
+`snapshot` 和 `read` 返回观察副本，不暴露底层寄存器的赋值入口。新增逐行初始化函数，
+用于 FP/vector RAT 的 identity reset；普通初始化常量接口保持不变。
+manifest 补充模型版本、更新顺序、索引和数据描述。后写覆盖先写，读取使用边沿前的状态，
+reset 优先于 update。
+
+`array-contract-v1` 的 10,000 周期 C++ scoreboard 验证这些规则（含重复写入和中途 reset）；
+`api-array-v2` 的 hardware/behavior 两图仍均为 591 operation、64 个 register。
+真实适配器进度另见 [TNO0436](./TNO0436_behavior_difftest_semantic_adapter_20261105.md)。

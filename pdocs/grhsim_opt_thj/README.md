@@ -1870,9 +1870,30 @@ p30 eval 32.70→10.15 µs，p29 22.99→34.90 µs。最大分区平均 eval 反
 - 初始整理范围：`NO0221..NO0526`。
 - 原始记录数：`306`。
 - 初始来源整理形成的 TNO 主题文档数：`20`。
-- 当前记录类文档总数：`435`（`TNO0001..TNO0435`）。
+- 当前记录类文档总数：`452`（`TNO0001..TNO0452`）。
 - 2026-11-03 新增 [TNO0397：PopCount 的紧凑布局替换与香山单线程实测](./TNO0397_popcount_intrinsic_packed_layout_walltime_20261103.md)：完整香山生成中识别到 1,095 个 packed `PopCount.Bits`、7,140 个分布式 `Vec/Seq` 调用保留硬件；B 的 `kCountOnes` native 模型功能和两组 100,000 周期 trace 全部通过，但 node030 CPU96 的 8 对单线程 walltime 为 `+0.665717%`（0/8 胜，95% CI `[+0.421713%, +0.925537%]`）。静态模型略小而运行略慢，下一步优先消融 1–3 位高频调用和后端活动形态，不启用默认 PopCount。
 - 2026-11-05 新增 [TNO0434：DiffTest RTL 结构审计与候选改写](./TNO0434_difftest_rtl_audit_20261105.md)：检查了中间 `dontTouch`、packed source、整包延迟寄存器和无效 payload 置零。前三项没有缩小 GRH 调度结构，最后一项反而增加 RTL 组合逻辑；当前主要成本集中在物理寄存器观察器、Preprocess 动态映射和完整接口集合，下一步应转向 observer-side GRH 组织，保留 S3 功能。
 - 2026-11-05 新增 [TNO0435：Chisel 行为模型 API 与普通 GRH 状态基线](./TNO0435_behavior_model_generic_grh_20261105.md)：新增 elaboration 阶段 `hardware/commit-rat` 模式和 `simulation_models.json`，fixture 以两个长度为 32 的数组描述 commit/RAT 更新，A/B 均为 591 个 GRH operation，普通 lowering 后有 64 个 register/read/write port，1,002 个含 reset 的随机 commit/RAT 采样轨迹完全一致。当前不新增专用 GRH OperationKind，先把真实 DiffTest 字段裁剪和检查适配器接上后再做整机性能判断。
+- 2026-11-05 新增 [TNO0436：DiffTest 语义级 commit/RAT adapter](./TNO0436_behavior_difftest_semantic_adapter_20261105.md)：恢复完整 ROB 微操作时序，按每个架构索引最后写入合并；先 gather 后延迟代替整张物理 RF 延迟。30,000 周期对原 Preprocess 的整数/FP/vector/RAT/commit_data 对照通过，整机同源码 A/B 构建与功能检查进行中；不新增专用 GRH 节点。
+- 2026-11-05 新增 [TNO0437：语义级 commit/RAT 模型的完整 S3 验证与性能](./TNO0437_behavior_commit_rat_s3_measurement_20261105.md)：同源码 A/B 的两组 100,000 周期 NEMU 与原始 trace 完全一致；完整 S3 的 8 对 AB/BA 平均回退 5.2677%（95% CI +2.9748%..+7.1048%，1/8 更快）；A/A 完成一对后按用户要求停止。默认 hardware，不增加专用状态节点。
+- 2026-11-05 新增 [TNO0438：数组语义到 kBehaviorStateGroup 的局部实现与契约验证](./TNO0438_behavior_state_group_contract_20261105.md)：v2 typed binding 与完整 SV carrier，普通/分组使用同一语义；组拥有有序数组更新，只有最终净变化激活 reader。小数组与 520 路 RAT、拒绝检查、SV 回退及多实例旧状态验证通过；补齐 TNO0437 的两项生成检查，保持默认 ordinary。
+- 2026-11-05 新增 [TNO0439：kBehaviorStateGroup 的生产优化流程局部性能](./TNO0439_behavior_state_group_local_performance_20261105.md)：与完整 S3 相同优化配置下，RAT 分组相对普通模型在稀疏/密集更新快 24.10%/21.19%，相对原写法快 16.56%/17.10%，均 8/8 更快；小型双数组未通过相对普通模型门槛。仅完成局部验收，未重启整机或 A/A，默认 hardware/ordinary 不变。
+- 2026-11-05 新增 [TNO0440：分组 RAT 接入完整 S3 的实现与局部验收](./TNO0440_grouped_rat_s3_integration_20261105.md)：原始 520 路更新绕过逐行合并，显式 observer domain 支持 debug delay/Gateway，功能反馈继续拒绝；真实 adapter O/G 各 30,000 周期及 DPI 时序检查通过。已修正 native 动态库冻结遗漏，完整同源码 S3 A/B 构建启动。
+- 2026-11-05 新增 [TNO0441：分组 RAT 的完整 S3 构建与 NEMU/trace 验收](./TNO0441_grouped_rat_s3_functional_gate_20261105.md)：完整 A/B 编译通过，B 保留 2,080 条更新；两组各 seed 0/1、100,000 周期通过 NEMU，四份原始 trace 哈希完全一致。已勘误：最终 GRH 操作数少 4.63%，compute supernode/激活边仍略多；性能见 TNO0442。
+- 2026-11-05 新增 [TNO0442：分组 RAT 的完整 S3 性能测量](./TNO0442_grouped_rat_s3_performance_20261105.md)：8 对 AB/BA 配对均值 +0.170705%，95% CI [-0.182087%, +0.461222%]，2/8 更快，未测出稳定整机加速。所有 S3 检查与运行环境审计通过，保留全部样本；不追加 A/A，不把历史普通模型的回退相减作为收益，默认 hardware/ordinary。
 - 各 TNO 的来源范围连续、互不重叠，合并后完整覆盖 306 个原编号。
 - 详细原始记录继续保存在 [`../grhsim_opt`](../grhsim_opt/README.md)，本目录不复制或改写原文件。
+
+- 2026-11-05 新增 [TNO0443：乘法行为模型实现及局部功能验收](./TNO0443_multiply_behavior_implementation_20261105.md)：四类真实乘法通路使用直接乘法并保持流水；八个 core 模型和四个真实 FU wrapper 各通过 30,000 周期，FP 使用 SoftFloat 参考；修正 SV 自定宽乘法导入，默认硬件 RTL 与原源码一致。
+
+- 2026-11-05 新增 [TNO0444：乘法行为模型局部性能](./TNO0444_multiply_behavior_local_performance_20261105.md)：四类 active/sparse/idle 均加速，持续输入分别快约 86.6%/80.5%/63.9%/45.6%，全部通过局部门槛；保留两次区域干扰记录，只补未完成场景，进入新完整 S3 A/B。
+
+- 2026-11-05 新增 [TNO0445：乘法定向负载与布尔操作数位宽修复](./TNO0445_multiply_vector_baseline_width_fix_20261105.md)：旧硬件 S3 的向量程序暴露声明初始化比较中的错误截断；最小模型 4,224 组输入、12 种谓词通过，四类模型与 wrapper/有效数边界在修复后重新验收，RTL 冻结复用并重新做 native 构建。
+
+- 2026-11-06 新增 [TNO0446：标量与向量乘法行为模型的完整 S3 验收](./TNO0446_multiply_behavior_full_s3_20261106.md)：修复 `andi+mulw`→`MULW7` 覆盖识别后，89 个乘法/FMA 站点和两组 100,000 周期 trace 全部通过；CoreMark B 回退 +0.706974%（95% CI [+0.353768%, +1.056130%]），定向乘法 B 回退 +0.776006%（CI 跨零），保持默认 hardware。
+- 2026-11-07 新增 [TNO0447：`kBehaviorComputeGroup` 与乘法行为模型](./TNO0447_behavior_compute_group_multiply_20261107.md)：四类 carrier 的普通/分组逐拍功能与绑定拒绝检查通过；局部结果显示只有标量整数分组相对 ordinary 达到门槛，向量整数明显回退，浮点两类不足 5%。完整 S3 仅带入 grouped `int-mul`，8 对 CoreMark walltime 最终回退 `+0.486457%`（95% CI `[+0.348429%, +0.622474%]`），默认仍保持 hardware。
+- 2026-11-07 新增 [TNO0448：整数与位运算行为模型 carrier 闭环](./TNO0448_integer_bit_behavior_models_20261107.md)：新增显式 `HostOpSpec`、`int-alu`/`int-bku` 的 ordinary/grouped carrier 和宿主 helper，接入 `VIAluFix` 与单 uop `VIPU` mask/scalar carrier，并为 VIMac 注册 lane/whole boundary 选择；标量、VIAlu 和 VIPU fixture 的 Verilog→GRH→C++ 闭环与固定向量通过，未进行整机 walltime，默认仍保持 hardware。
+- 2026-11-07 新增 [TNO0449：整数与位运算行为模型统一功能矩阵](./TNO0449_integer_bit_functional_matrix_20261107.md)：`int-alu`、`int-bku`、`vec-int-alu-lane` 和 `vec-int-pu-lane` 在三个固定种子、每种子 10,000 周期的 ordinary/grouped 摘要完全一致；补齐 ALU 高位控制、XPERM.B、VIAlu 窄化结果和比较 sideband 语义。node030 CPU96–127 当时有外部任务占用，未启动局部 walltime，默认仍保持 hardware。
+- 2026-11-07 新增 [TNO0450：整数与位运算行为模型局部性能比较](./TNO0450_integer_bit_local_performance_20261107.md)：四类 lane/scalar 模型在 active/sparse fixture 场景均显示 grouped 稳定加速（`-48.146%..-92.121%`，8/8 对更快）；idle 场景仅 VIPU lane 的区间稳定为负，其余区间跨零。输出哈希逐对一致；未把局部结果外推到整机，默认仍保持 hardware。
+- 2026-11-08 新增 [TNO0451：整数与位运算行为模型的完整 S3 验收](./TNO0451_integer_bit_full_s3_20261108.md)：`int-alu`、`int-bku`、`vec-int-alu-lane` 和 `vec-int-pu-lane` 的 grouped 行为模型完成完整 XiangShan 构建；两组 100,000 周期 CoreMark DiffTest trace 完全一致，B 的 8 对 walltime 均值为 `−0.181330%`，但 95% CI 为 `[−0.701011%, +0.153807%]` 且只有 2/8 对更快，未测出稳定整机收益，默认仍保持 hardware。
+- 2026-11-09 新增 [TNO0452：整数行为模型的运行时归因](./TNO0452_integer_behavior_runtime_attribution_20261109.md)：profile 版本在 CoreMark 和 `microbench.bin` 上显示四类行为 helper 分别只占 compute batch 的 `0.9405%` 和 `0.7654%`，向量 helper 各仅执行 5 次；B 与 A 的 compute batch 数相同，commit batch 反而增加 3.33%，model-step phase 仅变化 `−0.31%/−0.22%`。行为 carrier 不是完整 eval 热点，后续转向 DiffTest observer、state-read activation 和通用 batch/activation 成本，默认仍保持 hardware。

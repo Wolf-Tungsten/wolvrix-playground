@@ -617,6 +617,8 @@ def main() -> int:
     parser.add_argument("log_level", nargs="?", default="info")
     parser.add_argument("--waveform", choices=["off", "declared-symbols"], default="off")
     parser.add_argument("--perf", choices=["off", "eval"], default="off")
+    parser.add_argument("--behavior-state-lowering", choices=["ordinary", "grouped"], default="ordinary")
+    parser.add_argument("--behavior-compute-lowering", choices=["ordinary", "grouped"], default="ordinary")
     args = parser.parse_args()
 
     filelist = args.filelist
@@ -920,10 +922,8 @@ def main() -> int:
 
     cpp_out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Behavior models are currently represented by ordinary GRH state and
-    # combinational operations.  Preserve the elaboration manifest beside the
-    # generated model so later model-specific lowering can validate the same
-    # model boundary without turning it into an opaque black box.
+    # Preserve model metadata for both ordinary RTL and opt-in grouped import.
+    # Grouped import additionally authenticates v2 bindings before flattening.
     model_manifest_env = os.environ.get("WOLVRIX_SIMULATION_MODELS_MANIFEST")
     if model_manifest_env:
         manifest_path = Path(model_manifest_env)
@@ -933,7 +933,7 @@ def main() -> int:
             model_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as error:
             raise RuntimeError(f"invalid simulation model manifest: {manifest_path}: {error}") from error
-        if model_manifest.get("version") != 1 or "mode" not in model_manifest:
+        if model_manifest.get("version") not in (1, 2, 3) or "mode" not in model_manifest:
             raise RuntimeError(f"unsupported simulation model manifest: {manifest_path}")
         (cpp_out_dir / "simulation_model_manifest.json").write_text(
             json.dumps(model_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -942,6 +942,19 @@ def main() -> int:
             f"simulation model manifest mode={model_manifest['mode']} "
             f"models={len(model_manifest.get('models', []))} copied to {cpp_out_dir}"
         )
+
+    if args.behavior_state_lowering == "grouped" and (
+        resume_from_stats_json or resume_from_pre_reg_to_mem_json
+    ):
+        raise RuntimeError("grouped behavior lowering requires fresh authenticated RTL import")
+    if args.behavior_state_lowering == "grouped" and not model_manifest_env:
+        raise RuntimeError("grouped behavior lowering requires a binding manifest")
+    if args.behavior_compute_lowering == "grouped" and (
+        resume_from_stats_json or resume_from_pre_reg_to_mem_json
+    ):
+        raise RuntimeError("grouped behavior compute lowering requires fresh authenticated RTL import")
+    if args.behavior_compute_lowering == "grouped" and not model_manifest_env:
+        raise RuntimeError("grouped behavior compute lowering requires a binding manifest")
 
     with wolvrix.Session() as sess:
         sess.log_level = log_level
@@ -1030,6 +1043,22 @@ def main() -> int:
                 )
                 require_ok(diags, "read_sv")
                 log(f"read_sv done {int((time.perf_counter() - start) * 1000)}ms")
+                if args.behavior_state_lowering == "grouped" or args.behavior_compute_lowering == "grouped":
+                    if not model_manifest_env:
+                        raise RuntimeError("grouped lowering requires a simulation model manifest")
+                    from wolvrix.behavior_state import lower_behavior_state
+                    before = cpp_out_dir / "behavior_before.json"
+                    require_ok(sess.store_json(design="design.main", output=str(before)), "behavior export")
+                    lowered = json.loads(before.read_text())
+                    if args.behavior_state_lowering == "grouped":
+                        lowered = lower_behavior_state(lowered, model_manifest, manifest_path.parent)
+                    if args.behavior_compute_lowering == "grouped":
+                        from wolvrix.behavior_compute import lower_behavior_compute
+                        lowered = lower_behavior_compute(lowered, model_manifest, manifest_path.parent)
+                    after = cpp_out_dir / "behavior_imported.json"
+                    after.write_text(json.dumps(lowered))
+                    require_ok(sess.load_json_text(json.dumps(lowered), out_design="design.main", replace=True), "behavior import")
+
 
                 for pass_name, pass_kwargs in pre_sched_pipeline:
                     start = time.perf_counter()
@@ -1039,6 +1068,12 @@ def main() -> int:
                         run_pass_kwargs["keep_declared_symbols"] = simplify_keep_declared_symbols
                     diags = sess.run_pass(pass_name, design="design.main", **run_pass_kwargs)
                     require_ok(diags, f"pass {pass_name}")
+                    if pass_name == "hier-flatten" and args.behavior_state_lowering == "grouped":
+                        from wolvrix.behavior_state import validate_observer_state_feedback
+                        check = cpp_out_dir / "behavior_flattened.json"
+                        require_ok(sess.store_json(design="design.main", output=str(check)), "behavior ownership export")
+                        validate_observer_state_feedback(json.loads(check.read_text()))
+
                     if pass_name == "comb-lane-pack":
                         write_comb_lane_pack_report(sess, "comb-lane-pack.reports", Path(comb_lane_pack_report))
                     log(f"pass {pass_name} done {int((time.perf_counter() - start) * 1000)}ms")

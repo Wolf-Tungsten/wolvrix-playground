@@ -89,6 +89,10 @@ def main():
     p.add_argument('--baseline-header',type=Path);p.add_argument('--candidate-header',type=Path)
     p.add_argument('--verification-from',type=Path,
                    help='Reuse completed DiffTest traces after checking frozen binary/input identities')
+    p.add_argument('--verify-only',action='store_true',
+                   help='Stop after smoke and trace/footprint verification, before warmup or timing')
+    p.add_argument('--skip-idle-check',action='store_true',
+                   help='Do not wait for CPU96/SMT sibling idle; keep placement and NUMA checks')
     args=p.parse_args()
     modes=runtime_modes(args.runtime_difftest,args.baseline_runtime_difftest,args.candidate_runtime_difftest)
     mixed_modes=modes['A']!=modes['B']
@@ -141,10 +145,13 @@ def main():
             compiler='/nfs/home/tanghaojin/LLVM-23.1.2-Linux-X64/bin/clang++',tools_dir=None,
             sim_primitives='none' if name!='B' else args.candidate_sim_primitives,
             sim_models=build_configs[name].get('sim_models', 'hardware'),
+            behavior_state_lowering=build_configs[name].get('behavior_state_lowering', 'ordinary'),
+            behavior_compute_lowering=build_configs[name].get('behavior_compute_lowering', 'ordinary'),
             rtl_difftest=build_difftest_modes[name]['rtl'],
             model_difftest=build_difftest_modes[name]['model'],
             compile_difftest=build_difftest_modes[name]['compile'],
             runtime_difftest=modes[name],
+            skip_idle_check=args.skip_idle_check,
             cpu=96,jobs=1,cycles=args.cycles,repeats=args.pairs)
         runners[name]=Baseline(config);prepared[name]=runners[name].prepare_measurement()
     if args.verification_from:
@@ -176,6 +183,11 @@ def main():
         footprint_check=compare_footprints(paths,rows)
         footprint_check['diagnostic_ram_size_bytes']=1024**3
         save(out/'footprint-check.json',footprint_check)
+    if args.verify_only:
+        save(out/'verification-complete.json',dict(pass_=True,trace_checks=trace_checks,
+            footprint_check=footprint_check,manifest=identity(out/'manifest.json')))
+        print('PASS functional verification; performance not started',flush=True)
+        return
     for name in names:run(name,'warmup')
     anchors=[]
     if 'H' in names:anchors.append(run('H','anchor-before'))

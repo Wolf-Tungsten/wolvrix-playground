@@ -97,6 +97,11 @@ class NoDiffLogTests(unittest.TestCase):
 
 
 class DifftestBuildModeTests(unittest.TestCase):
+    @staticmethod
+    def model_manifest(work):
+        (work.generated.parent/'simulation_models.json').write_text(json.dumps(
+            dict(mode=work.sim_models,lowering=work.behavior_state_lowering,models=[])))
+
     def test_explicit_gateway_config_reaches_chisel_generation(self):
         with tempfile.TemporaryDirectory() as directory:
             work=Baseline(argparse.Namespace(output=Path(directory),compiler='/usr/bin/clang++',
@@ -106,6 +111,7 @@ class DifftestBuildModeTests(unittest.TestCase):
             work.generated.mkdir(parents=True)
             (work.generated/'DifftestMacros.svh').write_text('')
             (work.generated/'difftest_profile.json').write_text(json.dumps(dict(bundles=[{}])))
+            self.model_manifest(work)
             work.rtl()
             command=work.run.call_args.args[0]
             sim_args=next(str(arg) for arg in command if str(arg).startswith('SIM_ARGS='))
@@ -120,6 +126,7 @@ class DifftestBuildModeTests(unittest.TestCase):
             work.generated.mkdir(parents=True)
             (work.generated/'DifftestMacros.svh').write_text('')
             (work.generated/'difftest_profile.json').write_text(json.dumps(dict(bundles=[{}])))
+            self.model_manifest(work)
             work.rtl()
             command=work.run.call_args.args[0]
             sim_args=next(str(arg) for arg in command if str(arg).startswith('SIM_ARGS='))
@@ -158,6 +165,7 @@ class DifftestBuildModeTests(unittest.TestCase):
                 (work.generated/'DifftestMacros.svh').write_text('')
                 (work.generated/'difftest_profile.json').write_text(json.dumps(
                     dict(bundles=[{}] if rtl=='on' else [])))
+                self.model_manifest(work)
                 work.rtl()
                 self.assertIn('DISABLE_DIFFTEST='+str(int(rtl=='off')),work.run.call_args.args[0])
                 work.emit()
@@ -170,6 +178,23 @@ class DifftestBuildModeTests(unittest.TestCase):
                 (work.generated/'difftest_profile.json').write_text(json.dumps(
                     dict(bundles=[] if rtl=='on' else [{}])))
                 with self.assertRaises(RuntimeError):work.rtl()
+
+    def test_functional_models_are_independent_of_difftest_and_require_matching_manifest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args=argparse.Namespace(output=Path(directory),compiler='/usr/bin/clang++',
+                tools_dir=None,sim_primitives='none',rtl_difftest='off',runtime_difftest='off',
+                sim_models='int-mul,fp-mul,vec-int-mul,vec-fp-mul',jobs=1)
+            work=Baseline(args);work.run=Mock();work.generated.mkdir(parents=True)
+            (work.generated/'DifftestMacros.svh').write_text('')
+            (work.generated/'difftest_profile.json').write_text(json.dumps(dict(bundles=[])))
+            self.model_manifest(work);work.rtl()
+            command=work.run.call_args.args[0]
+            sim_args=next(str(arg) for arg in command if str(arg).startswith('SIM_ARGS='))
+            self.assertIn('--wolvrix-sim-models '+args.sim_models,sim_args)
+            (work.generated.parent/'simulation_models.json').write_text(json.dumps(dict(mode='hardware')))
+            with self.assertRaisesRegex(RuntimeError,'mode differs'):work.rtl()
+            args.behavior_state_lowering='grouped'
+            with self.assertRaisesRegex(ValueError,'requires commit-rat'):Baseline(args)
 
 
 class NumaLocalityTests(unittest.TestCase):

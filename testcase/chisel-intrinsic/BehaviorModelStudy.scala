@@ -51,13 +51,13 @@ class CommitRatBehaviorStudy(useBehavior: Boolean) extends Module {
       val ratRegs = ctx.array("rat", 32, 0.U(6.W))
       archRegs.update(commitValid, commitDest, commitData)
       ratRegs.update(ratValid, ratDest, ratPhy)
-      archState := archRegs.values
-      ratState := ratRegs.values
+      archState := archRegs.snapshot
+      ratState := ratRegs.snapshot
 
-      ctx.output("arch.state", archRegs.values.asUInt)
-      ctx.output("rat.state", ratRegs.values.asUInt)
-      ctx.check("arch.state", archRegs.values.asUInt)
-      ctx.check("rat.state", ratRegs.values.asUInt)
+      ctx.output("arch.state", archRegs.snapshot.asUInt)
+      ctx.output("rat.state", ratRegs.snapshot.asUInt)
+      ctx.check("arch.state", archRegs.snapshot.asUInt)
+      ctx.check("rat.state", ratRegs.snapshot.asUInt)
     }
   } else {
     val archRegs = RegInit(VecInit(Seq.fill(32)(0.U(64.W))))
