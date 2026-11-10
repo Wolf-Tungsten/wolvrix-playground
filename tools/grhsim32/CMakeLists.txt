@@ -4,6 +4,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(WOLVRIX_ENABLE_MT_KAHYPAR OFF CACHE BOOL "Replay labels from the independent six-axis solver" FORCE)
+# The portable GrhSIM tools do not emit waveform/FST artifacts. Keep the
+# optional libfst integration out of this build so native tools do not require
+# a host ZLIB development library (which may be absent on compute nodes).
+set(WOLVRIX_ENABLE_LIBFST OFF CACHE BOOL "Enable vendored libfst integration" FORCE)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../../wolvrix" wolvrix EXCLUDE_FROM_ALL)
 set(REPO "${CMAKE_CURRENT_SOURCE_DIR}/../..")
 foreach(pair IN ITEMS "frontend;frontend.cpp" "initial_graph;fine_state_probe.cpp"
