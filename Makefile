@@ -2,8 +2,12 @@ SHELL := /bin/bash
 REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 FST_ROI_DISCOVERY_GOALS := build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery
-GRHSIM32_GOALS := xs_grhsim build_xs_repcut_grhsim run_xs_repcut_grhsim grhsim32_plan xs_grhsim_critical_path \
-	xs_grhsim_perf build_xs_repcut_grhsim_perf run_xs_repcut_grhsim_perf grhsim32_perf_plan
+GRHSIM32_GOALS := xs_wolf_grhsim_repcut_emu xs_grhsim build_xs_repcut_grhsim \
+	run_xs_wolf_grhsim_repcut_emu run_xs_repcut_grhsim \
+	xs_wolf_grhsim_repcut_plan grhsim32_plan xs_wolf_grhsim_repcut_critical_path xs_grhsim_critical_path \
+	xs_wolf_grhsim_repcut_perf_emu xs_grhsim_perf build_xs_repcut_grhsim_perf \
+	run_xs_wolf_grhsim_repcut_perf_emu run_xs_repcut_grhsim_perf \
+	xs_wolf_grhsim_repcut_perf_plan grhsim32_perf_plan
 ifneq ($(filter $(FST_ROI_DISCOVERY_GOALS) $(GRHSIM32_GOALS),$(MAKECMDGOALS)),)
 SKIP_WOLF_ENV_CHECK := 1
 endif
@@ -266,8 +270,9 @@ HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS
 .PHONY: all build init_submodule check_id build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery run_hdlbits_test run_all_hdlbits_tests run_c910_test run_c910_ref_test \
 	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
-	build_xs_repcut_grhsim build_xs_repcut_grhsim_legacy run_xs_repcut_grhsim run_xs_repcut_grhsim_legacy build_xs_repcut_sim run_xs_repcut_sim xs_grhsim grhsim32_plan xs_grhsim_critical_path \
-	xs_grhsim_perf build_xs_repcut_grhsim_perf run_xs_repcut_grhsim_perf grhsim32_perf_plan \
+	build_xs_repcut_grhsim build_xs_repcut_grhsim_legacy run_xs_repcut_grhsim run_xs_repcut_grhsim_legacy build_xs_repcut_sim run_xs_repcut_sim \
+	xs_wolf_grhsim_repcut_emu xs_grhsim xs_wolf_grhsim_repcut_plan grhsim32_plan xs_wolf_grhsim_repcut_critical_path xs_grhsim_critical_path \
+	xs_wolf_grhsim_repcut_perf_emu xs_grhsim_perf build_xs_repcut_grhsim_perf run_xs_wolf_grhsim_repcut_perf_emu run_xs_repcut_grhsim_perf xs_wolf_grhsim_repcut_perf_plan grhsim32_perf_plan \
 	xs_no0076_stats clean
 
 all: build
@@ -810,32 +815,32 @@ run_xs_repcut_verilator:
 			$(XS_RAM_TRACE_ARGS) \
 			2>&1 | tee "$$REPCUT_RUN_LOG"
 
-xs_grhsim build_xs_repcut_grhsim:
+xs_wolf_grhsim_repcut_emu xs_grhsim build_xs_repcut_grhsim:
 	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --clean \
 		--output "$(abspath $(XS_GRHSIM32_OUTPUT))" $(XS_GRHSIM32_ARGS)
 
-xs_grhsim_perf build_xs_repcut_grhsim_perf:
+xs_wolf_grhsim_repcut_perf_emu xs_grhsim_perf build_xs_repcut_grhsim_perf:
 	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --clean --performance \
 		--output "$(abspath $(XS_GRHSIM32_PERF_OUTPUT))" $(XS_GRHSIM32_PERF_ARGS)
 
 XS_GRHSIM_CRITICAL_ARGS ?=
-xs_grhsim_critical_path:
+xs_wolf_grhsim_repcut_critical_path xs_grhsim_critical_path:
 	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim_critical_path.py" run \
 		--build "$(abspath $(XS_GRHSIM32_OUTPUT))" $(XS_GRHSIM_CRITICAL_ARGS)
 
-grhsim32_plan:
+xs_wolf_grhsim_repcut_plan grhsim32_plan:
 	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --dry-run \
 		--output "$(abspath $(XS_GRHSIM32_OUTPUT))" $(XS_GRHSIM32_ARGS)
 
-grhsim32_perf_plan:
+xs_wolf_grhsim_repcut_perf_plan grhsim32_perf_plan:
 	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --dry-run --performance \
 		--output "$(abspath $(XS_GRHSIM32_PERF_OUTPUT))" $(XS_GRHSIM32_PERF_ARGS)
 
-run_xs_repcut_grhsim:
+run_xs_wolf_grhsim_repcut_emu run_xs_repcut_grhsim:
 	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --run-only \
 		--output "$(abspath $(XS_GRHSIM32_OUTPUT))" $(XS_GRHSIM32_ARGS)
 
-run_xs_repcut_grhsim_perf:
+run_xs_wolf_grhsim_repcut_perf_emu run_xs_repcut_grhsim_perf:
 	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --run-only --performance \
 		--output "$(abspath $(XS_GRHSIM32_PERF_OUTPUT))" $(XS_GRHSIM32_PERF_ARGS)
 

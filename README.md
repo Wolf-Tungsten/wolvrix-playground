@@ -88,9 +88,9 @@ make run_c910_ref_test
 
 make run_xs_diff -j
 
-make xs_grhsim  # clean Verilog -> 32-way partitioning -> functional emu
-make xs_grhsim_perf  # same pipeline with the walltime/placement/migration protocol
-make xs_grhsim_critical_path  # optional RTL / batch diagnostic report of that build
+make xs_wolf_grhsim_repcut_emu  # XiangShan Wolvrix GrhSIM RepCut, 32-thread functional emu
+make xs_wolf_grhsim_repcut_perf_emu  # same pipeline with walltime/placement/migration
+make xs_wolf_grhsim_repcut_critical_path  # optional RTL / batch diagnostic report
 
 make -C testcase/xs-bugcase/CASE_006 run
 
@@ -98,10 +98,10 @@ make build_xs_repcut_verilator -j
 make run_xs_repcut_verilator XS_EMU_THREADS=32 XS_REPCUT_STEP_TIMING=1 XS_SIM_MAX_CYCLE=30000
 ```
 
-The default 32-thread GrhSIM pipeline is documented in
+The XiangShan Wolvrix GrhSIM RepCut pipeline is documented in
 [docs/grhsim32.md](docs/grhsim32.md). It builds from the current Verilog on the
 local machine, runs eight initial solves, and publishes a functional emulator.
-The optional `xs_grhsim_perf` target uses the same pipeline with the explicit
+The optional `xs_wolf_grhsim_repcut_perf_emu` target uses the same pipeline with the explicit
 walltime, placement, code-page, and automatic migration protocol.
 
 ## Output Locations

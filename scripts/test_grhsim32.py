@@ -271,7 +271,7 @@ class CleanFlowTests(unittest.TestCase):
             self.assertNotIn('bytes=0 ', result.stderr)
 
     def test_make_entry_needs_no_environment_script_or_manual_flags(self):
-        completed = subprocess.run(['make', '--no-print-directory', '-n', 'xs_grhsim',
+        completed = subprocess.run(['make', '--no-print-directory', '-n', 'xs_wolf_grhsim_repcut_emu',
                                     'WOLF_ENV_SOURCED=', 'ENV_FILE=/absent'], cwd=flow.ROOT,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         self.assertEqual(completed.returncode, 0, completed.stderr)
@@ -280,7 +280,7 @@ class CleanFlowTests(unittest.TestCase):
         self.assertNotIn('XS_REPCUT_INITIAL_ASSIGNMENT=', completed.stdout)
 
     def test_make_entry_exposes_the_same_pipeline_in_explicit_performance_mode(self):
-        completed = subprocess.run(['make', '--no-print-directory', '-n', 'xs_grhsim_perf',
+        completed = subprocess.run(['make', '--no-print-directory', '-n', 'xs_wolf_grhsim_repcut_perf_emu',
                                     'WOLF_ENV_SOURCED=', 'ENV_FILE=/absent'], cwd=flow.ROOT,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         self.assertEqual(completed.returncode, 0, completed.stderr)

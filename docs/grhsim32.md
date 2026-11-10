@@ -1,13 +1,14 @@
-# Clean 32-thread GrhSIM build
+# XiangShan Wolvrix GrhSIM RepCut build
 
 From the repository root:
 
 ```bash
 git submodule update --init --recursive
-make xs_grhsim
+make xs_wolf_grhsim_repcut_emu
 ```
 
-`make build_xs_repcut_grhsim` invokes the same default pipeline. No `env.sh`,
+`make xs_grhsim` and `make build_xs_repcut_grhsim` remain compatibility aliases
+for the default pipeline. No `env.sh`,
 optimization environment variables, previous experiment outputs, partition labels,
 or historical regression executable are required.
 
@@ -81,13 +82,13 @@ Use a separate output directory so the exploration artifacts do not replace the
 user build:
 
 ```bash
-make xs_grhsim_perf
-make run_xs_repcut_grhsim_perf   # repeat the measurement protocol
-make grhsim32_perf_plan          # print its stages without executing them
+make xs_wolf_grhsim_repcut_perf_emu
+make run_xs_wolf_grhsim_repcut_perf_emu  # repeat the measurement protocol
+make xs_wolf_grhsim_repcut_perf_plan     # print its stages without executing them
 ```
 
 These Make targets pass `--performance` to the same Python entry point used by
-`make xs_grhsim`; they are not a second implementation. The default output is
+`make xs_wolf_grhsim_repcut_emu`; they are not a second implementation. The default output is
 `build/xs/grhsim32/`, while the performance output is
 `build/xs/grhsim32-perf/`. The direct equivalent is:
 
@@ -114,13 +115,15 @@ The performance target uses the same layout under
 artifacts populated.
 
 ```bash
-make run_xs_repcut_grhsim   # rerun the default functional smoke test
-make grhsim32_plan         # print the default stages without executing them
-make run_xs_repcut_grhsim_perf  # rerun the performance exploration output
-make grhsim32_perf_plan         # print performance exploration stages
+make run_xs_wolf_grhsim_repcut_emu       # rerun the default functional smoke test
+make xs_wolf_grhsim_repcut_plan          # print default stages without executing them
+make run_xs_wolf_grhsim_repcut_perf_emu  # rerun the performance exploration output
+make xs_wolf_grhsim_repcut_perf_plan     # print performance exploration stages
 ```
 
-`make xs_grhsim` starts a clean build and replaces only this pipeline's output.
+`make xs_wolf_grhsim_repcut_emu` starts a clean build and replaces only this pipeline's output.
+The shorter `xs_grhsim`, `run_xs_repcut_grhsim`, and related names remain as
+compatibility aliases.
 The previous manual GrhSIM entry remains available as
 `make build_xs_repcut_grhsim_legacy`; Verilator targets retain their existing behavior.
 
@@ -138,7 +141,7 @@ default configuration without editing it.
 
 ## Optional RTL critical-path report
 
-After a successful clean build, `make xs_grhsim_critical_path` creates an
+After a successful clean build, `make xs_wolf_grhsim_repcut_critical_path` creates an
 independent diagnostic package and an interactive RTL/batch report. It leaves
 the default build and production executable alone. See the
 [critical-path analysis and AST rewrite guide](../wolvrix/docs/emit/grhsim-critical-path.md)
