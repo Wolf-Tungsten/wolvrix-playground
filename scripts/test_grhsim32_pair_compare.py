@@ -1,7 +1,7 @@
 import copy
 import unittest
 
-from grhsim32_pair_compare import signature, validate_builds, validate_runtime, validate_thread_placement
+from grhsim32_pair_compare import bind_runtime_memory, signature, validate_builds, validate_runtime, validate_thread_placement
 
 
 class PairGateTests(unittest.TestCase):
@@ -49,6 +49,14 @@ class PairGateTests(unittest.TestCase):
         with self.assertRaises(ValueError):validate_thread_placement([],self.cpus,32)
         # A final post-join snapshot may contain only the host thread.
         validate_thread_placement([good,dict(elapsed_s=3,tasks=good['tasks'][:1])],self.cpus,32)
+
+    def test_strict_memory_policy_preserves_other_runtime_arguments(self):
+        command=['taskset','-c','0-31','numactl','--preferred=0','setarch','x86_64','-R','env','LD_PRELOAD=/private/lib.so','/private/emu']
+        bound=bind_runtime_memory(command,0)
+        self.assertEqual(bound,[arg if arg!='--preferred=0' else '--membind=0' for arg in command])
+        self.assertEqual(bind_runtime_memory(bound,0),bound)
+        for invalid in (command[:4]+command[5:],command+['--membind=0'],command):
+            with self.assertRaises(ValueError):bind_runtime_memory(invalid,1 if invalid==command else 0)
 
 
 if __name__ == '__main__':

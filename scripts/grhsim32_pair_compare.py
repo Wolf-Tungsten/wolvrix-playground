@@ -62,6 +62,14 @@ def validate_thread_placement(samples, cpus, expected_threads):
             raise ValueError('runtime threads are not pinned one per configured CPU')
 
 
+def bind_runtime_memory(command, node):
+    preferred = f'--preferred={node}'
+    bound = f'--membind={node}'
+    if sum(arg in (preferred,bound) for arg in command) != 1:
+        raise ValueError('expected one explicit runtime NUMA policy for the configured node')
+    return [bound if arg == preferred else arg for arg in command]
+
+
 def signature(row):
     return {key: row[key] for key in
             ('pc', 'instr_count', 'cycle_count', 'guest_cycles', 'stop_reason', 'workload_output')}
@@ -104,6 +112,9 @@ class Runner:
         prefix = self.directory / name
         command, env = self.pipeline._runtime_command(self.binary, cycles,
                                                        timing_path=prefix.with_suffix('.timing.jsonl'))
+        # The paired locality gate requires all model/state pages on this
+        # node. A preferred policy may allocate remotely under pressure.
+        command = bind_runtime_memory(command, self.node)
         command = ['LD_PRELOAD=' + self.preload if str(arg).startswith('LD_PRELOAD=') else str(arg)
                    for arg in command]
         command += ['-s', '0']
@@ -135,7 +146,12 @@ class Runner:
                         numa = (proc / 'numa_maps').read_text()
                         record = inspect_locality(maps, numa, self.plan)
                         record['elapsed_s'] = time.monotonic() - start
-                        errors.extend(locality_errors(record, self.node))
+                        local_errors = locality_errors(record, self.node)
+                        if local_errors and not prefix.with_suffix('.nonlocal.numa_maps').exists():
+                            prefix.with_suffix('.nonlocal.maps').write_text(maps)
+                            prefix.with_suffix('.nonlocal.numa_maps').write_text(numa)
+                            save(prefix.with_suffix('.nonlocal.json'),dict(elapsed_s=record['elapsed_s'],errors=local_errors))
+                        errors.extend(local_errors)
                         tasks = []
                         for task in (proc / 'task').iterdir():
                             status = (task / 'status').read_text()
@@ -196,6 +212,7 @@ class Runner:
                 raise ValueError('runtime dependency changed: ' + entry['destination'])
         row.update(name=name, external_wall_s=completion['wall_s'], runtime=runtime,
                    codepages=pages[0], locality_pass=True, thread_counts=sorted(observed),
+                   numa_policy='bind', numa_node=self.node,
                    binary_sha256=self.frozen['sha256'])
         save(prefix.with_suffix('.json'), row)
         print(json.dumps(dict(name=name,host_ms=row['host_ms'],wall_s=row['external_wall_s'])), flush=True)
@@ -226,6 +243,7 @@ def main():
                                     configurations=configs, results=results, image=identity(args.image),
                                     nemu=identity(args.nemu), driver=identity(__file__),
                                     pipeline=identity(ROOT / 'scripts/grhsim32.py'),
+                                    numa_policy='bind',
                                     pairs=args.pairs, cycles=args.cycles, order=pair_order(args.pairs)))
     runners = {key: Runner(path, out / key, configs[key], results[key], args.image, args.nemu)
                for key, path in builds.items()}

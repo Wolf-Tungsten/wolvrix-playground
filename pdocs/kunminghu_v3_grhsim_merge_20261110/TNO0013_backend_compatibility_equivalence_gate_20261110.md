@@ -21,3 +21,7 @@
 日志身份、功能签名和 binary SHA：[after-repcut-initial-functional.json](../../build/artifacts/kunminghu-v3-grhsim-merge-20261110/after-repcut-initial-functional.json)。本阶段时间用于标准 pipeline 的候选选择，未混入正式 revision pair。
 
 after pipeline 当前继续执行 trace/context/migration。配对调度已同时要求 before 生成代码一致性通过和两侧 performance 构建完成。最终 retained 分区及 8 对前后 walltime 另文记录。
+
+## 增量：构建清单与顺序
+
+进一步核对 before 原 package 和重新发射 package：生成的 Makefile 也逐字节相同，`SRCS` 中 7,814 个 C++ 源文件及其顺序完全一致。证据见 [build-order-comparison.json](../../build/artifacts/kunminghu-v3-grhsim-merge-20261110/before-package-compatibility/build-order-comparison.json)。兼容修复没有改变旧版本的源文件集合、内容或链接输入顺序。
