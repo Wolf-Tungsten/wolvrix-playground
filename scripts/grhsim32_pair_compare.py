@@ -160,8 +160,6 @@ class Runner:
                             tasks.append(dict(tid=int(task.name),cpus=allowed))
                             if not set(allowed) <= set(self.pipeline.runtime):
                                 errors.append(dict(affinity=allowed))
-                            if 'Difftest enabled' in text and len(allowed) != 1:
-                                errors.append(dict(unpinned_thread=int(task.name),affinity=allowed))
                         record['tasks'] = tasks
                         observed.add(len(tasks))
                         if not samples:

@@ -47,8 +47,10 @@ class PairGateTests(unittest.TestCase):
             bad=dict(elapsed_s=2,tasks=[dict(tid=i+1000,cpus=mask) for i,mask in enumerate(masks)])
             with self.assertRaises(ValueError):validate_thread_placement([bad],self.cpus,32)
         with self.assertRaises(ValueError):validate_thread_placement([],self.cpus,32)
-        # A final post-join snapshot may contain only the host thread.
-        validate_thread_placement([good,dict(elapsed_s=3,tasks=good['tasks'][:1])],self.cpus,32)
+        # After joining workers, the wrapper restores the host's original
+        # broad affinity. That teardown sample is outside the 32-lane run.
+        teardown=dict(elapsed_s=3,tasks=[dict(tid=1000,cpus=self.cpus)])
+        validate_thread_placement([good,teardown],self.cpus,32)
 
     def test_strict_memory_policy_preserves_other_runtime_arguments(self):
         command=['taskset','-c','0-31','numactl','--preferred=0','setarch','x86_64','-R','env','LD_PRELOAD=/private/lib.so','/private/emu']
