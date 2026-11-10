@@ -4,6 +4,22 @@
 
 规则参考：[GrhSIM 文档管理规则](../grhsim_opt_thj/RULES.md)。
 
+## 当前结果
+
+XiangShan 已完成真实 merge：`9d1f24c` 的两个 parent 是 `77ed568fc` 和上游 `41ab74e7d`；当前 `defb18e13` 固定本地 difftest 适配 `b17a43a`。XiangShan 相对该上游 commit 仅保留 difftest gitlink 差异。父仓继续使用 `thj/gsim-calibrate-2`，默认功能/性能流程的区分保持不变。
+
+CoreMark、100,000 周期、完整 DiffTest/NEMU，每组 8 对 AB/BA，正数表示合并后更慢：
+
+| 测量 | before / after 平均 Host time | 配对 delta 均值 | 95% CI |
+| --- | ---: | ---: | ---: |
+| 单核 CPU96 | 101.289 / 132.449 s | +30.766% | [+29.968%, +31.781%] |
+| 32 线程主实验 | 38.241 / 48.159 s | +32.179% | [+15.007%, +60.360%] |
+| 32 线程同 binary 复测 | 17.004 / 17.507 s | +2.904% | [−1.458%, +8.379%] |
+
+单核 8/8 合并后更慢。32 线程主实验存在明显的跨时段变化，同配置复测没有复现其幅度，因此不能确定稳定的 32 线程版本差异。两轮独立归档，不合并、不丢弃慢样本。结果包含上游 DefaultConfig、微架构和缓存容量变化。
+
+[总报告](../../build/artifacts/kunminghu-v3-grhsim-merge-20261110/report.json) 保留 Host time、外部 walltime、功能签名、输入身份和配对数据链接。
+
 ## 记录
 
 | 阶段 | 文档 | 状态 |
@@ -16,7 +32,7 @@
 | BootROM 兼容与 after native 功能门 | [TNO0006](./TNO0006_bootrom_compatibility_native_gate_20261110.md) | 默认 ROM、冻结 REF 的 10k/100k 完整 DiffTest 通过 |
 | trace 覆盖验证器 | [TNO0007](./TNO0007_trace_cycle_coverage_20261110.md) | 11 项 focused 测试通过；真实运行见 TNO0008 |
 | native trace 与结构门 | [TNO0008](./TNO0008_native_trace_and_structure_gate_20261110.md) | 两侧各两组 100k trace、CPU96/NUMA1 门通过 |
-| 独立配置与配对入口 | [TNO0009](./TNO0009_reproduction_and_paired_runbook_20261110.md) | native 完成；正式 RepCut 对测中 |
+| 独立配置与配对入口 | [TNO0009](./TNO0009_reproduction_and_paired_runbook_20261110.md) | 两种对测均完成；后续 NUMA/监控修正见 TNO0016–0017 |
 | 合并 checkout 与子模块 | [TNO0010](./TNO0010_merge_checkout_completion_20261110.md) | 主 checkout 已更新；递归子模块干净 |
 | harness 验证 checkpoint | [TNO0011](./TNO0011_harness_validation_checkpoint_20261110.md) | 83 项测试通过，before RepCut 48 次 100k 签名一致 |
 | RepCut 无驱动信号兼容 | [TNO0012](./TNO0012_repcut_undriven_wrapper_compatibility_20261110.md) | focused emitter 测试通过；验证结果见 TNO0013 |
@@ -25,3 +41,6 @@
 | native 8 对 AB/BA walltime | [TNO0015](./TNO0015_native_paired_walltime_20261110.md) | after 慢 30.766%，95% CI [29.968%, 31.781%] |
 | RepCut 严格 NUMA 运行 | [TNO0016](./TNO0016_repcut_strict_numa_runtime_20261110.md) | 首次 verify 因远端页拒绝；统一 membind=0 后重新对测，84 项测试通过 |
 | RepCut 退出阶段监控勘误 | [TNO0017](./TNO0017_repcut_teardown_affinity_verifier_20261110.md) | 退出后 host affinity 恢复不计作运行期失败；最终系列重新采集 |
+| RepCut 8 对主实验 | [TNO0018](./TNO0018_repcut_primary_paired_walltime_20261110.md) | 平均 +32.179%，中位数 +18.341%；中途明显时间漂移 |
+| RepCut 同 binary 复测 | [TNO0019](./TNO0019_repcut_confirmation_20261110.md) | 平均 +2.904%，CI 跨零；没有复现主实验幅度 |
+| 最终源码、验证与归档 | [TNO0020](./TNO0020_completion_and_artifact_manifest_20261110.md) | 合并与对测完成；四种模型 manifest、原始数据和验证索引齐备 |
