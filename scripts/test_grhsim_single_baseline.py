@@ -32,6 +32,19 @@ class BaselineLogTests(unittest.TestCase):
             with self.subTest(log=text), self.assertRaises(ValueError):
                 parse_run(text, 100000)
 
+    def test_upstream_grouped_architectural_counters(self):
+        row=parse_run(self.LOG.replace('240349','240,349').replace('99996','99,996'),100000)
+        self.assertEqual(row['instr_count'],240349)
+        self.assertEqual(row['cycle_count'],99996)
+
+    def test_unbuffered_uart_before_buffered_startup_banner(self):
+        log=('[runtime-config] {"lanes":32}\n[codepage] PASS mode=auto\n'
+             'Running CoreMark for 2 iterations\nemu compiled at Nov 10 2026\n'
+             'The image is /run/workload.bin\nThe reference model is /run/nemu.so\n'
+             'The first instruction of core 0 has commited. Difftest enabled. \n'
+             'Core 0: '+self.LOG.removeprefix('Difftest enabled.\n'))
+        self.assertEqual(parse_run(log,100000)['workload_output'],'Running CoreMark for 2 iterations\n')
+
     def test_enabled_uart_output_with_interleaved_cycle_messages(self):
         log=('The first instruction of core 0 has commited. Difftest enabled. \n'
              'Running CoreM[CYCLE_LIMIT] cycles=10000 max_cycles=100000\n'
@@ -64,6 +77,15 @@ class BaselineLogTests(unittest.TestCase):
 
 
 class NoDiffLogTests(unittest.TestCase):
+    def test_optional_cli_difftest_modes_inherit_runtime_default(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args=argparse.Namespace(output=Path(directory),compiler='/usr/bin/clang++',
+                tools_dir=None,sim_primitives='none',runtime_difftest='on',
+                model_difftest=None,compile_difftest=None)
+            work=Baseline(args)
+            self.assertEqual(work.model_difftest,'on')
+            self.assertEqual(work.compile_difftest,'on')
+
     LOG = ('[DIFFTEST_MODE] disabled (CONFIG_NO_DIFFTEST): collection=off checking=off\n'
            'The image is /run/workload.bin\n'
            'Running CoreMark for 2 iterations\n'

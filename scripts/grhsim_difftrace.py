@@ -69,6 +69,8 @@ int main(int argc,char **argv) {
   if(!na&&!nb)break;
   if(na!=sizeof a||nb!=sizeof b){std::cerr<<"missing/partial record at "<<count<<'\n';return 4;}
   if(const char* field=difference(a,b)){std::cerr<<"mismatch record="<<count<<" field="<<field<<'\n';return 5;}
+  if(a.trap.cycleCnt!=b.trap.cycleCnt){std::cerr<<"cycle mismatch at "<<count<<'\n';return 7;}
+  if(count&&a.trap.cycleCnt<last){std::cerr<<"cycle regressed at "<<count<<'\n';return 8;}
   if(!count)first=a.trap.cycleCnt;last=a.trap.cycleCnt;++count;
  }
  if(!count)return 6;
@@ -97,7 +99,26 @@ def compare_traces(comparator,a,b,output):
         if result.returncode:
             save(output,dict(pass_=False,chunk=name,stdout=result.stdout,stderr=result.stderr))
             raise ValueError('Difftest trace differs: '+result.stderr)
-        chunks.append(dict(name=name,**json.loads(result.stdout),a=identity(a/name),b=identity(b/name)))
+        chunk=dict(name=name,**json.loads(result.stdout),a=identity(a/name),b=identity(b/name))
+        if chunks and chunk['first_cycle']<chunks[-1]['last_cycle']:
+            save(output,dict(pass_=False,chunk=name,reason='cycle regressed across chunks'))
+            raise ValueError('Difftest trace cycle regressed across chunks')
+        chunks.append(chunk)
     record=dict(pass_=True,chunks=chunks,records=sum(c['records'] for c in chunks),
+                first_cycle=chunks[0]['first_cycle'],last_cycle=chunks[-1]['last_cycle'],
                 scope='All generated Difftest fields in order; validity-gated payloads; cycle fields included')
     save(output,record);return record
+
+
+def validate_trace_coverage(check, run):
+    """Valid-gated gateways may emit fewer records than simulated cycles."""
+    if not check.get('pass_') or check.get('records',0)<=0:
+        raise ValueError('empty or failed DiffTest trace')
+    if run.get('runtime_difftest')!='on' or run.get('stop_reason')!='cycle-limit':
+        raise ValueError('trace coverage requires a completed full-DiffTest run')
+    terminal=run.get('cycle_count')
+    if terminal is None or check.get('last_cycle')!=terminal:
+        raise ValueError(f'DiffTest trace terminal cycle {check.get("last_cycle")} != run {terminal}')
+    return dict(pass_=True,records=check['records'],first_cycle=check['first_cycle'],
+                last_cycle=check['last_cycle'],guest_cycles=run['guest_cycles'],
+                policy='Nonempty monotonic trace ends at the reported architectural cycle')

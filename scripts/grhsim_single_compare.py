@@ -10,7 +10,7 @@ import random
 import resource
 import statistics
 from grhsim_single_baseline import Baseline, ROOT, XS, cpus, identity, save
-from grhsim_difftrace import build_comparator, compare_traces
+from grhsim_difftrace import build_comparator, compare_traces, validate_trace_coverage
 
 def resolve_binary(path):
     """Accept either a frozen emu or its Baseline output directory."""
@@ -71,6 +71,7 @@ def run_signature(row, common_only=False):
         return {key:row[key] for key in ('guest_cycles','stop_reason','workload_output')}
     fields=['pc','instr_count','cycle_count','guest_cycles']
     if row.get('runtime_difftest')=='off':fields+=['stop_reason','workload_output']
+    elif 'workload_output' in row:fields+=['workload_output']
     return {key:row[key] for key in fields}
 
 
@@ -91,12 +92,16 @@ def main():
                    help='Reuse completed DiffTest traces after checking frozen binary/input identities')
     p.add_argument('--verify-only',action='store_true',
                    help='Stop after smoke and trace/footprint verification, before warmup or timing')
+    p.add_argument('--allow-schema-change',action='store_true',
+                   help='Compare upstream revisions: allow different schemas and fixed-cycle architectural progress; require full per-variant DiffTest')
     p.add_argument('--skip-idle-check',action='store_true',
                    help='Do not wait for CPU96/SMT sibling idle; keep placement and NUMA checks')
     args=p.parse_args()
     modes=runtime_modes(args.runtime_difftest,args.baseline_runtime_difftest,args.candidate_runtime_difftest)
     mixed_modes=modes['A']!=modes['B']
     all_on=all(mode=='on' for mode in modes.values())
+    if args.allow_schema_change and not all_on:
+        raise ValueError('upstream revision comparison requires full runtime DiffTest on both sides')
     if args.historical:modes['H']=modes['A']
     if not platform.node().startswith('node030'):raise ValueError('measurements require node030')
     if args.pairs<8 or args.cycles<100000:raise ValueError('requires >=8 pairs and >=100000 cycles')
@@ -115,12 +120,15 @@ def main():
             raise ValueError(f'{name}: runtime DiffTest mode differs from build')
         build_configs[name]=settings
         build_difftest_modes[name]=build_modes(settings,modes[name])
-    headers=[];comparator=None
+    headers=[];comparator=None;schema_equal=True
     if all_on:
         headers=[args.baseline_header or aroot/'chisel-home/build/generated-src/difftest-state.h',
                  args.candidate_header or broot/'chisel-home/build/generated-src/difftest-state.h']
-        if identity(headers[0])['sha256']!=identity(headers[1])['sha256']:raise ValueError('Difftest schemas differ')
-        comparator=build_comparator(headers[0],out/'trace-comparator')
+        schema_equal=identity(headers[0])['sha256']==identity(headers[1])['sha256']
+        if not schema_equal and not args.allow_schema_change:
+            raise ValueError('Difftest schemas differ; use --allow-schema-change for an upstream merge comparison')
+        if schema_equal and not args.allow_schema_change:
+            comparator=build_comparator(headers[0],out/'trace-comparator')
     manifest=dict(binaries={k:identity(v) for k,v in names.items()},image=identity(args.image),
         nemu=identity(args.nemu) if 'on' in modes.values() else None,
         runtime_difftest='mixed' if mixed_modes else modes['A'],runtime_difftest_by_variant=modes,
@@ -128,7 +136,8 @@ def main():
         headers=[identity(x) for x in headers],pairs=args.pairs,cycles=args.cycles,
         driver=identity(__file__),runner=identity(ROOT/'scripts/grhsim_single_baseline.py'),
         numa=identity(ROOT/'scripts/grhsim_numa.py'),order=pair_order(args.pairs),cpu=96,
-        verification_from=str(args.verification_from.resolve()) if args.verification_from else None)
+        verification_from=str(args.verification_from.resolve()) if args.verification_from else None,
+        schema_equal=schema_equal,allow_schema_change=args.allow_schema_change)
     if args.verification_from:
         if not all_on:raise ValueError('trace reuse requires DiffTest on in both variants')
         previous=json.loads((args.verification_from/'manifest.json').read_text())
@@ -136,14 +145,14 @@ def main():
             if manifest[key]!=previous[key]:raise ValueError('verification inputs changed: '+key)
         for seed in (0,1):
             check=json.loads((args.verification_from/f'trace-s{seed}.json').read_text())
-            if not check['pass_'] or check['records']<args.cycles:
+            if not check['pass_'] or check['records']<=0:
                 raise ValueError('previous trace verification incomplete')
     save(out/'manifest.json',manifest)
     runners={};prepared={}
     for name,binary in names.items():
         config=argparse.Namespace(output=out/name,binary=binary,image=args.image,nemu=args.nemu,
             compiler='/nfs/home/tanghaojin/LLVM-23.1.2-Linux-X64/bin/clang++',tools_dir=None,
-            sim_primitives='none' if name!='B' else args.candidate_sim_primitives,
+            sim_primitives=build_configs[name].get('sim_primitives', 'none'),
             sim_models=build_configs[name].get('sim_models', 'hardware'),
             behavior_state_lowering=build_configs[name].get('behavior_state_lowering', 'ordinary'),
             behavior_compute_lowering=build_configs[name].get('behavior_compute_lowering', 'ordinary'),
@@ -151,6 +160,7 @@ def main():
             model_difftest=build_difftest_modes[name]['model'],
             compile_difftest=build_difftest_modes[name]['compile'],
             runtime_difftest=modes[name],
+            xs_config=build_configs[name].get('config', 'DefaultConfig'),
             skip_idle_check=args.skip_idle_check,
             cpu=96,jobs=1,cycles=args.cycles,repeats=args.pairs)
         runners[name]=Baseline(config);prepared[name]=runners[name].prepare_measurement()
@@ -168,12 +178,36 @@ def main():
         for seed in [0,1]:
             if args.verification_from:
                 paths=[args.verification_from/n/'runs/runtime/bin'/f'trace_s{seed}' for n in ['A','B']]
+                verification_rows=[json.loads((args.verification_from/n/'runs'/f'verify-s{seed}.json').read_text())
+                                   for n in ('A','B')]
             else:
+                verification_rows=[]
                 for name in ['A','B']:
                     # Difftest currently has a fixed 32-byte trace-name buffer.
-                    run(name,f'verify-s{seed}',seed=seed,extra=['--dump-difftrace',f'./trace_s{seed}'])
+                    verification_rows.append(run(name,f'verify-s{seed}',seed=seed,
+                                                 extra=['--dump-difftrace',f'./trace_s{seed}']))
                 paths=[prepared[n]['binary'].parent/f'trace_s{seed}' for n in ['A','B']]
-            trace_checks.append(compare_traces(comparator,*paths,out/f'trace-s{seed}.json'))
+            if comparator is not None:
+                check=compare_traces(comparator,*paths,out/f'trace-s{seed}.json')
+                check['coverage']=[validate_trace_coverage(check,row) for row in verification_rows]
+                save(out/f'trace-s{seed}.json',check)
+                trace_checks.append(check)
+            else:
+                # Each emulator has already performed its own full DiffTest
+                # check against NEMU.  Different XiangShan revisions may
+                # expose different DiffTestState layouts, so retain the raw
+                # trace identities without pretending they are byte-comparable.
+                records=[]
+                for index,name in enumerate(('A','B')):
+                    tool=build_comparator(headers[index],out/f'trace-comparator-{name}')
+                    trace_check=compare_traces(tool,paths[index],paths[index],out/f'trace-{name}-s{seed}.json')
+                    coverage=validate_trace_coverage(trace_check,verification_rows[index])
+                    records.append(dict(variant=name,trace_check=trace_check,coverage=coverage,
+                                        schema=identity(headers[index])))
+                check=dict(pass_=True,mode='independent-difftest',records=min(r['trace_check']['records'] for r in records),
+                           schema_equal=schema_equal,variants=records)
+                save(out/f'trace-s{seed}.json',check)
+                trace_checks.append(check)
     else:
         # XiangShan's default 8 TiB RAM would reserve a 1 TiB footprint bitmap.
         # Bound only these diagnostic runs; smoke/warmup/timing use default RAM.
@@ -199,11 +233,15 @@ def main():
             variant_current=run_signature(row)
             if name not in variant_signatures:variant_signatures[name]=variant_current
             if variant_current!=variant_signatures[name]:raise ValueError(f'{name}: functional signature changed')
-            current=run_signature(row,common_only=mixed_modes)
+            # An upstream microarchitecture merge can change architectural
+            # progress at a fixed cycle budget. Each revision must still be
+            # deterministic and independently pass NEMU with full DiffTest.
+            current=({key:row[key] for key in ('guest_cycles','stop_reason')}
+                     if args.allow_schema_change else run_signature(row,common_only=mixed_modes))
             if signature is None:signature=current
             if current!=signature:raise ValueError('functional signatures differ across A/B')
             pair[name]=row
-        if all(build_difftest_modes[n]['compile']=='on' for n in ('A','B')):
+        if not args.allow_schema_change and all(build_difftest_modes[n]['compile']=='on' for n in ('A','B')):
             for field in ('pc','instr_count','cycle_count'):
                 if pair['A'][field]!=pair['B'][field]:
                     raise ValueError(f'{field} differs across A/B')
@@ -212,14 +250,19 @@ def main():
     if 'H' in names and signature is not None:
         expected=signature
         for anchor in anchors:
-            observed=run_signature(anchor,common_only=mixed_modes)
+            observed=({key:anchor[key] for key in ('guest_cycles','stop_reason')}
+                      if args.allow_schema_change else run_signature(anchor,common_only=mixed_modes))
             if observed!=expected:
                 raise ValueError(f'historical anchor functional signature differs: {observed} != {expected}')
     save(out/'summary.json',dict(**summarize(results),samples=results,historical=anchors,
+        external_wall=summarize([{n:dict(host_ms=row[n]['external_wall_s']*1000) for n in ('A','B')}
+                                 for row in results]),
         trace_checks=trace_checks,footprint_check=footprint_check,
         runtime_difftest='mixed' if mixed_modes else modes['A'],runtime_difftest_by_variant=modes,
         build_difftest_modes=build_difftest_modes,
         variant_functional_signatures=variant_signatures,
+        cross_revision_progress_comparison={key:[results[0]['A'].get(key),results[0]['B'].get(key)]
+            for key in ('pc','instr_count','cycle_count','guest_cycles','stop_reason','workload_output')},
         functional_signature=signature,scope='Native full SimTop; Host time includes harness'))
     with (out/'pairs.csv').open('w') as f:
         w=csv.writer(f);w.writerow(['pair','order','A_host_s','B_host_s','delta_percent','A_external_s','B_external_s'])

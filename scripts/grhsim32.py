@@ -116,10 +116,15 @@ def align_object(path, objcopy):
 
 
 class Pipeline:
+    @property
+    def xs(self):
+        return Path(getattr(self.args, 'xs_source', None) or ROOT / 'testcase/xiangshan').resolve()
+
     def __init__(self, args):
         self.args = args
         self.performance = bool(getattr(args, 'performance', False))
         self.config = read(args.config)
+        self.xs_config = getattr(args, 'xs_config', None) or self.config.get('xs_config', 'DefaultConfig')
         self.out = args.output.resolve()
         self.jobs = args.jobs or len(os.sched_getaffinity(0))
         self.cpus = sorted(os.sched_getaffinity(0))
@@ -147,7 +152,7 @@ class Pipeline:
                     and k not in ('LD_PRELOAD', 'LD_LIBRARY_PATH', 'MAKEFLAGS', 'MFLAGS')}
         self.env.update(self.config['options'])
         self.env['LC_ALL'] = 'C'
-        self.env['NOOP_HOME'] = str(ROOT / 'testcase/xiangshan')
+        self.env['NOOP_HOME'] = str(self.xs)
 
     def _runtime_env(self, timing_path=None, trace=None):
         env = dict(self.env, XS_EMU_THREADS='32',
@@ -212,8 +217,8 @@ class Pipeline:
                                  self.out / 'logs' / (name.replace('/', '-') + '-submodule.log'))
         dependencies = (('wolvrix', 'external/slang', 'CMakeLists.txt'),
                         ('wolvrix', 'external/libfst', 'src/fstapi.c'),
-                        ('testcase/xiangshan', 'difftest', 'grhsim.mk'),
-                        ('testcase/xiangshan', 'ready-to-run', 'coremark-2-iteration.bin'))
+                        (self.xs, 'difftest', 'grhsim.mk'),
+                        (self.xs, 'ready-to-run', 'coremark-2-iteration.bin'))
         for parent, name, marker in dependencies:
             if not (ROOT / parent / name / marker).exists():
                 self.run_command(['git', '-C', ROOT / parent, 'submodule', 'update', '--init', '--recursive', name],
@@ -254,7 +259,7 @@ class Pipeline:
 
     def inputs(self):
         self.stage('prepare Verilog inputs')
-        self.generated = self.args.generated.resolve()
+        self.generated = (self.args.generated or self.xs / 'build/generated-src').resolve()
         rtl = self.args.rtl.resolve() if self.args.rtl else None
         if self.args.filelist:
             files = [Path(line).resolve() for line in self.args.filelist.read_text().splitlines()
@@ -263,13 +268,15 @@ class Pipeline:
                 rtl = files[0].parent
         else:
             if rtl is None:
-                self.run_command(['make', '-C', ROOT / 'testcase/xiangshan', 'sim-verilog',
-                                  f'BUILD_DIR={self.out / "rtl"}', 'NUM_CORES=1', 'RTL_SUFFIX=sv'],
+                (self.xs / 'build').mkdir(parents=True, exist_ok=True)
+                self.run_command(['make', '-C', self.xs, 'sim-verilog',
+                                  f'BUILD_DIR={self.out / "rtl"}', f'CONFIG={self.xs_config}',
+                                  'NUM_CORES=1', 'RTL_SUFFIX=sv'],
                                  self.out / 'logs/rtl.log')
                 rtl = self.out / 'rtl/rtl'
                 if not (self.generated / 'DifftestMacros.svh').exists():
                     self.generated = self.out / 'rtl/generated-src'
-            common = ROOT / 'testcase/xiangshan/difftest/src/test/vsrc/common'
+            common = self.xs / 'difftest/src/test/vsrc/common'
             files = sorted({p for folder in (rtl, common) for p in folder.rglob('*') if p.suffix in ('.sv', '.v')})
         if not files:
             raise ValueError('no Verilog sources found')
@@ -277,7 +284,7 @@ class Pipeline:
         filelist.write_text(''.join(str(p) + '\n' for p in files))
         extra = shlex.split(self.args.read_args.read_text()) if self.args.read_args else [
             '-I', str(rtl), '-I', str(self.generated),
-            '-I', str(ROOT / 'testcase/xiangshan/difftest/src/test/vsrc/common'), '-D', 'DIFFTEST']
+            '-I', str(self.xs / 'difftest/src/test/vsrc/common'), '-D', 'DIFFTEST']
         self.stage('read and lower Verilog')
         self.run_command([self.bin / 'grhsim32_frontend', self.out / 'raw.json', self.config['top'],
                           '-f', filelist, *extra], self.out / 'logs/frontend.log')
@@ -355,7 +362,7 @@ class Pipeline:
 
     def harness(self, stage):
         archive = stage / 'package/libgrhsim_SimTop.a'
-        command = ['make', f'-j{self.jobs}', '-C', ROOT / 'testcase/xiangshan/difftest', 'emu-grhsim',
+        command = ['make', f'-j{self.jobs}', '-C', self.xs / 'difftest', 'emu-grhsim',
                    f'CC={self.cc}', f'CXX={self.cxx}', f'BUILD_DIR={stage / "harness"}',
                    f'GEN_CSRC_DIR={self.generated}', f'GEN_VSRC_DIR={self.generated}',
                    'NUM_CORES=1', 'WITH_CHISELDB=0', 'WITH_CONSTANTIN=0', 'EMU_THREADS=0', 'EMU_RANDOMIZE=0',
@@ -404,12 +411,14 @@ class Pipeline:
         parts = []
         if timing_path is not None and timing_path.exists():
             parts = [json.loads(line) for line in timing_path.read_text().splitlines() if line]
-        host = re.search(r'Host time spent: (\d+)ms', text)
+        host = re.search(r'Host time spent: ([\d,]+)ms', text)
+        if not host:
+            raise RuntimeError(name + ': Host time missing')
         config = re.search(r'^\[runtime-config\] (\{.*\})$', text, re.M)
         if not config or json.loads(config[1])['lanes'] != 32:
             raise RuntimeError(name + ': expected 32 lanes')
         page = re.search(r'\[codepage\] PASS mode=(\w+) bytes=(\d+) anon_huge=(\d+) regions=(\d+)', text)
-        return dict(name=name, elapsed_s=elapsed, host_s=int(host[1]) / 1000,
+        return dict(name=name, elapsed_s=elapsed, host_s=int(host[1].replace(',', '')) / 1000,
                     functional='pass', runtime=json.loads(config[1]),
                     codepages=(dict(mode=page[1], bytes=int(page[2]), huge_bytes=int(page[3]), regions=int(page[4]))
                                if page else None), parts=parts,
@@ -574,6 +583,15 @@ class Pipeline:
                               walltime_median_s=summary['walltime_median_s'],
                               host_median_s=summary['host_median_s']), indent=2))
 
+    def write_configuration(self):
+        save(self.out / 'configuration.json', dict(config=self.config, xs_config=self.xs_config,
+                                                  xiangshan_source=str(self.xs), compiler=self.cxx, jobs=self.jobs,
+                                                  performance=self.performance,
+                                                  runtime_cpus=self.runtime,
+                                                  codepages=self.args.codepages if self.performance else None,
+                                                  migration='automatic' if self.performance else 'disabled',
+                                                  runtime_placement='managed' if self.performance else 'inherited'))
+
     def run(self):
         (ROOT / 'build').mkdir(exist_ok=True)
         self.lock = (ROOT / 'build/.grhsim32.lock').open('a')
@@ -592,12 +610,7 @@ class Pipeline:
             self.out.rename(previous)
             shutil.rmtree(previous, ignore_errors=True)
         self.out.mkdir(parents=True)
-        save(self.out / 'configuration.json', dict(config=self.config, compiler=self.cxx, jobs=self.jobs,
-                                                  performance=self.performance,
-                                                  runtime_cpus=self.runtime,
-                                                  codepages=self.args.codepages if self.performance else None,
-                                                  migration='automatic' if self.performance else 'disabled',
-                                                  runtime_placement='managed' if self.performance else 'inherited'))
+        self.write_configuration()
         self.configure_runtime()
         self.dependencies()
         self.inputs()
@@ -660,10 +673,13 @@ class Pipeline:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', type=Path, default=ROOT / 'config/grhsim32.json')
+    parser.add_argument('--xs-config', default=None,
+                        help='XiangShan CONFIG passed to sim-verilog (default: config value or DefaultConfig)')
+    parser.add_argument('--xs-source', type=Path, help='use an isolated XiangShan checkout')
     parser.add_argument('--output', type=Path, default=ROOT / 'build/xs/grhsim32')
     parser.add_argument('--rtl', type=Path,
                         help='explicit existing RTL input; otherwise generate RTL in this build output')
-    parser.add_argument('--generated', type=Path, default=ROOT / 'testcase/xiangshan/build/generated-src')
+    parser.add_argument('--generated', type=Path, help='generated DiffTest headers (default: XiangShan build/generated-src)')
     parser.add_argument('--filelist', type=Path)
     parser.add_argument('--read-args', type=Path)
     parser.add_argument('--image', type=Path, default=ROOT / 'testcase/xiangshan/ready-to-run/coremark-2-iteration.bin')

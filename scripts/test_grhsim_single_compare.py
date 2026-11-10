@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from grhsim_difftrace import build_comparator, compare_traces
+from grhsim_difftrace import build_comparator, compare_traces, validate_trace_coverage
 from grhsim_single_compare import build_modes, compare_footprints, pair_order, run_signature, runtime_modes, summarize
 
 
@@ -128,5 +128,29 @@ Trap trap;
                     base[:1], base[::-1], [base[0][:-1]], []]:
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 self.compare(base,bad)
+
+    def test_sparse_trace_coverage_uses_terminal_cycle(self):
+        trace=[self.record(cycle=500),self.record(cycle=99995)]
+        check=self.compare(trace,trace)
+        row=dict(runtime_difftest='on',stop_reason='cycle-limit',cycle_count=99995,guest_cycles=100001)
+        self.assertTrue(validate_trace_coverage(check,row)['pass_'])
+        for change in (dict(records=0),dict(pass_=False),dict(last_cycle=99994)):
+            with self.assertRaises(ValueError):validate_trace_coverage(dict(check,**change),row)
+        for change in (dict(runtime_difftest='off'),dict(stop_reason='other'),dict(cycle_count=None)):
+            with self.assertRaises(ValueError):validate_trace_coverage(check,dict(row,**change))
+
+    def test_self_comparison_rejects_cycle_regression(self):
+        records=[self.record(cycle=11),self.record(cycle=10)]
+        with self.assertRaisesRegex(ValueError,'regressed'):self.compare(records,records)
+        repeated=[self.record(cycle=11),self.record(cycle=11)]
+        self.assertEqual(self.compare(repeated,repeated)['records'],2)
+
+    def test_cycle_regression_between_chunks_is_rejected(self):
+        with tempfile.TemporaryDirectory(dir=self.root) as tmp:
+            root=Path(tmp)
+            (root/'0.bin').write_bytes(self.record(cycle=11))
+            (root/'1.bin').write_bytes(self.record(cycle=10))
+            with self.assertRaisesRegex(ValueError,'across chunks'):
+                compare_traces(self.comparator,root,root,root/'result.json')
 
 if __name__=='__main__': unittest.main()

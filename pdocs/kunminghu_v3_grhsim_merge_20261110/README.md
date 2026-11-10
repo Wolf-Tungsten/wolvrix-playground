@@ -1,0 +1,21 @@
+# kunminghu-v3 merge 与 GrhSIM 对测
+
+本目录按阶段记录从 XiangShan `77ed568fc` 合并上游 `kunminghu-v3`，并比较合并前后的单核 native GrhSIM 与 32 线程 RepCut GrhSIM。记录遵循追加式规则：独立阶段独立成文，原始日志和机器可读结果保留在 `build/artifacts/kunminghu-v3-grhsim-merge-20261110/`。
+
+规则参考：[GrhSIM 文档管理规则](../grhsim_opt_thj/RULES.md)。
+
+## 记录
+
+| 阶段 | 文档 | 状态 |
+| --- | --- | --- |
+| 身份与基线 | [TNO0001](./TNO0001_identity_and_baseline_20261110.md) | 身份已冻结，before 功能门见 TNO0003 |
+| difftest 适配设计与进度 | [TNO0002](./TNO0002_difftest_merge_port_20261110.md) | merge 已形成；后续 flash 兼容见 TNO0006 |
+| before 功能门与配对 runner | [TNO0003](./TNO0003_before_functional_and_pair_runner_20261110.md) | before 两种 simulator 的 100k 功能签名一致 |
+| 上游 RTL/schema/memory | [TNO0004](./TNO0004_upstream_rtl_schema_memory_20261110.md) | after RTL/model 完成；memory 配置按新层级独立归档 |
+| RepCut 分阶段执行 | [TNO0005](./TNO0005_staged_repcut_execution_20261110.md) | before 完成并保留 candidate；after 分区生成中 |
+| BootROM 兼容与 after native 功能门 | [TNO0006](./TNO0006_bootrom_compatibility_native_gate_20261110.md) | 默认 ROM、冻结 REF 的 10k/100k 完整 DiffTest 通过 |
+| trace 覆盖验证器 | [TNO0007](./TNO0007_trace_cycle_coverage_20261110.md) | 11 项 focused 测试通过；真实运行见 TNO0008 |
+| native trace 与结构门 | [TNO0008](./TNO0008_native_trace_and_structure_gate_20261110.md) | 两侧各两组 100k trace、CPU96/NUMA1 门通过 |
+| 独立配置与配对入口 | [TNO0009](./TNO0009_reproduction_and_paired_runbook_20261110.md) | 配置已跟踪；正式测量等待两个构建完成 |
+| 合并 checkout 与子模块 | [TNO0010](./TNO0010_merge_checkout_completion_20261110.md) | 主 checkout 已更新；递归子模块干净 |
+| harness 验证 checkpoint | [TNO0011](./TNO0011_harness_validation_checkpoint_20261110.md) | 83 项测试通过，before RepCut 48 次 100k 签名一致 |
