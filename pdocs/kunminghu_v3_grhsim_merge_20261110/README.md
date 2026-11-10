@@ -12,10 +12,12 @@
 | difftest 适配设计与进度 | [TNO0002](./TNO0002_difftest_merge_port_20261110.md) | merge 已形成；后续 flash 兼容见 TNO0006 |
 | before 功能门与配对 runner | [TNO0003](./TNO0003_before_functional_and_pair_runner_20261110.md) | before 两种 simulator 的 100k 功能签名一致 |
 | 上游 RTL/schema/memory | [TNO0004](./TNO0004_upstream_rtl_schema_memory_20261110.md) | after RTL/model 完成；memory 配置按新层级独立归档 |
-| RepCut 分阶段执行 | [TNO0005](./TNO0005_staged_repcut_execution_20261110.md) | before 完成并保留 candidate；after 分区生成中 |
+| RepCut 分阶段执行 | [TNO0005](./TNO0005_staged_repcut_execution_20261110.md) | before 完成；after wrapper 兼容修复与续跑见 TNO0012 |
 | BootROM 兼容与 after native 功能门 | [TNO0006](./TNO0006_bootrom_compatibility_native_gate_20261110.md) | 默认 ROM、冻结 REF 的 10k/100k 完整 DiffTest 通过 |
 | trace 覆盖验证器 | [TNO0007](./TNO0007_trace_cycle_coverage_20261110.md) | 11 项 focused 测试通过；真实运行见 TNO0008 |
 | native trace 与结构门 | [TNO0008](./TNO0008_native_trace_and_structure_gate_20261110.md) | 两侧各两组 100k trace、CPU96/NUMA1 门通过 |
 | 独立配置与配对入口 | [TNO0009](./TNO0009_reproduction_and_paired_runbook_20261110.md) | 配置已跟踪；正式测量等待两个构建完成 |
 | 合并 checkout 与子模块 | [TNO0010](./TNO0010_merge_checkout_completion_20261110.md) | 主 checkout 已更新；递归子模块干净 |
 | harness 验证 checkpoint | [TNO0011](./TNO0011_harness_validation_checkpoint_20261110.md) | 83 项测试通过，before RepCut 48 次 100k 签名一致 |
+| RepCut 无驱动信号兼容 | [TNO0012](./TNO0012_repcut_undriven_wrapper_compatibility_20261110.md) | focused emitter 测试通过；验证结果见 TNO0013 |
+| Backend 一致性与 after 功能门 | [TNO0013](./TNO0013_backend_compatibility_equivalence_gate_20261110.md) | before 15,754 个 source/header 字节一致；after 8 次 100k 通过 |
