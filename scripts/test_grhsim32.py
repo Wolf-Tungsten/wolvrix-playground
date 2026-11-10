@@ -15,7 +15,7 @@ def arguments(output):
     return argparse.Namespace(config=flow.ROOT / 'config/grhsim32.json', output=output,
         jobs=8, runtime_cpus=','.join(map(str, range(32))), generated=output / 'generated',
         rtl=output / 'rtl', filelist=None, read_args=None, image=output / 'image',
-        nemu=output / 'nemu.so', codepages='auto', clean=False)
+        nemu=output / 'nemu.so', codepages='auto', performance=False, clean=False)
 
 
 class CleanFlowTests(unittest.TestCase):
@@ -92,7 +92,9 @@ class CleanFlowTests(unittest.TestCase):
     def test_clean_solve_runs_all_eight_seeds_and_selects_computed_minimum(self):
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp)
-            pipeline = flow.Pipeline(arguments(output))
+            args = arguments(output)
+            args.performance = True
+            pipeline = flow.Pipeline(args)
             pipeline.solver = Path('/solver')
             pipeline.solver_config = Path('/solver.ini')
             pipeline.cpus = list(range(32))
@@ -149,7 +151,9 @@ class CleanFlowTests(unittest.TestCase):
     def test_preload_starts_at_emu_after_affinity_and_aslr_helpers(self):
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp)
-            pipeline = flow.Pipeline(arguments(output))
+            args = arguments(output)
+            args.performance = True
+            pipeline = flow.Pipeline(args)
             pipeline.aslr_off, pipeline.numa = True, None
             calls = []
 
@@ -165,12 +169,37 @@ class CleanFlowTests(unittest.TestCase):
             self.assertNotIn('LD_PRELOAD', env)
             self.assertLess(cmd.index('setarch'), cmd.index('env'))
             self.assertTrue(cmd[cmd.index('env') + 1].startswith('LD_PRELOAD='))
+            self.assertEqual(env['WOLVI_REPCUT_PIN_THREADS'], '1')
             self.assertEqual(result['host_s'], 1.234)
+
+    def test_default_runtime_inherits_placement_and_skips_measurement_helpers(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp)
+            pipeline = flow.Pipeline(arguments(output))
+            calls = []
+
+            def command(cmd, log, env=None):
+                calls.append((list(map(str, cmd)), env))
+                log.write_text('Difftest enabled\nEXCEEDING CYCLE/INSTR LIMIT\n'
+                               'Host time spent: 1234ms\n[runtime-config] {"lanes":32}\n')
+
+            with patch.object(pipeline, 'run_command', side_effect=command):
+                result = pipeline.simulate(output / 'initial', output / 'runs', 'test', cycles=100)
+            cmd, env = calls[0]
+            self.assertEqual(cmd[0], str(output / 'initial/harness/grhsim-compile/emu'))
+            self.assertFalse(any(helper in cmd for helper in ('taskset', 'numactl', 'setarch')))
+            self.assertNotIn('LD_PRELOAD', env)
+            self.assertNotIn('REPCUT_CODEPAGE_MODE', env)
+            self.assertNotIn('XS_REPCUT_STEP_TIMING', env)
+            self.assertEqual(env['WOLVI_REPCUT_PIN_THREADS'], '0')
+            self.assertEqual(result['parts'], [])
 
     def test_failed_automatic_candidate_keeps_functional_initial_emu(self):
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp)
-            pipeline = flow.Pipeline(arguments(output))
+            args = arguments(output)
+            args.performance = True
+            pipeline = flow.Pipeline(args)
             initial = output / 'initial'
             selected = {'name': 'automatic_move', 'source': 0, 'destination': 1}
 
@@ -197,7 +226,9 @@ class CleanFlowTests(unittest.TestCase):
     def test_publishing_launcher_does_not_overwrite_an_emu_symlink_target(self):
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp)
-            pipeline = flow.Pipeline(arguments(output))
+            args = arguments(output)
+            args.performance = True
+            pipeline = flow.Pipeline(args)
             pipeline.aslr_off, pipeline.numa = False, None
             initial = output / 'initial'
             binary = initial / 'harness/grhsim-compile/emu'
@@ -247,6 +278,15 @@ class CleanFlowTests(unittest.TestCase):
         self.assertIn('grhsim32.py', completed.stdout)
         self.assertIn('--clean', completed.stdout)
         self.assertNotIn('XS_REPCUT_INITIAL_ASSIGNMENT=', completed.stdout)
+
+    def test_make_entry_exposes_the_same_pipeline_in_explicit_performance_mode(self):
+        completed = subprocess.run(['make', '--no-print-directory', '-n', 'xs_grhsim_perf',
+                                    'WOLF_ENV_SOURCED=', 'ENV_FILE=/absent'], cwd=flow.ROOT,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn('grhsim32.py', completed.stdout)
+        self.assertIn('--clean --performance', completed.stdout)
+        self.assertIn('grhsim32-perf', completed.stdout)
 
     @unittest.skipUnless((flow.ROOT / 'build/grhsim32-tools/bin/grhsim32_frontend').exists()
                          and (flow.ROOT / 'build/grhsim32-deps/solver-build-host/mt-kahypar/application/MtKaHyPar').exists(),

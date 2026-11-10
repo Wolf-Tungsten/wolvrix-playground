@@ -47,12 +47,8 @@ submodule supplies the CoreMark image and NEMU shared library used at the end.
    the feasible assignment with the lowest full-graph km1; seed breaks ties.
 6. Replay that assignment, apply memory-write-coalesce and reg-to-mem, emit the
    complete GrhSIM preset, and compile/link the 32-thread emulator.
-7. Run final NEMU functional tests and walltime measurements, then profile the
-   completed emulator. Select migration sources and destinations automatically,
-   subject to the existing communication budgets.
-8. If a migration candidate exists, generate it and compare fresh AB/BA samples.
-   Accept it only when both eight-pair rounds improve walltime with at least six
-   wins per round. Otherwise retain the initial assignment.
+7. Run one functional smoke test against the completed emulator.
+8. Publish the initial assignment as the user-facing `emu` launcher.
 
 All design intermediates are generated afresh on each build. The pipeline
 does not hash or compare intermediate inputs against prior records, and does not
@@ -66,14 +62,39 @@ not a structural memory-selection experiment. No source/destination partition
 numbers or old assignments occur in the configuration. The source graph and
 all six load dimensions are recomputed, rather than imported from a historical HGR.
 
-Generation and compilation use all online CPUs permitted by the kernel; they
-do not inherit an SSH shell's narrower affinity mask. Runtime selects 32 CPUs on
-the local machine, preferring one NUMA domain and separate physical cores. The
-host participates in the 32 lanes, with 31 background workers and all-spin
-waiting. CPU numbers, NUMA node, and hostname are not fixed. Code THP is attempted
-automatically, with normal pages available on kernels that cannot collapse them.
-ASLR is disabled when permitted. Final run records include the actual lane
-configuration and code-page coverage.
+The default build and launcher inherit the caller's CPU placement. They do not
+invoke `taskset`, `numactl`, or `setarch`, and the generated package does not pin
+worker threads or enable code-page remapping unless the caller explicitly sets
+those controls. The default flow performs no walltime search or post-run
+repartition; `migration/result.json` records that migration is disabled.
+
+## Performance exploration pipeline
+
+The same `scripts/grhsim32.py` pipeline has an explicit measurement mode for
+later performance exploration. It keeps the current 32-thread GrhSIM protocol:
+it broadens build affinity, selects a 32-CPU runtime placement, uses
+`taskset`/NUMA/ASLR controls when available, enables code-page handling, runs
+walltime samples, profiles the initial package, and evaluates automatic
+repartition candidates with AB/BA comparisons.
+
+Use a separate output directory so the exploration artifacts do not replace the
+user build:
+
+```bash
+make xs_grhsim_perf
+make run_xs_repcut_grhsim_perf   # repeat the measurement protocol
+make grhsim32_perf_plan          # print its stages without executing them
+```
+
+These Make targets pass `--performance` to the same Python entry point used by
+`make xs_grhsim`; they are not a second implementation. The default output is
+`build/xs/grhsim32/`, while the performance output is
+`build/xs/grhsim32-perf/`. The direct equivalent is:
+
+```bash
+python3 scripts/grhsim32.py --clean --performance \
+  --output build/xs/grhsim32-perf
+```
 
 ## Outputs and reruns
 
@@ -82,13 +103,21 @@ The default output is `build/xs/grhsim32/`:
 - `emu`: executable launcher with the 32-thread runtime and default workload.
 - `emu.bin`: link to the compiled ELF.
 - `result.json`: selected seed, retained assignment, final timings and migration decision.
-- `initial/runs/summary.json`: initial emulator's final functional/walltime samples.
-- `migration/`: automatic proposals, scores and the acceptance result.
+- `initial/runs/summary.json`: the default functional smoke result, or the
+  performance-mode walltime samples.
+- `migration/`: disabled metadata in the default build; automatic proposals,
+  scores and the acceptance result in performance mode.
 - `logs/`: dependency, RTL and generation logs.
 
+The performance target uses the same layout under
+`build/xs/grhsim32-perf/`, with walltime samples and automatic migration
+artifacts populated.
+
 ```bash
-make run_xs_repcut_grhsim   # measure the last built emulator again
+make run_xs_repcut_grhsim   # rerun the default functional smoke test
 make grhsim32_plan         # print the default stages without executing them
+make run_xs_repcut_grhsim_perf  # rerun the performance exploration output
+make grhsim32_perf_plan         # print performance exploration stages
 ```
 
 `make xs_grhsim` starts a clean build and replaces only this pipeline's output.

@@ -88,7 +88,8 @@ make run_c910_ref_test
 
 make run_xs_diff -j
 
-make xs_grhsim  # clean Verilog -> automatic 32-way partitioning -> emu + walltime
+make xs_grhsim  # clean Verilog -> 32-way partitioning -> functional emu
+make xs_grhsim_perf  # same pipeline with the walltime/placement/migration protocol
 make xs_grhsim_critical_path  # optional RTL / batch diagnostic report of that build
 
 make -C testcase/xs-bugcase/CASE_006 run
@@ -99,8 +100,9 @@ make run_xs_repcut_verilator XS_EMU_THREADS=32 XS_REPCUT_STEP_TIMING=1 XS_SIM_MA
 
 The default 32-thread GrhSIM pipeline is documented in
 [docs/grhsim32.md](docs/grhsim32.md). It builds from the current Verilog on the
-local machine, runs eight initial solves, selects migration endpoints
-automatically, and needs no historical experiment files or manual optimization flags.
+local machine, runs eight initial solves, and publishes a functional emulator.
+The optional `xs_grhsim_perf` target uses the same pipeline with the explicit
+walltime, placement, code-page, and automatic migration protocol.
 
 ## Output Locations
 

@@ -2,7 +2,8 @@ SHELL := /bin/bash
 REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 FST_ROI_DISCOVERY_GOALS := build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery
-GRHSIM32_GOALS := xs_grhsim build_xs_repcut_grhsim run_xs_repcut_grhsim grhsim32_plan xs_grhsim_critical_path
+GRHSIM32_GOALS := xs_grhsim build_xs_repcut_grhsim run_xs_repcut_grhsim grhsim32_plan xs_grhsim_critical_path \
+	xs_grhsim_perf build_xs_repcut_grhsim_perf run_xs_repcut_grhsim_perf grhsim32_perf_plan
 ifneq ($(filter $(FST_ROI_DISCOVERY_GOALS) $(GRHSIM32_GOALS),$(MAKECMDGOALS)),)
 SKIP_WOLF_ENV_CHECK := 1
 endif
@@ -232,6 +233,10 @@ XS_REPCUT_GRHSIM_EMU_BUILD_ABS := $(abspath $(XS_REPCUT_GRHSIM_EMU_BUILD))
 # no historical build product or manually supplied partition pair is an input.
 XS_GRHSIM32_OUTPUT ?= $(BUILD_DIR)/xs/grhsim32
 XS_GRHSIM32_ARGS ?=
+# Keep the performance protocol on the same Python pipeline, with a separate
+# output directory so a measurement build cannot replace the user build.
+XS_GRHSIM32_PERF_OUTPUT ?= $(BUILD_DIR)/xs/grhsim32-perf
+XS_GRHSIM32_PERF_ARGS ?=
 
 XS_DIFFTEST_GEN_DIR ?= $(XS_ROOT)/build/generated-src
 XS_DIFFTEST_GEN_DIR_ABS := $(abspath $(XS_DIFFTEST_GEN_DIR))
@@ -262,6 +267,7 @@ HDLBITS_GRHSIM_DUTS := $(sort $(patsubst grhtb_%,%,$(basename $(notdir $(HDLBITS
 	run_hdlbits_grhsim run_all_hdlbits_grhsim_tests xs_rtl xs_gsim_rtl xs_wolf_filelist xs_wolf_emit xs_wolf_hier_json xs_wolf_grhsim_emit xs_ref_emu xs_gsim_emu xs_wolf_emu xs_wolf_grhsim_emu run_xs_json_test \
 	run_xs_repcut run_xs_repcut_partitioned_smoke build_xs_repcut_verilator run_xs_repcut_verilator xs_diff_clean run_xs_ref_emu run_xs_gsim_emu run_xs_wolf_emu run_xs_wolf_grhsim_emu run_xs_diff \
 	build_xs_repcut_grhsim build_xs_repcut_grhsim_legacy run_xs_repcut_grhsim run_xs_repcut_grhsim_legacy build_xs_repcut_sim run_xs_repcut_sim xs_grhsim grhsim32_plan xs_grhsim_critical_path \
+	xs_grhsim_perf build_xs_repcut_grhsim_perf run_xs_repcut_grhsim_perf grhsim32_perf_plan \
 	xs_no0076_stats clean
 
 all: build
@@ -808,6 +814,10 @@ xs_grhsim build_xs_repcut_grhsim:
 	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --clean \
 		--output "$(abspath $(XS_GRHSIM32_OUTPUT))" $(XS_GRHSIM32_ARGS)
 
+xs_grhsim_perf build_xs_repcut_grhsim_perf:
+	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --clean --performance \
+		--output "$(abspath $(XS_GRHSIM32_PERF_OUTPUT))" $(XS_GRHSIM32_PERF_ARGS)
+
 XS_GRHSIM_CRITICAL_ARGS ?=
 xs_grhsim_critical_path:
 	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim_critical_path.py" run \
@@ -817,9 +827,17 @@ grhsim32_plan:
 	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --dry-run \
 		--output "$(abspath $(XS_GRHSIM32_OUTPUT))" $(XS_GRHSIM32_ARGS)
 
+grhsim32_perf_plan:
+	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --dry-run --performance \
+		--output "$(abspath $(XS_GRHSIM32_PERF_OUTPUT))" $(XS_GRHSIM32_PERF_ARGS)
+
 run_xs_repcut_grhsim:
 	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --run-only \
 		--output "$(abspath $(XS_GRHSIM32_OUTPUT))" $(XS_GRHSIM32_ARGS)
+
+run_xs_repcut_grhsim_perf:
+	@$(PYTHON) "$(REPO_ROOT)/scripts/grhsim32.py" --run-only --performance \
+		--output "$(abspath $(XS_GRHSIM32_PERF_OUTPUT))" $(XS_GRHSIM32_PERF_ARGS)
 
 build_xs_repcut_grhsim_legacy:
 	@if [ "$(XS_WAVEFORM)" != "0" ] || [ "$(XS_WAVEFORM_FULL)" != "0" ] || [ "$(WOLVRIX_GRHSIM_WAVEFORM)" != "0" ]; then \

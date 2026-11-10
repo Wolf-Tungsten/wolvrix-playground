@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Clean, portable Verilog -> 32-way GrhSIM -> automatic refinement -> emu.
+"""Clean, portable Verilog -> 32-way GrhSIM -> emu.
 
-Only source files, the checked-in configuration and normal tool dependencies
-are inputs. No historical build product or intermediate verifier is used.
+The production build uses only source files, the checked-in configuration and
+normal tool dependencies as inputs. Performance exploration is an explicit mode
+on the same pipeline; the default build does not apply measurement-only
+placement or migration.
 """
 from __future__ import annotations
 
@@ -116,13 +118,19 @@ def align_object(path, objcopy):
 class Pipeline:
     def __init__(self, args):
         self.args = args
+        self.performance = bool(getattr(args, 'performance', False))
         self.config = read(args.config)
         self.out = args.output.resolve()
         self.jobs = args.jobs or len(os.sched_getaffinity(0))
         self.cpus = sorted(os.sched_getaffinity(0))
-        self.runtime = cpu_list(args.runtime_cpus) if args.runtime_cpus else runtime_cpus(self.cpus)
-        if len(self.runtime) != 32:
-            raise ValueError('runtime CPUs must name 32 distinct CPUs')
+        if self.performance:
+            self.runtime = cpu_list(args.runtime_cpus) if args.runtime_cpus else runtime_cpus(self.cpus)
+            if len(self.runtime) != 32:
+                raise ValueError('runtime CPUs must name 32 distinct CPUs')
+        else:
+            self.runtime = None
+        self.aslr_off = False
+        self.numa = None
         self.cxx = compiler()
         self.cc = shutil.which(os.environ.get('CC', '')) or shutil.which('clang') or shutil.which('gcc')
         self.host_cxx = shutil.which('g++') or self.cxx
@@ -140,6 +148,50 @@ class Pipeline:
         self.env.update(self.config['options'])
         self.env['LC_ALL'] = 'C'
         self.env['NOOP_HOME'] = str(ROOT / 'testcase/xiangshan')
+
+    def _runtime_env(self, timing_path=None, trace=None):
+        env = dict(self.env, XS_EMU_THREADS='32',
+                   WOLVI_REPCUT_PIN_THREADS='1' if self.performance else '0')
+        if self.performance:
+            preload = str(self.build / 'libgrhsim32_collapse_retry.so') + ':' + str(
+                self.build / 'libgrhsim32_codepage.so')
+            env.update(LD_PRELOAD=preload,
+                       REPCUT_CODEPAGE_MODE=self.args.codepages,
+                       XS_REPCUT_STEP_TIMING='1',
+                       WOLVI_GRHSIM_CODE_HUGEPAGE='0')
+            if timing_path is not None:
+                env['WOLVI_REPCUT_TIMING_JSONL'] = str(timing_path)
+        if trace is not None:
+            env['REPCUT_CYCLE_TRACE_FILE'] = str(trace)
+        return env
+
+    def _runtime_prefix(self):
+        if not self.performance:
+            return []
+        command = []
+        if self.aslr_off:
+            command += ['setarch', platform.machine(), '-R']
+        if self.numa is not None and shutil.which('numactl'):
+            command = ['numactl', f'--preferred={self.numa}', *command]
+        command = ['taskset', '-c', ','.join(map(str, self.runtime)), *command]
+        return command
+
+    def _runtime_command(self, binary, cycles, timing_path=None, trace=None):
+        env = self._runtime_env(timing_path=timing_path, trace=trace)
+        command = self._runtime_prefix()
+        if self.performance:
+            command += ['env', 'LD_PRELOAD=' + env['LD_PRELOAD'],
+                        'REPCUT_CODEPAGE_MODE=' + env['REPCUT_CODEPAGE_MODE']]
+        command += [
+            str(binary), '-i', str(self.args.image.resolve()), '--diff', str(self.args.nemu.resolve()),
+            '-b', '0', '-e', '0', '-C', str(cycles)]
+        if self.performance:
+            # Keep preload/code-page variables after taskset/numactl/setarch;
+            # the helpers themselves must run with the ordinary environment.
+            env = dict(env)
+            env.pop('LD_PRELOAD')
+            env.pop('REPCUT_CODEPAGE_MODE')
+        return command, env
 
     def run_command(self, command, log, env=None, cwd=ROOT):
         log.parent.mkdir(parents=True, exist_ok=True)
@@ -254,7 +306,9 @@ class Pipeline:
         def one(seed):
             dest = self.out / 'solves' / f'seed{seed}'
             dest.mkdir(parents=True)
-            command = ['taskset', '-c', ','.join(map(str, groups[seed])), self.solver,
+            prefix = (['taskset', '-c', ','.join(map(str, groups[seed]))]
+                      if self.performance else [])
+            command = prefix + [self.solver,
                        '-h', reduced, '-k', str(32 - len(isolated)), '-e', self.config['epsilon'],
                        '-o', 'km1', '-p', self.solver_config, '-t', len(groups[seed]), '--seed', seed,
                        '--verbose', '1', '--write-partition-file', '1', '--partition-output-folder', dest]
@@ -335,20 +389,8 @@ class Pipeline:
     def simulate(self, stage, folder, name, cycles=100000, trace=None):
         folder.mkdir(parents=True, exist_ok=True)
         binary = stage / 'harness/grhsim-compile/emu'
-        preload = str(self.build / 'libgrhsim32_collapse_retry.so') + ':' + str(self.build / 'libgrhsim32_codepage.so')
-        command = ['env', 'LD_PRELOAD=' + preload, 'REPCUT_CODEPAGE_MODE=' + self.args.codepages,
-                   str(binary), '-i', str(self.args.image.resolve()), '--diff', str(self.args.nemu.resolve()),
-                   '-b', '0', '-e', '0', '-C', str(cycles)]
-        if self.aslr_off:
-            command = ['setarch', platform.machine(), '-R', *command]
-        if self.numa is not None and shutil.which('numactl'):
-            command = ['numactl', f'--preferred={self.numa}', *command]
-        command = ['taskset', '-c', ','.join(map(str, self.runtime)), *command]
-        env = dict(self.env, XS_EMU_THREADS='32', XS_REPCUT_STEP_TIMING='1',
-                   WOLVI_REPCUT_TIMING_JSONL=str(folder / (name + '.timing.jsonl')),
-                   WOLVI_GRHSIM_CODE_HUGEPAGE='0')
-        if trace:
-            env['REPCUT_CYCLE_TRACE_FILE'] = str(trace)
+        timing_path = folder / (name + '.timing.jsonl') if self.performance else None
+        command, env = self._runtime_command(binary, cycles, timing_path=timing_path, trace=trace)
         begin = time.monotonic()
         self.run_command(command, folder / (name + '.log'), env)
         elapsed = time.monotonic() - begin
@@ -359,7 +401,9 @@ class Pipeline:
             raise RuntimeError(name + ': functional failure')
         if 'EXCEEDING CYCLE/INSTR LIMIT' not in text:
             raise RuntimeError(name + ': requested cycle limit not reached')
-        parts = [json.loads(line) for line in (folder / (name + '.timing.jsonl')).read_text().splitlines() if line]
+        parts = []
+        if timing_path is not None and timing_path.exists():
+            parts = [json.loads(line) for line in timing_path.read_text().splitlines() if line]
         host = re.search(r'Host time spent: (\d+)ms', text)
         config = re.search(r'^\[runtime-config\] (\{.*\})$', text, re.M)
         if not config or json.loads(config[1])['lanes'] != 32:
@@ -368,15 +412,26 @@ class Pipeline:
         return dict(name=name, elapsed_s=elapsed, host_s=int(host[1]) / 1000,
                     functional='pass', runtime=json.loads(config[1]),
                     codepages=(dict(mode=page[1], bytes=int(page[2]), huge_bytes=int(page[3]), regions=int(page[4]))
-                               if page else None), parts=parts)
+                               if page else None), parts=parts,
+                    performance_mode=self.performance)
 
     def measure(self, stage, folder, repeats=8):
+        if not self.performance:
+            raise RuntimeError('walltime measurement requires --performance')
         self.stage('final functional and walltime runs: ' + stage.name)
         self.simulate(stage, folder, 'smoke', 100)
         runs = [self.simulate(stage, folder, f'run{i + 1:02d}') for i in range(repeats)]
         save(folder / 'summary.json', dict(runs=runs, walltime_median_s=statistics.median(r['elapsed_s'] for r in runs),
                                          host_median_s=statistics.median(r['host_s'] for r in runs)))
         return runs
+
+    def functional_smoke(self, stage, folder):
+        self.stage('functional smoke: ' + stage.name)
+        run = self.simulate(stage, folder, 'smoke', 100)
+        save(folder / 'summary.json', dict(mode='functional-smoke', runs=[run],
+                                           walltime_median_s=run['elapsed_s'],
+                                           host_median_s=run['host_s']))
+        return [run]
 
     def trace(self, initial):
         from repcut_cycle_instrument import instrument, SUFFIXES
@@ -488,6 +543,10 @@ class Pipeline:
         return median < 0 and wins >= 6
 
     def configure_runtime(self):
+        if not self.performance:
+            self.aslr_off = False
+            self.numa = None
+            return
         self.aslr_off = shutil.which('setarch') is not None and subprocess.run(
             ['setarch', platform.machine(), '-R', 'true'], stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL).returncode == 0
@@ -498,10 +557,18 @@ class Pipeline:
 
     def run_existing(self):
         result = read(self.out / 'result.json')
+        built_config = read(self.out / 'configuration.json')
+        if 'performance' not in built_config:
+            raise ValueError('output predates explicit GrhSIM runtime modes; run the matching clean Make target')
+        if bool(built_config.get('performance', False)) != self.performance:
+            raise ValueError('run mode does not match the built output; use the matching Make target')
         self.configure_runtime()
         stage = self.out / result['retained']
         folder = self.out / ('rerun-' + time.strftime('%Y%m%d-%H%M%S'))
-        self.measure(stage, folder, self.config['pairs'])
+        if self.performance:
+            self.measure(stage, folder, self.config['pairs'])
+        else:
+            self.functional_smoke(stage, folder)
         summary = read(folder / 'summary.json')
         print(json.dumps(dict(status='pass', report=str(folder / 'summary.json'),
                               walltime_median_s=summary['walltime_median_s'],
@@ -526,17 +593,27 @@ class Pipeline:
             shutil.rmtree(previous, ignore_errors=True)
         self.out.mkdir(parents=True)
         save(self.out / 'configuration.json', dict(config=self.config, compiler=self.cxx, jobs=self.jobs,
-                                                  runtime_cpus=self.runtime, codepages=self.args.codepages))
+                                                  performance=self.performance,
+                                                  runtime_cpus=self.runtime,
+                                                  codepages=self.args.codepages if self.performance else None,
+                                                  migration='automatic' if self.performance else 'disabled',
+                                                  runtime_placement='managed' if self.performance else 'inherited'))
         self.configure_runtime()
         self.dependencies()
         self.inputs()
         labels = self.solve()
         initial = self.out / 'initial'
         self.emit(initial, labels)
-        measured = self.measure(initial, initial / 'runs', self.config['pairs'])
-        retained = self.search(initial, measured)
-        if retained != initial:
-            self.measure(retained, retained / 'runs', self.config['pairs'])
+        if self.performance:
+            measured = self.measure(initial, initial / 'runs', self.config['pairs'])
+            retained = self.search(initial, measured)
+            if retained != initial:
+                self.measure(retained, retained / 'runs', self.config['pairs'])
+        else:
+            retained = initial
+            self.functional_smoke(initial, initial / 'runs')
+            save(self.out / 'migration' / 'result.json',
+                 dict(accepted=False, disabled=True, reason='production-default'))
         self.publish(retained)
 
     def publish(self, retained):
@@ -546,30 +623,35 @@ class Pipeline:
             if path.is_symlink():
                 path.unlink()
         (self.out / 'emu.bin').symlink_to(binary)
-        preload = str(self.build / 'libgrhsim32_collapse_retry.so') + ':' + str(self.build / 'libgrhsim32_codepage.so')
-        launch = ['taskset', '-c', ','.join(map(str, self.runtime))]
-        if self.numa is not None and shutil.which('numactl'):
-            launch += ['numactl', f'--preferred={self.numa}']
-        if self.aslr_off:
-            launch += ['setarch', platform.machine(), '-R']
-        launch += ['env', 'LD_PRELOAD=' + preload, 'REPCUT_CODEPAGE_MODE=' + self.args.codepages,
-                   str(binary), '-i', str(self.args.image.resolve()), '--diff', str(self.args.nemu.resolve()),
+        launch = self._runtime_prefix()
+        if self.performance:
+            env = self._runtime_env()
+            assignments = [f'{key}={env[key]}' for key in
+                           ('LD_PRELOAD', 'REPCUT_CODEPAGE_MODE', 'XS_REPCUT_STEP_TIMING',
+                            'WOLVI_GRHSIM_CODE_HUGEPAGE', 'WOLVI_REPCUT_PIN_THREADS')]
+            launch += ['env', *assignments]
+        else:
+            launch += ['env', 'WOLVI_REPCUT_PIN_THREADS=0']
+        launch += [str(binary), '-i', str(self.args.image.resolve()), '--diff', str(self.args.nemu.resolve()),
                    '-C', str(self.config['cycles']), '-b', '0', '-e', '0']
         launcher = self.out / 'emu'
-        launcher.write_text('#!/bin/sh\nexport XS_EMU_THREADS=32 XS_REPCUT_STEP_TIMING=1\n'
-                            'export WOLVI_GRHSIM_CODE_HUGEPAGE=0\n' +
+        launcher.write_text('#!/bin/sh\nexport XS_EMU_THREADS=32\n' +
+                            ('export XS_REPCUT_STEP_TIMING=1\n' if self.performance else '') +
                             '\nexec ' + shlex.join(launch) + ' "$@"\n')
         launcher.chmod(0o755)
         (self.out / 'package').symlink_to(retained / 'package', target_is_directory=True)
+        migration = read(self.out / 'migration/result.json')
         save(self.out / 'result.json', dict(status='pass', retained=retained.name,
                                           selected_seed=read(self.out / 'selection.json')['selected']['seed'],
                                           emu=str(self.out / 'emu'), runtime_cpus=self.runtime,
                                           aslr_disabled=self.aslr_off, numa_node=self.numa,
+                                          performance=self.performance,
                                           timings=read(retained / 'runs/summary.json'),
-                                          migration=read(self.out / 'migration/result.json')))
+                                          migration=migration))
         self.stage('complete: ' + str(self.out / 'emu'))
         result = read(self.out / 'result.json')
         print(json.dumps(dict(selected_seed=result['selected_seed'], retained=retained.name,
+                              performance=result['performance'],
                               walltime_median_s=result['timings']['walltime_median_s'],
                               migration_accepted=result['migration']['accepted'],
                               report=str(self.out / 'result.json')), indent=2))
@@ -589,19 +671,24 @@ def main():
     parser.add_argument('--jobs', type=int)
     parser.add_argument('--runtime-cpus')
     parser.add_argument('--codepages', choices=('auto', 'thp', 'small', 'file'), default='auto')
+    parser.add_argument('--performance', action='store_true',
+                        help='enable the walltime exploration protocol: placement, code pages and migration')
     parser.add_argument('--clean', action='store_true')
     parser.add_argument('--dry-run', action='store_true', help='show stages and resolved machine settings only')
     parser.add_argument('--run-only', action='store_true', help='measure the emu produced by the last clean build')
     args = parser.parse_args()
-    if not args.run_only:
+    if not args.run_only and args.performance:
         enable_generation_cpus()
     pipeline = Pipeline(args)
     if args.dry_run:
-        print(json.dumps(dict(stages=['native-tools', 'solver-source', 'verilog', 'mem-to-reg', 'fresh-six-axis-HGR',
-                                     '8-solves-min-km1', 'replay', 'full-preset-emit', 'compile',
-                                     'final-functional-walltime', 'automatic-migration', 'final-emu'],
+        stages = ['native-tools', 'solver-source', 'verilog', 'mem-to-reg', 'fresh-six-axis-HGR',
+                  '8-solves-min-km1', 'replay', 'full-preset-emit', 'compile']
+        stages += (['final-functional-walltime', 'automatic-migration', 'final-emu']
+                   if args.performance else ['functional-smoke', 'final-emu'])
+        print(json.dumps(dict(stages=stages,
                               output=str(pipeline.out), compiler=pipeline.cxx, jobs=pipeline.jobs,
-                              runtime_cpus=pipeline.runtime, config=pipeline.config), indent=2))
+                              performance=args.performance, runtime_cpus=pipeline.runtime,
+                              config=pipeline.config), indent=2))
         return
     if args.run_only:
         pipeline.run_existing()
