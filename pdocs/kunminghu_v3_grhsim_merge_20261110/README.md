@@ -64,6 +64,10 @@ CoreMark、100,000 周期、完整 DiffTest/NEMU，每组 8 对 AB/BA，正数�
 | 历史与 before 的源 Verilog 内容 | [TNO0026](./TNO0026_historical_before_verilog_content_20261111.md) | 2,097 个生成 RTL 中 44 个内容不同，含表达式变化；追加 TNO0025 因果判断与 HGR 描述勘误 |
 | before 独立 8-seed 重试 | [TNO0027](./TNO0027_before_partition_retry_20261111.md) | 选中 seed2，km1 比原选择低 0.15249%；功能和性能结果在文末追加 |
 | 新 seed2 的 Clang 23 重编译 | [TNO0028](./TNO0028_seed2_clang23_recompile_20261111.md) | 固定生成 C++，Clang 19 / 23 配对；完成结果在文末追加 |
+| 三组统一 Clang 23 重编译口径 | [TNO0029](./TNO0029_all_clang23_rebuild_protocol_20261111.md) | GSIM、native GrhSIM、RepCut 前后六份 emulator 重编译；分组结果后续独立归档 |
+| Clang 23 RepCut 前后对测 | [TNO0030](./TNO0030_clang23_repcut_merge_comparison_20261111.md) | before seed2 / after seed7，11.702 → 17.883 s，after +52.845%，8/8 更慢 |
+| Clang 23 单核 GSIM 前后对测 | [TNO0031](./TNO0031_clang23_gsim_merge_comparison_20261111.md) | 78.974 → 106.913 s，after +35.378%，8/8 更慢 |
+| Clang 23 单核 GrhSIM 与总核对 | [TNO0032](./TNO0032_clang23_native_merge_comparison_20261111.md) | native 110.015 → 140.255 s，after +27.489%；六份构建、三组各 8 对、70 次运行全部通过 |
 
 ### 2026-11-11 源内容审计与 before 分区重试完成
 
@@ -74,3 +78,15 @@ CoreMark、100,000 周期、完整 DiffTest/NEMU，每组 8 对 AB/BA，正数�
 ### 2026-11-11 同一 seed2 使用 Clang 23 完成对测
 
 固定 seed2 的全部生成 C++，模型及 DiffTest harness 改用 Clang 23.1.2 重编译，在相同 CPU96–127/NUMA1/ASLR-disabled 条件下完成 8 对 AB/BA。Host 均值 **16.370 → 11.405 s**，配对变化 **−30.324%**，95% CI **[−30.698%, −29.884%]**，8/8 更快；外部 walltime **16.460 → 11.496 s**，下降 **30.154%**。22 次运行全部通过完整 DiffTest、功能签名和 placement 门。结果回到历史标准 pipeline 的 11 秒量级，说明编译器版本是重要变量，详见 [TNO0028](./TNO0028_seed2_clang23_recompile_20261111.md)。
+
+### 2026-11-11 三组前后版本统一 Clang 23 完成复测
+
+六份 emulator 的冻结生成模型和对应 DiffTest harness 均重新使用 Clang 23.1.2 编译，node030、CPU96 / CPU96–127、NUMA1、ASLR disabled、完整 DiffTest，各 8 对 AB/BA。
+
+| 模拟器 | before / after Host 均值 | after 配对 delta | 95% CI |
+| --- | ---: | ---: | ---: |
+| GSIM 单核 | 78.974 / 106.913 s | +35.378% | [+35.129%, +35.615%] |
+| GrhSIM 单核 | 110.015 / 140.255 s | +27.489% | [+27.066%, +27.963%] |
+| RepCut GrhSIM 32 线程 | 11.702 / 17.883 s | +52.845% | [+51.392%, +54.038%] |
+
+三组均 after 8/8 更慢。全部 70 次功能、验证、预热及计时运行通过，没有拒绝样本。RepCut before 使用新 seed2，after 沿用原 retained seed7，因此包含既有分区选择差异。详细口径及产物见 [TNO0029](./TNO0029_all_clang23_rebuild_protocol_20261111.md)、[TNO0030](./TNO0030_clang23_repcut_merge_comparison_20261111.md)、[TNO0031](./TNO0031_clang23_gsim_merge_comparison_20261111.md)、[TNO0032](./TNO0032_clang23_native_merge_comparison_20261111.md)，[综合 JSON](../../build/artifacts/kunminghu-v3-clang23-retest-20261111/report.json)。
