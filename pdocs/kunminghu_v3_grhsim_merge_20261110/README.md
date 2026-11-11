@@ -18,6 +18,18 @@ CoreMark、100,000 周期、完整 DiffTest/NEMU，每组 8 对 AB/BA，正数�
 
 单核 8/8 合并后更慢。32 线程主实验存在明显的跨时段变化，同配置复测没有复现其幅度，因此不能确定稳定的 32 线程版本差异。两轮独立归档，不合并、不丢弃慢样本。结果包含上游 DefaultConfig、微架构和缓存容量变化。
 
+### 2026-11-11 固定 CPU 补测
+
+在 node030、单核 CPU96、RepCut CPU96–127、NUMA1、ASLR disabled 条件下，使用同一冻结 CoreMark/NEMU、100,000 周期、完整 DiffTest/NEMU、8 对 AB/BA 重新测量。共同终止条件和 workload 输出通过；跨版本 PC/提交进度按 revision-specific 规则单独保留。正数表示 after 更慢：
+
+| 测量 | after Host time delta | 95% CI | after 更快 |
+| --- | ---: | ---: | ---: |
+| 单核 GSIM | +34.774% | [+33.872%, +35.624%] | 0/8 |
+| 单核 GrhSIM CPU96 | +31.459% | [+28.719%, +35.527%] | 0/8 |
+| 32 线程 RepCut CPU96–127 | −5.460% | [−5.841%, −5.011%] | 8/8 |
+
+这是整版 XiangShan revision、DefaultConfig 和所跟踪 DiffTest 的比较，不能分离解释为 GSIM/GrhSIM 后端优化收益。完整机器可读汇总见 [follow-up report](../../build/artifacts/kunminghu-v3-gsim-followup-20261111/report.json)，分组结果和 placement 证据见 [TNO0021](./TNO0021_gsim_paired_walltime_20261111.md)、[TNO0022](./TNO0022_grhsim_cpu96_followup_20261111.md)、[TNO0023](./TNO0023_repcut_cpu96_127_followup_20261111.md)。
+
 [总报告](../../build/artifacts/kunminghu-v3-grhsim-merge-20261110/report.json) 保留 Host time、外部 walltime、功能签名、输入身份和配对数据链接。
 
 ## 记录
@@ -44,3 +56,6 @@ CoreMark、100,000 周期、完整 DiffTest/NEMU，每组 8 对 AB/BA，正数�
 | RepCut 8 对主实验 | [TNO0018](./TNO0018_repcut_primary_paired_walltime_20261110.md) | 平均 +32.179%，中位数 +18.341%；中途明显时间漂移 |
 | RepCut 同 binary 复测 | [TNO0019](./TNO0019_repcut_confirmation_20261110.md) | 平均 +2.904%，CI 跨零；没有复现主实验幅度 |
 | 最终源码、验证与归档 | [TNO0020](./TNO0020_completion_and_artifact_manifest_20261110.md) | 合并与对测完成；四种模型 manifest、原始数据和验证索引齐备 |
+| GSIM 合并前后补测 | [TNO0021](./TNO0021_gsim_paired_walltime_20261111.md) | 8 对通过；after Host time +34.774%，CI [+33.872%, +35.624%] |
+| 单核 GrhSIM CPU96 补测 | [TNO0022](./TNO0022_grhsim_cpu96_followup_20261111.md) | 8 对通过；after Host time +31.459%，CI [+28.719%, +35.527%] |
+| RepCut CPU96–127 补测 | [TNO0023](./TNO0023_repcut_cpu96_127_followup_20261111.md) | 8 对通过；after Host time −5.460%，CI [−5.841%, −5.011%] |
