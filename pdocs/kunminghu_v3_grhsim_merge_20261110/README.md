@@ -63,9 +63,14 @@ CoreMark、100,000 周期、完整 DiffTest/NEMU，每组 8 对 AB/BA，正数�
 | 历史标准 RepCut pipeline 复核 | [TNO0025](./TNO0025_repcut_historical_standard_pipeline_audit_20261111.md) | seed7 标准 pipeline 当前 runner 11.0525 s；merge-before 17.039 s，Host delta +53.881% |
 | 历史与 before 的源 Verilog 内容 | [TNO0026](./TNO0026_historical_before_verilog_content_20261111.md) | 2,097 个生成 RTL 中 44 个内容不同，含表达式变化；追加 TNO0025 因果判断与 HGR 描述勘误 |
 | before 独立 8-seed 重试 | [TNO0027](./TNO0027_before_partition_retry_20261111.md) | 选中 seed2，km1 比原选择低 0.15249%；功能和性能结果在文末追加 |
+| 新 seed2 的 Clang 23 重编译 | [TNO0028](./TNO0028_seed2_clang23_recompile_20261111.md) | 固定生成 C++，Clang 19 / 23 配对；完成结果在文末追加 |
 
 ### 2026-11-11 源内容审计与 before 分区重试完成
 
 历史标准 pipeline 与当前 before 的 2,097 个生成 Verilog 中，44 个内容不同；除断言行号、Git 常量和命名变化外，还有表达式与连接/日志顺序变化，详见 [TNO0026](./TNO0026_historical_before_verilog_content_20261111.md)。因此两者不能视为同一份 RTL。
 
 复用当前 before 冻结图重跑 seeds 0–7，选中新 seed2。node030、CPU96–127、NUMA1、ASLR disabled、完整 DiffTest 下，两组各 8 对 AB/BA 均通过：相对原 initial 快 **8.479%**；相对原 retained 快 **8.548%**，95% CI **[−9.433%, −7.658%]**，Host 均值 17.881 → 16.351 s。全部 41 次运行通过功能与 placement 门。重试找到更快方案，但没有恢复历史 10–12 秒水平；详细结果见 [TNO0027](./TNO0027_before_partition_retry_20261111.md)，原基线保持归档。
+
+### 2026-11-11 同一 seed2 使用 Clang 23 完成对测
+
+固定 seed2 的全部生成 C++，模型及 DiffTest harness 改用 Clang 23.1.2 重编译，在相同 CPU96–127/NUMA1/ASLR-disabled 条件下完成 8 对 AB/BA。Host 均值 **16.370 → 11.405 s**，配对变化 **−30.324%**，95% CI **[−30.698%, −29.884%]**，8/8 更快；外部 walltime **16.460 → 11.496 s**，下降 **30.154%**。22 次运行全部通过完整 DiffTest、功能签名和 placement 门。结果回到历史标准 pipeline 的 11 秒量级，说明编译器版本是重要变量，详见 [TNO0028](./TNO0028_seed2_clang23_recompile_20261111.md)。
