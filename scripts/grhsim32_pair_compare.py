@@ -18,7 +18,7 @@ import time
 from grhsim32 import Pipeline, ROOT, cpu_list, enable_generation_cpus, read, save
 from grhsim_numa import inspect_locality, locality_errors, runtime_plan
 from grhsim_single_baseline import identity, parse_run
-from grhsim_single_compare import pair_order, summarize
+from grhsim_single_compare import pair_order, revision_signature, summarize
 
 
 def validate_builds(configs, results):
@@ -75,20 +75,28 @@ def signature(row):
             ('pc', 'instr_count', 'cycle_count', 'guest_cycles', 'stop_reason', 'workload_output')}
 
 
+def select_runtime_cpus(configs, override=None):
+    cpus = cpu_list(override) if override else configs['A']['runtime_cpus']
+    if len(cpus) != 32 or len(set(cpus)) != 32:
+        raise ValueError('runtime CPU override must name 32 distinct CPUs')
+    return cpus
+
+
 class Runner:
-    def __init__(self, build, directory, config, result, image, nemu):
+    def __init__(self, build, directory, config, result, image, nemu, runtime_cpus):
         self.directory = directory
         directory.mkdir(parents=True)
         save(directory / 'config.json', config['config'])
         args = argparse.Namespace(config=directory / 'config.json', output=build,
                                   xs_config=config.get('xs_config', 'DefaultConfig'), jobs=1,
-                                  performance=True, runtime_cpus=','.join(map(str, config['runtime_cpus'])),
+                                  performance=True, runtime_cpus=','.join(map(str, runtime_cpus)),
                                   image=image, nemu=nemu, codepages=config['codepages'])
         self.pipeline = Pipeline(args)
         self.pipeline.configure_runtime()
-        self.node = result['numa_node']
-        if not self.pipeline.aslr_off or self.pipeline.numa != self.node:
-            raise ValueError('runtime placement no longer matches the build')
+        self.build_node = result['numa_node']
+        self.node = self.pipeline.numa
+        if not self.pipeline.aslr_off or self.node is None:
+            raise ValueError('runtime CPU set does not resolve to an ASLR-disabled NUMA placement')
         self.original = identity(build / result['retained'] / 'harness/grhsim-compile/emu')
         plan = runtime_plan(self.original['path'], nemu, image, directory / 'runtime',
                             self.pipeline.runtime[0], self.node, self.pipeline.env)
@@ -210,7 +218,7 @@ class Runner:
                 raise ValueError('runtime dependency changed: ' + entry['destination'])
         row.update(name=name, external_wall_s=completion['wall_s'], runtime=runtime,
                    codepages=pages[0], locality_pass=True, thread_counts=sorted(observed),
-                   numa_policy='bind', numa_node=self.node,
+                   numa_policy='bind', numa_node=self.node, build_numa_node=self.build_node,
                    binary_sha256=self.frozen['sha256'])
         save(prefix.with_suffix('.json'), row)
         print(json.dumps(dict(name=name,host_ms=row['host_ms'],wall_s=row['external_wall_s'])), flush=True)
@@ -226,6 +234,8 @@ def main():
     p.add_argument('--nemu', required=True, type=Path)
     p.add_argument('--pairs', type=int, default=8)
     p.add_argument('--cycles', type=int, default=100000)
+    p.add_argument('--runtime-cpus',
+                   help='override build-time CPU metadata with a 32-CPU runtime affinity set')
     args = p.parse_args()
     if not platform.node().startswith('node030') or args.pairs < 8 or args.cycles < 100000:
         p.error('requires node030, at least 8 pairs and 100000 cycles')
@@ -235,6 +245,7 @@ def main():
     configs = {key: read(path / 'configuration.json') for key, path in builds.items()}
     results = {key: read(path / 'result.json') for key, path in builds.items()}
     validate_builds(configs, results)
+    run_cpus = select_runtime_cpus(configs, args.runtime_cpus)
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=False)
     save(out / 'manifest.json', dict(builds={key: str(path) for key, path in builds.items()},
@@ -242,10 +253,16 @@ def main():
                                     nemu=identity(args.nemu), driver=identity(__file__),
                                     pipeline=identity(ROOT / 'scripts/grhsim32.py'),
                                     numa_policy='bind',
+                                    build_runtime_cpus=configs['A']['runtime_cpus'],
+                                    runtime_cpus=run_cpus,
+                                    runtime_numa_node=next(
+                                        int(path.parent.name[4:])
+                                        for path in Path('/sys/devices/system/node').glob('node[0-9]*/cpulist')
+                                        if set(run_cpus) <= set(cpu_list(path.read_text().strip()))),
                                     pairs=args.pairs, cycles=args.cycles, order=pair_order(args.pairs)))
-    runners = {key: Runner(path, out / key, configs[key], results[key], args.image, args.nemu)
+    runners = {key: Runner(path, out / key, configs[key], results[key], args.image, args.nemu, run_cpus)
                for key, path in builds.items()}
-    monitor = next(cpu for cpu in sorted(os.sched_getaffinity(0)) if cpu not in configs['A']['runtime_cpus'])
+    monitor = next(cpu for cpu in sorted(os.sched_getaffinity(0)) if cpu not in run_cpus)
     os.sched_setaffinity(0, {monitor})
     signatures = {}
     for key, runner in runners.items():
@@ -253,6 +270,8 @@ def main():
         signatures[key] = signature(runner.run('verify', args.cycles))
         if signature(runner.run('warmup', args.cycles)) != signatures[key]:
             raise ValueError(key + ': warmup signature differs from verification')
+    if revision_signature(signatures['A']) != revision_signature(signatures['B']):
+        raise ValueError('before/after termination, guest cycles, or workload output differs')
     save(out / 'functional.json', dict(pass_=True, variants=signatures,
          differences={key: [signatures['A'][key], signatures['B'][key]] for key in signatures['A']
                       if signatures['A'][key] != signatures['B'][key]},

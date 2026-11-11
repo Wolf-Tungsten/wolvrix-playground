@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Paired native GrhSIM emu runs with shared NUMA/affinity verification."""
+"""Paired native GrhSIM or GSIM runs with shared NUMA/affinity verification."""
 import argparse
 import csv
 import json
@@ -17,7 +17,7 @@ def resolve_binary(path):
     path=Path(path).resolve()
     candidate=path/'emu/grhsim-compile/emu' if path.is_dir() else path
     if not candidate.is_file():
-        raise ValueError(f'not a native GrhSIM binary or output directory: {path}')
+        raise ValueError(f'not a simulator binary or output directory: {path}')
     return candidate
 
 
@@ -30,6 +30,7 @@ def summarize(pairs):
     rng=random.Random(20261102)
     boot=sorted(statistics.mean(rng.choices(deltas,k=len(deltas))) for _ in range(10000))
     return dict(pairs=len(pairs),delta_percent_mean=statistics.mean(deltas),
+        bootstrap_seed=20261102,bootstrap_resamples=10000,
         delta_percent_median=statistics.median(deltas),delta_percent_ci95=[boot[249],boot[9749]],
         candidate_faster_pairs=sum(d<0 for d in deltas),
         baseline_s_mean=statistics.mean(r['A']['host_ms']/1000 for r in pairs),
@@ -75,6 +76,11 @@ def run_signature(row, common_only=False):
     return {key:row[key] for key in fields}
 
 
+def revision_signature(row):
+    """Fields comparable across upstream revisions with different schemas."""
+    return {key:row[key] for key in ('guest_cycles','stop_reason','workload_output')}
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--baseline',type=Path,required=True);p.add_argument('--candidate',type=Path,required=True)
@@ -82,6 +88,8 @@ def main():
     p.add_argument('--output',type=Path,required=True);p.add_argument('--pairs',type=int,default=8)
     p.add_argument('--cycles',type=int,default=100000)
     p.add_argument('--runtime-difftest',choices=['on','off'],default='on')
+    p.add_argument('--simulator',choices=['grhsim','gsim'],default='grhsim',
+                   help='engine identity for validating frozen single-thread binaries')
     p.add_argument('--baseline-runtime-difftest',choices=['on','off'])
     p.add_argument('--candidate-runtime-difftest',choices=['on','off'])
     p.add_argument('--candidate-sim-primitives', choices=['none','priority-encode','popcount','popcount-ge4','gray-decode','decode-table'], default='priority-encode')
@@ -132,6 +140,7 @@ def main():
     manifest=dict(binaries={k:identity(v) for k,v in names.items()},image=identity(args.image),
         nemu=identity(args.nemu) if 'on' in modes.values() else None,
         runtime_difftest='mixed' if mixed_modes else modes['A'],runtime_difftest_by_variant=modes,
+        simulator=args.simulator,
         build_configurations=build_configs,
         headers=[identity(x) for x in headers],pairs=args.pairs,cycles=args.cycles,
         driver=identity(__file__),runner=identity(ROOT/'scripts/grhsim_single_baseline.py'),
@@ -160,6 +169,7 @@ def main():
             model_difftest=build_difftest_modes[name]['model'],
             compile_difftest=build_difftest_modes[name]['compile'],
             runtime_difftest=modes[name],
+            simulator=args.simulator,
             xs_config=build_configs[name].get('config', 'DefaultConfig'),
             skip_idle_check=args.skip_idle_check,
             cpu=96,jobs=1,cycles=args.cycles,repeats=args.pairs)
@@ -187,6 +197,8 @@ def main():
                     verification_rows.append(run(name,f'verify-s{seed}',seed=seed,
                                                  extra=['--dump-difftrace',f'./trace_s{seed}']))
                 paths=[prepared[n]['binary'].parent/f'trace_s{seed}' for n in ['A','B']]
+            if args.allow_schema_change and revision_signature(verification_rows[0]) != revision_signature(verification_rows[1]):
+                raise ValueError('before/after termination, guest cycles, or workload output differs in verification')
             if comparator is not None:
                 check=compare_traces(comparator,*paths,out/f'trace-s{seed}.json')
                 check['coverage']=[validate_trace_coverage(check,row) for row in verification_rows]
@@ -236,7 +248,7 @@ def main():
             # An upstream microarchitecture merge can change architectural
             # progress at a fixed cycle budget. Each revision must still be
             # deterministic and independently pass NEMU with full DiffTest.
-            current=({key:row[key] for key in ('guest_cycles','stop_reason')}
+            current=(revision_signature(row)
                      if args.allow_schema_change else run_signature(row,common_only=mixed_modes))
             if signature is None:signature=current
             if current!=signature:raise ValueError('functional signatures differ across A/B')
@@ -250,20 +262,20 @@ def main():
     if 'H' in names and signature is not None:
         expected=signature
         for anchor in anchors:
-            observed=({key:anchor[key] for key in ('guest_cycles','stop_reason')}
+            observed=(revision_signature(anchor)
                       if args.allow_schema_change else run_signature(anchor,common_only=mixed_modes))
             if observed!=expected:
                 raise ValueError(f'historical anchor functional signature differs: {observed} != {expected}')
     save(out/'summary.json',dict(**summarize(results),samples=results,historical=anchors,
         external_wall=summarize([{n:dict(host_ms=row[n]['external_wall_s']*1000) for n in ('A','B')}
                                  for row in results]),
-        trace_checks=trace_checks,footprint_check=footprint_check,
+        trace_checks=trace_checks,footprint_check=footprint_check,simulator=args.simulator,
         runtime_difftest='mixed' if mixed_modes else modes['A'],runtime_difftest_by_variant=modes,
         build_difftest_modes=build_difftest_modes,
         variant_functional_signatures=variant_signatures,
         cross_revision_progress_comparison={key:[results[0]['A'].get(key),results[0]['B'].get(key)]
             for key in ('pc','instr_count','cycle_count','guest_cycles','stop_reason','workload_output')},
-        functional_signature=signature,scope='Native full SimTop; Host time includes harness'))
+        functional_signature=signature,scope=f'{args.simulator} full SimTop; Host time includes harness'))
     with (out/'pairs.csv').open('w') as f:
         w=csv.writer(f);w.writerow(['pair','order','A_host_s','B_host_s','delta_percent','A_external_s','B_external_s'])
         for r in results:w.writerow([r['pair'],''.join(r['order']),r['A']['host_ms']/1000,r['B']['host_ms']/1000,

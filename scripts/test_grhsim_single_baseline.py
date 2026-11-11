@@ -5,7 +5,8 @@ from pathlib import Path
 import tempfile
 from unittest.mock import Mock
 
-from grhsim_single_baseline import Baseline, parse_run, validate_difftest_modes
+from grhsim_single_baseline import (Baseline, parse_run, validate_difftest_modes,
+                                    validate_simulator_binary)
 from grhsim_numa import inspect_locality, locality_errors
 
 
@@ -31,6 +32,39 @@ class BaselineLogTests(unittest.TestCase):
                      self.LOG.replace('12,345ms', '0ms')]:
             with self.subTest(log=text), self.assertRaises(ValueError):
                 parse_run(text, 100000)
+
+    def test_engine_binary_classification(self):
+        grhsim = '0000000000000000 T GrhSIM_SimTop::eval()\n'
+        gsim = '0000000000000000 T SSimTop::step()\n'
+        with tempfile.TemporaryDirectory() as directory:
+            binary = Path(directory) / 'emu'
+            binary.write_bytes(b'emu')
+            validate_simulator_binary(binary, 'grhsim', grhsim)
+            validate_simulator_binary(binary, 'gsim', gsim)
+            with self.assertRaisesRegex(ValueError, 'GSIM'):
+                validate_simulator_binary(binary, 'gsim', grhsim)
+            with self.assertRaisesRegex(ValueError, 'GrhSIM'):
+                validate_simulator_binary(binary, 'grhsim', gsim)
+            with self.assertRaisesRegex(ValueError, 'SSimTop'):
+                validate_simulator_binary(binary, 'gsim', 'T VSimTop::eval()')
+
+    def test_gsim_cycle_limit_log_preserves_partial_uart(self):
+        log = '''emu compiled at Nov 11 2026, 12:10:02
+The image is workload.bin
+[DIFFTEST_INIT] core=0 state=0x1 store_q_addr=0x2 store_qsize=0
+The reference model is nemu.so
+The first instruction of core 0 has commited. Difftest enabled.
+Running CoreM[CYCLE_LIMIT] cycles=10000 max_cycles=10000
+Core 0: EXCEEDING CYCLE/INSTR LIMIT at pc = 0x800027c6
+Core-0 instrCnt = 458, cycleCnt = 9998, IPC = 0.045809
+Seed=0 Guest cycle spent: 10001 (this will be different from cycleCnt if emu loads a snapshot)
+Host time spent: 4088ms
+'''
+        row=parse_run(log,10000)
+        self.assertEqual(row['workload_output'],'Running CoreM')
+        self.assertEqual((row['instr_count'],row['cycle_count'],row['guest_cycles']),
+                         (458,9998,10001))
+        self.assertEqual(row['stop_reason'],'cycle-limit')
 
     def test_upstream_grouped_architectural_counters(self):
         row=parse_run(self.LOG.replace('240349','240,349').replace('99996','99,996'),100000)

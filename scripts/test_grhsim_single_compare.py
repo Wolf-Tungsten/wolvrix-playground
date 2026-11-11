@@ -4,7 +4,8 @@ import tempfile
 import unittest
 
 from grhsim_difftrace import build_comparator, compare_traces, validate_trace_coverage
-from grhsim_single_compare import build_modes, compare_footprints, pair_order, run_signature, runtime_modes, summarize
+from grhsim_single_compare import (build_modes, compare_footprints, pair_order,
+                                   revision_signature, run_signature, runtime_modes, summarize)
 
 
 class PairTests(unittest.TestCase):
@@ -61,6 +62,15 @@ class FootprintTests(unittest.TestCase):
         self.assertNotEqual(run_signature(off),run_signature(on))
         for change in (dict(guest_cycles=100000),dict(workload_output='wrong'),dict(stop_reason='other')):
             self.assertNotEqual(run_signature(off,True),run_signature(dict(on,**change),True))
+
+    def test_cross_revision_signature_includes_uart_but_not_schema_specific_progress(self):
+        a=dict(guest_cycles=100001,stop_reason='cycle-limit',workload_output='Running CoreMark\n',
+               pc='0x80000000',instr_count=10,cycle_count=8)
+        b=dict(a,pc='0x80001000',instr_count=12,cycle_count=9)
+        self.assertEqual(revision_signature(a),revision_signature(b))
+        for change in (dict(guest_cycles=100000),dict(stop_reason='trap'),
+                       dict(workload_output='other\n')):
+            self.assertNotEqual(revision_signature(a),revision_signature(dict(a,**change)))
 
 
 class TraceTests(unittest.TestCase):

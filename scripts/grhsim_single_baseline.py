@@ -83,6 +83,21 @@ def validate_difftest_modes(rtl, runtime):
         raise ValueError('runtime DiffTest requires generated DiffTest hardware')
 
 
+def validate_simulator_binary(binary, simulator, symbols):
+    if simulator == 'grhsim':
+        if 'GrhSIM_SimTop::eval()' not in symbols or 'GrhSIM_Gpart_' in symbols:
+            raise ValueError('measurement requires a native single-model GrhSIM binary')
+    elif simulator == 'gsim':
+        if 'GrhSIM_SimTop::eval()' in symbols or 'GrhSIM_Gpart_' in symbols:
+            raise ValueError('GSIM measurement received a GrhSIM binary')
+        if 'SSimTop::step()' not in symbols:
+            raise ValueError('GSIM measurement requires an upstream SSimTop binary')
+    else:
+        raise ValueError('simulator must be grhsim or gsim')
+    if not Path(binary).is_file():
+        raise ValueError('simulator binary is absent')
+
+
 def parse_run(log,cycles,runtime_difftest='on',compile_difftest=None):
     if compile_difftest is None:
         compile_difftest=runtime_difftest
@@ -159,6 +174,9 @@ class Baseline:
         self.runtime_profile_dir = (Path(args.runtime_profile_dir).resolve()
                                     if getattr(args, 'runtime_profile_dir', None) else None)
         self.runtime_difftest = getattr(args, 'runtime_difftest', 'on')
+        self.simulator = getattr(args, 'simulator', 'grhsim')
+        if self.simulator not in ('grhsim', 'gsim'):
+            raise ValueError('simulator must be grhsim or gsim')
         self.model_difftest = getattr(args, 'model_difftest', None) or self.runtime_difftest
         self.compile_difftest = getattr(args, 'compile_difftest', None) or self.model_difftest
         self.difftest_relax_intermediate_wires = bool(
@@ -443,8 +461,7 @@ class Baseline:
             if settings[key] is None:continue
             if identity(settings[key]['path'])!=settings[key]:raise ValueError('baseline input changed: '+key)
         symbols=subprocess.check_output(['nm','--demangle',str(binary)],text=True)
-        if 'GrhSIM_SimTop::eval()' not in symbols or 'GrhSIM_Gpart_' in symbols:
-            raise ValueError('measurement requires the native single-model GrhSIM binary')
+        validate_simulator_binary(binary,self.simulator,symbols)
         if self.compile_difftest=='off' and re.search(r'\b(?:v_difftest_|difftest_init\(|difftest_nstep\()',symbols):
             raise ValueError('no-DiffTest binary still contains collection/checking code')
         cpu=self.args.cpu
@@ -547,6 +564,8 @@ class Baseline:
                         if not placement_seen:
                             for fname in ('status','maps','smaps','numa_maps','personality'):
                                 (directory/(name+'.'+fname)).write_text((proc/fname).read_text())
+                            if not int((proc/'personality').read_text(),16) & 0x40000:
+                                placement_bad.append(dict(aslr_not_disabled=True))
                             placement_seen=True
                         if sample['time']>=next_numa:
                             maps=(proc/'maps').read_text();numa=(proc/'numa_maps').read_text()
@@ -623,7 +642,7 @@ class Baseline:
         with (directory/'samples.csv').open('w') as stream:
             fields=['name','host_ms','external_wall_s','cpu','max_threads','pc','instr_count','cycle_count','guest_cycles']
             writer=csv.DictWriter(stream,fieldnames=fields,extrasaction='ignore');writer.writeheader();writer.writerows(samples)
-        self.stage('complete: native single-model baseline and CPU96 walltime')
+        self.stage(f'complete: {self.simulator} single-thread CPU96 walltime')
 
 
 def main():

@@ -1,7 +1,8 @@
 import copy
 import unittest
 
-from grhsim32_pair_compare import bind_runtime_memory, signature, validate_builds, validate_runtime, validate_thread_placement
+from grhsim32_pair_compare import (bind_runtime_memory, select_runtime_cpus, signature,
+                                   validate_builds, validate_runtime, validate_thread_placement)
 
 
 class PairGateTests(unittest.TestCase):
@@ -24,6 +25,16 @@ class PairGateTests(unittest.TestCase):
             config['B'].update(change)
             with self.subTest(change=change), self.assertRaises(ValueError):
                 validate_builds(config, self.results)
+
+    def test_runtime_cpu_override_does_not_depend_on_build_cpu_metadata(self):
+        original = list(range(32))
+        configs = {key: dict(runtime_cpus=original) for key in ('A', 'B')}
+        self.assertEqual(select_runtime_cpus(configs, '96-127'), list(range(96, 128)))
+        self.assertEqual(configs['A']['runtime_cpus'], original)
+        self.assertEqual(select_runtime_cpus(configs), original)
+        for invalid in ('96-126', '96-127,128'):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                select_runtime_cpus(configs, invalid)
 
     def test_runtime_pinning_and_exact_cpu_set_required(self):
         config = dict(lanes=32, thread_pinning='enabled', worker_cpus=self.cpus, part_cpus=self.cpus)
