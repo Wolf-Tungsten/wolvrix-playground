@@ -68,6 +68,8 @@ CoreMark、100,000 周期、完整 DiffTest/NEMU，每组 8 对 AB/BA，正数�
 | Clang 23 RepCut 前后对测 | [TNO0030](./TNO0030_clang23_repcut_merge_comparison_20261111.md) | before seed2 / after seed7，11.702 → 17.883 s，after +52.845%，8/8 更慢 |
 | Clang 23 单核 GSIM 前后对测 | [TNO0031](./TNO0031_clang23_gsim_merge_comparison_20261111.md) | 78.974 → 106.913 s，after +35.378%，8/8 更慢 |
 | Clang 23 单核 GrhSIM 与总核对 | [TNO0032](./TNO0032_clang23_native_merge_comparison_20261111.md) | native 110.015 → 140.255 s，after +27.489%；六份构建、三组各 8 对、70 次运行全部通过 |
+| after 独立 8-seed 分区重试 | [TNO0033](./TNO0033_after_partition_retry_protocol_20261111.md) | 选中新 seed1，km1 比原 seed7 低 3.66045%；运行结果另文追加 |
+| after seed1 功能拒绝与诊断 | [TNO0034](./TNO0034_after_retry_difftest_rejection_20261111.md) | 95,577 guest cycles 的 a4 mismatch；32 线程重复及单线程均重现，无有效性能对测 |
 
 ### 2026-11-11 源内容审计与 before 分区重试完成
 
@@ -90,3 +92,7 @@ CoreMark、100,000 周期、完整 DiffTest/NEMU，每组 8 对 AB/BA，正数�
 | RepCut GrhSIM 32 线程 | 11.702 / 17.883 s | +52.845% | [+51.392%, +54.038%] |
 
 三组均 after 8/8 更慢。全部 70 次功能、验证、预热及计时运行通过，没有拒绝样本。RepCut before 使用新 seed2，after 沿用原 retained seed7，因此包含既有分区选择差异。详细口径及产物见 [TNO0029](./TNO0029_all_clang23_rebuild_protocol_20261111.md)、[TNO0030](./TNO0030_clang23_repcut_merge_comparison_20261111.md)、[TNO0031](./TNO0031_clang23_gsim_merge_comparison_20261111.md)、[TNO0032](./TNO0032_clang23_native_merge_comparison_20261111.md)，[综合 JSON](../../build/artifacts/kunminghu-v3-clang23-retest-20261111/report.json)。
+
+### 2026-11-11 after 重分区未通过功能门
+
+after 也复用冻结图重跑 seeds 0–7，选中新 seed1，`km1` 降低 3.66045%。Clang 23 构建完成，但在 95,577 guest cycles、PC `0x800010de` 出现 `a4` 的 NEMU mismatch；两次 32 线程复跑及同一 32 分区 binary 的单线程执行均在相同位置重现。新方案被功能门拒绝，两个计划的 8 对测量未启动，原 seed7 retained 保持不变。[TNO0033](./TNO0033_after_partition_retry_protocol_20261111.md) 记录求解，[TNO0034](./TNO0034_after_retry_difftest_rejection_20261111.md) 记录可复现失败及证据。
