@@ -94,3 +94,13 @@ after 更快 0/8 对。本轮 Host time 区间完全高于零，合并后更慢�
 | 8 | BA | 79.060 | 107.364 | +35.801% | 79.086 | 107.400 |
 
 证据：[summary](../../build/xs/kunminghu-v3-gsim-followup-20261111/gsim-single/summary.json)、[逐对 JSON](../../build/xs/kunminghu-v3-gsim-followup-20261111/gsim-single/pairs.json)、[逐对 CSV](../../build/xs/kunminghu-v3-gsim-followup-20261111/gsim-single/pairs.csv)、[运行 manifest](../../build/xs/kunminghu-v3-gsim-followup-20261111/gsim-single/manifest.json)。
+
+## 勘误：BA 列归属与外部 walltime（2026-11-11）
+
+“增量：功能门与 8 对正式计时结果”一节中的手工表存在记录错误：BA 行把执行顺序当成了 before/after 的列归属，且外部 walltime 汇总抄写不准确。该节的逐对表、外部 walltime 行，以及“逐对 delta 按执行顺序直接计算”的说明作废。原始日志、pairs.csv、pairs.json、summary.json 和 report.json 不受影响；其后的“增量：8 对正式计时结果”由脚本按 A=before、B=after 标签生成，数值正确。
+
+统一口径是每对均计算 100 × (B/A − 1)，AB/BA 仅决定执行先后。BA 四对的 Host delta 依次为 +34.535%、+32.564%、+36.433%、+35.801%，都表示 after 更慢。
+
+正确的外部 walltime 均值为 before 80.277228 s、after 108.183336 s；配对平均 +34.772737%，95% CI [+33.869017%, +35.623554%]。Host time 配对平均 +34.774273%，95% CI [+33.871760%, +35.624002%]，结论保持不变。
+
+本轮最终校验：88 项相关 Python 测试通过，三组分别完成 8 对有效样本，未有被功能或放置门拒绝的正式样本；node030 本任务进程均已退出。各 binary、CHIRRTL、生成 C++、schema 和递归子模块身份见 [GSIM before manifest](../../build/artifacts/kunminghu-v3-gsim-followup-20261111/model-manifests/gsim-before.json)、[GSIM after manifest](../../build/artifacts/kunminghu-v3-gsim-followup-20261111/model-manifests/gsim-after.json)，最终检查见 [final-verification.json](../../build/artifacts/kunminghu-v3-gsim-followup-20261111/final-verification.json)。
