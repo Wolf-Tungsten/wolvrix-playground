@@ -59,3 +59,4 @@ CoreMark、100,000 周期、完整 DiffTest/NEMU，每组 8 对 AB/BA，正数�
 | GSIM 合并前后补测 | [TNO0021](./TNO0021_gsim_paired_walltime_20261111.md) | 8 对通过；after Host time +34.774%，CI [+33.872%, +35.624%]；文末已追加 BA 列与外部 walltime 勘误 |
 | 单核 GrhSIM CPU96 补测 | [TNO0022](./TNO0022_grhsim_cpu96_followup_20261111.md) | 8 对通过；after Host time +31.459%，CI [+28.719%, +35.527%] |
 | RepCut CPU96–127 补测 | [TNO0023](./TNO0023_repcut_cpu96_127_followup_20261111.md) | 8 对通过；after Host time −5.460%，CI [−5.841%, −5.011%] |
+| RepCut 历史 10 秒 anchor 复核 | [TNO0024](./TNO0024_repcut_historical_anchor_audit_20261111.md) | 同一当前 runner 复测历史 anchor 10.552 s、merge-before 17.770 s；主要差距在分区 eval |
