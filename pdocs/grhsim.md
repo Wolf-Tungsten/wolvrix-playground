@@ -180,19 +180,19 @@ callCond、activity 和采样策略约束。旧实现曾有在 Output 再调用 
 
 ## 3. Pass 划分与流水线
 
-共有 **8 个 registered transform pass**；C++ emission 是 emitter，不是第九个 pass。
-共享流程按下面的顺序推进，packing / masked-OR recovery 默认开启：
+GrhSIM 的 simulation-stage transform pass 与 C++ emitter 分开注册；F22/F23
+阶段属于 `grh-to-grhsim` 之前的 ordinary-GRH 优化边界。
+共享流程按下面的顺序推进：
 
 ```text
 普通 GRH frontend / flatten / comb-loop-elim / verify / simplify
+  → dead-code-elim → expr-opt → used-bits → split-nodes → dead-code-elim
+  → constant-analysis → dead-code-elim
+  → alias-analysis → pattern-detect → common-expr → dead-code-elim
   → grh-to-grhsim
-  → grhsim-simplify
-  → grhsim-pack-bit-registers → grhsim-simplify       [开启时]
-  → grhsim-recover-masked-or → grhsim-simplify        [开启时]
   → grhsim-split-event-and-output
   → grhsim-split-nonsink-and-sink
   → grhsim-partition-nonsink
-  → grhsim-simplify                                 [partition_simplify 开启时]
   → grhsim-partition-sink
   → emit grhsim-cpu-st-cpp
 ```
@@ -200,9 +200,13 @@ callCond、activity 和采样策略约束。旧实现曾有在 Output 再调用 
 | Pass | 主要职责 | 参数与默认值 |
 | --- | --- | --- |
 | `grh-to-grhsim` | 原地转换写端口、task/function/DPI，显式建立事件 detector、writer 顺序、调用效果和逻辑域；保留计算、声明、数组及结果身份 | `top`：唯一 top；`logic-domain=2state`，也接受 `4state` |
-| `grhsim-simplify` | 仿真方言的常量折叠、类型感知 CSE/DCE、位运算改写、prefix used-bit 收窄、保守等价状态合并、mux 链折叠 | `max-rounds=8`；没有 `scope` / `role` 参数 |
-| `grhsim-pack-bit-registers` | 打包满足条件的单 bit 寄存器，最多 64 bit/word，保留旧状态的类型视图和声明来源 | 可选 `report`，默认不输出 TSV |
-| `grhsim-recover-masked-or` | 从 mux-to-zero / AND-mask 的 OR 归约恢复 `grhsim.cpu.maskedOr`，保留多项同时匹配的 OR 语义 | `min-terms=16`；可选 `report` |
+| `expr-opt` | 对齐 GSIM ExprOpt：首个 DCE 后折叠普通 GRH 上结构等价 MUX，并保留 SemanticTree 身份 | 唯一 top；默认忽略声明锚点 |
+| `used-bits` | 对齐 GSIM UsedBits：反向位需求、状态/值 prefix 收窄；DCE 由调用者显式执行 | 唯一 top；默认忽略声明锚点 |
+| `split-nodes` | F23 位段结构拆分；当前支持无符号 scalar 的安全纯表达式子集；DCE 由调用者显式执行 | 唯一 top；默认忽略声明锚点 |
+| `constant-analysis` | F23 常量传播；按生产者顺序折叠可证明为常量的纯逻辑表达式，原位改写为 `kConstant` | 唯一 top；默认忽略声明锚点 |
+| `alias-analysis` | F23 别名分析；将类型一致的 scalar assign/full static-slice view 重定向到源值 | 唯一 top；默认忽略声明锚点 |
+| `pattern-detect` | F23 模式检测；将 `concat == constant` 展开为两个窄 equality 与 AND | 唯一 top；默认忽略声明锚点 |
+| `common-expr` | F23 公共表达式；按 GSIM 阈值共享重复的纯 scalar 表达式树 | 唯一 top；默认忽略声明锚点 |
 | `grhsim-split-event-and-output` | 提取 Event/Output 纯计算和读锥；建立 held samples、效果顺序、monitor/strobe history 和 sticky trigger 语义 | `top` |
 | `grhsim-split-nonsink-and-sink` | 将 General 分成 nonsink、small-sink、large-sink；分离 writer 私有参数锥和共享 boundary | `mem-min-bytes=64` |
 | `grhsim-partition-nonsink` | 建立可激活 node/supernode DAG，做有界边界 clone，保持数据/效果依赖无环 | `max-node-work=128`、`max-supernode-work=128`、`segment-penalty=1`、`semantic-nodes=0`；clone 选项见下文 |
@@ -218,14 +222,27 @@ Factory 参数沿用普通 pass 的 `-key=value` 形式；Python 使用下划线
 常量及 InitSpec，不依靠 emitter 隐式丢弃 X/Z。同域重复转换是 no-op；
 转换后半途失败的图标记 `conversion-failed`，不能继续使用。
 
-`grhsim-simplify` 在未分区图上全局优化；完整分区后逐 complete leaf 优化，
+默认生产流程在转换前显式运行 `dead-code-elim`、`expr-opt`、`used-bits`、
+`split-nodes`，并在 SplitNodes、ConstantAnalysis 前后运行显式
+`dead-code-elim`，对应 GSIM 的
+RemoveDeadNodes → ExprOpt → UsedBits → SplitNodes → RemoveDeadNodes1 →
+ConstantAnalysis → RemoveDeadNodes → AliasAnalysis → PatternDetect →
+CommonExpr → RemoveDeadNodes。
+ExprOpt 只折叠普通 GRH 上的结构等价 MUX；UsedBits 执行反向位需求和 prefix
+收窄；这些普通 GRH 优化 pass 都不执行完整 DCE。它们默认忽略
+`declaredSymbols`，但保留端口、状态和效果根；DCE 由流程在 ExprOpt 前以及
+各个显式边界单独运行。
+当前 `split-nodes` 只覆盖无符号 scalar 的 assign/bitwise/not/mux/concat/static-slice
+子集，寄存器、数组、有符号值、算术和 effectful op 留待后续 F23 步骤扩展。
+`constant-analysis` 只折叠输入完全常量且效果为 Pure 的逻辑操作；它保留死操作，
+不调用 `simplify`，也不把 declared symbol 变成额外的保活根。
+`alias-analysis`、`pattern-detect` 和 `common-expr` 同样不执行一般 DCE；它们
+产生的死 alias/concat/duplicate rows 由最后一次显式 DCE 回收。
+`simplify` 只控制后续既有的 converted/partition 优化，不改变 F22/F23 的顺序。
+
 保护导出值/类型，不跨 owner 把 clone 合回。共享状态收窄/合并只在分区前做。
 等价 detector 只有输入、完整类型、edge、prevInit 和 sample/update 策略
 全部相同才能合并；random / 外部效果不能当作纯计算 CSE。
-
-bit-register packing 仅处理未分区图中满足条件的 unsigned TwoState 单 bit
-状态：常量初始化、完整读、单 writer、共享 fire/enable/mask 控制；其余保持原样。
-masked-OR recovery 不假设 one-hot，多 mask bit 同时为 1 时必须按位 OR。
 
 ### 3.2 大小状态与 nonsink 分区
 
@@ -901,7 +918,6 @@ timing 无并行编译；这些局部结果不替代整机测量。
 
 ### 7.3 第二批修改：固定位置读取与局部共同 gate
 
-1. `masked_or` 的 `views` 控制只需固定单 bit；旧 emitter 先将 bool[352]
    全数组逐 bit 打包为 384bit 临时值，再选固定 bit，且多个热点重复此过程。
    新路径将静态 offset 映射到 flat leaf 与 leaf 内 bit：单 leaf 范围直接
    读取 named boundary 字段，跨 leaf 保留原 packing。`sliceStatic` 的 shaped

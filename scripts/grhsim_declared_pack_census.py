@@ -48,9 +48,9 @@ Metrics (historical NO00026 experiment):
           families contribute their measurable members; memified members
           stay excluded (their cost lives in the memory access machine).
 
-Cross-checks against production packing: pack-bit-registers groups words
-by control signature only (pass/pack_bit_registers.cpp; data cones are
-not part of the pack key), so packed words mixing several M-iso classes
+Cross-checks against the legacy register-grouping output: words are grouped
+by control signature only (data cones are not part of the grouping key), so
+words mixing several M-iso classes
 are expected -- reported as informational statistics, not violations.
 M-ctrl stays a hard gate: all signed members of one packed word must
 share one control signature. Violations are attributed by re-checking
@@ -95,8 +95,8 @@ SIZE_BUCKETS = ("2", "3-4", "5-8", "9-16", "17-64", "65+")
 SAMPLE_CONE_LIMIT = 200
 CTRL_GATE_COMPONENTS = ("events", "edges", "history_initials", "target_initial",
                         "enable_cone", "mask_cone")
-ISO_INFO_NOTE = ("informational only: pack-bit-registers groups words by control "
-                 "signature (lib/grhsim/pass/pack_bit_registers.cpp); member data "
+ISO_INFO_NOTE = ("informational only: register groups are formed by control "
+                 "signature; member data "
                  "cones are not part of the pack key, so mixed M-iso classes within "
                  "one word are expected and are not violations")
 UPPER_BOUND_NOTE = ("safe upper bound: mixed-bucket words are over-attributed as "

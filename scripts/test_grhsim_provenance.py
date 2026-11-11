@@ -7,8 +7,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from grhsim_provenance import ROOT, capture_generation, file_identity, generated_identity, source_identity, write_identity
-from remove_grhsim_ir_rob import comparison_identity
+from grhsim_provenance import ROOT, capture_generation, file_identity, source_identity, write_identity
 
 
 class ProvenanceTest(unittest.TestCase):
@@ -54,32 +53,6 @@ class ProvenanceTest(unittest.TestCase):
             write_identity(target, identity)
             self.assertEqual(json.loads(target.read_text()), identity)
             self.assertFalse(target.with_name("identity.json.pending").exists())
-
-    def test_generated_sources_and_comparison_binding(self):
-        work = ROOT / "ptmp/remove-grhsim-ir"
-        work.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(prefix="provenance-", dir=work) as directory:
-            root = Path(directory)
-            model = root / "model"
-            model.mkdir()
-            for name in ("model.hpp", "model.cpp", "manifest.json", "Makefile", "libgrhsim_Rob.a"):
-                (model / name).write_text(name)
-            (root / "bench").mkdir()
-            for name in ("dump_outputs", "inputs.json", "bench/rob_bench.cpp"):
-                (root / name).write_text(name)
-            self.assertIn("unavailable", comparison_identity(root)["source"])
-            generated = generated_identity(model)
-            self.assertNotIn("libgrhsim_Rob.a", generated["files"])
-            write_identity(model / "generation-identity.json", {
-                "kind": "checkpoint-reemit", "generated": generated})
-            bound = comparison_identity(root)
-            self.assertEqual(bound["source"], "GRH checkpoint reemit")
-            self.assertEqual(bound["generated_sources"], generated)
-            self.assertEqual(bound["executable"], file_identity(root / "dump_outputs"))
-            (model / "model.cpp").write_text("changed")
-            with self.assertRaisesRegex(RuntimeError, "sources differ"):
-                comparison_identity(root)
-
 
 if __name__ == "__main__":
     unittest.main()

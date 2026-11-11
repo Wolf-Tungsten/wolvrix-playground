@@ -49,8 +49,8 @@ Metrics (historical NO00020 experiment):
              object) contribute nothing. Pass-generated top-level
              aggregates are bucketed separately on every rule above (see
              module_of_state_name): `__event_*` edge bookkeeping ->
-             "(events)", `packed_bits_<digits>` (pack-bit-registers
-             products) -> "(packed)", `__reg_to_mem_<digits>` (reg-to-mem
+             "(events)", generated packed values -> "(packed)",
+             `__reg_to_mem_<digits>` (reg-to-mem
              products) -> "(reg-to-mem)". These are GrhSIM-IR-only
              artifacts with no gsim counterpart (cf. the M-name anchor
              caliber); left in "(top)" they swamp it (185K event
@@ -245,8 +245,8 @@ def module_of_state_name(name):
     """Module key of a GrhSIM state (or state-backed value) name.
 
     Pass-generated top-level aggregates get their own buckets instead of
-    "(top)": `__event_*` edge bookkeeping -> EVENTS_MODULE,
-    `packed_bits_<digits>` (pack-bit-registers products) -> PACKED_MODULE,
+    "(top)": `__event_*` edge bookkeeping -> EVENTS_MODULE, generated packed
+    values -> PACKED_MODULE,
     `__reg_to_mem_<digits>` (reg-to-mem products) -> REG2MEM_MODULE.
     Everything else follows the instance-path rule."""
     if name.startswith("__event_"):

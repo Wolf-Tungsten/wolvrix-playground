@@ -1,4 +1,4 @@
-"""Census GrhSIM IR simplification candidate pools on the XiangShan final checkpoint.
+"""Census GrhSIM IR optimization candidate pools on the XiangShan final checkpoint.
 
 Parsing conventions follow scripts/grhsim_op_mix_stats.py /
 scripts/grhsim_algebra_residue_stats.py:
@@ -8,8 +8,7 @@ scripts/grhsim_algebra_residue_stats.py:
   state = [id, name, type, origin]
   refs  = [[kindString, index], ...]        parameters = [[nameStringId, tag, value], ...]
 
-Semantics confirmed from wolvrix/lib/grhsim/pass/canonicalize_compute.cpp:312-380,
-wolvrix/lib/grhsim/pass/pack_bit_registers.cpp and docs/grhsim_ir/passes/pack-bit-registers.md:
+Semantics confirmed from the current GrhSIM operation definitions:
   - sliceStatic params sliceStart/sliceEnd are INCLUSIVE (width == end - start + 1)
   - concat operands run MSB-first (operand[0] is the most significant segment)
   - mux operands = [cond, trueValue, falseValue]
@@ -415,7 +414,7 @@ def main():
           f"regWrite-target regs={n_reg} latch-only={n_latch} other(event-history/unused)={n_other}")
 
     # ================= [7] narrow register packing pool =================
-    print("\n== [7] narrow register packing pool (pack-bit-registers criteria, width relaxed) ==")
+    print("\n== [7] narrow-register census ==")
     # collect per-state the single write op for validation
     for w_max in (1, 8, 32):
         groups = defaultdict(list)  # signature -> [(state, width)]

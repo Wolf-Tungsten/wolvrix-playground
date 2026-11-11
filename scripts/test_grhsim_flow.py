@@ -9,10 +9,11 @@ from unittest import mock
 
 import wolvrix
 
-from grhsim_flow import FlowOptions, STAGES, checked, emit_cpp, finish_simulation_graph, run_pass, store_checkpoint
+from grhsim_flow import (FlowOptions, STAGES, checked, emit_cpp, finish_simulation_graph,
+                         record_stage_event, run_pass, store_checkpoint)
 from grhsim_supernode_origin_stats import build_grh_manifest
 from grhsim_provenance import generated_identity
-from wolvrix_xs_grhsim import GRH_PIPELINE, GRH_BRINGUP_PIPELINE, grh_pipeline, read_source_pipeline
+from wolvrix_xs_grhsim import GRH_PIPELINE, firrtl_grh_pipeline, grh_pipeline
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,41 +21,16 @@ WORK = Path(os.environ.get("GRHSIM_FLOW_TEST_WORK", ROOT / "ptmp/remove-grhsim-i
 
 
 class FlowTest(unittest.TestCase):
-    def test_production_prefix_selection_and_historical_native_compatibility(self):
-        request = {"sources": [{"language": "firrtl", "path": "input.fir"}]}
-        report = {"prefix_wall_s": 1.25, "ingest_diagnostic_count": 0,
-                  "stages": [{"pass": name} for name, _ in GRH_PIPELINE[:8]]}
-        session = mock.Mock()
-        session.read_sources.return_value = []
-        session.get.return_value = report
-        diagnostics, remaining, actual = read_source_pipeline(session, request, GRH_PIPELINE)
-        self.assertEqual(diagnostics, [])
-        self.assertEqual(remaining, GRH_PIPELINE[8:])
-        self.assertEqual(actual["stages"], report["stages"])
-        self.assertEqual(actual["ingest_diagnostics"], [])
-        self.assertEqual([(row["pass"], row["options"]) for row in actual["pipeline"]], GRH_PIPELINE[:8])
-        session.read_sources.assert_called_once_with(**request, out_design="design.main", pipeline="grh-pre-flatten")
-        session.get.assert_called_once_with("design.main.prefix")
-        session.reset_mock()
-        session.read_sources.side_effect = [TypeError("'pipeline' is an invalid keyword argument for this function"), []]
-        diagnostics, remaining, actual = read_source_pipeline(session, request, GRH_PIPELINE)
-        self.assertEqual(remaining, GRH_PIPELINE)
-        self.assertIsNone(actual)
-        self.assertEqual(session.read_sources.call_args_list[-1], mock.call(**request, out_design="design.main"))
-        session.get.assert_not_called()
-        session.reset_mock(side_effect=True)
-        session.read_sources.return_value = []
-        _, remaining, actual = read_source_pipeline(session, request, GRH_BRINGUP_PIPELINE)
-        self.assertEqual(remaining, GRH_BRINGUP_PIPELINE)
-        self.assertIsNone(actual)
-        session.read_sources.assert_called_once_with(**request, out_design="design.main")
-        session.read_sources.side_effect = TypeError("unrelated conversion failure")
-        with self.assertRaisesRegex(TypeError, "unrelated conversion failure"):
-            read_source_pipeline(session, request, GRH_PIPELINE)
-        session.read_sources.side_effect = None
-        session.get.return_value = {**report, "stages": []}
-        with self.assertRaisesRegex(RuntimeError, "production pass order"):
-            read_source_pipeline(session, request, GRH_PIPELINE)
+    def test_stage_journal_records_lifecycle_events(self):
+        path = WORK / "stage-journal-test.jsonl"
+        path.unlink(missing_ok=True)
+        with mock.patch.dict(os.environ, {"XS_FIRRTL_STAGE_LOG": str(path)}):
+            record_stage_event("expr-opt", "start")
+            record_stage_event("expr-opt", "done", elapsed_s=0.125)
+        rows = [json.loads(line) for line in path.read_text().splitlines()]
+        self.assertEqual([(row["stage"], row["event"]) for row in rows],
+                         [("expr-opt", "start"), ("expr-opt", "done")])
+        self.assertEqual(rows[1]["elapsed_s"], 0.125)
 
     def test_firrtl_node_annotations_compiled(self):
         work = WORK / "firrtl-node-annotations"
@@ -96,40 +72,46 @@ int main() {
                     firrtl_options={"node_annotations": annotations, "init_policy": "zero",
                                     "invalid_policy": "zero"}), "read FIRRTL annotation fixture")
                 metadata = session.graph_metadata(design="design.main", top="top")["metadata"]
-                self.assertEqual("firrtl.nodeScopePolicy" in metadata, annotations)
+                # The removed whole-node optimization no longer emits FIRRTL
+                # node-scope metadata; annotation input is accepted but does
+                # not create a backend policy record.
+                self.assertFalse("firrtl.nodeScopePolicy" in metadata)
                 with mock.patch.dict(os.environ, {"XS_GRHSIM_PIPELINE_PROFILE": "bringup"}):
-                    for name, pass_options in grh_pipeline():
+                    for name, pass_options in firrtl_grh_pipeline(grh_pipeline()):
                         checked(session.run_pass(name, design="design.main", **pass_options), name)
-                options = FlowOptions(firrtl_node_cse="off", firrtl_nodes="off", max_supernode_nodes=4)
+                options = FlowOptions(firrtl_nodes="off", max_supernode_nodes=4)
                 if profile != "optimized":
-                    options.simplify = profile.startswith("one-round")
-                    options.pack_bit_registers = False
-                    options.recover_masked_or = False
-                    options.partition_simplify = False
                     options.clone_shared = False
-                if profile.startswith("one-round"):
-                    options.simplify_max_rounds = 1
                 if profile == "one-round-bytes":
                     options.cost_model = "bytes"
                 with mock.patch("grhsim_flow.run_pass", wraps=run_pass) as passes:
                     finish_simulation_graph(session, design="design.main", top="top", options=options)
                 executed = [call.args[1] for call in passes.call_args_list]
-                for name in ("grh-to-grhsim", "grhsim-split-event-and-output",
-                             "grhsim-split-nonsink-and-sink", "grhsim-partition-nonsink",
-                             "grhsim-partition-sink"):
+                for name in ("grhsim-dialect-translate", "split-event-and-output",
+                             "split-nonsink-and-sink", "partition-nonsink",
+                             "partition-sink"):
                     self.assertIn(name, executed)
-                self.assertEqual("grhsim-simplify" in executed, profile != "bringup")
-                for name in ("grhsim-pack-bit-registers", "grhsim-recover-masked-or"):
-                    self.assertEqual(name in executed, profile == "optimized")
-                if profile.startswith("one-round"):
-                    simplified = [call for call in passes.call_args_list if call.args[1] == "grhsim-simplify"]
-                    self.assertEqual(len(simplified), 1)
-                    self.assertEqual(simplified[0].kwargs["max_rounds"], 1)
+                for name in ("dead-code-elim", "expr-opt", "used-bits", "split-nodes", "constant-analysis",
+                             "alias-analysis", "pattern-detect", "comm-expr"):
+                    self.assertIn(name, executed)
+                self.assertEqual(executed.count("dead-code-elim"), 4)
+                self.assertLess(executed.index("dead-code-elim"), executed.index("expr-opt"))
+                self.assertLess(executed.index("expr-opt"), executed.index("used-bits"))
+                self.assertLess(executed.index("used-bits"), executed.index("split-nodes"))
+                self.assertLess(executed.index("split-nodes"), executed.index("constant-analysis"))
+                self.assertLess(executed.index("constant-analysis"), executed.index("grhsim-dialect-translate"))
+                self.assertLess(executed.index("constant-analysis"), executed.index("alias-analysis"))
+                self.assertLess(executed.index("alias-analysis"), executed.index("pattern-detect"))
+                self.assertLess(executed.index("pattern-detect"), executed.index("comm-expr"))
+                self.assertLess(executed.index("comm-expr"), executed.index("grhsim-dialect-translate"))
+                self.assertLess(executed.index("split-nodes"), executed.index("grhsim-dialect-translate"))
+                f22_start = executed.index("dead-code-elim")
+                f22_end = executed.index("grhsim-dialect-translate")
+                self.assertEqual(executed[f22_start:f22_end],
+                                 ["dead-code-elim", "expr-opt", "used-bits", "split-nodes",
+                                  "dead-code-elim", "constant-analysis", "dead-code-elim",
+                                  "alias-analysis", "pattern-detect", "comm-expr", "dead-code-elim"])
                 metadata = session.graph_metadata(design="design.main", top="top")["metadata"]
-                if annotations:
-                    self.assertEqual(metadata["firrtl.nodeCseConfig"], "v2/off/5/256/1")
-                else:
-                    self.assertFalse(any(key.startswith("firrtl.node") for key in metadata))
                 emit_cpp(session, design="design.main", top="top", output=case / "model",
                          overwrite=True, waveform=False, readable_names=profile != "one-round-bytes")
             shutil.copyfile(fixtures / "workload.hpp", case / "workload.hpp")
@@ -141,76 +123,20 @@ int main() {
         make += " ".join(names) + ":\n\t$(MAKE) -C $@ -f run.mk run\n"
         (work / "run.mk").write_text(make)
 
-    def test_firrtl_node_modes_and_resume(self):
-        work = WORK / "firrtl-nodes"
-        work.mkdir(parents=True, exist_ok=True)
-        source = work / "top.fir"
-        source.write_text("FIRRTL version 6.0.0\ncircuit top :\n  public module top :\n"
-            "    input a : UInt<8>\n    input b : UInt<8>\n" +
-            "".join(f"    output y{i} : UInt<8>\n" for i in range(5)) +
-            "".join(f"    node n{i} = not(and(a, b))\n" for i in range(5)) +
-            "".join(f"    connect y{i}, n{i}\n" for i in range(5)))
-        for mode in ("off", "gsim"):
-            checkpoints = {}
-            options = FlowOptions(firrtl_node_cse=mode, max_supernode_nodes=4,
-                                  firrtl_nodes="prefer" if mode == "gsim" else "off",
-                                  cost_model="bytes" if mode == "gsim" else "legacy",
-                                  nonsink_report=str(work / f"{mode}-partition.txt"))
-            with wolvrix.Session() as session:
-                session.diagnostics_raise_min_level = "none"
-                checked(session.read_firrtl(str(source)), "read FIRRTL node fixture")
-                for name, pass_options in GRH_PIPELINE:
-                    checked(session.run_pass(name, design="design.main", **pass_options), name)
-                def checkpoint(stage):
-                    path = work / f"{mode}-{stage}.json"
-                    store_checkpoint(session, path, design="design.main", top="top")
-                    checkpoints[stage] = path
-                finish_simulation_graph(session, design="design.main", top="top", options=options, checkpoint=checkpoint)
-                self.assertEqual(set(checkpoints), set(STAGES))
-                emit_cpp(session, design="design.main", top="top", output=work / f"model-{mode}", overwrite=True)
-                identity = json.loads((work / f"model-{mode}/generation-identity.json").read_text())
-                self.assertEqual(identity["firrtl_node_policy"]["firrtl.nodeCseConfig"], f"v2/{mode}/5/256/1")
-                self.assertIn("grhsim.nonsinkConfig", identity["firrtl_node_policy"])
-                self.assertIn("grhsim.nonsinkHintStats", identity["firrtl_node_policy"])
-                self.assertIn(f"requested={options.firrtl_nodes}", (work / f"{mode}-partition.txt").read_text())
-            for stage, path in checkpoints.items():
-                with wolvrix.Session() as session:
-                    session.diagnostics_raise_min_level = "none"
-                    checked(session.read_json_file(str(path), out_design="design.main"), "reload FIRRTL")
-                    metadata = session.graph_metadata(design="design.main", top="top")["metadata"]
-                    self.assertEqual(FlowOptions.from_metadata(metadata).firrtl_node_cse, mode)
-                    self.assertEqual(metadata["firrtl.nodeRetention"][0], "v2")
-                    with self.assertRaisesRegex(ValueError, "policy/configuration differs"):
-                        finish_simulation_graph(session, design="design.main", top="top",
-                            options=FlowOptions(firrtl_node_cse="gsim" if mode == "off" else "off"))
-                    finish_simulation_graph(session, design="design.main", top="top")
-                    resumed = work / f"{mode}-{stage}-resumed.json"
-                    store_checkpoint(session, resumed, design="design.main", top="top")
-                    if stage in ("nonsink-partitioned", "sink-partitioned"):
-                        self.assertEqual(resumed.read_bytes(), checkpoints["sink-partitioned"].read_bytes())
-                        restored = FlowOptions.from_metadata(session.graph_metadata(design="design.main", top="top")["metadata"])
-                        self.assertEqual(restored.nonsink_options(), options.nonsink_options())
-                        restored.firrtl_nodes = "auto"
-                        with self.assertRaisesRegex(ValueError, "Changed activity configuration"):
-                            finish_simulation_graph(session, design="design.main", top="top", options=restored)
-        self.assertNotEqual((work / "off-converted.json").read_bytes(), (work / "gsim-converted.json").read_bytes())
-
-    def test_f09_configuration_validation(self):
+    def test_nonsink_semantic_tree_configuration_validation(self):
         for policy in ("off", "prefer", "auto"):
             for cost in ("legacy", "bytes"):
-                config = f"v3/4/1/0/1/8/250000/1/{policy}/{cost}/hint-mffc-v1"
+                config = f"v4/4/1/0/1/8/250000/1/{policy}/{cost}/semantic-tree-mffc-v1"
                 restored = FlowOptions.from_metadata({"grhsim.nonsinkConfig": config})
                 self.assertEqual((restored.firrtl_nodes, restored.cost_model, restored.max_supernode_nodes), (policy, cost, 4))
-        for config in ("v1/gsim/5/256/1", "v2/bad/5/256/1"):
-            with self.assertRaises(ValueError):
-                FlowOptions.from_metadata({"firrtl.nodeCseConfig": config})
         for config in ("v2/2/4/1/0/1/8/250000/1/must/legacy/0/op-hints-v1",
                        "v2/2/4/1/0/1/8/250000/1/off/unknown/0/op-hints-v1",
                        "v2/2/4/1/0/1/8/250000/1/prefer/legacy/0/op-hints-v1",
-                       "v3/0/1/0/1/8/250000/1/prefer/legacy/hint-mffc-v1",
-                       "v3/4/1/2/1/8/250000/1/prefer/legacy/hint-mffc-v1",
-                       "v3/4/1/0/1/8/250000/1/must/legacy/hint-mffc-v1",
-                       "v3/4/1/0/1/8/250000/1/off/unknown/hint-mffc-v1"):
+                       "v3/4/1/0/1/8/250000/1/prefer/legacy/hint-mffc-v1",
+                       "v4/0/1/0/1/8/250000/1/prefer/legacy/semantic-tree-mffc-v1",
+                       "v4/4/1/2/1/8/250000/1/prefer/legacy/semantic-tree-mffc-v1",
+                       "v4/4/1/0/1/8/250000/1/must/legacy/semantic-tree-mffc-v1",
+                       "v4/4/1/0/1/8/250000/1/off/unknown/semantic-tree-mffc-v1"):
             with self.assertRaises(ValueError):
                 FlowOptions.from_metadata({"grhsim.nonsinkConfig": config})
         class Checkpoint:
@@ -221,6 +147,13 @@ int main() {
         with self.assertRaisesRegex(ValueError, "Legacy nonsink"):
             finish_simulation_graph(Checkpoint({"grhsim.stage": "sink-partitioned",
                 "grhsim.nonsinkConfig": "2/4/1/0/1/8/250000/1"}), design="test", top="top")
+        for stage in ("nonsink-partitioned", "sink-partitioned"):
+            with self.subTest(stage=stage), mock.patch("grhsim_flow.run_pass") as run:
+                with self.assertRaisesRegex(ValueError, "SemanticTree node ownership"):
+                    finish_simulation_graph(Checkpoint({"grhsim.stage": stage,
+                        "grhsim.nonsinkConfig": "v3/4/1/0/1/8/250000/1/prefer/legacy/hint-mffc-v1"}),
+                        design="test", top="top")
+                run.assert_not_called()
         with self.assertRaisesRegex(ValueError, "soft-node-v2"):
             finish_simulation_graph(Checkpoint({"grhsim.stage": "converted", "firrtl.nodeSchema": 1,
                 "firrtl.nodeScopePolicy": "source-node-v1", "firrtl.nodeInventory": []}), design="test", top="top")
@@ -260,6 +193,7 @@ endmodule
         options = FlowOptions(mem_min_bytes=4, max_supernode_nodes=4,
                               enable_guard_min_size=2)
         checkpoints = {}
+        checkpoint_stages = []
         with wolvrix.Session() as session:
             session.diagnostics_raise_min_level = "none"
             checked(session.read_sv(str(source), out_design="design.main", slang_args=["--top", "flow_top"]), "ingest fixture")
@@ -268,12 +202,13 @@ endmodule
             self.assertNotIn("grhsim.stage", session.graph_metadata(design="design.main")["metadata"])
 
             def checkpoint(stage):
+                checkpoint_stages.append(stage)
                 path = WORK / f"{stage}.json"
                 store_checkpoint(session, path, design="design.main", top="flow_top")
                 checkpoints[stage] = path
 
             finish_simulation_graph(session, design="design.main", top="flow_top", options=options, checkpoint=checkpoint)
-            self.assertEqual(set(checkpoints), set(STAGES))
+            self.assertEqual(checkpoint_stages, list(STAGES))
             self.assertEqual(session.kind("design.main"), "design")
             self.assertFalse(any(session.kind(key) == "grhsim-model" for key in session.keys()))
 
@@ -295,7 +230,11 @@ endmodule
                 self.assertTrue(any(entry.get("kind") == "error" for entry in diagnostics))
                 self.assertFalse(bad.exists())
                 resume_options = options if stage != "sink-partitioned" else None
-                finish_simulation_graph(session, design="design.main", top="flow_top", options=resume_options)
+                resumed_stages = []
+                finish_simulation_graph(session, design="design.main", top="flow_top", options=resume_options,
+                                        checkpoint=resumed_stages.append)
+                if stage == "converted":
+                    self.assertEqual(resumed_stages, list(STAGES))
                 rewritten = WORK / f"{stage}-resumed.json"
                 store_checkpoint(session, rewritten, design="design.main", top="flow_top")
                 if stage in ("nonsink-partitioned", "sink-partitioned"):

@@ -127,7 +127,6 @@ F09.0 撤除，属性改为不阻碍普通 simplify 的软关联。实施记录�
 - 提供整体 node 合并时的成员与根重定向工具；实际判等和门槛在 F08 实现。
 - 新增属性验证和观察报告，报告真正根映射而非只搜索属性字符串。
 
-验证入口：新增 `make test_firrtl_node_attributes`、`make test_firrtl_cse_scope`，
 复用现有 `make test_transform_simplify`、`make test_grhsim_transforms`，并为 store/load
 必要定向检查先添加 Make target。
 
@@ -168,7 +167,6 @@ F09.0 撤除，属性改为不阻碍普通 simplify 的软关联。实施记录�
 | Make 命令 | 结果 | 日志 |
 | --- | --- | --- |
 | `make test_firrtl_node_attributes` | 通过；身份、属性错误、实例限定、实际 ID 重排/重命名、多结果输出映射与 JSON 往返 | `node_attributes.log` |
-| `make test_firrtl_cse_scope` | 通过；primitive 共享范围及独立组合结果检查 | `cse_scope.log` |
 | `make test_wolvrix` | 完整构建和 68/68 CTest 通过（含上述新增回归） | `test_wolvrix.log` |
 
 命令带 `WOLF_ENV_SOURCED=1`；全量构建使用 `CMAKE_BUILD_PARALLEL_LEVEL=8`，
@@ -332,7 +330,6 @@ fixture 包括缩进/注释/引号、嵌套语句、版本差异、截断文件�
 
 | Make 命令 | 结果 | 日志 |
 | --- | --- | --- |
-| `make test_firrtl_state test_firrtl_node_attributes test_firrtl_cse_scope` | 定向语义、属性、CSE 作用域通过；四份 state FIRRTL/SV 模型编译运行通过 | `state-final.log` |
 | `make test_wolvrix test_firrtl_state test_firrtl_comb test_grh_register_write test_grh_to_grhsim` | 最终 73/73 CTest、四份 state 及三份组合模型、register-write 1/1、GRH→GrhSIM 3/3 全部通过 | `final-checks.log` |
 | `make test_grhsim_cpu_st_cpp` | 生成 CTest 1/1 和 154 项模型用例编译运行通过 | `cpu_st_cpp.log` |
 | `make run_grhsim_cpu_st_cpp GRHSIM_CPU_ST_CPP_JOBS=8` | 完整 CTest 重生成后，最终 154 项模型用例再次通过，退出码 0 | `cpu-final.log` |
@@ -449,13 +446,11 @@ Wolvrix 实现提交：`ad4d9a2`（feat(ingest): link mixed FIRRTL and SystemVer
 - 审计 XMR、mux-tree-fold、write normalize、memory retime、hier-flatten、
   普通 simplify/CSE/DCE、grh-to-grhsim、全局仿真优化、phase/sink split 的
   重写入口，传播根映射和 node 作用域；禁用分图前的跨 node 内部 op 共享。
-- 新增 `grhsim-node-cse`，从有效根和成员构造完整表达式结构视图，先 hash
   再精确比较功能、完整类型及依赖。等价类分析与实际物理合并分开，上游
   等价但未合并时，下游仍可利用其等价事实。
 - 首版合并门槛固定为等价组规模 ≥5、结果位宽 >256 或某成员后继数 >1；
   统计命中和保留原因。数组/状态/效果及无法证明完整的区域不进入整体合并。
 - 将 pass 放在 converted 阶段的局部优化之后、phase/sink split 之前；
-  新增 `firrtl-node-cse=off|gsim`，off 仍保持 F02 作用域，只关闭整体合并。
 - 明确整体合并后的多源身份、根指向输入、多结果、packing、alias 和 DCE
   规则；origins 不授予跨 node 融合权限。优化策略和执行配置随 checkpoint
   保存，旧的全局 primitive CSE 图不能补标签后冒充新策略输入。
@@ -464,7 +459,6 @@ Wolvrix 实现提交：`ad4d9a2`（feat(ingest): link mixed FIRRTL and SystemVer
 - 对大模型检查 attrs 的存储/分配成本：intern 可复用身份，持久化仍是标准
   attrs；禁止每个 pass 复制完整上游来源闭包。统计 key 重复量及报告大小。
 
-验证入口：新增 `make test_firrtl_node_pipeline`、`make test_grhsim_node_cse`、
 `make inspect_firrtl_node_retention`；复用现有 `make test_grhsim_transforms`、
 `make test_grhsim_flow`、`make test_grhsim_readable_store`。
 
@@ -483,7 +477,6 @@ Wolvrix 实现提交：`5f31043`。
 converted局部优化后执行，off/gsim配置、revision和generation identity随
 checkpoint保存；所有stage恢复、旧policy/改配置拒绝及幂等通过。
 
-最终 `make test_grhsim_node_cse test_firrtl_node_pipeline test_wolvrix
 inspect_firrtl_node_retention` 通过，完整 CTest 78/78；组合/时序/memory/
 effects/11个混合编译模型、8个选定CPU模型、Python 3+8+3、HDLBits001
 普通SV/GrhSIM均通过。RenameTable自包含层次2230源nodes，gsim合并8个，
@@ -522,7 +515,6 @@ F09.0–F09.5 的历史交付：
 
 已实现的 firrtl-nodes=off|prefer|auto 只控制分图是否参考提示，原型默认 off。
 它不改变普通 simplify，也不删除来源或关闭既有语义检查。现有
-firrtl-node-cse=off|gsim 保留为独立整体分析/共享；采用 gsim-soft-v2，
 不完整候选跳过。GSIM 门槛不再控制 primitive CSE；旧 schema/policy 拒绝恢复。
 
 验证入口：复用现有 make test_grhsim_virtual_partitions、
@@ -641,12 +633,10 @@ full29 mixed ingest 已降为 588.498 秒，Rob lowering 操作数降到 5,830,9
 注解的功能 bringup：81/81、shared flow、on/off 各 4608 次实际 C++ scoreboard
 及 56 项工作流检查通过。full30 的 mixed ingest、flatten、comb-loop-elim、
 flat store 和转换分别为 388057、218300、37757、97076、38041 ms；
-已发布 34,973,290,367 bytes 的 flat GRH。随后首次 `grhsim-simplify`
 完成 7 轮仍均 `changed=1`，七轮合计 381786 ms，该 pass 未完成，
 完整 producer 在 2026-11-01 07:04:29 UTC 到达 20 分钟硬截止并被
 SIGKILL，Make 报 Error 137。无整机 C++、emu 或整机运行结果，F10 未跑通；
 详细阶段计时及停止证据见 `full30-stop-reason.txt` 和 F10-plan。
-full31 已显式跳过 backend 可选 `grhsim-simplify`、bit packing、masked-OR、
 分图后 simplify 和 clone，保留转换验证、拆分、分图/SinkSchedule 和 emit；
 emit 后额外 JSON roundtrip 关闭。shared flow 5 项和 workflow 56 项通过；
 backend optimized/bringup × annotations on/off 四组均实际编译执行，
@@ -687,7 +677,6 @@ workflow 57 项及 backend default/skip/one-round × annotations on/off 六组
 状态模型编译执行通过，各 4608 次检查，五次 trace 比较全部一致；六组均
 使用 raw GRH 七阶段 bringup，不替代默认 full/prefer 验收。原生库未改变。
 full34 于 08:16:37 UTC 从原始冻结 FIRRTL/full27 harness 在新目录完整
-启动，只在 converted 阶段运行 `grhsim-simplify -max-rounds=1`，pack/
 recover/phase/clone 保持关闭，其余 flags 同 full33；硬截止约 08:36:38 UTC。
 本轮实际 mixed ingest 385066 ms、flatten 217892 ms、comb-loop-elim
 37667 ms、memory-init-check 18687 ms、转换 48030 ms；单轮 simplify 总计
@@ -812,14 +801,12 @@ identity、diagnostics、JSON roundtrip、mixed binding 和代表模块执行一
 实施记录：wolvrix `c134542659e46bc029d5485c82171d2c5304cb7a` 完成以上
 五项及必要回归；同时保留跨 mutation 的邻接/value IDs/端口快照，修复
 frozen view 首次 thaw 的借用生命周期。`make test_wolvrix` 为 81/81；
-`make test_transform_simplify test_firrtl_node_attributes test_firrtl_cse_scope`
 通过；最终 `make py_install` 后 `make test_ingest_python` 9/9、
 `make test_grhsim_flow` 5/5 及全部生成模型编译执行/八组 annotations trace
 比较通过。完整命令、逐项证据和 freeze 所有权边界见专项计划文末。
 F10 整机和 F11 性能消融仍按各自退出条件推进。
 
 完成后按用户新要求执行完整默认的单次 40 分钟整机测量：实际 2400.008 秒
-SIGKILL，已发布 12.29 GB flat GRH、完成转换；后端 `grhsim-simplify`
 已完成两轮，但该阶段仍未完成，仍未生成 C++。flatten 381.999 秒、普通 simplify 全阶段 1060.191 秒；
 首轮由历史样本 999.972 秒降为 603.358 秒。完整配置/输入/库身份和测量边界
 见 F13 计划末节，证据目录 `ptmp/firrtl-ingest/F13/full40m/`；不构成 F10 完成。
@@ -887,7 +874,7 @@ node 信息变化与正确性：
 
 ## F15：GrhSIM 性能路径实现
 
-F15 的差距分析和实现记录见 [F15-grhsim-performance-plan.md](F15-grhsim-performance-plan.md)。普通 simplify 已加入逐图 dirty worklist，GrhSIM simplify 在 owner 分组上维护 deterministic dirty-owner 传播并记录逐轮计数；node 属性验证使用 graph revision cache，flatten qualification 与 GrhSIM CSE 字符串使用 transient node-key IDs；FIRRTL transaction 通过 `FirrtlOptions::lowerThreads` 支持固定线程池，各 worker 直接写最终 owner 的 unpublished graph，并按原依赖顺序移动发布，不复制整图。`test_ingest_driver` 检查串行/并行完整 JSON 和诊断顺序，冻结香山输入已有同库 1T/2T 与 10T 到展平终点的实测。完整 FIRRTL→C++ A/B 仍待测。
+F15 的差距分析和实现记录见 [F15-grhsim-performance-plan.md](F15-grhsim-performance-plan.md)。普通 simplify 已加入逐图 dirty worklist；GrhSIM 分图维护 deterministic dirty-owner 传播并记录逐轮计数；node 属性验证使用 graph revision cache，flatten qualification 与 GrhSIM CSE 字符串使用 transient node-key IDs；FIRRTL transaction 通过 `FirrtlOptions::lowerThreads` 支持固定线程池，各 worker 直接写最终 owner 的 unpublished graph，并按原依赖顺序移动发布，不复制整图。`test_ingest_driver` 检查串行/并行完整 JSON 和诊断顺序，冻结香山输入已有同库 1T/2T 与 10T 到展平终点的实测。完整 FIRRTL→C++ A/B 仍待测。
 
 2026-11-03 的 [ingest→hier-flatten perf 分析](F15-ingest-flatten-perf.md) 定位到
 flatten 的 mimalloc 周期性全堆扫描，两项 collect 叶函数占 58.90% 用户 CPU；
@@ -920,3 +907,169 @@ flatten 的 mimalloc 周期性全堆扫描，两项 collect 叶函数占 58.90% 
 metadata、来源和有序诊断均与基线一致。C++ **81/81**、工作流 **71/71**
 及相关生成模型门禁通过，最终 perf 完成。主要收益由分配器策略和只读快照
 消除支撑；F16.3 额外整体提速未证实。最终前缀仍为 F14 GSIM 的 **4.033×**。
+
+
+## F21：comb-loop-elim 后独立 DCE 与 SemanticTree 回收
+
+状态：已完成（2026-11-07）。计划及最终实测见 [F21-dead-code-elim-plan.md](F21-dead-code-elim-plan.md)。
+
+交付边界：
+
+1. 复用现有 op/value 反向可达性 DCE，不引入 GSIM Node/ENode 活跃性分析；
+   FIRRTL/mixed full 与 bringup 在 `comb-loop-elim` 后先做静态数组拆分，随后由共享
+   仿真流程在 `grh-to-grhsim` 前执行一次 DCE，纯 SV 序列不增加该调用。
+2. DCE 后按存活 op/value 的直接 SemanticId 回收无引用来源分支，保留祖先和实例结构；
+   无定义 op 的存活 input 等边界不误删。批量重编号保持路径、列表顺序和重复项，
+   SemanticId 不反向保活电路。
+3. 独立 checkpoint benchmark 与 GSIM 首次 `RemoveDeadNodes` 对照；另以共同起始 K 的
+   删除矩阵和共同存活 Node DAG 衡量删除能力，不以原始节点数单独判优。
+
+验证入口：`make test_transform_dead_code_elim`、`make test_grh_semantic_tree`、
+`make test_f19_semantic_json`、`make test_f21_dce_asan`、`make test_wolvrix`、
+`make test_transform_comb_loop_elim test_firrtl_state test_firrtl_memory`、
+`make test_xs_firrtl_workflow`、`make test_grhsim_flow`、`make benchmark_f21_dce`、
+`make f21_gsim_collect` 和 `make f21_dce_compare`。新增工作流均先加入 Makefile 后执行。
+
+实施记录（2026-11-06，持续更新）：
+
+- SemanticTree 非破坏式批量压缩、Graph 来源池及长列表哈希重映射已完成；
+  无回收时不改变 Graph revision。op operands/results 改为删除前借用只读 span，
+  保持同一活跃性算法并减少临时分配。
+- `test_transform_dead_code_elim`、`test_grh_semantic_tree`、`test_f19_semantic_json`
+  和 `test_transform_simplify` 通过；ASAN 下 DCE/SemanticTree/JSON/FIRRTL 4/4 通过。
+- 完整 CTest 修改前后均为 76/84，失败名单不变：`grhsim-sink-schedule-tests`、
+  `transform-hier-flatten`、`transform-origin-attribution`、`firrtl-node-attributes`、
+  `firrtl-comb`、`firrtl-aggregate`、`ingest-mixed` 和 `firrtl-node-pipeline`。
+  其中 sink 项对应工作树已有修改，其余为旧 provenance/node 表示问题，无 F21 新增失败。
+- FIRRTL workflow 为 67/73；仍只有旧 node 属性断言 2 项和中文 locale 断言 4 项失败。
+  shared flow 的旧 policy/CSE 元数据断言单独记录，不混入 F21 的删除或性能结论。
+- 消环及 FIRRTL state/memory 实际执行回归通过。原始 FIRRTL 连续入口 `f21_grh_dce`
+  也已跑通，454 个 false loop 全部修复，独立 DCE 为 19.066 s（非正式计时样本）。
+  全量 `post-dce` 的 op SemanticId 缺失为 0，
+  8,391,980,862 字节 JSON 的 store→load→store 字节数和 SHA-256 完全一致。
+- 最终 F21 native 三轮 DCE 墙钟为 16.348/17.090/16.354 s，中位数 **16.354 s**；
+  analysis/op-value 删除/SemanticTree 回收中位数分别为 12.996/2.546/0.484 s。
+  三轮删除集合与 2,414 个声明寄存器符号检查一致，RSS 增量中位数为 988,616 KiB。
+- GSIM 三轮首次 `RemoveDeadNodes` 为 35.805/36.252/33.802 s，中位数 **35.805 s**；
+  F21 中位数为其 **0.457×**，达到性能门槛。共同可解析的 7,242,278 个 K 中，
+  双方删除 1,386,911、仅 GrhSIM 删除 681、仅 GSIM 删除 1,149,622、双方保留 4,705,064；
+  本实验不支持 op 级粒度必然带来更多 Node 删除。共同存活 DAG 共同边 6,877,133，
+  精确率 **99.9272%**、召回率 **99.9639%**，残余 SCC 为 0；最终数据见 F21 文档附录。
+  证据统一放在 `ptmp/firrtl-ingest/F21/`。
+
+后续审查修订（2026-11-07）：
+
+- 新增独立 `split-static-array`，在 `comb-loop-elim` 后、独立 DCE 前对静态组合数组读按需成员化；
+  支持 assign、arrayCreate、边界内 concat、静态位切片和 shaped mux，不复制 GSIM Node/ENode 活跃性分析，
+  也不把 DCE 混入 simplify。
+- 拆分与独立 DCE 默认 `keep_declared_symbols=False`，声明数组不再天然保活；显式 True 可恢复保护，
+  其他 pass 的默认声明策略不变。端口、状态和外部效果边界仍按各自规则处理。
+- 新小图覆盖声明数组默认删除/显式保护、多维索引、MUX、动态读拒绝、SemanticTree 和图并行；
+  ASAN 5/5 通过。全量 CTest 为 77/85，新增测试通过，失败名单与修改前基线一致。
+- 最终 post-DCE 为 19,250,843 op；split+DCE 单轮合计 76.172 s，GSIM 同阶段 87.332 s。
+  GSIM 净多删 82,252 个共同 K；共同存活 DAG 精确率 90.2274%、召回率 93.2698%，收缩后无环。
+  RSS 增量仍约 8.0 GiB，DAG 独有边和内存峰值均属未闭合项。
+- §13 的组合数组初版 SimTop 删除矩阵、DAG、耗时及内存保留为历史结果；§9–§12 保留开启声明保护时的历史结果和归因。
+
+拆分闭环复核（2026-11-08）：
+
+- split 后直接保存 checkpoint，并与 GSIM 首次 DCE 前对照：4,832/4,832 状态族、58,255 个元素全对齐，
+  双向多留/少留均为 0，映射问题为 0。增量 fallback 工作队列及回滚取消已加入实现和小图回归。
+- 最终 post-DCE 为 18,242,935 op、7,137,638 个 SemanticTree 节点，自赋值为 0；4,771/4,832 状态族精确一致，
+  仍有 332 个 GrhSIM 多留、16 个少留元素，所有差异族均已成员化，不再存在未拆聚合表示导致的差异。
+- 共同 K 中双方删除 2,504,751、仅 GrhSIM 删除 46,623、仅 GSIM 删除 31,782、双方保留 4,659,122；
+  GrhSIM 净多删 14,841。DAG 精确率 88.1968%、召回率 91.9049%，仍未完全对齐。
+- 将顶点扩大为双方任一端保留的 4,737,527 个可映射 Node 后，收缩 DAG 总边为 GrhSIM 6,858,586、GSIM 6,880,937，
+  GrhSIM 少 22,351 条（0.3248%）；共同边 6,012,126，两端独有边合计 1,715,271，净差不代表结构已经对齐。
+- ROB 的 113,226 条 GrhSIM 独有边已逐条闭合：109,677 条 split 父数组两跳、7 条普通两跳、206 条长路径、
+  3,319 条 split 语义归属、16 条动态数组索引及 1 条层次时钟边；没有发现 GSIM 删除活跃依赖而 GrhSIM 漏删的证据。
+  该结论仅限 ROB，且不替代动态等价验证；新增路径工具回归 7/7，通过全有效节点分析排除了中间节点过滤造成的误判。
+- 全部 1,715,271 条不重合边已按形成原因闭合：单边端点 381,133、split 父数组相关 938,942、其他中转/别名路径 289,650、
+  非 split 父节点无路径 105,546。GSIM 无路径边中 516,153 条在两端 split 前均存在，GrhSIM 的 88,209 条无路径边在
+  GSIM split 前均不存在；结果见 F21 §16 和 `ptmp/firrtl-ingest/F21/global-edge-differences/`，不将无路径直接判为语义错误。
+- 全部 array-typed value 已对比：GrhSIM/GSIM 记录在 split 后为 629,573/16,063，post-DCE 为 128,636/7,858；
+  DCE 回收 79.57% 的 GRH array value、81.29% 的 split 父数组相关记录。post-DCE 的 81 个形状差异均为退化维度或外层成员化，
+  split 前 259 个宽度差异均为 GSIM 未知宽度。剩余主要是常量和赋值/mux 视图，不能直接按记录数推断动态成本，详见 F21 §16.3。
+- 连续生产入口与冻结 checkpoint 的 post-elim/post-dce SHA-256 均一致。专项及 ASAN 5/5、工具 5/5 通过；
+  CTest 77/85、workflow 67/73，失败名单与既有基线一致。没有新增整机 C++/emu 动态等价证明。
+- CPU 2 无并行干扰的三轮中位数为 split 45.867 s、独立 DCE 57.075 s、合计 102.900 s；
+  GSIM 同阶段合计 84.656 s，GrhSIM 慢约 21.6%。采样峰值 RSS 中位数约 38.7 GiB，第一轮约 34.0 GiB，
+  不能把后续轮的 RSS delta 当成真实内存需求，也不能宣称性能优于 GSIM。
+- 最新证据与性能见 F21 文档 §15，目录为 `ptmp/firrtl-ingest/F21/state-split-v13*`。
+
+## F23：普通 GRH 后续优化 pass
+
+状态：F23.1–F23.3 已完成当前安全子集；未运行 XiangShan 全图性能测试。
+
+F23 的全部 pass 位于 `grh-to-grhsim` 之前，运行在普通、未分区 GRH 上。每个
+优化 pass 都保留 operation/value 行，DCE 由流程在明确边界单独调用：
+
+```text
+dead-code-elim
+→ expr-opt → used-bits → split-nodes
+→ dead-code-elim
+→ constant-analysis
+→ dead-code-elim
+→ alias-analysis → pattern-detect → common-expr
+→ dead-code-elim
+→ grh-to-grhsim
+```
+
+F23.1 的 `split-nodes` 只覆盖无符号 scalar 纯表达式的静态位段；寄存器、数组、
+有符号和算术节点仍保持原表示。F23.2 的 `constant-analysis` 按拓扑顺序折叠
+可证明常量的纯逻辑操作。F23.3 的三个 pass 分工如下：
+
+- `alias-analysis` 重定向类型一致的 scalar `assign` 和完整静态 slice，并
+  保留 node roots/SemanticTree provenance；
+- `pattern-detect` 将 `(concat(high, low) == constant)` 展开为两个窄 equality
+  与 `and`；
+- `common-expr` 按 GSIM 的计数、宽度和 fanout 门槛共享重复纯 scalar
+  expression tree，并合并代表的 provenance。
+
+F23.3 的设计、参数、保守边界和测试命令见
+[F23-alias-pattern-common.md](F23-alias-pattern-common.md)。F23 pass 的默认
+声明策略是不把 `declaredSymbols` 作为保活根；需要保留声明时由外层 DCE/流程
+显式传入策略。
+
+## F24：XiangShan FIRRTL → GrhSIM 系统联调
+
+状态：已完成（按用户2026-11-11最终验收口径）。正式顺序、阶段日志和门禁见
+[F24-xs-firrtl-grhsim.md](F24-xs-firrtl-grhsim.md)，提交与清理边界见
+[F24-correctness-checkpoint.md](F24-correctness-checkpoint.md)。
+
+已完成的阶段准备：
+
+- `xs_firrtl_pipeline_manifest` 生成合法的 22 阶段 manifest；`xs-firrtl-grhsim`
+  目标依赖该 manifest，并通过 `XS_FIRRTL_STAGE_LOG` 写入每个阶段的 JSONL
+  `start`/`done`/`failed` 事件。
+- native/Python pass factory 接受 `grhsim-dialect-translate`、
+  `split-event-and-output`、`split-nonsink-and-sink`、`partition-nonsink`、
+  `partition-sink` 和 `comm-expr`，旧名称保留回放兼容。
+- `partition-nonsink -firrtl-nodes=auto|prefer` 按 SemanticTree 的
+  Declaration/Expression family 分组，Field/Element 归入所属 family，实例
+  子树使用独立 SemanticId。`semantic-nodes=1` 额外保留声明结果值边界，
+  不会把携带声明 provenance 的每个表达式 primitive 都切成独立 node。
+  clone 保留 operation/value SemanticIds，v3 checkpoint 拒绝沿用，当前配置为 v4。
+  `test_grhsim_firrtl_nodes`、四项 GrhSIM transform CTest 和
+  `firrtl-semantic-tree` 均通过。
+- JSONL 区分 `pipeline`、`verification` 和 Make 父进程的 `run` 事件；
+  真实 mixed 模型及 flat resume 的工作流测试 78/78 通过，恢复后完整执行
+  256 个输入的独立记分板验证。
+- 已重新冻结默认 SV/默认单线程 Verilator CoreMark 100k difftest 基线：Host **152.190 s**，
+  端点 `238535/99996/100001/0x80000cde`；实际 binary `threads()` 返回 1，
+  binary/workload/NEMU 前后哈希一致，见 F24 的 `verilator-default` 证据。
+  提交 trace 与 FST 独立采集通过，二者的 231568 条提交记录逐字节一致。
+- v7 已通过 dialect conversion（14.140 s；422 detectors/46 joins），在 sink
+  partition 阶段触发 systemd-oomd（scope 160.2 GiB），没有正常退出记录。
+  后续全图生成/编译经 `xs_firrtl_resource_capped` 独立 cgroup，默认128 GiB、
+  swap0，并继续保留 generation840 s/complete compile330 s 强制截止。
+
+v14最终结果：显式ingest请求`invalid_policy=zero`、通用默认unknown，未改XiangShan
+RTL；canonical22阶段pipeline825.050s、service826.294s<840s，fresh完整编译
+payload305.71s、service305.837s<330s，activation含pulse保守上界965144≤2193888。
+同一原始exe以NEMU通过100k窗口，231568条提交及周期/ROB/队列/写回与默认Verilator
+逐字节一致。独立补充校验区分原trace postflight误报，原始失败状态保留。
+性能运行在152.190s硬截止立即停止，最后报告70k，未达到100k；用户明确决定
+停止继续性能优化、以正确性通过判定F24完成，故保留失败事实但移出完成门。
+旧迁移/phase probe/M0脚本及Make入口已删除，临时大产物清理后保留本轮证据；
+清理后小回归不冒充全图重跑，具体身份和日志见正确性提交记录。

@@ -5,7 +5,6 @@ Wolvrix 实现提交：`5f31043`。
 
 ## 实现与验证
 
-完整合约见 [node-cse.md](../../wolvrix/docs/ingest/node-cse.md) 和
 [node-attributes.md](../../wolvrix/docs/ingest/node-attributes.md)。
 实现采用完整局部 signature 的精确 intern，hash 仅选桶，memoized child term
 避免 DAG 指数展开；来源名不参加功能判等，真实外部 ValueId/完整类型参加。
@@ -50,13 +49,9 @@ retention 是 source-result 可用性审计，不能把它表述成每个原始 
 
 | Make 入口 | 实际结果 | F08 日志 |
 | --- | --- | --- |
-| `test_grhsim_node_cse test_firrtl_node_pipeline test_wolvrix inspect_firrtl_node_retention` | 定向各1/1、最终78/78 CTest，含tagged XMR/retime；真实 RenameTable gsim检查通过 | `final-audit.log` |
-| `test_firrtl_node_pipeline test_firrtl_node_attributes test_firrtl_cse_scope test_grhsim_transforms test_grhsim_readable_store inspect_firrtl_node_retention` | pipeline/attrs/scope各1/1、transforms 4/4、readable 3/3 | `regressions-second.log` |
 | `test_wolvrix test_firrtl_comb test_firrtl_state test_firrtl_memory test_firrtl_effects test_ingest_mixed` | 78/78及组合、状态、memory、effects、11个混合源编译模型全部执行通过 | `full-regressions.log` |
-| `test_grhsim_node_cse test_wolvrix run_grhsim_cpu_st_cpp` | 78/78；选取16/1024预算的phase、sink-private、effects、snapshot-identity共8个CPU模型编译执行通过 | `final-ctest-cpu.log` |
 | `py_install` 后 `test_grhsim_flow test_ingest_python test_grhsim_provenance run_hdlbits_test run_hdlbits_grhsim` | Python 3/3+8/8+3/3；flow全部SV checkpoint模型执行；DUT001普通SV/GrhSIM均通过 | `python-hdlbits-final.log` |
 | 最终 `py_install test_grhsim_flow test_ingest_python test_grhsim_provenance` | 最新实现包重新安装，Python 3/3+8/8+3/3及flow生成模型编译执行通过 | `final-package-flow.log` |
-| `inspect_firrtl_node_retention FIRRTL_NODE_CSE=off` | real hierarchy及JSON往返通过 | `retention-off-final.log` |
 
 早期缺依赖、缺 include、string oracle 不适用等失败日志不作为通过证据；
 补齐依赖/使用编译 effects scoreboard 后的最终日志为准。

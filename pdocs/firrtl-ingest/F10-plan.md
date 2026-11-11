@@ -564,7 +564,6 @@ init/invalid、三个 Verification 层、DPI、SimJTAG 和冻结 harness include
 
 flat checkpoint 已发布，大小为 34,973,290,367 bytes；flatten 后 52 个
 假环全部修复，无真环，转换日志为 456,380 operations、202,893 states。
-随后首次 `grhsim-simplify` 的第 1–7 轮分别耗时
 210807、37946、27730、26281、26088、26443、26491 ms，合计
 381786 ms，七轮均 `changed=1`，该 pass 没有完成记录。完整 producer 在
 2026-11-01 07:04:29 UTC 到达唯一的 20 分钟硬截止，被 SIGKILL；Make
@@ -576,8 +575,6 @@ flat checkpoint 已发布，大小为 34,973,290,367 bytes；flatten 后 52 个
 ### 跳过 backend 可选优化的 full31（20 分钟终止）
 
 full31 已实施显式关闭 backend 可选优化的功能 bringup：
-`XS_GRHSIM_SIMPLIFY=0`、`XS_GRHSIM_PACK_BIT_REGISTERS=0`、
-`XS_GRHSIM_MASKED_OR=0`、`XS_GRHSIM_PHASE_SIMPLIFY=0` 和
 `XS_GRHSIM_CLONE_SHARED_COMPUTE=0`，保留转换及其结构验证、phase 拆分、
 分图/SinkSchedule 和 C++ emit。另设 `XS_GRHSIM_ROUNDTRIP_VERIFY=0`，
 只跳过 emit 后额外的 JSON 重载/重建 schedule/重存比较，不关闭转换验证。
@@ -700,7 +697,6 @@ operations、169336 states，不能将转换计数当作全图 op 数。虽然�
 ### converted 单轮 simplify 的 full34（20 分钟终止）
 
 raw DCE 未改善整机生成进度，因此从显式 bringup 撤回，普通 GRH 恢复原
-七阶段。full34 只在 converted 阶段启用既有 `grhsim-simplify` 的
 `-max-rounds=1`，其它 backend 可选变换保持关闭，默认 full 配置不变。
 `full34/logs/flow-tests.log` 记录 shared flow 5 项和 FIRRTL workflow 57 项
 通过，以及 backend default/skip/one-round × annotations on/off 六组状态
@@ -710,7 +706,6 @@ full/prefer 对照；原生库未改变。
 
 full34 于 2026-11-01 08:16:37 UTC 从同一冻结 FIRRTL/full27 harness 在
 新目录完整启动，硬截止约为 08:36:38 UTC。实际设置
-`XS_GRHSIM_SIMPLIFY=1 XS_GRHSIM_SIMPLIFY_MAX_ROUNDS=1`，raw DCE 已撤回，
 pack/recover/phase/clone 保持关闭；其余 flags 同 full33。
 继续保留所有必要 guard 和验证，使用单个 `timeout --signal=KILL 20m`，
 不恢复 full33 或分段重置预算。本轮实际完成：
@@ -726,7 +721,6 @@ pack/recover/phase/clone 保持关闭；其余 flags 同 full33。
 | comb-loop-elim | 37667 |
 | memory-init-check | 18687 |
 | grh-to-grhsim | 48030 |
-| grhsim-simplify | 233906 |
 | grhsim-split-event-and-output | 48482 |
 | grhsim-split-nonsink-and-sink | 36201 |
 | grhsim-partition-nonsink | 108280 |

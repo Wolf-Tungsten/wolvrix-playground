@@ -18,7 +18,7 @@
 | 不展开动态数组写 | RenameTable 结构断言 1 个 shaped kRegister、2 个 kRegisterWriteArrayPort、1 个 reset whole writer；没有 kMul/kShl 地址运算，也不构造全数组副本逐槽提交 |
 | 初始化与 invalid | FirrtlInitPolicy 默认 Unknown/显式 Zero、独立 FirrtlInvalidPolicy；元数据可追溯；FourState 保留到既有显式投影；regreset 值不冒充启动值；signed 扩展、invalid 后写优先、零宽/零 extent 均有检查 |
 | 条件声明 | 硬件声明本身无条件；只有不包含 destination 声明的 interleaving 条件控制 connect；局部 wire 和 reg 在外层条件为假时仍具有规范行为 |
-| node 边界 | state declaration/read/write 不带 members；真实 node 的 General/Output 计算复制保留 source key/roots；显式 grhsim.nodeClone 区分合法 owner 间复制和非法重复根，JSON、普通 simplify 与各阶段 simplify 后仍验证 |
+| node 边界 | state declaration/read/write 不带 members；真实 node 的 General/Output 计算复制保留 source key/roots；显式 grhsim.nodeClone 区分合法 owner 间复制和非法重复根，JSON、普通 GRH 优化与转换阶段后仍验证 |
 | 多周期独立记分板与等价 SV | RenameTable 384 cycle × 4 phase，priority 512 cycle × 5 phase；对照普通图、JSON 重载及 simplify 后图；FIRRTL 和 SV 共四个生成模型实际编译运行，每个模型重复 3 次 init/eval epoch |
 
 独立记分板为 `wolvrix/tests/ingest/data/firrtl/state/workload.hpp`，只使用
@@ -47,7 +47,6 @@ rewrite 和 root carrier 保留标记。完整 F08 属性/clone 审计不因此�
 
 | 命令 | 日志 |
 | --- | --- |
-| `make test_firrtl_state test_firrtl_node_attributes test_firrtl_cse_scope` | `state-final.log` |
 | `make test_wolvrix` | `test_wolvrix.log` |
 | `make test_grh_register_write` | `register_write.log` |
 | `make test_grh_to_grhsim` | `grh_to_grhsim.log` |

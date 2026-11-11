@@ -40,7 +40,6 @@ rob-grhsim:
 		"$(ROB_WORK)/rtl.f" Rob "$(ROB_WORK)/grhsim/flat_grh.json" \
 		"$(ROB_WORK)/grhsim/final.json" "$(ROB_WORK)/grhsim/roundtrip.json" \
 		"$(ROB_WORK)/read_args.txt" info --keep-origins \
-		--pack-bit-registers-report "$(ROB_WORK)/grhsim/pack_members.tsv" \
 		--dump-post-conversion-json "$(ROB_WORK)/grhsim/post_conversion.json" \
 		--dump-pre-partition-json "$(ROB_WORK)/grhsim/pre_partition.json" \
 		> "$(ROB_WORK)/grhsim.log" 2>&1
@@ -87,7 +86,7 @@ ROB_JOBS ?= 16
 ROB_GRHSIM_FLAT_GRH ?= $(ROB_WORK)/emit_flat_grh.json
 ROB_GRHSIM_RESUME ?=
 # Extra flags appended to the grhsim emit invocation, e.g.
-# ROB_GRHSIM_EXTRA_FLAGS=--no-pack-bit-registers for A/B arms.
+# ROB_GRHSIM_EXTRA_FLAGS may add flow-specific emitter options for A/B arms.
 ROB_GRHSIM_EXTRA_FLAGS ?=
 
 # S8 A/B: original models/trace stay read-only; regenerate candidate from original SV.

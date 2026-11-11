@@ -13,10 +13,9 @@
 范围都只到 FIRRTL→C++，不含生成代码的编译、链接和仿真：
 
 - GSIM 在 **778.590 s** 完成，发布 244 个 C++ 文件。
-- GrhSIM 在 **2400.008 s** 被硬截止，仍停在首次后端 `grhsim-simplify`，
   C++ 文件为 0。此时已用时间是 GSIM 完整生成时间的 **3.08 倍**，但这不是
   真实端到端倍率；GrhSIM 的实际完成时间和倍率仍未知。
-- GrhSIM 的普通 GRH `simplify` 单项就为 **1060.191 s**，已经超过 GSIM 整条
+- 普通 GRH `simplify` 单项就为 **1060.191 s**，已经超过 GSIM 整条
   FIRRTL→C++ 路线。普通 simplify 与尚未完成的后端 simplify 合计至少
   **1329.739 s，占已用预算 55.4%**，是第一优化对象。
 - 两条路线并不等价：GrhSIM 还包含 mixed ingest、完整 GRH/GrhSIM 变换、
@@ -30,7 +29,6 @@
 | 普通 GRH simplify | 1060.191 | 44.2% |
 | hier-flatten | 381.999 | 15.9% |
 | FIRRTL/mixed ingest | 272.581 | 11.4% |
-| 首次后端 grhsim-simplify（未完成，仅已观察部分） | 269.548 | 11.2% |
 | 其他前序/后序 pass、comb-loop、两次 verify、memory-init-check | 295.555 | 12.3% |
 | flat checkpoint + grh-to-grhsim | 113.218 | 4.7% |
 | 启动及阶段间未归属时间 | 6.916 | 0.3% |
@@ -55,13 +53,9 @@ redundant-elim 每次重新计算拓扑 rank 并扫描全部 op
 pass 之间传递一个布尔 dirty 标志（`wolvrix/lib/transform/simplify.cpp:55`），
 没有传递“哪些 op/value 变脏”。
 
-转换后又在 GrhSIM IR 上执行 fold/share、DCE、used-bits 和拓扑排序。首次后端
-simplify 已完成两轮就用了 234.732 s，其中 fold/share 为 184.787 s；
-两轮都仍有变化。每个变化轮还会重排全部 member、重建 owner groups，并重新执行
-`orderedOperations`（`wolvrix/lib/transform/grhsim/simplify.cpp:433`）。
-默认 flow 在 converted、pack、recover-masked-OR 和 nonsink partition 后最多可
-四次调用该 pass，每次上限八轮（`scripts/grhsim_flow.py:181`）。F13 尚未走完第一次，
-所以 269.548 s 只是后端成本下限。
+转换后在 GrhSIM IR 上执行后端分图、DCE 和拓扑排序。每个阶段会重排需要的
+member、重建 owner groups，并重新执行 `orderedOperations`；这些后端成本与
+前置 GRH 优化分开计量。F13 尚未走完完整流程，所以现有后端时间只是成本下限。
 
 相比之下，GSIM 主流程将 constant analysis、alias analysis、commonExpr 等组织为
 一次主要的全图阶段，在阶段间做死节点清理（`reference/gsim/src/main.cpp:313`），
@@ -228,11 +222,9 @@ Makefile 运行，性能证据及临时产物放入 `ptmp/firrtl-ingest/F15/`。
 
 2026-11-02 已完成三项实现的可回归部分：
 
-- F15.1 在普通 GRH simplify 中加入共享 graph-level dirty worklist。首轮完整播种；const-fold、redundant-elim 和 DCE 只消费上游实际修改的 graph，并按既有依赖关系重新入队。GrhSIM simplify 在 owner 分组上维护确定性的 dirty-owner 集合，改写后唤醒当前 owner、结果 users 和输入 producers；稳定 owner 会被跳过。每轮日志记录 worklist、候选/命中、删除、op/value delta、owner 访问/跳过和达到上限时的未收敛 pass。GrhSIM 的 fold/canonicalize/mux/CSE/node merge/DCE/topology 计数仍由 `WOLVRIX_GRHSIM_SIMPLIFY_STATS=1` 开启。
 - F15.2 增加按 graph identity/revision 的 node 属性校验缓存，并把 flatten 的限定 key 缓存改为 transient `NodeKeyInterner` ID 表；GrhSIM CSE key 的字符串属性也通过稳定存储的 transient interner 编码，避免每个 key 复制长字符串。JSON schema v2 仍发布原有 canonical 字符串。`WOLVRIX_HIER_FLATTEN_PROFILE=1` 现在同时记录 qualification 命中、唯一 key 和字节数；验证缓存不跨 graph 或 revision 重用。
 - F15.3 增加 `FirrtlOptions::lowerThreads`。大于 1 时，事务先发现可达 FIRRTL 模块，由主线程为最终 Design 分配目标 graph，线程池任务各自独占一个 graph 直接 lowering；发布时只把同一个 `unique_ptr<Graph>` 插入目录，不再构造私有 Design 或通过 `importGraph` 复制 FIRRTL 整图。依赖解析、annotation、external/SV binding、诊断和最终 verify 仍在事务发布阶段完成。worker 异常先保存为 `exception_ptr`，由确定性的 `ensureFirrtl` 依赖顺序重新抛出，以保留串行路径的 source-aware 诊断。默认值 1 保持旧调用，Python request 支持 `firrtl.lower_threads`。
 
-定向门禁均通过项目 Makefile：`test_transform_simplify`、`test_firrtl_node_attributes`、`test_firrtl_cse_scope`、`test_grhsim_transforms`、`test_ingest_driver`。ingest-driver 比较 `lowerThreads=1` 与重复 `lowerThreads=2/4` 的 `firrtl/comb/parallel.fir` 完整 JSON 和诊断；fixture 包含六个可达模块。`parallel_error.fir` 使模块排序与依赖顺序相反，验证多个 worker 同时失败时的错误顺序和源码位置。线程池版本的其余线程数和完整 FIRRTL→C++ A/B 仍需单独记录，不能由这些小型回归外推收益。
 
 2026-11-03 对同一冻结 `SimTop.fir`（1,671,325,062 bytes，SHA-256
 `cc46aae1a379d9e62132b76b0702685ba67761c87815067f770b0743d7dc754a`）完成了

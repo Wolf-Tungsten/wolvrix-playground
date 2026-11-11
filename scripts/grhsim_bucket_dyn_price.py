@@ -7,7 +7,7 @@ side (no gsim counterpart), attributed by name classifiers:
   * ``(reg-to-mem)`` -- ``__reg_to_mem_<digits>`` array states and their access
     machinery (grhsim.reg-to-mem pass products),
   * ``(packed)``     -- ``packed_bits_<digits>`` word states and their
-    merge/extract ops (grhsim.pack-bit-registers pass products),
+    merge/extract ops from historical register grouping,
   * ``(events)``     -- ``__event_*`` edge-bookkeeping states and their guard
     ops (ingest-level event histories).
 

@@ -21,7 +21,7 @@ import wolvrix
 
 from grhsim_flow import FlowOptions, checked, emit_cpp, finish_simulation_graph, store_checkpoint
 from grhsim_provenance import capture_generation, file_identity, generated_identity, write_identity
-from wolvrix_xs_grhsim import GRH_PIPELINE, timed
+from wolvrix_xs_grhsim import GRH_PIPELINE, firrtl_grh_pipeline, timed
 from xs_firrtl_inputs import create_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -406,7 +406,8 @@ def generate(args, top):
                 slang_args = [str(path) for path in sv] + ["--top", top, "-D", "DIFFTEST"]
                 slang_args += [arg for directory in args.include_dir for arg in ("-I", str(directory))]
                 checked(timed(f"{top} SV", lambda: session.read_sv(None, slang_args=slang_args)), "read SV")
-            for name, opts in GRH_PIPELINE:
+            pipeline = firrtl_grh_pipeline(GRH_PIPELINE) if language == "firrtl" else GRH_PIPELINE
+            for name, opts in pipeline:
                 if name == "simplify" and args.dump_pre_simplify:
                     store_checkpoint(session, work / f"{language}-pre-simplify.json",
                                      design="design.main", top=top)

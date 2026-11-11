@@ -1,4 +1,4 @@
-"""Check that the XS Make entry points cannot select scalarized RTL."""
+"""Check default reference SV and aggregate simulation backend entry points."""
 
 import os
 from pathlib import Path
@@ -41,6 +41,78 @@ class XsWorkflowTests(unittest.TestCase):
                     )
                     result = self.make("check_xs_aggregate_rtl", f"XS_RTL_BUILD={build}")
                     self.assertEqual(result.returncode == 0, accepted, result.stdout)
+
+    def test_reference_rtl_uses_default_generation(self):
+        (ROOT / "ptmp").mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="xs-reference-", dir=ROOT / "ptmp") as work:
+            build = Path(work)
+            xs = build / "xiangshan"
+            xs.mkdir()
+            (xs / "Makefile").write_text(""".PHONY: sim-verilog
+sim-verilog:
+	@test -z '$(PRESERVE_AGGREGATE)'
+	@mkdir -p '$(BUILD_DIR)/rtl'
+	@printf 'module SimTop; endmodule\\n' > '$(BUILD_DIR)/rtl/SimTop.sv'
+	@printf 'firtool -O=release\\nExit status: 0\\n' > '$(BUILD_DIR)/time.log'
+""")
+            result = self.make("xs_ref_rtl", f"XS_ROOT={xs}",
+                f"XS_WORK_BASE={build / 'outputs'}", f"XS_LOG_DIR={build / 'logs'}",
+                "PRESERVE_AGGREGATE=all")
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertTrue((build / "outputs/ref-rtl/rtl/SimTop.sv").is_file())
+            self.assertFalse((build / "outputs/rtl/rtl/SimTop.sv").exists())
+
+    def test_reference_rtl_rejects_aggregate_generation(self):
+        (ROOT / "ptmp").mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="xs-reference-", dir=ROOT / "ptmp") as work:
+            build = Path(work)
+            (build / "rtl").mkdir()
+            (build / "rtl/SimTop.sv").write_text("module SimTop; endmodule\n")
+            for flags, status, accepted in (
+                ("", 0, True), ("--preserve-aggregate=all", 0, False),
+                ("--preserve-aggregate=none", 0, False), ("", 1, False),
+            ):
+                with self.subTest(flags=flags, status=status):
+                    (build / "time.log").write_text(
+                        f'Command being timed: "firtool {flags}"\nExit status: {status}\n')
+                    result = self.make("check_xs_ref_rtl", f"XS_REF_RTL_BUILD={build}")
+                    self.assertEqual(result.returncode == 0, accepted, result.stdout)
+
+    def test_reference_builder_keeps_upstream_verilator_defaults(self):
+        (ROOT / "ptmp").mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="xs-reference-", dir=ROOT / "ptmp") as work:
+            build = Path(work)
+            xs = build / "xiangshan"
+            harness = xs / "difftest"
+            harness.mkdir(parents=True)
+            generated = xs / "build/generated-src"
+            generated.mkdir(parents=True)
+            (generated / "DifftestMacros.svh").write_text("// mock macros\n")
+            rtl = build / "reference-rtl"
+            (rtl / "rtl").mkdir(parents=True)
+            (rtl / "rtl/SimTop.sv").write_text("module SimTop; endmodule\n")
+            (rtl / "time.log").write_text("firtool -O=release\nExit status: 0\n")
+            (harness / "Makefile").write_text("""SIM_VFLAGS += +define+DIFFTEST
+EMU_THREADS ?= 0
+EMU_OPTIMIZE ?= -O3
+EMU_RANDOMIZE ?= 0
+.PHONY: emu
+emu:
+	@test '$(origin SIM_VFLAGS)' = file
+	@test '$(SIM_VFLAGS)' = '+define+DIFFTEST'
+	@test '$(origin EMU_THREADS)' = file
+	@test '$(EMU_THREADS)' = 0
+	@test '$(origin EMU_OPTIMIZE)' = file
+	@test '$(EMU_OPTIMIZE)' = '-O3'
+	@test '$(origin EMU_RANDOMIZE)' = file
+	@test '$(EMU_RANDOMIZE)' = 0
+""" + f"\t@test '$(SIM_TOP_V)' = '{rtl / 'rtl/SimTop.sv'}'\n"
+                + f"\t@test '$(RTL_DIR)' = '{rtl / 'rtl'}'\n")
+            result = self.make("xs_ref_emu", f"XS_ROOT={xs}",
+                f"XS_REF_RTL_BUILD={rtl}", f"XS_REF_BUILD={build / 'reference-emu'}",
+                f"XS_LOG_DIR={build / 'logs'}", "XS_EMU_THREADS=2",
+                "XS_SIM_VFLAGS=--language 1800-2005 -Wno-fatal -fno-expand")
+            self.assertEqual(result.returncode, 0, result.stdout)
 
     def test_retired_targets_are_absent(self):
         for target in (

@@ -2,22 +2,17 @@
 
 import contextlib
 import io
-import json
 import os
 from pathlib import Path
 import subprocess
 import tempfile
-import tarfile
 import unittest
 from unittest import mock
 
 from grhsim_flow import RETIRED_OPTIONS, validate_environment
 from check_remove_grhsim_ir import cpp_issues, python_issues
-from compare_remove_grhsim_ir import approved_difference
 from grhsim_declared_pack_census import declared_names
 from grhsim_grh_reader import graph_snapshot
-from remove_grhsim_ir_rob import runtime_sample
-import remove_grhsim_ir_baseline as baseline_tools
 import reemit_grhsim
 import wolvrix_hdlbits_grhsim
 import wolvrix_xs_grhsim
@@ -27,128 +22,6 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ToolingTest(unittest.TestCase):
-    def test_frozen_binding_checks_archive_headers_and_library(self):
-        with tempfile.TemporaryDirectory(dir=ROOT / "ptmp/remove-grhsim-ir") as temporary:
-            base = Path(temporary); baseline = base / "baseline"; baseline.mkdir()
-            archived = base / "archive"
-            sources = {"wolvrix/include/core/grh.hpp": b"frozen header\n",
-                       "wolvrix/app/pybind/wolvrix/__init__.py": b"frozen package\n",
-                       "scripts/wolvrix_xs_grhsim_ir.py": b"frozen flow\n"}
-            records = {".": {"files": {}}, "wolvrix": {"files": {}}}
-            with tarfile.open(baseline / "source.tar.gz", "w:gz") as archive:
-                for name, raw in sources.items():
-                    path = archived / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(raw)
-                    archive.add(path, arcname=name)
-                    repo, key = ("wolvrix", name.removeprefix("wolvrix/")) if name.startswith("wolvrix/") else (".", name)
-                    records[repo]["files"][key] = baseline_tools.digest(path)
-            manifest = {"repositories": records}
-            (baseline / "manifest.json").write_text(json.dumps(manifest))
-            library = baseline / "frozen/wolvrix/build/libwolvrix-lib.so"
-            library.parent.mkdir(parents=True); library.write_bytes(b"frozen library")
-            (baseline / "inputs-supplement.json").write_text(json.dumps({"inputs": {
-                "wolvrix/build/libwolvrix-lib.so": {"sha256": baseline_tools.digest(library)}}}))
-            output = base / "binding"; baseline_tools.prepare_binding(baseline, output)
-            self.assertEqual((output / "python/wolvrix/__init__.py").read_bytes(), sources["wolvrix/app/pybind/wolvrix/__init__.py"])
-            self.assertEqual((output / "python/wolvrix/libwolvrix-lib.so").read_bytes(), library.read_bytes())
-            self.assertEqual(len(json.loads((output / "source-identity.json").read_text())["source_sha256"]), 3)
-            compiler_sources = {"wolvrix/CMakeLists.txt": b"set(WOLVRIX_LIB_SOURCES\n    lib/core/grh.cpp\n)\n",
-                                "wolvrix/lib/core/grh.cpp": b"frozen implementation\n"}
-            with tarfile.open(baseline / "source.tar.gz", "w:gz") as archive:
-                for name, raw in {**sources, **compiler_sources}.items():
-                    path = archived / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(raw)
-                    archive.add(path, arcname=name)
-                    repo, key = ("wolvrix", name.removeprefix("wolvrix/")) if name.startswith("wolvrix/") else (".", name)
-                    records[repo]["files"][key] = baseline_tools.digest(path)
-            records["wolvrix"]["submodules"] = "same dependencies\n"
-            (baseline / "manifest.json").write_text(json.dumps(manifest))
-            with mock.patch.object(baseline_tools, "command", return_value="same dependencies\n"):
-                compiler = base / "compiler"
-                baseline_tools.prepare_binding(baseline, compiler, rebuild_compiler=True)
-                self.assertEqual((compiler / "compiler-sources.mk").read_text(), "FROZEN_COMPILER_SOURCES := lib/core/grh.cpp\n")
-                self.assertFalse((compiler / "python/wolvrix/libwolvrix-lib.so").exists())
-                identity = json.loads((compiler / "source-identity.json").read_text())
-                self.assertEqual(identity["dependencies"], "same dependencies\n")
-            with mock.patch.object(baseline_tools, "command", return_value="changed dependencies\n"):
-                with self.assertRaisesRegex(RuntimeError, "dependency revisions changed"):
-                    baseline_tools.prepare_binding(baseline, compiler, rebuild_compiler=True)
-            with self.assertRaisesRegex(ValueError, "outside the baseline"):
-                baseline_tools.prepare_binding(baseline, baseline / "binding")
-            library.write_bytes(b"changed library")
-            with self.assertRaisesRegex(RuntimeError, "Frozen shared library changed"):
-                baseline_tools.prepare_binding(baseline, output)
-            records["wolvrix"]["files"]["include/core/grh.hpp"] = "bad"
-            (baseline / "manifest.json").write_text(json.dumps(manifest))
-            with self.assertRaisesRegex(RuntimeError, "Frozen binding source changed"):
-                baseline_tools.prepare_binding(baseline, output)
-        makefile = (ROOT / "Makefile").read_text()
-        smoke = next(line for line in makefile.splitlines() if "len(wolvrix.list_grhsim_passes())" in line)
-        self.assertIn("$(PYTHON) -S -c", smoke)
-        self.assertIn("pathlib.Path(wolvrix.__file__)", smoke)
-
-    def test_frozen_xs_inputs_are_bound_and_remapped(self):
-        with tempfile.TemporaryDirectory(dir=ROOT / "ptmp/remove-grhsim-ir") as temporary:
-            base = Path(temporary); baseline = base / "baseline"; frozen = baseline / "frozen"
-            original = ROOT / "ptmp/test-frozen-xs"; relative = original.relative_to(ROOT)
-            source = frozen / relative / "top.sv"; source.parent.mkdir(parents=True)
-            source.write_text("module SimTop; endmodule\n")
-            inputs = frozen / "ptmp/xs/grhsim-ir"; inputs.mkdir(parents=True)
-            filelist = inputs / "xs_wolf.f"; filelist.write_text(str(original / "top.sv") + "\n")
-            args = inputs / "wolvrix_read_args.txt"; args.write_text(f"-I\n{original}\n-D\nDIFFTEST\n")
-            records = {str(path.relative_to(frozen)): {"sha256": baseline_tools.digest(path)} for path in (source, args)}
-            (baseline / "inputs-supplement.json").write_text(json.dumps({"inputs": records}))
-            (baseline / "manifest.json").write_text(json.dumps({"artifacts": {
-                str(filelist.relative_to(baseline)): {"sha256": baseline_tools.digest(filelist)}}}))
-            output = base / "candidate"
-            baseline_tools.prepare_xs_inputs(baseline, output)
-            self.assertEqual((output / "rtl.f").read_text(), str(source) + "\n")
-            self.assertEqual((output / "read_args.txt").read_text(), f"-I\n{source.parent}\n-D\nDIFFTEST\n")
-            with self.assertRaisesRegex(ValueError, "must not modify"):
-                baseline_tools.prepare_xs_inputs(baseline, baseline / "candidate")
-            source.write_text("changed")
-            with self.assertRaisesRegex(RuntimeError, "Frozen XS input changed"):
-                baseline_tools.prepare_xs_inputs(baseline, output)
-
-    def test_runtime_probe_requires_exact_cycle_endpoint(self):
-        row = "cycles=2000 checksum=123 init_seconds=0.1 run_seconds=1.2\n"
-        self.assertEqual(runtime_sample(row, 2000)["checksum"], 123)
-        for broken in (row.replace("cycles=2000", "cycles=1000"), row.replace("run_seconds=1.2", "run_seconds=1e999"),
-                       row.replace("run_seconds=1.2", "run_seconds=-1.2"), row.replace("run_seconds=1.2", "run_seconds=0"),
-                       "crashed\n" + row):
-            with self.subTest(broken=broken), self.assertRaises(ValueError):
-                runtime_sample(broken, 2000)
-
-    def test_single_call_policy_only_approves_the_output_duplicate(self):
-        effect = {"kind": "dpi", "function": "cpu_test_bit_abi", "values": [1, 3, 2]}
-        difference = {"category": "effects", "old": [effect, effect], "new": [effect]}
-        self.assertIsNotNone(approved_difference("dpi_bit_abi", difference, "single-original-call"))
-        self.assertIsNone(approved_difference("dpi_bit_abi", difference, "strict"))
-        self.assertIsNone(approved_difference("dpi_smoke", difference, "single-original-call"))
-        self.assertIsNone(approved_difference("dpi_bit_abi", {**difference, "category": "outputs"}, "single-original-call"))
-        self.assertIsNone(approved_difference("dpi_bit_abi", {**difference, "new": []}, "single-original-call"))
-        changed = {**effect, "values": [1, 2, 2]}
-        self.assertIsNone(approved_difference("dpi_bit_abi", {**difference, "new": [changed]}, "single-original-call"))
-
-    def test_source_order_policy_only_approves_the_independent_call_swap(self):
-        inc = {"kind": "dpi", "function": "cpu_test_inc", "values": [1, 2]}
-        dbl = {"kind": "dpi", "function": "cpu_test_dbl", "values": [3, 6]}
-        difference = {"category": "effects", "old": [dbl, inc], "new": [inc, dbl]}
-        policy = "single-original-call-source-order"
-        for name in ("dpi_smoke", "dpi_smoke_tu"):
-            self.assertIsNotNone(approved_difference(name, difference, policy))
-            self.assertIsNone(approved_difference(name, difference, "single-original-call"))
-            self.assertIsNone(approved_difference(name, difference, "strict"))
-        for changed in ({**difference, "category": "outputs"},
-                        {**difference, "new": [inc]},
-                        {**difference, "new": [inc, {**dbl, "values": [3, 7]}]},
-                        {**difference, "old": [inc, dbl], "new": [dbl, inc]},
-                        {**difference, "old": [dbl, inc, inc], "new": [inc, dbl, inc]},
-                        {**difference, "old": [{**dbl, "kind": "task"}, inc]}):
-            with self.subTest(changed=changed):
-                self.assertIsNone(approved_difference("dpi_smoke", changed, policy))
-        self.assertIsNone(approved_difference("random_function", difference, policy))
-        bit = {"kind": "dpi", "function": "cpu_test_bit_abi", "values": [1, 3, 2]}
-        self.assertIsNotNone(approved_difference("dpi_bit_abi", {"category": "effects", "old": [bit, bit], "new": [bit]}, policy))
-
     def test_graph_scoped_declared_symbols(self):
         first = {"symbol": "first", "ops": [], "vals": [], "declaredSymbols": ["q", "sub$x"]}
         second = {"symbol": "second", "ops": [], "vals": [], "declaredSymbols": ["q", "y"]}
@@ -207,8 +80,8 @@ class ToolingTest(unittest.TestCase):
                         ["make", "--no-print-directory", "-n", "check_remove_grhsim_ir_options", f"{name}={value}"],
                         cwd=ROOT, env=env, capture_output=True, text=True, check=False,
                     )
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn(f"Retired GrhSIM option {name}", result.stderr)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(f"Retired GrhSIM option {name}", result.stderr)
 
     def test_make_rejects_retired_xs_wolf_namespace(self):
         env = {k: v for k, v in os.environ.items() if k != "MAKEFLAGS"}
@@ -224,7 +97,7 @@ class ToolingTest(unittest.TestCase):
     def test_make_entry_guards(self):
         makefile = (ROOT / "Makefile").read_text()
         for entry in ("run_hdlbits_grhsim", "run_xs_bugcase_grhsim", "reemit_grhsim",
-                      "xs_grhsim", "xs_grhsim_reemit", "generate_remove_grhsim_ir_rob"):
+                      "xs_grhsim", "xs_grhsim_reemit", "xs_firrtl_grhsim"):
             with self.subTest(entry=entry):
                 self.assertRegex(makefile, rf"(?m)^{entry}:.*\bcheck_remove_grhsim_ir_options\b")
 
@@ -232,31 +105,25 @@ class ToolingTest(unittest.TestCase):
         env = {k: v for k, v in os.environ.items()
                if k not in RETIRED_OPTIONS and k not in ("MAKEFLAGS", "MFLAGS")}
         env["WOLF_ENV_SOURCED"] = "1"
-        for enabled in ("0", "1"):
-            result = subprocess.run(
-                ["make", "--no-print-directory", "-n", "reemit_grhsim", "SKIP_PY_INSTALL=1",
-                 "GRHSIM_REEMIT_OVERWRITE=1", "GRHSIM_REEMIT_MEM_ENABLE_BITMAP=off",
-                 "GRHSIM_REEMIT_MAX_OUTPUT_FILE_BYTES=34359738368",
-                 "GRHSIM_REEMIT_MEM_WRITE_ACTIVATE=on-change",
-                 f"GRHSIM_REEMIT_PACK_BIT_REGISTERS={enabled}", f"GRHSIM_REEMIT_MASKED_OR={enabled}"],
-                cwd=ROOT, env=env, capture_output=True, text=True, check=False,
-            )
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('--mem-write-activate "on-change"', result.stdout)
-            self.assertIn('--mem-enable-bitmap "off"', result.stdout)
-            self.assertIn('--max-output-file-bytes "34359738368"', result.stdout)
-            self.assertIn("--overwrite", result.stdout)
-            for flag in ("pack-bit-registers", "recover-masked-or"):
-                self.assertIn(f"--{'' if enabled == '1' else 'no-'}{flag}", result.stdout)
-                self.assertNotIn(f"--{'no-' if enabled == '1' else ''}{flag}", result.stdout)
+        result = subprocess.run(
+            ["make", "--no-print-directory", "-n", "reemit_grhsim", "SKIP_PY_INSTALL=1",
+             "GRHSIM_REEMIT_OVERWRITE=1", "GRHSIM_REEMIT_MEM_ENABLE_BITMAP=off",
+             "GRHSIM_REEMIT_MAX_OUTPUT_FILE_BYTES=34359738368",
+             "GRHSIM_REEMIT_MEM_WRITE_ACTIVATE=on-change"],
+            cwd=ROOT, env=env, capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--mem-write-activate "on-change"', result.stdout)
+        self.assertIn('--mem-enable-bitmap "off"', result.stdout)
+        self.assertIn('--max-output-file-bytes "34359738368"', result.stdout)
+        self.assertIn("--overwrite", result.stdout)
 
     def test_retained_controls(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             args = wolvrix_xs_grhsim.parse_args(
                 ["rtl.f", "top", "flat.json", "graph.json", "roundtrip.json", "read_args.txt",
-                 "--mem-enable-bitmap", "off", "--no-phase-simplify"])
+                 "--mem-enable-bitmap", "off"])
         self.assertEqual(args.mem_enable_bitmap, "off")
-        self.assertFalse(args.phase_simplify)
         with mock.patch.dict(os.environ, {
             "XS_GRHSIM_SEMANTIC_NODES": "1", "XS_GRHSIM_MAX_SUPERNODE_NODES": "17",
             "XS_GRHSIM_SEGMENT_PENALTY": "3",
@@ -265,6 +132,20 @@ class ToolingTest(unittest.TestCase):
             options = wolvrix_xs_grhsim.default_flow_options()
         self.assertEqual((options.semantic_nodes, options.max_supernode_nodes,
                           options.segment_penalty, options.enable_guard_min_size), (True, 17, 3, 6))
+
+    def test_pre_simplify_dump_is_scoped_to_sv(self):
+        base = ["rtl.f", "top", "flat.json", "graph.json", "roundtrip.json", "read_args.txt"]
+        dump = ["--dump-pre-simplify-json", "before-simplify.json"]
+        with mock.patch.dict(os.environ, {}, clear=True):
+            args = wolvrix_xs_grhsim.parse_args(base + dump)
+            self.assertEqual(args.dump_pre_simplify_json, Path("before-simplify.json"))
+            self.assertIsNone(args.sources_manifest)
+            error = io.StringIO()
+            with contextlib.redirect_stderr(error), self.assertRaises(SystemExit) as status:
+                wolvrix_xs_grhsim.parse_args(base + ["--sources-manifest", "sources.json"] + dump)
+            self.assertEqual(status.exception.code, 2)
+            self.assertIn("only supported by the SV route", error.getvalue())
+            self.assertIn("canonical FIRRTL has no simplify stage", error.getvalue())
 
     def test_retired_cli_controls(self):
         entries = (

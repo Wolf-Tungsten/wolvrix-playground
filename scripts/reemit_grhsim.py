@@ -35,14 +35,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--max-output-file-bytes", type=int, default=4 * 1024**3,
                         help="per-artifact limit, including readable graph and code map")
     parser.add_argument("--max-round", type=int, default=100000)
-    parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=None)
-    parser.add_argument("--recover-masked-or", action=argparse.BooleanOptionalAction, default=None)
-    parser.add_argument("--masked-or-min-terms", type=int)
-    parser.add_argument("--firrtl-node-cse", choices=["off", "gsim"])
     parser.add_argument("--firrtl-nodes", choices=["off", "prefer", "auto"])
     parser.add_argument("--cost-model", choices=["legacy", "bytes"])
     parser.add_argument("--nonsink-report")
-    parser.add_argument("--partition-simplify", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--max-supernode-nodes", type=int, help="maximum unified nodes per supernode")
     parser.add_argument("--segment-penalty", type=int)
     parser.add_argument("--sink-enable-guard-min-size", type=int)
@@ -90,11 +85,6 @@ def main() -> int:
         if args.sink_enable_guard_min_size is not None:
             options.enable_guard_min_size = args.sink_enable_guard_min_size
         stage = metadata.get("grhsim.stage")
-        if stage and stage != "converted" and any(
-            getattr(args, name) is not None for name in
-            ("pack_bit_registers", "recover_masked_or", "masked_or_min_terms")
-        ):
-            parser.error("Unpartitioned optimizations require the converted checkpoint")
         # Do not erase owners/clones or silently accept changed partition
         # settings on a later checkpoint. Resume from the stage that owns them.
         if stage in ("nonsink-partitioned", "sink-partitioned"):

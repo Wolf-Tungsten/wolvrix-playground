@@ -62,8 +62,6 @@ wolvrix/
 
 共享层负责输入、模块接口、源位置、链接及属性工具，不把 SV 的 LoweringPlan
 强行变成两种语言的共同 AST。两个前端以现有 GRH 类型和 op 合约会合。
-完整 node CSE 的分析和变换放在 `lib/transform/grhsim/node-cse.cpp`，公开
-pass 入口放在 `include/transform/grhsim/node-cse.hpp`，不塞进前端 parser。
 
 ## 3. 一次事务中的混合读取
 
@@ -124,7 +122,6 @@ FIRRTL 源 node 注解默认开启：Python 的 `node_annotations` 默认 `True`
 语义检查仍按原合约处理。它不改变 FIRRTL 的功能语义。
 
 默认 `XS_GRHSIM_PIPELINE_PROFILE=full` 保留现有完整普通 GRH 流程；
-下游默认仍为 `XS_GRHSIM_FIRRTL_NODE_CSE=gsim` 和
 `XS_GRHSIM_FIRRTL_NODES=auto`。先验证功能链路时，可显式选择以下配置，
 并为该次尝试使用独立输出目录：
 
@@ -133,10 +130,7 @@ XS_GRHSIM_PIPELINE_PROFILE=bringup make xs_firrtl_grhsim \
   XS_FIRRTL_INPUT=ptmp/xs/rtl/rtl/SimTop.fir \
   XS_FIRRTL_BUILD=ptmp/firrtl-ingest/functional-bringup \
   XS_FIRRTL_NODE_ANNOTATIONS=off \
-  XS_GRHSIM_FIRRTL_NODE_CSE=off \
   XS_GRHSIM_FIRRTL_NODES=off \
-  XS_GRHSIM_SIMPLIFY=0 XS_GRHSIM_PACK_BIT_REGISTERS=0 \
-  XS_GRHSIM_MASKED_OR=0 XS_GRHSIM_PHASE_SIMPLIFY=0 \
   XS_GRHSIM_CLONE_SHARED_COMPUTE=0 XS_GRHSIM_ROUNDTRIP_VERIFY=0
 ```
 
@@ -144,28 +138,36 @@ XS_GRHSIM_PIPELINE_PROFILE=bringup make xs_firrtl_grhsim \
 两个下游 `off` 分别关闭源 node 整体 CSE 和 nonsink 的源提示消费；不能
 仅设置上游注解开关，就把本次配置记成同一消融实验。
 
-`bringup` 普通 GRH 恢复七阶段，依次为 `xmr-resolve`、`multidriven-guard`、
+`bringup` 普通 GRH 原恢复七阶段，依次为 `xmr-resolve`、`multidriven-guard`、
 `blackbox-guard`、`latch-transparent-read`、`hier-flatten`、
-`comb-loop-elim`、`memory-init-check`。full33 曾试加一次 raw DCE，但整机
+`comb-loop-elim`、`memory-init-check`；随后在消环后插入 `split-static-array`，再由共享
+仿真流程在 `grh-to-grhsim` 前执行
+`dead-code-elim → expr-opt → used-bits → split-nodes → dead-code-elim →
+constant-analysis → dead-code-elim → alias-analysis → pattern-detect →
+common-expr → dead-code-elim`。
+full33 曾试加一次 raw DCE，但整机
 未按预算完成，现已撤回。此 profile 省去普通 GRH `simplify` 及包围它
 的两次显式 `grh.verify`；`grh-to-grhsim` 在转换前后执行的完整结构验证
 继续保留，后续 GrhSIM 优化、分图和 emit 仍走共享流程。
-上例另显式关闭 backend simplify、bit packing、masked-OR、分图后
-simplify 和 clone；仅选择 GRH bringup profile 本身不会关闭这些优化。
+上例另显式关闭分图后的 clone；仅选择 GRH bringup profile 本身不会关闭
+这些优化。
 `ROUNDTRIP_VERIFY=0` 只省去 emit 后额外 JSON 重载/重建 schedule/重存比较，
 不跳过转换的结构验证或首次分图/SinkSchedule 构建。上述开关均保留原默认值。
 
 `xs_firrtl_grhsim` 对整个 FIRRTL→C++ producer 使用
-`timeout --signal=KILL 20m`。从 producer 启动起，读取 FIRRTL、ingest、
-所有 GRH pass、checkpoint、转换、分图和 C++ emit 共用同一个 20 分钟
-预算；到时立即 SIGKILL，checkpoint 或 profile 均不重置预算。
+`timeout --signal=KILL 14m`。历史 GSIM 778.590 s 的 1.1 倍为 856.449 s，
+但其旧输入已不可用；14m 是当前同输入基线完成前的保守探索截止。
+从 producer 启动起，读取 FIRRTL、ingest、所有 GRH pass、checkpoint、转换、
+分图和 C++ emit 共用同一个 14 分钟预算；到时立即 SIGKILL，checkpoint
+或 profile 均不重置预算。Make 父进程以 `scope=run` 保存开始、退出状态及耗时，
+即使子进程被 SIGKILL 也保留终态。正式同输入测量与质量门见
+[F24](F24-xs-firrtl-grhsim.md)。
 此配置是功能 bringup 的使用方式，不表示整机生成、仿真或等价验收已完成。
 保留注解的原 `full`/`prefer` 验收及正式性能消融仍须分别完成。
 
 2026-11-01 的 full30 实测仍未跑通：mixed ingest 388057 ms、flatten
 218300 ms、comb-loop-elim 37757 ms、flat checkpoint 保存 97076 ms、
 `grh-to-grhsim` 38041 ms；已发布 flat GRH 为 34,973,290,367 bytes。
-首次 backend `grhsim-simplify` 完成的 7 轮合计 381786 ms，全部仍变化，
 该 pass 尚未完成即在 07:04:29 UTC 被完整 producer 的 20 分钟
 SIGKILL 终止，Make 报 Error 137；没有整机 C++、emu 或运行结果。
 full31 已按上例显式关闭 backend 可选优化。shared flow 5 项、workflow
@@ -209,9 +211,6 @@ raw DCE 未改善总进度，因此撤回为上述七阶段。full34 的 shared 
 六组实际编译状态模型回归已通过；各组 4608 次检查，五次 trace 比较一致。
 六组仍共同采用 raw GRH bringup，不构成默认 full/prefer 验收；原生库未变。
 full34 于 08:16:37 UTC 从冻结 FIRRTL/full27 harness 在新目录完整启动，
-硬截止约 08:36:38 UTC。设置 `XS_GRHSIM_SIMPLIFY=1` 和
-`XS_GRHSIM_SIMPLIFY_MAX_ROUNDS=1`，仅在 converted 阶段运行既有
-`grhsim-simplify -max-rounds=1`；pack/recover/phase/clone 关闭，其余 flags
 同 full33，默认 full 不变。实际 mixed ingest 385066 ms、flatten 217892 ms、
 comb-loop-elim 37667 ms、memory-init-check 18687 ms、转换 48030 ms；
 单轮 simplify 总计 233906 ms，round 为 213082 ms、fold/share 181695 ms，
@@ -521,14 +520,12 @@ F08 参照本地 GSIM a3ecb26 的 commonExpr：比较完整 assignTree，按等�
 ≥5、结果 >256 bit 或多后继门槛决定整体共享，并在普通 pass 中隔离不同
 source-node。该版本已经实现和验收，证据见
 [F08-acceptance.md](F08-acceptance.md)。该历史策略由 F09 修订；
-[node-cse.md](../../wolvrix/docs/ingest/node-cse.md) 记录当前行为。
 
 最新决定撤销 source-node 作为普通优化屏障。GSIM 门槛可以用于独立的
 额外共享启发式，不能限制普通 primitive CSE，也不能为保留整体候选冻结
 前序 simplify。可选整体分析只处理优化后仍能证明的表达式，hash 后精确
 核对功能、类型、常量及有序依赖；members/origins 相同不是等价证明。
 
-F09 保留独立 firrtl-node-cse=off|gsim；off 只关闭额外整体共享，
 gsim 只处理仍可证明的候选，不完整/重叠依赖候选跳过。新优化策略为
 gsim-soft-v2，配置为 v2/<mode>/5/256/1。旧的
 source-node-v1、gsim-v1、根唯一性和 retention 完整性规则已迁移，
@@ -539,17 +536,29 @@ source-node-v1、gsim-v1、根唯一性和 retention 完整性规则已迁移，
 当前路线顺序为：
 
 ~~~text
-ingest / 普通 GRH transforms / flatten / simplify
-→ grh-to-grhsim → grhsim-simplify / bit packing / masked-OR
+ingest / 普通 GRH transforms / hier-flatten / comb-loop-elim
+→ split-static-array（静态组合数组按需成员化）
+→ 普通 GRH 收尾 passes
+→ dead-code-elim（独立一次，含 SemanticTree 回收）
+→ expr-opt → used-bits → split-nodes → dead-code-elim
+→ constant-analysis → dead-code-elim
+→ alias-analysis → pattern-detect → common-expr → dead-code-elim → grh-to-grhsim
+  bit packing / masked-OR
 → 可选整体 node 分析/额外优化（只消费现存可验证信息）
 → split-event-and-output → split-nonsink-and-sink
 → partition-nonsink（F09.6：先提示/MFFC node，再按 node 数形成 SN）
 → simplify（遵循实际 leaf owner）→ partition-sink
 ~~~
 
-全过程没有由 source node 新增的 CSE/inline 边界。phase、state/effects、
-声明锚点和实际 execution owner 的现有约束继续生效；同 source key 不
-授权跨 owner 共享，不同 source key 也不在同 owner 内新增隔离。
+静态数组拆分与独立 DCE 沿用 op/value 分析，默认不把声明锚点作为保活根；显式
+`keep_declared_symbols=True` 仍可恢复保护，其他 pass 的默认声明行为不变。拆分通过静态读按需选择元素，
+不引入 GSIM 式 Node/ENode 活跃性分析。删除电路后，仅回收不再被任何存活 op/value 引用的 SemanticTree 完整分支；直接引用节点的祖先和
+实例 Module/Declaration 关联保留，无定义 op 的存活 input 等边界来源不因“零 op”而误删。
+批量重编号不改变存活路径、列表顺序或重复项，SemanticId 不反向保活电路。
+
+全过程没有由 source node 新增的 CSE/inline 边界。phase、state/effects 和实际
+execution owner 的现有约束继续生效；声明锚点仅在显式开启保护时作为保活根。
+同 source key 不授权跨 owner 共享，不同 source key 也不在同 owner 内新增隔离。
 新 schema/policy、算法和选项进入 checkpoint/generation identity；旧强隔离
 checkpoint 要求重新 ingest，不能重用其优化历史。
 

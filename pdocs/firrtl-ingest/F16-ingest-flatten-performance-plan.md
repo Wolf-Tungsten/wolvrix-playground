@@ -103,7 +103,6 @@ Make target。日志、临时脚本和性能产物统一放在 `ptmp/firrtl-inge
   保存两个终点，`--through-flatten` 保持纯计时。
 - 按改动运行 `test_ingest_driver`、`test_transform_simplify`、
   `test_transform_memory_read_retime`、`test_firrtl_node_attributes`、
-  `test_firrtl_cse_scope` 及相关 fixture；最终运行 `test_wolvrix`、
   `test_ingest_python`、`test_xs_firrtl_workflow` 和 `test_grhsim_flow`。
   分配器调整还需覆盖 SV/mixed 路线，防止只改善 FIRRTL 单一路径。
 - 复用 F15 benchmark/perf 入口并将工作目录显式指向 F16；需要新增选项时

@@ -105,7 +105,6 @@ payload。保留公共 const freeze 的复制语义、ID 重排与绑定结果�
 JSON roundtrip 及 pass 默认选项；普通 CSE 继续排除 node 来源属性。
 
 实施时按影响范围通过现有 Make 入口验证：`make test_wolvrix`、
-`make test_transform_simplify`、`make test_firrtl_node_attributes test_firrtl_cse_scope`；
 涉及 Python/生产 flow 时先经 `make py_install`
 刷新安装库，再运行相关 `test_ingest_python` / `test_grhsim_flow`。
 仅在现有覆盖不足时补充针对语义、诊断或所有权边界的回归。
@@ -142,7 +141,6 @@ users 遍历中的 enqueue 只修改本地队列。限定 key 的全部源借用
 | --- | --- | --- |
 | `make test_wolvrix` | 最终代码 81/81 CTest 通过（含 GRH、const-fold、DCE、redundant-elim、hier-flatten、node/JSON 新旧回归） | `test_wolvrix_final.log` |
 | `make py_install PYTHON=$PWD/.venv/bin/python` | 最终代码重新安装成功 | `py_install_final.log` |
-| `make test_transform_simplify test_firrtl_node_attributes test_firrtl_cse_scope test_ingest_python test_grhsim_flow SKIP_PY_INSTALL=1 PYTHON=$PWD/.venv/bin/python FIRRTL_NODE_TEST_WORK=$PWD/ptmp/firrtl-ingest/F13/node INGEST_MIXED_TEST_WORK=$PWD/ptmp/firrtl-ingest/F13/python GRHSIM_FLOW_TEST_WORK=$PWD/ptmp/firrtl-ingest/F13/grhsim-flow` | 三个定向 CTest、9/9 ingest Python、5/5 flow 单测和 flow 生成模型全部编译执行通过；annotations on/off 等八组 trace 比较一致 | `gates_final.log` |
 
 所有 Make 进程均成功返回 0；`git diff --check` 通过。原 Make 门禁内部的
 共享 build/CTest 临时目录仍沿用其既有 `ptmp/` 路径，测试产物仍在
@@ -160,7 +158,6 @@ F13 提交 `c134542` / 主仓 `b418597` 后，从冻结的 `SimTop.fir` 全新�
 的全部后代进程组。实际 **2400.008 秒** 后 SIGKILL，Popen returncode 为
 **-9**（shell signal 状态对应 137）。观察器成功返回不表示 producer 成功。
 
-**结论：40 分钟仍未完成 FIRRTL→C++。** 停于后端 `grhsim-simplify`，
 该 pass 已完成两轮（163.513 / 71.219 秒，均 `changed=1`），截止时仍未完成；
 从阶段开始到截止共 269.548 秒，剩余未记录时间不能精确归于下一轮。
 未进入 packing、后续分区或 C++ 发射；没有 model 目录、C++ 文件、final
@@ -178,7 +175,6 @@ GRH 或 roundtrip GRH。已成功发布 flat GRH **12,286,806,235 bytes**，
 | 普通 GRH simplify 全阶段 | 1060.191，八轮后返回，末轮仍有改动 | 40 分钟终止时仅完成前五轮 |
 | 保存 flat checkpoint | 42.861，累计 2055.856 秒完成 | 未到达 |
 | grh-to-grhsim | 70.357，累计 2127.352 秒完成 | 未到达 |
-| 后端 grhsim-simplify | 累计 2130.460 秒开始，截止时未完成 | 未到达 |
 
 本次 flatten 比该历史样本短约 **18.4%**，普通 simplify 首轮短约
 **39.7%**。这是一次前后整机尝试的阶段对照，未做交替重复或单因素 A/B，

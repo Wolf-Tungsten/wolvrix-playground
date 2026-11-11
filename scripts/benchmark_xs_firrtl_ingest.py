@@ -171,6 +171,8 @@ def main() -> None:
                         help="separate correctness run: store full ingest and flatten graph identities")
     parser.add_argument("--align-bare", action="store_true",
                         help="with --prefix-identity, run hier-flatten followed by comb-loop-elim after ingest")
+    parser.add_argument("--f21-dce", action="store_true",
+                        help="with --prefix-identity, additionally run split-static-array and one independent dead-code-elim")
     parser.add_argument("--fused-prefix", action="store_true",
                         help="use the explicit parallel grh-pre-flatten ingest endpoint")
     parser.add_argument("--discard-identity-json", action="store_true",
@@ -188,6 +190,10 @@ def main() -> None:
         parser.error("--discard-identity-json requires --prefix-identity")
     if args.align_bare and (not args.prefix_identity or args.through_flatten or args.fused_prefix):
         parser.error("--align-bare requires --prefix-identity without --through-flatten or --fused-prefix")
+    if args.f21_dce and (args.sv_filelist or args.align_bare or not args.prefix_identity or
+                         args.through_flatten or args.fused_prefix):
+        parser.error("--f21-dce requires a FIRRTL manifest and --prefix-identity without "
+                     "--align-bare, --through-flatten or --fused-prefix")
     run_prefix = args.through_flatten or args.prefix_identity
     if args.fused_prefix and (not run_prefix or args.sv_filelist):
         parser.error("--fused-prefix requires a manifest and --through-flatten or --prefix-identity")
@@ -305,7 +311,7 @@ def main() -> None:
                        "maxrss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
                        "diagnostics": diagnostics,
                        "success": not any(str(entry.get("kind", "")).lower() == "error" for entry in diagnostics)})
-        if args.align_bare or args.through_flatten:
+        if args.align_bare or args.f21_dce or args.through_flatten:
             report["ingest_semantic_stats"] = session.semantic_stats(design="design.main")
         if args.allocator_stats:
             report["ingest_allocator_statistics"] = {
@@ -339,7 +345,13 @@ def main() -> None:
             (output / "prefix-identity.json").write_text(
                 json.dumps(prefix_identity, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         if run_prefix:
-            from wolvrix_xs_grhsim import GRH_PIPELINE
+            from wolvrix_xs_grhsim import GRH_PIPELINE, firrtl_grh_pipeline
+            pipeline = firrtl_grh_pipeline(GRH_PIPELINE) if args.f21_dce else GRH_PIPELINE
+            if args.f21_dce:
+                # The production finish flow owns the single F22 DCE boundary;
+                # this legacy benchmark explicitly appends its standalone DCE
+                # so the F21 source-prefix measurement remains reproducible.
+                pipeline = [*pipeline, ("dead-code-elim", {})]
             stages = []
             prefix_wall = 0.0
             if args.fused_prefix:
@@ -379,27 +391,31 @@ def main() -> None:
             report["measurement_scope"] = ("correctness run with ingest/flatten serialization; not formal prefix timing"
                                            if args.prefix_identity else
                                            "original sources through full production hier-flatten prefix")
-            for name, options in GRH_PIPELINE:
-                if args.fused_prefix and not args.align_bare and name != "hier-flatten":
+            for name, options in pipeline:
+                if args.fused_prefix and not (args.align_bare or args.f21_dce) and name != "hier-flatten":
                     continue
                 if args.align_bare and name not in {"hier-flatten", "comb-loop-elim"}:
                     continue
-                if args.align_bare and name == "comb-loop-elim":
+                if args.f21_dce and name not in {"hier-flatten", "comb-loop-elim", "split-static-array", "dead-code-elim"}:
+                    continue
+                if (args.align_bare or args.f21_dce) and name == "comb-loop-elim":
                     options = {**options, "fragment_map_path": str(output / "post-elim-fragments.json")}
                 print(f"[benchmark] start GRH pass {name}", flush=True)
                 stage_allocation_before = allocator_statistics() if args.allocator_stats else None
                 stage_usage = resource.getrusage(resource.RUSAGE_SELF)
                 stage_started = time.perf_counter()
                 profile_started_ns = time.monotonic_ns()
+                keep_declared = name not in {"split-static-array", "dead-code-elim", "expr-opt", "used-bits", "split-nodes",
+                                             "constant-analysis", "alias-analysis", "pattern-detect", "common-expr"}
                 stage_diagnostics = session.run_pass(
-                    name, design="design.main", keep_declared_symbols=True, **options)
+                    name, design="design.main", keep_declared_symbols=keep_declared, **options)
                 profile_ended_ns = time.monotonic_ns()
                 stage_elapsed = time.perf_counter() - stage_started
                 record_profile_stage(f"{len(stages):02d}-{name}", profile_started_ns, profile_ended_ns)
                 stage_after = resource.getrusage(resource.RUSAGE_SELF)
                 stage_allocation_after = allocator_statistics() if args.allocator_stats else None
                 stages.append({"pass": name, "options": options, "wall_s": stage_elapsed,
-                               "keep_declared_symbols": True,
+                               "keep_declared_symbols": keep_declared,
                                "cpu_s": (stage_after.ru_utime - stage_usage.ru_utime +
                                          stage_after.ru_stime - stage_usage.ru_stime),
                                "maxrss_kib": stage_after.ru_maxrss,
@@ -441,17 +457,54 @@ def main() -> None:
                         report["prefix_correctness_wall_s"] = time.perf_counter() - started
                         (output / "prefix-identity.json").write_text(
                             json.dumps(prefix_identity, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-                    if args.align_bare or args.through_flatten:
+                    if args.align_bare or args.f21_dce or args.through_flatten:
                         report["flatten_semantic_stats"] = session.semantic_stats(design="design.main")
                     (output / "timing.json").write_text(
                         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-                    if not args.align_bare:
+                    if not (args.align_bare or args.f21_dce):
                         break
-                if args.align_bare and name == "comb-loop-elim":
+                if (args.align_bare or args.f21_dce) and name == "comb-loop-elim":
                     report["post_elim_s"] = stage_elapsed
                     report["post_elim_semantic_stats"] = session.semantic_stats(design="design.main")
                     stored = store_identity(session, output, stage="post-elim", discard_json=args.discard_identity_json)
                     prefix_identity["stages"]["post_elim"] = {
+                        "graph": {key: stored[key] for key in ("bytes", "sha256")},
+                        "metadata": session.graph_metadata(design="design.main", top=top),
+                        "diagnostics": [row["diagnostics"] for row in stages],
+                        "store_and_hash_s": stored["store_and_hash_s"],
+                    }
+                    prefix_identity["pipeline"] = [
+                        {key: row[key] for key in ("pass", "options", "keep_declared_symbols")}
+                        for row in stages]
+                    report["prefix_correctness_wall_s"] = time.perf_counter() - started
+                    (output / "prefix-identity.json").write_text(
+                        json.dumps(prefix_identity, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+                    (output / "timing.json").write_text(
+                        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+                    if args.align_bare:
+                        break
+                if args.f21_dce and name == "split-static-array":
+                    report["post_split_s"] = stage_elapsed
+                    report["post_split_semantic_stats"] = session.semantic_stats(design="design.main")
+                    stored = store_identity(session, output, stage="post-split", discard_json=args.discard_identity_json)
+                    prefix_identity["stages"]["post_split"] = {
+                        "graph": {key: stored[key] for key in ("bytes", "sha256")},
+                        "metadata": session.graph_metadata(design="design.main", top=top),
+                        "diagnostics": [row["diagnostics"] for row in stages],
+                        "store_and_hash_s": stored["store_and_hash_s"],
+                    }
+                    prefix_identity["pipeline"] = [
+                        {key: row[key] for key in ("pass", "options", "keep_declared_symbols")}
+                        for row in stages]
+                    (output / "prefix-identity.json").write_text(
+                        json.dumps(prefix_identity, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+                    (output / "timing.json").write_text(
+                        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+                if args.f21_dce and name == "dead-code-elim":
+                    report["post_dce_s"] = stage_elapsed
+                    report["post_dce_semantic_stats"] = session.semantic_stats(design="design.main")
+                    stored = store_identity(session, output, stage="post-dce", discard_json=args.discard_identity_json)
+                    prefix_identity["stages"]["post_dce"] = {
                         "graph": {key: stored[key] for key in ("bytes", "sha256")},
                         "metadata": session.graph_metadata(design="design.main", top=top),
                         "diagnostics": [row["diagnostics"] for row in stages],

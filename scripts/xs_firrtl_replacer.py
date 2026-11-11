@@ -17,7 +17,7 @@ import wolvrix
 
 from grhsim_flow import FlowOptions, checked, emit_cpp, finish_simulation_graph, store_checkpoint
 from grhsim_provenance import capture_generation, file_identity, generated_identity, write_identity
-from wolvrix_xs_grhsim import GRH_PIPELINE, timed
+from wolvrix_xs_grhsim import GRH_PIPELINE, firrtl_grh_pipeline, timed
 from xs_firrtl_compare import (LAYERS, ROOT, bindings, canonical_leaves, driver,
                                packed_words, port_values, sv_closure, word_layout, words_in)
 from xs_firrtl_inputs import create_manifest
@@ -279,7 +279,8 @@ def generate(args):
                 slang_args = [str(path) for path in sv] + ["--top", TOP, "-D", "DIFFTEST"]
                 slang_args += [arg for directory in args.include_dir for arg in ("-I", str(directory))]
                 checked(timed("replacer SV", lambda: session.read_sv(None, slang_args=slang_args)), "read SV")
-            for name, opts in GRH_PIPELINE:
+            pipeline = firrtl_grh_pipeline(GRH_PIPELINE) if language == "firrtl" else GRH_PIPELINE
+            for name, opts in pipeline:
                 checked(timed(f"replacer/{language} {name}", lambda name=name, opts=opts:
                     session.run_pass(name, design="design.main", **opts)), name)
             base = work / f"{language}-base.json"

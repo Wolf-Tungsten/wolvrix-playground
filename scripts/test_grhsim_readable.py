@@ -126,6 +126,32 @@ class ReadableTest(unittest.TestCase):
             checked(session.read_sv(str(source), out_design="design.main", slang_args=["--top", TOP]), "read hierarchy")
             for name, options in GRH_PIPELINE:
                 checked(session.run_pass(name, design="design.main", **options), name)
+            # Flatten no longer manufactures legacy originModules. Supply
+            # explicit def-site metadata to exercise its optional readable
+            # export contract, independently of frontend source attribution.
+            fixture_json = WORK / "legacy-origins.json"
+            checked(session.store_json(design="design.main", output=str(fixture_json),
+                                       emit_source_locations=True), "store origin fixture")
+            fixture = json.loads(fixture_json.read_bytes())
+            top = next(item for item in fixture["graphs"] if item["symbol"] == TOP)
+            state_origins = {
+                "core$memory": f"{TOP}$core",
+                "core$shadow": f"{TOP}$core",
+                "core$alu$accumulator": f"{TOP}$core$alu",
+                "core$alu$previous": f"{TOP}$core$alu",
+            }
+            annotated_states = set()
+            for operation in top["ops"]:
+                attrs = operation.setdefault("attrs", {})
+                target = attrs.get("regSymbol", {}).get("v", operation.get("sym"))
+                if target in state_origins:
+                    attrs["originModules"] = {"t": "string[]", "vs": [state_origins[target]]}
+                    if operation["kind"] == "kRegister":
+                        annotated_states.add(target)
+            self.assertEqual(annotated_states, set(state_origins))
+            fixture_json.write_text(json.dumps(fixture))
+            checked(session.load_json_text(json.dumps(fixture), out_design="design.main", replace=True),
+                    "load explicit origin fixture")
             saved_stages = set()
 
             def checkpoint(stage):
@@ -142,7 +168,7 @@ class ReadableTest(unittest.TestCase):
                 saved_stages.add(stage)
 
             finish_simulation_graph(session, design="design.main", top=TOP,
-                options=FlowOptions(pack_bit_registers=False, recover_masked_or=False, mem_min_bytes=4,
+                options=FlowOptions(mem_min_bytes=4,
                                     max_supernode_nodes=4, clone_shared=False,
                                     enable_guard_min_size=2), checkpoint=checkpoint)
             self.assertEqual(saved_stages, set(STAGES))
@@ -196,6 +222,16 @@ class ReadableTest(unittest.TestCase):
         values = {item["value_id"]: item for item in mapping["values"]}
         self.assertEqual(len(operations), len(graph["ops"]))
         self.assertEqual(len(values), len(graph["vals"]))
+        origin_sets = {item["id"]: item["modules"] for item in mapping["origin_sets"]}
+        self.assertEqual(len(origin_sets), len(mapping["origin_sets"]))
+        mapped_symbols = {item["symbol"]: item for item in operations.values()}
+        for operation in graph["ops"]:
+            expected_origins = operation.get("attrs", {}).get("originModules", {}).get("vs", [])
+            mapped = mapped_symbols[operation["sym"]]
+            self.assertEqual(origin_sets[mapped["origin_set"]], expected_origins)
+        self.assertEqual(origin_sets[mapped_symbols["core$memory"]["origin_set"]], [f"{TOP}$core"])
+        self.assertEqual(origin_sets[mapped_symbols["core$alu$accumulator"]["origin_set"]],
+                         [f"{TOP}$core$alu"])
         files = {path.name: path.read_text() for path in model.glob("*.cpp")}
         header = (model / "grhsim_readable_top.hpp").read_text()
         all_code = header + "\n" + "\n".join(files.values())

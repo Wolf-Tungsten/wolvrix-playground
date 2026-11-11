@@ -22,8 +22,8 @@ RETIRED_CPP = re.compile(r"\b(?:GrhSimModel|CpuProgram|CpuMapping|lowerGrhToGrhS
                          r"load_grhsim|store_grhsim)|py_list_grhsim_passes)\b")
 RETIRED_SYMBOL = "wolvrix::lib::grhsim::"
 RETIRED_TREES = ("wolvrix/include/grhsim", "wolvrix/lib/grhsim")
-PASS_ORDER = ("grh-to-grhsim", "grhsim-split-event-and-output", "grhsim-split-nonsink-and-sink",
-              "grhsim-partition-nonsink", "grhsim-partition-sink")
+PASS_ORDER = ("grhsim-dialect-translate", "split-event-and-output", "split-nonsink-and-sink",
+              "partition-nonsink", "partition-sink")
 
 
 def python_issues(source, name):

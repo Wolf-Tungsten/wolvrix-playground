@@ -1,4 +1,3 @@
-# hier-flatten / grhsim-simplify 实现优化
 
 用户要求保留完整优化与校验，FIRRTL 到 C++ 总时长最多 20 分钟，超时立即
 SIGKILL。不再采用历史 full31–35 的 skip、单轮、bringup 配置作为达标方案。

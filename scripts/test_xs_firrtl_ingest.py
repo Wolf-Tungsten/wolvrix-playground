@@ -111,8 +111,8 @@ circuit top :
                 self.assertTrue((work / "before" / f"{stage}.json").is_file())
                 self.assertFalse((work / "after" / f"{stage}.json").exists())
             text = (work / "before/flatten.json").read_text()
-            self.assertIn("firrtl.node.members", text)
-            self.assertIn("child-source.fir", text)
+            self.assertIn('"semanticTree"', text)
+            self.assertIn('"semanticIds"', text)
             with self.assertRaisesRegex(ValueError, "dedicated --through-flatten"):
                 summarize([work / "before"])
 
@@ -357,7 +357,7 @@ circuit top :
             self.assertEqual(report["unattributed_us"], 3)
             self.assertEqual(report["top20_resolve_self"][0]["name"], "child")
 
-    def test_full_design_roundtrip_preserves_hierarchy_and_node_attributes(self):
+    def test_full_design_roundtrip_preserves_hierarchy_and_semantic_tree(self):
         with tempfile.TemporaryDirectory(dir=ROOT / "ptmp" / "firrtl-ingest") as temporary:
             work = Path(temporary)
             source = work / "roundtrip.fir"
@@ -381,7 +381,9 @@ circuit top :
             self.assertTrue(report["equal"])
             document = json.loads((work / "ingest.json").read_text())
             self.assertEqual(len(document["graphs"]), 2)
-            self.assertIn("firrtl.node.members", (work / "ingest.json").read_text())
+            document_text = (work / "ingest.json").read_text()
+            self.assertIn('"semanticTree"', document_text)
+            self.assertIn('"semanticIds"', document_text)
 
     def test_records_loaded_native_library_content(self):
         identity = native_identity()

@@ -49,7 +49,6 @@ phase copy 正常合法；schema、字段类型、canonical key、配对数组�
 内联/重关联、输入/常量折叠、无额外载体、DCE、数组、packing、masked-OR、
 mux/write normalization、phase/sink 和实际 owner。
 
-独立 `firrtl-node-cse=off|gsim` 保留为整体表达式分析/额外共享；门槛不
 控制普通 primitive CSE。只分析仍能证明的单根完整候选，已共享、无根、
 不完整或关联依赖重叠的候选跳过，不能让合法 op DAG 失败。策略为
 `gsim-soft-v2`，配置为 `v2/<mode>/5/256/1`；普通优化无需为了候选保留根。
@@ -94,7 +93,6 @@ v2/maxNodeWork/maxSupernodeWork/segmentPenalty/semanticNodes/cloneShared/cloneMa
 
 | Make 入口 | 结果 | 日志 |
 | --- | --- | --- |
-| `test_firrtl_cse_scope test_firrtl_node_attributes test_grhsim_node_cse test_firrtl_node_pipeline` | 优化透明性、元数据预算、旧策略拒绝、GSIM 独立分析及生产流水通过 | `phase1-tests.log`、`pipeline-final.log` |
 | `test_grhsim_firrtl_nodes` | hints/cost/owner/fusion、预算拒绝与正向 clone；新增非凸及幂等报告回归通过 | `partition-final.log` |
 | `test_wolvrix` | 79/79，通过；最终全量 5.67 s | `all-tests-final.log` |
 | `test_grhsim_flow PYTHON=$PWD/.venv/bin/python` | py_install 后 4 项通过；纯 SV 所有 5 checkpoint × 两种函数预算，共 10 个模型编译执行 | `flow-tests.log`；最终复跑 `flow-final.log` |

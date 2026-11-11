@@ -14,7 +14,9 @@ from pathlib import Path
 
 import wolvrix
 
-from grhsim_flow import FlowOptions, checked, emit_cpp, finish_simulation_graph, store_checkpoint, validate_environment
+from grhsim_flow import (FlowOptions, checked, emit_cpp, finish_simulation_graph,
+                         record_stage_event, run_pass, stage_journal_scope,
+                         store_checkpoint, validate_environment)
 
 
 GRH_PIPELINE: list[tuple[str, dict]] = [
@@ -53,7 +55,7 @@ GRH_BRINGUP_PIPELINE: list[tuple[str, dict]] = [
     ("latch-transparent-read", {}),
     ("hier-flatten", {}),
     ("comb-loop-elim", {"fail_on_true_loop": True}),
-    # grh-to-grhsim performs full verification before and after conversion.
+    # grhsim-dialect-translate performs full verification before and after conversion.
     ("memory-init-check", {}),
 ]
 
@@ -67,30 +69,43 @@ def grh_pipeline() -> list[tuple[str, dict]]:
     raise ValueError(f"XS_GRHSIM_PIPELINE_PROFILE must be 'full' or 'bringup', got {profile!r}")
 
 
-def read_source_pipeline(session, request: dict, pipeline: list[tuple[str, dict]], *,
-                         out_design: str = "design.main"):
-    """Read sources and return diagnostics, remaining passes, and prefix evidence."""
-    prefix = GRH_PIPELINE[:8]
-    if pipeline[:len(prefix)] != prefix:
-        return session.read_sources(**request, out_design=out_design), pipeline, None
-    try:
-        diagnostics = session.read_sources(**request, out_design=out_design, pipeline="grh-pre-flatten")
-    except TypeError as error:
-        # Historical native libraries reject the added keyword before starting
-        # ingest. Preserve those comparison/replay callers' original route.
-        message = str(error)
-        if "'pipeline'" not in message or "keyword" not in message or not any(
-                word in message for word in ("invalid", "unexpected")):
-            raise
-        return session.read_sources(**request, out_design=out_design), pipeline, None
-    report = dict(session.get(out_design + ".prefix"))
-    if not any(str(entry.get("kind", "")).lower() == "error" for entry in diagnostics):
-        if [row["pass"] for row in report["stages"]] != [name for name, _ in prefix]:
-            raise RuntimeError("ingest prefix report does not match the production pass order")
-    report["ingest_diagnostics"] = diagnostics[:report["ingest_diagnostic_count"]]
-    report["pipeline"] = [{"pass": name, "options": options, "keep_declared_symbols": True}
-                          for name, options in prefix]
-    return diagnostics, pipeline[len(prefix):], report
+def firrtl_grh_pipeline(pipeline: list[tuple[str, dict]]) -> list[tuple[str, dict]]:
+    result = []
+    inserted = False
+    for name, options in pipeline:
+        result.append((name, options))
+        if name == "comb-loop-elim":
+            result.append(("split-static-array", {}))
+            inserted = True
+    if not inserted:
+        raise ValueError("FIRRTL GRH pipeline has no comb-loop-elim stage")
+    return result
+
+
+def firrtl_canonical_pipeline() -> list[tuple[str, dict]]:
+    """Return the F24 FIRRTL stages before dialect translation.
+
+    Ingest itself is timed separately.  Conversion and the partition/emitter
+    tail are resumed by ``finish_simulation_graph`` so checkpoint restart uses
+    the same canonical names and stage metadata.
+    """
+    return [
+        ("xmr-resolve", {}),
+        ("hier-flatten", {}),
+        ("comb-loop-elim", {"fail_on_true_loop": True}),
+        ("split-static-array", {}),
+        ("dead-code-elim", {"keep_declared_symbols": False}),
+        ("expr-opt", {}),
+        ("used-bits", {}),
+        ("split-nodes", {}),
+        ("dead-code-elim", {"keep_declared_symbols": False}),
+        ("constant-analysis", {}),
+        ("dead-code-elim", {"keep_declared_symbols": False}),
+        ("alias-analysis", {}),
+        ("pattern-detect", {}),
+        ("comm-expr", {}),
+        ("dead-code-elim", {"keep_declared_symbols": False}),
+    ]
 
 
 def env_int(name: str, default: int, *, minimum: int = 0, maximum: int = 2147483647) -> int:
@@ -116,21 +131,15 @@ def semantic_nodes() -> bool:
     return bool(env_int("XS_GRHSIM_SEMANTIC_NODES", 0, maximum=1))
 
 
-def recover_masked_or_enabled() -> bool:
-    return bool(env_int("XS_GRHSIM_MASKED_OR", 1, maximum=1))
-
-
 def default_flow_options() -> FlowOptions:
     validate_environment()
     return FlowOptions(
-        firrtl_node_cse=os.environ.get("XS_GRHSIM_FIRRTL_NODE_CSE", "gsim"),
         firrtl_nodes=os.environ.get("XS_GRHSIM_FIRRTL_NODES", "auto"),
         cost_model=os.environ.get("XS_GRHSIM_COST_MODEL", "legacy"),
         enable_guard_min_size=sink_guard_min_size(),
         segment_penalty=segment_penalty(),
         semantic_nodes=semantic_nodes(),
         max_supernode_nodes=env_int("XS_GRHSIM_MAX_SUPERNODE_NODES", 128, minimum=1),
-        recover_masked_or=recover_masked_or_enabled(),
     )
 
 
@@ -142,11 +151,21 @@ def require_ok(diagnostics: list[dict], action: str) -> None:
     checked(diagnostics, action)
 
 
-def timed(action: str, callback):
+def timed(action: str, callback, *, check_diagnostics: bool = False):
     start = time.perf_counter()
     log(f"{action} start")
-    result = callback()
-    log(f"{action} done {round((time.perf_counter() - start) * 1000)}ms")
+    record_stage_event(action, "start")
+    try:
+        result = callback()
+        if check_diagnostics:
+            checked(result, action)
+    except BaseException as error:
+        elapsed = time.perf_counter() - start
+        record_stage_event(action, "failed", elapsed_s=elapsed, detail=str(error))
+        raise
+    elapsed = time.perf_counter() - start
+    record_stage_event(action, "done", elapsed_s=elapsed)
+    log(f"{action} done {round(elapsed * 1000)}ms")
     return result
 
 
@@ -166,6 +185,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--sources-manifest", type=Path,
                         help="mixed FIRRTL/SV read_sources request; bypass the SV filelist")
     parser.add_argument("--resume-from-flat-grh", action="store_true")
+    parser.add_argument("--flat-grh-stage", choices=["auto", "pre-opt", "post-opt"], default="auto",
+                        help="prefix state for old flat checkpoints without identity; auto requires a matching sidecar")
     parser.add_argument("--roundtrip-verify", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--store-grh-checkpoints", action=argparse.BooleanOptionalAction, default=True,
                         help="write automatic flat/final GRH JSON checkpoints; explicit dumps remain independent")
@@ -189,31 +210,23 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--clone-shared-compute", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--clone-shared-compute-max-clones", type=int, default=250000)
     parser.add_argument("--clone-shared-compute-lossy-compare", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--simplify", action=argparse.BooleanOptionalAction, default=True,
-                        help="run grhsim-simplify before and after optional transforms and partitioning")
-    parser.add_argument("--simplify-max-rounds", type=int, default=8,
-                        help="maximum rewrite rounds for each grhsim-simplify pass")
-    parser.add_argument("--phase-simplify", action=argparse.BooleanOptionalAction, default=True,
-                        help="simplify within each complete leaf after activity partitioning")
-    parser.add_argument("--recover-masked-or", action=argparse.BooleanOptionalAction,
-                        default=recover_masked_or_enabled())
-    parser.add_argument("--masked-or-min-terms", type=int, default=16)
-    parser.add_argument("--firrtl-node-cse", choices=["off", "gsim"],
-                        default=os.environ.get("XS_GRHSIM_FIRRTL_NODE_CSE", "gsim"))
-    parser.add_argument("--masked-or-report", type=Path)
     parser.add_argument("--firrtl-nodes", choices=["off", "prefer", "auto"], default=os.environ.get("XS_GRHSIM_FIRRTL_NODES", "auto"))
     parser.add_argument("--cost-model", choices=["legacy", "bytes"], default=os.environ.get("XS_GRHSIM_COST_MODEL", "legacy"))
     parser.add_argument("--nonsink-report")
-    parser.add_argument("--pack-bit-registers", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--pack-bit-registers-report", type=Path)
     parser.add_argument("--dump-post-conversion-json", type=Path)
-    parser.add_argument("--dump-pre-simplify-json", type=Path)
+    parser.add_argument("--dump-pre-simplify-json", type=Path,
+                        help="SV route only: checkpoint before the simplify stage")
     parser.add_argument("--dump-pre-partition-json", type=Path,
                         help="optimized, unpartitioned converted graph")
     parser.add_argument("--checkpoint-dir", type=Path, help="store each completed graph stage")
     parser.add_argument("--max-supernode-nodes", type=int, help="maximum unified nodes per supernode")
     parser.add_argument("--sink-enable-guard-min-size", type=int)
     args = parser.parse_args(argv)
+    if args.sources_manifest and args.dump_pre_simplify_json:
+        parser.error("--dump-pre-simplify-json is only supported by the SV route; "
+                     "canonical FIRRTL has no simplify stage")
+    if args.flat_grh_stage != "auto" and not args.resume_from_flat_grh:
+        parser.error("--flat-grh-stage requires --resume-from-flat-grh")
     if not args.store_grh_checkpoints:
         if args.emit_cpp_dir is None:
             parser.error("--no-store-grh-checkpoints requires --emit-cpp-dir")
@@ -225,8 +238,7 @@ def parse_args(argv=None) -> argparse.Namespace:
         parser.error("--max-output-file-bytes must be a positive uint64")
     for name, minimum in (("max_function_lines", 8), ("max_tu_bytes", 1), ("max_round", 1),
                           ("mem_min_bytes", 0), ("max_supernode_nodes", 1),
-                          ("sink_enable_guard_min_size", 0), ("clone_shared_compute_max_clones", 1),
-                          ("masked_or_min_terms", 2), ("simplify_max_rounds", 1)):
+                          ("sink_enable_guard_min_size", 0), ("clone_shared_compute_max_clones", 1)):
         value = getattr(args, name)
         if value is not None and not minimum <= value <= 2147483647:
             parser.error(f"--{name.replace('_', '-')} must be in [{minimum},2147483647]")
@@ -277,19 +289,58 @@ def read_source_manifest(path: Path, top: str) -> dict:
     return request
 
 
+def flat_prefix_identity_path(path: Path) -> Path:
+    return path.with_name(path.stem + ".prefix-identity.json")
+
+
+def flat_checkpoint_stat(path: Path) -> dict:
+    """Bind a local sidecar without rereading a multi-gigabyte checkpoint.
+
+    This is a local freshness guard, not a cryptographic content identity.
+    Generation provenance independently hashes the resume input when it is read.
+    """
+    info = path.stat()
+    return {"device": info.st_dev, "inode": info.st_ino, "bytes": info.st_size,
+            "mtime_ns": info.st_mtime_ns, "ctime_ns": info.st_ctime_ns}
+
+
+def write_flat_prefix_identity(path: Path, *, top: str, stage: str) -> dict:
+    from grhsim_provenance import write_identity
+
+    identity = {"schema": "wolvrix.grhsim.flat-prefix-identity.v1", "top": top,
+                "stage": stage, "checkpoint_stat": flat_checkpoint_stat(path)}
+    write_identity(flat_prefix_identity_path(path), identity)
+    return identity
+
+
+def resolve_flat_prefix(path: Path, *, top: str, requested: str) -> tuple[bool, dict]:
+    """Require evidence for whether a flat checkpoint completed the F24 prefix."""
+    marker = flat_prefix_identity_path(path)
+    if marker.is_file():
+        identity = json.loads(marker.read_text(encoding="utf-8"))
+        if (not isinstance(identity, dict) or
+                identity.get("schema") != "wolvrix.grhsim.flat-prefix-identity.v1" or
+                identity.get("stage") not in ("pre-opt", "post-opt") or identity.get("top") != top):
+            raise ValueError(f"Invalid flat GRH prefix identity: {marker}")
+        if identity.get("checkpoint_stat") != flat_checkpoint_stat(path):
+            raise ValueError(f"Stale flat GRH prefix identity does not match checkpoint: {marker}")
+        stage = identity["stage"]
+        if requested != "auto" and requested != stage:
+            raise ValueError(f"--flat-grh-stage={requested} contradicts checkpoint prefix identity ({stage})")
+        return stage == "post-opt", {**identity, "source": str(marker)}
+    if requested == "auto":
+        raise ValueError("Flat GRH checkpoint lacks prefix identity; after checking its producer, "
+                         "set --flat-grh-stage=pre-opt (legacy prefix) or "
+                         "--flat-grh-stage=post-opt (completed F24 prefix)")
+    return requested == "post-opt", {"stage": requested, "source": "explicit --flat-grh-stage"}
+
+
 def main() -> int:
     args = parse_args()
     options = default_flow_options()
-    options.simplify = args.simplify
-    options.simplify_max_rounds = args.simplify_max_rounds
-    options.pack_bit_registers = args.pack_bit_registers
-    options.recover_masked_or = args.recover_masked_or
-    options.masked_or_min_terms = args.masked_or_min_terms
-    options.firrtl_node_cse = args.firrtl_node_cse
     options.firrtl_nodes = args.firrtl_nodes
     options.cost_model = args.cost_model
     options.nonsink_report = args.nonsink_report
-    options.partition_simplify = args.phase_simplify
     options.clone_shared = args.clone_shared_compute
     options.max_clones = args.clone_shared_compute_max_clones
     options.clone_lossy_compare = args.clone_shared_compute_lossy_compare
@@ -298,11 +349,6 @@ def main() -> int:
             setattr(options, name, getattr(args, name))
     if args.sink_enable_guard_min_size is not None:
         options.enable_guard_min_size = args.sink_enable_guard_min_size
-    for argument, field in ((args.pack_bit_registers_report, "pack_report"),
-                            (args.masked_or_report, "masked_or_report")):
-        if argument:
-            argument.resolve().parent.mkdir(parents=True, exist_ok=True)
-            setattr(options, field, str(argument.resolve()))
     pipeline = grh_pipeline()
     log("pipeline profile=" + os.environ.get("XS_GRHSIM_PIPELINE_PROFILE", "full"))
     log("configuration " + json.dumps(vars(options), sort_keys=True))
@@ -312,6 +358,9 @@ def main() -> int:
     started = time.perf_counter()
     from grhsim_provenance import capture_generation, write_identity
     mixed_request = read_source_manifest(args.sources_manifest, args.top) if args.sources_manifest else None
+    if mixed_request:
+        pipeline = firrtl_canonical_pipeline()
+    flat_preprocessed = bool(mixed_request)
     inputs = {"filelist": args.filelist, "read_args": args.read_args_file}
     if mixed_request:
         inputs = {"sources_manifest": args.sources_manifest}
@@ -327,50 +376,58 @@ def main() -> int:
         session.log_level = args.log_level
         session.diagnostics_raise_min_level = "none"
         if args.resume_from_flat_grh:
-            checked(timed("load flat GRH", lambda: session.read_json_file(str(flat_path), out_design="design.main")), "load flat GRH")
+            def load_flat_grh():
+                nonlocal flat_preprocessed
+                flat_preprocessed, prefix_identity = resolve_flat_prefix(
+                    flat_path, top=args.top, requested=args.flat_grh_stage)
+                identity["flat_grh_prefix"] = prefix_identity
+                return session.read_json_file(str(flat_path), out_design="design.main")
+
+            timed("load flat GRH", load_flat_grh, check_diagnostics=True)
+            write_identity(final_path.with_name(final_path.stem + ".generation-identity.json"), identity)
         else:
             if mixed_request:
-                diagnostics, pipeline, prefix_report = timed("ingest FIRRTL/mixed RTL", lambda:
-                    read_source_pipeline(session, mixed_request, pipeline))
-                if prefix_report is not None:
-                    report_path = flat_path.with_name(flat_path.stem + ".prefix-report.json")
-                    report_path.parent.mkdir(parents=True, exist_ok=True)
-                    report_path.write_text(json.dumps(prefix_report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-                    identity["ingest_prefix_report"] = str(report_path)
-                    identity["ingest_pipeline"] = "grh-pre-flatten"
-                    log("production pre-flatten prefix wall_s=" + str(prefix_report["prefix_wall_s"]))
-                checked(diagnostics, "ingest FIRRTL/mixed RTL")
+                timed("ingest-firrtl", lambda: session.read_sources(
+                    **mixed_request, out_design="design.main"), check_diagnostics=True)
             else:
                 slang_args = read_slang_args(Path(args.filelist).resolve(), args.top, Path(args.read_args_file).resolve())
-                checked(timed("ingest RTL", lambda: session.read_sv(None, out_design="design.main", slang_args=slang_args)), "ingest RTL")
+                timed("ingest RTL", lambda: session.read_sv(None, out_design="design.main", slang_args=slang_args),
+                      check_diagnostics=True)
             identity["ingest_dependencies"] = session.graph_metadata(
                 design="design.main", top=args.top)["metadata"].get("ingest.dependencies", [])
             write_identity(final_path.with_name(final_path.stem + ".generation-identity.json"), identity)
             for name, pass_options in pipeline:
+                pass_options = dict(pass_options)
                 if name == "simplify" and args.dump_pre_simplify_json:
                     store_checkpoint(session, args.dump_pre_simplify_json.resolve(), design="design.main", top=args.top)
-                checked(timed(f"GRH pass {name}", lambda name=name, opts=pass_options: session.run_pass(
-                    name, design="design.main", keep_declared_symbols=True, **opts)), name)
+                explicit_keep = pass_options.pop("keep_declared_symbols", None)
+                keep_declared = (explicit_keep if explicit_keep is not None else
+                                 name not in {"split-static-array", "dead-code-elim", "expr-opt", "used-bits", "split-nodes",
+                                              "constant-analysis", "alias-analysis", "pattern-detect", "common-expr", "comm-expr"})
+                run_pass(session, name, design="design.main", keep_declared_symbols=keep_declared, **pass_options)
             if args.store_grh_checkpoints:
                 store_checkpoint(session, flat_path, design="design.main", top=args.top)
-        converted_count = 0
+                identity["flat_grh_prefix"] = write_flat_prefix_identity(
+                    flat_path, top=args.top, stage="post-opt" if flat_preprocessed else "pre-opt")
+                write_identity(final_path.with_name(final_path.stem + ".generation-identity.json"), identity)
 
         def checkpoint(stage):
-            nonlocal converted_count
             if stage == "converted":
-                converted_count += 1
-                if converted_count == 1 and args.dump_post_conversion_json:
+                # No transform separates these explicit dump boundaries.
+                if args.dump_post_conversion_json:
                     store_checkpoint(session, args.dump_post_conversion_json.resolve(), design="design.main", top=args.top)
-                if converted_count == 2 and args.dump_pre_partition_json:
+                if args.dump_pre_partition_json:
                     store_checkpoint(session, args.dump_pre_partition_json.resolve(), design="design.main", top=args.top)
             if args.checkpoint_dir:
                 store_checkpoint(session, args.checkpoint_dir.resolve() / f"{stage}.json", design="design.main", top=args.top)
 
-        finish_simulation_graph(session, design="design.main", top=args.top, options=options, checkpoint=checkpoint)
+        finish_simulation_graph(session, design="design.main", top=args.top, options=options,
+                                checkpoint=checkpoint,
+                                preprocessed=flat_preprocessed)
         if args.store_grh_checkpoints:
             store_checkpoint(session, final_path, design="design.main", top=args.top)
         if args.emit_cpp_dir:
-            timed("emit grhsim-cpu-st-cpp", lambda: emit_cpp(
+            timed("emit-grhsim-cpp", lambda: emit_cpp(
                 session, design="design.main", top=args.top, output=args.emit_cpp_dir,
                 generation_identity=identity,
                 overwrite=args.overwrite_emit_cpp, max_function_lines=args.max_function_lines,
@@ -380,14 +437,18 @@ def main() -> int:
                 readable_dump=args.readable_dump, readable_frames=args.readable_frames,
                 mem_write_activate=args.mem_write_activate, mem_enable_bitmap=args.mem_enable_bitmap == "on"))
     if args.roundtrip_verify:
-        with wolvrix.Session() as session:
-            session.diagnostics_raise_min_level = "none"
-            checked(session.read_json_file(str(final_path), out_design="design.main"), "load ordinary GRH checkpoint")
-            # A fresh session cannot reuse resolved IDs from the producer.
-            finish_simulation_graph(session, design="design.main", top=args.top)
-            store_checkpoint(session, roundtrip_path, design="design.main", top=args.top)
-        if not filecmp.cmp(final_path, roundtrip_path, shallow=False):
-            raise RuntimeError("GRH store/load/schedule-rebuild/store changed stable JSON bytes")
+        def verify_roundtrip():
+            with wolvrix.Session() as session:
+                session.diagnostics_raise_min_level = "none"
+                checked(session.read_json_file(str(final_path), out_design="design.main"), "load ordinary GRH checkpoint")
+                # A fresh session cannot reuse resolved IDs from the producer.
+                finish_simulation_graph(session, design="design.main", top=args.top)
+                store_checkpoint(session, roundtrip_path, design="design.main", top=args.top)
+            if not filecmp.cmp(final_path, roundtrip_path, shallow=False):
+                raise RuntimeError("GRH store/load/schedule-rebuild/store changed stable JSON bytes")
+
+        with stage_journal_scope("verification"):
+            timed("verify-roundtrip", verify_roundtrip)
         log("ordinary GRH round trip and SinkSchedule rebuild verified")
     log(f"total done {round((time.perf_counter() - started) * 1000)}ms")
     return 0

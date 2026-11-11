@@ -37,7 +37,6 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | [F06-acceptance.md](F06-acceptance.md) | F06 验收矩阵、目标模块执行和专项/全量回归证据 |
 | [mixed.md](../../wolvrix/docs/ingest/mixed.md) | F07 混合读取、参数 specialization、ABI、黑盒源及事务式发布 |
 | [F07-acceptance.md](F07-acceptance.md) | F07 交替层次仿真、负例、Python 和完整回归证据 |
-| [node-cse.md](../../wolvrix/docs/ingest/node-cse.md) | 当前可选整体 node 判等、软提示策略和配置迁移 |
 | [F08-acceptance.md](F08-acceptance.md) | F08生产变换审计、回归和真实大模块属性成本 |
 | [F09-plan.md](F09-plan.md) | 当前两层分图设计：提示/MFFC 构建 node，按 node 数划分 supernode；F09.6 已实现 |
 | [F09.6-acceptance.md](F09.6-acceptance.md) | 当前统一 node / Node DAG / 节点容量、迁移及代表模块验收 |
@@ -45,7 +44,7 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | [F12-ingest-performance-plan.md](F12-ingest-performance-plan.md) | FIRRTL ingest 分阶段计时、热点定位和无语义损失加速计划；F11 的前置专项 |
 | [F13-grh-performance-plan.md](F13-grh-performance-plan.md) | 层次展平、普通 GRH 化简与 core 数据搬运的五项优化及验收记录 |
 | [F14-gsim-performance.md](F14-gsim-performance.md) | GSIM 直接从香山 FIRRTL 生成 C++ 的性能基线 |
-| [F15-grhsim-performance-plan.md](F15-grhsim-performance-plan.md) | GrhSIM simplify、node key/cache 与并行 FIRRTL lowering 优化 |
+| [F15-grhsim-performance-plan.md](F15-grhsim-performance-plan.md) | GrhSIM 分图、node key/cache 与并行 FIRRTL lowering 优化 |
 | [F15-ingest-flatten-perf.md](F15-ingest-flatten-perf.md) | 10T ingest 到 hier-flatten 的 perf 热点、allocator 全堆扫描和 Operation 快照复制 |
 | [F16-ingest-flatten-performance-plan.md](F16-ingest-flatten-performance-plan.md) | ingest→hier-flatten 的分配器策略、Operation 快照与字符串/符号表三项修复计划 |
 | [F16-ingest-flatten-results.md](F16-ingest-flatten-results.md) | F16 逐项实现、native 身份、完整图正确性和性能证据 |
@@ -56,6 +55,8 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | [F18-ingest-flatten-unit-cost-plan.md](F18-ingest-flatten-unit-cost-plan.md) | F17 未达预期的实测原因（node 文本、名字、Rob 长尾）及 F18 方案；含 F17 formal 数字更正 |
 | [F19-semantic-tree-json-plan.md](F19-semantic-tree-json-plan.md) | 自包含 SemanticTree：字符数组、批量深拷贝、本地 ID 与单一 v4 JSON，不兼容旧格式 |
 | [F20-gsim-init-alignment-plan.md](F20-gsim-init-alignment-plan.md) | 无重写 pass 的 flatten 图与 GSIM Init 图的对齐实验：对齐键、统计采集、指标及判定门槛 |
+| [F21-dead-code-elim-plan.md](F21-dead-code-elim-plan.md) | comb-loop-elim 后静态数组拆分、独立 op 级 DCE、SemanticTree 回收、GSIM 删除矩阵及 Node DAG/性能对照 |
+| [F22-expr-opt-used-bits.md](F22-expr-opt-used-bits.md) | GSIM 对齐的独立 ExprOpt/UsedBits、外部 DCE 边界、SemanticTree 传播及 XiangShan 全图性能 |
 | [pass-optimization-20261101.md](pass-optimization-20261101.md) | 保留完整优化的 flatten/simplify 实现加速、严格 A/B 与 20 分钟整机复测 |
 | [F10-components.md](F10-components.md) | 真实代表模块的双路线比较、激励、记分板及当前证据 |
 | [F10-replacer.md](F10-replacer.md) | AheadBtbReplacer 独立 PLRU 记分板、四路线执行与 reference 断言缩减 |
@@ -105,7 +106,15 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | F17 | ingest→hier-flatten 结构性提速：单一 SoA core 存储、列块拼接 flatten、单遍模块流水 | 已完成（2026-11-04）；F17.1/2/3 代码、81/81 CTest、Python/workflow、oracle、完整图 identity 与 roundtrip 全部通过；最终 fused 约 195.45 s、峰值 RSS 约 67.2 GiB，≤50/10/60 s 与热点 ≤25% 预算按实测未达 |
 | F18 | ingest→hier-flatten 单位成本：SemanticTree 来源模型、内部名延迟生成、flatten 真批量化、Rob 并行可行性结论 | 已完成（2026-11-05）；三轮 formal 中位数 70.64 s、flatten 19.60 s，达到 ≤75 s 目标；F18.4 不做模块内并行，见 F18-ingest-flatten-unit-cost-plan.md |
 | F19 | 自包含 SemanticTree 底层改造与统一 JSON 导入导出 | 功能与性能达标；生产默认省略 def/users/loc，实测体积减少 65.54%，调试时可显式开启，见 F19-semantic-tree-json-plan.md |
-| F20 | ingest→flatten 与 GSIM AST2Graph 对齐实验 | 计划已写，门槛待确认；F20.P1/P2 已实施，定向与 ASAN 回归通过，完整 CTest 维持 F19 的 77/84、无新增失败；全量覆盖、路径/符号及 JSON 往返复核通过；SemanticId 性能修正采用 64 项驻留阈值和有界缓存，最终生产 formal 中位数 89.226 s（同机旧库单次 93.09 s），最终 bare 为 105.628 s（同口径旧实现 128.327 s），checkpoint 字节/SHA-256 不变；对齐实验未开始；见 F20-gsim-init-alignment-plan.md |
+| F20 | ingest→flatten 与 GSIM AST2Graph 对齐实验 | 已完成（2026-11-06）；普通寄存器、memory、地址 pipeline、写口、false loop 和 Node DAG 按既定口径验收，见 F20-gsim-init-alignment-plan.md §3.13 |
+| F21 | comb-loop-elim 后静态数组拆分、独立 DCE 与 SemanticTree 回收 | 原验收完成；2026-11-08 完成拆分闭环复核。split 后 4,832/4,832 状态族、58,255 个元素与 GSIM 全对齐；post-DCE 为 18,242,935 op，GrhSIM 净多删 14,841 个共同 K，但仍有 332/16 个状态元素双向差异。三轮 split+DCE 中位数 102.900 s（GSIM 84.656 s），共同存活 DAG 精确率 88.1968%、召回率 91.9049%；4,737,527 个存活并集 Node 上，GrhSIM/GSIM 总边为 6,858,586/6,880,937；ROB 的 113,226 条 GrhSIM 独有边已逐条归因，未见 DCE 漏删活跃依赖的证据；全部 1,715,271 条不重合边已按形成原因分类闭合；全部 array-typed value 已对比，post-DCE 为 GrhSIM/GSIM 128,636/7,858 条，81 个形状差异均已解释。无新增整机动态等价证明，见 F21-dead-code-elim-plan.md §15–16 |
+| F22 | GSIM ExprOpt/UsedBits 独立 pass | 已完成；DCE 保持外部可见，F22 不调用 simplify；XiangShan 全图单轮 17.371 s（ExprOpt 2.059 s、UsedBits 15.312 s），总位宽下降 1.87%，operation/value 行未被删除，详见 F22-expr-opt-used-bits.md |
+| F23.1 | GSIM SplitNodes 的 GRH 前置安全子集 | 已完成 `split-nodes` 独立 pass；接在 `used-bits` 后、显式第二次 DCE 前；当前覆盖无符号 scalar 纯表达式的静态位段，寄存器/数组/有符号/算术节点留待后续步骤 |
+| [F23.2](F23-constant-analysis.md) | GSIM ConstantAnalysis 的 GRH 前置独立 pass | 已完成 `constant-analysis`；接在 SplitNodes 后的显式 DCE 之后，按拓扑顺序折叠可证明常量的纯逻辑操作；不执行 DCE 或 simplify |
+| [F23.3](F23-alias-pattern-common.md) | GSIM AliasAnalysis、PatternDetect、CommonExpr 的 GRH 前置独立 pass | 已完成 `alias-analysis → pattern-detect → common-expr`；三者均不执行 DCE，最后由流程中的显式 DCE 回收别名、模式中间值和重复表达式 |
+| [F23.3](F23-alias-pattern-common.md) | GSIM AliasAnalysis、PatternDetect、CommonExpr 的 GRH 前置独立 pass | 已完成；接在 ConstantAnalysis 后，三者均不执行 DCE，最后由流程显式 DCE；默认不把 `declaredSymbols` 作为保活根 |
+
+| [F24](F24-xs-firrtl-grhsim.md) / [正确性提交](F24-correctness-checkpoint.md) | XiangShan 全图 FIRRTL → GrhSIM canonical 联调、CoreMark 100k、difftest 与分图门禁 | 已完成；22阶段、生成/完整编译预算、activation及100k NEMU/231568条精确提交通过；用户将性能移出本阶段完成门，旧工具和临时产物已清理 |
 
 F08 曾以本地 GSIM `a3ecb26` 的 `commonExpr()` 为依据保留源表达式边界。
 当前方案保留 simplify 自由：之后才按提示/MFFC 形成执行 node，再按
