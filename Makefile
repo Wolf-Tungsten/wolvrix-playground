@@ -3,8 +3,7 @@ REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 FST_ROI_DISCOVERY_GOALS := build_fst_roi_discovery test_fst_roi_discovery clean_fst_roi_discovery
 FST_DIFF_GOALS := build_fst_diff clean_fst_diff
-VRT_GOALS := run_vrt_selftest clean_vrt_selftest vrt_inbox
-ifneq ($(filter $(FST_ROI_DISCOVERY_GOALS) $(FST_DIFF_GOALS) $(VRT_GOALS),$(MAKECMDGOALS)),)
+ifneq ($(filter $(FST_ROI_DISCOVERY_GOALS) $(FST_DIFF_GOALS),$(MAKECMDGOALS)),)
 SKIP_WOLF_ENV_CHECK := 1
 endif
 
@@ -3278,23 +3277,6 @@ clean:
 	@rm -rf $(C910_WORK_DIR)
 	@rm -rf $(XS_ROOT)/build
 
-
-# ---- VRT workflow 自测试 ----
-# 在 ptmp/vrt-selftest 下搭建模拟 git 仓库，用 mock CLI 验证调度脚本，不触碰真实仓库
-VRT_SELFTEST_DIR := $(REPO_ROOT)/ptmp/vrt-selftest
-
-run_vrt_selftest:
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) $(REPO_ROOT)/vrt/workflow/tests/selftest.py
-
-# VRT_INBOX / VRT_INBOX_ACTOR are environment variables; user text goes via stdin.
-VRT_INBOX_ACTION ?= show
-vrt_inbox:
-	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) $(REPO_ROOT)/vrt/workflow/runner_inbox.py $(VRT_INBOX_ACTION)
-
-clean_vrt_selftest:
-	rm -rf $(VRT_SELFTEST_DIR)
-
-.PHONY: run_vrt_selftest clean_vrt_selftest vrt_inbox
 
 # ---- grhsim-perf-opt goal protocol (separate from legacy benchmark gates) ----
 GRHSIM_SEARCH_BUILD ?=
