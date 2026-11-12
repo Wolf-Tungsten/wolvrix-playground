@@ -253,6 +253,7 @@ XS_FIRRTL_COMPILE_TIMEOUT ?=
 # Run full-chip work in a separate cgroup so a memory limit cannot kill the
 # invoking agent or its recorder. The inner targets retain their time budgets.
 XS_FIRRTL_MEMORY_MAX_BYTES ?= 137438953472
+XS_FIRRTL_MANAGED_OOM_PREFERENCE ?= none
 # Optional service-wide hard deadline; empty preserves the inner-target budgets.
 XS_FIRRTL_RUNTIME_MAX_SECONDS ?=
 XS_FIRRTL_CAPPED_TARGET ?= xs-firrtl-grhsim
@@ -2834,16 +2835,25 @@ xs_firrtl_grhsim: xs_firrtl_inputs xs_firrtl_pipeline_manifest check_remove_grhs
 # exposing the hyphenated name used by the documented F24 pipeline.
 xs-firrtl-grhsim: xs_firrtl_grhsim
 
-.PHONY: xs_firrtl_resource_capped test_resource_capped
+.PHONY: xs_firrtl_resource_capped test_resource_capped test_resource_capped_systemd
 xs_firrtl_resource_capped:
 	+$(PYTHON) scripts/run_resource_capped.py \
 		--memory-max-bytes "$(XS_FIRRTL_MEMORY_MAX_BYTES)" \
+		--managed-oom-preference "$(XS_FIRRTL_MANAGED_OOM_PREFERENCE)" \
 		$(if $(strip $(XS_FIRRTL_RUNTIME_MAX_SECONDS)),--runtime-max-seconds "$(XS_FIRRTL_RUNTIME_MAX_SECONDS)",) \
 		--output "$(abspath $(XS_FIRRTL_RESOURCE_REPORT))" \
 		-- $(MAKE) --no-print-directory -j1 $(XS_FIRRTL_CAPPED_TARGET)
 
 test_resource_capped:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_resource_capped.py
+
+# Small real-service preflight; never allocate toward the cap or invoke a build.
+RESOURCE_CAPPED_SMOKE_DIR ?= ptmp/firrtl-ingest/F25/oom-audit/service-smoke
+test_resource_capped_systemd:
+	+PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/run_resource_capped.py \
+		--memory-max-bytes 67108864 --runtime-max-seconds 10 \
+		--managed-oom-preference omit \
+		--output "$(abspath $(RESOURCE_CAPPED_SMOKE_DIR))/resources.json" -- /usr/bin/true
 
 xs_firrtl_grhsim_emu: check_xs_firrtl_compile_budget xs_firrtl_harness_inputs
 	@$(MAKE) --no-print-directory xs_firrtl_grhsim \

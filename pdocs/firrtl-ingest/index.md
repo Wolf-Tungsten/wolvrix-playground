@@ -115,6 +115,7 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | [F23.3](F23-alias-pattern-common.md) | GSIM AliasAnalysis、PatternDetect、CommonExpr 的 GRH 前置独立 pass | 已完成；接在 ConstantAnalysis 后，三者均不执行 DCE，最后由流程显式 DCE；默认不把 `declaredSymbols` 作为保活根 |
 
 | [F24](F24-xs-firrtl-grhsim.md) / [正确性提交](F24-correctness-checkpoint.md) | XiangShan 全图 FIRRTL → GrhSIM canonical 联调、CoreMark 100k、difftest 与分图门禁 | 已完成；22阶段、生成/完整编译预算、activation及100k NEMU/231568条精确提交通过；用户将性能移出本阶段完成门，旧工具和临时产物已清理 |
+| [F25](F25-simulation-performance.md) | 保留 GrhSIM 模型能力，对齐 GSIM 全图 CoreMark 100k 仿真性能 | 按用户“做完v14就先停一下”要求暂停；v14本轮完整身份/资源/正确性/profile验收链PASS，新的主性能观测quiet143.02s wall/142.98s user、独立profile149.85/149.73s；231568 commits字段/顺序/周期/导出字节一致，122runtime/9CTest/9effects、selected122/generated206/extra84及13串行330s/128GiB/swap0/omit服务通过，原最终审计status=pass/failures=[]。主/独立对账14809samples/770023179677period/lost0及8942 symbol+DSO闭合；NS+其dispatch估算47.371771s、writer78.181119s，混合general dispatch另计1.100926s、不含在NS，正式NS/GSIM报告已展示并显式record。真实安装/230controls、原始raw22stage生成773.223699471s与fresh完整编译263.774657780s均通过；实际1134batches/34groups覆盖1064/max5events/scalar265397保持，不能套旧44组/1019的机器样本包络。历史v13原主155.55s/user155.51s、单B同期149.95s、旧suite库存FAIL/补充118runtime与原最终审计PASS均保留，v12仍拒绝；原v9→v13→v9 157.48→149.95→157.58s只是single-B诊断。可选v13→v14→v13诊断仅部分准备，准备/review已中断，未授权或执行paired freeze/run、未验收；单次v14观测不证明稳定收益，GSIM端点/组件分母不同，不声明严格parity，F25仍远未完成；[新证据与限制](F25-simulation-performance.md#v14完整-writer-指令调查与调用端-fresh-fire-分组) |
 
 F08 曾以本地 GSIM `a3ecb26` 的 `commonExpr()` 为依据保留源表达式边界。
 当前方案保留 simplify 自由：之后才按提示/MFFC 形成执行 node，再按

@@ -1,6 +1,7 @@
 """Validate the memory cap contract without launching allocations or services."""
 
 import io
+import errno
 import json
 import os
 from pathlib import Path
@@ -12,7 +13,7 @@ from unittest import mock
 import run_resource_capped as cap
 
 
-WORK = Path(__file__).resolve().parents[1] / "ptmp/firrtl-ingest/F24/memory-audit/tests"
+WORK = Path(__file__).resolve().parents[1] / "ptmp/firrtl-ingest/F25/oom-audit/unit-tests"
 WORK.mkdir(parents=True, exist_ok=True)
 
 
@@ -50,6 +51,78 @@ class ResourceCapTests(unittest.TestCase):
         self.assertEqual(arguments[-4:], ["--", "make", "-j1", "run"])
         self.assertFalse(any(a.startswith("--property=RuntimeMaxSec=") for a in arguments))
         self.assertNotIn("--property=KillSignal=SIGKILL", arguments)
+        self.assertFalse(any(a.startswith("--property=ManagedOOMPreference=") for a in arguments))
+
+    def test_requested_oom_preference_reaches_service_and_both_collectors(self):
+        for preference in ("avoid", "omit"):
+            with self.subTest(preference=preference):
+                arguments = cap.make_command(["true"], "x.service", 123, Path("/output/report.json"),
+                                             "/parent", {}, oom_preference=preference)
+                self.assertIn("--property=ManagedOOMPreference=" + preference, arguments)
+                for phase in ("ExecStartPre", "ExecStopPost"):
+                    collector = next(a for a in arguments if a.startswith("--property=" + phase + "="))
+                    self.assertIn('"--managed-oom-preference" "' + preference + '"', collector)
+                self.assertIn("--property=MemoryMax=123", arguments)
+                self.assertIn("--property=MemorySwapMax=0", arguments)
+
+    def test_invalid_oom_preference_never_launches_workload(self):
+        with mock.patch("sys.argv", ["run_resource_capped.py", "--memory-max-bytes", "123",
+                        "--managed-oom-preference", "invalid", "--output", "unused", "--", "must-not-run"]), \
+             mock.patch("sys.stderr", new_callable=io.StringIO), mock.patch.object(cap, "run") as launch:
+            with self.assertRaises(SystemExit) as error:
+                cap.main()
+            self.assertEqual(error.exception.code, 2)
+            launch.assert_not_called()
+
+    def test_oom_preference_reads_cgroup_xattrs_and_monitored_user_owner(self):
+        directory = Path("/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/x.service")
+        def attribute(path, name):
+            if name == "user.oomd_omit":
+                return b"1"
+            raise OSError(errno.ENODATA, "not set")
+        with mock.patch.object(cap.os, "getxattr", side_effect=attribute), \
+             mock.patch.object(Path, "stat", return_value=mock.Mock(st_uid=1000)):
+            data = cap.read_oom_preference(directory)
+        self.assertEqual(data["actual"], "omit")
+        self.assertEqual(data["xattrs"], {"avoid": None, "omit": "1"})
+        self.assertEqual(data["cgroup_uid"], 1000)
+        self.assertEqual(data["user_manager_uid"], 1000)
+        self.assertTrue(data["user_manager_owner_matches"])
+
+    def test_collector_checks_requested_preference_before_payload(self):
+        good = {"path": "/user/app/x.service", "memory.max": 123, "memory.swap.max": 0,
+                "memory.oom.group": 1, "managed_oom_preference": {"actual": "omit", "user_manager_owner_matches": True}}
+        for actual, owner, shown, expected in (("omit", True, "omit", 0), ("none", True, "omit", 125),
+                                               ("omit", False, "omit", 125), ("omit", True, "avoid", 125)):
+            with self.subTest(actual=actual, owner=owner, property=shown), tempfile.TemporaryDirectory(dir=WORK) as directory:
+                output = Path(directory) / "start.json"
+                data = {**good, "managed_oom_preference": {"actual": actual, "user_manager_owner_matches": owner}}
+                with mock.patch.object(cap, "read_cgroup", return_value=data), \
+                     mock.patch.object(cap, "control", return_value=subprocess.CompletedProcess([], 0, "ManagedOOMPreference=" + shown + "\n", "")):
+                    self.assertEqual(cap.collect(output, 123, "/parent", True, "x.service", "omit"), expected)
+                report = json.loads(output.read_text())
+                self.assertEqual(report["managed_oom_preference_verified"], expected == 0)
+                self.assertEqual(report["enforcement_verified"], expected == 0)
+                self.assertEqual(report["systemd_properties"]["ManagedOOMPreference"], shown)
+
+    def test_requested_oom_preference_requires_final_preference_evidence(self):
+        for verified in (False, True):
+            with self.subTest(verified=verified), tempfile.TemporaryDirectory(dir=WORK) as directory:
+                output = Path(directory) / "report.json"
+                def launch(arguments, **kwargs):
+                    unit = next(arg.split("=", 1)[1] for arg in arguments if arg.startswith("--unit="))
+                    data = {"enforcement_verified": True, "unit": unit, "cgroup": {"path": "/" + unit},
+                            "managed_oom_preference_requested": "omit", "managed_oom_preference_verified": verified}
+                    cap.write_json(Path(str(output) + ".start.json"), data)
+                    cap.write_json(Path(str(output) + ".stop.json"), {**data, "service_result": "success"})
+                    return subprocess.CompletedProcess([], 0)
+                with mock.patch.object(cap, "unified_cgroup", return_value="/parent"), \
+                     mock.patch.object(cap, "control", return_value=subprocess.CompletedProcess([], 0, "LoadState=not-found\n", "")), \
+                     mock.patch.object(cap.subprocess, "run", side_effect=launch):
+                    self.assertEqual(cap.run(["true"], 123, output, oom_preference="omit"), 0 if verified else 125)
+                report = json.loads(output.read_text())
+                self.assertEqual(report["managed_oom_preference_verified"], verified)
+                self.assertEqual(report["enforcement_verified"], verified)
 
     def test_optional_deadline_kills_all_service_process_groups(self):
         arguments = cap.make_command(["make", "-j1", "run"], "x.service", 123,

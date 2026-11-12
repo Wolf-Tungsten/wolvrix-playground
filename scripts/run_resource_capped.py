@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import os
 from pathlib import Path
@@ -20,6 +21,7 @@ PROPERTIES = (
     "ExecMainStatus", "ControlGroup", "MemoryCurrent", "MemoryPeak",
     "MemoryMax", "MemorySwapMax", "OOMPolicy", "KillMode",
     "RuntimeMaxUSec", "RuntimeRandomizedExtraUSec", "KillSignal", "SendSIGKILL",
+    "ManagedOOMPreference",
 )
 
 
@@ -37,7 +39,27 @@ def unified_cgroup() -> str:
     raise RuntimeError("cgroup v2 is required")
 
 
-def read_cgroup() -> dict:
+def read_oom_preference(directory: Path) -> dict:
+    attributes = {}
+    for preference in ("avoid", "omit"):
+        try:
+            attributes[preference] = os.getxattr(directory, "user.oomd_" + preference).decode("ascii")
+        except OSError as error:
+            if error.errno != errno.ENODATA:
+                raise
+            attributes[preference] = None
+    actual = "omit" if attributes["omit"] == "1" else "avoid" if attributes["avoid"] == "1" else "none"
+    data = {"actual": actual, "xattrs": attributes, "cgroup_uid": directory.stat().st_uid}
+    for ancestor in directory.parents:
+        if re.fullmatch(r"user@\d+\.service", ancestor.name):
+            data["user_manager_path"] = str(ancestor.relative_to("/sys/fs/cgroup"))
+            data["user_manager_uid"] = ancestor.stat().st_uid
+            data["user_manager_owner_matches"] = data["cgroup_uid"] in (0, data["user_manager_uid"])
+            break
+    return data
+
+
+def read_cgroup(oom_preference: str = "none") -> dict:
     group = unified_cgroup()
     directory = Path("/sys/fs/cgroup") / group.lstrip("/")
     data = {"path": group}
@@ -48,6 +70,8 @@ def read_cgroup() -> dict:
     for name in ("memory.events", "memory.events.local", "memory.swap.events"):
         data[name] = {key: int(value) for key, value in
                       (line.split() for line in (directory / name).read_text().splitlines())}
+    if oom_preference != "none":
+        data["managed_oom_preference"] = read_oom_preference(directory)
     return data
 
 
@@ -59,15 +83,28 @@ def valid_enforcement(data: dict, limit: int, parent: str) -> bool:
             and data.get("memory.oom.group") == 1)
 
 
-def collect(path: Path, limit: int, parent: str, verify: bool, unit: str | None = None) -> int:
+def collect(path: Path, limit: int, parent: str, verify: bool, unit: str | None = None,
+            oom_preference: str = "none") -> int:
     data = {"schema": SCHEMA, "time": time.time(), "unit": unit}
     try:
-        data["cgroup"] = read_cgroup()
+        data["cgroup"] = read_cgroup(oom_preference) if oom_preference != "none" else read_cgroup()
         data["enforcement_verified"] = (valid_enforcement(data["cgroup"], limit, parent)
             and (unit is None or Path(data["cgroup"]["path"]).name == unit))
         if not data["enforcement_verified"]:
             data["error"] = "separate cgroup, memory.max, swap.max or oom.group did not match"
-    except (OSError, RuntimeError, ValueError) as error:
+        if oom_preference != "none":
+            shown = control(["show", unit or Path(data["cgroup"]["path"]).name,
+                             "--property=ManagedOOMPreference"])
+            data["systemd_properties"] = dict(line.split("=", 1) for line in shown.stdout.splitlines() if "=" in line)
+            data["managed_oom_preference_requested"] = oom_preference
+            actual = data["cgroup"].get("managed_oom_preference", {})
+            data["managed_oom_preference_verified"] = bool(
+                shown.returncode == 0 and data["systemd_properties"].get("ManagedOOMPreference") == oom_preference
+                and actual.get("actual") == oom_preference and actual.get("user_manager_owner_matches"))
+            data["enforcement_verified"] &= data["managed_oom_preference_verified"]
+            if not data["managed_oom_preference_verified"]:
+                data["error"] = "ManagedOOMPreference property, cgroup xattr or user-manager ownership did not match"
+    except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as error:
         data["enforcement_verified"] = False
         data["error"] = str(error)
     if not verify:
@@ -103,10 +140,12 @@ def service_environment(environment: dict[str, str]) -> dict[str, str]:
 
 def make_command(command: list[str], unit: str, limit: int, output: Path,
                  parent: str, environment: dict[str, str],
-                 runtime_max_seconds: int | None = None) -> list[str]:
+                 runtime_max_seconds: int | None = None, oom_preference: str = "none") -> list[str]:
     script = str(Path(__file__).resolve())
     common = [sys.executable, script, "--memory-max-bytes", str(limit),
               "--parent-cgroup", parent, "--unit-id", unit]
+    if oom_preference != "none":
+        common.extend(("--managed-oom-preference", oom_preference))
     arguments = [
         "systemd-run", "--user", "--no-ask-password", "--wait", "--pipe",
         "--quiet", "--service-type=exec", "--expand-environment=no",
@@ -117,6 +156,8 @@ def make_command(command: list[str], unit: str, limit: int, output: Path,
         "--property=ExecStartPre=" + exec_property(common + ["--verify-cgroup", str(output) + ".start.json"]),
         "--property=ExecStopPost=" + exec_property(common + ["--collect-cgroup", str(output) + ".stop.json"]),
     ]
+    if oom_preference != "none":
+        arguments.append("--property=ManagedOOMPreference=" + oom_preference)
     if runtime_max_seconds is not None:
         # A service deadline reaches nested process groups as well. Keep the
         # recorder outside the service and collect evidence in ExecStopPost.
@@ -144,12 +185,14 @@ def read_json(path: Path) -> dict | None:
 
 
 def run(command: list[str], limit: int, output: Path,
-        runtime_max_seconds: int | None = None) -> int:
+        runtime_max_seconds: int | None = None, oom_preference: str = "none") -> int:
     output = output.resolve()
     unit = "wolvrix-capped-" + uuid.uuid4().hex + ".service"
     report = {"schema": SCHEMA, "unit": unit, "memory_max_bytes": limit,
               "swap_max_bytes": 0, "started_at": time.time(),
               "status": "starting", "enforcement_verified": False}
+    if oom_preference != "none":
+        report["managed_oom_preference_requested"] = oom_preference
     if runtime_max_seconds is not None:
         report["runtime_max_seconds"] = runtime_max_seconds
     write_json(output, report)
@@ -168,7 +211,7 @@ def run(command: list[str], limit: int, output: Path,
         if availability.returncode:
             raise RuntimeError("user systemd manager unavailable: " + availability.stderr.strip())
         environment = service_environment(dict(os.environ))
-        arguments = make_command(command, unit, limit, output, parent, environment, runtime_max_seconds)
+        arguments = make_command(command, unit, limit, output, parent, environment, runtime_max_seconds, oom_preference)
 
         def interrupt(signum, frame):
             raise KeyboardInterrupt
@@ -200,10 +243,18 @@ def run(command: list[str], limit: int, output: Path,
                 stop = read_json(Path(str(output) + ".stop.json"))
                 report["cgroup_start"] = start
                 report["cgroup_stop"] = stop
+                if oom_preference != "none":
+                    report["managed_oom_preference_verified"] = bool(
+                        start and stop and start.get("managed_oom_preference_verified")
+                        and stop.get("managed_oom_preference_verified")
+                        and start.get("managed_oom_preference_requested") == oom_preference
+                        and stop.get("managed_oom_preference_requested") == oom_preference)
                 report["enforcement_verified"] = bool(
                     start and stop and start.get("enforcement_verified") and stop.get("enforcement_verified")
                     and start.get("unit") == unit and stop.get("unit") == unit
                     and start.get("cgroup", {}).get("path") == stop.get("cgroup", {}).get("path"))
+                if oom_preference != "none":
+                    report["enforcement_verified"] &= report["managed_oom_preference_verified"]
                 if not report["enforcement_verified"]:
                     report.setdefault("error", "memory enforcement evidence incomplete; refusing success")
                     if status == 0:
@@ -237,6 +288,8 @@ def main() -> int:
     parser.add_argument("--memory-max-bytes", type=int, required=True)
     parser.add_argument("--runtime-max-seconds", type=int,
                         help="optional service-wide runtime deadline with immediate group SIGKILL")
+    parser.add_argument("--managed-oom-preference", choices=("none", "avoid", "omit"), default="none",
+                        help="optional preference for this service under user-manager memory pressure")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--parent-cgroup", help=argparse.SUPPRESS)
     parser.add_argument("--unit-id", help=argparse.SUPPRESS)
@@ -253,11 +306,11 @@ def main() -> int:
         if not args.parent_cgroup:
             parser.error("collector requires --parent-cgroup")
         return collect(args.verify_cgroup or args.collect_cgroup, args.memory_max_bytes,
-                       args.parent_cgroup, args.verify_cgroup is not None, args.unit_id)
+                       args.parent_cgroup, args.verify_cgroup is not None, args.unit_id, args.managed_oom_preference)
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
     if not args.output or not command:
         parser.error("--output and a command after -- are required")
-    return run(command, args.memory_max_bytes, args.output, args.runtime_max_seconds)
+    return run(command, args.memory_max_bytes, args.output, args.runtime_max_seconds, args.managed_oom_preference)
 
 
 if __name__ == "__main__":

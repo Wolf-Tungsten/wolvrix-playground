@@ -90,12 +90,15 @@ nonsink 负责共享计算、状态读取和普通效果调用，按消费者角
 不提前缓存整段 bitmap。
 
 不含 External 操作及 String operand/result 的 nonsink owner，对无 shape、
-宽度不超过 64 bit 的 TwoState Logic boundary 可合并发布激活。相同的完整
-nonsink fanout 至少对应两个实际发射的发布点时，共用一个 dirty flag：各点先执行
+宽度不超过 64 bit 的 TwoState Logic boundary 可合并发布激活。普通 nonsink
+fanout 与 eligible sink exact-run masks 共同构成完整目的集合；相同集合
+至少对应两个实际发射的发布点时，共用一个 dirty flag：各点先执行
 `dirty |= oldSnapshot != computed`，立即复制 snapshot 并同步 small-sink boundary，
-在 owner 末尾按原 current/next 路由激活一次。flag 用普通 local/chunkFrame 保存，
+在 owner 末尾按原 current/next 路由激活 nonsink，并置相应 sink dirty masks。
+flag 用普通 local/chunkFrame 保存，
 在 owner 入口显式清零；逐点比较、复制和同步保留原操作来源。
-空 fanout 只需原位置复制与同步，不再比较；非空单点、small-sink enable bitmap
+两类订阅都为空才只需原位置复制与同步，不再比较。普通 nonsink fanout 为空
+而 sink masks 非空时仍需比较；非空单点、small-sink enable bitmap
 中的值及其他类型保持原发布路径。含 External/String 的 owner 整体保持即时发布，
 Event/fire 的特殊发布也不变。分组预统计复用实际操作发射的 elision 判断，
 并在 owner 结束时核对实际发布点数，避免把省略操作计入分组。
@@ -113,7 +116,16 @@ writer 是 sink 的采样执行代码，**同时包括 small-sink 和 large-sink
 small-sink 的外部动态 enable 同步到稠密位图。连续 eligible writer 段先用
 相关 bit 的 mask 探测全零，再读取 payload；常量和 sink-local enable 截断该段。
 同一 run 的 enable 全部可探测且没有可观察的局部边界时，还可在进入 run 前跳过整段。
-位图不是 nonsink activity：数据未变而发生新 fire 时，已启用的 writer 仍执行。
+这个 enable 位图只表达写使能，不表达数据是否变化。
+
+另一个 `sinkDirty` 位图按精确 schedule run 记录可省略的纯小状态传输。
+只有满足私有、无观察副作用、可靠数据失效路径和直接 EdgeDetect 等资格的
+run 才使用；初始化为 dirty，输入/发布数据变化及任意竞争 writer 实际修改
+目标 next-shadow 都立即置位，成功执行完整 run 后只清该 run 的位。
+原 fire/enable/guard 始终保留。数据及目标均稳定时可以跳过正文；A/B/A
+竞争恢复仍按原顺序重新执行，dirty 位本身不制造新边沿或 round。
+原有 batch 全部符合资格时，在已有 fire probe 内先读取其精确 dirty masks，
+全 clean 可跳过该 batch 的 chunk 调用；混合 batch 保留原路径。
 
 同一状态的重叠写遵守 `writerOrder`，同优先级保留声明顺序；
 后执行的有效写覆盖先执行的相应位/元素。所有 writer 参数都必须在大型提交前采样，
@@ -155,6 +167,9 @@ General 抛异常时不会进入 LargeSink；重试再次执行 General 时先�
 本身视为调度事件，即使新旧数值相同也保留所需轮次。emitter 默认
 `on-change/on`（write-activate / enable-bitmap），生产 Make 流程显式使用
 `on-write/on`，两者不要混为同一默认口径。
+`on-write` 与 gsim 一致，合法写入通过既有 dirty bit 在 Publish
+唤醒该状态的所有 reader owner，不保存 read index 或 touched bitmap。
+`on-change` 仍保留写前值，用于判断同轮多次写入后的最终变化。
 
 ### 2.6 Output：只观察收敛结果，最后统一写 history
 
@@ -413,11 +428,9 @@ inequality，Real/String 用相应 inequality；history 初始化为类型零/�
 | `timeslotTriggerStore` | 事件型 monitor/strobe 在本 eval 内累积的 sticky trigger |
 | `sampledStore` | 非纯 system-function 的本 eval 已采样标志；采样结果保存在 boundary，不在此 store |
 | `onceStore` | initial system-task 已执行标志，init 时清空 |
-| `largeBeforeStore` | `on-write` 时每大状态一个 bool，记录有效写入；`on-change` 时保存首次变化前的元素值 map |
+| `largeBeforeImageStore` | 仅 `on-change` 保存首次变化前的元素值 map；`on-write` 直接使用 `dirtyStateFlags` |
 | `largeWholeBeforeStore` | `on-change` 且有合格 whole-array 写时保存完整数组的写前快照 |
 | `largeWholeDirtyStore` | 与 whole-array 快照配套的 dirty 标志，Publish 比较后清除 |
-| `memoryReadIndexStore` | 精准唤醒使用的最近一次实际 indexed read 的 flattened leaf 起点；N 表示无效读取、N+1 表示尚未采样 |
-| `memoryTouchedStore` | 本轮已实际提交的大状态 leaf 触碰位图，Publish 完成激活后清除 |
 
 两个 `smallSink*BoundaryStore` 保存 small sink 的输入，不是目标状态的
 current/next；小 writer 在 General 消费输入并直接更新 `smallSinkStoreNext`。
@@ -1366,6 +1379,16 @@ final PC=0x80000cde。plain 的 provenance 来自归档构建 metadata
 达到；当前源码保留待后续分析，未提交。
 
 ### 7.11 按实际读取范围过滤大型状态唤醒
+
+本节是 2026-10-27 的历史实验。F25 已删除 read subscription、
+touched bitmap 和 `on-write` 的 `largeBeforeStore` bool：gsim 对
+array/writer 在 `SUPER_INFO_ASSIGN_END` 直接调用
+`activateUncondNext`，没有这些机制。原 bool 与 `dirtyStateFlags`
+重复；当前合法写入只标记该 dirty bit，Publish 无条件唤醒全部
+reader owner，并保留原固定点轮次与 writer 顺序。`on-change`
+属于 grhsim 仍需支持的模式，首次写前值 map 改名为
+`largeBeforeImageStore` 后保留，防止同轮 A/B/A 写回产生错误激活。
+以下旧结果不代表 F25 当前实现的性能。
 
 `on-write` 原先在大型数组任一位置写入后唤醒其全部 nonsink 读者。
 独立旁路探针以冻结 `xs-leaves` 为输入，记录最近实际读取的 leaf
