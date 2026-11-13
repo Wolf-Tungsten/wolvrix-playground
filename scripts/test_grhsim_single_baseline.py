@@ -89,6 +89,21 @@ Host time spent: 4088ms
         self.assertEqual(row['stop_reason'],'cycle-limit')
         self.assertEqual(row['instr_count'],240349)
 
+    def test_codepage_retry_diagnostics_preserve_split_uart(self):
+        retry='[codepage-retry] retained progress, retries=3 bytes=100663296\n'
+        for prefix,body in [('', 'Running CoreMark for 2 iterations\n'),
+                            ('Running CoreM', 'ark for 2 iterations\n')]:
+            for before_banner,in_body in [(retry,''),('',retry),(retry,retry)]:
+                with self.subTest(prefix=prefix,before_banner=before_banner,in_body=in_body):
+                    log=(before_banner+prefix+'emu compiled at /tmp/emu\n'
+                         'The image is /tmp/image\n'
+                         'The reference model is /tmp/nemu.so\n'
+                         'The first instruction of core 0 has commited. Difftest enabled.\n'
+                         +in_body+body.replace('iterations','iter[CYCLE_LIMIT] cycles=10000 max_cycles=100000\nations')
+                         +'Core 0: '+self.LOG.removeprefix('Difftest enabled.\n'))
+                    parsed=parse_run(log,100000)
+                    self.assertEqual(parsed['workload_output'],'Running CoreMark for 2 iterations\n')
+
     def test_collection_enabled_but_runtime_checking_disabled(self):
         log=('The first instruction of core 0 has commited. Difftest enabled. \n'
              'Running CoreM[CYCLE_LIMIT] cycles=10000 max_cycles=100000\n'

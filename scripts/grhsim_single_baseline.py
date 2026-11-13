@@ -105,7 +105,7 @@ def parse_run(log,cycles,runtime_difftest='on',compile_difftest=None):
     # Upstream UART uses write(2), while host printf output can remain buffered.
     # Recover UART bytes that reached the log before the buffered startup banner.
     banner=re.search(r'^(.*?)emu compiled at [^\n]*\n',log,re.S)
-    uart_prefix=(re.sub(r'^\[(?:codepage|WOLVI|runtime-config)\][^\n]*\n','',banner[1],flags=re.M)
+    uart_prefix=(re.sub(r'^\[(?:codepage(?:-retry)?|WOLVI|runtime-config)\][^\n]*\n','',banner[1],flags=re.M)
                  if banner else '')
     if re.search(r'ABORT|HIT BAD TRAP|mismatch|Assertion.*failed',log,re.I):
         raise ValueError('functional failure in emu log')
@@ -132,7 +132,12 @@ def parse_run(log,cycles,runtime_difftest='on',compile_difftest=None):
             value=re.sub(r'^(?:\[DIFFTEST_INIT\][^\n]*|The reference model is [^\n]*|'
                          r'The first instruction of core 0 has commited\.[^\n]*|'
                          r'Difftest enabled\.[^\n]*)\n','',output[0],flags=re.M)
-            result['workload_output']=re.sub(r'\[CYCLE_LIMIT\][^\n]*\n','',value)
+            # Code-page retry progress is host setup diagnostics, not guest
+            # UART output. It can vary between verify and warmup under memory
+            # pressure even when the guest execution is identical.
+            value=re.sub(r'\[CYCLE_LIMIT\][^\n]*\n', '', value)
+            result['workload_output']=re.sub(
+                r'^\[codepage-retry\][^\n]*\n', '', value, flags=re.M)
     elif runtime_difftest == 'off' and compile_difftest == 'off':
         marker='[DIFFTEST_MODE] disabled (CONFIG_NO_DIFFTEST): collection=off checking=off'
         if log.count(marker)!=1 or re.search(r'Difftest enabled|\[DIFFTEST_INIT\]|The reference model is',log):
