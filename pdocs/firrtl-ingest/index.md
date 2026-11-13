@@ -13,6 +13,11 @@ F09-plan.md、F09-acceptance.md；F02/F08 验收记录保留历史含义。
 MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已实现并验收，见 [F09.6-acceptance.md](F09.6-acceptance.md)，
 取代前次“单 node 超 work 预算豁免”的规划。
 
+2026-11-13：SemanticTree 的当前定义以 [F28](F28-semantic-tree-refactor-plan.md)
+为准：内部是 Path，只有一种具名叶 Node，成员是实际 GRH op；flatten 后所有
+Node 直属根。新模型的生产维护范围先截止 `ingest→xmr-resolve→hier-flatten`，
+未迁移的后续 pass 明确拒绝。以下早期分图与来源标注说明保留对应阶段的历史含义。
+
 目标是在 Wolvrix 内实现不依赖 CIRCT 的 FIRRTL 前端，与现有 SV 前端共同
 构建设计。FIRRTL `node` 与 ops 的关联以 attribute 保存；普通 GRH 优化与
 仿真转换不受来源标注限制，允许跨 node CSE、内联、重关联和 DCE。分图
@@ -57,6 +62,9 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | [F20-gsim-init-alignment-plan.md](F20-gsim-init-alignment-plan.md) | 无重写 pass 的 flatten 图与 GSIM Init 图的对齐实验：对齐键、统计采集、指标及判定门槛 |
 | [F21-dead-code-elim-plan.md](F21-dead-code-elim-plan.md) | comb-loop-elim 后静态数组拆分、独立 op 级 DCE、SemanticTree 回收、GSIM 删除矩阵及 Node DAG/性能对照 |
 | [F22-expr-opt-used-bits.md](F22-expr-opt-used-bits.md) | GSIM 对齐的独立 ExprOpt/UsedBits、外部 DCE 边界、SemanticTree 传播及 XiangShan 全图性能 |
+| [F26-native-semantic-bindings.md](F26-native-semantic-bindings.md) | 历史来源树模型的完整流程、阶段对应与来源覆盖率；旧分析脚本已退役，当前模型见 F28 |
+| [F27-node-evolution.md](F27-node-evolution.md) | 历史来源模型的 split 演化／后态重放与差异记录；旧离线工作流已退役，原生 trace 设施保留 |
+| [F28-semantic-tree-refactor-plan.md](F28-semantic-tree-refactor-plan.md) | SemanticTree 首阶段重构完成：统一叶 Node、正常 ingest→hier-flatten、JSON v5；原生 22/22 回归及整机跨端库存核验完成，剩余差异完整列出 |
 | [pass-optimization-20261101.md](pass-optimization-20261101.md) | 保留完整优化的 flatten/simplify 实现加速、严格 A/B 与 20 分钟整机复测 |
 | [F10-components.md](F10-components.md) | 真实代表模块的双路线比较、激励、记分板及当前证据 |
 | [F10-replacer.md](F10-replacer.md) | AheadBtbReplacer 独立 PLRU 记分板、四路线执行与 reference 断言缩减 |
@@ -72,7 +80,8 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | 公开头文件 | 统一放在 `include/ingest/`；删除旧 `include/core/ingest.hpp`，同步迁移全部调用方 |
 | 混合输入 | 一次读取事务同时接收 FIRRTL 与 SV，先解析接口及跨语言引用，再 elaboration、链接到统一 GRH |
 | 聚合类型 | Bundle/struct 递归拆字段；Vector/数组维度迁移到叶子 shape，端口也保留数组 |
-| 来源持久化 | F19 使用 Graph 自包含 SemanticTree 和本地 SemanticId 列表；JSON 只支持 v4，不再生成旧 `firrtl.node.*` 来源属性 |
+| SemanticTree 重构 | F28 首阶段完成：内部仅 Path，叶子只有一种具名 Node，持有实际 op 集合；flatten 后根直接连接全部 Node。整机 7,671,189 个 Node，99.9670% 有唯一 GSIM 候选，66.2471% 在已配对边界下结构相符；行为未全部证明 |
+| Node 持久化 | F28 JSON v5 保存显式 Path/Node ID、限定名字状态、实际 op/anchor 成员；v4 必须从源重新 ingest；后续未迁移 pass 明确拒绝新树 |
 | simplify | node 不进入功能键、CSE 作用域或重写准入；优化后合并/更新提示，维护不了则降级，不加属性载体或保活根 |
 | GSIM 策略迁移 | F09 已撤除普通优化屏障；独立整体选项采用 gsim-soft-v2，只消费仍可证明的候选，门槛不限制 primitive CSE |
 | node 构建 | 有可用 FIRRTL 提示按提示构建 node；其余按 MFFC，均不因 op 数或 work cap 拆分；共享/语义冲突先规范化 |
@@ -113,9 +122,11 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 | [F23.2](F23-constant-analysis.md) | GSIM ConstantAnalysis 的 GRH 前置独立 pass | 已完成 `constant-analysis`；接在 SplitNodes 后的显式 DCE 之后，按拓扑顺序折叠可证明常量的纯逻辑操作；不执行 DCE 或 simplify |
 | [F23.3](F23-alias-pattern-common.md) | GSIM AliasAnalysis、PatternDetect、CommonExpr 的 GRH 前置独立 pass | 已完成 `alias-analysis → pattern-detect → common-expr`；三者均不执行 DCE，最后由流程中的显式 DCE 回收别名、模式中间值和重复表达式 |
 | [F23.3](F23-alias-pattern-common.md) | GSIM AliasAnalysis、PatternDetect、CommonExpr 的 GRH 前置独立 pass | 已完成；接在 ConstantAnalysis 后，三者均不执行 DCE，最后由流程显式 DCE；默认不把 `declaredSymbols` 作为保活根 |
-
 | [F24](F24-xs-firrtl-grhsim.md) / [正确性提交](F24-correctness-checkpoint.md) | XiangShan 全图 FIRRTL → GrhSIM canonical 联调、CoreMark 100k、difftest 与分图门禁 | 已完成；22阶段、生成/完整编译预算、activation及100k NEMU/231568条精确提交通过；用户将性能移出本阶段完成门，旧工具和临时产物已清理 |
 | [F25](F25-simulation-performance.md) | 保留 GrhSIM 模型能力，对齐 GSIM 全图 CoreMark 100k 仿真性能 | 按用户“做完v14就先停一下”要求暂停；v14本轮完整身份/资源/正确性/profile验收链PASS，新的主性能观测quiet143.02s wall/142.98s user、独立profile149.85/149.73s；231568 commits字段/顺序/周期/导出字节一致，122runtime/9CTest/9effects、selected122/generated206/extra84及13串行330s/128GiB/swap0/omit服务通过，原最终审计status=pass/failures=[]。主/独立对账14809samples/770023179677period/lost0及8942 symbol+DSO闭合；NS+其dispatch估算47.371771s、writer78.181119s，混合general dispatch另计1.100926s、不含在NS，正式NS/GSIM报告已展示并显式record。真实安装/230controls、原始raw22stage生成773.223699471s与fresh完整编译263.774657780s均通过；实际1134batches/34groups覆盖1064/max5events/scalar265397保持，不能套旧44组/1019的机器样本包络。历史v13原主155.55s/user155.51s、单B同期149.95s、旧suite库存FAIL/补充118runtime与原最终审计PASS均保留，v12仍拒绝；原v9→v13→v9 157.48→149.95→157.58s只是single-B诊断。可选v13→v14→v13诊断仅部分准备，准备/review已中断，未授权或执行paired freeze/run、未验收；单次v14观测不证明稳定收益，GSIM端点/组件分母不同，不声明严格parity，F25仍远未完成；[新证据与限制](F25-simulation-performance.md#v14完整-writer-指令调查与调用端-fresh-fire-分组) |
+| [F26](F26-native-semantic-bindings.md) | 历史 SemanticTree 来源与 op 归属覆盖 | F28 前模型的冻结记录（2026-11-12）：核验到 comb-loop-elim，旧来源对应率99.940245%、op owner覆盖99.945505%；旧离线脚本及入口已退役，不能作为新Node对齐结论 |
+| [F27](F27-node-evolution.md) | 历史来源模型的原生演化与重放 | 历史全量重放／比较完成：79,279,752个after、2,321,461条事件，联合通过仍为0；旧离线工作流已退役，原生trace设施保留；F28新树的后续pass尚待迁移 |
+| [F28](F28-semantic-tree-refactor-plan.md) | SemanticTree 重构：内部路径＋唯一具名 Node 叶子及 op 集合，先接通 ingest→flatten | 首阶段完成（2026-11-13）；正常生产链及 v5 已迁移，原生22/22、比较器20/20；整机库存／差异清单完成，不等于全部行为对齐 |
 
 F08 曾以本地 GSIM `a3ecb26` 的 `commonExpr()` 为依据保留源表达式边界。
 当前方案保留 simplify 自由：之后才按提示/MFFC 形成执行 node，再按

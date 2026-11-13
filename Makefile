@@ -390,22 +390,34 @@ test_f19_semantic_json_asan:
 	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(F19_ASAN_BUILD_DIR) --target store-semantic-tree-json grh-semantic-tree firrtl-semantic-tree -j 4
 	ASAN_OPTIONS=detect_leaks=1 TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(F19_ASAN_BUILD_DIR) -R '^(store-semantic-tree-json|grh-semantic-tree|firrtl-semantic-tree)$$' --output-on-failure
 
-F20_BARE_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F20/align-bare
-F20_BARE_MANIFEST ?= $(F15_FIRRTL_PROFILE_MANIFEST)
-.PHONY: f20_grh_bare_flatten
-f20_grh_bare_flatten:
-	@$(MAKE) --no-print-directory benchmark_f16_firrtl_prefix \
-		F16_FIRRTL_WORK="$(abspath $(F20_BARE_WORK))" \
-		F16_FIRRTL_MANIFEST="$(abspath $(F20_BARE_MANIFEST))" \
-		F16_FIRRTL_BENCH_ARGS="--prefix-identity --align-bare"
+# F28 replaces source provenance with named leaf Nodes and real op membership.
+F28_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F28
+F28_INPUT ?= $(REPO_ROOT)/reference/gsim/test/dump-semantic-lineage.fir
+F28_MANIFEST ?=
+F28_GSIM_BINARY ?= $(REF_GSIM_ROOT)/build/gsim/gsim
+F28_CAPTURE_ARGS ?=
+F28_COMPARE_ARGS ?=
+.PHONY: test_f28_semantic_tree capture_f28_semantic_tree compare_f28_semantic_tree test_f28_semantic_comparison
+test_f28_semantic_tree:
+	@mkdir -p "$(F28_WORK)/tests" $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
+	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) 2>&1 | tee "$(F28_WORK)/tests/configure.log"
+	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grh-semantic-tree store-semantic-tree-json store-json load-json-file grh-tests firrtl-semantic-tree ingest-mixed firrtl-comb firrtl-aggregate firrtl-state firrtl-memory firrtl-effects transform-hier-flatten transform-xmr-resolve-inout transform-xmr-resolve-storage transform-xmr-resolve-generate transform-split-static-array transform-dead-code-elim transform-comb-loop-elim grh-to-grhsim-tests grhsim-transform-tests grhsim-firrtl-nodes -j 4 2>&1 | tee "$(F28_WORK)/tests/build.log"
+	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(grh-semantic-tree|store-semantic-tree-json|store-json|load-json-file|grh-tests|firrtl-semantic-tree|firrtl-semantic-abi|firrtl-(comb|aggregate|state|memory|effects)|transform-hier-flatten|transform-xmr-resolve-(inout|storage|generate)|transform-(split-static-array|dead-code-elim|comb-loop-elim)|grh-to-grhsim-tests|grhsim-transform-tests|grhsim-firrtl-nodes)$$' --output-on-failure 2>&1 | tee "$(F28_WORK)/tests/test.log"
 
-F20_COVERAGE_INPUT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F20/align-bare/flatten.json
-F20_COVERAGE_OUTPUT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F20/coverage/flatten-semantic-by-kind.txt
-F20_COVERAGE_ARGS ?=
-.PHONY: f20_semantic_coverage
-f20_semantic_coverage:
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -S scripts/check_f20_semantic_coverage.py \
-		--input "$(abspath $(F20_COVERAGE_INPUT))" --output "$(abspath $(F20_COVERAGE_OUTPUT))" $(F20_COVERAGE_ARGS)
+capture_f28_semantic_tree:
+	@mkdir -p "$(F28_WORK)"
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/capture_f28_semantic_tree.py --firrtl "$(abspath $(F28_INPUT))" --output "$(abspath $(F28_WORK))" --gsim-binary "$(abspath $(F28_GSIM_BINARY))" $(if $(F28_MANIFEST),--manifest "$(abspath $(F28_MANIFEST))",) $(F28_CAPTURE_ARGS) 2>&1 | tee "$(F28_WORK)/capture.log"
+
+compare_f28_semantic_tree:
+	@mkdir -p "$(F28_WORK)/comparison"
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_f28_semantic_tree.py --grh "$(abspath $(F28_WORK))/flatten.json" --gsim-dir "$(abspath $(F28_WORK))/gsim" --output "$(abspath $(F28_WORK))/comparison" $(F28_COMPARE_ARGS) 2>&1 | tee "$(F28_WORK)/comparison/run.log"
+
+test_f28_semantic_comparison:
+	@mkdir -p "$(F28_WORK)/comparison-tests"
+	@set -o pipefail; TMPDIR="$(abspath $(F28_WORK))/comparison-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_semantic_bitvector.py' -v 2>&1 | tee "$(F28_WORK)/comparison-tests/bitvector.log"
+	@set -o pipefail; TMPDIR="$(abspath $(F28_WORK))/comparison-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_compare_f28_semantic_tree.py' -v 2>&1 | tee "$(F28_WORK)/comparison-tests/test.log"
+
+# Legacy F26 source-SID analysis and F27 offline replay entry points retired by F28.
 
 F21_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F21/continuous
 F21_MANIFEST ?= $(F15_FIRRTL_PROFILE_MANIFEST)

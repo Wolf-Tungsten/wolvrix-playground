@@ -1073,3 +1073,97 @@ payload305.71s、service305.837s<330s，activation含pulse保守上界965144≤2
 停止继续性能优化、以正确性通过判定F24完成，故保留失败事实但移出完成门。
 旧迁移/phase probe/M0脚本及Make入口已删除，临时大产物清理后保留本轮证据；
 清理后小回归不冒充全图重跑，具体身份和日志见正确性提交记录。
+
+## F27：从数组拆分建立逐 pass 原生演化证据
+
+本节保留 F28 前模型的历史记录。旧 source-SID 离线采集、重放、审计和
+benchmark 脚本及 Make 入口已退役；当前新树和 pass 支持边界见 F28。
+
+正式实现、测量和剩余边界统一记录在
+[F27-node-evolution.md](F27-node-evolution.md)。首个接入点为普通 GRH 的
+`split-static-array` 和 GSIM 的 `splitArray`（含 optional split），不将后续
+DCE 或 GrhSIM 分区称为已接入。
+
+最新验收进一步要求：从 **pass 前全部物理节点 + 原生 trace 载荷**独立重放
+完整后态，再逐字段与 actual after 核对；两端比较 trace 与最终节点，覆盖
+标量、状态、memory、辅助节点及数组。新增 `native-field-delta.v1`，after
+仅作 oracle；旧 source-endpoints／fingerprint-only 全量证据不满足此标准。
+原生载荷及原因由正常 C++ pass 记录，外部消费者只重放／审计，不生成对应。
+
+- 两端 pass 现场输出统一 JSONL：前后物理库存、源身份与 projection、实际
+  split／rewrite／retain 等步骤、稳定原因及唯一边界事件。删除／替换／合并
+  通过显式前后关系表达；归并后保留原始 steps，不用名称后缀推断。
+- GRH 正常流程自动维护状态成员 current／next 与静态数组读的 source binding；
+  trace 默认关闭也执行这些修复。动态 indexed writer 单列实际写贡献，不伪装成
+  整数组值或静态成员。GSIM 修复共享 memory 地址表达式的多个 owner 漏事件。
+- 独立消费者只核验原生证据，不参与对应关系生成。Make 入口为
+  `capture_semantic_evolution`、`audit_native_semantic_evolution`、
+  `audit_semantic_evolution`；回归入口为 `test_native_semantic_evolution`、
+  `test_semantic_evolution_audit`、`test_semantic_evolution_integration`，以及 GSIM
+  既有 `test-node-evolution`。
+- 小图数组具体成员对应从 4/8 提升到 8/8；整机结果按正式文档的全量 trace、
+  独立库存核验、来源守恒与跨端指标分别记录，不把小图比例外推到整机。
+- 此前 SimTop 两端来源覆盖审计与 8,105,337 个来源组的跨端比较已完成，库存／
+  事件闭合及各自来源守恒违例均为 0。2,100,649 个 GSIM 数组具体成员中，
+  1,324,236 个有 GRH 同坐标投影，774,494 个仍有 wildcard 几何覆盖，剩余
+  1,919 个按零宽、memory-next 与普通 next 模型差异单列；不把几何范围存在
+  说成类型或行为等价。精确分类、失败证据和原生修复见唯一 F27 文档。
+- 新版完整重放已通过 35 个原生 trace 及四个跨端普通流程用例；两端整机
+  `all-live` trace 已重新采集，GRH 为 68,044,130→69,644,738 实体、GSIM 为
+  7,829,556→9,635,014 Node，未解释变化为 0。两端整机独立完整字段重放均已
+  complete／valid，共核对 79,279,752 个 after；整机跨端联合比较也已 complete／valid。
+  独立重放、真实 before 差异归因、
+  `unaligned-nodes.tsv` 及最终整机完成状态统一记录在 F27 第 9 节；不把旧覆盖
+  审计的完成状态替代新版完整 oracle／闭包核验。
+- 全节点比较新增 `trace-groups.tsv`：按事件前后来源并集覆盖 delete-only，
+  无来源事件逐端列为 unanchored；事件基数与成员关系分别闭合。reader 37 项、
+  comparison 后续扩展到 55 项回归通过，完整已记录 steps／geometry／引用进入
+  独立比较，`full_comparison_status` 联合终态与 trace 结果；旧摘要不能替代它。
+  更新后的普通 producer 重新采集四个真实用例，914 before＋162 mutations
+  精确重建 956 after，54 个原生事件全部纳入。正常 pass 修复整数组 writer
+  直接复用 data／mask 叶子时遗漏成员来源的问题；GSIM 来源 counterpart 从
+  106/112 增至 108/112，但联合完整相等仍为 0/956。精确重放通过与跨端
+  字段对齐分别记录，尚未核实的字段不计作相等，证据见 F27 第 9.5 节。
+  同源别名的 delete-only 事件也纳入存活节点的联合判定；单侧删除负控与
+  双侧匹配正控通过。四图 cached-v6 复核结果不变；旧整机跨端运行已中断，
+  修复后的 `replay-full-cross-v2/` 已 exit0、complete／valid：全部 79,279,752 个
+  后态、75,873,686 个前态及 2,321,461 条唯一事件均计入。GSIM 原生来源
+  counterpart 为 8,854,534/9,635,014（91.90%），完整 trace＋终态联合通过
+  仍为 0/79,279,752；全部未通过 node／op 在 `unaligned-nodes.tsv`，真实
+  before 差异归因及解释边界见 F27 第 9.6 节，不能把未核实说成功能错误。
+
+## F28：SemanticTree 重构，先接通 ingest→flatten
+
+状态：首阶段完成（2026-11-13）。唯一规划及实施记录为
+[F28-semantic-tree-refactor-plan.md](F28-semantic-tree-refactor-plan.md)。
+
+用户确定的新合约：树内部只表示路径；叶子只有一种具名 Node，显式包含实际
+GRH op 集合；`hier-flatten` 同时展平 IR 与树，最终根直接连接全部 Node。
+旧来源树六类 kind、来源投影覆盖和物理 op 总数都不能代替当前 Node 库存。
+
+实施顺序为核心结构与不变量 → Graph 生命周期／JSON v5 → FIRRTL ingest →
+xmr-resolve／hier-flatten → Python inspect 与消费者边界 → GSIM Init 对照及
+冻结整机验收。成员关系在正常生产流程维护；共享 op、空 op 输入端点、真实
+state/memory/effect 边界、端口别名与实例搬迁全部进入验收。
+
+退出条件：flatten 后中间路径数为 0；Node-op 关系及边界引用完整、有效；
+相关生命周期／往返／普通与全局 flatten 路径回归通过；以 Node 叶子对照 GSIM
+Init 的实际 Node，输出全量库存、成员覆盖和双方差异。split 等后续 pass
+不在首阶段完成范围。仅通过项目 Make 入口实施与验证，日志放在
+`ptmp/firrtl-ingest/F28/`。
+
+新 Path／Node 核心、正常 ingest／xmr／flatten、JSON v5、Python 统计与后续
+pass 支持边界已实施；`make test_f28_semantic_tree` 最终回归 **22/22 通过**。
+首轮六小图、最终混合 ABI 专项、GSIM Init 与最终 GRH ingest→flatten 全量
+dump 均已完成；整机 7,671,189 个 Node 全部直属根，原生结构校验通过。
+900 个 ABI helper 的成员归属在生产现场补齐；最终整机跨端库存核验及差异
+清单完成，比较器回归 **20/20 通过**。GRH 99.967032% 有唯一 GSIM 候选，
+66.247136% 在已配对 anchor 边界下类型／连接正规形相符；32.116247% 未核实、
+1.603650% 存在表示差异、0.032968% 未配对。最终剩余 4,182 个无成员 op 均有
+SV body／实际 DPI 引用证据，FIRRTL／ABI 范围未发现漏归属。
+名称候选、结构相符和行为证明分别统计，不声称 Node 全部行为对齐。
+
+提交前清理旧 schema 的离线脚本及失效入口，保留 F28 原生采集／只读比较，
+共用 typed normalizer 改名 `semantic_bitvector.py`。原生联合回归22/22，
+比较器20项及normalizer20项均通过；GSIM五组原生库存／trace回归通过。
+生产计时模式三轮中位数99.063秒，排除外部校验、统计和JSON导出，见F28第9.8节。
