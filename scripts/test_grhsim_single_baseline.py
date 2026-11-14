@@ -104,6 +104,21 @@ Host time spent: 4088ms
                     parsed=parse_run(log,100000)
                     self.assertEqual(parsed['workload_output'],'Running CoreMark for 2 iterations\n')
 
+    def test_image_loader_diagnostics_do_not_split_guest_uart(self):
+        rows=[]
+        for pid in (1001, 2002):
+            log=(f'[src/monitor/image_loader.c:205,load_img] Loading flash image: /proc/{pid}/fd/3\n\n'
+                 'emu compiled at /tmp/emu\n'
+                 'The image is /run/image.bin\n'
+                 'The reference model is /run/nemu.so\n'
+                 'The first instruction of core 0 has commited. Difftest enabled.\n'
+                 f'[src/monitor/image_loader.c:250,load_img] Read 24 bytes from file /proc/{pid}/fd/3 to 0xf0000000\n'
+                 'Running C[CYCLE_LIMIT] cycles=10000 max_cycles=100000\n'
+                 'oreMark for 2 iterations\n'
+                 'Core 0: '+self.LOG.removeprefix('Difftest enabled.\n'))
+            rows.append(parse_run(log,100000)['workload_output'])
+        self.assertEqual(rows,['Running CoreMark for 2 iterations\n']*2)
+
     def test_collection_enabled_but_runtime_checking_disabled(self):
         log=('The first instruction of core 0 has commited. Difftest enabled. \n'
              'Running CoreM[CYCLE_LIMIT] cycles=10000 max_cycles=100000\n'
@@ -172,6 +187,61 @@ class DifftestBuildModeTests(unittest.TestCase):
     def model_manifest(work):
         (work.generated.parent/'simulation_models.json').write_text(json.dumps(
             dict(mode=work.sim_models,lowering=work.behavior_state_lowering,models=[])))
+
+    def test_scalar_concat_reduction_override_reaches_emitter_only(self):
+        for mode,expected in [('default',None),('off','0'),('on','1')]:
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                work=Baseline(argparse.Namespace(output=Path(directory),compiler='/usr/bin/clang++',
+                    tools_dir=None,sim_primitives='none',rtl_difftest='on',runtime_difftest='on',
+                    model_difftest='on',compile_difftest='on',scalar_concat_reduction=mode))
+                work.run=Mock()
+                work.generated.mkdir(parents=True)
+                (work.generated/'DifftestMacros.svh').write_text('')
+                (work.generated/'difftest_profile.json').write_text(json.dumps(dict(bundles=[{}])))
+                self.model_manifest(work)
+                work.emit()
+                call=next(c for c in work.run.call_args_list if c.args[1]=='emit')
+                env=call.args[2]
+                self.assertEqual(env.get('WOLVRIX_GRHSIM_SCALAR_CONCAT_REDUCTION'),expected)
+
+    def test_post_stats_reuse_skips_frontend_passes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            post_stats=root/'frozen-post-stats.json'
+            post_stats.write_text('{"frozen":true}')
+            work=Baseline(argparse.Namespace(output=root/'out',compiler='/usr/bin/clang++',
+                tools_dir=None,sim_primitives='none',rtl_difftest='on',runtime_difftest='on',
+                model_difftest='on',compile_difftest='on',reuse_post_stats_from=post_stats))
+            work.run=Mock()
+            work.generated.mkdir(parents=True)
+            (work.generated/'DifftestMacros.svh').write_text('')
+            (work.generated/'difftest_profile.json').write_text(json.dumps(dict(bundles=[{}])))
+            self.model_manifest(work)
+            work.emit()
+            call=next(c for c in work.run.call_args_list if c.args[1]=='emit')
+            env=call.args[2]
+            self.assertEqual(env['WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON'],'1')
+            self.assertEqual((work.out/'post_stats.json').read_bytes(),post_stats.read_bytes())
+
+    def test_pre_reg_to_mem_reuse_preserves_later_passes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            pre_reg=root/'frozen-pre-reg-to-mem.json'
+            pre_reg.write_text('{"frozen":true}')
+            work=Baseline(argparse.Namespace(output=root/'out',compiler='/usr/bin/clang++',
+                tools_dir=None,sim_primitives='none',rtl_difftest='on',runtime_difftest='on',
+                model_difftest='on',compile_difftest='on',reuse_pre_reg_to_mem_from=pre_reg))
+            work.run=Mock()
+            work.generated.mkdir(parents=True)
+            (work.generated/'DifftestMacros.svh').write_text('')
+            (work.generated/'difftest_profile.json').write_text(json.dumps(dict(bundles=[{}])))
+            self.model_manifest(work)
+            work.emit()
+            call=next(c for c in work.run.call_args_list if c.args[1]=='emit')
+            env=call.args[2]
+            self.assertEqual(env['WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON'],'1')
+            self.assertEqual(env['WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON'],'0')
+            self.assertEqual((work.out/'pre_reg_to_mem.json').read_bytes(),pre_reg.read_bytes())
 
     def test_explicit_gateway_config_reaches_chisel_generation(self):
         with tempfile.TemporaryDirectory() as directory:

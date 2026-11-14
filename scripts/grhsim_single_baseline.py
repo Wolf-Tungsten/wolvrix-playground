@@ -155,6 +155,12 @@ def parse_run(log,cycles,runtime_difftest='on',compile_difftest=None):
         raise ValueError('runtime DiffTest mode must be on or off')
     if uart_prefix and 'workload_output' in result:
         result['workload_output']=uart_prefix+result['workload_output']
+    if 'workload_output' in result:
+        # These unbuffered host diagnostics can split buffered guest UART text
+        # before the banner as well as inside the workload output interval.
+        result['workload_output']=re.sub(
+            r'\[src/monitor/image_loader\.c:\d+,load_img\][^\n]*\n(?:[ \t]*\n)?',
+            '', result['workload_output'])
     for key,pattern in patterns.items():
         values=re.findall(pattern,log)
         if len(values)!=1:raise ValueError('missing/ambiguous runtime field: '+key)
@@ -178,6 +184,12 @@ class Baseline:
         self.reuse_rtl_from = Path(args.reuse_rtl_from).resolve() if getattr(args, 'reuse_rtl_from', None) else None
         self.runtime_profile_dir = (Path(args.runtime_profile_dir).resolve()
                                     if getattr(args, 'runtime_profile_dir', None) else None)
+        self.reuse_post_stats_from = (Path(args.reuse_post_stats_from).resolve()
+                                      if getattr(args, 'reuse_post_stats_from', None) else None)
+        self.reuse_pre_reg_to_mem_from = (Path(args.reuse_pre_reg_to_mem_from).resolve()
+                                          if getattr(args, 'reuse_pre_reg_to_mem_from', None) else None)
+        if self.reuse_post_stats_from and self.reuse_pre_reg_to_mem_from:
+            raise ValueError('choose one frozen GRH resume point')
         self.runtime_difftest = getattr(args, 'runtime_difftest', 'on')
         self.simulator = getattr(args, 'simulator', 'grhsim')
         if self.simulator not in ('grhsim', 'gsim'):
@@ -204,6 +216,9 @@ class Baseline:
         if requested_fold is None:
             requested_fold = self.args.sim_primitives == 'decode-table'
         self.constant_decode_fold = bool(requested_fold)
+        self.scalar_concat_reduction = getattr(args, 'scalar_concat_reduction', 'default')
+        if self.scalar_concat_reduction not in ('default', 'on', 'off'):
+            raise ValueError('scalar concat reduction must be default, on or off')
         validate_difftest_modes(self.rtl_difftest, self.runtime_difftest)
         selected = selected_models(self.sim_models)
         if self.behavior_state_lowering not in ('ordinary', 'grouped') or (
@@ -289,6 +304,10 @@ class Baseline:
             emit_runtime_profile=self.emit_runtime_profile,
             profile_perf=self.profile_perf,
             reuse_rtl_from=str(self.reuse_rtl_from) if self.reuse_rtl_from else None,
+            reuse_post_stats_from=(str(self.reuse_post_stats_from)
+                                   if self.reuse_post_stats_from else None),
+            reuse_pre_reg_to_mem_from=(str(self.reuse_pre_reg_to_mem_from)
+                                       if self.reuse_pre_reg_to_mem_from else None),
             rtl_difftest=self.rtl_difftest,model_difftest=self.model_difftest,
             compile_difftest=self.compile_difftest,
             runtime_difftest=self.runtime_difftest,
@@ -296,6 +315,7 @@ class Baseline:
             difftest_config=self.difftest_config,
             difftest_packed_delay_regs=self.difftest_packed_delay_regs,
             constant_decode_fold=self.constant_decode_fold,
+            scalar_concat_reduction=self.scalar_concat_reduction,
             model_flags='-std=c++20 -O3 -march=native',harness_flags='-O3',pgo=False,bolt=False,
             diagnostic_instrumentation=False,source_driver=identity(__file__),python=sys.executable,
             image=identity(self.args.image),
@@ -386,10 +406,25 @@ class Baseline:
         defines='-D DIFFTEST\n' if self.model_difftest=='on' else ''
         (self.out/'read_args.txt').write_text(f'-I {rtl}\n-I {self.generated}\n-I {common}\n'+defines)
         env=dict(self.env,PYTHONPATH=str(self.tools/'python'),LD_LIBRARY_PATH=str(self.tools),
-            WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON='0',WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON='0',
+            WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON=str(int(self.reuse_post_stats_from is not None)),
+            WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON=str(
+                int(self.reuse_pre_reg_to_mem_from is not None)),
             WOLVRIX_XS_GRHSIM_POST_STATS_JSON=str(self.out/'post_stats.json'),
             WOLVRIX_XS_GRHSIM_PRE_REG_TO_MEM_JSON=str(self.out/'pre_reg_to_mem.json'),
             )
+        if self.reuse_post_stats_from is not None:
+            if not self.reuse_post_stats_from.is_file():
+                raise RuntimeError(f'post-stats input is absent: {self.reuse_post_stats_from}')
+            if self.reuse_post_stats_from != self.out/'post_stats.json':
+                shutil.copyfile(self.reuse_post_stats_from, self.out/'post_stats.json')
+        if self.reuse_pre_reg_to_mem_from is not None:
+            if not self.reuse_pre_reg_to_mem_from.is_file():
+                raise RuntimeError(f'pre-reg-to-mem input is absent: {self.reuse_pre_reg_to_mem_from}')
+            if self.reuse_pre_reg_to_mem_from != self.out/'pre_reg_to_mem.json':
+                shutil.copyfile(self.reuse_pre_reg_to_mem_from, self.out/'pre_reg_to_mem.json')
+        if self.scalar_concat_reduction != 'default':
+            env['WOLVRIX_GRHSIM_SCALAR_CONCAT_REDUCTION'] = str(
+                int(self.scalar_concat_reduction == 'on'))
         model_manifest = self.out/'chisel-home/build/simulation_models.json'
         if model_manifest.is_file():
             env['WOLVRIX_SIMULATION_MODELS_MANIFEST'] = str(model_manifest)
@@ -652,7 +687,7 @@ class Baseline:
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command',choices=['build','tools','rtl','emit','compile','measure','all'])
+    parser.add_argument('command',choices=['build','build-only','tools','rtl','emit','compile','measure','all'])
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--compiler',default='/nfs/home/tanghaojin/LLVM-23.1.2-Linux-X64/bin/clang++')
     parser.add_argument('--jobs',type=int,default=64)
@@ -660,6 +695,8 @@ def main():
     parser.add_argument('--xs-source',type=Path,
         help='use an isolated XiangShan checkout, recording its source identities')
     parser.add_argument('--sim-primitives',choices=['none','priority-encode','popcount','popcount-ge4','gray-decode','decode-table'],default='none')
+    parser.add_argument('--scalar-concat-reduction',choices=['default','on','off'],default='default',
+        help='override the GrhSIM emitter parent rule for a matched build comparison')
     parser.add_argument('--sim-models',type=model_mode,default='hardware')
     parser.add_argument('--behavior-state-lowering',choices=['ordinary','grouped'],default='ordinary')
     parser.add_argument('--behavior-compute-lowering',choices=['ordinary','grouped'],default='ordinary')
@@ -669,6 +706,10 @@ def main():
         help='compile PerfCounters and phase timing for diagnostic runs')
     parser.add_argument('--reuse-rtl-from',type=Path,
         help='reuse a frozen output directory containing rtl/ and chisel-home/')
+    parser.add_argument('--reuse-post-stats-from',type=Path,
+        help='reuse a frozen post-reg-to-mem graph while varying C++ emitter options')
+    parser.add_argument('--reuse-pre-reg-to-mem-from',type=Path,
+        help='reuse a frozen pre-reg-to-mem graph while varying later passes and emitter options')
     parser.add_argument('--runtime-profile-dir',type=Path,
         help='write runtime profile TSVs into this directory during measure')
     parser.add_argument('--rtl-difftest',choices=['on','off'],default='on')
@@ -698,7 +739,7 @@ def main():
     resource.setrlimit(resource.RLIMIT_STACK,(resource.RLIM_INFINITY,resource.RLIM_INFINITY))
     work=Baseline(args)
     try:
-        if args.command in ('build','all'):work.build()
+        if args.command in ('build','build-only','all'):work.build()
         if args.command=='tools':work.build_tools()
         if args.command=='rtl':work.rtl()
         if args.command=='emit':work.emit()
