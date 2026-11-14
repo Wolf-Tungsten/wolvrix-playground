@@ -182,3 +182,7 @@ after 也复用冻结图重跑 seeds 0–7，选中新 seed1，`km1` 降低 3.66
 ### 2026-11-13 代码整理与分支切换
 
 父仓、Wolvrix、XiangShan、difftest 均已切换到 `thj/kunminghu-v3-grhsim-cleanup-20261113`；此前记录中的分支名保留为历史状态。按最新要求，手动 swap 和根据运行结果选择候选的工作已停止；TNO0069/70 的候选只作历史归档，不进入默认 assignment。代码整理、parser 回归修复和提交检查点见 [TNO0071](./TNO0071_cleanup_and_branch_checkpoint_20261113.md)。
+
+### 2026-11-14 标量 concat 归约父规则默认开启
+
+直接调用 emitter 时，父规则默认开启相对显式关闭，在同一份 after `DefaultConfig` 图上进行 node030 CPU96 单核 GrhSIM 对测。8 对 AB/BA 的 Host time 从关闭版 143.065 s 降至开启版 128.792 s，默认开启相对关闭 **−9.977%**，95% CI **[−10.230%, −9.735%]**；外部 walltime 同方向。两组 100k trace 逐字节相同，placement/locality gate 全通过。详见 [TNO0072](./TNO0072_scalar_concat_reduction_parent_default_20261114.md)。
