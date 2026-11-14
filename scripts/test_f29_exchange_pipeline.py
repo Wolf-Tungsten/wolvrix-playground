@@ -69,7 +69,8 @@ class NativeExchangePipelineTests(unittest.TestCase):
         work.mkdir(parents=True, exist_ok=True)
         reports = []
         fixtures = [ROOT / 'wolvrix/tests/ingest/data/firrtl' / (name + '.fir') for name in (
-            'f28-arrays', 'f28-bundles', 'f28-state', 'f28-hierarchy', 'f28-comb-boundaries', 'f28-memory-effects')]
+            'f28-arrays', 'f28-bundles', 'f28-state', 'f28-hierarchy', 'f28-comb-boundaries',
+            'f28-memory-effects', 'f30-split-projections')]
         fixtures.append(ROOT / 'reference/gsim/test/node-evolution.fir')
         for fixture in fixtures:
             with self.subTest(fixture=fixture.name):

@@ -662,6 +662,39 @@ test_f30_split_naming:
 	@mkdir -p "$(F30_WORK)/tests" "$(F30_WORK)/tmp"
 	@set -o pipefail; TMPDIR="$(abspath $(F30_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F30_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_check_f30_split_naming.py' -v 2>&1 | tee "$(F30_WORK)/tests/split-naming.log"
 
+F30_SPLIT_GAP_ANALYSIS ?= $(F30_WORK)/alignment-v11-20261114
+F30_SPLIT_GAP_NAMING ?= $(F30_WORK)/naming-fix-20261114/comparison
+F30_SPLIT_GAP_GRH ?= $(F30_WORK)/naming-fix-20261114/full-grh-retry/trace/split-static-array
+F30_SPLIT_GAP_GSIM ?= $(F30_WORK)/naming-fix-20261114/full-gsim/gsim-split
+F30_SPLIT_GAP_WORK ?= $(F30_WORK)/split-gap
+.PHONY: analyze_f30_split_gap test_f30_split_gap
+analyze_f30_split_gap:
+	@mkdir -p "$(abspath $(F30_SPLIT_GAP_WORK))/tmp"
+	@TMPDIR="$(abspath $(F30_SPLIT_GAP_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F30_SPLIT_GAP_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/analyze_f30_split_gap.py \
+		--analysis "$(abspath $(F30_SPLIT_GAP_ANALYSIS))" --naming "$(abspath $(F30_SPLIT_GAP_NAMING))" \
+		--grh "$(abspath $(F30_SPLIT_GAP_GRH))" --gsim "$(abspath $(F30_SPLIT_GAP_GSIM))" \
+		--output "$(abspath $(F30_SPLIT_GAP_WORK))" > "$(abspath $(F30_SPLIT_GAP_WORK))/run.log" 2>&1
+
+test_f30_split_gap:
+	@mkdir -p "$(F30_WORK)/tests" "$(F30_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F30_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_f30_split_gap_accounting.py' -v 2>&1 | tee "$(F30_WORK)/tests/split-gap.log"
+
+F30_SPLIT_ENHANCEMENT_BASELINE ?= $(F30_WORK)/split-gap-analysis-20261114/final/summary.json
+F30_SPLIT_ENHANCEMENT_GRH ?= $(F30_WORK)/split-enhance-20261114/v3-full-trace-verify/trace/split-static-array
+F30_SPLIT_ENHANCEMENT_GSIM ?= $(F30_SPLIT_GAP_GSIM)
+F30_SPLIT_ENHANCEMENT_WORK ?= $(F30_WORK)/split-enhancement
+.PHONY: analyze_f30_split_enhancement test_f30_split_enhancement
+analyze_f30_split_enhancement:
+	@mkdir -p "$(abspath $(F30_SPLIT_ENHANCEMENT_WORK))/tmp"
+	@TMPDIR="$(abspath $(F30_SPLIT_ENHANCEMENT_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F30_SPLIT_ENHANCEMENT_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/analyze_f30_split_enhancement.py \
+		--baseline-report "$(abspath $(F30_SPLIT_ENHANCEMENT_BASELINE))" \
+		--grh-bundle "$(abspath $(F30_SPLIT_ENHANCEMENT_GRH))" --gsim-bundle "$(abspath $(F30_SPLIT_ENHANCEMENT_GSIM))" \
+		--output "$(abspath $(F30_SPLIT_ENHANCEMENT_WORK))" > "$(abspath $(F30_SPLIT_ENHANCEMENT_WORK))/run.log" 2>&1
+
+test_f30_split_enhancement:
+	@mkdir -p "$(F30_WORK)/tests" "$(F30_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F30_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_analyze_f30_split_enhancement.py' -v 2>&1 | tee "$(F30_WORK)/tests/split-enhancement.log"
+
 F30_GSIM_COMPARE_GRH ?=
 F30_GSIM_COMPARE_REFERENCE ?=
 F30_GSIM_COMPARE_WORK ?= $(F30_WORK)/gsim-comparison

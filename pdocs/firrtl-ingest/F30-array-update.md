@@ -1307,3 +1307,334 @@ GSIM 命令峰值 **85,629,952 KiB**、exit 0；两端五文件均写出完整�
 保存全部五例的当前名字与原生来源。本轮新增的 1,035 对仍只是名称候选，
 未将其余所有成员的跨端 lineage 逐一验证，也未重新计算新名称映射下的
 连接差集；上节 v11 连接统计继续作为旧映射基线，不能作为本轮连接结果。
+
+## GSIM 为何拆分出更多 Node（2026-11-14）
+
+本节使用命名修复后的完整 XiangShan 双端原生五文件，按 **split 前的父
+Node** 统计成员数和父节点退休，而不是累加名称未匹配项。结论是：共同拆分
+的父节点生成成员数一致，差额主要来自 **GSIM 拆分、GRH 保留的父节点**。
+GRH 的数组输入检查、具名上游依赖以及静态子数组寄存器写支持存在限制；
+另有零位数组表示差异。不能把所有差额都归为命名问题或动态下标。
+
+新增诊断入口 `make analyze_f30_split_gap`，产物位于
+`ptmp/firrtl-ingest/F30/split-gap-analysis-20261114/final/`：
+`summary.json` 和 `parent-families.tsv`。每行记录共同前态名称候选、双方
+父 ID、成员数量、父节点是否存活、净增差额及 GRH 原生决策阻断链。
+名称只用于定位前态候选，不代替跨端功能等价证明。工具不是 ingest/pass
+运行所需的辅助流程；本节记录修改前的诊断基线，后续生产修复见下节。
+
+为复用既有只读索引，本轮检查命名验收中的前态 ID/名称以及后态 ID 集合
+不变，并对当前与旧版 **全部 lineage 和 decision payload** 做归一化摘要
+比较，两侧均一致；报告绑定输入 SHA、root、输入报告摘要和源文件身份。
+两侧 **3,928,337** 条 lineage 全部为 `split`、每个 child 只有一个父，
+child 在后态存在且不在前态。所有父均在前态存在。新增成员及退休父的
+集合数量分别与完整库存精确闭合。本轮分析 **complete=true，68.133 s**；
+计数与阻断链工具的 **15/15** 测试通过。
+
+| 库存口径 | GRH | GSIM |
+| --- | ---: | ---: |
+| split 前 | 7,671,189 | 7,829,556 |
+| split 后 | 9,328,200 | 9,635,014 |
+| 新成员 | 1,876,842 | 2,051,495 |
+| 退休原始父节点 | 219,831 | 246,037 |
+| 拆分后仍保留的父节点 | 3 | 0 |
+| 净增加 | 1,657,011 | 1,805,458 |
+
+GSIM 在 split 前已经多 **158,367** 个 Node；该 pass 又使差额增加
+**148,447**，后态总差额才达到 **306,814**。pass 本身的净增差额是
+**174,653 个额外新成员 − 26,206 个额外退休父 = 148,447**。
+
+| 前态父节点组 | 父节点组数 | GRH 新成员 | GSIM 新成员 | GSIM−GRH 净增 |
+| --- | ---: | ---: | ---: | ---: |
+| 双方都拆，成员数及父存活情况相同 | 219,764 | 1,875,580 | 1,875,580 | 0 |
+| 双方都拆、成员数相同，GRH 多保留父节点 | 3 | 24 | 24 | −3 |
+| 只有 GSIM 拆分 | 26,270 | 0 | 175,891 | +149,621 |
+| 只有 GRH 拆分 | 67 | 1,238 | 0 | −1,171 |
+| 合计 | 246,104 | 1,876,842 | 2,051,495 | **+148,447** |
+
+所有这些父均有唯一同名前态候选，没有无法归属的新增成员或退休父。
+这里的“成员数相同”不表示所有成员坐标、内部计算和连接均已等价。
+
+对 **26,270** 个 GSIM-only 父，按 GRH **完整已记录 retain 理由集合**
+互斥分组，避免同一父在多轮尝试中被重复计数：
+
+| GRH 记录的理由集合 | 父节点数 | GSIM 成员数 | 净增差额 |
+| --- | ---: | ---: | ---: |
+| `unsplit_upstream_array` | 14,596 | 95,073 | 80,477 |
+| `unsplit_array_input` | 5,687 | 38,835 | 33,148 |
+| `unsplit_array_input` + `unsplit_upstream_array` | 232 | 1,456 | 1,224 |
+| `unsplit_state_payload` + `unsupported_array_producer` | 2,622 | 14,884 | 12,262 |
+| `dynamic_state_index` + `unsupported_array_producer` | 155 | 4,132 | 3,977 |
+| `dynamic_consumer_index` | 166 | 1,525 | 1,359 |
+| `dynamic_consumer_index` + `dynamic_state_index` | 3 | 113 | 110 |
+| 没有该父的 retain decision | 2,809 | 19,873 | 17,064 |
+| 合计 | **26,270** | **175,891** | **149,621** |
+
+其中 **23,137** 个父有数组输入、上游或状态写入数据未拆的记录。这是
+阻断机制分类，不能直接把每一项都断言为同一个内部 op 缺陷。下面记录
+已经定位到源码和原始 FIRRTL 的具体差异。
+
+### 静态数组视图及具名上游拆分门槛
+
+GRH `GraphSplitter::splitSemanticArrays` 要求 `upstreamArrayNodes` 找到的
+每个具名数组上游先成功拆分，随后 `hasUnsplitArrayInput` 再检查内部
+producer。GSIM `checkNodeSplit` 只在 LHS 是整个数组或静态范围时要求
+`prevSplitted`；单元素 LHS 不受这项限制。这使 GRH 的一个拒绝沿具名
+alias 链传播，影响多个独立的前态父节点。
+
+GRH 的 `hasUnsplitArrayInput` 接受 Assign/ArrayCreate/Concat/Mux/static
+ArrayUpdate，却没有 `kSliceArray` 或 `kSliceStatic` 分支，默认拒绝；
+`canSplitSemanticArray` 对直接 slice producer 同样不接受。与之相比，
+成员 selection 已有静态 slice 几何处理，资格检查与选择能力没有统一。
+
+具体 `paddr` 链：**5462911** `dtlb_prefetch_tlb_prefetch.io.requestor…paddr`
+已经原生记录 `static_array_split`；接下来的 **5432488**
+`memBlock.inner.io…paddr` 在两轮中仍为 `unsplit_array_input`，再使
+**226159** `memBlock.io…paddr` 和 **201072** `core.io…paddr` 保留。
+GSIM 对应 **189474** 拆为两个成员。原 FIRRTL 第 **8128204** 行连接
+`dtlb_prefetch_tlb_prefetch.io.requestor[0]` 与 `io.l2_tlb_req`；源类型为
+`requestor[3]` 内含 `paddr[2]`，`Lowerer::read` 会保留剩余 shape 并产生
+静态 `kSliceArray`。这强烈指向中间静态视图检查缺口；现有公共五文件不含
+内部 op，尚不能据此断言卡住的具体 op ID/kind，或把同类全图数量都分配
+给该缺口。
+
+### 下游动态更新错误地阻断上游快照
+
+原 FIRRTL 第 **933218–933239** 行先让 `flags = _flags_WIRE`，然后动态
+更新 `flags[_T_441].resume`。`_flags_WIRE.resume` 本身是静态初始化的
+64 元数组。GRH **146871** 被记录为 `dynamic_consumer_index`，blocker
+为 **146874** `flags.resume`；后者自己的理由才是 `dynamic_update_index`。
+GSIM **120266** 把源 `_flags_WIRE.resume` 拆成 64 个成员，同时保留
+目标 **120269** `flags.resume`。
+
+GRH `hasDynamicConsumer` 对 ArrayUpdate 的 base operand 遇到动态写，
+在检查是否跨过另一具名 Node 边界之前就返回阻断。GSIM `nextVarConnect`
+检查的是对源数组本身的索引：整数组 RHS 是合法静态范围，下游 Node 的
+动态 LHS 不等于动态索引读取这个源快照。该实例确认 GRH 需要区分源值
+快照与目标动态更新。现有 `namedDynamicBaseReportsConsumer` 测试明确
+要求 source/target 都保留，修复时也必须调整这个测试的语义预期。
+
+### 静态子数组寄存器写被记作 dynamic
+
+`vecBusyTable.loadDependency` 的类型是 `UInt<2>[3][128]`，原 FIRRTL
+第 **3307836** 行。第 **3317639** 行起有 `loadDependency[常数]` 的
+静态前缀写：固定外轴，把剩余三元素子数组作为数据一次写入。
+GRH **2375201** 保留，记录 `dynamic_state_index` 和
+`unsupported_array_producer`；GSIM **2272163** 拆出 **384** 个成员。
+
+`Lowerer::write` 对该形式产生只含一个 index、payload shape 为 `[3]`
+的 RegisterWriteArrayPort。但 `StateSplitter::staticElementIndex` 要求
+index 数与全部 shape 轴数相同，本例 **1 ≠ 2** 返回空；`collectFamilies`
+将其设置为 `family.dynamic=true`。因此本例是 **静态范围写支持不足**，
+不能根据理由名称称为动态下标写。GSIM `getIdx` 把 `[0]` 解释为范围
+`[0,2]`，`[1]` 解释为 `[3,5]`；其 `REG_SRC::updateConnect` 不建立
+`prev`，`checkNodeSplit` 的 `prevSplitted` 在这里为真，允许这些范围写。
+GRH 后续应明确区分动态 index、不支持的几何与静态子数组范围；仅放宽
+索引数量判断还不够，后续 geometry 与 indexed-write 改写也须支持范围。
+该实例不证明前表 155 个父的动态理由全部来自同一机制。
+
+### 零位数组与失败时缺失的 NEXT 决策
+
+没有 retain decision 的 **2,809** 个父中：**2,782** 个是 `$NEXT`
+（GSIM 19,145 个成员、净增 16,363），另 **27** 个是其他名字
+（728 个成员、净增 701）。逐项核对原 FIRRTL，后面这 **27 个全部为
+`UInt<0>` 叶**，包括零位 rename 地址、`vlBusyTable.wakeupOHVec`、
+三个 BJU 的 `toRF.pdest` 和 atomicsUnit 的 `storeDataIn.bits.pdest`。
+失败时 `traceRetain` 只遍历 register
+declaration 的 `opSemanticIds`，`nextNodes` 要等成功进入 eligible family
+后才收集；所以 `$NEXT` 无理由通常是失败 trace 覆盖缺口，不能当成另一个
+已证明的拆分根因。
+
+最大非 NEXT 例为 **2539477** `rat.v0Rat.io.diffWritePorts.addr`，GSIM
+**2514993** 拆成 **520** 个成员。其 `RenameTable_3` 原端口明确含
+`addr: UInt<0>`，见原 FIRRTL 第 **3555491** 行，实例在第 **3560378**
+行。GRH ingest 创建 SemanticNode，但宽度零时不创建 Value/anchor；
+split 的候选扫描依赖带 array shape 的 anchor，所以它没有 decision。
+GSIM 仍保留并拆分这个零位数组。这属于表示策略差异，不是额外的有位宽
+计算或运行时数组写；不能为了追求数量一致就把它与普通漏拆混为一谈。
+
+进一步按 `Lowerer` 创建 `$NEXT` 的同 basename 规则定位 current 候选，
+逐行清单为同目录上层的 `next-parent-candidates.tsv`。2,782 个 NEXT 中
+还有两个零位叶：v0Rat/vlRat 的 `t1_wSpec.addr$NEXT`，父 ID
+**2554758 / 2555717**，各对应 8 个 GSIM 成员。因此零位表示差异合计为
+**29 个父、744 个成员、715 个净增**。其余 **2,780** 个 NEXT 的 current
+候选恰好对应前表 **2,622** 个 state-payload 阻断、**155** 个 dynamic-state
+理由以及 **3** 个 consumer/state 混合理由；这些 NEXT 自己缺少原生决策，
+不能把按 basename 关联补充的理由伪称为它们已导出的原生 decision。
+
+### 证据边界及修复顺序
+
+本次 **Node 库存差额已经完整闭合**；内部 op 层面的最终时序根因尚未
+逐个证明。公共 decision 没有 subphase/round，报告保留全部已观察理由；
+遇到后续 replace、缺 blocker、缺 decision 或 blocker 回环均显式记录
+issue。尤其 `unsplit_array_input` 的 fallback 可能把自己写作 blocker，
+报告中的 `cycle` 是 **证据引用回环**，不能解释为真实组合环。
+`root_evidence` 只归因到 Node/reason，不重建更新组/轴级时序。
+
+后续优先统一静态投影分析（slice、范围、shape、源成员），避免仅凭上游
+未拆就拒绝本可独立拆分的静态成员；随后支持静态子数组寄存器读写，并让
+跨具名边界的快照与动态目标更新各自判定。失败 trace 应覆盖 current/next，
+补充拒绝的具体 op、几何及轮次；零位 Node 再单独统一表示策略。修改后仍
+需用完整原图验收双端成员/连接/演化，并保持此前用户接受的性能约束。
+
+## 增强 GRH 静态数组拆分（2026-11-14）
+
+本次修改正常 `split-static-array` 的分析与改写；SemanticTree 在 pass 内
+随真实 op、value、状态端口同步更新，运行不依赖导出后的修补脚本。
+
+- 统一静态投影：资格判断、具名上游分析、成员选择及来源绑定共同识别
+  常量前缀 `SliceArray` 和合法 `SliceStatic`。支持剩余数组轴、嵌套 alias、
+  单元素维度以及跨原成员边界的静态位片段。组合数组原有具名上游边界仍保留。
+- 区分动态更新与源快照：另一独立具名 Node 的 `ArrayUpdate` 可以使用
+  已拆源的整个旧值；动态目标继续保持数组。更新 op 或 shaped result 仍
+  属于源 Node 时保守保留，避免多 owner 实现被误认成独立目标；无具名
+  边界的视图后若存在真实动态读，也继续阻止源拆分。
+- 支持状态端口的静态前缀范围：例如 `[2,3]` 状态的 `[1]` 写对应全局
+  成员 `[1,0]`、`[1,1]`、`[1,2]`，分别读取写入数据的局部 `[0]`、`[1]`、
+  `[2]`。前缀读重建原剩余 shape，保留原结果 Value；成员寄存器及 current/
+  NEXT 使用全局坐标，前缀表达式别名使用局部坐标。掩码、enable、事件、
+  初始化及 writerOrder 随端口传递，后写优先级不变。
+- 状态整数组 data/mask 是快照，不再要求来源 Node 先拆分。输入、保留的
+  具名数组、动态 `ArrayUpdate` 或其他保留状态可以通过静态切片提供目标
+  成员的值。来源及原动态更新继续存在，不复制动态更新，不降成整数组
+  shift/mask；真正动态的目标状态索引和动态 current 读取仍阻止状态族拆分。
+- 失败 trace 覆盖完整状态族：资格判断之前收集 current 及所有 writer 的
+  NEXT owner；失败时两侧都记录原生 retain decision。绑定按实际前缀和
+  单元素维度投影，父退休后保留正确的成员 current/NEXT binding。
+
+回归包括四态组合快照、三维及单元素轴静态投影、跨成员位片段、无具名
+边界的真实动态读、动态掩码来源、混合 owner、静态前缀状态读写、事件与
+后写优先级、保留状态间的 whole-value 快照，以及从原始 FIRRTL ingest
+运行到 split 的多周期独立 Oracle 比较。双端交换格式回归还核对
+before + evolution 精确生成 after，以及开关 trace 的 GRH IR/公开节点图一致。
+
+### 完整香山库存与名称候选
+
+最终生产版本封存为 `ptmp/firrtl-ingest/F30/split-enhance-20261114/package-v3`。
+重新读取完整 `SimTop.fir` 及原 manifest，依次执行 ingest、XMR、flatten、
+comb、split，不读取 checkpoint。最终开 trace + verify 的运行位于
+`ptmp/firrtl-ingest/F30/split-enhance-20261114/v3-full-trace-verify`：
+两个 pass 的 SemanticTree 校验均为 0 error，split 后 `grh.verify` 通过。
+
+| 库存 | 修改前 GRH | 修改后 GRH | GSIM |
+| --- | ---: | ---: | ---: |
+| split 前 Node | 7,671,189 | 7,671,189 | 7,829,556 |
+| split 后 Node | 9,328,200 | 9,476,863 | 9,635,014 |
+| 此步净增加 | 1,657,011 | 1,805,674 | 1,805,458 |
+| 后态 GSIM−GRH 差额 | 306,814 | 158,151 | — |
+
+修改使 GRH 后态增加 **148,663** 个 Node。原来该 pass 带来的净增差额
+**148,447** 变为 **−216**；split 前已有的 **158,367** 个总量差额不属于
+这次 split 改动的修复范围。净增接近不代表父族、坐标或计算已经全部一致。
+
+双侧原生节点清单的名称比较位于
+`ptmp/firrtl-ingest/F30/split-enhance-20261114/v2-node-names/summary.json`。
+该报告使用 V2 输出；V3 增加混合 owner 保守保护后，最终 `after.nodes.tsv`
+去掉前两行（元数据、表头）后与 V2 完全相同，剩余全部字节 SHA256 均为
+`da4d7f86d55589978e222c1998c4e2be25ffcb3ddab0ead88d2cc89f133963c0`，
+故此名称库存结果同样适用于最终 V3：
+
+| 后态指标 | 修改前 | 修改后 |
+| --- | ---: | ---: |
+| 唯一规范路径候选对 | 9,298,160 | 9,472,866 |
+| 占 GRH 后态 Node | 99.677966% | **99.957824%** |
+| GRH 无候选 Node | 30,040 | **3,997** |
+| GSIM 无候选 Node | 336,854 | **162,148** |
+
+剩余清单为同目录 `after.unmatched.tsv`；`after.candidates.tsv` 保留全部
+9,472,866 对候选 ID。该口径是完整导出图，沿用相同 helper manifest，
+未将所有无候选节点都归类为 FIRRTL 缺陷。候选要求两侧规范路径均唯一，
+不利用后缀猜配，名称对应本身不构成功能等价证明。
+
+最终 `make test_f30_array_update` **27/27** 通过，日志位于
+`ptmp/firrtl-ingest/F30/split-enhance-20261114/v3-final-native/tests/test.log`。
+`make test_f29_exchange_pipeline` 的 **8** 个双端样例通过，日志和各样例
+原生五文件、独立 replay 结果位于同根目录 `v3-exchange`。
+
+### 本轮性能测量
+
+V3 两个模式分别从完整 FIRRTL ingest 启动，串行执行，关闭结构校验、
+统计和 profiler；开启 96 GiB RSS/压力监护，未触发停止。结果是本轮
+**单次诊断**，不是新的三样本正式性能验收。GSIM 仍使用同机同输入
+run-2/3/4 的 split 中位数 **45.904 s**，split 超时保持 **91.808 s**。
+
+| 指标（秒） | 无 trace | 有 trace |
+| --- | ---: | ---: |
+| comb-loop-elim 本体 | 10.161 | 11.502 |
+| split-static-array 本体 | **39.774** | **44.329** |
+| comb + split 本体合计 | **49.935** | **55.831** |
+| comb + split，含 trace 建立及导出 | 49.966 | 123.100 |
+| ingest 到 split 结束 | 133.822 | 206.662 |
+| 全流程峰值 RSS（GiB） | 76.729 | 78.530 |
+
+split 本体分别为 GSIM 参考的 0.866×/0.966×；等价综合口径仍须计算
+GRH 的 comb + split，为 **1.088×/1.216×**，不能只用 split 较快来宣称
+综合阶段达到 GSIM 门槛。此前已由用户接受的 v11 综合中位数为
+48.314/53.399 s；本轮多拆 148,663 个 Node 后单次合计为上述
+49.935/55.831 s。单次数据不支持把这部分差额全部解释为抖动，也不另行
+宣称通过此前 3% 自动门槛；本轮没有变更该门槛或用户此前的接受记录。
+
+原始测量为同根目录
+`v3-no-trace-perf/summary.json`、`v3-trace-perf/summary.json`。
+单独的 `v3-full-trace-verify` 用于正确性验收，校验耗时另外记录，
+不混入上表；该次 split 本体为 46.166 s，峰值 RSS 84.144 GiB。
+
+### 原生父族与成员坐标复核
+
+`make analyze_f30_split_enhancement` 对最终 V3 与原 GSIM 五文件进行
+只读诊断，产物为同根目录 `v3-families`。它仅复用已封存的 **before**
+名称/ID 索引，先逐字节校验新旧 before 正文相同；全部 after ID、成员
+lineage、retain/replace decision 均重新读取本次原生产物，不复用旧
+after ID 或名称。报告绑定五文件 SHA256、输入 SHA、root 和基线报告。
+运行 **132.248 s，complete=true**，工具 **26/26** 契约回归通过。
+
+| 库存演化 | GRH | GSIM |
+| --- | ---: | ---: |
+| 原生 split 新成员 | 2,051,605 | 2,051,495 |
+| 退休原始父 | 245,931 | 246,037 |
+| 已产生成员但父仍存活 | 83 | 0 |
+
+两侧每个新成员只出现一次 split lineage，父存在于 before，child 是
+after 中的新 ID；所有新增及退休均闭合，没有未解释的库存变化。
+
+| 前态父候选组 | 父族数 | GRH 新成员 | GSIM 新成员 | GSIM−GRH 净增 |
+| --- | ---: | ---: | ---: | ---: |
+| 双方拆分、成员数及父存活相同 | 245,859 | 2,049,673 | 2,049,673 | 0 |
+| 双方拆分、成员数相同，GRH 父仍存活 | 83 | 642 | 642 | −83 |
+| 只有 GSIM 拆分 | **95** | 0 | 1,180 | +1,085 |
+| 只有 GRH 拆分 | 72 | 1,290 | 0 | −1,218 |
+| 合计 | 246,109 | 2,051,605 | 2,051,495 | **−216** |
+
+GSIM-only 父由修改前的 **26,270** 降至 **95**。当前完整原生 retain
+理由集合分组如下，零位叶仍没有带 shape 的实际 Value/anchor：
+
+| GRH 原生 retain 理由集合 | 父族数 | GSIM 成员数 |
+| --- | ---: | ---: |
+| 无 decision（前节确认的零位叶） | 29 | 744 |
+| `unsplit_upstream_array` | 50 | 372 |
+| `dynamic_consumer_index` | 2 | 36 |
+| `dynamic_state_index` | 7 | 14 |
+| `dynamic_state_index` + `unsupported_array_producer` | 7 | 14 |
+
+72 个 GRH-only 父都有实际 `static_array_split` 决策；GSIM 没有提供
+对应 retain 证据，本报告不推断其拒绝原因。83 个 residual 父也作为实际
+存活对象单列；其中的存活实现归属还未逐项与 GSIM 内部实现核对。
+
+成员坐标单独按原生 vector 精确比较，保留所有轴、不按名字补坐标：
+**239,392** 个共同拆分父的坐标集合完全相同，对应 **2,008,882** 对
+成员；另 **6,550** 个父、各 **41,433** 个成员的数量相同但原始坐标
+vector 不同。两侧没有缺失坐标，也没有同一父下的重复坐标。
+例如 `_needWrite_WIRE_1` 的 GRH 成员为 `[0,0]`…`[0,3]`，GSIM 为
+`[0]`…`[3]`，体现单元素轴的表示差异；当前报告没有自动删除轴或将
+这些原始差异记成精确坐标相同。
+该样例原 FIRRTL 第 1,042,827 行是 `UInt<1>[4][1]`。GSIM
+`AST2Graph.cpp:1699` 先保存 semantic shape，`:1914` 的
+`removeDummyDim` 再删除物理单元素轴；
+`SemanticNodeExchange.cpp:372` 生成 lineage 时读取的是删轴后的
+`parent->dimension`。内部 semantic 投影仍保留原轴，因此样例的原始
+trace vector 差异有明确来源；尚未逐项证明 6,550 个父全部只有此原因。
+
+`parent-families.tsv` 逐项列出全部父候选、两端 ID、成员数、父存活及
+实际决策；`coordinate-differences.tsv` 列出原始坐标与 child ID，共
+**85,336** 行，包含仅单侧拆分的成员。该复核不分析内部 op/ENode，也
+没有重新计算全图跨端 connection 差集；连接文件在此仅校验身份及摘要。
