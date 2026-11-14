@@ -1167,3 +1167,46 @@ SV body／实际 DPI 引用证据，FIRRTL／ABI 范围未发现漏归属。
 共用 typed normalizer 改名 `semantic_bitvector.py`。原生联合回归22/22，
 比较器20项及normalizer20项均通过；GSIM五组原生库存／trace回归通过。
 生产计时模式三轮中位数99.063秒，排除外部校验、统计和JSON导出，见F28第9.8节。
+
+## F29：Node 编辑、原生演化与公共交换格式
+
+2026-11-14 提交的双端实现为 wolvrix **`fc92724`**、GSIM **`c2535b3`**，
+与下述 F30 一同形成完整依赖链。设计及历史验收统一见
+[F29-node-changes.md](F29-node-changes.md)。
+
+正常 comb／split pass 自动维护 Node 的增加、删除、替换和成员归属；公共交换
+包含静态 Node、connection 库存和 pass 现场 evolution。一次变换用两套库存加
+一个演化文件表达，前后各自独立采集；消费工具只验证和比较，不替 producer
+补造演化。GSIM 同样支持原生五文件导出、重建校验及静态插桩。
+
+相关 Make 入口为 `test_f29_gsim`、`test_f29_exchange_gsim`、
+`test_f29_exchange_pipeline` 和 `verify_f29_exchange`；双端原生回归、
+真实 ingest/pass 的七个 fixture 及 trace 开关一致性已通过。完整香山原生
+轨迹和库存已采集，旧 F29 数字保留在阶段文档，最新 F30 名称结果见下节。
+各侧重建成功与跨端演化等价分别记录，不以名称候选替代身份或功能证明。
+
+## F30：多维有序数组更新与 split 身份维护
+
+实现与最新验收统一见 [F30-array-update.md](F30-array-update.md)。新增
+`ArrayUpdate` 通过 `indexCounts` 描述多次、多维局部更新，接通正常 FIRRTL
+ingest → xmr-resolve → hier-flatten → comb-loop-elim → split-static-array，
+同步更新 GRH 定义、accessor/builder、验证器、持久化及原生 Node 演化。
+
+本批提交统一两端公开名称规则：原始及已生成 Node 保持名字，冲突仅给新成员
+追加后缀并立即预留，本 pass 已退休父名也不可重用。完整原始香山对照确认
+GRH／GSIM **7,451,358 / 7,583,519** 个存活原始 Node 均无改名，前态名字和
+后态 ID 集合均无漂移；五例已知原始身份误配全部消除，208 个公共路径重名
+Node 降为 0。后态库存仍为 **9,328,200 / 9,635,014**，唯一名称候选为
+**9,298,160 对，占 GRH 99.67796574%**；跨端演化及功能等价仍未证明。
+
+本次 `make test_f30_array_update` **27/27**、`make test_f30_split_naming`
+**10/10** 通过；通过 `make export_f30_gsim_split`、
+`make benchmark_f30_pipeline` 从原始完整 FIRRTL 重新导出，GRH 原生 trace、
+SemanticTree 校验及 `grh.verify` 成功，随后 `make check_f30_split_naming`
+得到 `complete=true、passed=true、issues=[]`。本轮 evidence 保存在
+`ptmp/firrtl-ingest/F30/naming-fix-20261114/`，数据与构建产物不入库。
+
+用户已接受 v11 实测性能，原自动性能门失败记录保留；本轮带 guard、trace 和
+校验的单次正确性诊断 comb＋split 为 **52.168 s**，split 硬上限仍按既有
+GSIM 参考派生为 **91.808 s**，不替代正式性能验收。旧名称映射下连接差异
+仍作为基线保留，本轮未重新计算更新映射的跨端连接差集，后端仿真性能未验收。

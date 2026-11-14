@@ -397,12 +397,13 @@ F28_MANIFEST ?=
 F28_GSIM_BINARY ?= $(REF_GSIM_ROOT)/build/gsim/gsim
 F28_CAPTURE_ARGS ?=
 F28_COMPARE_ARGS ?=
+F28_TEST_ARGS ?=
 .PHONY: test_f28_semantic_tree capture_f28_semantic_tree compare_f28_semantic_tree test_f28_semantic_comparison
 test_f28_semantic_tree:
 	@mkdir -p "$(F28_WORK)/tests" $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
 	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) 2>&1 | tee "$(F28_WORK)/tests/configure.log"
 	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grh-semantic-tree store-semantic-tree-json store-json load-json-file grh-tests firrtl-semantic-tree ingest-mixed firrtl-comb firrtl-aggregate firrtl-state firrtl-memory firrtl-effects transform-hier-flatten transform-xmr-resolve-inout transform-xmr-resolve-storage transform-xmr-resolve-generate transform-split-static-array transform-dead-code-elim transform-comb-loop-elim grh-to-grhsim-tests grhsim-transform-tests grhsim-firrtl-nodes -j 4 2>&1 | tee "$(F28_WORK)/tests/build.log"
-	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(grh-semantic-tree|store-semantic-tree-json|store-json|load-json-file|grh-tests|firrtl-semantic-tree|firrtl-semantic-abi|firrtl-(comb|aggregate|state|memory|effects)|transform-hier-flatten|transform-xmr-resolve-(inout|storage|generate)|transform-(split-static-array|dead-code-elim|comb-loop-elim)|grh-to-grhsim-tests|grhsim-transform-tests|grhsim-firrtl-nodes)$$' --output-on-failure 2>&1 | tee "$(F28_WORK)/tests/test.log"
+	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(grh-semantic-tree|store-semantic-tree-json|store-json|load-json-file|grh-tests|firrtl-semantic-tree|firrtl-semantic-abi|firrtl-(comb|aggregate|state|memory|effects)|transform-hier-flatten|transform-xmr-resolve-(inout|storage|generate)|transform-(split-static-array|dead-code-elim|comb-loop-elim)|grh-to-grhsim-tests|grhsim-transform-tests|grhsim-firrtl-nodes)$$' --output-on-failure $(F28_TEST_ARGS) 2>&1 | tee "$(F28_WORK)/tests/test.log"
 
 capture_f28_semantic_tree:
 	@mkdir -p "$(F28_WORK)"
@@ -418,6 +419,333 @@ test_f28_semantic_comparison:
 	@set -o pipefail; TMPDIR="$(abspath $(F28_WORK))/comparison-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_compare_f28_semantic_tree.py' -v 2>&1 | tee "$(F28_WORK)/comparison-tests/test.log"
 
 # Legacy F26 source-SID analysis and F27 offline replay entry points retired by F28.
+
+F29_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F29
+F29_INPUT ?= $(F28_INPUT)
+F29_MANIFEST ?=
+F29_GSIM_BUILD ?= $(abspath $(F29_WORK))/gsim-build
+F29_GSIM_BINARY ?= $(F29_GSIM_BUILD)/gsim/gsim
+F29_GMP_ROOT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F26/gsim-upstream/gmp/root
+F29_CAPTURE_ARGS ?=
+F29_TEST_ARGS ?= --timeout 60
+F29_NATIVE_TRACE_ARTIFACTS ?=
+.PHONY: test_f29_exchange_contract verify_f29_exchange test_f29_exchange_gsim export_f29_full_split_exchange compare_f29_full_exchange benchmark_f29_pass_trace
+test_f29_exchange_contract:
+	@mkdir -p "$(F29_WORK)/tests"
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_semantic_node_exchange.py' -v 2>&1 | tee "$(F29_WORK)/tests/exchange-contract.log"
+
+test_f29_exchange_gsim:
+	@mkdir -p "$(F29_WORK)/tests"
+	@set -o pipefail; CXXFLAGS="-I$(F29_GMP_ROOT)/usr/include/x86_64-linux-gnu" LIBRARY_PATH="$(F29_GMP_ROOT)/usr/lib/x86_64-linux-gnu" $(MAKE) -C reference/gsim test-semantic-node-exchange BUILD_DIR="$(F29_GSIM_BUILD)" SEMANTIC_EXCHANGE_TEST_OUTPUT="$(abspath $(F29_WORK))/gsim-exchange-tests" PYTHON="$(if $(findstring /,$(PYTHON)),$(abspath $(PYTHON)),$(PYTHON))" -j4 2>&1 | tee "$(F29_WORK)/tests/gsim-exchange.log"
+
+F29_EXCHANGE_BUNDLE ?= $(F29_WORK)/exchange/gsim
+F29_EXCHANGE_ARGS ?=
+verify_f29_exchange:
+	@mkdir -p "$(F29_WORK)/tests" "$(F29_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F29_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F29_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/semantic_node_exchange.py --bundle "$(F29_EXCHANGE_BUNDLE)" $(F29_EXCHANGE_ARGS) 2>&1 | tee "$(F29_WORK)/tests/exchange-verification.log"
+
+.PHONY: test_f29_exchange_pipeline
+test_f29_exchange_pipeline: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+	@mkdir -p "$(F29_WORK)/tests"
+	@set -o pipefail; F29_WORK="$(abspath $(F29_WORK))" F29_GSIM_BINARY="$(abspath $(F29_GSIM_BINARY))" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_f29_exchange_pipeline.py' -v 2>&1 | tee "$(F29_WORK)/tests/exchange-pipeline.log"
+
+F29_FULL_INPUT ?= $(REPO_ROOT)/build/xs/rtl/rtl/SimTop.fir
+F29_FULL_MANIFEST ?= $(REPO_ROOT)/ptmp/semantic-bindings/F26/grh/ingest-request.json
+F29_FULL_WORK ?= $(F29_WORK)/full-split-array
+F29_FULL_SKIP_COMB ?= 1
+F29_FULL_INDEPENDENT_SNAPSHOTS ?= 0
+F29_FULL_REUSE_GRH_SPLIT ?=
+F29_FULL_REUSE_GRH_COMB ?=
+.PHONY: export_f29_full_split_exchange
+export_f29_full_split_exchange: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+	@mkdir -p "$(abspath $(F29_FULL_WORK))/tests" "$(abspath $(F29_FULL_WORK))/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F29_FULL_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F29_FULL_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/export_f29_full_split_exchange.py \
+		--firrtl "$(abspath $(F29_FULL_INPUT))" \
+		--manifest "$(abspath $(F29_FULL_MANIFEST))" \
+		--gsim-binary "$(abspath $(F29_GSIM_BINARY))" \
+		--output "$(abspath $(F29_FULL_WORK))" \
+		$(if $(filter 1,$(F29_FULL_SKIP_COMB)),--skip-comb,) \
+		$(if $(strip $(F29_FULL_REUSE_GRH_SPLIT)),--reuse-grh-split "$(abspath $(F29_FULL_REUSE_GRH_SPLIT))",) \
+		$(if $(strip $(F29_FULL_REUSE_GRH_COMB)),--reuse-grh-comb "$(abspath $(F29_FULL_REUSE_GRH_COMB))",) \
+		$(if $(filter 0,$(F29_FULL_INDEPENDENT_SNAPSHOTS)),--no-independent-snapshots,) 2>&1 | tee "$(abspath $(F29_FULL_WORK))/tests/export.log"
+
+compare_f29_full_exchange:
+	@mkdir -p "$(abspath $(F29_FULL_WORK))/tests" "$(abspath $(F29_FULL_WORK))/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F29_FULL_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F29_FULL_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_f29_full_exchange.py \
+		--output "$(abspath $(F29_FULL_WORK))" 2>&1 | tee "$(abspath $(F29_FULL_WORK))/tests/compare.log"
+
+F29_NODE_NAMES_GRH ?= $(F29_FULL_WORK)/grh-split
+F29_NODE_NAMES_GSIM ?= $(F29_FULL_WORK)/gsim-split
+F29_NODE_NAMES_WORK ?= $(F29_FULL_WORK)/node-names
+.PHONY: compare_f29_node_names
+compare_f29_node_names:
+	@mkdir -p "$(abspath $(F29_NODE_NAMES_WORK))/tests" "$(abspath $(F29_NODE_NAMES_WORK))/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F29_NODE_NAMES_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F29_NODE_NAMES_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_f29_node_names.py \
+		--grh-bundle "$(abspath $(F29_NODE_NAMES_GRH))" \
+		--gsim-bundle "$(abspath $(F29_NODE_NAMES_GSIM))" \
+		--output "$(abspath $(F29_NODE_NAMES_WORK))" 2>&1 | tee "$(abspath $(F29_NODE_NAMES_WORK))/tests/compare.log"
+
+F29_UNMATCHED_NAMES ?= $(F29_FULL_WORK)/node-names-v2
+F29_UNMATCHED_WORK ?= $(F29_FULL_WORK)/unmatched-analysis
+.PHONY: analyze_f29_unmatched
+analyze_f29_unmatched:
+	@mkdir -p "$(abspath $(F29_UNMATCHED_WORK))/tests" "$(abspath $(F29_UNMATCHED_WORK))/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F29_UNMATCHED_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F29_UNMATCHED_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/analyze_f29_unmatched.py \
+		--full-work "$(abspath $(F29_FULL_WORK))" --names-work "$(abspath $(F29_UNMATCHED_NAMES))" \
+		--output "$(abspath $(F29_UNMATCHED_WORK))" 2>&1 | tee "$(abspath $(F29_UNMATCHED_WORK))/tests/analyze.log"
+
+F29_PASS_TRACE_WORK ?= $(F29_WORK)/pass-trace-benchmark
+F29_PASS_TRACE_FLATTEN_JSON ?=
+F29_PASS_TRACE_TOP ?= SimTop
+F29_PASS_TRACE_SOURCE_ONLY ?= 0
+F29_PASS_TRACE_SKIP_COMB ?= 0
+F29_PASS_TRACE_VALIDATE_AFTER ?= 0
+F29_PASS_TRACE_PROFILE_SPLIT ?= 0
+F29_PASS_TRACE_VERIFY_AFTER ?= 0
+F29_PASS_TRACE_MODE ?= both
+F29_PASS_TRACE_SPLIT_TIMEOUT_S ?= 49.046
+.PHONY: benchmark_f29_pass_trace
+benchmark_f29_pass_trace: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+	@mkdir -p "$(abspath $(F29_PASS_TRACE_WORK))"
+	@set -o pipefail; WOLVRIX_SPLIT_STATIC_ARRAY_PROGRESS_MARKER="$(abspath $(F29_PASS_TRACE_WORK))/split-progress.marker" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/benchmark_f29_pass_trace.py \
+		--firrtl "$(abspath $(F29_FULL_INPUT))" \
+		--manifest "$(abspath $(F29_FULL_MANIFEST))" \
+		--output "$(abspath $(F29_PASS_TRACE_WORK))" \
+		--top "$(F29_PASS_TRACE_TOP)" \
+		--mode "$(F29_PASS_TRACE_MODE)" \
+		--split-timeout-s "$(F29_PASS_TRACE_SPLIT_TIMEOUT_S)" \
+		$(if $(filter 1,$(F29_PASS_TRACE_SOURCE_ONLY)),--source-only,) \
+		$(if $(filter 1,$(F29_PASS_TRACE_SKIP_COMB)),--skip-comb,) \
+		$(if $(filter 1,$(F29_PASS_TRACE_VALIDATE_AFTER)),--validate-after,) \
+		$(if $(filter 1,$(F29_PASS_TRACE_PROFILE_SPLIT)),--profile-split,) \
+		$(if $(filter 1,$(F29_PASS_TRACE_VERIFY_AFTER)),--verify-after,) \
+		$(if $(strip $(F29_PASS_TRACE_FLATTEN_JSON)),--flatten-json "$(abspath $(F29_PASS_TRACE_FLATTEN_JSON))",) \
+		2>&1 | tee "$(abspath $(F29_PASS_TRACE_WORK))/benchmark.log"
+
+F30_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F30
+F30_BENCH_WORK ?= $(F30_WORK)/benchmark
+F30_BENCH_PACKAGE ?=
+F30_BENCH_IDENTITY ?=
+F30_BENCH_MODE ?= no-trace
+F30_BENCH_VERIFY ?= 0
+F30_BENCH_PROFILE_FLATTEN ?= 0
+F30_BENCH_PROFILE_SPLIT ?= 0
+F30_BENCH_RESOURCE_GUARD ?= 0
+F30_BENCH_RESOURCE_RSS_GIB ?= 96
+F30_BENCH_RESOURCE_PSI_PERCENT ?= 25
+F30_BENCH_RESOURCE_PSI_SECONDS ?= 8
+F30_BENCH_RESOURCE_INTERVAL_S ?= 0.25
+F30_BENCH_GSIM_REFERENCE ?=
+.PHONY: snapshot_f30_package
+.PHONY: test_f30_package_snapshot
+.PHONY: test_f30_benchmark_contract
+.PHONY: test_f30_resource_guard
+.PHONY: test_f30_alignment_contract analyze_f30_alignment diagnose_f30_alignment_queries resume_f30_alignment_export
+test_f30_alignment_contract:
+	@mkdir -p "$(F30_WORK)/tests"
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_analyze_f30_alignment.py' -v 2>&1 | tee "$(F30_WORK)/tests/alignment-contract.log"
+
+F30_ALIGN_COMB ?= $(F30_WORK)/candidate/pilot-trace-verified/trace/comb-loop-elim
+F30_ALIGN_SPLIT ?= $(F30_WORK)/candidate/pilot-trace-verified/trace/split-static-array
+F30_ALIGN_GSIM ?= $(F29_WORK)/full-split-fallback-readers-v2-20261114
+F30_ALIGN_WORK ?= $(F30_WORK)/alignment
+F30_ALIGN_VERIFY_WORKERS ?= 3
+F30_CONNECTION_DIFF_ANALYSIS ?= $(F30_ALIGN_WORK)
+F30_CONNECTION_DIFF_WORK ?= $(F30_CONNECTION_DIFF_ANALYSIS)/connection-differences
+F30_CONNECTION_DIFF_TOP_COUNT ?= 20
+.PHONY: export_f30_connection_differences test_f30_connection_differences
+export_f30_connection_differences:
+	@mkdir -p "$(abspath $(F30_CONNECTION_DIFF_WORK))/tmp"
+	@TMPDIR="$(abspath $(F30_CONNECTION_DIFF_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F30_CONNECTION_DIFF_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/export_f30_connection_differences.py --analysis "$(abspath $(F30_CONNECTION_DIFF_ANALYSIS))" --output "$(abspath $(F30_CONNECTION_DIFF_WORK))" --top-count "$(F30_CONNECTION_DIFF_TOP_COUNT)" > "$(abspath $(F30_CONNECTION_DIFF_WORK))/run.log" 2>&1
+
+test_f30_connection_differences:
+	@mkdir -p "$(F30_WORK)/tests" "$(F30_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F30_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F30_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_export_f30_connection_differences.py' -v 2>&1 | tee "$(F30_WORK)/tests/connection-differences-contract.log"
+
+F30_CASES_WORK ?= $(F30_ALIGN_WORK)/case-inspection
+F30_CASE_IDS ?= 1811547 1811548 1811549 7706875 243195 76035 184565 9335326 9494308
+F30_CASE_ENGINE ?= grh
+F30_CASES_QUERY_PLANS_ONLY ?= 0
+F30_CASES_ALL_UNMATCHED ?= 0
+.PHONY: inspect_f30_alignment_cases test_f30_alignment_cases
+inspect_f30_alignment_cases:
+	@mkdir -p "$(F30_CASES_WORK)"
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/inspect_f30_alignment_cases.py --analysis "$(abspath $(F30_ALIGN_WORK))" --output "$(abspath $(F30_CASES_WORK))" --engine "$(F30_CASE_ENGINE)" --ids "$(F30_CASE_IDS)" $(if $(filter 1,$(F30_CASES_QUERY_PLANS_ONLY)),--query-plans-only,) $(if $(filter 1,$(F30_CASES_ALL_UNMATCHED)),--all-unmatched,) 2>&1 | tee "$(F30_CASES_WORK)/run.log"
+
+test_f30_alignment_cases:
+	@mkdir -p "$(F30_WORK)/tests" "$(F30_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F30_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F30_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_inspect_f30_alignment_cases.py' -v 2>&1 | tee "$(F30_WORK)/tests/alignment-cases.log"
+
+diagnose_f30_alignment_queries:
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/analyze_f30_alignment.py --output "$(abspath $(F30_ALIGN_WORK))" --query-plans
+
+resume_f30_alignment_export:
+	@mkdir -p "$(F30_ALIGN_WORK)/tmp"
+	@TMPDIR="$(abspath $(F30_ALIGN_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F30_ALIGN_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/analyze_f30_alignment.py --output "$(abspath $(F30_ALIGN_WORK))" --resume-export > "$(F30_ALIGN_WORK)/resume-export.log" 2>&1
+
+analyze_f30_alignment:
+	@mkdir -p "$(F30_ALIGN_WORK)/tmp"
+	@TMPDIR="$(abspath $(F30_ALIGN_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F30_ALIGN_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/analyze_f30_alignment.py --grh-comb "$(abspath $(F30_ALIGN_COMB))" --grh-split "$(abspath $(F30_ALIGN_SPLIT))" --gsim-work "$(abspath $(F30_ALIGN_GSIM))" --output "$(abspath $(F30_ALIGN_WORK))" --verification-workers "$(F30_ALIGN_VERIFY_WORKERS)" > "$(F30_ALIGN_WORK)/run.log" 2>&1
+
+test_f30_benchmark_contract:
+	@mkdir -p "$(F30_WORK)/tests"
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_benchmark_f30_pipeline.py' -v 2>&1 | tee "$(F30_WORK)/tests/benchmark-contract.log"
+
+test_f30_resource_guard:
+	@mkdir -p "$(F30_WORK)/tests"
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_f30_resource_guard.py' -v 2>&1 | tee "$(F30_WORK)/tests/resource-guard-contract.log"
+
+test_f30_package_snapshot:
+	@mkdir -p "$(F30_WORK)/tests"
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_snapshot_f30_package.py' -v 2>&1 | tee "$(F30_WORK)/tests/package-snapshot-contract.log"
+
+F30_SNAPSHOT_OUTPUT ?= $(F30_WORK)/candidate/package
+F30_SNAPSHOT_ARGS ?=
+snapshot_f30_package:
+	@mkdir -p "$(F30_WORK)/tests"
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/snapshot_f30_package.py --output "$(abspath $(F30_SNAPSHOT_OUTPUT))" $(F30_SNAPSHOT_ARGS) > "$(F30_WORK)/tests/snapshot-package.log" 2>&1
+
+.PHONY: test_f30_performance_contract compare_f30_performance
+test_f30_performance_contract:
+	@mkdir -p "$(F30_WORK)/tests"
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_compare_f30_performance.py' -v 2>&1 | tee "$(F30_WORK)/tests/performance-contract.log"
+
+F30_PERF_BEFORE ?=
+F30_PERF_AFTER ?=
+F30_PERF_WORK ?= $(F30_WORK)/performance-comparison
+F30_PERF_JITTER_RELATIVE ?= 0.03
+F30_PERF_JITTER_ABSOLUTE_S ?= 0.010
+compare_f30_performance:
+	@mkdir -p "$(F30_PERF_WORK)"
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_f30_performance.py --before $(F30_PERF_BEFORE) --after $(F30_PERF_AFTER) --jitter-relative "$(F30_PERF_JITTER_RELATIVE)" --jitter-absolute-s "$(F30_PERF_JITTER_ABSOLUTE_S)" --output "$(abspath $(F30_PERF_WORK))" > "$(F30_PERF_WORK)/run.log" 2>&1
+
+# F30 GSIM reference: direct raw FIRRTL through SplitArray, always without trace.
+F30_GSIM_BENCH_BINARY ?= $(F29_GSIM_BINARY)
+F30_GSIM_BENCH_SOURCE ?= $(REPO_ROOT)/reference/gsim
+F30_GSIM_BENCH_WORK ?= $(F30_WORK)/gsim-reference/run-1
+.PHONY: benchmark_f30_gsim
+benchmark_f30_gsim:
+	@mkdir -p "$(abspath $(F30_GSIM_BENCH_WORK))/tmp"
+	@TMPDIR="$(abspath $(F30_GSIM_BENCH_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/benchmark_f30_gsim.py --binary "$(abspath $(F30_GSIM_BENCH_BINARY))" --source-root "$(abspath $(F30_GSIM_BENCH_SOURCE))" --firrtl "$(abspath $(F29_FULL_INPUT))" --output "$(abspath $(F30_GSIM_BENCH_WORK))" > "$(abspath $(F30_GSIM_BENCH_WORK))/run.log" 2>&1
+
+# Export only the native GSIM pass bundle; analysis/replay is a separate target.
+F30_GSIM_EXPORT_WORK ?= $(F30_WORK)/gsim-export
+F30_GSIM_EXPORT_TIMEOUT ?= 900
+.PHONY: export_f30_gsim_split
+export_f30_gsim_split:
+	@test ! -e "$(abspath $(F30_GSIM_EXPORT_WORK))/gsim-split/evolution.tsv"
+	@mkdir -p "$(abspath $(F30_GSIM_EXPORT_WORK))/model" "$(abspath $(F30_GSIM_EXPORT_WORK))/tmp"
+	@sha256sum "$(abspath $(F29_GSIM_BINARY))" "$(abspath $(F29_FULL_INPUT))" > "$(abspath $(F30_GSIM_EXPORT_WORK))/inputs.sha256"
+	@TMPDIR="$(abspath $(F30_GSIM_EXPORT_WORK))/tmp" /usr/bin/time -v -o "$(abspath $(F30_GSIM_EXPORT_WORK))/resources.log" timeout --signal=TERM --kill-after=15 "$(F30_GSIM_EXPORT_TIMEOUT)" \
+		"$(abspath $(F29_GSIM_BINARY))" --dir "$(abspath $(F30_GSIM_EXPORT_WORK))/model" --stop-after-stage=SplitArray \
+		--semantic-node-exchange="$(abspath $(F30_GSIM_EXPORT_WORK))/gsim-split" --semantic-node-exchange-mode=trace \
+		--trace-input-sha256="$$(sha256sum "$(abspath $(F29_FULL_INPUT))" | cut -d ' ' -f1)" "$(abspath $(F29_FULL_INPUT))" > "$(abspath $(F30_GSIM_EXPORT_WORK))/gsim.log" 2>&1
+
+F30_NAMING_GRH ?= $(F30_ALIGN_SPLIT)
+F30_NAMING_GSIM ?= $(F30_GSIM_EXPORT_WORK)/gsim-split
+F30_NAMING_BASELINE_GRH ?= $(F30_WORK)/candidate-v11/guarded-trace-verify-1/trace/split-static-array
+F30_NAMING_BASELINE_GSIM ?= $(F29_WORK)/full-split-fallback-readers-v2-20261114/gsim-split
+F30_NAMING_WORK ?= $(F30_WORK)/split-naming
+F30_CACHE_DIRS ?= $(F30_WORK) $(F29_WORK)
+.PHONY: check_f30_split_naming test_f30_split_naming release_f30_analysis_cache
+release_f30_analysis_cache:
+	@$(PYTHON) -c 'import os,pathlib; paths=(p for root in map(pathlib.Path, __import__("sys").argv[1:]) for p in root.rglob("*") if p.is_file() and p.suffix in (".tsv", ".sqlite", ".jsonl") and p.stat().st_size >= 1048576); count=0; size=0; exec("for path in paths:\n with path.open(\"rb\") as stream: os.posix_fadvise(stream.fileno(),0,0,os.POSIX_FADV_DONTNEED)\n count+=1; size+=path.stat().st_size"); print("cache eviction hints: files=%d bytes=%d" % (count,size))' $(foreach f30_cache_dir,$(F30_CACHE_DIRS),"$(abspath $(f30_cache_dir))")
+
+check_f30_split_naming:
+	@mkdir -p "$(abspath $(F30_NAMING_WORK))/tmp"
+	@TMPDIR="$(abspath $(F30_NAMING_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F30_NAMING_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/check_f30_split_naming.py \
+		--grh-bundle "$(abspath $(F30_NAMING_GRH))" --gsim-bundle "$(abspath $(F30_NAMING_GSIM))" \
+		--baseline-grh-bundle "$(abspath $(F30_NAMING_BASELINE_GRH))" --baseline-gsim-bundle "$(abspath $(F30_NAMING_BASELINE_GSIM))" \
+		--output "$(abspath $(F30_NAMING_WORK))" > "$(abspath $(F30_NAMING_WORK))/run.log" 2>&1
+
+test_f30_split_naming:
+	@mkdir -p "$(F30_WORK)/tests" "$(F30_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F30_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F30_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_check_f30_split_naming.py' -v 2>&1 | tee "$(F30_WORK)/tests/split-naming.log"
+
+F30_GSIM_COMPARE_GRH ?=
+F30_GSIM_COMPARE_REFERENCE ?=
+F30_GSIM_COMPARE_WORK ?= $(F30_WORK)/gsim-comparison
+.PHONY: compare_f30_gsim test_f30_gsim_contract
+compare_f30_gsim:
+	@mkdir -p "$(abspath $(F30_GSIM_COMPARE_WORK))"
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_f30_gsim.py --grh $(F30_GSIM_COMPARE_GRH) --gsim $(F30_GSIM_COMPARE_REFERENCE) --output "$(abspath $(F30_GSIM_COMPARE_WORK))" --jitter-relative "$(F30_PERF_JITTER_RELATIVE)" --jitter-absolute-s "$(F30_PERF_JITTER_ABSOLUTE_S)" > "$(abspath $(F30_GSIM_COMPARE_WORK))/run.log" 2>&1
+
+test_f30_gsim_contract:
+	@mkdir -p "$(F30_WORK)/tests"
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_compare_f30_gsim.py' -v 2>&1 | tee "$(F30_WORK)/tests/gsim-contract.log"
+
+.PHONY: test_f30_array_update
+F30_TEST_TARGETS := array-update-tests transform-split-array-update firrtl-array-update grh-tests grhsim-dialect-tests grh-clone-tests store-json load-json-file store-semantic-tree-json grh-semantic-tree firrtl-semantic-tree ingest-mixed firrtl-comb firrtl-aggregate firrtl-widths firrtl-state firrtl-memory firrtl-effects transform-hier-flatten transform-xmr-resolve-inout transform-xmr-resolve-storage transform-xmr-resolve-generate transform-comb-loop-elim transform-split-static-array transform-pass-manager transform-verify emit-base
+F30_TEST_REGEX ?= ^(array-update-tests|transform-split-array-update|firrtl-array-update|grh-tests|grhsim-dialect-tests|grh-clone-tests|store-json|load-json-file|store-semantic-tree-json|grh-semantic-tree|firrtl-semantic-tree|firrtl-prefix-no-compaction|firrtl-(comb|aggregate|widths|state|memory|effects)|transform-hier-flatten|transform-xmr-resolve-(inout|storage|generate)|transform-(comb-loop-elim|split-static-array|pass-manager|verify)|emit-base)$$
+test_f30_array_update:
+	@mkdir -p "$(F30_WORK)/tests" $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
+	@TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) > "$(F30_WORK)/tests/configure.log" 2>&1
+	@TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target $(F30_TEST_TARGETS) -j 4 > "$(F30_WORK)/tests/build.log" 2>&1
+	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '$(F30_TEST_REGEX)' --output-on-failure --timeout 120 2>&1 | tee "$(F30_WORK)/tests/test.log"
+
+.PHONY: benchmark_f30_pipeline
+.PHONY: benchmark_f30_pairs
+F30_PAIR_WORK ?= $(F30_WORK)/paired-runs
+F30_PAIR_MODES ?= no-trace trace
+F30_PAIR_COUNT ?= 3
+F30_BASELINE_PACKAGE ?= $(F30_WORK)/baseline/package
+F30_CANDIDATE_PACKAGE ?= $(F30_WORK)/candidate/package
+benchmark_f30_pairs:
+	@mkdir -p "$(F30_PAIR_WORK)"
+	@for f30_mode in $(F30_PAIR_MODES); do \
+		for f30_pair in $$(seq 1 $(F30_PAIR_COUNT)); do \
+			$(MAKE) --no-print-directory benchmark_f30_pipeline F30_BENCH_PACKAGE="$(abspath $(F30_BASELINE_PACKAGE))" F30_BENCH_MODE="$$f30_mode" F30_BENCH_VERIFY=0 F30_BENCH_WORK="$(abspath $(F30_PAIR_WORK))/$$f30_mode/before-$$f30_pair" || exit $$?; \
+			$(MAKE) --no-print-directory benchmark_f30_pipeline F30_BENCH_PACKAGE="$(abspath $(F30_CANDIDATE_PACKAGE))" F30_BENCH_MODE="$$f30_mode" F30_BENCH_VERIFY=0 F30_BENCH_WORK="$(abspath $(F30_PAIR_WORK))/$$f30_mode/after-$$f30_pair" || exit $$?; \
+		done; \
+	done
+
+benchmark_f30_pipeline:
+	@mkdir -p "$(abspath $(F30_BENCH_WORK))/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F30_BENCH_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F30_BENCH_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/benchmark_f30_pipeline.py \
+		--firrtl "$(abspath $(F29_FULL_INPUT))" --manifest "$(abspath $(F29_FULL_MANIFEST))" \
+		--output "$(abspath $(F30_BENCH_WORK))" --mode "$(F30_BENCH_MODE)" \
+		$(if $(strip $(F30_BENCH_GSIM_REFERENCE)),--gsim-reference $(foreach f30_reference,$(F30_BENCH_GSIM_REFERENCE),"$(abspath $(f30_reference))"),) \
+		$(if $(strip $(F30_BENCH_PACKAGE)),--package "$(abspath $(F30_BENCH_PACKAGE))",) \
+		$(if $(strip $(F30_BENCH_IDENTITY)),--identity "$(abspath $(F30_BENCH_IDENTITY))",) \
+		$(if $(filter 1,$(F30_BENCH_VERIFY)),--verify,) \
+		$(if $(filter 1,$(F30_BENCH_PROFILE_FLATTEN)),--profile-flatten,) \
+		$(if $(filter 1,$(F30_BENCH_RESOURCE_GUARD)),--resource-guard --resource-guard-rss-gib "$(F30_BENCH_RESOURCE_RSS_GIB)" --resource-guard-psi-percent "$(F30_BENCH_RESOURCE_PSI_PERCENT)" --resource-guard-psi-seconds "$(F30_BENCH_RESOURCE_PSI_SECONDS)" --resource-guard-interval-s "$(F30_BENCH_RESOURCE_INTERVAL_S)",) \
+		$(if $(filter 1,$(F30_BENCH_PROFILE_SPLIT)),--profile-split,) > "$(abspath $(F30_BENCH_WORK))/run.log" 2>&1
+
+F29_SPLIT_PROFILE_DIR ?= $(abspath $(F29_PASS_TRACE_WORK))/no-trace/profile
+F29_SPLIT_PROFILE_TIME ?=
+F29_SPLIT_PROFILE_REPORT ?= report
+.PHONY: report_f29_split_profile
+report_f29_split_profile:
+	@PERF_CONFIG=/dev/null PERF_BUILDID_DIR="$(F29_SPLIT_PROFILE_DIR)/build-id" XDG_CACHE_HOME="$(F29_SPLIT_PROFILE_DIR)/cache" \
+		perf report --stdio --no-children --no-inline --percent-limit 0.3 \
+		--symfs "$(F29_SPLIT_PROFILE_DIR)/symfs" -i "$(F29_SPLIT_PROFILE_DIR)/perf.data" \
+		$(if $(strip $(F29_SPLIT_PROFILE_TIME)),--time "$(F29_SPLIT_PROFILE_TIME)",) \
+		> "$(F29_SPLIT_PROFILE_DIR)/$(F29_SPLIT_PROFILE_REPORT).txt" 2> "$(F29_SPLIT_PROFILE_DIR)/$(F29_SPLIT_PROFILE_REPORT).log"
+
+.PHONY: test_f29_semantic_nodes test_f29_node_replay test_f29_gsim test_f29_pipeline capture_f29_semantic_tree compare_f29_semantic_tree
+test_f29_semantic_nodes:
+	@$(MAKE) --no-print-directory test_f28_semantic_tree F28_WORK="$(abspath $(F29_WORK))/native" F28_TEST_ARGS="$(F29_TEST_ARGS)"
+	@$(MAKE) --no-print-directory test_f29_node_replay F29_NATIVE_TRACE_ARTIFACTS="$(abspath $(WOLVRIX_BUILD_DIR))/artifacts"
+
+test_f29_node_replay:
+	@mkdir -p "$(F29_WORK)/tests"
+	@set -o pipefail; F29_WORK="$(abspath $(F29_WORK))" F29_NATIVE_TRACE_ARTIFACTS="$(F29_NATIVE_TRACE_ARTIFACTS)" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_f29_semantic_nodes.py' -v 2>&1 | tee "$(F29_WORK)/tests/node-replay.log"
+
+test_f29_gsim:
+	@mkdir -p "$(F29_WORK)/tests"
+	@set -o pipefail; CXXFLAGS="-I$(F29_GMP_ROOT)/usr/include/x86_64-linux-gnu" LIBRARY_PATH="$(F29_GMP_ROOT)/usr/lib/x86_64-linux-gnu" $(MAKE) -C reference/gsim test-node-evolution test-source-aggregate-inventory test-semantic-lineage test-expression-inventory BUILD_DIR="$(F29_GSIM_BUILD)" FIR_TEST_OUTPUT_DIR="$(abspath $(F29_WORK))/gsim-tests" PYTHON="$(if $(findstring /,$(PYTHON)),$(abspath $(PYTHON)),$(PYTHON))" -j4 2>&1 | tee "$(F29_WORK)/tests/gsim.log"
+
+test_f29_pipeline: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+	@mkdir -p "$(F29_WORK)/tests"
+	@set -o pipefail; F29_WORK="$(abspath $(F29_WORK))" F29_GSIM_BINARY="$(abspath $(F29_GSIM_BINARY))" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_f29_semantic_nodes.py' -v 2>&1 | tee "$(F29_WORK)/tests/pipeline.log"
+
+capture_f29_semantic_tree:
+	@$(MAKE) --no-print-directory capture_f28_semantic_tree F28_WORK="$(abspath $(F29_WORK))" F28_INPUT="$(abspath $(F29_INPUT))" F28_MANIFEST="$(F29_MANIFEST)" F28_GSIM_BINARY="$(F29_GSIM_BINARY)" F28_CAPTURE_ARGS="--through-split --trace-semantic-nodes --assign-trees $(F29_CAPTURE_ARGS)"
+
+compare_f29_semantic_tree:
+	@mkdir -p "$(F29_WORK)/comparison"
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_f28_semantic_tree.py --grh "$(abspath $(F29_WORK))/split-static-array.json" --gsim-dir "$(abspath $(F29_WORK))/gsim" --gsim-stage SplitArray --output "$(abspath $(F29_WORK))/comparison" $(F28_COMPARE_ARGS) 2>&1 | tee "$(F29_WORK)/comparison/run.log"
 
 F21_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F21/continuous
 F21_MANIFEST ?= $(F15_FIRRTL_PROFILE_MANIFEST)
@@ -3376,3 +3704,18 @@ restore_grhsim_perf_failed_ir:
 		if [ ! -f "$$task_file" ]; then zstd -q -d --keep "$$task_file.zst"; fi; \
 		sha256sum --check "$$task_file.archive.sha256"; \
 	done
+
+F29_COLLISION_NAMES ?= $(F29_FULL_WORK)/node-names-v2
+F29_COLLISION_EVIDENCE ?= $(F29_FULL_WORK)/unmatched-analysis/evidence.sqlite
+F29_COLLISION_CLASSIFICATION ?= $(F29_COLLISION_NAMES)/grh-name-pattern-classification-v2.txt
+F29_COLLISION_REASONS ?= $(F29_FULL_WORK)/unmatched-analysis/unmatched-reasons.tsv
+F29_COLLISION_WORK ?= $(F29_FULL_WORK)/collision-analysis
+.PHONY: analyze_f29_name_collisions
+analyze_f29_name_collisions:
+	@mkdir -p "$(abspath $(F29_COLLISION_WORK))"
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/analyze_f29_name_collisions.py \
+		--names "$(abspath $(F29_COLLISION_NAMES))" \
+		--evidence "$(abspath $(F29_COLLISION_EVIDENCE))" \
+		--classification "$(abspath $(F29_COLLISION_CLASSIFICATION))" \
+		--unmatched-reasons "$(abspath $(F29_COLLISION_REASONS))" \
+		--output "$(abspath $(F29_COLLISION_WORK))" 2>&1 | tee "$(abspath $(F29_COLLISION_WORK))/analysis.log"

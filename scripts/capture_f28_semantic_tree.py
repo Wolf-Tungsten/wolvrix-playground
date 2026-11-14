@@ -1,4 +1,4 @@
-"""Record the ordinary F28 ingest/xmr/flatten pipeline and GSIM Init inventory.
+"""Record native semantic Nodes at flatten or after the F29 split pipeline.
 
 This driver only invokes native producers and exports their current objects.
 It does not construct Nodes or infer membership from an offline checkpoint.
@@ -28,6 +28,10 @@ def main():
     parser.add_argument("--gsim-only", action="store_true")
     parser.add_argument("--store-ingest", action="store_true")
     parser.add_argument("--assign-trees", action="store_true")
+    parser.add_argument("--through-split", action="store_true",
+                        help="also run comb-loop-elim and split-static-array; dump GSIM SplitArray")
+    parser.add_argument("--trace-semantic-nodes", action="store_true",
+                        help="record native Node changes for both F29 passes")
     parser.add_argument("--timing-only", action="store_true",
                         help="time only native ingest/xmr/flatten calls, without inspect or JSON export")
     args = parser.parse_args()
@@ -36,6 +40,10 @@ def main():
         parser.error("output must be under repository ptmp/")
     if args.grh_only and args.gsim_only:
         parser.error("select at most one engine-only option")
+    if args.trace_semantic_nodes and not args.through_split:
+        parser.error("--trace-semantic-nodes requires --through-split")
+    if args.through_split and args.timing_only:
+        parser.error("--through-split cannot be combined with the F28 --timing-only mode")
     if args.timing_only and (not args.grh_only or args.store_ingest or args.assign_trees):
         parser.error("--timing-only requires --grh-only without --store-ingest or --assign-trees")
     output.mkdir(parents=True, exist_ok=True)
@@ -53,6 +61,9 @@ def main():
               "request": request, "grh_stage": "post-hier-flatten", "gsim_stage": "Init",
               "emit_source_locations": True,
               "membership_producer": "native SemanticTree; no offline reconstruction"}
+    if args.through_split:
+        report.update({"schema": "wolvrix.f29.capture.v1", "grh_stage": "post-split-static-array",
+                       "gsim_stage": "SplitArray", "trace_semantic_nodes": args.trace_semantic_nodes})
     summary = output / ("capture-summary-gsim.json" if args.gsim_only else "capture-summary-grh.json")
     if args.timing_only:
         summary = output / "timing-summary-grh.json"
@@ -165,13 +176,31 @@ def main():
                 raise RuntimeError("hier-flatten retained internal semantic Paths")
             report["flatten"] = inspect()
             report["dump"] = stage("store-flatten", lambda: store("flatten"))
+            if args.through_split:
+                for name in ("comb-loop-elim", "split-static-array"):
+                    options = {}
+                    if args.trace_semantic_nodes:
+                        options = {"trace_semantic_nodes": str(output / (name + ".{graph}.nodes.jsonl")),
+                                   "trace_input_sha256": report["input"]["sha256"]}
+
+                    def transform(name=name, options=options):
+                        checked(session.run_pass(name, design="design.main", **options), name)
+                        return inspect()
+
+                    stage(name, transform)
+                    report["dump"] = stage("store-" + name, lambda name=name: store(name))
 
     if not args.grh_only:
         binary = args.gsim_binary.resolve()
         (output / "gsim").mkdir(parents=True, exist_ok=True)
         report["gsim_producer"] = {"path": str(binary), **json_identity(binary)}
+        native_stage = "SplitArray" if args.through_split else "Init"
         command = [str(binary), "--dir", str(output / "gsim"), "--dump-json",
-                   "--dump-stages=Init", "--stop-after-stage=Init"]
+                   "--dump-stages=" + ("Init,SplitArray" if args.through_split else "Init"),
+                   "--stop-after-stage=" + native_stage]
+        if args.trace_semantic_nodes:
+            command.extend(["--trace-node-evolution=" + str(output / "gsim" / "split-array.jsonl"),
+                            "--trace-input-sha256=" + report["input"]["sha256"]])
         if args.assign_trees:
             command.append("--dump-assign-tree")
         command.append(str(source))
@@ -184,15 +213,19 @@ def main():
                 process.returncode = os.waitstatus_to_exitcode(status)
                 if process.returncode:
                     raise subprocess.CalledProcessError(process.returncode, command)
-            files = sorted((output / "gsim").glob("*Init.json"))
+            files = sorted((output / "gsim").glob("*" + native_stage + ".json"))
             if len(files) != 1:
-                raise RuntimeError("expected exactly one native GSIM Init inventory")
+                raise RuntimeError("expected exactly one native GSIM " + native_stage + " inventory")
             return {"dump": {"path": str(files[0]), **json_identity(files[0])},
+                    "dumps": [{"path": str(path), **json_identity(path)}
+                              for path in sorted((output / "gsim").glob("*.json"))],
                     "maxrss_kib": usage.ru_maxrss, "cpu_s": usage.ru_utime + usage.ru_stime}
 
-        stage("gsim-Init", gsim)
+        stage("gsim-" + native_stage, gsim)
     report["complete"] = True
     persist()
+    if not args.grh_only and not args.gsim_only:
+        (output / "capture-summary-gsim.json").write_text(json.dumps(report, indent=2) + "\n")
 
 
 if __name__ == "__main__":

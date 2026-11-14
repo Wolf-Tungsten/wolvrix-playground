@@ -120,6 +120,13 @@ def uncovered_source(row, sv_files):
 
 def candidate_name(row):
     semantic = row.get('semantic', {})
+    if semantic.get('role') == 'memory-read-address':
+        return None
+    if 'nodePath' in row:
+        tokens = row['nodePath']
+        if not isinstance(tokens, list) or not tokens or any(not isinstance(token, str) or not token for token in tokens):
+            return None
+        return qualified(tokens)
     tokens = list(semantic.get('path', ()))
     if not tokens:
         return None
@@ -643,7 +650,11 @@ def input_identity(grh, native, require_captures=False):
         if not capture.get('complete'):
             continue
         dumps = [capture.get('dump', {})]
-        dumps += [stage.get('result', {}).get('dump', {}) for stage in capture.get('stages', [])]
+        for stage in capture.get('stages', []):
+            result = stage.get('result', {})
+            if isinstance(result, dict):
+                dumps += [result, result.get('dump', {})]
+                dumps += result.get('dumps', [])
         matched = [dump for dump in dumps if dump.get('path') and
                    str(Path(dump['path']).resolve()) == identity[label]['path']]
         if not matched or any(dump.get('bytes') != identity[label]['bytes'] or
@@ -1077,12 +1088,14 @@ def emit_report(grh, native, output, db, counts, started, identity, previous=Non
 
 
 def compare(grh, gsim_dir, output, budget=10000, reuse_index=False, refresh=False,
-            reuse_grh_from=None, expected_added=None):
+            reuse_grh_from=None, expected_added=None, gsim_stage='Init'):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
-    native_files = sorted(Path(gsim_dir).glob('*Init.json'))
+    if gsim_stage not in ('Init', 'SplitArray'):
+        raise ValueError('unsupported GSIM semantic comparison stage')
+    native_files = sorted(Path(gsim_dir).glob('*' + gsim_stage + '.json'))
     if len(native_files) != 1:
-        raise ValueError('expected exactly one actual GSIM Init inventory')
+        raise ValueError('expected exactly one actual GSIM ' + gsim_stage + ' inventory')
     if refresh and not reuse_index:
         raise ValueError('candidate refresh requires --reuse-index')
     if reuse_grh_from and (reuse_index or refresh):
@@ -1189,10 +1202,125 @@ def compare(grh, gsim_dir, output, budget=10000, reuse_index=False, refresh=Fals
     return emit_report(grh, native, output, db, counts, started, identity, previous, refresh_info)
 
 
+def verify_node_trace(path, database=':memory:'):
+    """Replay native add/delete/replace events; read after only as an oracle."""
+    db = sqlite3.connect(str(database))
+    try:
+        db.executescript('DROP TABLE IF EXISTS replay_nodes; DROP TABLE IF EXISTS replay_ids; '
+                         'CREATE TABLE replay_nodes(id INTEGER PRIMARY KEY, body TEXT, checked INTEGER DEFAULT 0); '
+                         'CREATE TABLE replay_ids(id INTEGER PRIMARY KEY);')
+        counts = {'before': 0, 'after': 0, 'events': 0}
+        actions = {'add': 0, 'delete': 0, 'replace': 0}
+        phase, header, footer = 'header', None, None
+        paths = None
+
+        def state_body(state):
+            if set(state) != {'id', 'parent', 'name', 'operations', 'anchors'}:
+                raise ValueError('invalid semantic Node state fields')
+            for key in ('id', 'parent'):
+                if type(state[key]) is not int or state[key] <= 0:
+                    raise ValueError('invalid semantic Node identity or parent')
+            if paths is not None and state['parent'] not in paths:
+                raise ValueError('semantic Node parent Path is missing')
+            if not isinstance(state['name'], str) or not state['name']:
+                raise ValueError('empty semantic Node name')
+            normalized = dict(state)
+            for key in ('operations', 'anchors'):
+                refs = state[key]
+                if not isinstance(refs, list):
+                    raise ValueError('invalid semantic Node members')
+                members = []
+                for ref in refs:
+                    if (set(ref) != {'id', 'generation'} or type(ref['id']) is not int or ref['id'] <= 0 or
+                            type(ref['generation']) is not int or ref['generation'] < 0):
+                        raise ValueError('invalid semantic Node member reference')
+                    members.append((ref['id'], ref['generation']))
+                if len(set(members)) != len(members):
+                    raise ValueError('duplicate semantic Node member')
+                normalized[key] = [{'id': index, 'generation': generation}
+                                   for index, generation in sorted(members)]
+            return json.dumps(normalized, sort_keys=True, separators=(',', ':'))
+
+        with Path(path).open() as stream:
+            for line in stream:
+                row = json.loads(line)
+                kind = row.get('record')
+                if footer is not None:
+                    raise ValueError('records follow semantic Node footer')
+                if phase == 'header':
+                    if (kind != 'header' or row.get('schema') != 'wolvrix.semantic-node-evolution.v1' or
+                            row.get('replayContract') != 'semantic-node-replace.v1'):
+                        raise ValueError('unsupported semantic Node trace')
+                    tree = row.get('tree')
+                    if tree is not None:
+                        paths = {entry['id'] for entry in tree['paths']}
+                        if len(paths) != len(tree['paths']):
+                            raise ValueError('duplicate semantic Path in trace context')
+                    header, phase = row, 'before'
+                elif kind == 'node':
+                    state = row['state']
+                    body = state_body(state)
+                    if row['stage'] == 'before' and phase == 'before':
+                        db.execute('INSERT INTO replay_nodes(id,body) VALUES (?,?)', (state['id'], body))
+                        db.execute('INSERT INTO replay_ids VALUES (?)', (state['id'],))
+                        counts['before'] += 1
+                    elif row['stage'] == 'after' and phase in ('before', 'events', 'after'):
+                        phase = 'after'
+                        actual = db.execute('SELECT body,checked FROM replay_nodes WHERE id=?', (state['id'],)).fetchone()
+                        if actual != (body, 0):
+                            raise ValueError('semantic Node replay differs from actual after')
+                        db.execute('UPDATE replay_nodes SET checked=1 WHERE id=?', (state['id'],))
+                        counts['after'] += 1
+                    else:
+                        raise ValueError('semantic Node inventory is out of order')
+                elif kind == 'event' and phase in ('before', 'events'):
+                    phase = 'events'
+                    counts['events'] += 1
+                    before, after = row['before'], row['after']
+                    action = 'replace' if before and after else 'delete' if before else 'add'
+                    if (not before and not after or row.get('action') != action or
+                            row.get('seq') != counts['events'] or not row.get('reason')):
+                        raise ValueError('invalid semantic Node change')
+                    old = {item['id']: state_body(item) for item in before}
+                    new = {item['id']: state_body(item) for item in after}
+                    if len(old) != len(before) or len(new) != len(after):
+                        raise ValueError('duplicate Node in semantic replacement')
+                    for identifier, body in old.items():
+                        actual = db.execute('SELECT body FROM replay_nodes WHERE id=?', (identifier,)).fetchone()
+                        if actual != (body,):
+                            raise ValueError('semantic Node replacement expectation failed')
+                    for identifier in new.keys() - old.keys():
+                        if db.execute('SELECT 1 FROM replay_ids WHERE id=?', (identifier,)).fetchone():
+                            raise ValueError('semantic Node ID was reused')
+                    db.executemany('DELETE FROM replay_nodes WHERE id=?', ((identifier,) for identifier in old))
+                    db.executemany('INSERT INTO replay_nodes(id,body) VALUES (?,?)', new.items())
+                    db.executemany('INSERT INTO replay_ids VALUES (?)', ((identifier,) for identifier in new.keys() - old.keys()))
+                    actions[action] += 1
+                elif kind == 'footer':
+                    if (not row.get('complete') or not row.get('replayComplete') or
+                            row.get('beforeCount') != counts['before'] or row.get('afterCount') != counts['after'] or
+                            row.get('eventCount') != counts['events'] or
+                            db.execute('SELECT COUNT(*) FROM replay_nodes WHERE checked=0').fetchone()[0]):
+                        raise ValueError('semantic Node trace does not close')
+                    footer = row
+                else:
+                    raise ValueError('unexpected semantic Node trace record')
+        if footer is None:
+            raise ValueError('incomplete semantic Node trace')
+        db.commit()
+        return {'complete': True, 'replay_exact': True, **counts, 'actions': actions,
+                'pass': header.get('pass'), 'graph': header.get('graph')}
+    except sqlite3.IntegrityError as error:
+        raise ValueError('duplicate semantic Node inventory or creation') from error
+    finally:
+        db.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--grh', type=Path, required=True)
     parser.add_argument('--gsim-dir', type=Path, required=True)
+    parser.add_argument('--gsim-stage', choices=('Init', 'SplitArray'), default='Init')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--max-local-steps', type=int, default=10000)
     parser.add_argument('--reuse-index', action='store_true')
@@ -1206,7 +1334,7 @@ def main():
         parser.error('--max-local-steps must be positive')
     print(json.dumps(compare(args.grh, args.gsim_dir, args.output, args.max_local_steps,
                              args.reuse_index, args.refresh_candidates, args.reuse_grh_from,
-                             args.expected_added_memberships), sort_keys=True), flush=True)
+                             args.expected_added_memberships, args.gsim_stage), sort_keys=True), flush=True)
 
 
 if __name__ == '__main__':

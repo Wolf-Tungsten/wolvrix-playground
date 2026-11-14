@@ -15,8 +15,40 @@ MFFC；再按 node 数划分 supernode，不感知内部 op 数/work。F09.6 已
 
 2026-11-13：SemanticTree 的当前定义以 [F28](F28-semantic-tree-refactor-plan.md)
 为准：内部是 Path，只有一种具名叶 Node，成员是实际 GRH op；flatten 后所有
-Node 直属根。新模型的生产维护范围先截止 `ingest→xmr-resolve→hier-flatten`，
+Node 直属根。[F29](F29-node-changes.md) 将生产维护范围推进至
+`ingest→xmr-resolve→hier-flatten→comb-loop-elim→split-static-array`，
+统一以 add/delete/replace 修改 Node，并可原生记录演化 trace。
 未迁移的后续 pass 明确拒绝。以下早期分图与来源标注说明保留对应阶段的历史含义。
+
+2026-11-14：[F30](F30-array-update.md) 新 op 与 ingest→split 主流程已实现，新增支持多维、单次到多次
+有序组合数组更新的 `kArrayUpdate`，首阶段覆盖 GRH IR 定义、持久化及正常
+ingest→split-static-array 流程。性能按用户最新要求，对照 GSIM 等价阶段，开关
+semantic trace 均使用固定 3% / 10 ms 抖动带。v9 已实现 source freeze 并行、
+comb CSR 两次 op 扫描及 offsets 复用、target 优先连接排序与去归并；专项
+26/26 通过。GSIM 派生超时工具的轻量契约 53/53 通过，以
+`F30_BENCH_GSIM_REFERENCE` 指定冻结参考，当前硬上限 91.808 s。
+最新全图 `alignment-v11-20261114` 已完成 GRH comb/split 新精确重放、
+GSIM 缓存文件绑定校验及阶段连续性；split 后唯一名称候选仍为
+9,297,125 / 9,328,200（99.666870%），两侧未匹配 31,075 / 337,889。
+GRH 细分为 26,260 个未拆父、3 个拆后残留父、1,238 个单侧拆分成员、
+1,045 个命名项和 2,529 个前态差异（含原先未解释的 976 个地址名）。
+另确认 5 个唯一同名候选实际违反稳定原始身份，因此该比例不能称身份对齐率。
+当前名称映射下独有连接为 GRH 885,376 / GSIM 960,642，另有
+518,889 条来源歧义 dependency；跨端演化/功能等价仍未证明。
+v9 正确性轮次通过；
+首个正式无 trace 样本 prefix 138.298 s、comb+split 51.255 s，性能未达标。
+v10 已移除 flatten 及生产 prefix 不必要的 source compact，沿用现有 ingest/bulk
+路线直接导入原始来源列；split 状态引用收集改为单次全图扫描加稀疏引用解析。
+公共显式 compact/freeze API 保持兼容，完整专项 27/27 通过，v10 已冻结。
+v10 首次大图在 flatten 被 systemd-oomd 终止，失败样本与系统日志保留。
+v11 已修复历史 payload 导入和冗余映射，专项 27/27；无 trace 和 trace+
+全图校验均完成原生大图，峰值 RSS 79.40 / 80.65 GiB，未重现 OOM。
+guard 的大进程退出误判另已修复，轻量 73/73。v11 正式性能验收已完成新六轮，
+无 OOM/超时，峰值 RSS 82.63 GiB；comb＋split 中位数无 trace 48.314 s
+（旧1＋新3）、trace 53.399 s，均超过原定 GSIM 允许上限 47.281 s。
+**2026-11-14 用户接受当前实测性能，保持 v11，暂不继续本轮性能优化。**
+原定自动性能门失败及全部数据保留；此接受不改变未来默认阈值。
+F30 其他对齐/功能等价事项仍按下表跟踪，后端仿真性能未验收。
 
 目标是在 Wolvrix 内实现不依赖 CIRCT 的 FIRRTL 前端，与现有 SV 前端共同
 构建设计。FIRRTL `node` 与 ops 的关联以 attribute 保存；普通 GRH 优化与
@@ -65,6 +97,8 @@ Node 直属根。新模型的生产维护范围先截止 `ingest→xmr-resolve�
 | [F26-native-semantic-bindings.md](F26-native-semantic-bindings.md) | 历史来源树模型的完整流程、阶段对应与来源覆盖率；旧分析脚本已退役，当前模型见 F28 |
 | [F27-node-evolution.md](F27-node-evolution.md) | 历史来源模型的 split 演化／后态重放与差异记录；旧离线工作流已退役，原生 trace 设施保留 |
 | [F28-semantic-tree-refactor-plan.md](F28-semantic-tree-refactor-plan.md) | SemanticTree 首阶段重构完成：统一叶 Node、正常 ingest→hier-flatten、JSON v5；原生 22/22 回归及整机跨端库存核验完成，剩余差异完整列出 |
+| [F29-node-changes.md](F29-node-changes.md) | 统一 Node 修改、双端五文件全图重放与静态对比；44,183 个 GRH 未匹配 Node 已归类，跨端功能等价未证明 |
+| [F30-array-update.md](F30-array-update.md) | 多维、多次有序组合数组更新 op；v7 全图重放/差异分类完成，v11 专项 27/27、原生大图 trace 校验通过；性能实测获用户接受，本轮优化停止，原定自动门失败数据保留，峰值 RSS 82.63 GiB |
 | [pass-optimization-20261101.md](pass-optimization-20261101.md) | 保留完整优化的 flatten/simplify 实现加速、严格 A/B 与 20 分钟整机复测 |
 | [F10-components.md](F10-components.md) | 真实代表模块的双路线比较、激励、记分板及当前证据 |
 | [F10-replacer.md](F10-replacer.md) | AheadBtbReplacer 独立 PLRU 记分板、四路线执行与 reference 断言缩减 |
@@ -82,6 +116,8 @@ Node 直属根。新模型的生产维护范围先截止 `ingest→xmr-resolve�
 | 聚合类型 | Bundle/struct 递归拆字段；Vector/数组维度迁移到叶子 shape，端口也保留数组 |
 | SemanticTree 重构 | F28 首阶段完成：内部仅 Path，叶子只有一种具名 Node，持有实际 op 集合；flatten 后根直接连接全部 Node。整机 7,671,189 个 Node，99.9670% 有唯一 GSIM 候选，66.2471% 在已配对边界下结构相符；行为未全部证明 |
 | Node 持久化 | F28 JSON v5 保存显式 Path/Node ID、限定名字状态、实际 op/anchor 成员；v4 必须从源重新 ingest；后续未迁移 pass 明确拒绝新树 |
+| Node 演化 | F29 在正常 comb/split 中维护单一叶 Node；增加、删除、多对多替换为唯一编辑语义；原位实现改写保持 ID，成员化分配新 ID，退役 ID 不复用；trace 可独立重建 Node 身份、名字及成员引用 |
+| 组合数组更新 | F30 实现 Pure kArrayUpdate，以 indexCounts 分组多维有序更新；首阶段保留索引语义到 split，替代提前的组合动态写 packed merge；专项/原生大图校验与 v7 重放已通过，正式性能待验收 |
 | simplify | node 不进入功能键、CSE 作用域或重写准入；优化后合并/更新提示，维护不了则降级，不加属性载体或保活根 |
 | GSIM 策略迁移 | F09 已撤除普通优化屏障；独立整体选项采用 gsim-soft-v2，只消费仍可证明的候选，门槛不限制 primitive CSE |
 | node 构建 | 有可用 FIRRTL 提示按提示构建 node；其余按 MFFC，均不因 op 数或 work cap 拆分；共享/语义冲突先规范化 |
@@ -127,6 +163,8 @@ Node 直属根。新模型的生产维护范围先截止 `ingest→xmr-resolve�
 | [F26](F26-native-semantic-bindings.md) | 历史 SemanticTree 来源与 op 归属覆盖 | F28 前模型的冻结记录（2026-11-12）：核验到 comb-loop-elim，旧来源对应率99.940245%、op owner覆盖99.945505%；旧离线脚本及入口已退役，不能作为新Node对齐结论 |
 | [F27](F27-node-evolution.md) | 历史来源模型的原生演化与重放 | 历史全量重放／比较完成：79,279,752个after、2,321,461条事件，联合通过仍为0；旧离线工作流已退役，原生trace设施保留；F28新树的后续pass尚待迁移 |
 | [F28](F28-semantic-tree-refactor-plan.md) | SemanticTree 重构：内部路径＋唯一具名 Node 叶子及 op 集合，先接通 ingest→flatten | 首阶段完成（2026-11-13）；正常生产链及 v5 已迁移，原生22/22、比较器20/20；整机库存／差异清单完成，不等于全部行为对齐 |
+| [F29](F29-node-changes.md) | 统一 Node 编辑、comb/split 迁移与公共交换格式 | 双端原生五文件全图导出、各侧独立重放、GRH阶段连续性及静态对比完成；GRH after 唯一同名候选99.523%，44,183个未匹配已归类；跨端演化/功能等价未证明 |
+| [F30](F30-array-update.md) | 多维、单次到多次组合数组更新 op 与 ingest→split-static-array | 新 op/主流程已实现，对齐继续（2026-11-14）；双端生产 split 命名修复及完整香山核验通过：原始 Node 保名，新成员避让活跃/待生成/本 pass 退休名字，5 例已知身份误配消除，208 个公共路径重名 Node 降为 0。GRH/GSIM 后态仍为 9,328,200 / 9,635,014 Node，唯一名称候选 9,298,160（占 GRH 99.67796574%），缺项 30,040 / 336,854。专项 27/27、命名检查器 10/10、双端原生重放与开关 trace 回归通过；本轮完整 trace 诊断 comb＋split 52.168 s。v11 旧名称映射下连接差 885,376 / 960,642、GRH 来源歧义 518,889 保留为基线，当前映射连接差未重算，跨端演化/功能等价未证明。用户已接受 v11 性能（no-trace/trace 中位数 48.314 / 53.399 s，旧自动门失败保留），GSIM 派生硬上限仍 91.808 s；本轮未重做正式性能验收，后端仿真性能未验收 |
 
 F08 曾以本地 GSIM `a3ecb26` 的 `commonExpr()` 为依据保留源表达式边界。
 当前方案保留 simplify 自由：之后才按提示/MFFC 形成执行 node，再按

@@ -79,6 +79,28 @@ class ComparisonTests(unittest.TestCase):
         with (self.directory / 'comparison' / 'grh-nodes.tsv').open() as stream:
             return {row['qualified_name']: row for row in csv.DictReader(stream, delimiter='\t')}
 
+    def test_split_stage_selects_actual_members_instead_of_init_parent(self):
+        self.node(2, 'a_0', anchors=[1])
+        self.graph['vals'] = [value(1, input=True)]
+        grh = self.directory / 'split-static-array.json'
+        grh.write_text(json.dumps(self.grh, indent=2))
+        (self.gsdir / 'Top_0Init.json').write_text(json.dumps({'nodes': [native(1, 'a', shape=[2])]}, indent=2))
+        (self.gsdir / 'Top_1SplitArray.json').write_text(json.dumps({
+            'nodes': [native(2, 'a_0', [], 'NODE_INP')], 'memories': [], 'sourceAggregates': [], 'edges': []}, indent=2))
+        result = compare(grh, self.gsdir, self.directory / 'comparison', gsim_stage='SplitArray')
+        self.assertEqual(result['candidate_fraction_of_grh_nodes'], 1)
+        self.assertEqual(result['statuses'], {'interface_checked': 1})
+
+    def test_native_current_node_path_preserves_split_and_rename_identity(self):
+        member = native(20, 'u__DOT__a$NEXT_1', type='NODE_REG_DST')
+        member['semantic'] = {'path': ['u', 'a'], 'role': 'register-next', 'indices': [1]}
+        member['nodePath'] = ['u', 'a$NEXT_1']
+        self.assertEqual(candidate_name(member), 'u.a$NEXT_1')
+        renamed = native(21, 'a_0_0')
+        renamed['semantic']['path'] = ['a_0']
+        renamed['nodePath'] = ['a_0_0']
+        self.assertEqual(candidate_name(renamed), 'a_0_0')
+
     def test_combinational_alias_and_array_use_actual_member_subgraphs(self):
         self.node(1, 'x', anchors=[1])
         self.node(2, 'alias', anchors=[1])
