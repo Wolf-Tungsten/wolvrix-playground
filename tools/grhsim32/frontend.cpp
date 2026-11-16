@@ -45,11 +45,22 @@ int main(int argc, char **argv)
         options.enableLogging = true;
         options.logLevel = LogLevel::Info;
         ingest::ConvertDriver converter(options);
+        auto printDiagnostics = [&]() {
+            for (const auto &d : converter.diagnostics().messages()) {
+                if (d.location && d.location->valid()) {
+                    auto loc = driver.sourceManager.getFullyExpandedLoc(*d.location);
+                    std::cerr << driver.sourceManager.getFileName(loc) << ':'
+                              << driver.sourceManager.getLineNumber(loc) << ':'
+                              << driver.sourceManager.getColumnNumber(loc) << ": ";
+                }
+                std::cerr << d.message << '\n';
+            }
+        };
         auto design = [&]() {
             try { return converter.convert(compilation->getRoot()); }
             catch (...) {
                 converter.diagnostics().flushThreadLocal();
-                for (const auto& d : converter.diagnostics().messages()) std::cerr << d.message << '\n';
+                printDiagnostics();
                 throw;
             }
         }();
