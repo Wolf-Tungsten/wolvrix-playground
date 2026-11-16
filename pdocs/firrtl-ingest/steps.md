@@ -1210,3 +1210,29 @@ SemanticTree 校验及 `grh.verify` 成功，随后 `make check_f30_split_naming
 校验的单次正确性诊断 comb＋split 为 **52.168 s**，split 硬上限仍按既有
 GSIM 参考派生为 **91.808 s**，不替代正式性能验收。旧名称映射下连接差异
 仍作为基线保留，本轮未重新计算更新映射的跨端连接差集，后端仿真性能未验收。
+
+## F31：独立 DCE 与新 Node 库存对齐
+
+状态：**已完成（2026-11-16）**。按用户要求在 v51 当前实现收尾，不再继续
+逐项消除剩余差异。实现、历史过程和最终接受范围统一见
+[F31-dce-alignment-plan.md §10.41](F31-dce-alignment-plan.md#1041-f31-完成最终-v51-库存与-dce-后对应占比)。
+
+实现提交为 wolvrix **`e09a982`**、GSIM **`bb4ddb7`**，主仓库同步子模块版本、
+公共交换 reader、持续复现工具和本节完成记录。
+
+最终完整原始 FIRRTL 流程中，GRH before/after 为 **9,476,863 / 5,635,937** 个
+Node；DCE 后 **5,617,898 / 5,635,937 = 99.67992900%** 在 GSIM DCE-after
+库存中存在唯一规范名称对应。分母包含全部 GRH after Node；剩余 18,039 项中，
+14,770 是 GSIM 已删而 GRH 保留，3,269 在原始 GSIM 库存中即无对应。此为静态
+同名对应率，结构和功能等价不由该比例证明。GSIM after 为 6,020,694 个 Node。
+
+13/13 套原生回归及冻结包 snapshot API 回归通过。通过
+`ptmp/firrtl-ingest/F31/v51-helper-static-closure/Makefile` 的 test、install、
+freeze、test-api、capture-grh、inventory 完成末次捕获与核验；最终指标复算入口为
+`make -f ptmp/firrtl-ingest/F31/closeout/Makefile metrics`。未启 trace、未做 trace
+校验，before 身份逐行相同、after 存活 ID/名字保持不变。
+
+收尾保留完整原始双端基线、最终 v51 快照/冻结包/测试和小型历史报告，删除旧
+大型 trace、快照、派生缓存、临时包及一次性脚本；清理约 **719.4 GiB**，F31
+目录由约 736 GiB 降至约 17 GiB。三组历史诊断工具、专项测试和 Make 入口同步
+移除，持续复现/回归基础保留。剩余别名和来源维护缺口以已知差异冻结。

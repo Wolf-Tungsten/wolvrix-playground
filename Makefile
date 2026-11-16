@@ -716,6 +716,149 @@ test_f30_array_update:
 	@TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target $(F30_TEST_TARGETS) -j 4 > "$(F30_WORK)/tests/build.log" 2>&1
 	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '$(F30_TEST_REGEX)' --output-on-failure --timeout 120 2>&1 | tee "$(F30_WORK)/tests/test.log"
 
+F31_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F31
+F31_TEST_TARGETS ?= grh-semantic-node-details transform-f31-dce-alias-retirement transform-f31-dce-helper-ownership transform-f31-dce-write-coverage transform-f31-dce-singleton-index transform-f31-dce-singleton-state-index transform-dead-code-elim transform-dce-array-update grh-semantic-tree transform-pass-manager transform-comb-loop-elim transform-split-static-array transform-simplify
+F31_TEST_REGEX ?= ^(grh-semantic-node-details|transform-f31-dce-(alias-retirement|helper-ownership|write-coverage|singleton-index|singleton-state-index)|transform-dead-code-elim|transform-dce-array-update|grh-semantic-tree|transform-pass-manager|transform-comb-loop-elim|transform-split-static-array|transform-simplify)$$
+F31_BENCH_ENGINE ?= grh
+F31_BENCH_MODE ?= no-trace
+F31_BENCH_WORK ?= $(F31_WORK)/benchmark
+F31_PACKAGE ?= $(F31_WORK)/package
+F31_GSIM_BINARY ?= $(F31_WORK)/gsim-dev/build/gsim/gsim
+F31_GSIM_REFERENCE ?=
+F31_BENCH_ARGS ?=
+F31_RESOURCE_RSS_GIB ?= 96
+F31_RESOURCE_PSI_PERCENT ?= 25
+F31_RESOURCE_PSI_SECONDS ?= 8
+F31_RESOURCE_INTERVAL_S ?= 0.25
+F31_PERF_GSIM ?=
+F31_PERF_GRH_OFF ?=
+F31_PERF_GRH_ON ?=
+F31_PERF_WORK ?= $(F31_WORK)/performance
+F31_PERF_SUITE_WORK ?= $(F31_WORK)/production-performance
+F31_EQUIVALENCE_OFF ?=
+F31_EQUIVALENCE_ON ?=
+F31_EQUIVALENCE_REPORT ?= $(F31_WORK)/equivalence/verification.json
+.PHONY: benchmark_f31_dce test_f31_dce test_f31_trace_compat test_f31_analysis test_f31_gsim test_f31_pipeline test_f31_performance_contract compare_f31_dce_performance analyze_f31_dce_alignment verify_f31_exchange test_f31_benchmark_guard
+
+.PHONY: benchmark_f31_dce_suite
+benchmark_f31_dce_suite:
+	@$(MAKE) --no-print-directory benchmark_f31_dce F31_BENCH_ENGINE=grh F31_BENCH_MODE=no-trace F31_BENCH_ARGS= F31_BENCH_WORK="$(abspath $(F31_PERF_SUITE_WORK))/no-trace-1"
+	@$(MAKE) --no-print-directory benchmark_f31_dce F31_BENCH_ENGINE=grh F31_BENCH_MODE=no-trace F31_BENCH_ARGS= F31_BENCH_WORK="$(abspath $(F31_PERF_SUITE_WORK))/no-trace-2"
+	@$(MAKE) --no-print-directory benchmark_f31_dce F31_BENCH_ENGINE=grh F31_BENCH_MODE=no-trace F31_BENCH_ARGS= F31_BENCH_WORK="$(abspath $(F31_PERF_SUITE_WORK))/no-trace-3"
+	@$(MAKE) --no-print-directory benchmark_f31_dce F31_BENCH_ENGINE=grh F31_BENCH_MODE=trace F31_BENCH_ARGS= F31_BENCH_WORK="$(abspath $(F31_PERF_SUITE_WORK))/trace-1"
+	@$(MAKE) --no-print-directory compare_f31_dce_performance F31_PERF_GSIM="$(F31_GSIM_REFERENCE)" \
+		F31_PERF_GRH_OFF="$(abspath $(F31_PERF_SUITE_WORK))/no-trace-1/summary.json $(abspath $(F31_PERF_SUITE_WORK))/no-trace-2/summary.json $(abspath $(F31_PERF_SUITE_WORK))/no-trace-3/summary.json" \
+		F31_PERF_GRH_ON="$(abspath $(F31_PERF_SUITE_WORK))/trace-1/summary.json" F31_PERF_WORK="$(abspath $(F31_PERF_SUITE_WORK))/comparison"
+
+.PHONY: compare_f31_dce_equivalence test_f31_equivalence
+compare_f31_dce_equivalence:
+	@mkdir -p "$(abspath $(dir $(F31_EQUIVALENCE_REPORT)))"
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_f31_dce_equivalence.py \
+		--no-trace "$(abspath $(F31_EQUIVALENCE_OFF))" --trace "$(abspath $(F31_EQUIVALENCE_ON))" \
+		--report "$(abspath $(F31_EQUIVALENCE_REPORT))" > "$(abspath $(dir $(F31_EQUIVALENCE_REPORT)))/run.log" 2>&1
+
+test_f31_equivalence:
+	@mkdir -p "$(F31_WORK)/tests" "$(F31_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F31_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_compare_f31_dce_equivalence.py' -v 2>&1 | tee "$(F31_WORK)/tests/equivalence.log"
+
+test_f31_trace_compat:
+	@$(MAKE) --no-print-directory test_f31_dce F31_WORK="$(abspath $(F31_WORK))/trace-compat" \
+		F31_TEST_TARGETS='transform-dead-code-elim transform-dce-array-update grh-semantic-tree transform-pass-manager transform-comb-loop-elim transform-split-static-array transform-simplify' \
+		F31_TEST_REGEX='^(transform-dead-code-elim|transform-dce-array-update|grh-semantic-tree|transform-pass-manager|transform-comb-loop-elim|transform-split-static-array|transform-simplify)$$'
+
+test_f31_pipeline:
+	@mkdir -p "$(F31_WORK)/pipeline-tests" "$(F31_WORK)/tmp"
+	@set -o pipefail; F31_PACKAGE="$(abspath $(F31_PACKAGE))" F31_WORK="$(abspath $(F31_WORK))" TMPDIR="$(abspath $(F31_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_f31_dce_pipeline.py' -v 2>&1 | tee "$(F31_WORK)/pipeline-tests/test.log"
+
+test_f31_performance_contract:
+	@mkdir -p "$(F31_WORK)/tests" "$(F31_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F31_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_compare_f31_dce_performance.py' -v 2>&1 | tee "$(F31_WORK)/tests/performance-contract.log"
+compare_f31_dce_performance:
+	@mkdir -p "$(abspath $(F31_PERF_WORK))"
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_f31_dce_performance.py \
+		--gsim $(F31_PERF_GSIM) --grh-no-trace $(F31_PERF_GRH_OFF) --grh-trace $(F31_PERF_GRH_ON) \
+		--output "$(abspath $(F31_PERF_WORK))" > "$(abspath $(F31_PERF_WORK))/run.log" 2>&1
+
+F31_GRH_BUNDLE ?=
+F31_GSIM_BUNDLE ?=
+F31_GSIM_PREPARATION ?=
+F31_GSIM_SPLIT_BUNDLE ?=
+F31_ALIGNMENT_WORK ?= $(F31_WORK)/alignment
+F31_FAST_ALIGNMENT_WORK ?= $(F31_WORK)/fast-analysis/$(RUN_ID)
+F31_ANALYSIS_CACHE ?= $(F31_WORK)/analysis-cache
+F31_ANALYSIS_TEST_FILTER ?=
+
+analyze_f31_dce_alignment:
+	@mkdir -p "$(abspath $(F31_ALIGNMENT_WORK))/tmp"
+	@TMPDIR="$(abspath $(F31_ALIGNMENT_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F31_ALIGNMENT_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/analyze_f31_dce_alignment.py \
+		--grh-bundle "$(abspath $(F31_GRH_BUNDLE))" --gsim-bundle "$(abspath $(F31_GSIM_BUNDLE))" \
+		--gsim-preparation "$(abspath $(F31_GSIM_PREPARATION))" \
+		$(if $(strip $(F31_GSIM_SPLIT_BUNDLE)),--gsim-split-bundle "$(abspath $(F31_GSIM_SPLIT_BUNDLE))",) \
+		--cache-dir "$(abspath $(F31_ANALYSIS_CACHE))" \
+		--output "$(abspath $(F31_ALIGNMENT_WORK))/report" > "$(abspath $(F31_ALIGNMENT_WORK))/run.log" 2>&1
+
+.PHONY: analyze_f31_dce_alignment_fast
+analyze_f31_dce_alignment_fast:
+	@mkdir -p "$(abspath $(F31_FAST_ALIGNMENT_WORK))/tmp"
+	@TMPDIR="$(abspath $(F31_FAST_ALIGNMENT_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F31_FAST_ALIGNMENT_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/analyze_f31_dce_alignment.py \
+		--grh-bundle "$(abspath $(F31_GRH_BUNDLE))" --gsim-bundle "$(abspath $(F31_GSIM_BUNDLE))" \
+		--gsim-preparation "$(abspath $(F31_GSIM_PREPARATION))" \
+		$(if $(strip $(F31_GSIM_SPLIT_BUNDLE)),--gsim-split-bundle "$(abspath $(F31_GSIM_SPLIT_BUNDLE))",) \
+		--summary-only --cache-dir "$(abspath $(F31_ANALYSIS_CACHE))" \
+		--output "$(abspath $(F31_FAST_ALIGNMENT_WORK))/report" > "$(abspath $(F31_FAST_ALIGNMENT_WORK))/run.log" 2>&1
+
+F31_EXCHANGE_BUNDLE ?=
+F31_EXCHANGE_REPORT ?= $(F31_WORK)/reader-replay/verification.json
+verify_f31_exchange:
+	@if [ -z "$(strip $(F31_EXCHANGE_BUNDLE))" ]; then echo 'F31_EXCHANGE_BUNDLE must name a completed exchange bundle under ptmp/'; exit 2; fi
+	@mkdir -p "$(abspath $(dir $(F31_EXCHANGE_REPORT)))" "$(F31_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F31_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F31_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/semantic_node_exchange.py \
+		--bundle "$(abspath $(F31_EXCHANGE_BUNDLE))" --report "$(abspath $(F31_EXCHANGE_REPORT))" \
+		2>&1 | tee "$(abspath $(dir $(F31_EXCHANGE_REPORT)))/verification.log"
+
+benchmark_f31_dce:
+	@mkdir -p "$(abspath $(F31_BENCH_WORK))/tmp"
+	@TMPDIR="$(abspath $(F31_BENCH_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F31_BENCH_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/benchmark_f31_dce.py \
+		--engine "$(F31_BENCH_ENGINE)" --mode "$(F31_BENCH_MODE)" \
+		--resource-guard-rss-gib "$(F31_RESOURCE_RSS_GIB)" --resource-guard-psi-percent "$(F31_RESOURCE_PSI_PERCENT)" \
+		--resource-guard-psi-seconds "$(F31_RESOURCE_PSI_SECONDS)" --resource-guard-interval-s "$(F31_RESOURCE_INTERVAL_S)" \
+		--firrtl "$(abspath $(F29_FULL_INPUT))" --manifest "$(abspath $(F29_FULL_MANIFEST))" \
+		--package "$(abspath $(F31_PACKAGE))" --binary "$(abspath $(F31_GSIM_BINARY))" \
+		--output "$(abspath $(F31_BENCH_WORK))" \
+		$(if $(strip $(F31_GSIM_REFERENCE)),--gsim-reference $(foreach f31_reference,$(F31_GSIM_REFERENCE),"$(abspath $(f31_reference))"),) \
+		$(F31_BENCH_ARGS) > "$(abspath $(F31_BENCH_WORK))/run.log" 2>&1
+
+test_f31_gsim:
+	@mkdir -p "$(F31_WORK)/gsim-dev"
+	@set -o pipefail; CXXFLAGS="-I$(F29_GMP_ROOT)/usr/include/x86_64-linux-gnu" LIBRARY_PATH="$(F29_GMP_ROOT)/usr/lib/x86_64-linux-gnu" $(MAKE) -C reference/gsim test-dce-semantic-node-exchange BUILD_DIR="$(F31_WORK)/gsim-dev/build" DCE_EXCHANGE_TEST_OUTPUT="$(abspath $(F31_WORK))/gsim-dev/tests" PYTHON="$(if $(findstring /,$(PYTHON)),$(abspath $(PYTHON)),$(PYTHON))" -j4 2>&1 | tee "$(F31_WORK)/gsim-dev/test.log"
+
+test_f31_dce:
+	@mkdir -p "$(F31_WORK)/tests" $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
+	@TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) > "$(F31_WORK)/tests/configure.log" 2>&1
+	@TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target $(F31_TEST_TARGETS) -j 4 > "$(F31_WORK)/tests/build.log" 2>&1
+	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '$(F31_TEST_REGEX)' --output-on-failure --timeout 120 2>&1 | tee "$(F31_WORK)/tests/test.log"
+
+.PHONY: test_f31_analysis_fast_contract
+test_f31_analysis:
+	@mkdir -p "$(F31_WORK)/analysis-dev" "$(F31_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F31_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_analyze_f31_dce_alignment.py' -v 2>&1 | tee "$(F31_WORK)/analysis-dev/test.log"
+
+test_f31_analysis_fast_contract:
+	@mkdir -p "$(F31_WORK)/analysis-fast-tests" "$(F31_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F31_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_analyze_f31_dce_alignment.py' -v -k summary_only 2>&1 | tee "$(F31_WORK)/analysis-fast-tests/test.log"
+	@set -o pipefail; TMPDIR="$(abspath $(F31_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_analyze_f31_dce_alignment.py' -v -k verified_database_cache 2>&1 | tee -a "$(F31_WORK)/analysis-fast-tests/test.log"
+	@set -o pipefail; TMPDIR="$(abspath $(F31_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_analyze_f31_dce_alignment.py' -v -k missing_owner_provenance 2>&1 | tee -a "$(F31_WORK)/analysis-fast-tests/test.log"
+
+.PHONY: test_f31_analysis_legacy_clock_fixtures
+test_f31_analysis_legacy_clock_fixtures:
+	@mkdir -p "$(F31_WORK)/analysis-legacy-clock-tests" "$(F31_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F31_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_analyze_f31_dce_alignment.py' -v -k legacy_system_task_clock_reason 2>&1 | tee "$(F31_WORK)/analysis-legacy-clock-tests/test.log"
+	@set -o pipefail; TMPDIR="$(abspath $(F31_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_analyze_f31_dce_alignment.py' -v -k legacy_state_clock_reason 2>&1 | tee -a "$(F31_WORK)/analysis-legacy-clock-tests/test.log"
+
+test_f31_benchmark_guard:
+	@mkdir -p "$(F31_WORK)/benchmark-guard-tests" "$(F31_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F31_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_benchmark_f31_guard.py' -v 2>&1 | tee "$(F31_WORK)/benchmark-guard-tests/test.log"
+
 .PHONY: benchmark_f30_pipeline
 .PHONY: benchmark_f30_pairs
 F30_PAIR_WORK ?= $(F30_WORK)/paired-runs
