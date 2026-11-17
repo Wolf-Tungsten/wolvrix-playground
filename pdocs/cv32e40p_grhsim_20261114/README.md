@@ -34,6 +34,19 @@
 | [TNO0030](./TNO0030_covered_state_view_boundaries_20261115.md) | 静态证明已有寄存器激活覆盖：21个跨区域视图先去判变通知、再去槽位，wall分别−1.34%和−3.11%；467项行为计数不变，与同RTL Verilator缩至1.00977倍 |
 | [TNO0031](./TNO0031_remaining_structure_after_state_views_20261115.md) | 直接读取后的离线审计：复合状态视图仍留边界，71个非缓存依赖根需补证明；大batch约两次空入口/周期仍付栈帧成本，提交接口暂存／通知保持 |
 | [TNO0032](./TNO0032_composed_state_expressions_and_entry_guard_20261115.md) | 复合状态表达式新增70个通知覆盖、52个有限内联，wall−3.52%，比同RTL Verilator低2.37%；独立空入口少6.25次调用/周期，但wall−0.15%的CI跨零 |
+| [TNO0033](./TNO0033_xiangshan_cv32_optimization_transfer_20261116.md) | CV32 保留优化迁移至 XiangShan DefaultConfig：CPU96 八对 walltime +7.17%，完整窗口 DiffTest 一致 |
+| [TNO0034](./TNO0034_xiangshan_transfer_cpp_elf_analysis_20261116.md) | XiangShan 前后 C++／ELF 离线分析：调度碎片、条件分支、栈布局与空活动组 |
+| [TNO0035](./TNO0035_xiangshan_shared_regions_and_cones_ablation_20261116.md) | XiangShan 消融：关 shared 平均−6.60%、8/8更快、退休指令−4.08%；关条件锥时间CI跨零 |
+| [TNO0036](./TNO0036_shared_region_static_cost_guard_20261116.md) | 共享区域静态成本门：XiangShan 3对−3.89%，CV32 8对+9.67%；跨模型失败，保持默认关闭 |
+| [TNO0037](./TNO0037_local_shared_region_cycle_refinement_20261116.md) | 局部环细分：CV32 8对−0.07%且CI跨零；XiangShan 3对+2.88%，保持默认关闭 |
+| [TNO0038](./TNO0038_cross_region_state_expression_proofs_20261116.md) | 跨区域状态表达式：两模型均零新增命中；CV32实际激活前沿阻断77个视图，XiangShan ELF仅构建时间不同 |
+| [TNO0039](./TNO0039_shared_region_layout_activity_and_lifetimes_20261116.md) | 三版C++/ELF离线对照：字段连续访问退化、激活范围放大与数组栈槽不复用；建议先修布局和生命周期 |
+| [TNO0040](./TNO0040_packed_state_layout_and_array_scope_20261116.md) | 双模型固定对照：布局/作用域相对正确性基线约降1.1%，仍慢于历史no_shared约2.7%；CV32保留收益，修复悬空span并记录采样漂移 |
+| [TNO0041](./TNO0041_post_storage_demand_and_initialization_20261116.md) | 冻结C++/ELF离线审计：FTQ仍有59次完整覆盖前清零，ROB仍全量构造再选取；优先省初始化与按需读取，成员指针探针仅编译未计时 |
+| [TNO0042](./TNO0042_packed_overwrite_and_selected_state_reads_20261116.md) | 两项规则及固定布局组合完成双模型对照：XS省初始化慢1.11%，按需读取无明确收益，组合仍慢于新no_shared 4.02%；CV32代码保持一致，新规则默认关闭 |
+| [TNO0043](./TNO0043_cv32_series_xiangshan_codegen_lineage_20261116.md) | 回溯生产diff与冻结C++/ELF：3,090共享候选未消除计算边界，7个packed view被simplify降级，indexed-concat存在2KiB捕获准备；全图静态对齐，无新跑分 |
+| [TNO0044](./TNO0044_connected_shared_candidates_20261116.md) | 计算连通组件与完整激活匹配；三对初测 XS/full −8.07%、CV32/full −0.57%；XS 与关闭共享的差异 CI 跨零 |
+| [TNO0045](./TNO0045_pre_cv32_vs_connected_formal_20261117.md) | 优化前74d80cf与最新候选正式八对：walltime −0.0692%，CI [−0.1485%, −0.0075%]，基本回到优化前水平；直接结果替代跨轮估算 |
 
 入口：[runner](../../scripts/cv32e40p_compare.py)、[testbench 与使用说明](../../testcase/cv32e40p-bench/README.md)。
 初始复现：[report.json](../../build/cv32e40p/run2/report.json)。
@@ -74,3 +87,11 @@ TNO0032完成两条独立验证：[复合表达式配对报告](../../build/cv32
 本次归档覆盖 TNO0001–TNO0032 及其代码，保留各阶段的实验边界和默认值。生成模型、下载依赖、binary 与逐对原始数据继续存放在忽略的 `build/` 目录，未纳入 Git。
 
 提交前 71 项 Python 回归、71 个 Python 文件的语法检查、715 个相对文档链接和两仓 diff 检查通过。源码 SHA 与 TNO0032 已验证快照一致；复用此前完成的 CTest、CoreMark 功能及性能记录，本次没有新增跑分。检查记录见 [commit-checkpoint-20261115](../../build/cv32e40p/commit-checkpoint-20261115/)。
+
+## 2026-11-17 提交检查点
+
+本次在 `thj/cv32e40p-grhsim-checkpoint-20261115` 继续归档 TNO0033–TNO0045。Wolvrix 提交 `01da0f4` 包含计算依赖/完整激活来源的共享候选、局部 SCC 细分、借用 span 生命周期修复、默认关闭的实验选项、回归与功能文档；父仓同步对照工具、testbench 选项、13 份实验记录和 gitlink。XiangShan、difftest 保持原提交。
+
+正式八对直接对照见 TNO0045：最新候选相对 CV32 优化前 `74d80cf` 的外部 walltime 为 −0.0692%，95% CI [−0.1485%, −0.0075%]，基本回到优化前水平。该结果替代跨轮估算；本次提交不新增性能采样或改变生成规则。
+
+提交前 88 项脚本回归、48 个 Python 文件语法检查、文档链接与两仓 diff 格式检查通过。生产源码与已完成 CTest、双模型功能验证及正式测量所使用的冻结快照一致。生成模型、ELF、原始计时和诊断继续保留于忽略的 `build/`，提交核对见 [commit-checkpoint-20261117](../../build/xs/commit-checkpoint-20261117/)。

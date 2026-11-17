@@ -34,6 +34,21 @@ int main(int argc, char **argv) {
                 throw std::runtime_error("CV32_EVENT_REGIONS_SHARED must be 0 or 1");
             schedule.eventRegionsShared = std::string(mode) == "1";
         }
+        if (const char *mode = std::getenv("CV32_SHARED_EVENT_REGIONS_COST_GUARD")) {
+            if (std::string(mode) != "0" && std::string(mode) != "1")
+                throw std::runtime_error("CV32_SHARED_EVENT_REGIONS_COST_GUARD must be 0 or 1");
+            schedule.eventRegionsSharedCostGuard = std::string(mode) == "1";
+        }
+        if (const char *mode = std::getenv("CV32_SHARED_EVENT_REGIONS_CYCLE_REFINEMENT")) {
+            if (std::string(mode) != "0" && std::string(mode) != "1")
+                throw std::runtime_error("CV32_SHARED_EVENT_REGIONS_CYCLE_REFINEMENT must be 0 or 1");
+            schedule.eventRegionsSharedCycleRefinement = std::string(mode) == "1";
+        }
+        if (const char *mode = std::getenv("CV32_SHARED_EVENT_REGIONS_CONNECTED")) {
+            if (std::string(mode) != "0" && std::string(mode) != "1")
+                throw std::runtime_error("CV32_SHARED_EVENT_REGIONS_CONNECTED must be 0 or 1");
+            schedule.eventRegionsSharedConnected = std::string(mode) == "1";
+        }
         manager.addPass(std::make_unique<transform::ActivitySchedulePass>(schedule));
         transform::PassDiagnostics pd;
         auto result = manager.run(design, pd);
