@@ -47,6 +47,11 @@
 | [TNO0043](./TNO0043_cv32_series_xiangshan_codegen_lineage_20261116.md) | 回溯生产diff与冻结C++/ELF：3,090共享候选未消除计算边界，7个packed view被simplify降级，indexed-concat存在2KiB捕获准备；全图静态对齐，无新跑分 |
 | [TNO0044](./TNO0044_connected_shared_candidates_20261116.md) | 计算连通组件与完整激活匹配；三对初测 XS/full −8.07%、CV32/full −0.57%；XS 与关闭共享的差异 CI 跨零 |
 | [TNO0045](./TNO0045_pre_cv32_vs_connected_formal_20261117.md) | 优化前74d80cf与最新候选正式八对：walltime −0.0692%，CI [−0.1485%, −0.0075%]，基本回到优化前水平；直接结果替代跨轮估算 |
+| [TNO0046](./TNO0046_cv32_xiangshan_optimization_asymmetry_20261117.md) | 跨模型综合归因：CV32表示修复覆盖率高，XS仍有控制/边界成本；当前ELF核实17指令packed读取和2KiB快照捕获，无新增跑分 |
+| [TNO0047](./TNO0047_aligned_array_element_reads_20261117.md) | 对齐元素单word读取：XS 128处替换、目标读取17→8条静态指令，但三对wall +0.65%；CV32无命中且关键ELF节相同，规则保持关闭 |
+| [TNO0048](./TNO0048_shared_conditional_arm_closures_20261117.md) | 既有mux分支吸收共享scalar闭包：XS新增33596个操作、CV32新增163个；固定三对wall分别−0.36%/−0.51%，双模型功能门通过，默认关闭 |
+| [TNO0049](./TNO0049_indexed_concat_snapshot_arrays_20261117.md) | indexed-concat紧凑快照：ROB 2KiB指针闭包→256B数组；CV32三对wall −6.25%，XS −0.042%且CI跨零，默认关闭 |
+| [TNO0050](./TNO0050_indexed_snapshot_default_20261117.md) | 紧凑快照数组默认开启；保留显式关闭与父级开关，核对默认源码与已测候选一致，不新增跑分 |
 
 入口：[runner](../../scripts/cv32e40p_compare.py)、[testbench 与使用说明](../../testcase/cv32e40p-bench/README.md)。
 初始复现：[report.json](../../build/cv32e40p/run2/report.json)。
