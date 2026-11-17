@@ -18,7 +18,7 @@ from compare_f31_dce_equivalence import capture_actual_state, compare
 from semantic_node_exchange import verify_bundle, verify_snapshot
 
 ROOT = Path(__file__).resolve().parents[1]
-STATIC_FILES = {'nodes.tsv', 'connections.tsv'}
+STATIC_FILES = {'nodes.tsv', 'connections.tsv', 'bit-slices.tsv', 'node-endpoints.tsv'}
 TRACE_FILES = {'before.nodes.tsv', 'before.connections.tsv', 'evolution.tsv',
                'after.nodes.tsv', 'after.connections.tsv'}
 
@@ -377,7 +377,7 @@ class RawFirrtlDcePipelineTests(unittest.TestCase):
                         self.assertIn(expected_context, contexts)
                         expected_reason = ('array_update_group_pruning' if expected_context == 'named'
                                            else 'undemanded_operand_defined_zero')
-                        expected_kind = 'kArrayUpdate' if expected_context == 'named' else 'kConcat'
+                        expected_kind = 'kCombArrayUpdate' if expected_context == 'named' else 'kConcat'
                         self.assertTrue(any(reasons[support['mutation_id']] == expected_reason and
                                             expected_kind in target_kinds[support['target_node_id']]
                                             for support in context_supports))

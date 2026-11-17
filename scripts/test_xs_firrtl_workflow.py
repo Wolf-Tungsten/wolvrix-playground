@@ -160,6 +160,9 @@ class XsFirrtlWorkflowTests(unittest.TestCase):
             firrtl_grh_pipeline([("hier-flatten", {})])
 
     def test_f24_firrtl_pipeline_order_is_explicit(self):
+        for name, options in firrtl_canonical_pipeline():
+            if name in ("expr-opt", "used-bits", "split-nodes"):
+                self.assertEqual(options["semantics"], "2state")
         self.assertEqual([name for name, _ in firrtl_canonical_pipeline()], [
             "xmr-resolve", "hier-flatten", "comb-loop-elim", "split-static-array",
             "dead-code-elim", "expr-opt", "used-bits", "split-nodes",

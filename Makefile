@@ -418,6 +418,19 @@ test_f28_semantic_comparison:
 	@set -o pipefail; TMPDIR="$(abspath $(F28_WORK))/comparison-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_semantic_bitvector.py' -v 2>&1 | tee "$(F28_WORK)/comparison-tests/bitvector.log"
 	@set -o pipefail; TMPDIR="$(abspath $(F28_WORK))/comparison-tests" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_compare_f28_semantic_tree.py' -v 2>&1 | tee "$(F28_WORK)/comparison-tests/test.log"
 
+# Frozen GSIM binary for the F32 formal no-export/no-trace benchmark group.
+F32_GSIM_BENCH_BUILD ?= $(F32_WORK)/phase6/gsim-build
+F32_GSIM_BENCH_GMP_ROOT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F26/gsim-upstream/gmp/root
+.PHONY: f32_gsim_benchmark_build
+f32_gsim_benchmark_build:
+	@mkdir -p "$(F32_WORK)/phase6/build"
+	@set -o pipefail; f32_build_log="$(F32_WORK)/phase6/build/gsim-build-$$(date -u +%Y%m%dT%H%M%S%N).log"; \
+		CXXFLAGS="-I$(abspath $(F32_GSIM_BENCH_GMP_ROOT))/usr/include/x86_64-linux-gnu" \
+		LIBRARY_PATH="$(abspath $(F32_GSIM_BENCH_GMP_ROOT))/usr/lib/x86_64-linux-gnu" \
+		$(MAKE) --no-print-directory -C "$(REPO_ROOT)/reference/gsim" build-gsim \
+		BUILD_DIR="$(abspath $(F32_GSIM_BENCH_BUILD))" \
+		2>&1 | tee "$$f32_build_log"
+
 # Legacy F26 source-SID analysis and F27 offline replay entry points retired by F28.
 
 F29_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F29
@@ -716,6 +729,194 @@ test_f30_array_update:
 	@TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target $(F30_TEST_TARGETS) -j 4 > "$(F30_WORK)/tests/build.log" 2>&1
 	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '$(F30_TEST_REGEX)' --output-on-failure --timeout 120 2>&1 | tee "$(F30_WORK)/tests/test.log"
 
+F32_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F32
+F32_TEST_TARGETS ?= transform-f32-foundation transform-f32-used-bits transform-f32-used-bits-array-state transform-f32-observable-boundaries transform-f32-split-nodes transform-f32-split-unknown-literals transform-f32-pipeline array-update-tests op-descriptor-tests grh-semantic-tree grh-semantic-node-details store-semantic-tree-json transform-pass-manager grhsim-dialect-tests grhsim-transform-tests transform-verify transform-dead-code-elim transform-dce-array-update firrtl-array-update store-json
+F32_TEST_REGEX ?= ^(transform-f32-(foundation|used-bits|used-bits-array-state|observable-boundaries|split-nodes|split-unknown-literals|pipeline)|array-update-tests|op-descriptor-tests|grh-semantic-tree|grh-semantic-node-details|store-semantic-tree-json|transform-pass-manager|grhsim-dialect-tests|grhsim-transform-tests|transform-verify|transform-dead-code-elim|transform-dce-array-update|firrtl-array-update|store-json)$$
+.PHONY: test_f32_foundation test_f32_passes test_f32_used_bits test_f32_split_nodes
+test_f32_used_bits:
+	@$(MAKE) --no-print-directory test_f32_passes F32_TEST_TARGETS=transform-f32-used-bits F32_TEST_REGEX='^transform-f32-used-bits$$' F32_WORK="$(F32_WORK)/used-bits"
+test_f32_split_nodes:
+	@$(MAKE) --no-print-directory test_f32_passes F32_TEST_TARGETS=transform-f32-split-nodes F32_TEST_REGEX='^transform-f32-split-nodes$$' F32_WORK="$(F32_WORK)/split-nodes"
+test_f32_foundation test_f32_passes:
+	@mkdir -p "$(F32_WORK)/tests" $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
+	@TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) > "$(F32_WORK)/tests/configure.log" 2>&1
+	@TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target $(F32_TEST_TARGETS) -j 4 > "$(F32_WORK)/tests/build.log" 2>&1
+	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '$(F32_TEST_REGEX)' --output-on-failure --timeout 180 2>&1 | tee "$(F32_WORK)/tests/test.log"
+
+F32_CAPTURE_ENGINE ?= grh
+F32_CAPTURE_WORK ?= $(F32_WORK)/capture/$(F32_CAPTURE_ENGINE)
+F32_PACKAGE ?= $(F32_WORK)/candidate/package
+F32_GSIM_BINARY ?= $(F32_WORK)/gsim-dev/build/gsim/gsim
+F32_CAPTURE_ARGS ?= --dump-structure
+F32_COMPARE_WORK ?= $(F32_WORK)/comparison
+F32_COMPARE_GRH ?= $(F32_WORK)/capture/grh
+F32_COMPARE_GSIM ?= $(F32_WORK)/capture/gsim
+F32_COMPARE_ARGS ?=
+F32_INVENTORY_WORK ?= $(F32_WORK)/inventory-report
+F32_INVENTORY_STAGE ?= P4
+F32_BENCH_GROUP ?= $(F32_WORK)/phase6/formal-group
+F32_BENCH_REPORT ?= $(F32_WORK)/phase6/performance-report
+F32_USED_BITS_PROFILE ?= $(F32_WORK)/phase6/used-bits-profile
+F32_USED_BITS_PROFILE_ARGS ?=
+.PHONY: report_f32_inventory test_f32_inventory_report benchmark_f32_passes compare_f32_performance
+.PHONY: test_f32_benchmark_contract test_f32_performance_contract f32_gsim_window_timer_smoke
+.PHONY: profile_f32_used_bits
+profile_f32_used_bits:
+	@mkdir -p "$(abspath $(dir $(F32_USED_BITS_PROFILE)))" "$(F32_WORK)/phase6/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F32_WORK))/phase6/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/profile_f32_used_bits.py \
+		--firrtl "$(abspath $(F29_FULL_INPUT))" --manifest "$(abspath $(F29_FULL_MANIFEST))" \
+		--package "$(abspath $(F32_PACKAGE))" --output "$(abspath $(F32_USED_BITS_PROFILE))" \
+		$(F32_USED_BITS_PROFILE_ARGS) \
+		2>&1 | tee "$(abspath $(F32_USED_BITS_PROFILE)).log"
+test_f32_benchmark_contract:
+	@mkdir -p "$(F32_WORK)/phase6/tests" "$(F32_WORK)/tmp"
+	@set -o pipefail; F32_BENCHMARK_TEST_ROOT="$(abspath $(F32_WORK))/phase6/tests/benchmark-contract" TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_benchmark_f32_passes.py' -v 2>&1 | tee "$(F32_WORK)/phase6/tests/benchmark-contract.log"
+test_f32_performance_contract:
+	@mkdir -p "$(F32_WORK)/phase6/tests" "$(F32_WORK)/tmp"
+	@set -o pipefail; F32_PERFORMANCE_TEST_ROOT="$(abspath $(F32_WORK))/phase6/tests/performance-contract" TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_compare_f32_performance.py' -v 2>&1 | tee "$(F32_WORK)/phase6/tests/performance-contract.log"
+benchmark_f32_passes: f32_gsim_benchmark_build
+	@mkdir -p "$(abspath $(dir $(F32_BENCH_GROUP)))" "$(F32_WORK)/phase6/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F32_WORK))/phase6/tmp" SQLITE_TMPDIR="$(abspath $(F32_WORK))/phase6/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/benchmark_f32_passes.py \
+		--firrtl "$(abspath $(F29_FULL_INPUT))" --manifest "$(abspath $(F29_FULL_MANIFEST))" \
+		--package "$(abspath $(F32_PACKAGE))" --binary "$(abspath $(F32_GSIM_BENCH_BUILD))/gsim/gsim" \
+		--source-root "$(abspath reference/gsim)" --output "$(abspath $(F32_BENCH_GROUP))" $(F32_BENCH_ARGS) 2>&1 | tee "$(abspath $(F32_BENCH_GROUP)).log"
+compare_f32_performance:
+	@mkdir -p "$(abspath $(dir $(F32_BENCH_REPORT)))" "$(F32_WORK)/phase6/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F32_WORK))/phase6/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_f32_performance.py \
+		--benchmark "$(abspath $(F32_BENCH_GROUP))/results.json" --output "$(abspath $(F32_BENCH_REPORT))" 2>&1 | tee "$(abspath $(F32_BENCH_REPORT)).log"
+f32_gsim_window_timer_smoke:
+	@mkdir -p "$(F32_WORK)/phase6/tests/gsim-window-smoke/model"
+	@"$(abspath $(F32_GSIM_BENCH_BUILD))/gsim/gsim" --dir "$(abspath $(F32_WORK))/phase6/tests/gsim-window-smoke/model" \
+		--stop-after-stage=RemoveDeadNodes1 --timing-output="$(abspath $(F32_WORK))/phase6/tests/gsim-window-smoke/timing.jsonl" \
+		reference/gsim/test/post-dce-semantic-nodes.fir > "$(F32_WORK)/phase6/tests/gsim-window-smoke/run.log" 2>&1
+	@$(PYTHON) -c 'import json, pathlib; p=pathlib.Path("$(abspath $(F32_WORK))/phase6/tests/gsim-window-smoke/timing.jsonl"); rows=[json.loads(x) for x in p.read_text().splitlines() if x]; w=[x for x in rows if x.get("scope")=="window"]; assert len(w)==1 and w[0]["stage"]=="F32Window" and w[0]["pass_instance"]=="F32Window#0" and w[0]["complete"] is True; print(json.dumps(w[0], sort_keys=True))'
+test_f32_inventory_report:
+	@mkdir -p "$(F32_WORK)/tool-tests" "$(F32_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_report_f32_inventory.py' -v 2>&1 | tee "$(F32_WORK)/tool-tests/inventory-report-contract.log"
+report_f32_inventory:
+	@mkdir -p "$(abspath $(dir $(F32_INVENTORY_WORK)))" "$(F32_WORK)/tmp"
+	@TMPDIR="$(abspath $(F32_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/report_f32_inventory.py \
+		--grh "$(abspath $(F32_COMPARE_GRH))" --gsim "$(abspath $(F32_COMPARE_GSIM))" \
+		--output "$(abspath $(F32_INVENTORY_WORK))" --stage "$(F32_INVENTORY_STAGE)" > "$(abspath $(F32_INVENTORY_WORK)).log" 2>&1
+.PHONY: test_f32_capture_contract test_f32_semantics_contract capture_f32_pipeline compare_f32_semantics
+test_f32_capture_contract:
+	@mkdir -p "$(F32_WORK)/tool-tests" "$(F32_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_capture_f32_pipeline.py' -v 2>&1 | tee "$(F32_WORK)/tool-tests/capture-contract.log"
+test_f32_semantics_contract:
+	@mkdir -p "$(F32_WORK)/tool-tests" "$(F32_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_compare_f32_semantics.py' -v 2>&1 | tee "$(F32_WORK)/tool-tests/semantics-contract.log"
+capture_f32_pipeline:
+	@mkdir -p "$(abspath $(dir $(F32_CAPTURE_WORK)))" "$(F32_WORK)/tmp"
+	@TMPDIR="$(abspath $(F32_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/capture_f32_pipeline.py \
+		--engine "$(F32_CAPTURE_ENGINE)" --firrtl "$(abspath $(F29_FULL_INPUT))" --manifest "$(abspath $(F29_FULL_MANIFEST))" \
+		--package "$(abspath $(F32_PACKAGE))" --binary "$(abspath $(F32_GSIM_BINARY))" --source-root "$(abspath reference/gsim)" \
+		--output "$(abspath $(F32_CAPTURE_WORK))" $(F32_CAPTURE_ARGS) > "$(abspath $(F32_CAPTURE_WORK)).log" 2>&1
+compare_f32_semantics:
+	@mkdir -p "$(abspath $(dir $(F32_COMPARE_WORK)))" "$(F32_WORK)/tmp"
+	@TMPDIR="$(abspath $(F32_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_f32_semantics.py \
+		--grh "$(abspath $(F32_COMPARE_GRH))" --gsim "$(abspath $(F32_COMPARE_GSIM))" --output "$(abspath $(F32_COMPARE_WORK))" $(F32_COMPARE_ARGS) > "$(abspath $(F32_COMPARE_WORK)).log" 2>&1
+
+F32_SEED_SOURCE ?=
+F32_SEED_WORK ?= $(F32_WORK)/comparison-seeded
+F32_SEED_REUSE ?= grh:P0 grh:P1 grh:P2
+.PHONY: seed_f32_inventory test_f32_inventory_seed_contract
+seed_f32_inventory:
+	@mkdir -p "$(abspath $(dir $(F32_SEED_WORK)))" "$(F32_WORK)/tmp"
+	@TMPDIR="$(abspath $(F32_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/seed_f32_inventory.py \
+		--source-comparison "$(abspath $(F32_SEED_SOURCE))" --grh "$(abspath $(F32_COMPARE_GRH))" \
+		--gsim "$(abspath $(F32_COMPARE_GSIM))" --output "$(abspath $(F32_SEED_WORK))" \
+		$(foreach part,$(F32_SEED_REUSE),--reuse $(part)) > "$(abspath $(F32_SEED_WORK)).log" 2>&1
+test_f32_inventory_seed_contract:
+	@mkdir -p "$(F32_WORK)/tool-tests" "$(F32_WORK)/seed-contract-tmp" "$(F32_WORK)/tmp"
+	@set -o pipefail; F32_SEED_TEST_ROOT="$(abspath $(F32_WORK))/seed-contract-tmp" TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_seed_f32_inventory.py' -v 2>&1 | tee "$(F32_WORK)/tool-tests/inventory-seed-contract.log"
+
+F32_IDENTITY_BEFORE ?= $(F32_WORK)/capture-v12/grh
+F32_IDENTITY_AFTER ?= $(F32_WORK)/capture-v15/grh
+F32_IDENTITY_WORK ?= $(F32_WORK)/capture-data-identity
+.PHONY: audit_f32_capture_identity test_f32_capture_identity_contract
+audit_f32_capture_identity:
+	@mkdir -p "$(abspath $(dir $(F32_IDENTITY_WORK)))" "$(F32_WORK)/tmp"
+	@TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/audit_f32_capture_identity.py \
+		--before "$(abspath $(F32_IDENTITY_BEFORE))" --after "$(abspath $(F32_IDENTITY_AFTER))" \
+		--output "$(abspath $(F32_IDENTITY_WORK))" > "$(abspath $(F32_IDENTITY_WORK)).log" 2>&1
+test_f32_capture_identity_contract:
+	@mkdir -p "$(F32_WORK)/tool-tests" "$(F32_WORK)/capture-identity-contract-tmp" "$(F32_WORK)/tmp"
+	@set -o pipefail; F32_CAPTURE_IDENTITY_TEST_ROOT="$(abspath $(F32_WORK))/capture-identity-contract-tmp" TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_audit_f32_capture_identity.py' -v 2>&1 | tee "$(F32_WORK)/tool-tests/capture-identity-contract.log"
+
+F32_STRUCTURE_STAGE ?= P0
+F32_STRUCTURE_WORK ?= $(F32_WORK)/structure-prebuild/$(F32_STRUCTURE_STAGE)
+F32_STRUCTURE_REUSE_FROM ?=
+.PHONY: index_f32_structure test_f32_structure_index_contract
+index_f32_structure:
+	@mkdir -p "$(abspath $(dir $(F32_STRUCTURE_WORK)))" "$(F32_WORK)/tmp"
+	@TMPDIR="$(abspath $(F32_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/index_f32_structure.py \
+		--grh "$(abspath $(F32_COMPARE_GRH))" --gsim "$(abspath $(F32_COMPARE_GSIM))" \
+		--stage "$(F32_STRUCTURE_STAGE)" --output "$(abspath $(F32_STRUCTURE_WORK))" \
+		$(if $(strip $(F32_STRUCTURE_REUSE_FROM)),--reuse-from "$(abspath $(F32_STRUCTURE_REUSE_FROM))") > "$(abspath $(F32_STRUCTURE_WORK)).log" 2>&1
+test_f32_structure_index_contract:
+	@mkdir -p "$(F32_WORK)/tool-tests" "$(F32_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F32_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_index_f32_structure.py' -v 2>&1 | tee "$(F32_WORK)/tool-tests/structure-index-contract.log"
+
+F32_PREFIX_CAPTURE ?= $(F32_COMPARE_GRH)
+F32_ORIGIN_COMPARISON ?= $(F32_COMPARE_WORK)
+F32_ORIGIN_WORK ?= $(F32_WORK)/window-origin-audit
+F32_ORIGIN_ARGS ?=
+.PHONY: audit_f32_window_origins test_f32_window_origin_contract
+audit_f32_window_origins:
+	@mkdir -p "$(abspath $(dir $(F32_ORIGIN_WORK)))"
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/audit_f32_window_origins.py \
+		--comparison "$(abspath $(F32_ORIGIN_COMPARISON))" --output "$(abspath $(F32_ORIGIN_WORK))" \
+		$(F32_ORIGIN_ARGS) > "$(abspath $(F32_ORIGIN_WORK)).log" 2>&1
+test_f32_window_origin_contract:
+	@mkdir -p "$(F32_WORK)/tool-tests" "$(F32_WORK)/origin-contract-tmp"
+	@set -o pipefail; F32_ORIGIN_TEST_ROOT="$(abspath $(F32_WORK))/origin-contract-tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_audit_f32_window_origins.py' -v 2>&1 | tee "$(F32_WORK)/tool-tests/window-origin-contract.log"
+
+F32_RECONSTRUCTION_COMPARISON ?= $(F32_COMPARE_WORK)
+F32_RECONSTRUCTION_WORK ?= $(F32_WORK)/reconstruction-certificates
+F32_RECONSTRUCTION_TARGETS ?=
+.PHONY: prove_f32_reconstruction test_f32_reconstruction_contract
+prove_f32_reconstruction:
+	@mkdir -p "$(abspath $(dir $(F32_RECONSTRUCTION_WORK)))" "$(F32_WORK)/tmp"
+	@TMPDIR="$(abspath $(F32_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/prove_f32_reconstruction.py \
+		--comparison "$(abspath $(F32_RECONSTRUCTION_COMPARISON))" --grh "$(abspath $(F32_COMPARE_GRH))" \
+		--gsim "$(abspath $(F32_COMPARE_GSIM))" --output "$(abspath $(F32_RECONSTRUCTION_WORK))" \
+		$(foreach target,$(F32_RECONSTRUCTION_TARGETS),--target $(target)) > "$(abspath $(F32_RECONSTRUCTION_WORK)).log" 2>&1
+test_f32_reconstruction_contract:
+	@mkdir -p "$(F32_WORK)/tool-tests" "$(F32_WORK)/reconstruction-contract-tmp" "$(F32_WORK)/tmp"
+	@set -o pipefail; F32_RECONSTRUCTION_TEST_ROOT="$(abspath $(F32_WORK))/reconstruction-contract-tmp" TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_prove_f32_reconstruction.py' -v 2>&1 | tee "$(F32_WORK)/tool-tests/reconstruction-contract.log"
+
+F32_PRESERVATION_COMPARISON ?= $(F32_COMPARE_WORK)
+F32_PRESERVATION_GRH ?= $(F32_COMPARE_GRH)
+F32_PRESERVATION_WORK ?= $(F32_WORK)/pass-preservation
+.PHONY: prove_f32_pass_preservation test_f32_pass_preservation_contract
+prove_f32_pass_preservation:
+	@mkdir -p "$(abspath $(dir $(F32_PRESERVATION_WORK)))" "$(F32_WORK)/tmp"
+	@TMPDIR="$(abspath $(F32_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/prove_f32_pass_preservation.py \
+		--comparison "$(abspath $(F32_PRESERVATION_COMPARISON))" --grh "$(abspath $(F32_PRESERVATION_GRH))" \
+		--output "$(abspath $(F32_PRESERVATION_WORK))" > "$(abspath $(F32_PRESERVATION_WORK)).log" 2>&1
+test_f32_pass_preservation_contract:
+	@mkdir -p "$(F32_WORK)/tool-tests" "$(F32_WORK)/preservation-contract-tmp" "$(F32_WORK)/tmp"
+	@set -o pipefail; F32_PRESERVATION_TEST_ROOT="$(abspath $(F32_WORK))/preservation-contract-tmp" TMPDIR="$(abspath $(F32_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_prove_f32_pass_preservation.py' -v 2>&1 | tee "$(F32_WORK)/tool-tests/pass-preservation-contract.log"
+
+F32_PREFIX_BASELINE ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F31/v51-helper-static-closure/grh/after
+F32_PREFIX_REPORT ?= $(F32_WORK)/prefix-audit.json
+F32_PREFIX_ARGS ?=
+.PHONY: audit_f32_prefix
+audit_f32_prefix:
+	@mkdir -p "$(abspath $(dir $(F32_PREFIX_REPORT)))"
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/audit_f32_prefix.py \
+		--capture "$(abspath $(F32_PREFIX_CAPTURE))" --baseline "$(abspath $(F32_PREFIX_BASELINE))" \
+		--output "$(abspath $(F32_PREFIX_REPORT))" $(F32_PREFIX_ARGS) > "$(abspath $(F32_PREFIX_REPORT)).log" 2>&1
+
+F32_CACHE_ROOTS ?= $(F32_WORK)/capture-v1/grh $(F32_WORK)/capture-v2/gsim $(F32_WORK)/capture-v3/gsim
+F32_CACHE_REPORT ?= $(F32_WORK)/closed-capture-cache-release.json
+.PHONY: release_f32_cache
+release_f32_cache:
+	@mkdir -p "$(abspath $(dir $(F32_CACHE_REPORT)))"
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/release_f32_cache.py \
+		$(foreach path,$(F32_CACHE_ROOTS),--root "$(abspath $(path))") \
+		--output "$(abspath $(F32_CACHE_REPORT))" > "$(abspath $(F32_CACHE_REPORT)).log" 2>&1
+
 F31_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F31
 F31_TEST_TARGETS ?= grh-semantic-node-details transform-f31-dce-alias-retirement transform-f31-dce-helper-ownership transform-f31-dce-write-coverage transform-f31-dce-singleton-index transform-f31-dce-singleton-state-index transform-dead-code-elim transform-dce-array-update grh-semantic-tree transform-pass-manager transform-comb-loop-elim transform-split-static-array transform-simplify
 F31_TEST_REGEX ?= ^(grh-semantic-node-details|transform-f31-dce-(alias-retirement|helper-ownership|write-coverage|singleton-index|singleton-state-index)|transform-dead-code-elim|transform-dce-array-update|grh-semantic-tree|transform-pass-manager|transform-comb-loop-elim|transform-split-static-array|transform-simplify)$$
@@ -891,12 +1092,14 @@ benchmark_f30_pipeline:
 F29_SPLIT_PROFILE_DIR ?= $(abspath $(F29_PASS_TRACE_WORK))/no-trace/profile
 F29_SPLIT_PROFILE_TIME ?=
 F29_SPLIT_PROFILE_REPORT ?= report
+F29_SPLIT_PROFILE_ARGS ?=
 .PHONY: report_f29_split_profile
 report_f29_split_profile:
 	@PERF_CONFIG=/dev/null PERF_BUILDID_DIR="$(F29_SPLIT_PROFILE_DIR)/build-id" XDG_CACHE_HOME="$(F29_SPLIT_PROFILE_DIR)/cache" \
 		perf report --stdio --no-children --no-inline --percent-limit 0.3 \
 		--symfs "$(F29_SPLIT_PROFILE_DIR)/symfs" -i "$(F29_SPLIT_PROFILE_DIR)/perf.data" \
 		$(if $(strip $(F29_SPLIT_PROFILE_TIME)),--time "$(F29_SPLIT_PROFILE_TIME)",) \
+		$(F29_SPLIT_PROFILE_ARGS) \
 		> "$(F29_SPLIT_PROFILE_DIR)/$(F29_SPLIT_PROFILE_REPORT).txt" 2> "$(F29_SPLIT_PROFILE_DIR)/$(F29_SPLIT_PROFILE_REPORT).log"
 
 .PHONY: test_f29_semantic_nodes test_f29_node_replay test_f29_gsim test_f29_pipeline capture_f29_semantic_tree compare_f29_semantic_tree

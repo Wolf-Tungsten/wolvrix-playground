@@ -14,7 +14,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from benchmark_f30_pipeline import ROOT
-from f30_resource_guard import (GuardLimits, PressureDeadline, ProcessMemoryUnavailable,
+from f30_resource_guard import (GuardLimits, PhaseDeadline, PressureDeadline, ProcessMemoryUnavailable,
                                 cgroup_memory, current_phase,
                                 find_cgroup, process_memory, run_guarded)
 from benchmark_f29_pass_trace import write_json_atomic
@@ -131,6 +131,37 @@ summary['status'] = 'passed'
                                     sampler=lambda pid, group: self.pressure_sample()), 1)
         self.assertEqual(self.guard()['reason'], 'cgroup_pressure')
         self.assertLess(self.guard()['last_sample']['process_bytes']['VmRSS'], self.limits.rss_bytes)
+
+    def test_phase_deadline_uses_native_call_start_and_resets_on_finished_phase(self):
+        deadline = PhaseDeadline({'split-nodes#0': 5})
+        phase = {'name': 'split-nodes#0', 'finished': False, 'started_monotonic_s': 10}
+        self.assertFalse(deadline.observe(phase, 14.9))
+        self.assertTrue(deadline.observe(phase, 15))
+        self.assertEqual(deadline.trigger['elapsed_s'], 5)
+        self.assertFalse(deadline.observe({**phase, 'finished': True}, 20))
+        self.assertFalse(deadline.observe({'name': 'P3-snapshot'}, 21))
+        self.assertFalse(deadline.observe({'name': 'split-nodes#0'}, 25))
+        self.assertTrue(deadline.observe({'name': 'split-nodes#0'}, 30))
+        for limits in ({'phase': 0}, {'phase': float('nan')}, {'': 1}):
+            with self.assertRaises(ValueError):
+                PhaseDeadline(limits)
+
+    def test_phase_timeout_stops_gil_blocked_child_and_preserves_trigger_before_signal(self):
+        started = time.monotonic()
+        self.assertEqual(run_guarded(self.child(delay=5, block_gil=True), self.work, self.limits,
+            phase_timeouts={'hier-flatten': 0.1}), 1)
+        self.assertLess(time.monotonic() - started, 2)
+        guard = self.guard()
+        self.assertEqual(guard['reason'], 'phase_timeout')
+        self.assertEqual(guard['phase_timeouts_s'], {'hier-flatten': 0.1})
+        self.assertEqual(guard['phase_timeout_trigger']['name'], 'hier-flatten')
+        self.assertGreaterEqual(guard['phase_timeout_trigger']['elapsed_s'], 0.1)
+        self.assertEqual(guard['phase']['name'], 'hier-flatten')
+        summary = json.loads((self.work / 'summary.json').read_text())
+        self.assertEqual(summary['status'], 'failed')
+        self.assertEqual(summary['termination']['reason'], 'phase_timeout')
+        self.assertEqual(summary['no_trace']['passes'], [])
+        self.assertNotIn('finished_at_ns', summary)
 
     def test_user_service_pressure_is_independent_and_available_sources_survive_degradation(self):
         service = self.work / 'cgroup/user@1000.service'

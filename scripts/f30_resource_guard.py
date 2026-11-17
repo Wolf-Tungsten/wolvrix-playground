@@ -129,6 +129,33 @@ class PressureDeadline:
         return now - self.started >= self.limits.psi_seconds
 
 
+class PhaseDeadline:
+    """Optional wall budgets observed outside the benchmark's native/GIL calls."""
+    def __init__(self, limits):
+        self.limits = dict(limits or {})
+        for name, seconds in self.limits.items():
+            if not isinstance(name, str) or not name or type(seconds) not in (int, float) or not math.isfinite(seconds) or seconds <= 0:
+                raise ValueError('phase timeout requires a nonempty name and positive finite seconds')
+        self.key = None
+        self.started = None
+        self.trigger = None
+
+    def observe(self, phase, now):
+        name = phase.get('name')
+        if name not in self.limits or phase.get('finished') is True:
+            self.key = self.started = self.trigger = None
+            return False
+        started = phase.get('started_monotonic_s')
+        key = (name, started)
+        if key != self.key:
+            self.key = key
+            self.started = started if type(started) in (float, int) and math.isfinite(started) else now
+        elapsed = max(0.0, now - self.started)
+        self.trigger = {'name': name, 'limit_s': self.limits[name],
+                        'started_monotonic_s': self.started, 'elapsed_s': elapsed}
+        return elapsed >= self.limits[name]
+
+
 def current_phase(output):
     """Read only small progress files; an incomplete native call has no duration."""
     try:
@@ -190,9 +217,10 @@ def annotate_summary(output, guard):
     write_json_atomic(summary, report)
 
 
-def run_guarded(command, output, limits=GuardLimits(), *, sampler=None):
+def run_guarded(command, output, limits=GuardLimits(), *, sampler=None, phase_timeouts=None):
     """Supervise a private child in this PID namespace, independently of its GIL."""
     limits.validate()
+    phase_deadline = PhaseDeadline(phase_timeouts)
     output = Path(output)
     guard_path, samples_path = output / 'guard.json', output / 'resources.samples.jsonl'
     if guard_path.exists() or samples_path.exists():
@@ -203,6 +231,8 @@ def run_guarded(command, output, limits=GuardLimits(), *, sampler=None):
              'scope': 'benchmark process RSS; cgroup charged memory includes other processes and file cache',
              'limitation': 'sampled RSS stop is not a hard memory cap and can overshoot between samples',
              'samples': str(samples_path), 'sample_count': 0, 'returncode': None}
+    if phase_deadline.limits:
+        guard['phase_timeouts_s'] = phase_deadline.limits
     write_json_atomic(guard_path, guard)
     pending_signal = []
     def receive_signal(number, frame):
@@ -225,7 +255,7 @@ def run_guarded(command, output, limits=GuardLimits(), *, sampler=None):
         with samples_path.open('x', encoding='utf-8') as stream:
             while child.poll() is None:
                 now = time.monotonic()
-                if now - phase_at >= 1.0:
+                if phase_deadline.limits or now - phase_at >= 1.0:
                     phase, phase_at = current_phase(output), now
                 if pending_signal:
                     reason = 'supervisor_signal'
@@ -261,6 +291,9 @@ def run_guarded(command, output, limits=GuardLimits(), *, sampler=None):
                 elif deadline.observe(sample, now):
                     reason = 'cgroup_pressure'
                     guard['pressure_trigger'] = deadline.trigger
+                elif phase_deadline.observe(phase, now):
+                    reason = 'phase_timeout'
+                    guard['phase_timeout_trigger'] = phase_deadline.trigger
                 if reason:
                     sample['phase'] = current_phase(output)
                 stream.write(json.dumps(sample, separators=(',', ':')) + '\n')

@@ -279,9 +279,9 @@ def finish_simulation_graph(session, *, design: str, top: str,
         # pass around expression cleanup, used-bit narrowing, node splitting,
         # and constant propagation before lowering to GrhSIM.
         run("dead-code-elim", keep_declared_symbols=False)
-        run("expr-opt")
-        run("used-bits")
-        run("split-nodes")
+        run("expr-opt", semantics="2state")
+        run("used-bits", semantics="2state")
+        run("split-nodes", semantics="2state")
         # SplitNodes creates slice-specific producers and leaves complete
         # reachability cleanup to the caller, matching GSIM's RemoveDeadNodes1
         # boundary.

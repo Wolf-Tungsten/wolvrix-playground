@@ -95,6 +95,9 @@ int main() {
                              "alias-analysis", "pattern-detect", "comm-expr"):
                     self.assertIn(name, executed)
                 self.assertEqual(executed.count("dead-code-elim"), 4)
+                for call in passes.call_args_list:
+                    if call.args[1] in ("expr-opt", "used-bits", "split-nodes"):
+                        self.assertEqual(call.kwargs["semantics"], "2state")
                 self.assertLess(executed.index("dead-code-elim"), executed.index("expr-opt"))
                 self.assertLess(executed.index("expr-opt"), executed.index("used-bits"))
                 self.assertLess(executed.index("used-bits"), executed.index("split-nodes"))
