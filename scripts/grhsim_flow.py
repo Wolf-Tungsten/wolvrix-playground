@@ -286,7 +286,7 @@ def finish_simulation_graph(session, *, design: str, top: str,
         # reachability cleanup to the caller, matching GSIM's RemoveDeadNodes1
         # boundary.
         run("dead-code-elim", keep_declared_symbols=False)
-        run("constant-analysis")
+        run("constant-analysis", semantics="2state")
         run("dead-code-elim", keep_declared_symbols=False)
         run("alias-analysis")
         run("pattern-detect")

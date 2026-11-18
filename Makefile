@@ -421,11 +421,12 @@ test_f28_semantic_comparison:
 # Frozen GSIM binary for the F32 formal no-export/no-trace benchmark group.
 F32_GSIM_BENCH_BUILD ?= $(F32_WORK)/phase6/gsim-build
 F32_GSIM_BENCH_GMP_ROOT ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F26/gsim-upstream/gmp/root
+F32_GSIM_BENCH_CXXFLAGS ?=
 .PHONY: f32_gsim_benchmark_build
 f32_gsim_benchmark_build:
 	@mkdir -p "$(F32_WORK)/phase6/build"
 	@set -o pipefail; f32_build_log="$(F32_WORK)/phase6/build/gsim-build-$$(date -u +%Y%m%dT%H%M%S%N).log"; \
-		CXXFLAGS="-I$(abspath $(F32_GSIM_BENCH_GMP_ROOT))/usr/include/x86_64-linux-gnu" \
+		CXXFLAGS="-I$(abspath $(F32_GSIM_BENCH_GMP_ROOT))/usr/include/x86_64-linux-gnu $(F32_GSIM_BENCH_CXXFLAGS)" \
 		LIBRARY_PATH="$(abspath $(F32_GSIM_BENCH_GMP_ROOT))/usr/lib/x86_64-linux-gnu" \
 		$(MAKE) --no-print-directory -C "$(REPO_ROOT)/reference/gsim" build-gsim \
 		BUILD_DIR="$(abspath $(F32_GSIM_BENCH_BUILD))" \
@@ -742,6 +743,96 @@ test_f32_foundation test_f32_passes:
 	@TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR) > "$(F32_WORK)/tests/configure.log" 2>&1
 	@TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target $(F32_TEST_TARGETS) -j 4 > "$(F32_WORK)/tests/build.log" 2>&1
 	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '$(F32_TEST_REGEX)' --output-on-failure --timeout 180 2>&1 | tee "$(F32_WORK)/tests/test.log"
+
+F33_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F33
+F33_GSIM_BUILD ?= $(F33_WORK)/gsim-build
+F33_GSIM_BINARY ?= $(F33_GSIM_BUILD)/gsim/gsim
+F33_TEST_TARGETS ?= transform-f33-constant-analysis transform-f33-constant-state transform-f33-pipeline
+F33_TEST_REGEX ?= ^transform-f33-(constant-analysis|constant-state|pipeline)$$
+F33_INPUT ?= $(F28_INPUT)
+F33_MANIFEST ?= $(REPO_ROOT)/ptmp/semantic-bindings/F26/grh/ingest-request.json
+F33_PACKAGE ?= $(F33_WORK)/candidate/package
+F33_CAPTURE_ENGINE ?= grh
+F33_CAPTURE_MODE ?= capture
+F33_CAPTURE_OUTPUT ?= $(F33_WORK)/$(F33_CAPTURE_MODE)/$(F33_CAPTURE_ENGINE)
+F33_CAPTURE_ARGS ?=
+F33_REFERENCE ?=
+F33_TEST_PYTHONPATH ?=
+.PHONY: f33_gsim_build test_f33_passes test_f33_guard test_f33_capture_contract test_f33_native_batch test_f33_flow_contract capture_f33_pipeline
+f33_gsim_build:
+	@$(MAKE) --no-print-directory f32_gsim_benchmark_build F32_WORK="$(F33_WORK)" F32_GSIM_BENCH_BUILD="$(F33_GSIM_BUILD)"
+test_f33_passes:
+	@$(MAKE) --no-print-directory test_f32_passes F32_WORK="$(F33_WORK)" F32_TEST_TARGETS="$(F33_TEST_TARGETS)" F32_TEST_REGEX='$(F33_TEST_REGEX)'
+test_f33_guard:
+	@mkdir -p "$(F33_WORK)/tool-tests" "$(F33_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F33_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_f33_guard.py' -v 2>&1 | tee "$(F33_WORK)/tool-tests/guard.log"
+test_f33_capture_contract:
+	@mkdir -p "$(F33_WORK)/tool-tests" "$(F33_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F33_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_capture_f33_pipeline.py' -v 2>&1 | tee "$(F33_WORK)/tool-tests/capture.log"
+test_f33_native_batch:
+	@mkdir -p "$(F33_WORK)/tool-tests" "$(F33_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F33_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(F33_TEST_PYTHONPATH):$(CURDIR)/scripts" $(PYTHON) -m unittest discover -s scripts -p 'test_f33_native_batch.py' -v 2>&1 | tee "$(F33_WORK)/tool-tests/native-batch.log"
+test_f33_flow_contract:
+	@mkdir -p "$(F33_WORK)/tool-tests" "$(F33_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F33_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(CURDIR)/scripts" $(PYTHON) -m unittest -v test_xs_firrtl_workflow.XsFirrtlWorkflowTests.test_f24_firrtl_pipeline_order_is_explicit test_grhsim_flow.FlowTest.test_nonsink_semantic_tree_configuration_validation 2>&1 | tee "$(F33_WORK)/tool-tests/flow.log"
+capture_f33_pipeline:
+	@mkdir -p "$(F33_WORK)/tmp" "$(F33_WORK)/launch"
+	@set -o pipefail; TMPDIR="$(abspath $(F33_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F33_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/capture_f33_pipeline.py \
+		--mode="$(F33_CAPTURE_MODE)" --engine="$(F33_CAPTURE_ENGINE)" --firrtl="$(abspath $(F33_INPUT))" \
+		--manifest="$(abspath $(F33_MANIFEST))" --package="$(abspath $(F33_PACKAGE))" --binary="$(abspath $(F33_GSIM_BINARY))" \
+		--output="$(abspath $(F33_CAPTURE_OUTPUT))" $(if $(F33_REFERENCE),--reference="$(abspath $(F33_REFERENCE))",) $(F33_CAPTURE_ARGS) \
+		2>&1 | tee "$(F33_WORK)/launch/$(F33_CAPTURE_MODE)-$(F33_CAPTURE_ENGINE)-$$(date -u +%Y%m%dT%H%M%S%N).log"
+
+F33_PERFORMANCE_WORK ?= $(F33_WORK)/phase5/formal-v1
+F33_PERFORMANCE_PACKAGE ?= $(F33_PERFORMANCE_WORK)/package
+F33_PERFORMANCE_GSIM_BUILD ?= $(F33_PERFORMANCE_WORK)/gsim-build
+F33_PERFORMANCE_GROUP ?= $(F33_PERFORMANCE_WORK)/group
+F33_PERFORMANCE_REPORT ?= $(F33_PERFORMANCE_WORK)/report
+F33_PERFORMANCE_REPEATS ?= 3
+F33_PERFORMANCE_RSS_GIB ?= 144
+.PHONY: snapshot_f33_performance_package build_f33_performance_gsim test_f33_performance_contract smoke_f33_performance_timers benchmark_f33_performance compare_f33_performance
+snapshot_f33_performance_package:
+	@mkdir -p "$(F33_PERFORMANCE_WORK)/package-log"
+	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/snapshot_f30_package.py \
+		--output "$(abspath $(F33_PERFORMANCE_PACKAGE))" \
+		--existing-package "$(abspath $(F33_WORK)/assert-prune/candidate-v3/package)" \
+		--build-cache "$(abspath $(WOLVRIX_DIR))/build/skbuild/CMakeCache.txt" \
+		--source-root "$(abspath $(WOLVRIX_DIR))" \
+		> "$(abspath $(F33_PERFORMANCE_WORK))/package-log/snapshot.log" 2>&1
+build_f33_performance_gsim:
+	@$(MAKE) --no-print-directory f32_gsim_benchmark_build F32_WORK="$(F33_PERFORMANCE_WORK)" \
+		F32_GSIM_BENCH_BUILD="$(F33_PERFORMANCE_GSIM_BUILD)" \
+		F32_GSIM_BENCH_CXXFLAGS="-DNR_THREAD=1"
+test_f33_performance_contract:
+	@mkdir -p "$(F33_PERFORMANCE_WORK)/tests" "$(F33_PERFORMANCE_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F33_PERFORMANCE_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 \
+		$(PYTHON) -m unittest discover -s scripts -p 'test_compare_f33_performance.py' -v \
+		2>&1 | tee "$(abspath $(F33_PERFORMANCE_WORK))/tests/compare.log"
+smoke_f33_performance_timers:
+	@mkdir -p "$(F33_PERFORMANCE_WORK)/tests/timer-smoke"
+	@set -o pipefail; "$(if $(F33_PERFORMANCE_GSIM_BINARY),$(abspath $(F33_PERFORMANCE_GSIM_BINARY)),$(abspath $(F33_PERFORMANCE_GSIM_BUILD))/gsim/gsim)" \
+		--dir="$(abspath $(F33_PERFORMANCE_WORK))/tests/timer-smoke/model" \
+		--stop-after-stage=RemoveDeadNodes2 \
+		--timing-output="$(abspath $(F33_PERFORMANCE_WORK))/tests/timer-smoke/timing.jsonl" \
+		--stage-events="$(abspath $(F33_PERFORMANCE_WORK))/tests/timer-smoke/events.jsonl" \
+		--run-id=f33-window-smoke reference/gsim/test/post-dce-semantic-nodes.fir \
+		> "$(abspath $(F33_PERFORMANCE_WORK))/tests/timer-smoke/run.log" 2>&1
+	@$(PYTHON) -c 'import json,pathlib; p=pathlib.Path("$(abspath $(F33_PERFORMANCE_WORK))/tests/timer-smoke/timing.jsonl"); r=[json.loads(x) for x in p.read_text().splitlines() if x]; q=[x for x in r if x.get("scope")=="pass"]; w=[x for x in r if x.get("scope")=="window"]; assert [(x["stage"],x["pass_instance"]) for x in q[-2:]]==[("ConstantAnalysis","ConstantAnalysis#0"),("RemoveDeadNodes2","RemoveDeadNodes#1")]; assert len(w)==1 and w[0]["stage"]=="F33Window" and w[0]["pass_instance"]=="F33Window#0" and w[0]["wall_s"]>=sum(x["wall_s"] for x in q[-2:]); print(json.dumps({"passes":q[-2:],"window":w[0]},sort_keys=True))'
+benchmark_f33_performance: build_f33_performance_gsim
+	@mkdir -p "$(abspath $(dir $(F33_PERFORMANCE_GROUP)))" "$(abspath $(F33_PERFORMANCE_WORK))/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F33_PERFORMANCE_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/benchmark_f33_performance.py \
+		--firrtl "$(abspath $(F29_FULL_INPUT))" --manifest "$(abspath $(F29_FULL_MANIFEST))" \
+		--package "$(abspath $(F33_PERFORMANCE_PACKAGE))" \
+		--binary "$(abspath $(F33_PERFORMANCE_GSIM_BUILD))/gsim/gsim" \
+		--source-root "$(abspath reference/gsim)" --output "$(abspath $(F33_PERFORMANCE_GROUP))" \
+		--repeats "$(F33_PERFORMANCE_REPEATS)" --rss-gib "$(F33_PERFORMANCE_RSS_GIB)" \
+		2>&1 | tee "$(abspath $(F33_PERFORMANCE_GROUP)).log"
+compare_f33_performance:
+	@mkdir -p "$(abspath $(dir $(F33_PERFORMANCE_REPORT)))"
+	@set -o pipefail; PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/compare_f33_performance.py \
+		--benchmark "$(abspath $(F33_PERFORMANCE_GROUP))/results.json" \
+		--output "$(abspath $(F33_PERFORMANCE_REPORT))" \
+		2>&1 | tee "$(abspath $(F33_PERFORMANCE_REPORT)).log"
 
 F32_CAPTURE_ENGINE ?= grh
 F32_CAPTURE_WORK ?= $(F32_WORK)/capture/$(F32_CAPTURE_ENGINE)

@@ -1252,3 +1252,28 @@ F32 的计划、退出条件、完整进展、前驱审核项和工具说明统�
 范围为第一次 DCE（不含）后的 ExprOpt、UsedBits、SplitNodes 与第二次 DCE（含）。
 前驱及 ingest 的语义修复仍须明确人工批准。
 本轮按用户要求严格使用二值解释，集中修改后统一测试；历史四态证据不重标。
+
+## F33：ConstantAnalysis 与第三次 DCE 对齐
+
+状态 **F33.1–3 已通过有界功能验证，F33.4 首轮全图对照与 F33.5 首轮正式采样已完成（2026-11-18）**。
+范围为第二次DCE（不含）→ConstantAnalysis→第三次DCE（含），仅两个pass、
+Q0/Q1/Q2三界；AliasAnalysis、PatternDetect、CommonExpr与后端不在本轮范围。
+
+分7步：冻结Q0与身份→GSIM参考/两倍守卫→组合常量和Node维护→状态/memory/效果
+→第三DCE及全图功能对照→正式性能优化与验收→文档收尾。
+功能测试先行，但任一对应pass运行达到GSIM同pass两倍预算仍未完成，立即终止
+该轮并转该pass性能优化；回归并回到两倍内后恢复原功能步骤，不原地等待或加宽预算。
+正式性能验收仍独立使用原定GSIM对齐门，不以两倍门代替。
+
+F33.1–3 已交付显式二值组合常量、有序组合数组、新 Node 维护、初始化状态和
+memory 归纳证明及实时守卫。原生3/3（含真实FIRRTL十步
+状态oracle）、既有20/20、guard21/21、capture12/12通过。组合及状态/memory两个
+fixture各完成三次GSIM独立新图batch16参考，GRH两pass均在2倍内并完整到Q2。
+历史第三DCE超限触发native批次调用优化，失败产物保留；最终安装API6/6、flow2/2及
+既有回归20/20通过，已完成本轮有界实施范围。
+香山第三次 DCE 共回收 1,009,108 个 GRH Node。正式采样中，第三次 DCE 与连续
+窗口通过，ConstantAnalysis 超出正式上限 0.956 秒。逐项功能归因与最终验收待完成。
+
+唯一计划与后续进展入口为
+[F33-constant-analysis-dce-alignment-plan.md](F33-constant-analysis-dce-alignment-plan.md)。
+继承F32已接受结果及未证事项；前驱修复仍需独立明确批准。

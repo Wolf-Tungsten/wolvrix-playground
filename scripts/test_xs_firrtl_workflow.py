@@ -161,14 +161,19 @@ class XsFirrtlWorkflowTests(unittest.TestCase):
 
     def test_f24_firrtl_pipeline_order_is_explicit(self):
         for name, options in firrtl_canonical_pipeline():
-            if name in ("expr-opt", "used-bits", "split-nodes"):
+            if name in ("expr-opt", "used-bits", "split-nodes", "constant-analysis"):
                 self.assertEqual(options["semantics"], "2state")
-        self.assertEqual([name for name, _ in firrtl_canonical_pipeline()], [
+        pipeline = firrtl_canonical_pipeline()
+        self.assertEqual([name for name, _ in pipeline], [
             "xmr-resolve", "hier-flatten", "comb-loop-elim", "split-static-array",
             "dead-code-elim", "expr-opt", "used-bits", "split-nodes",
             "dead-code-elim", "constant-analysis", "dead-code-elim",
             "alias-analysis", "pattern-detect", "comm-expr", "dead-code-elim",
         ])
+        dce = [options for name, options in pipeline if name == "dead-code-elim"]
+        self.assertNotIn("drop_disabled_firrtl_assertions", dce[0])
+        self.assertNotIn("drop_disabled_firrtl_assertions", dce[1])
+        self.assertTrue(dce[2]["drop_disabled_firrtl_assertions"])
 
     def test_timed_diagnostic_failure_records_failed(self):
         journal = self.work / "timed-failure.jsonl"

@@ -63,6 +63,17 @@ GRH Node，其中5,604,205个有唯一GSIM同名候选，占99.62505091%，不�
 删除量差99,770尚未逐项归因，严格全图语义证明未完成；U1/U2/U4未批准、未应用，
 前驱/ingest修复仍须单独批准。最终接受范围、数据和限制见F32 §9.36。
 
+[F33](F33-constant-analysis-dce-alignment-plan.md) 于2026-11-18推进F33.1–3：组合常量、
+新Node/有序数组、状态/memory证明与GSIM参考/实时守卫已实现，原生3/3、既有回归20/20、
+guard21/21及capture12/12通过。两个实际batch16 fixture配对完整到Q2且两pass均在2倍内；
+安装API6/6、flow2/2及最终既有回归20/20通过，F33.1–3在有界支持范围内完成。
+曾触发第三DCE两倍门并先优化native批次调用，旧失败保留。
+范围为第二次DCE之后的`ConstantAnalysis → 第三次DCE`。香山全图首轮对照已完成，
+GRH 第三次 DCE 删除 1,009,108 个 Node，比局部规则对齐前多删除 187,114 个。
+正式性能采样中，第三次 DCE 和连续窗口通过，ConstantAnalysis 超出正式门 0.956 秒。
+功能期每个pass强制受同输入/配置GSIM参考的2倍时限保护；运行中超限即终止、
+先优化该pass，再恢复功能对齐。AliasAnalysis等后续pass不在本阶段范围。
+
 目标是在 Wolvrix 内实现不依赖 CIRCT 的 FIRRTL 前端，与现有 SV 前端共同
 构建设计。FIRRTL `node` 与 ops 的关联以 attribute 保存；普通 GRH 优化与
 仿真转换不受来源标注限制，允许跨 node CSE、内联、重关联和 DCE。分图
@@ -114,6 +125,7 @@ GRH Node，其中5,604,205个有唯一GSIM同名候选，占99.62505091%，不�
 | [F30-array-update.md](F30-array-update.md) | 多维、多次有序组合数组更新 op；v7 全图重放/差异分类完成，v11 专项 27/27、原生大图 trace 校验通过；性能实测获用户接受，本轮优化停止，原定自动门失败数据保留，峰值 RSS 82.63 GiB |
 | [F31-dce-alignment-plan.md](F31-dce-alignment-plan.md) | 首次 DCE 与新 Node 对齐已完成；v51 最终静态同名对应率 99.67992900%，剩余差异冻结 |
 | [F32-post-dce-pass-alignment-plan.md](F32-post-dce-pass-alignment-plan.md) | F32 唯一文档：阶段计划、实施进展、前驱审核项、工具合同和验证范围 |
+| [F33-constant-analysis-dce-alignment-plan.md](F33-constant-analysis-dce-alignment-plan.md) | 第二次至第三次 DCE 窗口的实施、全图对照与正式性能结果 |
 | [pass-optimization-20261101.md](pass-optimization-20261101.md) | 保留完整优化的 flatten/simplify 实现加速、严格 A/B 与 20 分钟整机复测 |
 | [F10-components.md](F10-components.md) | 真实代表模块的双路线比较、激励、记分板及当前证据 |
 | [F10-replacer.md](F10-replacer.md) | AheadBtbReplacer 独立 PLRU 记分板、四路线执行与 reference 断言缩减 |
@@ -182,6 +194,7 @@ GRH Node，其中5,604,205个有唯一GSIM同名候选，占99.62505091%，不�
 | [F30](F30-array-update.md) | 多维、单次到多次组合数组更新 op 与 ingest→split-static-array | 新 op/主流程已实现，对齐继续（2026-11-14）；双端生产 split 命名修复及完整香山核验通过：原始 Node 保名，新成员避让活跃/待生成/本 pass 退休名字，5 例已知身份误配消除，208 个公共路径重名 Node 降为 0。GRH/GSIM 后态仍为 9,328,200 / 9,635,014 Node，唯一名称候选 9,298,160（占 GRH 99.67796574%），缺项 30,040 / 336,854。专项 27/27、命名检查器 10/10、双端原生重放与开关 trace 回归通过；本轮完整 trace 诊断 comb＋split 52.168 s。v11 旧名称映射下连接差 885,376 / 960,642、GRH 来源歧义 518,889 保留为基线，当前映射连接差未重算，跨端演化/功能等价未证明。用户已接受 v11 性能（no-trace/trace 中位数 48.314 / 53.399 s，旧自动门失败保留），GSIM 派生硬上限仍 91.808 s；本轮未重做正式性能验收，后端仿真性能未验收 |
 | [F31](F31-dce-alignment-plan.md) | F28 新树上的独立 DCE、Node 身份回收及 GSIM 对照 | **已完成（2026-11-16，按用户要求以 v51 收尾）**；DCE 后 GRH 5,635,937 个 Node 中，5,617,898 个在 GSIM DCE 后有唯一同名对应，最终占比 **99.67992900%**。未配对 18,039 项作为已知差异冻结；13/13 原生及 snapshot API 回归通过，完整最终库存保留，旧中间数据/一次性工具已清理；未启 trace、未做 trace 校验，不宣称整机功能等价 |
 | [F32](F32-post-dce-pass-alignment-plan.md) | 第一次 DCE（不含）到第二次 DCE（含）的 SemanticNode、组合数组更新与 GSIM 对齐 | **2026-11-18按用户初步接受当前结果与性能收尾**；保留v31，联合20/20通过，停止性能优化。P4唯一同名率99.62505091%；第二DCE删除GRH21,717 / GSIM121,487，差额99,770未逐项归因。严格全图语义及正式性能门未通过；U1/U2/U4未批准未应用，U3四态不属二值行为门。最终记录见§9.36 |
+| [F33](F33-constant-analysis-dce-alignment-plan.md) | 第二次 DCE（不含）至第三次 DCE（含）的 ConstantAnalysis 与新 Node、组合数组更新对齐 | **香山首轮全图对照和正式性能采样已完成**。GRH Q2 共 4,616,189 个 Node，99.5743% 有唯一 GSIM 同名候选。第三次 DCE 和连续窗口通过正式门，ConstantAnalysis 超出 0.956 秒。逐项功能归因与最终验收待完成。 |
 
 F08 曾以本地 GSIM `a3ecb26` 的 `commonExpr()` 为依据保留源表达式边界。
 当前方案保留 simplify 自由：之后才按提示/MFFC 形成执行 node，再按
