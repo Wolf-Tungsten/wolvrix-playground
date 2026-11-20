@@ -149,6 +149,37 @@ ACTIVITY_SCHEDULE_EXPLICIT_OPTIONS = {
 
 
 class XsGrhsimOptionTest(unittest.TestCase):
+    def test_expression_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            rtl = root / "Logic.sv"
+            rtl.write_text("module Logic(input [7:0] a, b, output y); assign y = a && b; endmodule\n")
+            filelist = root / "input.f"
+            filelist.write_text(str(rtl) + "\n")
+            base = {k: v for k, v in os.environ.items() if not k.startswith("WOLVRIX_")}
+
+            def emit(label, **settings):
+                out = root / label
+                result = subprocess.run(
+                    [sys.executable, str(SCRIPT), str(filelist), "Logic", str(out), "", ""],
+                    env={**base, **settings}, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                return ("".join(path.read_text() for path in sorted(out.glob("*_sched_*.cpp"))),
+                        (out / "Makefile").read_text())
+
+            default_schedule, default_make = emit("default")
+            self.assertIn("!(!(", default_schedule)
+            self.assertIn("-x86-cmov-converter-force-mem-operand=false", default_make)
+            self.assertEqual((default_schedule, default_make), emit("explicit",
+                WOLVRIX_GRHSIM_LOGIC_EAGER_OPERAND_CHARS="4096", WOLVRIX_GRHSIM_KEEP_X86_MEMORY_CMOV="1"))
+            short_circuit, same_make = emit("short-circuit", WOLVRIX_GRHSIM_LOGIC_EAGER_OPERAND_CHARS="0")
+            self.assertIn(") && (", short_circuit)
+            self.assertNotIn("!(!(", short_circuit)
+            self.assertEqual(same_make, default_make)
+            same_schedule, plain_make = emit("plain-compiler", WOLVRIX_GRHSIM_KEEP_X86_MEMORY_CMOV="0")
+            self.assertEqual(same_schedule, default_schedule)
+            self.assertNotIn("-x86-cmov-converter-force-mem-operand", plain_make)
+
     def test_accumulate_bank_from_rtl_and_checkpoints(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -245,13 +276,34 @@ class XsGrhsimOptionTest(unittest.TestCase):
         self.assertEqual(FORMAT_OPTIONAL_FLAG(True), "True")
 
     def test_activity_schedule_sparse_clean_environment_is_empty(self) -> None:
-        base = {
-            key: value
-            for key, value in os.environ.items()
-            if key not in ACTIVITY_SCHEDULE_SPARSE_ENV_NAMES
-        }
-        with patch.dict(os.environ, base, clear=True):
+        with patch.dict(os.environ, {}, clear=True):
             self.assertEqual(READ_ACTIVITY_SCHEDULE_SPARSE_OPTIONS(), {})
+
+    def test_event_region_group_reaches_activity_schedule(self) -> None:
+        for value in ("0", "1"):
+            with patch.dict(os.environ, {"WOLVRIX_XS_GRHSIM_EVENT_REGIONS": value}, clear=True):
+                options = READ_ACTIVITY_SCHEDULE_SPARSE_OPTIONS()
+                self.assertEqual(options, dict.fromkeys(
+                    ("event_regions", "event_regions_shared", "event_regions_shared_connected"), value == "1"))
+                _compile_run_pass("activity-schedule", [], {"path": "SimTop", **options})
+
+    def test_emitter_groups_only_override_their_own_flags(self) -> None:
+        groups = {
+            "CONDITIONAL_MUX": ("CONDITIONAL_MUX_CONES", "CONDITIONAL_MUX_INPUT_CACHE", "CONDITIONAL_MUX_SHARED_ARM"),
+            "COVERED_STATE_VIEWS": ("COVERED_STATE_VIEW_NOTIFICATIONS", "COVERED_STATE_VIEW_INLINE",
+                                    "COVERED_STATE_VIEW_COMPOSITION", "COVERED_STATE_VIEW_COMPOSITION_INLINE"),
+        }
+        inherited = {f"WOLVRIX_GRHSIM_{flags[0]}": "1" for flags in groups.values()}
+        configure = MODULE["configure_emitter_groups"]
+        with patch.dict(os.environ, inherited, clear=True):
+            self.assertEqual(configure(), {})
+            self.assertEqual(dict(os.environ), inherited)
+        for group, flags in groups.items():
+            for value in ("1", "0"):
+                settings = {**inherited, "WOLVRIX_XS_GRHSIM_" + group: value}
+                with self.subTest(group=group, value=value), patch.dict(os.environ, settings, clear=True):
+                    self.assertEqual(configure(), {group.lower(): value == "1"})
+                    self.assertEqual(dict(os.environ), {**settings, **{"WOLVRIX_GRHSIM_" + f: value for f in flags}})
 
     def test_activity_schedule_sparse_explicit_values(self) -> None:
         with patch.dict(os.environ, ACTIVITY_SCHEDULE_EXPLICIT_ENV, clear=True):

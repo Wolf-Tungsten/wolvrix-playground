@@ -225,6 +225,10 @@ ACTIVITY_SCHEDULE_SPARSE_STRING_OPTIONS = (
 
 def read_activity_schedule_sparse_options() -> dict[str, str | int | bool]:
     options: dict[str, str | int | bool] = {}
+    if "WOLVRIX_XS_GRHSIM_EVENT_REGIONS" in os.environ:
+        enabled = env_flag("WOLVRIX_XS_GRHSIM_EVENT_REGIONS")
+        options.update(event_regions=enabled, event_regions_shared=enabled,
+                       event_regions_shared_connected=enabled)
     for env_name, option_name in ACTIVITY_SCHEDULE_SPARSE_BOOL_OPTIONS:
         if env_name in os.environ:
             options[option_name] = env_flag(env_name)
@@ -235,6 +239,25 @@ def read_activity_schedule_sparse_options() -> dict[str, str | int | bool]:
         if env_name in os.environ:
             options[option_name] = os.environ[env_name].strip()
     return options
+
+
+def configure_emitter_groups() -> dict[str, bool]:
+    # The native emitter reads these individual flags from its environment.
+    # Leave individual overrides alone unless an XS group is explicitly set.
+    settings = {}
+    for group, flags in (
+        ("CONDITIONAL_MUX", ("CONDITIONAL_MUX_CONES", "CONDITIONAL_MUX_INPUT_CACHE",
+                             "CONDITIONAL_MUX_SHARED_ARM")),
+        ("COVERED_STATE_VIEWS", ("COVERED_STATE_VIEW_NOTIFICATIONS", "COVERED_STATE_VIEW_INLINE",
+                                 "COVERED_STATE_VIEW_COMPOSITION", "COVERED_STATE_VIEW_COMPOSITION_INLINE")),
+    ):
+        name = "WOLVRIX_XS_GRHSIM_" + group
+        if name in os.environ:
+            enabled = env_flag(name)
+            settings[group.lower()] = enabled
+            for flag in flags:
+                os.environ["WOLVRIX_GRHSIM_" + flag] = str(int(enabled))
+    return settings
 
 
 def read_final_sibling_fusion_options() -> dict[str, str | int]:
@@ -664,6 +687,8 @@ def main() -> int:
     if not storage_ref_aliases_env_was_set:
         os.environ["WOLVRIX_GRHSIM_STORAGE_REF_ALIASES"] = "0"
     storage_ref_aliases_setting = os.environ["WOLVRIX_GRHSIM_STORAGE_REF_ALIASES"]
+    logic_eager_operand_chars = os.environ.setdefault("WOLVRIX_GRHSIM_LOGIC_EAGER_OPERAND_CHARS", "4096")
+    keep_x86_memory_cmov = os.environ.setdefault("WOLVRIX_GRHSIM_KEEP_X86_MEMORY_CMOV", "1")
     stop_after_pre_sched = env_flag("WOLVRIX_XS_GRHSIM_STOP_AFTER_PRE_SCHED", default=False)
     stop_after_activity_schedule = env_flag("WOLVRIX_XS_GRHSIM_STOP_AFTER_ACTIVITY_SCHEDULE", default=False)
     export_compute_dag = os.environ.get("WOLVRIX_XS_GRHSIM_EXPORT_COMPUTE_DAG", "").strip()
@@ -740,6 +765,7 @@ def main() -> int:
     deferred_activation_forward_options = read_deferred_activation_forward_options()
     same_batch_activation_cohort_options = read_same_batch_activation_cohort_options()
     sparse_options = read_activity_schedule_sparse_options()
+    emitter_groups = configure_emitter_groups()
     final_sibling_fusion_options = read_final_sibling_fusion_options()
     sparse_options.update(final_sibling_fusion_options)
     comb_lane_pack_report = os.environ.get(
@@ -761,6 +787,9 @@ def main() -> int:
         f"max_op_in_compute_node={max_op_in_compute_node} "
         f"split_oversize_compute_nodes={split_oversize_compute_nodes} "
         f"split_oversize_compute_node_max_ops={split_oversize_compute_node_max_ops} "
+        f"event_regions={format_native_default_option(sparse_options, 'event_regions')} "
+        f"conditional_mux={emitter_groups.get('conditional_mux', 'individual-flags')} "
+        f"covered_state_views={emitter_groups.get('covered_state_views', 'individual-flags')} "
         f"max_op_in_commit_supernode="
         f"{format_native_default_option(sparse_options, 'max_op_in_commit_supernode')} "
         f"commit_guard_event_buckets="
@@ -770,6 +799,7 @@ def main() -> int:
         f"sched_batch_target_count={sched_batch_target_count} "
         f"sched_batches_per_cpp={sched_batches_per_cpp} "
         f"emit_parallelism={emit_parallelism} "
+        f"logic_eager_operand_chars={logic_eager_operand_chars} keep_x86_memory_cmov={keep_x86_memory_cmov} "
         f"storage_ref_aliases={storage_ref_aliases_setting}"
         f"{'' if storage_ref_aliases_env_was_set else '(xs_default)'} "
         f"export_compute_dag={export_compute_dag_path if export_compute_dag_path is not None else 'off'} "

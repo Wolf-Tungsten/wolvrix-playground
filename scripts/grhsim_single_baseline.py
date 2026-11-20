@@ -217,6 +217,14 @@ class Baseline:
             requested_fold = self.args.sim_primitives == 'decode-table'
         self.constant_decode_fold = bool(requested_fold)
         self.accumulate_bank = getattr(args, 'accumulate_bank', True)
+        self.logic_eager_operand_chars = getattr(args, 'logic_eager_operand_chars', None)
+        if self.logic_eager_operand_chars is not None and self.logic_eager_operand_chars < 0:
+            raise ValueError('logic eager operand length must be nonnegative')
+        self.keep_x86_memory_cmov = getattr(args, 'keep_x86_memory_cmov', None)
+        self.optimization_groups = {
+            name: getattr(args, name) for name in ('event_regions', 'conditional_mux', 'covered_state_views')
+            if getattr(args, name, None) is not None
+        }
         self.scalar_concat_reduction = getattr(args, 'scalar_concat_reduction', 'default')
         if self.scalar_concat_reduction not in ('default', 'on', 'off'):
             raise ValueError('scalar concat reduction must be default, on or off')
@@ -317,6 +325,9 @@ class Baseline:
             difftest_packed_delay_regs=self.difftest_packed_delay_regs,
             constant_decode_fold=self.constant_decode_fold,
             accumulate_bank=self.accumulate_bank,
+            logic_eager_operand_chars_override=self.logic_eager_operand_chars,
+            keep_x86_memory_cmov_override=self.keep_x86_memory_cmov,
+            optimization_group_overrides=self.optimization_groups,
             scalar_concat_reduction=self.scalar_concat_reduction,
             model_flags='-std=c++20 -O3 -march=native',harness_flags='-O3',pgo=False,bolt=False,
             diagnostic_instrumentation=False,source_driver=identity(__file__),python=sys.executable,
@@ -428,6 +439,12 @@ class Baseline:
         if self.scalar_concat_reduction != 'default':
             env['WOLVRIX_GRHSIM_SCALAR_CONCAT_REDUCTION'] = str(
                 int(self.scalar_concat_reduction == 'on'))
+        if self.logic_eager_operand_chars is not None:
+            env['WOLVRIX_GRHSIM_LOGIC_EAGER_OPERAND_CHARS'] = str(self.logic_eager_operand_chars)
+        if self.keep_x86_memory_cmov is not None:
+            env['WOLVRIX_GRHSIM_KEEP_X86_MEMORY_CMOV'] = str(int(self.keep_x86_memory_cmov))
+        for name, enabled in self.optimization_groups.items():
+            env['WOLVRIX_XS_GRHSIM_' + name.upper()] = str(int(enabled))
         model_manifest = self.out/'chisel-home/build/simulation_models.json'
         if model_manifest.is_file():
             env['WOLVRIX_SIMULATION_MODELS_MANIFEST'] = str(model_manifest)
@@ -700,6 +717,16 @@ def main():
     parser.add_argument('--sim-primitives',choices=['none','priority-encode','popcount','popcount-ge4','gray-decode','decode-table'],default='none')
     parser.add_argument('--accumulate-bank', action=argparse.BooleanOptionalAction, default=True,
         help='bank eligible print-only counters during GrhSIM generation (default: on)')
+    parser.add_argument('--logic-eager-operand-chars', type=int,
+        help='override the eager AND/OR operand length at emission (0 disables it)')
+    parser.add_argument('--keep-x86-memory-cmov', action=argparse.BooleanOptionalAction, default=None,
+        help='override the x86 Clang memory-cmov policy written to the generated model Makefile')
+    parser.add_argument('--event-regions', action=argparse.BooleanOptionalAction, default=None,
+        help='group single-terminal and connected shared event regions at scheduling')
+    parser.add_argument('--conditional-mux', action=argparse.BooleanOptionalAction, default=None,
+        help='emit conditional mux cones with input caching and shared-arm handling')
+    parser.add_argument('--covered-state-views', action=argparse.BooleanOptionalAction, default=None,
+        help='use covering register notifications and inline direct and composed state views')
     parser.add_argument('--scalar-concat-reduction',choices=['default','on','off'],default='default',
         help='override the GrhSIM emitter parent rule for a matched build comparison')
     parser.add_argument('--sim-models',type=model_mode,default='hardware')
