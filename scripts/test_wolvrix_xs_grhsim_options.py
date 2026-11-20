@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 
+import json
 import os
 import runpy
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -145,6 +149,63 @@ ACTIVITY_SCHEDULE_EXPLICIT_OPTIONS = {
 
 
 class XsGrhsimOptionTest(unittest.TestCase):
+    def test_accumulate_bank_from_rtl_and_checkpoints(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            rtl = root / "Counters.sv"
+            counters = [
+                f"""logic [63:0] q{i};
+                    always_ff @(posedge clk) begin
+                        q{i} <= clear ? 64'b0 : q{i} + step[{i * 64} +: 64];
+                        if (dump) $display("%h", q{i});
+                    end"""
+                for i in range(4)
+            ]
+            rtl.write_text("module Counters(input clk, clear, dump, input [255:0] step);\n"
+                           + "\n".join(counters) + "\nendmodule\n")
+            filelist = root / "input.f"
+            filelist.write_text(str(rtl) + "\n")
+            base = {k: v for k, v in os.environ.items() if not k.startswith("WOLVRIX_")}
+
+            def emit(label, *, waveform="off", **settings):
+                out = root / label
+                result = subprocess.run(
+                    [sys.executable, str(SCRIPT), str(filelist), "Counters", str(out), "", "",
+                     "--waveform", waveform], env={**base, **settings}, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                return result.stderr
+
+            def header(label):
+                return (root / label / "grhsim_Counters.hpp").read_text()
+
+            pre, post = root / "pre.json", root / "post.json"
+            report = root / "lanes.json"
+            emit("default", WOLVRIX_XS_GRHSIM_PRE_REG_TO_MEM_JSON=str(pre),
+                 WOLVRIX_XS_GRHSIM_POST_STATS_JSON=str(post), WOLVRIX_XS_GRHSIM_ENABLE_STATS="1",
+                 WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_REPORT=str(report))
+            bank = "std::array<std::uint64_t, 4> state_reg_to_mem_grhsim_accumulate_bank_"
+            self.assertIn(bank, header("default"))
+            self.assertEqual(json.loads(report.read_text()), [])
+            emit("on", WOLVRIX_XS_GRHSIM_ACCUMULATE_BANK="1")
+            for path in (root / "default").glob("grhsim_*.[ch]pp"):
+                self.assertEqual(path.read_bytes(), (root / "on" / path.name).read_bytes(), path.name)
+            for stage, key, checkpoint in (("PRE_REG_TO_MEM", "PRE_REG_TO_MEM", pre), ("STATS", "POST_STATS", post)):
+                with self.subTest(stage=stage):
+                    emit(stage, **{f"WOLVRIX_XS_GRHSIM_RESUME_FROM_{stage}_JSON": "1",
+                                   f"WOLVRIX_XS_GRHSIM_{key}_JSON": str(checkpoint)})
+                    self.assertIn(bank, header(stage))
+            emit("off", WOLVRIX_XS_GRHSIM_ACCUMULATE_BANK="0", WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_REPORT=str(report))
+            self.assertNotIn("grhsim_accumulate_bank", header("off"))
+            self.assertTrue((root / "off/wolvrix_xs_pre_reg_to_mem.json").exists())
+            self.assertTrue((root / "on/wolvrix_xs_pre_reg_to_mem_accumulate_bank.json").exists())
+            self.assertTrue(json.loads(report.read_text()))
+            emit("no_pack", WOLVRIX_XS_GRHSIM_SKIP_COMB_LANE_PACK="1")
+            self.assertIn(bank, header("no_pack"))
+            wave_log = emit("wave", waveform="declared-symbols", WOLVRIX_XS_GRHSIM_STOP_AFTER_ACTIVITY_SCHEDULE="1",
+                            WOLVRIX_XS_GRHSIM_COMB_LANE_PACK_REPORT=str(report))
+            self.assertNotIn("pass accumulate-sink start", wave_log)
+            self.assertTrue(json.loads(report.read_text()))
+
     def check_option(self, stem: str) -> None:
         high = f"WOLVRIX_XS_GRHSIM_{stem}"
         low = f"WOLVRIX_GRHSIM_{stem}"

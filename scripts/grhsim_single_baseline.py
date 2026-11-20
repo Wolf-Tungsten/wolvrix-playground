@@ -216,6 +216,7 @@ class Baseline:
         if requested_fold is None:
             requested_fold = self.args.sim_primitives == 'decode-table'
         self.constant_decode_fold = bool(requested_fold)
+        self.accumulate_bank = getattr(args, 'accumulate_bank', True)
         self.scalar_concat_reduction = getattr(args, 'scalar_concat_reduction', 'default')
         if self.scalar_concat_reduction not in ('default', 'on', 'off'):
             raise ValueError('scalar concat reduction must be default, on or off')
@@ -315,6 +316,7 @@ class Baseline:
             difftest_config=self.difftest_config,
             difftest_packed_delay_regs=self.difftest_packed_delay_regs,
             constant_decode_fold=self.constant_decode_fold,
+            accumulate_bank=self.accumulate_bank,
             scalar_concat_reduction=self.scalar_concat_reduction,
             model_flags='-std=c++20 -O3 -march=native',harness_flags='-O3',pgo=False,bolt=False,
             diagnostic_instrumentation=False,source_driver=identity(__file__),python=sys.executable,
@@ -406,6 +408,7 @@ class Baseline:
         defines='-D DIFFTEST\n' if self.model_difftest=='on' else ''
         (self.out/'read_args.txt').write_text(f'-I {rtl}\n-I {self.generated}\n-I {common}\n'+defines)
         env=dict(self.env,PYTHONPATH=str(self.tools/'python'),LD_LIBRARY_PATH=str(self.tools),
+            WOLVRIX_XS_GRHSIM_ACCUMULATE_BANK=str(int(self.accumulate_bank)),
             WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON=str(int(self.reuse_post_stats_from is not None)),
             WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON=str(
                 int(self.reuse_pre_reg_to_mem_from is not None)),
@@ -695,6 +698,8 @@ def main():
     parser.add_argument('--xs-source',type=Path,
         help='use an isolated XiangShan checkout, recording its source identities')
     parser.add_argument('--sim-primitives',choices=['none','priority-encode','popcount','popcount-ge4','gray-decode','decode-table'],default='none')
+    parser.add_argument('--accumulate-bank', action=argparse.BooleanOptionalAction, default=True,
+        help='bank eligible print-only counters during GrhSIM generation (default: on)')
     parser.add_argument('--scalar-concat-reduction',choices=['default','on','off'],default='default',
         help='override the GrhSIM emitter parent rule for a matched build comparison')
     parser.add_argument('--sim-models',type=model_mode,default='hardware')

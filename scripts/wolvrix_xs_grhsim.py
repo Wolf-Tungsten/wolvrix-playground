@@ -607,6 +607,18 @@ def write_comb_lane_pack_report(sess: wolvrix.Session, key: str, out_path: Path)
     log(f"comb-lane-pack report written {out_path} groups={len(raw)}")
 
 
+def checkpoint_path(directory: Path, stage: str, accumulate_bank: bool, resume: bool) -> Path:
+    override = os.environ.get(f"WOLVRIX_XS_GRHSIM_{stage.upper()}_JSON")
+    if override:
+        return Path(override).resolve()
+    legacy = directory / f"wolvrix_xs_{stage}.json"
+    path = legacy.with_stem(legacy.stem + "_accumulate_bank") if accumulate_bank else legacy
+    if resume and accumulate_bank and not path.exists() and legacy.is_file():
+        log(f"resuming legacy checkpoint {legacy}; only unpacked counters can be banked")
+        return legacy
+    return path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("filelist")
@@ -627,20 +639,12 @@ def main() -> int:
     json_out = args.json_out
     read_args_file = args.read_args_file
     log_level = args.log_level
-    post_stats_json = Path(
-        os.environ.get(
-            "WOLVRIX_XS_GRHSIM_POST_STATS_JSON",
-            str(cpp_out_dir / "wolvrix_xs_post_stats.json"),
-        )
-    ).resolve()
-    pre_reg_to_mem_json = Path(
-        os.environ.get(
-            "WOLVRIX_XS_GRHSIM_PRE_REG_TO_MEM_JSON",
-            str(cpp_out_dir / "wolvrix_xs_pre_reg_to_mem.json"),
-        )
-    ).resolve()
+    # Declared-symbol waveforms can observe intermediate counter update logic.
+    accumulate_bank = args.waveform == "off" and env_flag("WOLVRIX_XS_GRHSIM_ACCUMULATE_BANK", default=True)
     resume_from_stats_json = env_flag("WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON")
     resume_from_pre_reg_to_mem_json = env_flag("WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON")
+    post_stats_json = checkpoint_path(cpp_out_dir, "post_stats", accumulate_bank, resume_from_stats_json)
+    pre_reg_to_mem_json = checkpoint_path(cpp_out_dir, "pre_reg_to_mem", accumulate_bank, resume_from_pre_reg_to_mem_json)
     enable_stats = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_STATS", default=False)
     enable_mem_to_reg = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_MEM_TO_REG", default=False)
     mem_to_reg_row_limit = env_int("WOLVRIX_XS_GRHSIM_MEM_TO_REG_ROW_LIMIT", 64)
@@ -772,6 +776,7 @@ def main() -> int:
         f"waveform={args.waveform} perf={args.perf} "
         f"simplify_keep_declared_symbols={simplify_keep_declared_symbols} "
         f"skip_comb_lane_pack={skip_comb_lane_pack} "
+        f"accumulate_bank={accumulate_bank} "
         f"pre_reg_to_mem_json={pre_reg_to_mem_json} "
         f"resume_from_pre_reg_to_mem_json={resume_from_pre_reg_to_mem_json} "
         f"enable_stats={enable_stats} "
@@ -982,16 +987,13 @@ def main() -> int:
         if enable_stats:
             reg_to_mem_pipeline.append(("stats", {"out_stats": "stats.main"}))
         if not skip_comb_lane_pack:
-            pre_sched_pipeline.insert(
-                6,
-                (
-                    "comb-lane-pack",
-                    {
-                        "enable_declared_roots": False,
-                        "out_comb_lane_pack_report": "comb-lane-pack.reports",
-                    },
-                ),
-            )
+            lane_pack_options = {
+                "enable_declared_roots": False,
+                "out_comb_lane_pack_report": "comb-lane-pack.reports",
+            }
+            if accumulate_bank:
+                lane_pack_options["skip_accumulate_sinks"] = True
+            pre_sched_pipeline.insert(6, ("comb-lane-pack", lane_pack_options))
         else:
             log("comb-lane-pack disabled for this run")
         if enable_mem_to_reg:
@@ -1014,6 +1016,10 @@ def main() -> int:
                 },
             ),
         ]
+        # Both checkpoints hold ordinary register writes. Bank after either
+        # resume point, when only scheduling and GrhSIM emission remain.
+        if accumulate_bank:
+            post_sched_pipeline.insert(0, ("accumulate-sink", {"args": ["-mode=bank"]}))
         log(config_message)
 
         if resume_from_stats_json:

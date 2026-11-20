@@ -221,6 +221,7 @@ class DifftestBuildModeTests(unittest.TestCase):
             call=next(c for c in work.run.call_args_list if c.args[1]=='emit')
             env=call.args[2]
             self.assertEqual(env['WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON'],'1')
+            self.assertEqual(env['WOLVRIX_XS_GRHSIM_ACCUMULATE_BANK'],'1')
             self.assertEqual((work.out/'post_stats.json').read_bytes(),post_stats.read_bytes())
 
     def test_pre_reg_to_mem_reuse_preserves_later_passes(self):
@@ -230,7 +231,7 @@ class DifftestBuildModeTests(unittest.TestCase):
             pre_reg.write_text('{"frozen":true}')
             work=Baseline(argparse.Namespace(output=root/'out',compiler='/usr/bin/clang++',
                 tools_dir=None,sim_primitives='none',rtl_difftest='on',runtime_difftest='on',
-                model_difftest='on',compile_difftest='on',reuse_pre_reg_to_mem_from=pre_reg))
+                model_difftest='on',compile_difftest='on',reuse_pre_reg_to_mem_from=pre_reg,accumulate_bank=False))
             work.run=Mock()
             work.generated.mkdir(parents=True)
             (work.generated/'DifftestMacros.svh').write_text('')
@@ -240,6 +241,7 @@ class DifftestBuildModeTests(unittest.TestCase):
             call=next(c for c in work.run.call_args_list if c.args[1]=='emit')
             env=call.args[2]
             self.assertEqual(env['WOLVRIX_XS_GRHSIM_RESUME_FROM_PRE_REG_TO_MEM_JSON'],'1')
+            self.assertEqual(env['WOLVRIX_XS_GRHSIM_ACCUMULATE_BANK'],'0')
             self.assertEqual(env['WOLVRIX_XS_GRHSIM_RESUME_FROM_STATS_JSON'],'0')
             self.assertEqual((work.out/'pre_reg_to_mem.json').read_bytes(),pre_reg.read_bytes())
 
