@@ -1,0 +1,33 @@
+# ARMOR 节点压缩在 GrhSIM 上的评估
+
+| 记录 | 内容 |
+| --- | --- |
+| [TNO0001](./TNO0001_armor_node_compression_assessment_20261118.md) | ARMOR 论文的方法与实验口径、GrhSIM 已有的打包能力、冻结图上的静态核验（33.14% 的存活纯组合操作是一位按位运算）及首轮实验与停止条件；无新增计时 |
+| [TNO0002](./TNO0002_boolean_lane_experiment_20261118.md) | 同一活动区域内的一位节点压缩原型 `bool_lane_pack`：XiangShan 305 个包，受影响函数净增 6,459 条静态指令、24,024 B，按预定条件结束在机器码检查；walltime 未测，默认关闭 |
+| [TNO0003](./TNO0003_mask_input_direction_20261118.md) | 方向分析：下一轮优化共享归约掩码的输入收集，按物理槽位重排私有位号并合并读取；只做离线核对，预先约定检验与停止条件 |
+| [TNO0004](./TNO0004_reduction_mask_layout_20261118.md) | 掩码位号重排与八字节读取 `reduction_mask_layout`：XiangShan 27 个受影响批次少 11,502 条静态指令，八对 walltime +2.12%，CI [−1.46%, +7.47%] 跨零；CV32 零命中，默认关闭 |
+| [TNO0005](./TNO0005_post_mask_headroom_20261118.md) | 掩码布局每 guest cycle 少约 0.24% 的退休指令；按真实活动次数核对生成 C++ 与 ELF 后，下一轮优先同读者连续寄存器提交，其次用公共输入跳过整组归约 |
+| [TNO0006](./TNO0006_commit_and_common_guard_20261119.md) | 双模型八轮：同读者提交分组 walltime −2.845%，CI [−3.644%, −1.819%]；归约公共输入保护 `reduction_common_guard` 跳过 98.01% 的候选组访问、退休指令 −2.22%，walltime CI 跨零 |
+| [TNO0007](./TNO0007_reduction_common_guard_retest_20261119.md) | 归约公共输入保护独立复测：同一对 ELF 相邻交替，walltime −1.638%，CI [−2.096%, −1.089%]，8/8 更快；与提交分组的组合收益未测 |
+| [TNO0008](./TNO0008_frontend_bottleneck_and_direction_20261119.md) | 基线自顶向下定位：约 75% 的派发槽在等前端，86% 的取指填充来自 L2 之外，每 guest cycle 4.33 万次分支预测失败；方向排序为激活分发、提交成块比较、无条件热区内的节点压缩；仅分析 |
+| [TNO0009](./TNO0009_static_hot_set_20261119.md) | “每拍都跑”的 supernode：两条结构规则选出 3,088 个，3,086 个在 profile 热集合里，占 compute 求值量 9.4%；其余主要是性能计数器的更新逻辑，占 17.9%；仅分析 |
+| [TNO0010](./TNO0010_perf_counter_packing_20261119.md) | 性能计数器从 Chisel 到生成代码的打包路径：32,598 个计数器集中在 `LogPerfEndpoint`，占 `comb-lane-pack` 56,214 个被打包根的 57%，被并的只是复位和清零两层选择；无新运行 |
+| [TNO0011](./TNO0011_perf_counter_lowering_20261119.md) | 逐寄存器观察：每拍只有 1,524 个计数器在变，却重算 24,444 路、比较 32,598 次；建议提交时无条件成排累加，先用删除模式量上限；一次只读观察运行，无计时 |
+| [TNO0012](./TNO0012_perf_counter_bank_result_20261119.md) | `accumulate-sink` pass 与累加排，三模型八轮：删除计数器 walltime −27.99%，CI [−28.76%, −27.33%]；成排累加 −7.83%，CI [−8.46%, −7.25%]；差距来自设计侧事件逻辑和 22,402 个只为计数器存在的寄存器 |
+| [TNO0013](./TNO0013_commit_group_and_accumulate_bank_20261120.md) | 提交分组与成排累加四组八轮，单开相对全关分别为 −3.47% 和 −9.09%，双开为 −9.57%；双开相对只开成排累加为 −0.53%，CI [−1.66%, +0.76%] |
+| [TNO0014](./TNO0014_accumulate_bank_default_20261120.md) | XiangShan 单模型 GrhSIM 默认开启成排累加，支持显式关闭和从检查点恢复；声明信号波形走普通寄存器路径 |
+| [TNO0015](./TNO0015_accumulate_bank_default_regression_20261120.md) | 正式入口默认开启与显式关闭的性能回归，node030 CPU 96 八轮配对，CoreMark 10 万周期从 113.71 s 降到 102.42 s，walltime −9.93%，CI [−10.49%, −9.35%]，8/8 更快 |
+
+规则参考：[GrhSIM 文档管理规则](../grhsim_opt_thj/RULES.md)。评估对象是 Jiaping Tang 等发表于 MICRO 2026 的 ARMOR 论文，出处见 TNO0001。
+
+静态核验：[论文核对与图计数](../../build/armor-paper-review/)。
+一位节点压缩实验：[armor-lane-v1](../../build/armor-lane-v1/)，复现入口：[lane replay](../../scripts/armor_lane_replay.py)、[调度审计](../../scripts/armor_lane_audit.cpp)、[机器码对照](../../scripts/armor_lane_machine.py)。在机器码检查结束，保持默认关闭。
+掩码输入方向：[armor-direction-v2](../../build/armor-direction-v2/)。
+掩码布局实验：[armor-mask-read-v1](../../build/armor-mask-read-v1/)，复现入口：[mask layout compare](../../scripts/armor_mask_layout_compare.py)、[measure](../../scripts/armor_mask_layout_measure.py)。整机收益未确认，保持默认关闭。
+掩码之后的动态计数：[armor-post-mask-analysis-v1](../../build/armor-post-mask-analysis-v1/)。
+提交分组与公共输入保护：[armor-followup-v1](../../build/armor-followup-v1/)，复现入口：[followup compare](../../scripts/armor_followup_compare.py)、[measure](../../scripts/armor_followup_measure.py)；公共输入保护的复测在 [armor-reduction-common-guard-retest-v1](../../build/armor-reduction-common-guard-retest-v1/)。两项开关的全局默认均为关闭。
+瓶颈定位：[armor-bottleneck-review-v1](../../build/armor-bottleneck-review-v1/)。静态热集合：[armor-static-hotset-v1](../../build/armor-static-hotset-v1/)。
+性能计数器的打包与观察：[armor-perf-pack-v1](../../build/armor-perf-pack-v1/)。
+性能计数器的删除与成排累加：[armor-acc-v1](../../build/armor-acc-v1/)，复现入口：[acc compare](../../scripts/armor_acc_compare.py)、[measure](../../scripts/armor_acc_measure.py)，功能说明：[accumulate-sink](../../wolvrix/docs/transform/accumulate-sink.md)、[累加排](../../wolvrix/docs/emit/grhsim-accumulate-bank.md)。
+
+本系列从父仓 `8f5bbdc`、Wolvrix `59e0f1e` 开始。TNO0013 和 TNO0015 的逐轮计时 CSV 随文归档。完整模型、ELF、运行日志和诊断数据保存在本地 `build/` 目录。[四组对比样本](./data/TNO0013_commit_bank_samples.csv) · [默认选项回归样本](./data/TNO0015_default_bank_pairs.csv)
