@@ -107,7 +107,7 @@ def instrument_region_source(probes, name, source):
     return text
 
 
-def main(source, out, jobs, detailed=False, backend='grhsim_event_regions'):
+def main(source, out, jobs, detailed=False, backend='grhsim_event_regions', *, harness_path=None, extra_instrument=None):
     if out.exists(): raise FileExistsError('use a new diagnostic directory')
     manifest = json.loads((source / 'build.json').read_text())
     original = source / backend
@@ -122,7 +122,10 @@ def main(source, out, jobs, detailed=False, backend='grhsim_event_regions'):
     probes = RegionProbes() if detailed else Probes()
     for p in sorted(dest.glob('*.cpp')):
         if '_sched_' in p.name or p.name.endswith(('_eval.cpp', '_state.cpp')):
-            p.write_text(instrument_region_source(probes, p.name, p.read_text()))
+            source_text = p.read_text()
+            if extra_instrument is not None:
+                source_text = extra_instrument(probes, p.name, source_text)
+            p.write_text(instrument_region_source(probes, p.name, source_text))
     n = len(probes.entries)
     (dest / 'shape_counters.hpp').write_text('''#pragma once
 #include <array>
@@ -139,7 +142,7 @@ std::cout<<'['<<counts[i][0]<<','<<counts[i][1]<<','<<counts[i][2]<<','<<counts[
 std::cout<<"]}\\n";}
 }
 ''')
-    harness = (ROOT / 'build/cv32e40p/run2/inputs/fixture/harness.cpp').read_text()
+    harness = (harness_path or ROOT / 'build/cv32e40p/run2/inputs/fixture/harness.cpp').read_text()
     harness = '#include "shape_counters.hpp"\n' + harness
     harness = harness.replace('m.eval();', 'cv32_shape::phase=static_cast<unsigned>(m.clk_i); m.eval();')
     assert harness.count('        started = Clock::now();') == 1

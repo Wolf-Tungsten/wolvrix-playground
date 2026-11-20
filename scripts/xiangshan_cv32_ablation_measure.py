@@ -61,12 +61,12 @@ def summaries(rounds):
 
 
 @contextmanager
-def measurement_lock(path=LOCK):
-    """Fail promptly if another cooperating measurement owns CPU96."""
+def measurement_lock(path=LOCK, *, wait=False):
+    """Take the shared CPU96 lock. Callers may queue behind an active run."""
     path = Path(path); path.parent.mkdir(parents=True, exist_ok=True)
     with path.open('a+') as stream:
         try:
-            fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(stream.fileno(), fcntl.LOCK_EX if wait else fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as error:
             stream.seek(0)
             raise RuntimeError('CPU96 measurement lock is held: ' + stream.read().strip()) from error
@@ -199,12 +199,12 @@ def run_protocol(out, runners, prepared, comparator, manifest):
     return summary
 
 
-def measure(source, out, image, nemu):
+def measure(source, out, image, nemu, *, lock_path=LOCK):
     if not platform.node().startswith('node030'):
         raise ValueError('measure on node030')
     source, out = Path(source).resolve(), Path(out).resolve()
     # Hold the lock across setup, functional runs, warmup, and formal samples.
-    with measurement_lock():
+    with measurement_lock(lock_path):
         manifest = freeze(source, image, nemu)
         out.mkdir(parents=True, exist_ok=False)
         try:
@@ -214,7 +214,7 @@ def measure(source, out, image, nemu):
                 order=[order_for_round(i) for i in range(ROUNDS)], warmups_per_variant=1,
                 bootstrap_seed=20261102, bootstrap_resamples=10000, cpu=96, numa=1,
                 threads=1, aslr=False, runtime_difftest='on', performance_trace=False,
-                lock=str(LOCK), max_sample_attempts=1, skip_external_idle_admission=True,
+                lock=str(lock_path), max_sample_attempts=1, skip_external_idle_admission=True,
                 checks='Mandatory affinity/thread/NUMA and functional gates; all formal samples retained.',
                 feedback='No generation, thresholds, candidate selection or additional rounds from measurements.'))
             os.sched_setaffinity(0, cpus(Path('/sys/devices/system/cpu/online').read_text()))
