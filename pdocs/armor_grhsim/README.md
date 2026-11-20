@@ -17,6 +17,11 @@
 | [TNO0013](./TNO0013_commit_group_and_accumulate_bank_20261120.md) | 提交分组与成排累加四组八轮，单开相对全关分别为 −3.47% 和 −9.09%，双开为 −9.57%；双开相对只开成排累加为 −0.53%，CI [−1.66%, +0.76%] |
 | [TNO0014](./TNO0014_accumulate_bank_default_20261120.md) | XiangShan 单模型 GrhSIM 默认开启成排累加，支持显式关闭和从检查点恢复；声明信号波形走普通寄存器路径 |
 | [TNO0015](./TNO0015_accumulate_bank_default_regression_20261120.md) | 正式入口默认开启与显式关闭的性能回归，node030 CPU 96 八轮配对，CoreMark 10 万周期从 113.71 s 降到 102.42 s，walltime −9.93%，CI [−10.49%, −9.35%]，8/8 更快 |
+| [TNO0016](./TNO0016_branch_sources_and_eager_logic_20261120.md) | 预测失败按语句归类：值表达式 37%、分发测试 25%、提交 23%；新选项 `logic_eager_operand_chars` 加一个编译器开关，两次八轮计时 walltime −20.26% 和 −19.35%，CI [−21.57%, −18.70%] 和 [−19.64%, −19.05%]，16/16 更快；其上再做 PGO 合计 −25.57%；PGO 插桩构建的终点差异是编译器在一条语句上生成了错误代码；修复累加排读者过滤里的悬空引用，生成结果恢复可重复 |
+| [TNO0017](./TNO0017_single_model_expression_defaults_20261120.md) | XiangShan 单模型默认采用 eager 阈值 4096 和 x86 Clang 内存条件传送。列出与通用入口的默认值差异及独立关闭方法。CV32E40P CoreMark 显式开启后八轮均慢，配对中位数 +2.92% |
+| [TNO0018](./TNO0018_cv32_xiangshan_defaults_20261120.md) | CV32E40P CoreMark 使用 XiangShan 完整默认配置，walltime 从 2.470 s 增至 3.663 s，同轮 +48.31%。两项表达式优化在 XiangShan 入口内为 −2.09%，在 CV32 入口内为 +2.41% |
+| [TNO0019](./TNO0019_cv32_xiangshan_slowdown_causes_20261120.md) | CV32E40P 降速归因。事件分组减少跨组比较和激活，条件 mux 与寄存器视图进一步减少重复求值。保留 XiangShan 的图与节点上限，只开三组规则便从 3.682 s 降至 2.544 s，收回与 CV32 基线 94.0% 的耗时差 |
+| [TNO0020](./TNO0020_xiangshan_cv32_groups_20261120.md) | XiangShan 单核 CoreMark 10 万周期，三组全开 83.78 s → 86.60 s，同轮 +3.40%，5/5 轮更慢。单开事件分组 +14.85%。MicroBench 全开 +0.66%，四对样本区间跨零 |
 
 规则参考：[GrhSIM 文档管理规则](../grhsim_opt_thj/RULES.md)。评估对象是 Jiaping Tang 等发表于 MICRO 2026 的 ARMOR 论文，出处见 TNO0001。
 
@@ -29,5 +34,6 @@
 瓶颈定位：[armor-bottleneck-review-v1](../../build/armor-bottleneck-review-v1/)。静态热集合：[armor-static-hotset-v1](../../build/armor-static-hotset-v1/)。
 性能计数器的打包与观察：[armor-perf-pack-v1](../../build/armor-perf-pack-v1/)。
 性能计数器的删除与成排累加：[armor-acc-v1](../../build/armor-acc-v1/)，复现入口：[acc compare](../../scripts/armor_acc_compare.py)、[measure](../../scripts/armor_acc_measure.py)，功能说明：[accumulate-sink](../../wolvrix/docs/transform/accumulate-sink.md)、[累加排](../../wolvrix/docs/emit/grhsim-accumulate-bank.md)。
+预测失败来源与表达式改动：[armor-dispatch-v1](../../build/armor-dispatch-v1/)，复现入口：[dispatch diag](../../scripts/armor_dispatch_diag.py)、[生成一个版本](../../scripts/armor_dispatch_emit.sh)、[结果表](../../scripts/armor_dispatch_results.py)，功能说明：[非短路逻辑与/或](../../wolvrix/docs/emit/grhsim-scheduling.md)。通用生成器默认关闭这两项，XiangShan 单模型的默认设置见 [TNO0017](./TNO0017_single_model_expression_defaults_20261120.md)。
 
-本系列从父仓 `8f5bbdc`、Wolvrix `59e0f1e` 开始。TNO0013 和 TNO0015 的逐轮计时 CSV 随文归档。完整模型、ELF、运行日志和诊断数据保存在本地 `build/` 目录。[四组对比样本](./data/TNO0013_commit_bank_samples.csv) · [默认选项回归样本](./data/TNO0015_default_bank_pairs.csv)
+本系列从父仓 `8f5bbdc`、Wolvrix `59e0f1e` 开始。逐轮计时 CSV 随对应记录归档。完整模型、ELF、运行日志和诊断数据保存在本地 `build/` 目录。[四组对比样本](./data/TNO0013_commit_bank_samples.csv) · [默认选项回归样本](./data/TNO0015_default_bank_pairs.csv) · [TNO0016 第一轮逐轮秒数](./data/TNO0016_rounds_v1.csv) · [TNO0016 第二轮逐轮秒数](./data/TNO0016_rounds_v2.csv)
