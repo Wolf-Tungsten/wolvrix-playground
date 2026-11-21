@@ -19,6 +19,7 @@ namespace
         using Kind = GrhSimExecutionPlan::CommitWriteBody::Kind;
         switch (kind) {
         case Kind::Lockstep: return "lockstep";
+        case Kind::ScalarCompareBlock: return "scalar_compare_block";
         case Kind::SameReader: return "same_reader";
         case Kind::OrderedMemoryAffine: return "ordered_memory";
         default: return "single";

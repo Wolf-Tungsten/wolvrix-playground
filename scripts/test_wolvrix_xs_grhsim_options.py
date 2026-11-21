@@ -53,6 +53,7 @@ ACTIVITY_SCHEDULE_EXPLICIT_ENV = {
     "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_COMMON_OWNER_POLICY": "probe",
     "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_COMMON_OWNER_MAX_CLONES": "4098",
     "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_COMMON_OWNER_MAX_CLONED_OP_PPM": "5002",
+    "WOLVRIX_XS_GRHSIM_INITIAL_COMPUTE_SUPERNODE_TARGET": "96",
     "WOLVRIX_XS_GRHSIM_DP_SEGMENT_PENALTY_PPM": "999999",
     "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_POLICY": "balanced",
     "WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_ROUNDS": "2",
@@ -106,6 +107,7 @@ ACTIVITY_SCHEDULE_EXPLICIT_OPTIONS = {
     "local_shared_compute_common_owner_policy": "probe",
     "local_shared_compute_common_owner_max_clones": 4098,
     "local_shared_compute_common_owner_max_cloned_op_ppm": 5002,
+    "initial_compute_supernode_target": 96,
     "dp_segment_penalty_ppm": 999999,
     "post_dp_refine_policy": "balanced",
     "post_dp_refine_max_rounds": 2,
@@ -305,13 +307,121 @@ class XsGrhsimOptionTest(unittest.TestCase):
                     self.assertEqual(configure(), {group.lower(): value == "1"})
                     self.assertEqual(dict(os.environ), {**settings, **{"WOLVRIX_GRHSIM_" + f: value for f in flags}})
 
+    def test_pgo_supplies_group_defaults(self) -> None:
+        with patch.dict(os.environ, {"PGO_WORKLOAD": "coremark.bin", "WOLVRIX_GRHSIM_CONDITIONAL_MUX_INPUT_CACHE": "0",
+                                     "WOLVRIX_XS_GRHSIM_COVERED_STATE_VIEWS": "0"}, clear=True):
+            self.assertTrue(all(READ_ACTIVITY_SCHEDULE_SPARSE_OPTIONS().values()))
+            MODULE["configure_emitter_groups"]()
+            MODULE["configure_commit_layout"](READ_ACTIVITY_SCHEDULE_SPARSE_OPTIONS())
+            self.assertEqual(os.environ["WOLVRIX_GRHSIM_COMMIT_COMPARE_BLOCKS"], "1")
+            self.assertEqual(os.environ["WOLVRIX_GRHSIM_CONDITIONAL_MUX_CONES"], "1")
+            self.assertEqual(os.environ["WOLVRIX_GRHSIM_CONDITIONAL_MUX_INPUT_CACHE"], "0")
+            self.assertEqual(os.environ["WOLVRIX_GRHSIM_COVERED_STATE_VIEW_INLINE"], "0")
+        with patch.dict(os.environ, {"PGO_WORKLOAD": "coremark.bin", "WOLVRIX_XS_GRHSIM_PGO_GROUPS": "0"}, clear=True):
+            self.assertEqual(READ_ACTIVITY_SCHEDULE_SPARSE_OPTIONS(), {})
+            self.assertEqual(MODULE["configure_emitter_groups"](), {})
+            self.assertFalse(MODULE["configure_commit_layout"](READ_ACTIVITY_SCHEDULE_SPARSE_OPTIONS()))
+            self.assertNotIn("WOLVRIX_GRHSIM_COMMIT_COMPARE_BLOCKS", os.environ)
+        with patch.dict(os.environ, {"PGO_WORKLOAD": "train.bin", "WOLVRIX_GRHSIM_COMMIT_COMPARE_BLOCKS": "0"}, clear=True):
+            MODULE["configure_emitter_groups"]()
+            self.assertFalse(MODULE["configure_commit_layout"](READ_ACTIVITY_SCHEDULE_SPARSE_OPTIONS()))
+            self.assertEqual(os.environ["WOLVRIX_GRHSIM_COMMIT_COMPARE_BLOCKS"], "0")
+
+    def test_pgo_compute_limits_and_overrides(self) -> None:
+        for extra, expected in (
+            ({}, (160, 108, 108)),
+            ({"WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE": "92"}, (92, 92, 92)),
+            ({"WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_NODE": "64",
+              "WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODE_MAX_OPS": "80"}, (160, 64, 80)),
+            ({"WOLVRIX_GRHSIM_COMMIT_COMPARE_BLOCKS": "0"}, (108, 108, 108)),
+            ({"WOLVRIX_XS_GRHSIM_PGO_GROUPS": "0"}, (108, 108, 108)),
+            ({"WOLVRIX_XS_GRHSIM_EVENT_REGIONS": "0"}, (108, 108, 108)),
+            ({"WOLVRIX_GRHSIM_CONDITIONAL_MUX_SHARED_ARM": "0"}, (108, 108, 108)),
+            ({"PGO_WORKLOAD": ""}, (108, 108, 108)),
+        ):
+            with self.subTest(extra=extra), patch.dict(os.environ, {"PGO_WORKLOAD": "train.bin", **extra}, clear=True):
+                MODULE["configure_emitter_groups"]()
+                layout = MODULE["configure_commit_layout"](READ_ACTIVITY_SCHEDULE_SPARSE_OPTIONS())
+                self.assertEqual(MODULE["read_compute_limits"](layout), expected)
+
+    def test_make_emit_selects_mode_defaults_and_honors_overrides(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            design = root / "Tiny.sv"
+            design.write_text("module Tiny(input logic a, output logic b); assign b = ~a; endmodule\n")
+            filelist = root / "input.f"
+            filelist.write_text(str(design) + "\n")
+            macros = root / "DifftestMacros.svh"
+            macros.touch()
+            command = [
+                "make", "--no-print-directory", "-o", str(filelist), "xs_wolf_grhsim_emit",
+                "WOLF_ENV_SOURCED=1", "XS_WOLF_DEPS=", "XS_SIM_TOP=Tiny",
+                f"PYTHON={sys.executable}", f"XS_WOLF_FILELIST={filelist}", f"XS_DIFFTEST_MACROS={macros}",
+                f"XS_GRHSIM_BUILD={root}/build", f"XS_WOLF_GRHSIM_EMIT_DIR={root}/model",
+                f"XS_LOG_DIR={root}/logs",
+            ]
+            env = {k: v for k, v in os.environ.items() if k != "PGO_WORKLOAD"
+                   and not k.startswith(("WOLVRIX_", "XS_WOLF_", "MAKEFLAGS"))}
+            train = "PGO_WORKLOAD=train.bin"
+            for override, limits, blocks, lanes, groups in [
+                ([], "108 max_op_in_compute_node=108", 1, 4, False),
+                ([train], "160 max_op_in_compute_node=108", 1, 16, True),
+                (["WOLVRIX_GRHSIM_COMMIT_COMPARE_MAX_LANES=8"], "108 max_op_in_compute_node=108", 1, 8, False),
+                (["PGO_WORKLOAD=", "WOLVRIX_GRHSIM_COMMIT_COMPARE_BLOCKS=0"], "108 max_op_in_compute_node=108", 0, 4, False),
+                ([train, "WOLVRIX_XS_GRHSIM_PGO_GROUPS=0"], "108 max_op_in_compute_node=108", 0, 4, False),
+                ([train, "XS_WOLF_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE=92", "WOLVRIX_GRHSIM_COMMIT_COMPARE_MAX_LANES=4"],
+                 "92 max_op_in_compute_node=92", 1, 4, True),
+            ]:
+                with self.subTest(override=override):
+                    result = subprocess.run(command + override, cwd=SCRIPT.resolve().parents[1], env=env,
+                                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                    self.assertEqual(result.returncode, 0, result.stdout)
+                    self.assertIn("max_op_in_compute_supernode=" + limits, result.stdout)
+                    self.assertIn("commit_compare_blocks=" + str(blocks), result.stdout)
+                    self.assertIn("commit_compare_max_lanes=" + str(lanes), result.stdout)
+                    self.assertIn("event_regions=" + ("True" if groups else "cpp-default"), result.stdout)
+                    for option in ("conditional_mux", "covered_state_views"):
+                        self.assertIn(option + "=" + ("True" if groups else "individual-flags"), result.stdout)
+                    header = (root / "model/grhsim_Tiny.hpp").read_text()
+                    self.assertEqual("grhsim_disabled_commit_guards" in header, bool(blocks))
+
+    def test_make_emu_passes_compiler_flags_to_each_builder(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            capture = root / "capture.py"
+            capture.write_text(
+                "import json, os, sys\n"
+                "from pathlib import Path\n"
+                "Path(__file__).with_suffix('.json').write_text(json.dumps([\n"
+                "    os.environ['GRHSIM_MODEL_CXXFLAGS'], os.environ['EMU_OPTIMIZE'], sys.argv[1:]]))\n"
+            )
+            probe = f"{sys.executable} {capture}"
+            command = ["make", "--no-print-directory", "-o", "xs_wolf_grhsim_emit", "xs_wolf_grhsim_emu",
+                       "WOLF_ENV_SOURCED=1", f"XS_LOG_DIR={root}", f"MAKE={probe}", f"PYTHON={probe}"]
+            env = {k: v for k, v in os.environ.items()
+                   if k not in ("GRHSIM_MODEL_CXXFLAGS", "EMU_OPTIMIZE", "MAKEFLAGS", "MAKEOVERRIDES")}
+            custom = {"GRHSIM_MODEL_CXXFLAGS": "-std=c++20 -O2", "EMU_OPTIMIZE": "-O1"}
+            for workload in ("", "train.bin"):
+                for env_flags, make_flags, model, harness in (
+                    ({}, [], "-std=c++20 -O3 -march=native", "-O3 -march=native"),
+                    (custom, [], custom["GRHSIM_MODEL_CXXFLAGS"], custom["EMU_OPTIMIZE"]),
+                    ({}, [f"{k}={v}" for k, v in custom.items()], custom["GRHSIM_MODEL_CXXFLAGS"], custom["EMU_OPTIMIZE"]),
+                ):
+                    with self.subTest(workload=workload, env_flags=env_flags, make_flags=make_flags):
+                        subprocess.run(command + [f"PGO_WORKLOAD={workload}", *make_flags], env={**env, **env_flags},
+                                       cwd=SCRIPT.resolve().parents[1], capture_output=True, check=True)
+                        model_flag, harness_flag, args = json.loads(capture.with_suffix(".json").read_text())
+                        self.assertEqual((model_flag, harness_flag), (model, harness))
+                        if workload:
+                            self.assertIn("--model-flags=" + model, args)
+
     def test_activity_schedule_sparse_explicit_values(self) -> None:
         with patch.dict(os.environ, ACTIVITY_SCHEDULE_EXPLICIT_ENV, clear=True):
             self.assertEqual(
                 READ_ACTIVITY_SCHEDULE_SPARSE_OPTIONS(),
                 ACTIVITY_SCHEDULE_EXPLICIT_OPTIONS,
             )
-        self.assertEqual(len(ACTIVITY_SCHEDULE_SPARSE_ENV_NAMES), 50)
+        self.assertEqual(len(ACTIVITY_SCHEDULE_SPARSE_ENV_NAMES), 51)
 
     def test_activity_schedule_sparse_bool_false_is_forwarded(self) -> None:
         for env_name, option_name in ACTIVITY_SCHEDULE_SPARSE_BOOL_OPTIONS:
@@ -333,7 +443,7 @@ class XsGrhsimOptionTest(unittest.TestCase):
         self.assertEqual(canonical, "activity-schedule")
         self.assertIn("-path", args)
         self.assertIn("-max-op-in-commit-supernode", args)
-        self.assertEqual(len(args), 2 * 50 + 2)
+        self.assertEqual(len(args), 2 * len(ACTIVITY_SCHEDULE_EXPLICIT_OPTIONS) + 2)
 
     def test_final_terminal_pushforward_policy_is_sparse(self) -> None:
         env_name = "WOLVRIX_XS_GRHSIM_FINAL_TERMINAL_PUSHFORWARD_POLICY"

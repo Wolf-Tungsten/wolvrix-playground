@@ -87,6 +87,7 @@ ACTIVITY_SCHEDULE_SPARSE_INTEGER_OPTIONS = (
         "WOLVRIX_XS_GRHSIM_LOCAL_SHARED_COMPUTE_COMMON_OWNER_MAX_CLONED_OP_PPM",
         "local_shared_compute_common_owner_max_cloned_op_ppm",
     ),
+    ("WOLVRIX_XS_GRHSIM_INITIAL_COMPUTE_SUPERNODE_TARGET", "initial_compute_supernode_target"),
     ("WOLVRIX_XS_GRHSIM_DP_SEGMENT_PENALTY_PPM", "dp_segment_penalty_ppm"),
     ("WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_ROUNDS", "post_dp_refine_max_rounds"),
     ("WOLVRIX_XS_GRHSIM_POST_DP_REFINE_MAX_MOVES", "post_dp_refine_max_moves"),
@@ -223,10 +224,14 @@ ACTIVITY_SCHEDULE_SPARSE_STRING_OPTIONS = (
 )
 
 
+def pgo_group_defaults() -> bool:
+    return env_flag("WOLVRIX_XS_GRHSIM_PGO_GROUPS", default=bool(os.environ.get("PGO_WORKLOAD", "").strip()))
+
+
 def read_activity_schedule_sparse_options() -> dict[str, str | int | bool]:
     options: dict[str, str | int | bool] = {}
-    if "WOLVRIX_XS_GRHSIM_EVENT_REGIONS" in os.environ:
-        enabled = env_flag("WOLVRIX_XS_GRHSIM_EVENT_REGIONS")
+    if "WOLVRIX_XS_GRHSIM_EVENT_REGIONS" in os.environ or pgo_group_defaults():
+        enabled = env_flag("WOLVRIX_XS_GRHSIM_EVENT_REGIONS", default=True)
         options.update(event_regions=enabled, event_regions_shared=enabled,
                        event_regions_shared_connected=enabled)
     for env_name, option_name in ACTIVITY_SCHEDULE_SPARSE_BOOL_OPTIONS:
@@ -241,23 +246,54 @@ def read_activity_schedule_sparse_options() -> dict[str, str | int | bool]:
     return options
 
 
+XS_EMITTER_GROUPS = {
+    "CONDITIONAL_MUX": ("CONDITIONAL_MUX_CONES", "CONDITIONAL_MUX_INPUT_CACHE", "CONDITIONAL_MUX_SHARED_ARM"),
+    "COVERED_STATE_VIEWS": ("COVERED_STATE_VIEW_NOTIFICATIONS", "COVERED_STATE_VIEW_INLINE",
+                            "COVERED_STATE_VIEW_COMPOSITION", "COVERED_STATE_VIEW_COMPOSITION_INLINE"),
+}
+
+
 def configure_emitter_groups() -> dict[str, bool]:
     # The native emitter reads these individual flags from its environment.
-    # Leave individual overrides alone unless an XS group is explicitly set.
+    # An explicit group owns its flags. PGO supplies defaults for unset flags.
     settings = {}
-    for group, flags in (
-        ("CONDITIONAL_MUX", ("CONDITIONAL_MUX_CONES", "CONDITIONAL_MUX_INPUT_CACHE",
-                             "CONDITIONAL_MUX_SHARED_ARM")),
-        ("COVERED_STATE_VIEWS", ("COVERED_STATE_VIEW_NOTIFICATIONS", "COVERED_STATE_VIEW_INLINE",
-                                 "COVERED_STATE_VIEW_COMPOSITION", "COVERED_STATE_VIEW_COMPOSITION_INLINE")),
-    ):
+    for group, flags in XS_EMITTER_GROUPS.items():
         name = "WOLVRIX_XS_GRHSIM_" + group
         if name in os.environ:
             enabled = env_flag(name)
             settings[group.lower()] = enabled
             for flag in flags:
                 os.environ["WOLVRIX_GRHSIM_" + flag] = str(int(enabled))
+        elif pgo_group_defaults():
+            settings[group.lower()] = True
+            for flag in flags:
+                os.environ.setdefault("WOLVRIX_GRHSIM_" + flag, "1")
     return settings
+
+
+def configure_commit_layout(schedule_options: dict[str, str | int | bool]) -> bool:
+    training = bool(os.environ.get("PGO_WORKLOAD", "").strip())
+    if training and not pgo_group_defaults():
+        return False
+    os.environ.setdefault("WOLVRIX_GRHSIM_COMMIT_COMPARE_BLOCKS", "1")
+    if not env_flag("WOLVRIX_GRHSIM_COMMIT_COMPARE_BLOCKS"):
+        return False
+    event_options = ("event_regions", "event_regions_shared", "event_regions_shared_connected")
+    emitter_flags = (flag for flags in XS_EMITTER_GROUPS.values() for flag in flags)
+    full_pgo = (training and all(schedule_options.get(key) for key in event_options)
+                and all(env_flag("WOLVRIX_GRHSIM_" + flag) for flag in emitter_flags))
+    os.environ.setdefault("WOLVRIX_GRHSIM_COMMIT_COMPARE_MAX_LANES", "16" if full_pgo else "4")
+    return full_pgo
+
+
+def read_compute_limits(pgo_layout: bool) -> tuple[int, int, int]:
+    supernode_key = "WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE"
+    cap = env_int(supernode_key, 160 if pgo_layout else 108)
+    # A caller-supplied supernode capacity also sets the ordinary node default.
+    node_default = 108 if pgo_layout and supernode_key not in os.environ else cap
+    node = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_NODE", node_default)
+    split = env_int("WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODE_MAX_OPS", node_default)
+    return cap, node, split
 
 
 def read_final_sibling_fusion_options() -> dict[str, str | int]:
@@ -671,13 +707,12 @@ def main() -> int:
     enable_stats = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_STATS", default=False)
     enable_mem_to_reg = env_flag("WOLVRIX_XS_GRHSIM_ENABLE_MEM_TO_REG", default=False)
     mem_to_reg_row_limit = env_int("WOLVRIX_XS_GRHSIM_MEM_TO_REG_ROW_LIMIT", 64)
-    max_op_in_compute_supernode = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE", 108)
-    max_op_in_compute_node = env_int("WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_NODE", max_op_in_compute_supernode)
+    sparse_options = read_activity_schedule_sparse_options()
+    emitter_groups = configure_emitter_groups()
+    pgo_layout = configure_commit_layout(sparse_options)
+    (max_op_in_compute_supernode, max_op_in_compute_node,
+     split_oversize_compute_node_max_ops) = read_compute_limits(pgo_layout)
     split_oversize_compute_nodes = env_flag("WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODES", default=True)
-    split_oversize_compute_node_max_ops = env_int(
-        "WOLVRIX_XS_GRHSIM_SPLIT_OVERSIZE_COMPUTE_NODE_MAX_OPS",
-        max_op_in_compute_supernode,
-    )
     sched_batch_max_ops = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_OPS", 2048)
     sched_batch_max_estimated_lines = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_MAX_ESTIMATED_LINES", 8192)
     sched_batch_target_count = env_int("WOLVRIX_XS_GRHSIM_SCHED_BATCH_TARGET_COUNT", 64)
@@ -764,8 +799,6 @@ def main() -> int:
     )
     deferred_activation_forward_options = read_deferred_activation_forward_options()
     same_batch_activation_cohort_options = read_same_batch_activation_cohort_options()
-    sparse_options = read_activity_schedule_sparse_options()
-    emitter_groups = configure_emitter_groups()
     final_sibling_fusion_options = read_final_sibling_fusion_options()
     sparse_options.update(final_sibling_fusion_options)
     comb_lane_pack_report = os.environ.get(
@@ -790,6 +823,8 @@ def main() -> int:
         f"event_regions={format_native_default_option(sparse_options, 'event_regions')} "
         f"conditional_mux={emitter_groups.get('conditional_mux', 'individual-flags')} "
         f"covered_state_views={emitter_groups.get('covered_state_views', 'individual-flags')} "
+        f"commit_compare_blocks={int(env_flag('WOLVRIX_GRHSIM_COMMIT_COMPARE_BLOCKS'))} "
+        f"commit_compare_max_lanes={os.environ.get('WOLVRIX_GRHSIM_COMMIT_COMPARE_MAX_LANES', '4')} "
         f"max_op_in_commit_supernode="
         f"{format_native_default_option(sparse_options, 'max_op_in_commit_supernode')} "
         f"commit_guard_event_buckets="
