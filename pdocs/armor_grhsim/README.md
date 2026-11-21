@@ -22,6 +22,11 @@
 | [TNO0018](./TNO0018_cv32_xiangshan_defaults_20261120.md) | CV32E40P CoreMark 使用 XiangShan 完整默认配置，walltime 从 2.470 s 增至 3.663 s，同轮 +48.31%。两项表达式优化在 XiangShan 入口内为 −2.09%，在 CV32 入口内为 +2.41% |
 | [TNO0019](./TNO0019_cv32_xiangshan_slowdown_causes_20261120.md) | CV32E40P 降速归因。事件分组减少跨组比较和激活，条件 mux 与寄存器视图进一步减少重复求值。保留 XiangShan 的图与节点上限，只开三组规则便从 3.682 s 降至 2.544 s，收回与 CV32 基线 94.0% 的耗时差 |
 | [TNO0020](./TNO0020_xiangshan_cv32_groups_20261120.md) | XiangShan 单核 CoreMark 10 万周期，三组全开 83.78 s → 86.60 s，同轮 +3.40%，5/5 轮更慢。单开事件分组 +14.85%。MicroBench 全开 +0.66%，四对样本区间跨零 |
+| [TNO0021](./TNO0021_xiangshan_grhsim_gsim_pgo_20261120.md) | XiangShan 单核 10 万周期，CoreMark 训练后，PGO 使 GrhSIM / GSIM 的同轮耗时分别变化 -8.73% / -31.56%，换测 MicroBench 为 -7.41% / -32.52% |
+| [TNO0022](./TNO0022_grhsim_gsim_gap_causes_20261121.md) | GrhSIM 与 GSIM 的差距归因。GrhSIM 忽略了两处组合逻辑里的 DPI 调用，GSIM 同样关掉后 PGO 版为 78.70 s 对 52.99 s。GrhSIM 的模型每拍多执行约五成指令，多在寄存器提交和跨组值的簿记。提交按 8 字节成块比较的原型 walltime −4.22%，PGO 版 −5.89%，四轮全部更快；两个按活动过滤的原型更慢 |
+| [TNO0023](./TNO0023_grhsim_commit_pgo_partition_mux_20261121.md) | GrhSIM 成块提交、PGO、计算组划分与条件 mux。三组规则、160 超节点与宽块的联合版在 CPU 96 相对原 PGO 的 CoreMark / MicroBench 耗时为 −9.01% / −10.85%，两个负载均四轮更快。独立降低 mux 门槛和按热度过滤末端移动的对照见正文。 |
+| [TNO0024](./TNO0024_xiangshan_gsim_grhsim_pgo_threeway_20261121.md) | GSIM PGO、原与新 GrhSIM PGO 同轮复测。CoreMark / MicroBench 新版相对原版耗时 −10.14% / −10.87%，相对原样 GSIM 为 +9.95% / +5.74%，对齐两处统计 DPI 后为 +31.24% / +26.02%。 |
+| [TNO0025](./TNO0025_xiangshan_grhsim_mode_defaults_20261121.md) | XiangShan 单模型默认配置。普通版采用 108 个操作的超节点上限和四寄存器块，PGO 版采用 160 上限、十六寄存器块和三组 PGO 规则。 |
 
 规则参考：[GrhSIM 文档管理规则](../grhsim_opt_thj/RULES.md)。评估对象是 Jiaping Tang 等发表于 MICRO 2026 的 ARMOR 论文，出处见 TNO0001。
 
@@ -35,5 +40,6 @@
 性能计数器的打包与观察：[armor-perf-pack-v1](../../build/armor-perf-pack-v1/)。
 性能计数器的删除与成排累加：[armor-acc-v1](../../build/armor-acc-v1/)，复现入口：[acc compare](../../scripts/armor_acc_compare.py)、[measure](../../scripts/armor_acc_measure.py)，功能说明：[accumulate-sink](../../wolvrix/docs/transform/accumulate-sink.md)、[累加排](../../wolvrix/docs/emit/grhsim-accumulate-bank.md)。
 预测失败来源与表达式改动：[armor-dispatch-v1](../../build/armor-dispatch-v1/)，复现入口：[dispatch diag](../../scripts/armor_dispatch_diag.py)、[生成一个版本](../../scripts/armor_dispatch_emit.sh)、[结果表](../../scripts/armor_dispatch_results.py)，功能说明：[非短路逻辑与/或](../../wolvrix/docs/emit/grhsim-scheduling.md)。通用生成器默认关闭这两项，XiangShan 单模型的默认设置见 [TNO0017](./TNO0017_single_model_expression_defaults_20261120.md)。
+GrhSIM 与 GSIM 的差距归因：[armor-gsim-gap-v1](../../build/armor-gsim-gap-v1/)，复现入口：[计数](../../build/armor-gsim-gap-v1/pmu.py)、[语句级采样](../../build/armor-gsim-gap-v1/ibs.py)、[提交按块比较的改写](../../build/armor-gsim-gap-v1/block_commit.py)、[计时](../../build/armor-gsim-gap-v1/timing.py)。脚本目前只在本地 `build/` 目录里。
 
 本系列从父仓 `8f5bbdc`、Wolvrix `59e0f1e` 开始。逐轮计时 CSV 随对应记录归档。完整模型、ELF、运行日志和诊断数据保存在本地 `build/` 目录。[四组对比样本](./data/TNO0013_commit_bank_samples.csv) · [默认选项回归样本](./data/TNO0015_default_bank_pairs.csv) · [TNO0016 第一轮逐轮秒数](./data/TNO0016_rounds_v1.csv) · [TNO0016 第二轮逐轮秒数](./data/TNO0016_rounds_v2.csv)
