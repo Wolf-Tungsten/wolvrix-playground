@@ -1,0 +1,3868 @@
+{
+  "identities": {
+    "binaries": {
+      "gs_off": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-gsim-gap-v1/pgo/gsim-nodpi/off/emu",
+        "bytes": 66243120,
+        "sha256": "266badb588e01b28eae68caa1f675c2e70c743a66d0e8bca193612784267db04"
+      },
+      "gs_pgo": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-gsim-gap-v1/pgo/gsim-nodpi/use/emu",
+        "bytes": 86737152,
+        "sha256": "4d90afe83d56144ab96bf0b0504489f328f2cff02371d0f545846e6c20a93397"
+      },
+      "gr_off": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-mode-defaults-v1/ordinary/build/grhsim-compile/emu",
+        "bytes": 93233176,
+        "sha256": "69d37ea3d222c6b2ebe011ea03d03b34711d9ed9e2f0b2327b07b95fad8a7af3"
+      },
+      "gr_pgo": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-mode-defaults-v1/pgo/build/emu",
+        "bytes": 96581280,
+        "sha256": "07b503e53917cc92bc463d433031b414c0df966eef5580fe15dd2811cebe9df4"
+      },
+      "layout": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-gap-current-v1/control/build/grhsim-compile/emu",
+        "bytes": 87314288,
+        "sha256": "88a2b6afe3c7e8f0ca55215520e9df499c46110716447a5ce77fea291e67390c"
+      }
+    },
+    "images": {
+      "coremark": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-cv32e40p/testcase/xiangshan/ready-to-run/coremark-2-iteration.bin",
+        "bytes": 16712,
+        "sha256": "c764afb8bfd69542620a4794b858867dd1e455efaac56c28eb477f1732f83e8e"
+      },
+      "microbench": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-cv32e40p/testcase/xiangshan/ready-to-run/microbench.bin",
+        "bytes": 25720,
+        "sha256": "d2c5a0399eeccb97412a173562f16282706156ebb8e8a3ac2d1ff0219c2dbeaf"
+      }
+    },
+    "nemu": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-cv32e40p/testcase/xiangshan/ready-to-run/riscv64-nemu-interpreter-so",
+      "bytes": 1497032,
+      "sha256": "9188e7dda30709962f0bfbc1dd87cea73d88a18c92c30892f93ed529c22def43"
+    },
+    "gr_profile": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-mode-defaults-v1/pgo/build/grhsim.profdata",
+      "bytes": 13159264,
+      "sha256": "7cb8ef1a6caecb8df81dbee8e4d3ffc4cc54e51d1d51f99429f613c15412d257"
+    },
+    "gs_profile": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-gsim-gap-v1/pgo/gsim-nodpi/merged.profdata",
+      "bytes": 11100800,
+      "sha256": "c583db9f6db30f1063c645b4810669a2c5affe54d2c5c042c8b72ef200b25ca9"
+    },
+    "gsim_dpi_edits": {
+      "TopdownIQInfoHelper_238": "SimTop236.cpp:29006",
+      "TopdownRobInfoHelper_318_160": "SimTop28.cpp:17159"
+    },
+    "window": 100000,
+    "core": 96,
+    "node": 1,
+    "order": [
+      [
+        "gr_off",
+        "gs_off",
+        "gs_pgo",
+        "gr_pgo",
+        "layout"
+      ],
+      [
+        "layout",
+        "gs_off",
+        "gr_pgo",
+        "gr_off",
+        "gs_pgo"
+      ],
+      [
+        "gr_pgo",
+        "gs_pgo",
+        "layout",
+        "gs_off",
+        "gr_off"
+      ],
+      [
+        "gs_pgo",
+        "gr_off",
+        "gr_pgo",
+        "layout",
+        "gs_off"
+      ]
+    ]
+  },
+  "summary": {
+    "coremark": {
+      "per_guest": {
+        "gs_off": {
+          "cycles": 2953662.613916361,
+          "instructions": 2369740.660908391,
+          "branches": 103957.9964100359,
+          "branch-misses": 52087.89553104469,
+          "ex_ret_ops": 2487007.887771122,
+          "de_no_dispatch_per_slot.no_ops_from_frontend": 13174067.54817452,
+          "ic_cache_fill_l2": 16245.643443565565,
+          "ic_cache_fill_sys": 305385.5994140059,
+          "de_no_dispatch_per_slot.backend_stalls": 768078.8451315487,
+          "L1-dcache-loads": 1270933.5806241937,
+          "L1-dcache-load-misses": 46758.548644513554,
+          "ex_ret_cond": 96556.0067799322,
+          "bp_l1_tlb_miss_l2_tlb_miss.all": 6531.780742192578,
+          "ls_any_fills_from_sys.dram_io_near": 247.19731802681974,
+          "wall": 96.13356399832992,
+          "wall_rounds": [
+            96.31666072201915,
+            96.35374917415902,
+            96.35120988311246,
+            95.51263621402904
+          ],
+          "CPI": 1.2464075342253425,
+          "max_instructions_spread_pct": 0.007464064118400948
+        },
+        "gs_pgo": {
+          "cycles": 1890259.2186603134,
+          "instructions": 2479549.077224228,
+          "branches": 169447.33729662703,
+          "branch-misses": 7868.041199588004,
+          "ex_ret_ops": 2557613.9515404846,
+          "de_no_dispatch_per_slot.no_ops_from_frontend": 7557342.200457996,
+          "ic_cache_fill_l2": 7960.747962520375,
+          "ic_cache_fill_sys": 253698.59027409725,
+          "de_no_dispatch_per_slot.backend_stalls": 740456.1945280547,
+          "L1-dcache-loads": 1256848.1654583453,
+          "L1-dcache-load-misses": 41296.365606343934,
+          "ex_ret_cond": 166379.7714222858,
+          "bp_l1_tlb_miss_l2_tlb_miss.all": 5230.424965750342,
+          "ls_any_fills_from_sys.dram_io_near": 194.72255277447226,
+          "wall": 61.58659845584771,
+          "wall_rounds": [
+            61.928623512154445,
+            61.75202616211027,
+            61.55692516709678,
+            61.108818982029334
+          ],
+          "CPI": 0.7623399093097988,
+          "max_instructions_spread_pct": 2.4197706061102053e-07
+        },
+        "gr_off": {
+          "cycles": 2883410.003697463,
+          "instructions": 3313915.6811731886,
+          "branches": 180249.9956600434,
+          "branch-misses": 23446.154868451315,
+          "ex_ret_ops": 3442662.518674813,
+          "de_no_dispatch_per_slot.no_ops_from_frontend": 11577235.814361857,
+          "ic_cache_fill_l2": 20973.848701512983,
+          "ic_cache_fill_sys": 366358.2640473595,
+          "de_no_dispatch_per_slot.backend_stalls": 1530851.7399026009,
+          "L1-dcache-loads": 1471209.7609723902,
+          "L1-dcache-load-misses": 119599.69964300357,
+          "ex_ret_cond": 173299.31480685194,
+          "bp_l1_tlb_miss_l2_tlb_miss.all": 8555.332016679833,
+          "ls_any_fills_from_sys.dram_io_near": 524.1154688453115,
+          "wall": 93.34513088851236,
+          "wall_rounds": [
+            93.86377587309107,
+            93.85912033217028,
+            92.024799475912,
+            93.63282787287608
+          ],
+          "CPI": 0.8700915415798031,
+          "max_instructions_spread_pct": 0.0069359285412629035
+        },
+        "gr_pgo": {
+          "cycles": 2465483.6568409316,
+          "instructions": 3348913.188220618,
+          "branches": 250057.63606363937,
+          "branch-misses": 11391.825971740283,
+          "ex_ret_ops": 3395907.9277507225,
+          "de_no_dispatch_per_slot.no_ops_from_frontend": 9630084.490635093,
+          "ic_cache_fill_l2": 27161.264627353725,
+          "ic_cache_fill_sys": 330028.45020549797,
+          "de_no_dispatch_per_slot.backend_stalls": 1344202.5797142028,
+          "L1-dcache-loads": 1460148.4459755402,
+          "L1-dcache-load-misses": 99938.0412495875,
+          "ex_ret_cond": 244582.27194728053,
+          "bp_l1_tlb_miss_l2_tlb_miss.all": 6852.941660583394,
+          "ls_any_fills_from_sys.dram_io_near": 418.27225727742723,
+          "wall": 80.74356624268694,
+          "wall_rounds": [
+            79.58102464582771,
+            80.20229108585045,
+            80.8220932930708,
+            82.3688559459988
+          ],
+          "CPI": 0.7362041110868329,
+          "max_instructions_spread_pct": 0.022322765010840406
+        },
+        "layout": {
+          "cycles": 2757412.97500525,
+          "instructions": 3153921.2974695256,
+          "branches": 160340.1054489455,
+          "branch-misses": 23038.0104898951,
+          "ex_ret_ops": 3285635.932440676,
+          "de_no_dispatch_per_slot.no_ops_from_frontend": 11308061.832491675,
+          "ic_cache_fill_l2": 26822.79078209218,
+          "ic_cache_fill_sys": 355687.1885781142,
+          "de_no_dispatch_per_slot.backend_stalls": 1398352.9985900142,
+          "L1-dcache-loads": 1362632.6736732633,
+          "L1-dcache-load-misses": 101435.81982180178,
+          "ex_ret_cond": 153030.40257597424,
+          "bp_l1_tlb_miss_l2_tlb_miss.all": 8405.044099559005,
+          "ls_any_fills_from_sys.dram_io_near": 409.74845251547487,
+          "wall": 90.52136350545334,
+          "wall_rounds": [
+            88.82807424082421,
+            90.71204230701551,
+            91.25267924298532,
+            91.29265823098831
+          ],
+          "CPI": 0.8742808443627288,
+          "max_instructions_spread_pct": 0.02849734503593826
+        }
+      },
+      "paired": {
+        "gr_off_vs_gs_off": {
+          "pct": -2.898523731438893,
+          "faster": 4,
+          "rounds": 4,
+          "min_pct": -4.490250213203339,
+          "max_pct": -1.9681252823350093,
+          "ci95_pct": [
+            -4.004359662061971,
+            -2.123351817146096
+          ]
+        },
+        "gr_pgo_vs_gs_pgo": {
+          "pct": 31.117346412796877,
+          "faster": 0,
+          "rounds": 4,
+          "min_pct": 28.504429991421844,
+          "max_pct": 34.790456300949856,
+          "ci95_pct": [
+            29.191210580491322,
+            33.562340018102596
+          ]
+        },
+        "gs_pgo_vs_gs_off": {
+          "pct": -35.93658586713128,
+          "faster": 4,
+          "rounds": 4,
+          "min_pct": -36.11193337190684,
+          "max_pct": -35.70310365006579,
+          "ci95_pct": [
+            -36.06605341149729,
+            -35.78237110032128
+          ]
+        },
+        "gr_pgo_vs_gr_off": {
+          "pct": -13.492582081766248,
+          "faster": 4,
+          "rounds": 4,
+          "min_pct": -15.216467795387246,
+          "max_pct": -12.029938839581146,
+          "ci95_pct": [
+            -14.883408221716637,
+            -12.101755941815856
+          ]
+        },
+        "layout_vs_gr_off": {
+          "pct": -3.0140560816093345,
+          "faster": 4,
+          "rounds": 4,
+          "min_pct": -5.364904176745888,
+          "max_pct": -0.8390349528865748,
+          "ci95_pct": [
+            -4.6485043006489315,
+            -1.4675213457766345
+          ]
+        },
+        "gr_pgo_vs_layout": {
+          "pct": -10.800318808942583,
+          "faster": 4,
+          "rounds": 4,
+          "min_pct": -11.585839050558178,
+          "max_pct": -9.774939691656847,
+          "ci95_pct": [
+            -11.508141279009864,
+            -10.0924963388753
+          ]
+        }
+      }
+    },
+    "microbench": {
+      "per_guest": {
+        "gs_off": {
+          "cycles": 2739635.5508544915,
+          "instructions": 2178891.767504825,
+          "branches": 98641.78869211308,
+          "branch-misses": 49256.38659613404,
+          "ex_ret_ops": 2282382.828471715,
+          "de_no_dispatch_per_slot.no_ops_from_frontend": 12202570.668533314,
+          "ic_cache_fill_l2": 15257.972220277798,
+          "ic_cache_fill_sys": 283152.61951380485,
+          "de_no_dispatch_per_slot.backend_stalls": 728972.681893181,
+          "L1-dcache-loads": 1174225.9426605734,
+          "L1-dcache-load-misses": 44381.537844621555,
+          "ex_ret_cond": 91740.40335596644,
+          "bp_l1_tlb_miss_l2_tlb_miss.all": 6148.788932110679,
+          "ls_any_fills_from_sys.dram_io_near": 218.01124988750112,
+          "wall": 89.2335132563021,
+          "wall_rounds": [
+            89.15696607180871,
+            89.90623483504169,
+            88.5644711011555,
+            89.30638101720251
+          ],
+          "CPI": 1.257352747718996,
+          "max_instructions_spread_pct": 0.08424487867502162
+        },
+        "gs_pgo": {
+          "cycles": 1747934.515887341,
+          "instructions": 2282489.2733372664,
+          "branches": 157905.59161408385,
+          "branch-misses": 7373.120108798912,
+          "ex_ret_ops": 2351310.2449575504,
+          "de_no_dispatch_per_slot.no_ops_from_frontend": 6984193.474685254,
+          "ic_cache_fill_l2": 7445.9646303536965,
+          "ic_cache_fill_sys": 235379.0530094699,
+          "de_no_dispatch_per_slot.backend_stalls": 699497.7148528515,
+          "L1-dcache-loads": 1158756.8171318287,
+          "L1-dcache-load-misses": 38998.39314606854,
+          "ex_ret_cond": 154676.34188658113,
+          "bp_l1_tlb_miss_l2_tlb_miss.all": 5032.686193138069,
+          "ls_any_fills_from_sys.dram_io_near": 158.28578714212858,
+          "wall": 56.73306475143181,
+          "wall_rounds": [
+            56.52871839585714,
+            57.19568075193092,
+            56.570286460919306,
+            56.63757339701988
+          ],
+          "CPI": 0.7658018534000189,
+          "max_instructions_spread_pct": 3.0054605471008244e-07
+        },
+        "gr_off": {
+          "cycles": 2566202.510874891,
+          "instructions": 2979019.9990600096,
+          "branches": 172750.63899361007,
+          "branch-misses": 21050.057009429907,
+          "ex_ret_ops": 3087860.9949400504,
+          "de_no_dispatch_per_slot.no_ops_from_frontend": 10241591.084589154,
+          "ic_cache_fill_l2": 18648.746722532775,
+          "ic_cache_fill_sys": 328755.7677223228,
+          "de_no_dispatch_per_slot.backend_stalls": 1444232.09899901,
+          "L1-dcache-loads": 1314982.64200358,
+          "L1-dcache-load-misses": 110024.03867961321,
+          "ex_ret_cond": 166355.82067179328,
+          "bp_l1_tlb_miss_l2_tlb_miss.all": 7722.49878501215,
+          "ls_any_fills_from_sys.dram_io_near": 457.4937550624494,
+          "wall": 83.69906444329536,
+          "wall_rounds": [
+            83.13676641206257,
+            83.99342033802532,
+            83.64986072503962,
+            84.01621029805392
+          ],
+          "CPI": 0.8614250698835935,
+          "max_instructions_spread_pct": 0.02191528217190264
+        },
+        "gr_pgo": {
+          "cycles": 2212436.808764412,
+          "instructions": 2996670.519414806,
+          "branches": 228713.53281467187,
+          "branch-misses": 10158.312336876632,
+          "ex_ret_ops": 3037633.7344826553,
+          "de_no_dispatch_per_slot.no_ops_from_frontend": 8568338.660573395,
+          "ic_cache_fill_l2": 24248.09352906471,
+          "ic_cache_fill_sys": 295184.6702532975,
+          "de_no_dispatch_per_slot.backend_stalls": 1205248.567394326,
+          "L1-dcache-loads": 1300655.065619344,
+          "L1-dcache-load-misses": 91983.21354786452,
+          "ex_ret_cond": 223524.0615193848,
+          "bp_l1_tlb_miss_l2_tlb_miss.all": 6242.255477445226,
+          "ls_any_fills_from_sys.dram_io_near": 356.39134608653916,
+          "wall": 71.95376071950886,
+          "wall_rounds": [
+            72.65552919195034,
+            71.89026793907396,
+            70.94538869103417,
+            72.32385705597699
+          ],
+          "CPI": 0.7382983195618249,
+          "max_instructions_spread_pct": 0.011318366338386454
+        },
+        "layout": {
+          "cycles": 2487669.1993280067,
+          "instructions": 2832650.929290707,
+          "branches": 153424.32493675064,
+          "branch-misses": 20892.236507634923,
+          "ex_ret_ops": 2946362.8204517956,
+          "de_no_dispatch_per_slot.no_ops_from_frontend": 9992320.83505165,
+          "ic_cache_fill_l2": 22725.91133088669,
+          "ic_cache_fill_sys": 319775.24773752264,
+          "de_no_dispatch_per_slot.backend_stalls": 1284414.0999390006,
+          "L1-dcache-loads": 1221744.2356676434,
+          "L1-dcache-load-misses": 93756.20434795652,
+          "ex_ret_cond": 146468.36589634104,
+          "bp_l1_tlb_miss_l2_tlb_miss.all": 7585.189908100919,
+          "ls_any_fills_from_sys.dram_io_near": 395.7983320166798,
+          "wall": 81.1435707534547,
+          "wall_rounds": [
+            80.3031270778738,
+            81.24289172305726,
+            81.0565856830217,
+            81.97167852986604
+          ],
+          "CPI": 0.8782124100094876,
+          "max_instructions_spread_pct": 0.01428168234975935
+        }
+      },
+      "paired": {
+        "gr_off_vs_gs_off": {
+          "pct": -6.200453921307486,
+          "faster": 4,
+          "rounds": 4,
+          "min_pct": -6.752360387518519,
+          "max_pct": -5.549189550855649,
+          "ci95_pct": [
+            -6.6645030269115395,
+            -5.736404815703433
+          ]
+        },
+        "gr_pgo_vs_gs_pgo": {
+          "pct": 26.831812156149336,
+          "faster": 0,
+          "rounds": 4,
+          "min_pct": 25.411047264265974,
+          "max_pct": 28.528527187121043,
+          "ci95_pct": [
+            25.55141251216608,
+            28.11221180013259
+          ]
+        },
+        "gs_pgo_vs_gs_off": {
+          "pct": -36.42131884938378,
+          "faster": 4,
+          "rounds": 4,
+          "min_pct": -36.59640868630743,
+          "max_pct": -36.125304247222864,
+          "ci95_pct": [
+            -36.588503002714134,
+            -36.23912751519736
+          ]
+        },
+        "gr_pgo_vs_gr_off": {
+          "pct": -14.030331802709567,
+          "faster": 4,
+          "rounds": 4,
+          "min_pct": -15.187678645115199,
+          "max_pct": -12.607222619367453,
+          "ci95_pct": [
+            -14.869954605906658,
+            -13.057827829044236
+          ]
+        },
+        "layout_vs_gr_off": {
+          "pct": -3.0541884282341836,
+          "faster": 4,
+          "rounds": 4,
+          "min_pct": -3.408406961781507,
+          "max_pct": -2.4334967751279746,
+          "ci95_pct": [
+            -3.34155114687385,
+            -2.643796414337529
+          ]
+        },
+        "gr_pgo_vs_layout": {
+          "pct": -11.319821728701482,
+          "faster": 4,
+          "rounds": 4,
+          "min_pct": -12.474244883109408,
+          "max_pct": -9.52341230560949,
+          "ci95_pct": [
+            -12.233665841949918,
+            -10.084984481111015
+          ]
+        }
+      }
+    }
+  },
+  "source_bytes": {
+    "gs_off": {
+      "other": 2900538541,
+      "lines": 16962571,
+      "log_disabled": 1297031839,
+      "comment_only": 187
+    },
+    "gr_off": {
+      "other": 1104878344,
+      "lines": 15566605,
+      "comment_only": 404916756
+    },
+    "gr_pgo": {
+      "other": 1035158558,
+      "lines": 14233549,
+      "comment_only": 385355625
+    }
+  },
+  "elf": {
+    "gs_off": {
+      "bytes": 66243120,
+      "text": 57550226,
+      "rodata": 7758874,
+      "object": 46998888,
+      "cpp": 409,
+      "functions": {
+        "harness": 655,
+        "subStep": 407,
+        "model-other": 28
+      },
+      "function_bytes": {
+        "harness": 139530,
+        "subStep": 56940771,
+        "model-other": 461754
+      }
+    },
+    "gs_pgo": {
+      "bytes": 86737152,
+      "text": 77765538,
+      "rodata": 7848612,
+      "object": 46998888,
+      "cpp": 409,
+      "functions": {
+        "harness": 762,
+        "subStep": 407,
+        "model-other": 28
+      },
+      "function_bytes": {
+        "harness": 130377,
+        "subStep": 77269438,
+        "model-other": 356698
+      }
+    },
+    "gr_off": {
+      "bytes": 93233176,
+      "text": 85297330,
+      "rodata": 6972392,
+      "object": 45008256,
+      "cpp": 137,
+      "functions": {
+        "harness": 659,
+        "model-other": 144,
+        "commit": 31,
+        "compute": 76
+      },
+      "function_bytes": {
+        "harness": 151527,
+        "model-other": 557205,
+        "commit": 15183565,
+        "compute": 69397707
+      }
+    },
+    "gr_pgo": {
+      "bytes": 96581280,
+      "text": 88606818,
+      "rodata": 6938338,
+      "object": 44334336,
+      "cpp": 137,
+      "functions": {
+        "harness": 763,
+        "model-other": 141,
+        "commit": 31,
+        "compute": 70
+      },
+      "function_bytes": {
+        "harness": 134969,
+        "model-other": 401335,
+        "commit": 12050328,
+        "compute": 76012558
+      }
+    },
+    "layout": {
+      "bytes": 87314288,
+      "text": 79461042,
+      "rodata": 6894369,
+      "object": 44334336,
+      "cpp": 137,
+      "functions": {
+        "harness": 658,
+        "model-other": 141,
+        "commit": 31,
+        "compute": 75
+      },
+      "function_bytes": {
+        "harness": 151481,
+        "model-other": 502225,
+        "commit": 14930160,
+        "compute": 63869796
+      }
+    }
+  },
+  "machine_examples": {
+    "bank": {
+      "location": [
+        "grhsim_SimTop_sched_73.cpp",
+        65
+      ],
+      "cycles": 635,
+      "excerpt": "machine/gr_pgo/examples/bank.asm",
+      "assembly": {
+        "excerpt": "emu GrhSIM_SimTop::eval_commit_batch_73()\ngrhsim_SimTop_sched_73.cpp:65  sample=0x494e1bb\n 494e199:      \tvzeroupper\n 494e19c:      \tretq\n 494e19d:      \tandb\t$0x7f, 0x39c0(%rdi)\n 494e1a4:      \tleaq\t0x2a03368(%rdi), %rax\n 494e1ab:      \txorl\t%ecx, %ecx\n 494e1ad:      \tnopl\t(%rax)\n 494e1b0:      \tvmovdqu64\t0x2a03368(%rdi,%rcx,8), %zmm0\n 494e1bb:      \tvmovdqu64\t0x2a033a8(%rdi,%rcx,8), %zmm1\n 494e1c6:      \tvmovdqu64\t0x2a033e8(%rdi,%rcx,8), %zmm2\n 494e1d1:      \tvmovdqu64\t0x2a03428(%rdi,%rcx,8), %zmm3\n 494e1dc:      \tvpaddq\t0xf6f40(%rdi,%rcx,8), %zmm0, %zmm0\n 494e1e7:      \tvpaddq\t0xf6f80(%rdi,%rcx,8), %zmm1, %zmm1\n 494e1f2:      \tvpaddq\t0xf6fc0(%rdi,%rcx,8), %zmm2, %zmm2\n 494e1fd:      \tvpaddq\t0xf7000(%rdi,%rcx,8), %zmm3, %zmm3\n 494e208:      \tvmovdqu64\t%zmm0, 0x2a03368(%rdi,%rcx,8)\n"
+      }
+    },
+    "notify": {
+      "location": [
+        "grhsim_SimTop_sched_59.cpp",
+        40458
+      ],
+      "cycles": 11,
+      "excerpt": "machine/gr_pgo/examples/notify.asm",
+      "assembly": {
+        "excerpt": "emu GrhSIM_SimTop::eval_compute_batch_59()\ngrhsim_SimTop_sched_59.cpp:40458  sample=0x43ec464\n 43ec440:      \tmovb\t%r11b, 0x375c(%rbx)\n 43ec447:      \tjne\t0x4497bed <GrhSIM_SimTop::eval_compute_batch_59()+0xac9fd>\n 43ec44d:      \txorl\t%edx, %edx\n 43ec44f:      \tmovq\t(%rsp), %rbx\n 43ec453:      \tkshiftrw\t$0x2, %k0, %k1\n 43ec459:      \tkmovd\t%k1, %r15d\n 43ec45d:      \torw\t0x398a(%rbx), %dx\n 43ec464:      \tmovw\t%dx, 0x398a(%rbx)\n 43ec46b:      \tvpextrb\t$0x1, %xmm1, 0xc1daa(%rbx)\n 43ec475:      \ttestb\t$0x1, %r15b\n 43ec479:      \tjne\t0x4497bf6 <GrhSIM_SimTop::eval_compute_batch_59()+0xaca06>\n 43ec47f:      \txorl\t%ebp, %ebp\n 43ec481:      \tmovq\t(%rsp), %rax\n 43ec485:      \torb\t%cl, %bpl\n 43ec488:      \tmovb\t%bpl, 0x373f(%rax)\n 43ec48f:      \ttestb\t$0x1, %r15b\n 43ec493:      \tjne\t0x4497bfe <GrhSIM_SimTop::eval_compute_batch_59()+0xaca0e>\n"
+      }
+    },
+    "when1": {
+      "location": [
+        "SimTop392.cpp",
+        28555
+      ],
+      "miss_off": 2,
+      "miss_pgo": 0,
+      "source": "if (cpu__DOT__l_soc__DOT__core_with_l2__DOT__core__DOT__frontend__DOT__inner__DOT__ftq__DOT__redirect_1__DOT__valid) {",
+      "off": "machine/gs_off/examples/when1.asm",
+      "pgo": "machine/gs_pgo/examples/when1.asm",
+      "assembly": {
+        "off": "emu SSimTop::subStep390()\nSimTop392.cpp:28555  sample=0x1a53ea6\n 1a53e87:      \tmovb\t%dl, 0x24a5f2(%rax)\n 1a53e8d:      \txorb\t%dl, %sil\n 1a53e90:      \torb\t%dil, %sil\n 1a53e93:      \tsetne\t%dl\n 1a53e96:      \tshlb\t$0x4, %dl\n 1a53e99:      \torb\t%dl, 0x5c6(%rax)\n 1a53e9f:      \tmovzbl\t0x24a5ea(%rax), %ecx\n 1a53ea6:      \tmovzbl\t0x23efc2(%rax), %edx\n 1a53ead:      \ttestb\t%dl, %dl\n 1a53eaf:      \tje\t0x1a53f00 <SSimTop::subStep390()+0x12ae0>\n 1a53eb1:      \tmovzbl\t0x24a5e9(%rax), %edi\n 1a53eb8:      \tmovzbl\t0x24a5f1(%rax), %r9d\n 1a53ec0:      \tmovl\t%ecx, %r8d\n 1a53ec3:      \tshrb\t$0x6, %r8b\n 1a53ec7:      \tandb\t$0x1, %r8b\n 1a53ecb:      \tshrb\t$0x6, %dil\n 1a53ecf:      \tandb\t$0x1, %dil\n",
+        "pgo": "emu SSimTop::subStep390()\nSimTop392.cpp:28555  sample=0x236e75c\n 236e738:      \tmovzbl\t0xabe42(%rdi), %edx\n 236e73f:      \tandb\t$0x3f, %dl\n 236e742:      \tcmpb\t0x24a5f3(%rdi), %dl\n 236e748:      \tmovb\t%dl, 0x24a5f3(%rdi)\n 236e74e:      \tje\t0x238ca37 <SSimTop::subStep390()+0x2f177>\n 236e754:      \tmovb\t$0x8, %dl\n 236e756:      \torb\t%dl, 0x5c6(%rdi)\n 236e75c:      \ttestb\t%cl, %cl\n 236e75e:      \tjne\t0x2374fb0 <SSimTop::subStep390()+0x176f0>\n 236e764:      \ttestb\t$0x10, %bl\n 236e767:      \tje\t0x236e832 <SSimTop::subStep390()+0x10f72>\n 236e76d:      \tmovzbl\t0xabe42(%rdi), %edx\n 236e774:      \tmovzbl\t0x24a5ea(%rdi), %eax\n 236e77b:      \tmovl\t%edx, %r8d\n 236e77e:      \tmovl\t%eax, %ecx\n 236e780:      \tshrb\t$0x6, %r8b\n 236e784:      \tshrb\t$0x6, %cl\n"
+      }
+    },
+    "when2": {
+      "location": [
+        "SimTop335.cpp",
+        35766
+      ],
+      "miss_off": 2,
+      "miss_pgo": 0,
+      "source": "if (cpu__DOT__l_soc__DOT__core_with_l2__DOT__core__DOT__backend__DOT__inner__DOT__ctrlBlock__DOT__rob__DOT___T_545) {",
+      "off": "machine/gs_off/examples/when2.asm",
+      "pgo": "machine/gs_pgo/examples/when2.asm",
+      "assembly": {
+        "off": "emu SSimTop::subStep333()\nSimTop335.cpp:35766  sample=0x85767f\n  857657:      \tje\t0x857678 <SSimTop::subStep333()+0x10c78>\n  857659:      \tcmpb\t$0x0, 0x207fba(%rdi)\n  857660:      \tje\t0x857678 <SSimTop::subStep333()+0x10c78>\n  857662:      \tmovzbl\t0x41f0a(%rdi), %r14d\n  85766a:      \tmovb\t%r14b, 0x234194(%rdi)\n  857671:      \torb\t$0x20, 0x2a9(%rdi)\n  857678:      \tcmpb\t$0x0, 0x22c032(%rdi)\n  85767f:      \tje\t0x8577bd <SSimTop::subStep333()+0x10dbd>\n  857685:      \txorl\t%r9d, %r9d\n  857688:      \tsubb\t0x22bebf(%rdi), %r9b\n  85768f:      \txorl\t%r10d, %r10d\n  857692:      \tsubb\t0x22c024(%rdi), %r10b\n  857699:      \txorl\t%r15d, %r15d\n  85769c:      \tsubb\t0x22b699(%rdi), %r15b\n  8576a3:      \txorl\t%r14d, %r14d\n  8576a6:      \tsubb\t0x22b92a(%rdi), %r14b\n  8576ad:      \txorl\t%r12d, %r12d\n",
+        "pgo": "emu SSimTop::subStep333()\nSimTop335.cpp:35766  sample=0xa929dc\n  a929af:      \tjne\t0xa96c47 <SSimTop::subStep333()+0x5d37>\n  a929b5:      \tcmpb\t$0x0, 0x233a5a(%rdi)\n  a929bc:      \tjne\t0xaad83e <SSimTop::subStep333()+0x1c92e>\n  a929c2:      \tcmpb\t$0x0, 0x22c038(%rdi)\n  a929c9:      \tjne\t0xa97bdc <SSimTop::subStep333()+0x6ccc>\n  a929cf:      \tcmpb\t$0x0, 0x233a59(%rdi)\n  a929d6:      \tjne\t0xaae064 <SSimTop::subStep333()+0x1d154>\n  a929dc:      \tcmpb\t$0x0, 0x22c032(%rdi)\n  a929e3:      \tjne\t0xa9a924 <SSimTop::subStep333()+0x9a14>\n  a929e9:      \tcmpb\t$0x0, 0x233a58(%rdi)\n  a929f0:      \tjne\t0xaad6a7 <SSimTop::subStep333()+0x1c797>\n  a929f6:      \tcmpb\t$0x0, 0x22c02c(%rdi)\n  a929fd:      \tjne\t0xa96cd3 <SSimTop::subStep333()+0x5dc3>\n  a92a03:      \tcmpb\t$0x0, 0x2338de(%rdi)\n  a92a0a:      \tjne\t0xab1cf2 <SSimTop::subStep333()+0x20de2>\n  a92a10:      \tcmpb\t$0x0, 0x22c017(%rdi)\n  a92a17:      \tjne\t0xa9cf98 <SSimTop::subStep333()+0xc088>\n"
+      }
+    },
+    "when3": {
+      "location": [
+        "SimTop329.cpp",
+        49460
+      ],
+      "miss_off": 2,
+      "miss_pgo": 0,
+      "source": "if (cpu__DOT__l_soc__DOT__core_with_l2__DOT__core__DOT__backend__DOT__inner__DOT__ctrlBlock__DOT__rob__DOT__commitCond_64) {",
+      "off": "machine/gs_off/examples/when3.asm",
+      "pgo": "machine/gs_pgo/examples/when3.asm",
+      "assembly": {
+        "off": "emu SSimTop::subStep327()\nSimTop329.cpp:49460  sample=0x2491f40\n 2491f0c:      \torl\t%edx, 0x1d20(%rsp)\n 2491f13:      \torl\t%r8d, 0x1ce0(%rsp)\n 2491f1b:      \torl\t%esi, 0x540(%rsp)\n 2491f22:      \tmovl\t0x53c(%rsp), %r8d\n 2491f2a:      \tmovl\t0xff0(%rsp), %esi\n 2491f31:      \torl\t%r8d, 0x1ca0(%rsp)\n 2491f39:      \torl\t%esi, 0x1c60(%rsp)\n 2491f40:      \ttestb\t%r13b, 0xa30(%rsp)\n 2491f48:      \tje\t0x2491f4e <SSimTop::subStep327()+0x21fbe>\n 2491f4a:      \txorl\t%edx, %edx\n 2491f4c:      \tjmp\t0x2491f5e <SSimTop::subStep327()+0x21fce>\n 2491f4e:      \tcmpb\t$0x0, 0x22c336(%r9)\n 2491f56:      \tmovb\t$0x1, %dl\n 2491f58:      \tje\t0x2496570 <SSimTop::subStep327()+0x265e0>\n 2491f5e:      \tmovb\t%dl, 0x22c4ec(%r9)\n 2491f65:      \torb\t$0x4, 0x2b8(%r9)\n 2491f6d:      \tmovl\t0x1014(%rsp), %r8d\n",
+        "pgo": "emu SSimTop::subStep327()\nSimTop329.cpp:49460  sample=0x30ab570\n 30ab54e:      \tjne\t0x30b09ae <SSimTop::subStep327()+0x18b1e>\n 30ab554:      \tvpextrb\t$0xf, %xmm4, %eax\n 30ab55a:      \ttestl\t%eax, %eax\n 30ab55c:      \tjne\t0x30b09be <SSimTop::subStep327()+0x18b2e>\n 30ab562:      \tvextracti128\t$0x1, %ymm3, %xmm4\n 30ab568:      \tvpextrb\t$0xe, %xmm4, %eax\n 30ab56e:      \ttestl\t%eax, %eax\n 30ab570:      \tjne\t0x30b1f8a <SSimTop::subStep327()+0x1a0fa>\n 30ab576:      \tcmpb\t$0x0, 0x22c336(%rdi)\n 30ab57d:      \tjne\t0x30b1f44 <SSimTop::subStep327()+0x1a0b4>\n 30ab583:      \tvmovd\t%xmm1, %eax\n 30ab587:      \ttestb\t%al, %al\n 30ab589:      \tjne\t0x30b1f8a <SSimTop::subStep327()+0x1a0fa>\n 30ab58f:      \tvextracti128\t$0x1, %ymm3, %xmm4\n 30ab595:      \tvpextrb\t$0xf, %xmm4, %eax\n 30ab59b:      \ttestl\t%eax, %eax\n 30ab59d:      \tjne\t0x30b19d2 <SSimTop::subStep327()+0x19b42>\n"
+      }
+    },
+    "when4": {
+      "location": [
+        "SimTop184.cpp",
+        5372
+      ],
+      "miss_off": 2,
+      "miss_pgo": 0,
+      "source": "if (cpu__DOT__l_soc__DOT__core_with_l2__DOT__core__DOT__memBlock__DOT__inner__DOT__lsq__DOT__loadQueue__DOT__loadQueueReplay__DOT___T_6504) {",
+      "off": "machine/gs_off/examples/when4.asm",
+      "pgo": "machine/gs_pgo/examples/when4.asm",
+      "assembly": {
+        "off": "emu SSimTop::subStep182()\nSimTop184.cpp:5372  sample=0x1b3db22\n 1b3dafd:      \tje\t0x1b3db2c <SSimTop::subStep182()+0x2411c>\n 1b3daff:      \tmovzwl\t0x1ee62(%r11), %eax\n 1b3db07:      \tmovzbl\t0xb6(%rsp), %r8d\n 1b3db10:      \tcmpw\t$-0x1, %ax\n 1b3db14:      \tsetne\t%dil\n 1b3db18:      \tandb\t0x1eab7(%r11), %r8b\n 1b3db1f:      \tandb\t%dil, %r8b\n 1b3db22:      \tcmpb\t$0x1, %r8b\n 1b3db26:      \tjne\t0x1b3db3e <SSimTop::subStep182()+0x2412e>\n 1b3db28:      \tincl\t%eax\n 1b3db2a:      \tjmp\t0x1b3db2e <SSimTop::subStep182()+0x2411e>\n 1b3db2c:      \txorl\t%eax, %eax\n 1b3db2e:      \tmovw\t%ax, 0x1b4960(%r11)\n 1b3db36:      \torb\t$0x4, 0x85(%r11)\n 1b3db3e:      \tkmovq\t%k0, %rax\n 1b3db43:      \tmovabsq\t$0x80000000000, %rsi    # imm = 0x80000000000\n 1b3db4d:      \ttestq\t%rsi, %rax\n",
+        "pgo": "emu SSimTop::subStep182()\nSimTop184.cpp:5372  sample=0x2477131\n 2477109:      \tje\t0x249b694 <SSimTop::subStep182()+0x27624>\n 247710f:      \tvpextrq\t$0x1, %xmm2, %rcx\n 2477115:      \tkmovq\t%rcx, %k1\n 247711a:      \tkshiftrq\t$0x8, %k1, %k1\n 2477120:      \tkmovd\t%k1, %ecx\n 2477124:      \tcmpw\t$-0x1, 0x690(%rsp)\n 247712d:      \tsetne\t%r10b\n 2477131:      \ttestb\t$0x1, %cl\n 2477134:      \tjne\t0x2477139 <SSimTop::subStep182()+0x30c9>\n 2477136:      \txorl\t%r10d, %r10d\n 2477139:      \ttestb\t%r10b, %r10b\n 247713c:      \tjne\t0x249ab1d <SSimTop::subStep182()+0x26aad>\n 2477142:      \tkmovq\t%k0, %rcx\n 2477147:      \tmovabsq\t$0x10000000000, %r10    # imm = 0x10000000000\n 2477151:      \ttestq\t%r10, %rcx\n 2477154:      \tje\t0x249b1c7 <SSimTop::subStep182()+0x27157>\n 247715a:      \tcmpb\t$0x0, 0x520(%rsp)\n"
+      }
+    }
+  },
+  "gs_pgo_line_binary_differences": {
+    "coremark": {
+      "unique": {
+        "same instruction, different RIP displacement, first 16 constant bytes equal": 1843
+      },
+      "samples": {
+        "same instruction, different RIP displacement, first 16 constant bytes equal": {
+          "cycles": 699,
+          "instructions": 857,
+          "branch-misses": 1230
+        }
+      },
+      "examples": [
+        [
+          "0x3f08f9e",
+          "same instruction, different RIP displacement, first 16 constant bytes equal",
+          "vpshufb\t18822057(%rip), %xmm0, %xmm0",
+          "vpshufb\t18823017(%rip), %xmm0, %xmm0"
+        ],
+        [
+          "0x21356ba",
+          "same instruction, different RIP displacement, first 16 constant bytes equal",
+          "vmovdqa64\t50641660(%rip), %zmm1",
+          "vmovdqa64\t50642620(%rip), %zmm1"
+        ],
+        [
+          "0x4145d57",
+          "same instruction, different RIP displacement, first 16 constant bytes equal",
+          "vmovdqa\t16781665(%rip), %ymm5",
+          "vmovdqa\t16782625(%rip), %ymm5"
+        ],
+        [
+          "0x1c8fc8e",
+          "same instruction, different RIP displacement, first 16 constant bytes equal",
+          "vmovdqa\t55307498(%rip), %ymm1",
+          "vmovdqa\t55308458(%rip), %ymm1"
+        ],
+        [
+          "0x16163f6",
+          "same instruction, different RIP displacement, first 16 constant bytes equal",
+          "vmovdqa64\t62261952(%rip), %zmm2",
+          "vmovdqa64\t62262912(%rip), %zmm2"
+        ],
+        [
+          "0x183773d",
+          "same instruction, different RIP displacement, first 16 constant bytes equal",
+          "vpor\t59643163(%rip), %xmm0, %xmm1",
+          "vpor\t59644123(%rip), %xmm0, %xmm1"
+        ]
+      ]
+    },
+    "microbench": {
+      "unique": {
+        "same instruction, different RIP displacement, first 16 constant bytes equal": 1680
+      },
+      "samples": {
+        "same instruction, different RIP displacement, first 16 constant bytes equal": {
+          "cycles": 622,
+          "instructions": 779,
+          "branch-misses": 1068
+        }
+      },
+      "examples": [
+        [
+          "0x16b0f3f",
+          "same instruction, different RIP displacement, first 16 constant bytes equal",
+          "vmovdqa\t61235049(%rip), %xmm4",
+          "vmovdqa\t61236009(%rip), %xmm4"
+        ],
+        [
+          "0x32e559b",
+          "same instruction, different RIP displacement, first 16 constant bytes equal",
+          "vmovq\t31550861(%rip), %xmm3",
+          "vmovq\t31551821(%rip), %xmm3"
+        ],
+        [
+          "0xe02982",
+          "same instruction, different RIP displacement, first 16 constant bytes equal",
+          "vmovq\t70298758(%rip), %xmm1",
+          "vmovq\t70299718(%rip), %xmm1"
+        ],
+        [
+          "0x3af777e",
+          "same instruction, different RIP displacement, first 16 constant bytes equal",
+          "vpshufb\t23326969(%rip), %xmm1, %xmm1",
+          "vpshufb\t23327929(%rip), %xmm1, %xmm1"
+        ],
+        [
+          "0x275e569",
+          "same instruction, different RIP displacement, first 16 constant bytes equal",
+          "vpmovsxbq\t44227666(%rip), %xmm1",
+          "vpmovsxbq\t44228626(%rip), %xmm1"
+        ],
+        [
+          "0xe3c72c",
+          "same instruction, different RIP displacement, first 16 constant bytes equal",
+          "vpand\t70064444(%rip), %xmm0, %xmm2",
+          "vpand\t70065404(%rip), %xmm0, %xmm2"
+        ]
+      ]
+    }
+  },
+  "phase_samples": {
+    "coremark": {
+      "gs_off": {
+        "branch-misses": {
+          "lib/other": 193,
+          "subStep": 298856,
+          "harness": 1324,
+          "model-other": 353,
+          "NEMU": 214
+        },
+        "cycles": {
+          "unresolved": 38,
+          "subStep": 74287,
+          "model-other": 136,
+          "lib/other": 76,
+          "harness": 251,
+          "NEMU": 66
+        },
+        "instructions": {
+          "subStep": 59045,
+          "model-other": 72,
+          "harness": 74,
+          "lib/other": 24,
+          "unresolved": 6,
+          "NEMU": 24
+        }
+      },
+      "gr_off": {
+        "branch-misses": {
+          "lib/other": 265,
+          "compute": 146030,
+          "commit": 75918,
+          "harness": 1280,
+          "model-other": 594,
+          "unresolved": 30,
+          "NEMU": 212
+        },
+        "cycles": {
+          "unresolved": 30,
+          "lib/other": 170,
+          "compute": 60947,
+          "commit": 11072,
+          "harness": 281,
+          "model-other": 230,
+          "NEMU": 65
+        },
+        "instructions": {
+          "compute": 77354,
+          "commit": 5093,
+          "lib/other": 57,
+          "harness": 106,
+          "model-other": 201,
+          "unresolved": 17,
+          "NEMU": 24
+        }
+      },
+      "gs_pgo": {
+        "branch-misses": {
+          "lib/other": 143,
+          "subStep": 78044,
+          "unresolved": 21,
+          "harness": 416,
+          "model-other": 135,
+          "NEMU": 159
+        },
+        "cycles": {
+          "unresolved": 19,
+          "subStep": 47512,
+          "lib/other": 69,
+          "model-other": 59,
+          "harness": 140,
+          "NEMU": 63
+        },
+        "instructions": {
+          "subStep": 61807,
+          "model-other": 35,
+          "lib/other": 28,
+          "harness": 83,
+          "NEMU": 25,
+          "unresolved": 11
+        }
+      },
+      "gr_pgo": {
+        "branch-misses": {
+          "lib/other": 166,
+          "compute": 78164,
+          "commit": 34143,
+          "harness": 464,
+          "model-other": 253,
+          "NEMU": 167,
+          "unresolved": 21
+        },
+        "cycles": {
+          "lib/other": 161,
+          "unresolved": 26,
+          "compute": 54831,
+          "commit": 7021,
+          "model-other": 126,
+          "harness": 119,
+          "NEMU": 60
+        },
+        "instructions": {
+          "compute": 79014,
+          "commit": 4052,
+          "lib/other": 105,
+          "model-other": 137,
+          "harness": 52,
+          "unresolved": 18,
+          "NEMU": 30
+        }
+      },
+      "layout": {
+        "branch-misses": {
+          "lib/other": 238,
+          "compute": 143021,
+          "commit": 74702,
+          "harness": 1256,
+          "model-other": 532,
+          "NEMU": 187,
+          "unresolved": 32
+        },
+        "cycles": {
+          "unresolved": 30,
+          "model-other": 199,
+          "compute": 59602,
+          "commit": 10582,
+          "lib/other": 168,
+          "harness": 268,
+          "NEMU": 59
+        },
+        "instructions": {
+          "compute": 74391,
+          "commit": 4077,
+          "harness": 108,
+          "model-other": 148,
+          "lib/other": 99,
+          "NEMU": 21,
+          "unresolved": 4
+        }
+      }
+    },
+    "microbench": {
+      "gs_off": {
+        "branch-misses": {
+          "lib/other": 198,
+          "subStep": 277046,
+          "model-other": 323,
+          "harness": 1152,
+          "NEMU": 125
+        },
+        "cycles": {
+          "unresolved": 23,
+          "subStep": 67065,
+          "lib/other": 73,
+          "harness": 239,
+          "model-other": 92,
+          "NEMU": 50
+        },
+        "instructions": {
+          "subStep": 54105,
+          "model-other": 67,
+          "harness": 63,
+          "lib/other": 32,
+          "NEMU": 15,
+          "unresolved": 14
+        }
+      },
+      "gr_off": {
+        "branch-misses": {
+          "lib/other": 205,
+          "compute": 126523,
+          "commit": 72027,
+          "harness": 1267,
+          "model-other": 505,
+          "NEMU": 132,
+          "unresolved": 24
+        },
+        "cycles": {
+          "unresolved": 23,
+          "lib/other": 109,
+          "compute": 51781,
+          "commit": 10171,
+          "harness": 290,
+          "model-other": 204,
+          "NEMU": 47
+        },
+        "instructions": {
+          "compute": 69109,
+          "commit": 4968,
+          "lib/other": 39,
+          "harness": 118,
+          "model-other": 213,
+          "NEMU": 18,
+          "unresolved": 6
+        }
+      },
+      "gs_pgo": {
+        "branch-misses": {
+          "lib/other": 110,
+          "subStep": 73313,
+          "harness": 338,
+          "model-other": 141,
+          "NEMU": 122,
+          "unresolved": 13
+        },
+        "cycles": {
+          "unresolved": 23,
+          "subStep": 42695,
+          "model-other": 45,
+          "harness": 111,
+          "NEMU": 42,
+          "lib/other": 66
+        },
+        "instructions": {
+          "subStep": 56909,
+          "lib/other": 25,
+          "model-other": 35,
+          "harness": 68,
+          "unresolved": 9,
+          "NEMU": 16
+        }
+      },
+      "gr_pgo": {
+        "branch-misses": {
+          "lib/other": 133,
+          "compute": 69660,
+          "commit": 30414,
+          "harness": 409,
+          "model-other": 224,
+          "NEMU": 122,
+          "unresolved": 17
+        },
+        "cycles": {
+          "lib/other": 122,
+          "unresolved": 21,
+          "compute": 46567,
+          "commit": 6472,
+          "model-other": 117,
+          "harness": 127,
+          "NEMU": 43
+        },
+        "instructions": {
+          "compute": 70387,
+          "unresolved": 9,
+          "commit": 3902,
+          "lib/other": 100,
+          "model-other": 140,
+          "harness": 62,
+          "NEMU": 14
+        }
+      },
+      "layout": {
+        "branch-misses": {
+          "lib/other": 182,
+          "compute": 125015,
+          "commit": 70863,
+          "harness": 1117,
+          "model-other": 470,
+          "NEMU": 132,
+          "unresolved": 22
+        },
+        "cycles": {
+          "unresolved": 28,
+          "lib/other": 148,
+          "compute": 50782,
+          "commit": 9764,
+          "model-other": 164,
+          "harness": 249,
+          "NEMU": 34
+        },
+        "instructions": {
+          "compute": 66441,
+          "commit": 4010,
+          "lib/other": 75,
+          "harness": 96,
+          "model-other": 172,
+          "NEMU": 16,
+          "unresolved": 7
+        }
+      }
+    }
+  },
+  "measured_change_sites": {
+    "coremark": {
+      "gs_pgo": {
+        "signature": {
+          "pc": "0x80000c10",
+          "instr_count": 250845,
+          "cycle_count": 99997,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "groups": [
+          2185019668,
+          1519624817,
+          435520602,
+          1201212
+        ],
+        "comparisons": [
+          [
+            5509869060,
+            571321324
+          ],
+          [
+            973008201,
+            310308252
+          ],
+          [
+            951391359,
+            251462240
+          ]
+        ]
+      },
+      "gr_pgo": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "groups": [
+          1466947240,
+          757280117,
+          240609518,
+          0
+        ],
+        "comparisons": [
+          [
+            12525640946,
+            656866126
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      },
+      "gr_off": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "groups": [
+          1807723463,
+          926586213,
+          245710859,
+          0
+        ],
+        "comparisons": [
+          [
+            14459400303,
+            802003293
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      }
+    },
+    "microbench": {
+      "gs_pgo": {
+        "signature": {
+          "pc": "0x8000044e",
+          "instr_count": 138523,
+          "cycle_count": 99997,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "groups": [
+          2020844480,
+          1385439232,
+          401977403,
+          1201212
+        ],
+        "comparisons": [
+          [
+            5044878134,
+            532159616
+          ],
+          [
+            900293875,
+            292665983
+          ],
+          [
+            885795635,
+            239665627
+          ]
+        ]
+      },
+      "gr_pgo": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "groups": [
+          1339816549,
+          682592141,
+          216848946,
+          0
+        ],
+        "comparisons": [
+          [
+            10656661473,
+            598247033
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      },
+      "gr_off": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "groups": [
+          1650106499,
+          828267937,
+          219223231,
+          0
+        ],
+        "comparisons": [
+          [
+            12339412640,
+            727107717
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      }
+    }
+  },
+  "coverage": {
+    "coremark": {
+      "gs_pgo": {
+        "other statement": 731.689853101469,
+        "word test": 13492.478865211348,
+        "word bookkeeping": 9534.653193468066,
+        "supernode test": 38267.741772582274,
+        "register: old value save": 12967.934350656493,
+        "value: old value save": 59381.289587104126,
+        "register update": 12979.820811791882,
+        "value expression": 775208.8579614204,
+        "register: change branch": 667.2133078669214,
+        "register: reader notification": 17274.963100368997,
+        "block end": 47383.92576074239,
+        "register: change compare": 8846.60514394856,
+        "value: change compare": 49742.143508564914,
+        "value: reader notification": 80347.20853791462,
+        "next-value: old value save": 9724.172098279018,
+        "register next value": 32116.67990320097,
+        "next-value: change compare": 9730.10089899101,
+        "next-value: reader notification": 10200.467035329646,
+        "declaration": 726009.4775252248,
+        "value: change branch": 5361.1675383246165,
+        "call": 1856.69974300257,
+        "when test": 33975.11524884751,
+        "array or memory write": 21139.761832381675,
+        "register array copy": 68738.9993100069,
+        "array loop": 10783.39995600044
+      },
+      "gr_off": {
+        "compute|block end": 550724.689293107,
+        "compute|event test": 23048.32657673423,
+        "compute|word bookkeeping": 109809.88067119328,
+        "compute|word test": 78267.56532434675,
+        "compute|reader notification": 98300.51490485095,
+        "compute|supernode test": 36790.89137108629,
+        "compute|next value expression": 206775.29382706172,
+        "compute|store": 202599.76182238178,
+        "compute|local expression": 230496.25636743632,
+        "compute|change compare": 148516.56873431266,
+        "compute|change aggregate": 203896.7985820142,
+        "compute|other statement": 74438.41583584165,
+        "compute|other control flow": 4828.587144128559,
+        "commit|block end": 81277.50987490125,
+        "commit|event test": 1464.0648593514065,
+        "commit|word bookkeeping": 4327.171968280317,
+        "commit|word test": 1435.3940360596393,
+        "commit|reader notification": 9125.327376726233,
+        "commit|supernode test": 87.8330116698833,
+        "commit|enable block compare": 5297.848291517085,
+        "commit|write enable test": 7731.083929160708,
+        "commit|next value expression": 17818.040639593604,
+        "commit|state compare": 17818.040639593604,
+        "commit|store": 3045.511334886651,
+        "commit|data block compare": 25517.326226737732,
+        "commit|other control flow": 35742.68208317917,
+        "commit|other statement": 45.83031169688303,
+        "compute|accumulate bank": 0.0,
+        "commit|local expression": 21.909520904790952,
+        "commit|accumulate bank": 32480.155938440617
+      },
+      "gr_pgo": {
+        "compute|block end": 498378.3210167898,
+        "compute|event test": 23515.639453605465,
+        "compute|word bookkeeping": 94712.29354706453,
+        "compute|word test": 69521.20927790723,
+        "compute|reader notification": 77679.26344736552,
+        "compute|supernode test": 33300.39895601044,
+        "compute|local expression": 285670.36239637603,
+        "compute|other control flow": 6304.606003939961,
+        "compute|other statement": 108414.17127828722,
+        "compute|next value expression": 187366.10684893152,
+        "compute|store": 185660.23792762074,
+        "compute|change compare": 128838.34249657503,
+        "compute|change aggregate": 169078.06799932002,
+        "commit|block end": 81050.33651663484,
+        "commit|event test": 1464.0648593514065,
+        "commit|word bookkeeping": 4326.140288597114,
+        "commit|word test": 1435.3940360596393,
+        "commit|reader notification": 7936.0414895851045,
+        "commit|supernode test": 87.8330116698833,
+        "commit|enable block compare": 5297.848291517085,
+        "commit|write enable test": 7731.083929160708,
+        "commit|next value expression": 18408.041859581404,
+        "commit|state compare": 18408.041859581404,
+        "commit|store": 3045.511334886651,
+        "commit|data block compare": 10529.49754502455,
+        "commit|other control flow": 34608.90252097479,
+        "compute|accumulate bank": 0.0,
+        "commit|local expression": 21.909520904790952,
+        "commit|other statement": 34.73580264197358,
+        "commit|accumulate bank": 32480.155938440617
+      }
+    },
+    "microbench": {
+      "gs_pgo": {
+        "other statement": 708.9616403835962,
+        "word test": 13492.478865211348,
+        "word bookkeeping": 8865.514444855551,
+        "supernode test": 35591.18677813222,
+        "register: old value save": 11952.255297447025,
+        "value: old value save": 54390.58481415186,
+        "register update": 11962.771532284678,
+        "value expression": 702338.5176448235,
+        "register: change branch": 550.2862771372286,
+        "register: reader notification": 16215.670683293167,
+        "block end": 44864.45310546894,
+        "register: change compare": 8307.581494185059,
+        "value: change compare": 45688.252477475224,
+        "value: reader notification": 73104.0269497305,
+        "next-value: old value save": 8998.637473625264,
+        "register next value": 30664.866391336087,
+        "next-value: change compare": 9003.49122508775,
+        "next-value: reader notification": 9489.870271297286,
+        "declaration": 657497.833291667,
+        "value: change branch": 4763.668743312567,
+        "call": 1793.3289467105328,
+        "when test": 32765.9859601404,
+        "array or memory write": 20187.89998100019,
+        "register array copy": 63814.63316366836,
+        "array loop": 10769.155428445716
+      },
+      "gr_off": {
+        "compute|block end": 489330.6626133739,
+        "compute|event test": 22976.962740372597,
+        "compute|word bookkeeping": 104529.46773532264,
+        "compute|word test": 75776.33934660653,
+        "compute|reader notification": 83448.22776772232,
+        "compute|supernode test": 33891.292217077826,
+        "compute|next value expression": 179713.65950340495,
+        "compute|store": 176182.40473595264,
+        "compute|local expression": 209931.34896651033,
+        "compute|change compare": 126784.75769242308,
+        "compute|change aggregate": 174535.9574704253,
+        "compute|other statement": 65773.83666163338,
+        "compute|other control flow": 4494.052279477205,
+        "commit|block end": 79042.31480685194,
+        "commit|event test": 1421.7621123788763,
+        "commit|word bookkeeping": 4212.461215387846,
+        "commit|word test": 1398.2529874701254,
+        "commit|reader notification": 8177.915820841791,
+        "commit|supernode test": 89.62844371556284,
+        "commit|enable block compare": 5297.640583594164,
+        "commit|write enable test": 7611.890741092589,
+        "commit|next value expression": 17203.830291697082,
+        "commit|state compare": 17203.830291697082,
+        "commit|store": 2805.8417415825843,
+        "commit|data block compare": 25455.876691233087,
+        "commit|other control flow": 35230.921890781094,
+        "commit|other statement": 38.305096949030506,
+        "compute|accumulate bank": 0.0,
+        "commit|local expression": 21.520924790752094,
+        "commit|accumulate bank": 32480.155938440617
+      },
+      "gr_pgo": {
+        "compute|block end": 443040.20755792444,
+        "compute|event test": 23411.62640373596,
+        "compute|word bookkeeping": 90280.70946290538,
+        "compute|word test": 67300.67243327567,
+        "compute|reader notification": 66299.25263747362,
+        "compute|supernode test": 30643.878421215788,
+        "compute|local expression": 263202.50740492594,
+        "compute|other control flow": 5712.30150698493,
+        "compute|other statement": 100031.65282347177,
+        "compute|next value expression": 163222.57834421657,
+        "compute|store": 161730.24088759112,
+        "compute|change compare": 109711.36346636534,
+        "compute|change aggregate": 143449.35169648303,
+        "commit|block end": 78659.37293627064,
+        "commit|event test": 1421.7621123788763,
+        "commit|word bookkeeping": 4211.428795712043,
+        "commit|word test": 1398.2529874701254,
+        "commit|reader notification": 7197.349736502635,
+        "commit|supernode test": 89.62844371556284,
+        "commit|enable block compare": 5297.640583594164,
+        "commit|write enable test": 7611.890741092589,
+        "commit|next value expression": 17587.49665503345,
+        "commit|state compare": 17587.49665503345,
+        "commit|store": 2805.8417415825843,
+        "commit|data block compare": 10479.39988600114,
+        "commit|other control flow": 34309.29724702753,
+        "compute|accumulate bank": 0.0,
+        "commit|local expression": 21.520924790752094,
+        "commit|other statement": 29.436145638543614,
+        "commit|accumulate bank": 32480.155938440617
+      }
+    }
+  },
+  "schedule": {
+    "static": {
+      "other/source/internal": 6280581,
+      "multiple external targets": 333279,
+      "only commit target": 289594,
+      "only compute, capacity": 220717,
+      "only compute, order": 44127,
+      "only compute, fits and order": 25802
+    },
+    "dynamic": {
+      "coremark": {
+        "other/source/internal": {},
+        "multiple external targets": {
+          "sites": 312761,
+          "executions": 5995159581,
+          "changes": 399850233
+        },
+        "only commit target": {},
+        "only compute, capacity": {
+          "sites": 200651,
+          "executions": 4501082698,
+          "changes": 122069203
+        },
+        "only compute, order": {
+          "sites": 42935,
+          "executions": 1140055400,
+          "changes": 65878393
+        },
+        "only compute, fits and order": {
+          "sites": 25460,
+          "executions": 515068434,
+          "changes": 28073811
+        }
+      },
+      "microbench": {
+        "other/source/internal": {},
+        "multiple external targets": {
+          "sites": 312761,
+          "executions": 5035776247,
+          "changes": 363569557
+        },
+        "only commit target": {},
+        "only compute, capacity": {
+          "sites": 200651,
+          "executions": 3852451494,
+          "changes": 110998690
+        },
+        "only compute, order": {
+          "sites": 42935,
+          "executions": 959242340,
+          "changes": 59244169
+        },
+        "only compute, fits and order": {
+          "sites": 25460,
+          "executions": 467000929,
+          "changes": 25580144
+        }
+      }
+    }
+  },
+  "attribution": {
+    "coremark": {
+      "gs_off": {
+        "cycles": {
+          "register update": 183168.59291153107,
+          "value computation": 1899910.5084225137,
+          "change detection and notification": 344516.36895962467,
+          "dispatch tests": 388276.37963150925,
+          "model, no statement line": 120783.94289146847,
+          "outside model": 17006.821099713463
+        },
+        "instructions": {
+          "change detection and notification": 320471.9752755174,
+          "value computation": 1631719.1412118643,
+          "register update": 147916.29612691753,
+          "dispatch tests": 205754.84783041204,
+          "model, no statement line": 58758.52866696643,
+          "outside model": 5119.871796713209
+        },
+        "ibs-ops": {
+          "value computation": 1780594.5155690757,
+          "change detection and notification": 358791.8142787092,
+          "model, no statement line": 76315.50943431784,
+          "dispatch tests": 88980.43354400304,
+          "register update": 162553.06864194837,
+          "outside model": 19772.54630306787
+        },
+        "ibs-misses": {
+          "value computation": 26368.763342462746,
+          "dispatch tests": 21531.75065453102,
+          "model, no statement line": 774.8612558337227,
+          "change detection and notification": 2097.6042077114917,
+          "register update": 391.3440686028902,
+          "outside model": 923.572001902821
+        }
+      },
+      "gr_off": {
+        "cycles": {
+          "value computation": 1508388.4380905705,
+          "change detection and notification": 644296.2719986665,
+          "register update": 438561.928167296,
+          "dispatch tests": 211557.01393980562,
+          "model, no statement line": 58979.291098365575,
+          "outside model": 21627.060402758634
+        },
+        "instructions": {
+          "value computation": 1971462.246045301,
+          "change detection and notification": 838758.410589989,
+          "dispatch tests": 238028.19749265735,
+          "register update": 203709.8991480598,
+          "model, no statement line": 53797.33248657773,
+          "outside model": 8159.595410603612
+        },
+        "ibs-ops": {
+          "value computation": 2013810.3775306777,
+          "register update": 222762.29732256988,
+          "dispatch tests": 142438.12750594917,
+          "change detection and notification": 981669.8991806251,
+          "model, no statement line": 59484.03646306745,
+          "outside model": 22497.780671923825
+        },
+        "ibs-misses": {
+          "register update": 8874.258098090682,
+          "dispatch tests": 8799.911685997005,
+          "value computation": 2216.8748333387234,
+          "model, no statement line": 40.55258841473274,
+          "change detection and notification": 2852.1987185028697,
+          "outside model": 662.3589441073015
+        }
+      },
+      "gs_pgo": {
+        "cycles": {
+          "register update": 134911.31776657118,
+          "value computation": 929490.0069192778,
+          "model, no statement line": 334632.2000691328,
+          "dispatch tests": 179420.99432480472,
+          "change detection and notification": 272705.6935533297,
+          "machine code differs": 27606.267891930114,
+          "outside model": 11492.738135267042
+        },
+        "instructions": {
+          "value computation": 1262834.437029894,
+          "register update": 174719.23033627626,
+          "change detection and notification": 383758.30948860676,
+          "model, no statement line": 472077.9204278233,
+          "dispatch tests": 145999.3568515129,
+          "machine code differs": 34279.84899225933,
+          "outside model": 5879.97409785545
+        },
+        "ibs-ops": {
+          "register update": 163146.76623872935,
+          "value computation": 1407283.1634226413,
+          "model, no statement line": 550207.3541351224,
+          "dispatch tests": 68935.1412121777,
+          "change detection and notification": 352867.67514592496,
+          "outside model": 15173.85138588875
+        },
+        "ibs-misses": {
+          "dispatch tests": 5240.4263116729135,
+          "value computation": 1517.355076119982,
+          "change detection and notification": 414.4969964035073,
+          "register update": 162.8381057299493,
+          "model, no statement line": 59.21385662907247,
+          "outside model": 473.71085303257973
+        }
+      },
+      "gr_pgo": {
+        "cycles": {
+          "value computation": 1270745.9634490833,
+          "change detection and notification": 571485.6975010956,
+          "register update": 277655.60045361513,
+          "dispatch tests": 216872.71227569084,
+          "model, no statement line": 114249.68376449139,
+          "outside model": 14473.999396955296
+        },
+        "instructions": {
+          "change detection and notification": 814864.1995364645,
+          "value computation": 1969365.5640829785,
+          "register update": 162691.78302644764,
+          "model, no statement line": 166827.33427317123,
+          "dispatch tests": 226933.35579108636,
+          "outside model": 8230.951510469338
+        },
+        "ibs-ops": {
+          "value computation": 1911943.7095116896,
+          "register update": 181579.86503162372,
+          "change detection and notification": 826140.9354043214,
+          "model, no statement line": 339163.3396253645,
+          "dispatch tests": 118969.14342051747,
+          "outside model": 18110.934757205738
+        },
+        "ibs-misses": {
+          "register update": 4036.683225245973,
+          "change detection and notification": 791.3761182936915,
+          "dispatch tests": 4894.561538354261,
+          "value computation": 1150.4879702925095,
+          "outside model": 518.7171195538483
+        }
+      }
+    },
+    "microbench": {
+      "gs_off": {
+        "cycles": {
+          "register update": 165979.51902662904,
+          "value computation": 1777952.164588033,
+          "model, no statement line": 110653.01268441937,
+          "change detection and notification": 309122.6575029179,
+          "dispatch tests": 360311.8444559008,
+          "outside model": 15616.352596591443
+        },
+        "instructions": {
+          "value computation": 1498650.2331197083,
+          "dispatch tests": 185038.85995220178,
+          "register update": 138006.64484398652,
+          "change detection and notification": 297522.9034234708,
+          "model, no statement line": 54697.02149530492,
+          "outside model": 4976.104670152466
+        },
+        "ibs-ops": {
+          "value computation": 1626150.0831935802,
+          "dispatch tests": 85557.56800601142,
+          "change detection and notification": 330031.60335515963,
+          "model, no statement line": 71181.41711219064,
+          "register update": 153512.49685789735,
+          "outside model": 15949.659946875809
+        },
+        "ibs-misses": {
+          "dispatch tests": 20096.981375734384,
+          "value computation": 25551.652722652947,
+          "model, no statement line": 860.8520059699308,
+          "change detection and notification": 1776.4855032288572,
+          "register update": 391.29636634996854,
+          "outside model": 579.1186221979534
+        }
+      },
+      "gr_off": {
+        "cycles": {
+          "value computation": 1321968.2108316945,
+          "change detection and notification": 557168.152341172,
+          "register update": 416779.9718660043,
+          "dispatch tests": 196649.99360780203,
+          "model, no statement line": 54417.83528050867,
+          "outside model": 19218.346947709764
+        },
+        "instructions": {
+          "value computation": 1779387.5145786593,
+          "change detection and notification": 722963.6830848458,
+          "register update": 198732.00783298368,
+          "dispatch tests": 220173.30336407854,
+          "model, no statement line": 50523.05271599404,
+          "outside model": 7240.437483448077
+        },
+        "ibs-ops": {
+          "register update": 215185.44748618858,
+          "change detection and notification": 842057.022019571,
+          "value computation": 1822696.7217451043,
+          "model, no statement line": 54827.76743263462,
+          "dispatch tests": 133126.98033650313,
+          "outside model": 19967.055920048664
+        },
+        "ibs-misses": {
+          "register update": 8348.125075846017,
+          "value computation": 1637.6704694243383,
+          "dispatch tests": 7702.376963918534,
+          "model, no statement line": 33.28598515090118,
+          "change detection and notification": 2656.2216150419144,
+          "outside model": 672.3769000482039
+        }
+      },
+      "gs_pgo": {
+        "cycles": {
+          "register update": 129563.98882362545,
+          "value computation": 849160.5934168621,
+          "model, no statement line": 316793.30600629066,
+          "dispatch tests": 174012.65165608702,
+          "change detection and notification": 243267.97901535698,
+          "machine code differs": 25294.664484712812,
+          "outside model": 9841.33248440595
+        },
+        "instructions": {
+          "value computation": 1165324.734501675,
+          "change detection and notification": 341961.38932670234,
+          "register update": 165520.67248027775,
+          "model, no statement line": 428921.7426307439,
+          "dispatch tests": 144880.58862338474,
+          "machine code differs": 31160.12659790632,
+          "outside model": 4720.01917657631
+        },
+        "ibs-ops": {
+          "register update": 152042.80828178456,
+          "model, no statement line": 504698.3191183307,
+          "value computation": 1296984.2638146088,
+          "dispatch tests": 66087.55828909592,
+          "change detection and notification": 318998.33463458973,
+          "outside model": 12498.960819140728
+        },
+        "ibs-misses": {
+          "dispatch tests": 4791.815003010512,
+          "value computation": 1433.2660946504654,
+          "change detection and notification": 392.1872398297294,
+          "register update": 199.6589584587713,
+          "model, no statement line": 92.69880214157239,
+          "outside model": 463.494010707862
+        }
+      },
+      "gr_pgo": {
+        "cycles": {
+          "change detection and notification": 482880.5019409506,
+          "value computation": 1144348.171523473,
+          "register update": 267797.99559227354,
+          "dispatch tests": 199731.2924480693,
+          "model, no statement line": 104727.5535914778,
+          "outside model": 12951.293668167742
+        },
+        "instructions": {
+          "change detection and notification": 700872.4533506819,
+          "value computation": 1773647.8875063213,
+          "register update": 156713.3294925426,
+          "dispatch tests": 210129.2003856952,
+          "model, no statement line": 147877.6215252542,
+          "outside model": 7430.0271543107065
+        },
+        "ibs-ops": {
+          "register update": 175383.4149509536,
+          "value computation": 1732796.7459259788,
+          "dispatch tests": 114733.53666517469,
+          "change detection and notification": 702912.2472356157,
+          "model, no statement line": 295981.9247363928,
+          "outside model": 15825.864968539865
+        },
+        "ibs-misses": {
+          "dispatch tests": 4190.048348208671,
+          "register update": 3604.1228881339625,
+          "change detection and notification": 667.6825010153656,
+          "value computation": 1226.355614109855,
+          "model, no statement line": 6.81308674505475,
+          "outside model": 463.28989866372297
+        }
+      }
+    }
+  },
+  "ibs_cache": {
+    "coremark": {
+      "gs_pgo": {
+        "all": {
+          "load": 104374,
+          "store": 50042,
+          "dc_miss": 9709,
+          "dc_miss_load": 6721,
+          "dc_miss_store": 3133,
+          "dc_miss_load_latency_sum": 370945
+        },
+        "phases": {
+          "other": {
+            "load": 317,
+            "store": 228,
+            "dc_miss": 104,
+            "dc_miss_load": 60,
+            "dc_miss_store": 46,
+            "dc_miss_load_latency_sum": 15651
+          },
+          "subStep": {
+            "load": 103894,
+            "store": 49688,
+            "dc_miss": 9560,
+            "dc_miss_load": 6636,
+            "dc_miss_store": 3067,
+            "dc_miss_load_latency_sum": 353495
+          },
+          "model-other": {
+            "load": 0,
+            "store": 50,
+            "dc_miss": 5,
+            "dc_miss_load": 0,
+            "dc_miss_store": 5,
+            "dc_miss_load_latency_sum": 0
+          },
+          "harness": {
+            "load": 163,
+            "store": 76,
+            "dc_miss": 40,
+            "dc_miss_load": 25,
+            "dc_miss_store": 15,
+            "dc_miss_load_latency_sum": 1799
+          }
+        },
+        "buckets": {
+          "register update": {
+            "load": 7039,
+            "store": 5475,
+            "dc_miss": 2483,
+            "dc_miss_load": 1622,
+            "dc_miss_store": 899,
+            "dc_miss_load_latency_sum": 89898
+          },
+          "change detection and notification": {
+            "load": 12898,
+            "store": 6685,
+            "dc_miss": 1197,
+            "dc_miss_load": 688,
+            "dc_miss_store": 595,
+            "dc_miss_load_latency_sum": 33443
+          },
+          "value computation": {
+            "load": 51998,
+            "store": 24388,
+            "dc_miss": 4816,
+            "dc_miss_load": 3443,
+            "dc_miss_store": 1373,
+            "dc_miss_load_latency_sum": 199164
+          },
+          "model, no statement line": {
+            "load": 30163,
+            "store": 12557,
+            "dc_miss": 984,
+            "dc_miss_load": 809,
+            "dc_miss_store": 194,
+            "dc_miss_load_latency_sum": 28934
+          },
+          "dispatch tests": {
+            "load": 1796,
+            "store": 633,
+            "dc_miss": 85,
+            "dc_miss_load": 74,
+            "dc_miss_store": 11,
+            "dc_miss_load_latency_sum": 2056
+          },
+          "outside model": {
+            "load": 480,
+            "store": 304,
+            "dc_miss": 144,
+            "dc_miss_load": 85,
+            "dc_miss_store": 61,
+            "dc_miss_load_latency_sum": 17450
+          }
+        },
+        "details": {
+          "register update": {
+            "load": 1482,
+            "store": 1732,
+            "dc_miss": 724,
+            "dc_miss_load": 554,
+            "dc_miss_store": 170,
+            "dc_miss_load_latency_sum": 26757
+          },
+          "value: change compare": {
+            "load": 4810,
+            "store": 431,
+            "dc_miss": 127,
+            "dc_miss_load": 120,
+            "dc_miss_store": 7,
+            "dc_miss_load_latency_sum": 5624
+          },
+          "value expression": {
+            "load": 47320,
+            "store": 21163,
+            "dc_miss": 3734,
+            "dc_miss_load": 2853,
+            "dc_miss_store": 881,
+            "dc_miss_load_latency_sum": 162414
+          },
+          "model, no statement line": {
+            "load": 30163,
+            "store": 12557,
+            "dc_miss": 984,
+            "dc_miss_load": 809,
+            "dc_miss_store": 194,
+            "dc_miss_load_latency_sum": 28934
+          },
+          "when test": {
+            "load": 2168,
+            "store": 80,
+            "dc_miss": 126,
+            "dc_miss_load": 119,
+            "dc_miss_store": 7,
+            "dc_miss_load_latency_sum": 6663
+          },
+          "register: reader notification": {
+            "load": 820,
+            "store": 1355,
+            "dc_miss": 65,
+            "dc_miss_load": 35,
+            "dc_miss_store": 46,
+            "dc_miss_load_latency_sum": 1104
+          },
+          "register: old value save": {
+            "load": 976,
+            "store": 473,
+            "dc_miss": 172,
+            "dc_miss_load": 167,
+            "dc_miss_store": 5,
+            "dc_miss_load_latency_sum": 10055
+          },
+          "value: reader notification": {
+            "load": 3849,
+            "store": 4799,
+            "dc_miss": 236,
+            "dc_miss_load": 178,
+            "dc_miss_store": 144,
+            "dc_miss_load_latency_sum": 9788
+          },
+          "value: old value save": {
+            "load": 3934,
+            "store": 1451,
+            "dc_miss": 830,
+            "dc_miss_load": 386,
+            "dc_miss_store": 444,
+            "dc_miss_load_latency_sum": 17937
+          },
+          "word test": {
+            "load": 1724,
+            "store": 40,
+            "dc_miss": 79,
+            "dc_miss_load": 73,
+            "dc_miss_store": 6,
+            "dc_miss_load_latency_sum": 2041
+          },
+          "register next value": {
+            "load": 914,
+            "store": 1905,
+            "dc_miss": 541,
+            "dc_miss_load": 221,
+            "dc_miss_store": 320,
+            "dc_miss_load_latency_sum": 15465
+          },
+          "next-value: old value save": {
+            "load": 675,
+            "store": 267,
+            "dc_miss": 205,
+            "dc_miss_load": 120,
+            "dc_miss_store": 85,
+            "dc_miss_load_latency_sum": 5359
+          },
+          "register array copy": {
+            "load": 892,
+            "store": 900,
+            "dc_miss": 1186,
+            "dc_miss_load": 629,
+            "dc_miss_store": 557,
+            "dc_miss_load_latency_sum": 41367
+          },
+          "array loop": {
+            "load": 57,
+            "store": 76,
+            "dc_miss": 69,
+            "dc_miss_load": 45,
+            "dc_miss_store": 24,
+            "dc_miss_load_latency_sum": 4394
+          },
+          "next-value: change compare": {
+            "load": 993,
+            "store": 33,
+            "dc_miss": 53,
+            "dc_miss_load": 52,
+            "dc_miss_store": 1,
+            "dc_miss_load_latency_sum": 2355
+          },
+          "word bookkeeping": {
+            "load": 9,
+            "store": 590,
+            "dc_miss": 5,
+            "dc_miss_load": 0,
+            "dc_miss_store": 5,
+            "dc_miss_load_latency_sum": 0
+          },
+          "register: change compare": {
+            "load": 493,
+            "store": 9,
+            "dc_miss": 19,
+            "dc_miss_load": 19,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 1156
+          },
+          "call": {
+            "load": 383,
+            "store": 154,
+            "dc_miss": 92,
+            "dc_miss_load": 82,
+            "dc_miss_store": 10,
+            "dc_miss_load_latency_sum": 3664
+          },
+          "value: change branch": {
+            "load": 305,
+            "store": 4,
+            "dc_miss": 4,
+            "dc_miss_load": 4,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 94
+          },
+          "next-value: reader notification": {
+            "load": 660,
+            "store": 702,
+            "dc_miss": 59,
+            "dc_miss_load": 46,
+            "dc_miss_store": 35,
+            "dc_miss_load_latency_sum": 1745
+          },
+          "array or memory write": {
+            "load": 718,
+            "store": 663,
+            "dc_miss": 202,
+            "dc_miss_load": 77,
+            "dc_miss_store": 125,
+            "dc_miss_load_latency_sum": 4872
+          },
+          "block end": {
+            "load": 369,
+            "store": 7,
+            "dc_miss": 26,
+            "dc_miss_load": 26,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 766
+          },
+          "supernode test": {
+            "load": 63,
+            "store": 3,
+            "dc_miss": 1,
+            "dc_miss_load": 1,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 15
+          },
+          "other statement": {
+            "load": 69,
+            "store": 340,
+            "dc_miss": 26,
+            "dc_miss_load": 20,
+            "dc_miss_store": 6,
+            "dc_miss_load_latency_sum": 926
+          },
+          "register: change branch": {
+            "load": 48,
+            "store": 4,
+            "dc_miss": 0,
+            "dc_miss_load": 0,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 0
+          }
+        }
+      },
+      "gr_pgo": {
+        "all": {
+          "load": 132805,
+          "store": 47651,
+          "dc_miss": 27418,
+          "dc_miss_load": 19992,
+          "dc_miss_store": 8039,
+          "dc_miss_load_latency_sum": 908279
+        },
+        "phases": {
+          "other": {
+            "load": 368,
+            "store": 474,
+            "dc_miss": 228,
+            "dc_miss_load": 35,
+            "dc_miss_store": 194,
+            "dc_miss_load_latency_sum": 5199
+          },
+          "compute": {
+            "load": 119908,
+            "store": 44590,
+            "dc_miss": 23785,
+            "dc_miss_load": 17564,
+            "dc_miss_store": 6684,
+            "dc_miss_load_latency_sum": 745355
+          },
+          "commit": {
+            "load": 11917,
+            "store": 2325,
+            "dc_miss": 3189,
+            "dc_miss_load": 2201,
+            "dc_miss_store": 1059,
+            "dc_miss_load_latency_sum": 152321
+          },
+          "model-other": {
+            "load": 477,
+            "store": 211,
+            "dc_miss": 178,
+            "dc_miss_load": 169,
+            "dc_miss_store": 87,
+            "dc_miss_load_latency_sum": 4470
+          },
+          "harness": {
+            "load": 135,
+            "store": 51,
+            "dc_miss": 38,
+            "dc_miss_load": 23,
+            "dc_miss_store": 15,
+            "dc_miss_load_latency_sum": 934
+          }
+        },
+        "buckets": {
+          "change detection and notification": {
+            "load": 25843,
+            "store": 28994,
+            "dc_miss": 8839,
+            "dc_miss_load": 3891,
+            "dc_miss_store": 5289,
+            "dc_miss_load_latency_sum": 163104
+          },
+          "model, no statement line": {
+            "load": 21941,
+            "store": 3158,
+            "dc_miss": 822,
+            "dc_miss_load": 761,
+            "dc_miss_store": 139,
+            "dc_miss_load_latency_sum": 29244
+          },
+          "value computation": {
+            "load": 67825,
+            "store": 12051,
+            "dc_miss": 14126,
+            "dc_miss_load": 12940,
+            "dc_miss_store": 1308,
+            "dc_miss_load_latency_sum": 553997
+          },
+          "register update": {
+            "load": 11917,
+            "store": 2325,
+            "dc_miss": 3189,
+            "dc_miss_load": 2201,
+            "dc_miss_store": 1059,
+            "dc_miss_load_latency_sum": 152321
+          },
+          "dispatch tests": {
+            "load": 4776,
+            "store": 598,
+            "dc_miss": 176,
+            "dc_miss_load": 141,
+            "dc_miss_store": 35,
+            "dc_miss_load_latency_sum": 3480
+          },
+          "outside model": {
+            "load": 503,
+            "store": 525,
+            "dc_miss": 266,
+            "dc_miss_load": 58,
+            "dc_miss_store": 209,
+            "dc_miss_load_latency_sum": 6133
+          }
+        },
+        "details": {
+          "compute|store": {
+            "load": 2966,
+            "store": 16950,
+            "dc_miss": 4998,
+            "dc_miss_load": 295,
+            "dc_miss_store": 4704,
+            "dc_miss_load_latency_sum": 13255
+          },
+          "compute|reader notification": {
+            "load": 7842,
+            "store": 8466,
+            "dc_miss": 750,
+            "dc_miss_load": 631,
+            "dc_miss_store": 459,
+            "dc_miss_load_latency_sum": 18987
+          },
+          "model, no statement line": {
+            "load": 21941,
+            "store": 3158,
+            "dc_miss": 822,
+            "dc_miss_load": 761,
+            "dc_miss_store": 139,
+            "dc_miss_load_latency_sum": 29244
+          },
+          "compute|next value expression": {
+            "load": 25079,
+            "store": 2437,
+            "dc_miss": 5449,
+            "dc_miss_load": 5236,
+            "dc_miss_store": 213,
+            "dc_miss_load_latency_sum": 224238
+          },
+          "commit|data block compare": {
+            "load": 2987,
+            "store": 0,
+            "dc_miss": 325,
+            "dc_miss_load": 325,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 14581
+          },
+          "commit|write enable test": {
+            "load": 944,
+            "store": 0,
+            "dc_miss": 136,
+            "dc_miss_load": 136,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 5099
+          },
+          "commit|state compare": {
+            "load": 2402,
+            "store": 0,
+            "dc_miss": 308,
+            "dc_miss_load": 308,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 16421
+          },
+          "commit|next value expression": {
+            "load": 2273,
+            "store": 0,
+            "dc_miss": 194,
+            "dc_miss_load": 194,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 7356
+          },
+          "compute|local expression": {
+            "load": 37418,
+            "store": 6677,
+            "dc_miss": 6795,
+            "dc_miss_load": 6610,
+            "dc_miss_store": 185,
+            "dc_miss_load_latency_sum": 271908
+          },
+          "compute|change compare": {
+            "load": 12588,
+            "store": 3014,
+            "dc_miss": 2886,
+            "dc_miss_load": 2774,
+            "dc_miss_store": 112,
+            "dc_miss_load_latency_sum": 123188
+          },
+          "compute|word test": {
+            "load": 4663,
+            "store": 565,
+            "dc_miss": 170,
+            "dc_miss_load": 136,
+            "dc_miss_store": 34,
+            "dc_miss_load_latency_sum": 3283
+          },
+          "compute|event test": {
+            "load": 576,
+            "store": 114,
+            "dc_miss": 186,
+            "dc_miss_load": 152,
+            "dc_miss_store": 34,
+            "dc_miss_load_latency_sum": 4806
+          },
+          "commit|other control flow": {
+            "load": 50,
+            "store": 24,
+            "dc_miss": 36,
+            "dc_miss_load": 28,
+            "dc_miss_store": 8,
+            "dc_miss_load_latency_sum": 1995
+          },
+          "compute|other statement": {
+            "load": 4294,
+            "store": 2618,
+            "dc_miss": 1636,
+            "dc_miss_load": 887,
+            "dc_miss_store": 871,
+            "dc_miss_load_latency_sum": 51643
+          },
+          "commit|accumulate bank": {
+            "load": 997,
+            "store": 977,
+            "dc_miss": 1897,
+            "dc_miss_load": 977,
+            "dc_miss_store": 920,
+            "dc_miss_load_latency_sum": 101029
+          },
+          "commit|store": {
+            "load": 0,
+            "store": 358,
+            "dc_miss": 59,
+            "dc_miss_load": 0,
+            "dc_miss_store": 59,
+            "dc_miss_load_latency_sum": 0
+          },
+          "compute|change aggregate": {
+            "load": 2447,
+            "store": 564,
+            "dc_miss": 205,
+            "dc_miss_load": 191,
+            "dc_miss_store": 14,
+            "dc_miss_load_latency_sum": 7674
+          },
+          "commit|reader notification": {
+            "load": 1376,
+            "store": 952,
+            "dc_miss": 143,
+            "dc_miss_load": 142,
+            "dc_miss_store": 71,
+            "dc_miss_load_latency_sum": 3680
+          },
+          "commit|block end": {
+            "load": 22,
+            "store": 4,
+            "dc_miss": 0,
+            "dc_miss_load": 0,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 0
+          },
+          "commit|enable block compare": {
+            "load": 657,
+            "store": 0,
+            "dc_miss": 75,
+            "dc_miss_load": 75,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 1796
+          },
+          "compute|other control flow": {
+            "load": 257,
+            "store": 9,
+            "dc_miss": 34,
+            "dc_miss_load": 34,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 1069
+          },
+          "compute|block end": {
+            "load": 201,
+            "store": 196,
+            "dc_miss": 26,
+            "dc_miss_load": 21,
+            "dc_miss_store": 5,
+            "dc_miss_load_latency_sum": 333
+          },
+          "commit|event test": {
+            "load": 160,
+            "store": 0,
+            "dc_miss": 12,
+            "dc_miss_load": 12,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 248
+          },
+          "commit|no line": {
+            "load": 39,
+            "store": 5,
+            "dc_miss": 3,
+            "dc_miss_load": 3,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 104
+          },
+          "commit|local expression": {
+            "load": 2,
+            "store": 0,
+            "dc_miss": 0,
+            "dc_miss_load": 0,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 0
+          },
+          "commit|word test": {
+            "load": 8,
+            "store": 1,
+            "dc_miss": 1,
+            "dc_miss_load": 1,
+            "dc_miss_store": 1,
+            "dc_miss_load_latency_sum": 12
+          },
+          "compute|word bookkeeping": {
+            "load": 99,
+            "store": 33,
+            "dc_miss": 6,
+            "dc_miss_load": 5,
+            "dc_miss_store": 1,
+            "dc_miss_load_latency_sum": 197
+          },
+          "compute|supernode test": {
+            "load": 14,
+            "store": 0,
+            "dc_miss": 0,
+            "dc_miss_load": 0,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 0
+          },
+          "commit|word bookkeeping": {
+            "load": 0,
+            "store": 4,
+            "dc_miss": 0,
+            "dc_miss_load": 0,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 0
+          }
+        }
+      }
+    },
+    "microbench": {
+      "gs_pgo": {
+        "all": {
+          "load": 96420,
+          "store": 45929,
+          "dc_miss": 9199,
+          "dc_miss_load": 6317,
+          "dc_miss_store": 3021,
+          "dc_miss_load_latency_sum": 304758
+        },
+        "phases": {
+          "other": {
+            "load": 259,
+            "store": 187,
+            "dc_miss": 92,
+            "dc_miss_load": 44,
+            "dc_miss_store": 48,
+            "dc_miss_load_latency_sum": 6694
+          },
+          "subStep": {
+            "load": 96003,
+            "store": 45623,
+            "dc_miss": 9061,
+            "dc_miss_load": 6248,
+            "dc_miss_store": 2951,
+            "dc_miss_load_latency_sum": 296809
+          },
+          "model-other": {
+            "load": 4,
+            "store": 59,
+            "dc_miss": 8,
+            "dc_miss_load": 2,
+            "dc_miss_store": 6,
+            "dc_miss_load_latency_sum": 116
+          },
+          "harness": {
+            "load": 154,
+            "store": 60,
+            "dc_miss": 38,
+            "dc_miss_load": 23,
+            "dc_miss_store": 16,
+            "dc_miss_load_latency_sum": 1139
+          }
+        },
+        "buckets": {
+          "value computation": {
+            "load": 48373,
+            "store": 22334,
+            "dc_miss": 4545,
+            "dc_miss_load": 3199,
+            "dc_miss_store": 1346,
+            "dc_miss_load_latency_sum": 161927
+          },
+          "change detection and notification": {
+            "load": 11815,
+            "store": 6020,
+            "dc_miss": 1220,
+            "dc_miss_load": 727,
+            "dc_miss_store": 575,
+            "dc_miss_load_latency_sum": 30559
+          },
+          "model, no statement line": {
+            "load": 27511,
+            "store": 11657,
+            "dc_miss": 920,
+            "dc_miss_load": 769,
+            "dc_miss_store": 164,
+            "dc_miss_load_latency_sum": 24467
+          },
+          "register update": {
+            "load": 6527,
+            "store": 5024,
+            "dc_miss": 2318,
+            "dc_miss_load": 1495,
+            "dc_miss_store": 866,
+            "dc_miss_load_latency_sum": 78248
+          },
+          "dispatch tests": {
+            "load": 1781,
+            "store": 647,
+            "dc_miss": 66,
+            "dc_miss_load": 60,
+            "dc_miss_store": 6,
+            "dc_miss_load_latency_sum": 1724
+          },
+          "outside model": {
+            "load": 413,
+            "store": 247,
+            "dc_miss": 130,
+            "dc_miss_load": 67,
+            "dc_miss_store": 64,
+            "dc_miss_load_latency_sum": 7833
+          }
+        },
+        "details": {
+          "value expression": {
+            "load": 43975,
+            "store": 19263,
+            "dc_miss": 3534,
+            "dc_miss_load": 2644,
+            "dc_miss_store": 890,
+            "dc_miss_load_latency_sum": 128202
+          },
+          "value: old value save": {
+            "load": 3643,
+            "store": 1365,
+            "dc_miss": 859,
+            "dc_miss_load": 441,
+            "dc_miss_store": 418,
+            "dc_miss_load_latency_sum": 17051
+          },
+          "model, no statement line": {
+            "load": 27511,
+            "store": 11657,
+            "dc_miss": 920,
+            "dc_miss_load": 769,
+            "dc_miss_store": 164,
+            "dc_miss_load_latency_sum": 24467
+          },
+          "value: change branch": {
+            "load": 260,
+            "store": 9,
+            "dc_miss": 7,
+            "dc_miss_load": 7,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 226
+          },
+          "call": {
+            "load": 419,
+            "store": 189,
+            "dc_miss": 90,
+            "dc_miss_load": 82,
+            "dc_miss_store": 8,
+            "dc_miss_load_latency_sum": 3045
+          },
+          "register next value": {
+            "load": 806,
+            "store": 1744,
+            "dc_miss": 487,
+            "dc_miss_load": 199,
+            "dc_miss_store": 288,
+            "dc_miss_load_latency_sum": 15387
+          },
+          "register: reader notification": {
+            "load": 736,
+            "store": 1239,
+            "dc_miss": 69,
+            "dc_miss_load": 36,
+            "dc_miss_store": 55,
+            "dc_miss_load_latency_sum": 1223
+          },
+          "value: reader notification": {
+            "load": 3449,
+            "store": 4283,
+            "dc_miss": 254,
+            "dc_miss_load": 191,
+            "dc_miss_store": 145,
+            "dc_miss_load_latency_sum": 9985
+          },
+          "register update": {
+            "load": 1422,
+            "store": 1492,
+            "dc_miss": 712,
+            "dc_miss_load": 532,
+            "dc_miss_store": 180,
+            "dc_miss_load_latency_sum": 25529
+          },
+          "register: old value save": {
+            "load": 840,
+            "store": 437,
+            "dc_miss": 144,
+            "dc_miss_load": 140,
+            "dc_miss_store": 4,
+            "dc_miss_load_latency_sum": 6144
+          },
+          "when test": {
+            "load": 2074,
+            "store": 79,
+            "dc_miss": 107,
+            "dc_miss_load": 98,
+            "dc_miss_store": 9,
+            "dc_miss_load_latency_sum": 4305
+          },
+          "word test": {
+            "load": 1731,
+            "store": 36,
+            "dc_miss": 63,
+            "dc_miss_load": 59,
+            "dc_miss_store": 4,
+            "dc_miss_load_latency_sum": 1671
+          },
+          "register array copy": {
+            "load": 823,
+            "store": 863,
+            "dc_miss": 1092,
+            "dc_miss_load": 583,
+            "dc_miss_store": 509,
+            "dc_miss_load_latency_sum": 36222
+          },
+          "array or memory write": {
+            "load": 626,
+            "store": 657,
+            "dc_miss": 206,
+            "dc_miss_load": 94,
+            "dc_miss_store": 112,
+            "dc_miss_load_latency_sum": 5061
+          },
+          "value: change compare": {
+            "load": 4463,
+            "store": 363,
+            "dc_miss": 100,
+            "dc_miss_load": 88,
+            "dc_miss_store": 12,
+            "dc_miss_load_latency_sum": 3297
+          },
+          "word bookkeeping": {
+            "load": 5,
+            "store": 606,
+            "dc_miss": 3,
+            "dc_miss_load": 1,
+            "dc_miss_store": 2,
+            "dc_miss_load_latency_sum": 53
+          },
+          "next-value: old value save": {
+            "load": 614,
+            "store": 295,
+            "dc_miss": 200,
+            "dc_miss_load": 114,
+            "dc_miss_store": 86,
+            "dc_miss_load_latency_sum": 5767
+          },
+          "register: change compare": {
+            "load": 418,
+            "store": 19,
+            "dc_miss": 10,
+            "dc_miss_load": 10,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 634
+          },
+          "next-value: change compare": {
+            "load": 997,
+            "store": 33,
+            "dc_miss": 40,
+            "dc_miss_load": 37,
+            "dc_miss_store": 3,
+            "dc_miss_load_latency_sum": 1473
+          },
+          "next-value: reader notification": {
+            "load": 636,
+            "store": 643,
+            "dc_miss": 49,
+            "dc_miss_load": 41,
+            "dc_miss_store": 29,
+            "dc_miss_load_latency_sum": 1213
+          },
+          "block end": {
+            "load": 355,
+            "store": 6,
+            "dc_miss": 11,
+            "dc_miss_load": 10,
+            "dc_miss_store": 1,
+            "dc_miss_load_latency_sum": 374
+          },
+          "other statement": {
+            "load": 64,
+            "store": 312,
+            "dc_miss": 44,
+            "dc_miss_load": 34,
+            "dc_miss_store": 10,
+            "dc_miss_load_latency_sum": 1991
+          },
+          "array loop": {
+            "load": 54,
+            "store": 84,
+            "dc_miss": 66,
+            "dc_miss_load": 38,
+            "dc_miss_store": 28,
+            "dc_miss_load_latency_sum": 3562
+          },
+          "supernode test": {
+            "load": 45,
+            "store": 5,
+            "dc_miss": 0,
+            "dc_miss_load": 0,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 0
+          },
+          "register: change branch": {
+            "load": 41,
+            "store": 3,
+            "dc_miss": 2,
+            "dc_miss_load": 2,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 43
+          }
+        }
+      },
+      "gr_pgo": {
+        "all": {
+          "load": 118140,
+          "store": 41534,
+          "dc_miss": 24969,
+          "dc_miss_load": 18242,
+          "dc_miss_store": 7244,
+          "dc_miss_load_latency_sum": 842224
+        },
+        "phases": {
+          "other": {
+            "load": 301,
+            "store": 465,
+            "dc_miss": 227,
+            "dc_miss_load": 38,
+            "dc_miss_store": 193,
+            "dc_miss_load_latency_sum": 7376
+          },
+          "compute": {
+            "load": 105787,
+            "store": 38571,
+            "dc_miss": 21263,
+            "dc_miss_load": 15726,
+            "dc_miss_store": 5908,
+            "dc_miss_load_latency_sum": 672805
+          },
+          "commit": {
+            "load": 11417,
+            "store": 2248,
+            "dc_miss": 3264,
+            "dc_miss_load": 2276,
+            "dc_miss_store": 1056,
+            "dc_miss_load_latency_sum": 157304
+          },
+          "model-other": {
+            "load": 541,
+            "store": 217,
+            "dc_miss": 189,
+            "dc_miss_load": 184,
+            "dc_miss_store": 77,
+            "dc_miss_load_latency_sum": 3923
+          },
+          "harness": {
+            "load": 94,
+            "store": 33,
+            "dc_miss": 26,
+            "dc_miss_load": 18,
+            "dc_miss_store": 10,
+            "dc_miss_load_latency_sum": 816
+          }
+        },
+        "buckets": {
+          "change detection and notification": {
+            "load": 21589,
+            "store": 24697,
+            "dc_miss": 7704,
+            "dc_miss_load": 3295,
+            "dc_miss_store": 4704,
+            "dc_miss_load_latency_sum": 138218
+          },
+          "value computation": {
+            "load": 60808,
+            "store": 10755,
+            "dc_miss": 12807,
+            "dc_miss_load": 11774,
+            "dc_miss_store": 1108,
+            "dc_miss_load_latency_sum": 510851
+          },
+          "model, no statement line": {
+            "load": 19256,
+            "store": 2812,
+            "dc_miss": 752,
+            "dc_miss_load": 689,
+            "dc_miss_store": 135,
+            "dc_miss_load_latency_sum": 24177
+          },
+          "register update": {
+            "load": 11417,
+            "store": 2248,
+            "dc_miss": 3264,
+            "dc_miss_load": 2276,
+            "dc_miss_store": 1056,
+            "dc_miss_load_latency_sum": 157304
+          },
+          "dispatch tests": {
+            "load": 4675,
+            "store": 524,
+            "dc_miss": 189,
+            "dc_miss_load": 152,
+            "dc_miss_store": 38,
+            "dc_miss_load_latency_sum": 3482
+          },
+          "outside model": {
+            "load": 395,
+            "store": 498,
+            "dc_miss": 253,
+            "dc_miss_load": 56,
+            "dc_miss_store": 203,
+            "dc_miss_load_latency_sum": 8192
+          }
+        },
+        "details": {
+          "compute|store": {
+            "load": 2385,
+            "store": 14432,
+            "dc_miss": 4424,
+            "dc_miss_load": 267,
+            "dc_miss_store": 4157,
+            "dc_miss_load_latency_sum": 12728
+          },
+          "compute|change compare": {
+            "load": 10618,
+            "store": 2481,
+            "dc_miss": 2435,
+            "dc_miss_load": 2328,
+            "dc_miss_store": 107,
+            "dc_miss_load_latency_sum": 103265
+          },
+          "compute|change aggregate": {
+            "load": 2053,
+            "store": 540,
+            "dc_miss": 186,
+            "dc_miss_load": 168,
+            "dc_miss_store": 18,
+            "dc_miss_load_latency_sum": 7646
+          },
+          "compute|next value expression": {
+            "load": 21790,
+            "store": 2173,
+            "dc_miss": 4852,
+            "dc_miss_load": 4648,
+            "dc_miss_store": 204,
+            "dc_miss_load_latency_sum": 202833
+          },
+          "model, no statement line": {
+            "load": 19256,
+            "store": 2812,
+            "dc_miss": 752,
+            "dc_miss_load": 689,
+            "dc_miss_store": 135,
+            "dc_miss_load_latency_sum": 24177
+          },
+          "commit|data block compare": {
+            "load": 2942,
+            "store": 0,
+            "dc_miss": 316,
+            "dc_miss_load": 316,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 14961
+          },
+          "commit|write enable test": {
+            "load": 914,
+            "store": 0,
+            "dc_miss": 148,
+            "dc_miss_load": 148,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 6444
+          },
+          "commit|accumulate bank": {
+            "load": 1045,
+            "store": 990,
+            "dc_miss": 1956,
+            "dc_miss_load": 1029,
+            "dc_miss_store": 927,
+            "dc_miss_load_latency_sum": 104969
+          },
+          "compute|local expression": {
+            "load": 34188,
+            "store": 6124,
+            "dc_miss": 6335,
+            "dc_miss_load": 6134,
+            "dc_miss_store": 203,
+            "dc_miss_load_latency_sum": 255208
+          },
+          "commit|other control flow": {
+            "load": 46,
+            "store": 35,
+            "dc_miss": 39,
+            "dc_miss_load": 20,
+            "dc_miss_store": 19,
+            "dc_miss_load_latency_sum": 883
+          },
+          "commit|next value expression": {
+            "load": 2144,
+            "store": 0,
+            "dc_miss": 219,
+            "dc_miss_load": 219,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 8163
+          },
+          "commit|state compare": {
+            "load": 2164,
+            "store": 0,
+            "dc_miss": 318,
+            "dc_miss_load": 318,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 14861
+          },
+          "compute|other statement": {
+            "load": 3856,
+            "store": 2167,
+            "dc_miss": 1402,
+            "dc_miss_load": 800,
+            "dc_miss_store": 675,
+            "dc_miss_load_latency_sum": 46841
+          },
+          "compute|word test": {
+            "load": 4575,
+            "store": 508,
+            "dc_miss": 186,
+            "dc_miss_load": 150,
+            "dc_miss_store": 37,
+            "dc_miss_load_latency_sum": 3379
+          },
+          "commit|local expression": {
+            "load": 3,
+            "store": 0,
+            "dc_miss": 0,
+            "dc_miss_load": 0,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 0
+          },
+          "compute|reader notification": {
+            "load": 6533,
+            "store": 7244,
+            "dc_miss": 659,
+            "dc_miss_load": 532,
+            "dc_miss_store": 422,
+            "dc_miss_load_latency_sum": 14579
+          },
+          "commit|enable block compare": {
+            "load": 648,
+            "store": 0,
+            "dc_miss": 75,
+            "dc_miss_load": 75,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 1714
+          },
+          "compute|event test": {
+            "load": 560,
+            "store": 106,
+            "dc_miss": 156,
+            "dc_miss_load": 135,
+            "dc_miss_store": 21,
+            "dc_miss_load_latency_sum": 4442
+          },
+          "commit|reader notification": {
+            "load": 1304,
+            "store": 881,
+            "dc_miss": 143,
+            "dc_miss_load": 142,
+            "dc_miss_store": 69,
+            "dc_miss_load_latency_sum": 5093
+          },
+          "compute|block end": {
+            "load": 199,
+            "store": 178,
+            "dc_miss": 28,
+            "dc_miss_load": 23,
+            "dc_miss_store": 5,
+            "dc_miss_load_latency_sum": 462
+          },
+          "commit|store": {
+            "load": 0,
+            "store": 330,
+            "dc_miss": 40,
+            "dc_miss_load": 0,
+            "dc_miss_store": 40,
+            "dc_miss_load_latency_sum": 0
+          },
+          "commit|word test": {
+            "load": 11,
+            "store": 0,
+            "dc_miss": 1,
+            "dc_miss_load": 1,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 12
+          },
+          "commit|event test": {
+            "load": 138,
+            "store": 0,
+            "dc_miss": 7,
+            "dc_miss_load": 7,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 158
+          },
+          "compute|word bookkeeping": {
+            "load": 87,
+            "store": 16,
+            "dc_miss": 3,
+            "dc_miss_load": 2,
+            "dc_miss_store": 1,
+            "dc_miss_load_latency_sum": 103
+          },
+          "commit|no line": {
+            "load": 33,
+            "store": 4,
+            "dc_miss": 2,
+            "dc_miss_load": 1,
+            "dc_miss_store": 1,
+            "dc_miss_load_latency_sum": 46
+          },
+          "compute|other control flow": {
+            "load": 215,
+            "store": 7,
+            "dc_miss": 34,
+            "dc_miss_load": 34,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 1065
+          },
+          "compute|supernode test": {
+            "load": 13,
+            "store": 0,
+            "dc_miss": 0,
+            "dc_miss_load": 0,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 0
+          },
+          "commit|word bookkeeping": {
+            "load": 0,
+            "store": 2,
+            "dc_miss": 0,
+            "dc_miss_load": 0,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 0
+          },
+          "commit|block end": {
+            "load": 25,
+            "store": 6,
+            "dc_miss": 0,
+            "dc_miss_load": 0,
+            "dc_miss_store": 0,
+            "dc_miss_load_latency_sum": 0
+          }
+        }
+      }
+    }
+  },
+  "hot_pages": {
+    "coremark": {
+      "gs_off": {
+        "branch-misses": 3400,
+        "cycles": 5691,
+        "instructions": 5221
+      },
+      "gr_off": {
+        "branch-misses": 5705,
+        "cycles": 7812,
+        "instructions": 6939
+      },
+      "gs_pgo": {
+        "branch-misses": 2876,
+        "cycles": 5253,
+        "instructions": 4972
+      },
+      "gr_pgo": {
+        "branch-misses": 3509,
+        "cycles": 6294,
+        "instructions": 5933
+      },
+      "layout": {
+        "cycles": 7391,
+        "branch-misses": 4949,
+        "instructions": 6508
+      }
+    },
+    "microbench": {
+      "gs_off": {
+        "branch-misses": 3306,
+        "cycles": 5541,
+        "instructions": 5146
+      },
+      "gr_off": {
+        "branch-misses": 5543,
+        "cycles": 7491,
+        "instructions": 6839
+      },
+      "gs_pgo": {
+        "branch-misses": 3107,
+        "cycles": 5232,
+        "instructions": 4999
+      },
+      "gr_pgo": {
+        "branch-misses": 3667,
+        "cycles": 6232,
+        "instructions": 5877
+      },
+      "layout": {
+        "branch-misses": 4821,
+        "cycles": 7166,
+        "instructions": 6339
+      }
+    }
+  },
+  "candidate": {
+    "selection": {
+      "sites": 581807,
+      "selected": 128595,
+      "visits": 7169855069,
+      "changes": 5757196,
+      "guarded_effects": 11672021353,
+      "min_visits": 25000,
+      "max_change_fraction": 0.005,
+      "holdout_visits": 6103785993,
+      "holdout_changes": 6733457,
+      "holdout_over_half_percent": 4992
+    },
+    "rounds": {
+      "coremark": [
+        {
+          "gr_pgo": {
+            "external_wall_s": 80.41119578690268,
+            "counts": {
+              "cycles": 246982599813,
+              "instructions": 334885616888,
+              "branches": 25006013099,
+              "branch-misses": 1137633826,
+              "ex_ret_ops": 339557596737
+            },
+            "cpu_fraction": 0.9994974731253872,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-mode-defaults-v1/pgo/build/emu",
+              "bytes": 96581280,
+              "sha256": "07b503e53917cc92bc463d433031b414c0df966eef5580fe15dd2811cebe9df4"
+            }
+          },
+          "sparse": {
+            "external_wall_s": 78.3313525649719,
+            "counts": {
+              "cycles": 238346400625,
+              "instructions": 320778885419,
+              "branches": 30532634691,
+              "branch-misses": 1147523104,
+              "ex_ret_ops": 321944725533
+            },
+            "cpu_fraction": 0.9996423454459231,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-gap-current-v1/sparse/build/emu",
+              "bytes": 97650336,
+              "sha256": "5c573fd7c5325b7bb2e62ff591772414ac49fd75550b7a80fb0840627b7a285b"
+            }
+          }
+        },
+        {
+          "gr_pgo": {
+            "external_wall_s": 80.79429447418079,
+            "counts": {
+              "cycles": 247494199600,
+              "instructions": 334885617291,
+              "de_no_dispatch_per_slot.no_ops_from_frontend": 980235099544,
+              "ic_cache_fill_l2": 2678927757,
+              "ic_cache_fill_sys": 33021161803
+            },
+            "cpu_fraction": 0.9996068228036704,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-mode-defaults-v1/pgo/build/emu",
+              "bytes": 96581280,
+              "sha256": "07b503e53917cc92bc463d433031b414c0df966eef5580fe15dd2811cebe9df4"
+            }
+          },
+          "sparse": {
+            "external_wall_s": 77.89416274195537,
+            "counts": {
+              "cycles": 238591761537,
+              "instructions": 320683052402,
+              "de_no_dispatch_per_slot.no_ops_from_frontend": 957758666581,
+              "ic_cache_fill_l2": 2727802086,
+              "ic_cache_fill_sys": 31791854763
+            },
+            "cpu_fraction": 0.9995404310066985,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-gap-current-v1/sparse/build/emu",
+              "bytes": 97650336,
+              "sha256": "5c573fd7c5325b7bb2e62ff591772414ac49fd75550b7a80fb0840627b7a285b"
+            }
+          }
+        },
+        {
+          "gr_pgo": {
+            "external_wall_s": 80.79338689288124,
+            "counts": {
+              "cycles": 247051389264,
+              "instructions": 334962545132,
+              "branches": 24999958067,
+              "branch-misses": 1137651254,
+              "ex_ret_ops": 339647501811
+            },
+            "cpu_fraction": 0.9993675980814001,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-mode-defaults-v1/pgo/build/emu",
+              "bytes": 96581280,
+              "sha256": "07b503e53917cc92bc463d433031b414c0df966eef5580fe15dd2811cebe9df4"
+            }
+          },
+          "sparse": {
+            "external_wall_s": 78.19791993615218,
+            "counts": {
+              "cycles": 238588005440,
+              "instructions": 320698408756,
+              "branches": 30536615399,
+              "branch-misses": 1147981941,
+              "ex_ret_ops": 321847835267
+            },
+            "cpu_fraction": 0.9993538455218063,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-gap-current-v1/sparse/build/emu",
+              "bytes": 97650336,
+              "sha256": "5c573fd7c5325b7bb2e62ff591772414ac49fd75550b7a80fb0840627b7a285b"
+            }
+          }
+        },
+        {
+          "gr_pgo": {
+            "external_wall_s": 81.91210328484885,
+            "counts": {
+              "cycles": 251831024469,
+              "instructions": 334915492167,
+              "de_no_dispatch_per_slot.no_ops_from_frontend": 998718722493,
+              "ic_cache_fill_l2": 2665856500,
+              "ic_cache_fill_sys": 33007464114
+            },
+            "cpu_fraction": 0.9997329908039017,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-mode-defaults-v1/pgo/build/emu",
+              "bytes": 96581280,
+              "sha256": "07b503e53917cc92bc463d433031b414c0df966eef5580fe15dd2811cebe9df4"
+            }
+          },
+          "sparse": {
+            "external_wall_s": 78.91221950086765,
+            "counts": {
+              "cycles": 240000543345,
+              "instructions": 320698409708,
+              "de_no_dispatch_per_slot.no_ops_from_frontend": 963850845352,
+              "ic_cache_fill_l2": 2727940706,
+              "ic_cache_fill_sys": 31793608608
+            },
+            "cpu_fraction": 0.9996351578874618,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-gap-current-v1/sparse/build/emu",
+              "bytes": 97650336,
+              "sha256": "5c573fd7c5325b7bb2e62ff591772414ac49fd75550b7a80fb0840627b7a285b"
+            }
+          }
+        }
+      ],
+      "microbench": [
+        {
+          "gr_pgo": {
+            "external_wall_s": 72.32023908710107,
+            "counts": {
+              "cycles": 223961611719,
+              "instructions": 299688865138,
+              "branches": 22866890915,
+              "branch-misses": 1013736621,
+              "ex_ret_ops": 303767683635
+            },
+            "cpu_fraction": 0.9994542317945935,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-mode-defaults-v1/pgo/build/emu",
+              "bytes": 96581280,
+              "sha256": "07b503e53917cc92bc463d433031b414c0df966eef5580fe15dd2811cebe9df4"
+            }
+          },
+          "sparse": {
+            "external_wall_s": 70.20838447590359,
+            "counts": {
+              "cycles": 216411501521,
+              "instructions": 288147135517,
+              "branches": 27637171570,
+              "branch-misses": 1024350564,
+              "ex_ret_ops": 289211748709
+            },
+            "cpu_fraction": 0.999731948312954,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-gap-current-v1/sparse/build/emu",
+              "bytes": 97650336,
+              "sha256": "5c573fd7c5325b7bb2e62ff591772414ac49fd75550b7a80fb0840627b7a285b"
+            }
+          }
+        },
+        {
+          "gr_pgo": {
+            "external_wall_s": 72.80374964000657,
+            "counts": {
+              "cycles": 222817401747,
+              "instructions": 299711880876,
+              "de_no_dispatch_per_slot.no_ops_from_frontend": 885522633519,
+              "ic_cache_fill_l2": 2374952538,
+              "ic_cache_fill_sys": 29574764886
+            },
+            "cpu_fraction": 0.9995995585371543,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-mode-defaults-v1/pgo/build/emu",
+              "bytes": 96581280,
+              "sha256": "07b503e53917cc92bc463d433031b414c0df966eef5580fe15dd2811cebe9df4"
+            }
+          },
+          "sparse": {
+            "external_wall_s": 70.20704193389975,
+            "counts": {
+              "cycles": 215948677055,
+              "instructions": 288147135465,
+              "de_no_dispatch_per_slot.no_ops_from_frontend": 869023502816,
+              "ic_cache_fill_l2": 2435486790,
+              "ic_cache_fill_sys": 28560277298
+            },
+            "cpu_fraction": 0.9994235203081501,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-gap-current-v1/sparse/build/emu",
+              "bytes": 97650336,
+              "sha256": "5c573fd7c5325b7bb2e62ff591772414ac49fd75550b7a80fb0840627b7a285b"
+            }
+          }
+        },
+        {
+          "gr_pgo": {
+            "external_wall_s": 72.86521062604152,
+            "counts": {
+              "cycles": 223296042560,
+              "instructions": 299688865818,
+              "branches": 22866891532,
+              "branch-misses": 1013304766,
+              "ex_ret_ops": 303764738864
+            },
+            "cpu_fraction": 0.9995030189890294,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-mode-defaults-v1/pgo/build/emu",
+              "bytes": 96581280,
+              "sha256": "07b503e53917cc92bc463d433031b414c0df966eef5580fe15dd2811cebe9df4"
+            }
+          },
+          "sparse": {
+            "external_wall_s": 70.31159982294776,
+            "counts": {
+              "cycles": 216431854080,
+              "instructions": 288289839707,
+              "branches": 27640016267,
+              "branch-misses": 1023258624,
+              "ex_ret_ops": 289370711193
+            },
+            "cpu_fraction": 0.9998161637200653,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-gap-current-v1/sparse/build/emu",
+              "bytes": 97650336,
+              "sha256": "5c573fd7c5325b7bb2e62ff591772414ac49fd75550b7a80fb0840627b7a285b"
+            }
+          }
+        },
+        {
+          "gr_pgo": {
+            "external_wall_s": 73.43296230211854,
+            "counts": {
+              "cycles": 223729127703,
+              "instructions": 299688866500,
+              "de_no_dispatch_per_slot.no_ops_from_frontend": 883146396959,
+              "ic_cache_fill_l2": 2405717960,
+              "ic_cache_fill_sys": 29556629299
+            },
+            "cpu_fraction": 0.9995872248487853,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-mode-defaults-v1/pgo/build/emu",
+              "bytes": 96581280,
+              "sha256": "07b503e53917cc92bc463d433031b414c0df966eef5580fe15dd2811cebe9df4"
+            }
+          },
+          "sparse": {
+            "external_wall_s": 69.81236714613624,
+            "counts": {
+              "cycles": 216597712484,
+              "instructions": 288147135247,
+              "de_no_dispatch_per_slot.no_ops_from_frontend": 872589904151,
+              "ic_cache_fill_l2": 2415088872,
+              "ic_cache_fill_sys": 28580407923
+            },
+            "cpu_fraction": 0.9994903174381419,
+            "binary": {
+              "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-gap-current-v1/sparse/build/emu",
+              "bytes": 97650336,
+              "sha256": "5c573fd7c5325b7bb2e62ff591772414ac49fd75550b7a80fb0840627b7a285b"
+            }
+          }
+        }
+      ]
+    },
+    "paired": {
+      "coremark": {
+        "pct": -3.2627074911624505,
+        "faster": 4,
+        "rounds": 4,
+        "min_pct": -3.662320540774211,
+        "max_pct": -2.586509504774148,
+        "ci95_pct": [
+          -3.625922976776108,
+          -2.8372634817751123
+        ]
+      },
+      "microbench": {
+        "pct": -3.7304776212987916,
+        "faster": 4,
+        "rounds": 4,
+        "min_pct": -4.930476781103311,
+        "max_pct": -2.920143293019273,
+        "ci95_pct": [
+          -4.573999568110149,
+          -3.0817880902499346
+        ]
+      }
+    }
+  },
+  "source_attribution_samples": {
+    "coremark": {
+      "gs_off": {
+        "total": {
+          "branch-misses": 300940,
+          "cycles": 74854,
+          "instructions": 59245,
+          "ibs-ops": 312817,
+          "ibs-misses": 6655
+        },
+        "buckets": {
+          "branch-misses": {
+            "value computation": 191354,
+            "dispatch tests": 53893,
+            "model, no statement line": 15547,
+            "register update": 12289,
+            "change detection and notification": 26126,
+            "outside model": 1731
+          },
+          "cycles": {
+            "register update": 4642,
+            "value computation": 48149,
+            "change detection and notification": 8731,
+            "dispatch tests": 9840,
+            "model, no statement line": 3061,
+            "outside model": 431
+          },
+          "instructions": {
+            "change detection and notification": 8012,
+            "value computation": 40794,
+            "register update": 3698,
+            "dispatch tests": 5144,
+            "model, no statement line": 1469,
+            "outside model": 128
+          },
+          "ibs-ops": {
+            "value computation": 223964,
+            "change detection and notification": 45129,
+            "model, no statement line": 9599,
+            "dispatch tests": 11192,
+            "register update": 20446,
+            "outside model": 2487
+          },
+          "ibs-misses": {
+            "value computation": 3369,
+            "dispatch tests": 2751,
+            "model, no statement line": 99,
+            "change detection and notification": 268,
+            "register update": 50,
+            "outside model": 118
+          }
+        },
+        "unverified": {}
+      },
+      "gr_off": {
+        "total": {
+          "branch-misses": 224329,
+          "cycles": 72795,
+          "instructions": 82852,
+          "ibs-ops": 431982,
+          "ibs-misses": 3469
+        },
+        "buckets": {
+          "branch-misses": {
+            "change detection and notification": 38111,
+            "value computation": 85669,
+            "register update": 75918,
+            "dispatch tests": 15479,
+            "model, no statement line": 7365,
+            "outside model": 1787
+          },
+          "cycles": {
+            "value computation": 38081,
+            "change detection and notification": 16266,
+            "register update": 11072,
+            "dispatch tests": 5341,
+            "model, no statement line": 1489,
+            "outside model": 546
+          },
+          "instructions": {
+            "value computation": 49289,
+            "change detection and notification": 20970,
+            "dispatch tests": 5951,
+            "register update": 5093,
+            "model, no statement line": 1345,
+            "outside model": 204
+          },
+          "ibs-ops": {
+            "value computation": 252691,
+            "register update": 27952,
+            "dispatch tests": 17873,
+            "change detection and notification": 123179,
+            "model, no statement line": 7464,
+            "outside model": 2823
+          },
+          "ibs-misses": {
+            "register update": 1313,
+            "dispatch tests": 1302,
+            "value computation": 328,
+            "model, no statement line": 6,
+            "change detection and notification": 422,
+            "outside model": 98
+          }
+        },
+        "unverified": {}
+      },
+      "gs_pgo": {
+        "total": {
+          "branch-misses": 78918,
+          "cycles": 47862,
+          "instructions": 61989,
+          "ibs-ops": 321264,
+          "ibs-misses": 1063
+        },
+        "buckets": {
+          "branch-misses": {
+            "value computation": 36159,
+            "model, no statement line": 4870,
+            "register update": 6170,
+            "change detection and notification": 12007,
+            "dispatch tests": 17743,
+            "machine code differs": 1230,
+            "outside model": 739
+          },
+          "cycles": {
+            "register update": 3416,
+            "value computation": 23535,
+            "model, no statement line": 8473,
+            "dispatch tests": 4543,
+            "change detection and notification": 6905,
+            "machine code differs": 699,
+            "outside model": 291
+          },
+          "instructions": {
+            "value computation": 31571,
+            "register update": 4368,
+            "change detection and notification": 9594,
+            "model, no statement line": 11802,
+            "dispatch tests": 3650,
+            "machine code differs": 857,
+            "outside model": 147
+          },
+          "ibs-ops": {
+            "register update": 20493,
+            "value computation": 176770,
+            "model, no statement line": 69112,
+            "dispatch tests": 8659,
+            "change detection and notification": 44324,
+            "outside model": 1906
+          },
+          "ibs-misses": {
+            "dispatch tests": 708,
+            "value computation": 205,
+            "change detection and notification": 56,
+            "register update": 22,
+            "model, no statement line": 8,
+            "outside model": 64
+          }
+        },
+        "unverified": {
+          "cycles": 699,
+          "instructions": 857,
+          "branch-misses": 1230
+        }
+      },
+      "gr_pgo": {
+        "total": {
+          "branch-misses": 113378,
+          "cycles": 62344,
+          "instructions": 83408,
+          "ibs-ops": 425826,
+          "ibs-misses": 1713
+        },
+        "buckets": {
+          "branch-misses": {
+            "change detection and notification": 20099,
+            "value computation": 40034,
+            "register update": 34143,
+            "dispatch tests": 14661,
+            "model, no statement line": 3623,
+            "outside model": 818
+          },
+          "cycles": {
+            "value computation": 32133,
+            "change detection and notification": 14451,
+            "register update": 7021,
+            "dispatch tests": 5484,
+            "model, no statement line": 2889,
+            "outside model": 366
+          },
+          "instructions": {
+            "change detection and notification": 20295,
+            "value computation": 49049,
+            "register update": 4052,
+            "model, no statement line": 4155,
+            "dispatch tests": 5652,
+            "outside model": 205
+          },
+          "ibs-ops": {
+            "value computation": 239746,
+            "register update": 22769,
+            "change detection and notification": 103593,
+            "model, no statement line": 42529,
+            "dispatch tests": 14918,
+            "outside model": 2271
+          },
+          "ibs-misses": {
+            "register update": 607,
+            "change detection and notification": 119,
+            "dispatch tests": 736,
+            "value computation": 173,
+            "outside model": 78
+          }
+        },
+        "unverified": {}
+      }
+    },
+    "microbench": {
+      "gs_off": {
+        "total": {
+          "branch-misses": 278844,
+          "cycles": 67542,
+          "instructions": 54296,
+          "ibs-ops": 287200,
+          "ibs-misses": 6294
+        },
+        "buckets": {
+          "branch-misses": {
+            "change detection and notification": 23516,
+            "dispatch tests": 47443,
+            "value computation": 180495,
+            "model, no statement line": 14393,
+            "register update": 11522,
+            "outside model": 1475
+          },
+          "cycles": {
+            "register update": 4092,
+            "value computation": 43833,
+            "model, no statement line": 2728,
+            "change detection and notification": 7621,
+            "dispatch tests": 8883,
+            "outside model": 385
+          },
+          "instructions": {
+            "value computation": 37345,
+            "dispatch tests": 4611,
+            "register update": 3439,
+            "change detection and notification": 7414,
+            "model, no statement line": 1363,
+            "outside model": 124
+          },
+          "ibs-ops": {
+            "value computation": 204624,
+            "dispatch tests": 10766,
+            "change detection and notification": 41529,
+            "model, no statement line": 8957,
+            "register update": 19317,
+            "outside model": 2007
+          },
+          "ibs-misses": {
+            "dispatch tests": 2568,
+            "value computation": 3265,
+            "model, no statement line": 110,
+            "change detection and notification": 227,
+            "register update": 50,
+            "outside model": 74
+          }
+        },
+        "unverified": {}
+      },
+      "gr_off": {
+        "total": {
+          "branch-misses": 200683,
+          "cycles": 62625,
+          "instructions": 74471,
+          "ibs-ops": 387702,
+          "ibs-misses": 3162
+        },
+        "buckets": {
+          "branch-misses": {
+            "model, no statement line": 6137,
+            "value computation": 74448,
+            "change detection and notification": 32528,
+            "register update": 72027,
+            "dispatch tests": 13915,
+            "outside model": 1628
+          },
+          "cycles": {
+            "value computation": 32261,
+            "change detection and notification": 13597,
+            "register update": 10171,
+            "dispatch tests": 4799,
+            "model, no statement line": 1328,
+            "outside model": 469
+          },
+          "instructions": {
+            "value computation": 44482,
+            "change detection and notification": 18073,
+            "register update": 4968,
+            "dispatch tests": 5504,
+            "model, no statement line": 1263,
+            "outside model": 181
+          },
+          "ibs-ops": {
+            "register update": 27018,
+            "change detection and notification": 105726,
+            "value computation": 228852,
+            "model, no statement line": 6884,
+            "dispatch tests": 16715,
+            "outside model": 2507
+          },
+          "ibs-misses": {
+            "register update": 1254,
+            "value computation": 246,
+            "dispatch tests": 1157,
+            "model, no statement line": 5,
+            "change detection and notification": 399,
+            "outside model": 101
+          }
+        },
+        "unverified": {}
+      },
+      "gs_pgo": {
+        "total": {
+          "branch-misses": 74037,
+          "cycles": 42982,
+          "instructions": 57062,
+          "ibs-ops": 295161,
+          "ibs-misses": 1034
+        },
+        "buckets": {
+          "branch-misses": {
+            "model, no statement line": 5643,
+            "register update": 5487,
+            "value computation": 33688,
+            "dispatch tests": 16977,
+            "change detection and notification": 10591,
+            "machine code differs": 1068,
+            "outside model": 583
+          },
+          "cycles": {
+            "register update": 3186,
+            "value computation": 20881,
+            "model, no statement line": 7790,
+            "dispatch tests": 4279,
+            "change detection and notification": 5982,
+            "machine code differs": 622,
+            "outside model": 242
+          },
+          "instructions": {
+            "value computation": 29133,
+            "change detection and notification": 8549,
+            "register update": 4138,
+            "model, no statement line": 10723,
+            "dispatch tests": 3622,
+            "machine code differs": 779,
+            "outside model": 118
+          },
+          "ibs-ops": {
+            "register update": 19086,
+            "model, no statement line": 63355,
+            "value computation": 162811,
+            "dispatch tests": 8296,
+            "change detection and notification": 40044,
+            "outside model": 1569
+          },
+          "ibs-misses": {
+            "dispatch tests": 672,
+            "value computation": 201,
+            "change detection and notification": 55,
+            "register update": 28,
+            "model, no statement line": 13,
+            "outside model": 65
+          }
+        },
+        "unverified": {
+          "cycles": 622,
+          "instructions": 779,
+          "branch-misses": 1068
+        }
+      },
+      "gr_pgo": {
+        "total": {
+          "branch-misses": 100979,
+          "cycles": 53469,
+          "instructions": 74614,
+          "ibs-ops": 381195,
+          "ibs-misses": 1491
+        },
+        "buckets": {
+          "branch-misses": {
+            "change detection and notification": 17381,
+            "value computation": 35975,
+            "register update": 30414,
+            "dispatch tests": 12944,
+            "model, no statement line": 3584,
+            "outside model": 681
+          },
+          "cycles": {
+            "change detection and notification": 11670,
+            "value computation": 27656,
+            "register update": 6472,
+            "dispatch tests": 4827,
+            "model, no statement line": 2531,
+            "outside model": 313
+          },
+          "instructions": {
+            "change detection and notification": 17451,
+            "value computation": 44162,
+            "register update": 3902,
+            "dispatch tests": 5232,
+            "model, no statement line": 3682,
+            "outside model": 185
+          },
+          "ibs-ops": {
+            "register update": 22009,
+            "value computation": 217450,
+            "dispatch tests": 14398,
+            "change detection and notification": 88209,
+            "model, no statement line": 37143,
+            "outside model": 1986
+          },
+          "ibs-misses": {
+            "dispatch tests": 615,
+            "register update": 529,
+            "change detection and notification": 98,
+            "value computation": 180,
+            "model, no statement line": 1,
+            "outside model": 68
+          }
+        },
+        "unverified": {}
+      }
+    }
+  }
+}

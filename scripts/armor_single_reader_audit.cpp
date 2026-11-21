@@ -116,10 +116,35 @@ void audit(const Path &dir, std::map<std::size_t, FitCount> limits, const Path &
         for (Id node : clusters.ids()) assignOwner(nodeCluster, node, cluster);
     clusters.finish();
 
+    Dump members(dir / "final-compute-members.groups.bin");
+    const Id groupCount = members.word();
+    std::vector<Id> clusterGroup(clusterCount, missing), rank(groupCount, missing);
+    std::vector<char> assigned(nodeCluster.size());
+    std::map<std::pair<Id, Id>, Id> fragments;
+    for (Id group = 0; group < groupCount; ++group)
+    {
+        for (Id node : members.ids())
+        {
+            if (assigned.at(node)) throw std::runtime_error("duplicate final compute node");
+            assigned[node] = true;
+            const Id cluster = nodeCluster.at(node);
+            if (clusterGroup.at(cluster) == missing) clusterGroup[cluster] = group;
+            if (clusterGroup[cluster] != group)
+            {
+                // Event regions can distribute a coarsened cluster over several final groups.
+                const auto [it, inserted] = fragments.try_emplace({cluster, group}, clusterGroup.size());
+                if (inserted) clusterGroup.push_back(group);
+                nodeCluster[node] = it->second;
+            }
+        }
+    }
+    members.finish();
+    if (std::find(assigned.begin(), assigned.end(), false) != assigned.end())
+        throw std::runtime_error("unassigned final compute node");
     Dump nodes(dir / "nodes-final.nodes.bin");
     const Id nodeCount = nodes.word();
     if (nodeCount != nodeCluster.size()) throw std::runtime_error("node inventory differs");
-    std::vector<std::size_t> clusterOps(clusterCount);
+    std::vector<std::size_t> clusterOps(clusterGroup.size()), groupOps(groupCount);
     for (Id node = 0; node < nodeCount; ++node)
     {
         nodes.word();
@@ -127,29 +152,11 @@ void audit(const Path &dir, std::map<std::size_t, FitCount> limits, const Path &
         nodes.ids();
         const Id cluster = nodeCluster[node];
         clusterOps.at(cluster) += operations.size();
+        groupOps.at(clusterGroup.at(cluster)) += operations.size();
         for (Id op : operations) assignOwner(opCluster, op, cluster);
     }
     nodes.finish();
 
-    Dump members(dir / "final-compute-members.groups.bin");
-    const Id groupCount = members.word();
-    std::vector<std::size_t> groupOps(groupCount);
-    std::vector<Id> clusterGroup(clusterCount, missing), rank(groupCount, missing);
-    for (Id group = 0; group < groupCount; ++group)
-    {
-        for (Id node : members.ids())
-        {
-            const Id cluster = nodeCluster.at(node);
-            if (clusterGroup.at(cluster) == missing)
-            {
-                clusterGroup[cluster] = group;
-                groupOps[group] += clusterOps[cluster];
-            }
-            else if (clusterGroup[cluster] != group)
-                throw std::runtime_error("final groups split a coarsened cluster");
-        }
-    }
-    members.finish();
     std::vector<std::uint64_t> fires;
     if (!visits.empty())
     {
@@ -169,7 +176,7 @@ void audit(const Path &dir, std::map<std::size_t, FitCount> limits, const Path &
 
     Dump fanout(dir / "final-value-fanout.groups.bin");
     const Id valueCount = fanout.word();
-    std::vector<Id> producer(valueCount + 1, missing), earliest(clusterCount, missing);
+    std::vector<Id> producer(valueCount + 1, missing), earliest(clusterGroup.size(), missing);
     std::vector<char> ordinaryOp(opCluster.size()), ordinary(valueCount + 1), oldReader(valueCount + 1);
     visitRows(dir / "after-clone.ops.tsv", [&](const auto &row) {
         const auto op = readId(row.at(0));
