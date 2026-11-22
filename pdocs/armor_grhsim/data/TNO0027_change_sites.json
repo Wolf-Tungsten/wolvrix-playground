@@ -1,0 +1,995 @@
+{
+  "artifacts": {
+    "baseline": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-mode-defaults-v1/pgo/build/emu",
+      "bytes": 96581280,
+      "sha256": "07b503e53917cc92bc463d433031b414c0df966eef5580fe15dd2811cebe9df4",
+      "text": 88606818,
+      "rodata": 6938338
+    },
+    "proto05": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-gap-current-v1/sparse/build/emu",
+      "bytes": 97650336,
+      "sha256": "5c573fd7c5325b7bb2e62ff591772414ac49fd75550b7a80fb0840627b7a285b",
+      "text": 89809586,
+      "rodata": 6807522
+    },
+    "sparse5": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-site-pgo-v1/sparse5/build/emu",
+      "bytes": 97519264,
+      "sha256": "6fbf96cb3ee86f0ae45d249caa5a171c5c01590f41b4397bc0bba23b835f98c0",
+      "text": 89711042,
+      "rodata": 6777634
+    },
+    "native05": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-site-pgo-v1/native05/build/emu",
+      "bytes": 97506976,
+      "sha256": "b6ac7748feb7296b5acf4865874044a0b2588dc982d131c11c954d505ce17bdc",
+      "text": 89664946,
+      "rodata": 6807522
+    },
+    "native5": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-site-pgo-v1/native5/build/emu",
+      "bytes": 97506976,
+      "sha256": "5da3df43de6434cb43200bde1300de7d329fcb28e0ce05e64b0c9a73e64b861b",
+      "text": 89695490,
+      "rodata": 6777634
+    },
+    "commit20": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-site-pgo-v1/commit20/build/emu",
+      "bytes": 96691872,
+      "sha256": "d83bbe186196a5648ecdd00cd10796ac0a5637627a5f58916d61694d07513bf1",
+      "text": 88731698,
+      "rodata": 6938498
+    },
+    "both5": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-site-pgo-v1/both5/build/emu",
+      "bytes": 97621664,
+      "sha256": "90d2d1eec6c27c6c4535edb42c15b35e6d3c82765d4de6128c5d94a780f86fae",
+      "text": 89819794,
+      "rodata": 6777858
+    },
+    "both05": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-site-pgo-v1/both05/build/emu",
+      "bytes": 97621664,
+      "sha256": "203ca1ca9b967a2eecea3eb2b2597516af8ce339617505a1afe1d826b33297d4",
+      "text": 89789890,
+      "rodata": 6807746
+    },
+    "gs_pgo": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-gsim-gap-v1/pgo/gsim-nodpi/use/emu",
+      "bytes": 86737152,
+      "sha256": "4d90afe83d56144ab96bf0b0504489f328f2cff02371d0f545846e6c20a93397",
+      "text": 77765538,
+      "rodata": 7848612
+    },
+    "reader05": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-site-pgo-v1/reader05/build/emu",
+      "bytes": 98809960,
+      "sha256": "29b0a7c265e8ec64a0c45ce042acaa18261744d2ead6b2bd81ee33980b9ec6c3",
+      "text": 90924050,
+      "rodata": 6823161
+    }
+  },
+  "inputs": {
+    "coremark": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-cv32e40p/testcase/xiangshan/ready-to-run/coremark-2-iteration.bin",
+      "bytes": 16712,
+      "sha256": "c764afb8bfd69542620a4794b858867dd1e455efaac56c28eb477f1732f83e8e"
+    },
+    "microbench": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-cv32e40p/testcase/xiangshan/ready-to-run/microbench.bin",
+      "bytes": 25720,
+      "sha256": "d2c5a0399eeccb97412a173562f16282706156ebb8e8a3ac2d1ff0219c2dbeaf"
+    },
+    "nemu": {
+      "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-cv32e40p/testcase/xiangshan/ready-to-run/riscv64-nemu-interpreter-so",
+      "bytes": 1497032,
+      "sha256": "9188e7dda30709962f0bfbc1dd87cea73d88a18c92c30892f93ed529c22def43"
+    }
+  },
+  "model_sha256": {
+    "native": "d7407dfbe3d5d270133783f9e96ee1a8b1d28a951dc113eeb9e76505ba298d92",
+    "reemit": "d7407dfbe3d5d270133783f9e96ee1a8b1d28a951dc113eeb9e76505ba298d92"
+  },
+  "training_crosscheck": {
+    "training": {
+      "SPARSE": {
+        "matched_sites": 581807,
+        "mismatches": 0
+      },
+      "EAGER": {
+        "matched_sites": 208820,
+        "mismatches": 0
+      }
+    },
+    "holdout_shared_sparse_05": {
+      "sites": 128595,
+      "visits": 6103785993,
+      "changes": 6733457
+    },
+    "holdout_eager_20": {
+      "sites": 17187,
+      "visits": 331151169,
+      "changes": 182446778
+    }
+  },
+  "runs": {
+    "proto": {
+      "coremark": {
+        "baseline": {
+          "wall": 76.52929304901045,
+          "pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "faster": 0,
+          "per_guest": {
+            "cycles": 2506215.2564374357,
+            "instructions": 3348718.770797292,
+            "branches": 250042.73928760714,
+            "branch-misses": 11381.60973890261
+          }
+        },
+        "proto05": {
+          "wall": 73.62271345197223,
+          "pct": -3.7979563221101573,
+          "pct_range": [
+            -3.857563015389198,
+            -3.738349628831117
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 2409101.077204228,
+            "instructions": 3207013.00398496,
+            "branches": 305419.37693123065,
+            "branch-misses": 11482.616803831961
+          }
+        },
+        "sparse5": {
+          "wall": 74.70093430706766,
+          "pct": -2.389163217185292,
+          "pct_range": [
+            -2.4888772526058034,
+            -2.28944918176478
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 2444535.8064069357,
+            "instructions": 3161062.9289257107,
+            "branches": 323803.60014899855,
+            "branch-misses": 12246.728462715373
+          }
+        }
+      },
+      "microbench": {
+        "sparse5": {
+          "wall": 67.32101141451858,
+          "pct": -3.7337622321142128,
+          "pct_range": [
+            -4.562042701511948,
+            -2.9054817627164775
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 2200708.420410796,
+            "instructions": 2848139.9349556505,
+            "branches": 291353.2418375816,
+            "branch-misses": 10892.041204587953
+          }
+        },
+        "proto05": {
+          "wall": 67.83398798550479,
+          "pct": -3.0045401524967708,
+          "pct_range": [
+            -3.266289676884526,
+            -2.7427906281090153
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 2219402.4306206936,
+            "instructions": 2881430.7205527946,
+            "branches": 276379.9528804712,
+            "branch-misses": 10255.274747252528
+          }
+        },
+        "baseline": {
+          "wall": 69.93664071452804,
+          "pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "faster": 0,
+          "per_guest": {
+            "cycles": 2289592.7003429965,
+            "instructions": 2996868.721487785,
+            "branches": 228668.02285977142,
+            "branch-misses": 10148.725182748174
+          }
+        }
+      }
+    },
+    "native": {
+      "coremark": {
+        "baseline": {
+          "wall": 82.34845802548807,
+          "pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "faster": 0,
+          "per_guest": {
+            "cycles": 2675452.6601383984,
+            "instructions": 3349099.0683243168,
+            "branches": 250047.38038119618,
+            "branch-misses": 11388.987875121249
+          },
+          "versus_gsim_pct": 34.98582936590542
+        },
+        "native05": {
+          "wall": 77.56227211747319,
+          "pct": -5.730235114264359,
+          "pct_range": [
+            -7.1374349119251335,
+            -4.323035316603585
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 2494781.08299917,
+            "instructions": 3203338.786927131,
+            "branches": 305295.84171158285,
+            "branch-misses": 11483.568534314658
+          },
+          "versus_gsim_pct": 27.143373610158214
+        },
+        "native5": {
+          "wall": 77.94256895652507,
+          "pct": -5.3183215398369175,
+          "pct_range": [
+            -5.86790760304996,
+            -4.768735476623876
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 2533315.0916640833,
+            "instructions": 3156034.6018839814,
+            "branches": 323748.221102789,
+            "branch-misses": 12229.103888961112
+          },
+          "versus_gsim_pct": 27.764883868731317
+        },
+        "commit20": {
+          "wall": 79.35581504600123,
+          "pct": -3.5445071072786494,
+          "pct_range": [
+            -5.084659275948578,
+            -2.004354938608721
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 2593165.337321627,
+            "instructions": 3360162.650718493,
+            "branches": 245983.9518804812,
+            "branch-misses": 10093.680343196567
+          },
+          "versus_gsim_pct": 30.083644767614125
+        },
+        "both5": {
+          "wall": 76.39257962896954,
+          "pct": -7.14773562396439,
+          "pct_range": [
+            -8.60508021875913,
+            -5.69039102916965
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 2499510.880331197,
+            "instructions": 3167412.052314477,
+            "branches": 319688.64090359095,
+            "branch-misses": 10930.373286267137
+          },
+          "versus_gsim_pct": 25.22611985583513
+        },
+        "both05": {
+          "wall": 75.76896115904674,
+          "pct": -7.937584957701377,
+          "pct_range": [
+            -8.8353885401958,
+            -7.039781375206955
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 2481641.8686413136,
+            "instructions": 3214616.271807282,
+            "branches": 301315.7374926251,
+            "branch-misses": 10171.214197858022
+          },
+          "versus_gsim_pct": 24.202660375986596
+        },
+        "gs_pgo": {
+          "wall": 60.999658938031644,
+          "pct": -25.680338912538303,
+          "pct_range": [
+            -29.88438686275422,
+            -21.476290962322388
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 1992751.020494795,
+            "instructions": 2479548.9425555747,
+            "branches": 169447.29092709074,
+            "branch-misses": 7869.548779512204
+          },
+          "versus_gsim_pct": 0.0
+        }
+      },
+      "microbench": {
+        "gs_pgo": {
+          "wall": 55.836278839502484,
+          "pct": -21.423342794756053,
+          "pct_range": [
+            -21.52256914594137,
+            -21.32411644357073
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 1812248.5425245748,
+            "instructions": 2282489.136723633,
+            "branches": 157905.54831451684,
+            "branch-misses": 7371.90990590094
+          },
+          "versus_gsim_pct": 0.0
+        },
+        "both05": {
+          "wall": 68.3947200414259,
+          "pct": -3.7555094065278736,
+          "pct_range": [
+            -4.051004789986035,
+            -3.460014023069713
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 2202052.644108559,
+            "instructions": 2888124.337866621,
+            "branches": 272262.9188958111,
+            "branch-misses": 9057.710187898121
+          },
+          "versus_gsim_pct": 22.484557554969797
+        },
+        "both5": {
+          "wall": 68.83594931149855,
+          "pct": -3.1478348780315137,
+          "pct_range": [
+            -3.8815895571854164,
+            -2.4140801988776106
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 2239611.866681333,
+            "instructions": 2854888.1365536344,
+            "branches": 287444.5850591494,
+            "branch-misses": 9701.623968760312
+          },
+          "versus_gsim_pct": 23.257206947047592
+        },
+        "commit20": {
+          "wall": 71.17365575046279,
+          "pct": 0.12265992325899977,
+          "pct_range": [
+            -1.251860876647093,
+            1.4971807231650924
+          ],
+          "faster": 1,
+          "per_guest": {
+            "cycles": 2328935.37500125,
+            "instructions": 3007411.4321806785,
+            "branches": 224705.87631623686,
+            "branch-misses": 8979.29943700563
+          },
+          "versus_gsim_pct": 27.418354766526896
+        },
+        "native5": {
+          "wall": 69.8157633850351,
+          "pct": -1.7835126970029702,
+          "pct_range": [
+            -2.998931064531707,
+            -0.5680943294742336
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 2288894.0748942513,
+            "instructions": 2844257.5934640653,
+            "branches": 291269.0163498365,
+            "branch-misses": 10880.265307346926
+          },
+          "versus_gsim_pct": 24.992730142900044
+        },
+        "native05": {
+          "wall": 69.62461445655208,
+          "pct": -2.0549126274779117,
+          "pct_range": [
+            -3.349275831089593,
+            -0.7605494238662303
+          ],
+          "faster": 2,
+          "per_guest": {
+            "cycles": 2278710.359576404,
+            "instructions": 2878190.596889031,
+            "branches": 276321.2721622784,
+            "branch-misses": 10241.365146348537
+          },
+          "versus_gsim_pct": 24.647207611951437
+        },
+        "baseline": {
+          "wall": 71.05690767394844,
+          "pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "faster": 0,
+          "per_guest": {
+            "cycles": 2326039.6694083055,
+            "instructions": 2997240.470450295,
+            "branches": 228736.60124398756,
+            "branch-misses": 10140.721697783021
+          },
+          "versus_gsim_pct": 27.26446125676638
+        }
+      }
+    },
+    "confirm": {
+      "coremark": {
+        "baseline": {
+          "wall": 85.34499539626995,
+          "pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "faster": 0,
+          "per_guest": {
+            "cycles": 2763259.5763092367,
+            "instructions": 3348752.793417066,
+            "branches": 250073.28741462587,
+            "branch-misses": 11374.522634773653
+          }
+        },
+        "both05": {
+          "wall": 78.68049750948558,
+          "pct": -7.756475043293087,
+          "pct_range": [
+            -12.378000118392652,
+            -3.893308647069693
+          ],
+          "faster": 4,
+          "per_guest": {
+            "cycles": 2550129.4061509385,
+            "instructions": 3214613.341279087,
+            "branches": 301243.07506424934,
+            "branch-misses": 10175.371051289487
+          }
+        }
+      },
+      "microbench": {
+        "both05": {
+          "wall": 70.65186295472085,
+          "pct": -5.766571575357441,
+          "pct_range": [
+            -6.7312865331655924,
+            -3.427824422154979
+          ],
+          "faster": 4,
+          "per_guest": {
+            "cycles": 2283300.487890121,
+            "instructions": 2888773.0794442054,
+            "branches": 272545.7590474095,
+            "branch-misses": 9048.65106098939
+          }
+        },
+        "baseline": {
+          "wall": 75.01174439804163,
+          "pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "faster": 0,
+          "per_guest": {
+            "cycles": 2426441.0020774794,
+            "instructions": 2997093.126216238,
+            "branches": 228705.73222517775,
+            "branch-misses": 10136.918120818791
+          }
+        }
+      }
+    },
+    "separate": {
+      "coremark": {
+        "gs_pgo": {
+          "wall": 58.35652408323949,
+          "pct": -23.59801218073868,
+          "pct_range": [
+            -23.961002105514297,
+            -23.320360613545
+          ],
+          "faster": 4,
+          "per_guest": {
+            "cycles": 1897821.385603644,
+            "instructions": 2479688.9011584884,
+            "branches": 169463.0317196828,
+            "branch-misses": 7867.568306816932
+          },
+          "versus_gsim_pct": 0.0
+        },
+        "baseline": {
+          "wall": 76.38077753625112,
+          "pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "faster": 0,
+          "per_guest": {
+            "cycles": 2488082.7392776073,
+            "instructions": 3348833.6601658985,
+            "branches": 250059.1537509625,
+            "branch-misses": 11377.048149518505
+          },
+          "versus_gsim_pct": 30.887876059612584
+        },
+        "both05": {
+          "wall": 72.87037144380156,
+          "pct": -4.591294797183784,
+          "pct_range": [
+            -6.871236110978063,
+            -2.3079794851002755
+          ],
+          "faster": 4,
+          "per_guest": {
+            "cycles": 2347737.2042779573,
+            "instructions": 3214706.8373466264,
+            "branches": 301251.5852291477,
+            "branch-misses": 10177.674385756141
+          },
+          "versus_gsim_pct": 24.875138037758116
+        }
+      },
+      "microbench": {
+        "both05": {
+          "wall": 66.45742736867396,
+          "pct": -5.75068986061962,
+          "pct_range": [
+            -6.014747651939212,
+            -5.551822569532128
+          ],
+          "faster": 4,
+          "per_guest": {
+            "cycles": 2140426.8196268035,
+            "instructions": 2888542.402220978,
+            "branches": 272448.99416255835,
+            "branch-misses": 9059.965060349397
+          },
+          "versus_gsim_pct": 19.415454210205198
+        },
+        "baseline": {
+          "wall": 70.51255797379417,
+          "pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "faster": 0,
+          "per_guest": {
+            "cycles": 2270278.8694438054,
+            "instructions": 2996868.7345701545,
+            "branches": 228668.03374466253,
+            "branch-misses": 10143.970530294697
+          },
+          "versus_gsim_pct": 26.701508194560287
+        },
+        "gs_pgo": {
+          "wall": 55.6526300777914,
+          "pct": -21.073522540467224,
+          "pct_range": [
+            -21.310135647922003,
+            -20.64415987110508
+          ],
+          "faster": 4,
+          "per_guest": {
+            "cycles": 1787313.7526549734,
+            "instructions": 2282482.8695313046,
+            "branches": 157948.64594604055,
+            "branch-misses": 7378.116313836862
+          },
+          "versus_gsim_pct": 0.0
+        }
+      }
+    },
+    "reader": {
+      "coremark": {
+        "both05": {
+          "wall": 72.54009034053888,
+          "pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "faster": 0,
+          "per_guest": {
+            "cycles": 2352853.468615314,
+            "instructions": 3214607.0295597045,
+            "branches": 301223.4950250498,
+            "branch-misses": 10169.30794192058
+          }
+        },
+        "reader05": {
+          "wall": 72.40744245809037,
+          "pct": -0.18257880306147833,
+          "pct_range": [
+            -0.978146063796903,
+            0.6129884576739464
+          ],
+          "faster": 1,
+          "per_guest": {
+            "cycles": 2365221.003589964,
+            "instructions": 3208636.059084409,
+            "branches": 299900.8297217028,
+            "branch-misses": 10181.483685163148
+          }
+        }
+      },
+      "microbench": {
+        "reader05": {
+          "wall": 65.82891800056677,
+          "pct": 0.8081695425100843,
+          "pct_range": [
+            0.6148835534959929,
+            1.0014555315241758
+          ],
+          "faster": 0,
+          "per_guest": {
+            "cycles": 2135695.0276497235,
+            "instructions": 2882593.480595194,
+            "branches": 271229.1238737613,
+            "branch-misses": 9073.19277307227
+          }
+        },
+        "both05": {
+          "wall": 65.30161494005006,
+          "pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "faster": 0,
+          "per_guest": {
+            "cycles": 2133276.969225308,
+            "instructions": 2888639.83797662,
+            "branches": 272536.2143928561,
+            "branch-misses": 9053.89741602584
+          }
+        }
+      }
+    }
+  },
+  "correctness": {
+    "native05": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      },
+      "microbench_complete": {
+        "records": 225599,
+        "first_cycle": 0,
+        "last_cycle": 225595,
+        "pass_": true
+      }
+    },
+    "native5": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      }
+    },
+    "commit20": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      }
+    },
+    "both05": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      },
+      "microbench_complete": {
+        "records": 225599,
+        "first_cycle": 0,
+        "last_cycle": 225595,
+        "pass_": true
+      }
+    },
+    "both5": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      }
+    },
+    "reader05": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      }
+    },
+    "sparse5": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      }
+    }
+  },
+  "long_endpoint": {
+    "stop": "good-trap",
+    "pc": "0x80003a4e",
+    "instr": 326377,
+    "cycle": 225595,
+    "guest_cycles": 225601,
+    "output": "MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: * Passed.\n[fib] Fibonacci number: * Passed.\n[sieve] Eratosthenes sieve: * Passed.\n[15pz] A* 15-puzzle search: * Passed.\n[dinic] Dinic's maxflow algorithm: * Passed.\n[lzip] Lzip compression: * Passed.\n[ssort] Suffix sort: * Passed.\n[md5] MD5 digest: * Passed.\n==================================================\nMicroBench PASS\nTotal time: 1978 ms\n"
+  }
+}

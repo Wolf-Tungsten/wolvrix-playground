@@ -7,9 +7,9 @@ from diagnostics import clean_environment, execute, expected, parse_run, pick_cp
 from grhsim_difftrace import compare_traces, validate_trace_coverage
 
 
-def verify_sparse(binary):
+def verify_sparse(binary, output=None):
     for wl,image in IMAGES.items():
-        folder=OUT/"verify"/"sparse"/wl
+        folder=(output or OUT/"verify"/"sparse")/wl
         folder.mkdir(exist_ok=True,parents=True)
         if (folder/"result.json").exists(): continue
         cpu,_=pick_cpu()

@@ -1,5 +1,5 @@
 // Inspect single-target values in a WOLVRIX_ACTIVITY_STAGE_TRACE dump.
-// Build with a C++20 compiler. Usage: armor_single_reader_audit TRACE_DIR [--visits FILE] CAP ...
+// Build with a C++20 compiler. Usage: armor_single_reader_audit TRACE_DIR [--visits FILE] [--detail TSV] CAP ...
 #include <algorithm>
 #include <charconv>
 #include <cstdint>
@@ -107,7 +107,7 @@ struct FitCount
     std::size_t hotter = 0;
 };
 
-void audit(const Path &dir, std::map<std::size_t, FitCount> limits, const Path &visits)
+void audit(const Path &dir, std::map<std::size_t, FitCount> limits, const Path &visits, const Path &detailPath)
 {
     Dump clusters(dir / "clusters-after-coarsen-topo.groups.bin");
     const Id clusterCount = clusters.word();
@@ -178,9 +178,38 @@ void audit(const Path &dir, std::map<std::size_t, FitCount> limits, const Path &
     const Id valueCount = fanout.word();
     std::vector<Id> producer(valueCount + 1, missing), earliest(clusterGroup.size(), missing);
     std::vector<char> ordinaryOp(opCluster.size()), ordinary(valueCount + 1), oldReader(valueCount + 1);
+    std::ofstream detail;
+    std::map<Id, std::vector<Id>> cheapInputs;
+    std::vector<Id> widths, defOps;
+    std::vector<std::vector<Id>> readers, fragmentInputs;
+    if (!detailPath.empty())
+    {
+        detail.exceptions(std::ios::badbit | std::ios::failbit);
+        detail.open(detailPath);
+        detail << "value\treaders\tneeded_ops\torder_ok\told_reader\tclone_ops\tnew_input_edges\tnew_boundary_values\n";
+        widths.resize(valueCount + 1);
+        defOps.resize(valueCount + 1);
+        readers.resize(valueCount + 1);
+        fragmentInputs.resize(clusterGroup.size());
+    }
     visitRows(dir / "after-clone.ops.tsv", [&](const auto &row) {
         const auto op = readId(row.at(0));
         const auto kind = row.at(1);
+        if (detail.is_open() && (kind == "kAnd" || kind == "kOr" || kind == "kXor" ||
+                                 kind == "kNot" || kind == "kEq" || kind == "kNe"))
+        {
+            std::string_view inputs = row.at(7);
+            auto &values = cheapInputs[op];
+            while (!inputs.empty())
+            {
+                const auto end = inputs.find(',');
+                values.push_back(readId(inputs.substr(0, end)));
+                if (end == inputs.npos) break;
+                inputs.remove_prefix(end + 1);
+            }
+            std::sort(values.begin(), values.end());
+            values.erase(std::unique(values.begin(), values.end()), values.end());
+        }
         if (op < ordinaryOp.size())
             ordinaryOp[op] = kind != "kConstant" && kind != "kRegisterReadPort" &&
                              kind != "kLatchReadPort" && kind != "kMemoryReadPort";
@@ -188,6 +217,11 @@ void audit(const Path &dir, std::map<std::size_t, FitCount> limits, const Path &
     visitRows(dir / "after-clone.values.tsv", [&](const auto &row) {
         const auto value = readId(row.at(0));
         const auto def = readId(row.at(4));
+        if (detail.is_open() && value <= valueCount)
+        {
+            widths[value] = readId(row.at(2));
+            defOps[value] = def;
+        }
         if (value <= valueCount && def != 0 && def < opCluster.size())
         {
             producer[value] = opCluster[def];
@@ -208,15 +242,22 @@ void audit(const Path &dir, std::map<std::size_t, FitCount> limits, const Path &
         for (Id value : nodes.ids())
         {
             const Id source = producer.at(value);
+            if (detail.is_open() && source != target) fragmentInputs[target].push_back(value);
             if (source == missing || source == target) continue;
             earliest[source] = std::min(earliest[source], rank.at(group));
             if (clusterGroup[source] == group) oldReader[value] = true;
         }
     }
     nodes.finish();
+    for (auto &inputs : fragmentInputs)
+    {
+        std::sort(inputs.begin(), inputs.end());
+        inputs.erase(std::unique(inputs.begin(), inputs.end()), inputs.end());
+    }
     for (Id value = 1; value <= valueCount; ++value)
     {
         const auto targets = fanout.ids();
+        if (detail.is_open()) readers[value].assign(targets.begin(), targets.end());
         if (producer[value] != missing)
             for (Id target : targets)
             {
@@ -233,6 +274,41 @@ void audit(const Path &dir, std::map<std::size_t, FitCount> limits, const Path &
     {
         const auto targets = fanout.ids();
         const Id source = producer[value];
+        if (detail.is_open() && ordinary[value] && source != missing && !targets.empty())
+        {
+            const bool allCompute = std::all_of(targets.begin(), targets.end(), [&](Id t) { return groupOps.at(t) != 0; });
+            const bool single = allCompute && targets.size() == 1;
+            const auto inputs = cheapInputs.find(defOps[value]);
+            const bool clone = allCompute && targets.size() == 2 && widths[value] <= 64 &&
+                inputs != cheapInputs.end() && std::all_of(inputs->second.begin(), inputs->second.end(),
+                    [&](Id v) { return widths.at(v) <= 64; });
+            if (single || clone)
+            {
+                std::size_t newEdges = 0, newBoundaries = 0;
+                for (auto input : clone ? inputs->second : fragmentInputs.at(source))
+                {
+                    const Id fragment = producer.at(input);
+                    const auto &uses = readers.at(input);
+                    bool addsEdge = false;
+                    for (Id t : targets)
+                    {
+                        if (fragment != missing && clusterGroup.at(fragment) == t) continue;
+                        if (std::find(uses.begin(), uses.end(), t) == uses.end())
+                        {
+                            addsEdge = true;
+                            ++newEdges;
+                        }
+                    }
+                    newBoundaries += addsEdge && uses.empty();
+                }
+                const Id target = targets.front();
+                detail << value << '\t' << targets.size() << '\t'
+                       << (single ? groupOps[target] + clusterOps[source] :
+                           1 + std::max(groupOps[target], groupOps[targets.back()])) << '\t'
+                       << (single && earliest[source] >= rank[target]) << '\t' << int(oldReader[value])
+                       << '\t' << (clone ? targets.size() : 0) << '\t' << newEdges << '\t' << newBoundaries << '\n';
+            }
+        }
         if (!ordinary[value] || source == missing || targets.size() != 1) continue;
         const Id target = targets.front();
         if (groupOps.at(target) == 0) { ++commit; continue; }
@@ -275,20 +351,21 @@ void audit(const Path &dir, std::map<std::size_t, FitCount> limits, const Path &
 int main(int argc, char **argv)
 {
     if (argc < 3) {
-        std::cerr << "usage: armor_single_reader_audit STAGE_TRACE_DIRECTORY [--visits FILE] CAP ...\n";
+        std::cerr << "usage: armor_single_reader_audit STAGE_TRACE_DIRECTORY [--visits FILE] [--detail TSV] CAP ...\n";
         return 2;
     }
     try
     {
         std::map<std::size_t, FitCount> limits;
-        Path visits;
+        Path visits, detail;
         for (int i = 2; i < argc; ++i)
         {
             if (std::string_view(argv[i]) == "--visits" && i + 1 < argc) visits = argv[++i];
+            else if (std::string_view(argv[i]) == "--detail" && i + 1 < argc) detail = argv[++i];
             else limits.try_emplace(readId(argv[i]));
         }
         if (limits.empty()) throw std::runtime_error("supply at least one group capacity");
-        audit(argv[1], std::move(limits), visits);
+        audit(argv[1], std::move(limits), visits, detail);
     }
     catch (const std::exception &e)
     {

@@ -94,6 +94,11 @@ def run_one(p, wl, label, number, folder):
                     seen.update(loc["seen_files"])
             except (FileNotFoundError, ProcessLookupError):
                 pass
+            except PermissionError:
+                # /proc/<pid>/personality can become unreadable during exit.
+                # Preserve failures while the measured ELF is still running.
+                if (task / "exe").resolve() == p["binary"]:
+                    raise
         wall = time.monotonic() - start
     idle = idle_percent(before, cpu_counters(siblings))
     if proc.returncode:

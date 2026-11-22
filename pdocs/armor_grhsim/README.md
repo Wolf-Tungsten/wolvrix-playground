@@ -28,6 +28,8 @@
 | [TNO0024](./TNO0024_xiangshan_gsim_grhsim_pgo_threeway_20261121.md) | GSIM PGO、原与新 GrhSIM PGO 同轮复测。CoreMark / MicroBench 新版相对原版耗时 −10.14% / −10.87%，相对原样 GSIM 为 +9.95% / +5.74%，对齐两处统计 DPI 后为 +31.24% / +26.02%。 |
 | [TNO0025](./TNO0025_xiangshan_grhsim_mode_defaults_20261121.md) | XiangShan 单模型默认配置。普通版采用 108 个操作的超节点上限和四寄存器块，PGO 版采用 160 上限、十六寄存器块和三组 PGO 规则。 |
 | [TNO0026](./TNO0026_xiangshan_dpi_aligned_current_gap_20261121.md) | DPI 对齐后的 GSIM 与当前 GrhSIM。两种负载、两个默认入口和固定源码编译对照，结合 ELF 反汇编、PMU、逐值变化率和调度可移动性定位剩余差距，并检验稀疏写回原型。 |
+| [TNO0027](./TNO0027_xiangshan_change_site_pgo.md) | 逐站点训练的稀疏写回和寄存器提交，比较真实 ELF、指令数与预测失败，追踪 ROB 调度边界并按 RTL 模块归因。 |
+| [TNO0028](./TNO0028_xiangshan_value_paths.md) | FTQ 写使能内的 mux 求值、ROB 等价输出和字节读取，以及按实际变化序列复核两种写回策略。 |
 
 规则参考：[GrhSIM 文档管理规则](../grhsim_opt_thj/RULES.md)。评估对象是 Jiaping Tang 等发表于 MICRO 2026 的 ARMOR 论文，出处见 TNO0001。
 

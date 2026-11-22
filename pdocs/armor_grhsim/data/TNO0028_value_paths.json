@@ -1,0 +1,6298 @@
+{
+  "protocol": "CoreMark training, seed 0, single-thread, DiffTest, 100001 guest cycles per timed run on node030",
+  "samples": 102,
+  "results": {
+    "paths": {
+      "coremark": {
+        "both05": {
+          "wall_s": 73.12374963099137,
+          "paired_pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "pairs": [
+            0.0,
+            0.0
+          ],
+          "delta_per_guest": {
+            "cycles": 0.0,
+            "instructions": 0.0,
+            "branches": 0.0,
+            "branch-misses": 0.0,
+            "ex_ret_ops": 0.0
+          },
+          "time_reference": "both05"
+        },
+        "ftq": {
+          "wall_s": 71.79651952092536,
+          "paired_pct": -1.8153239762984608,
+          "pct_range": [
+            -1.9921568176705096,
+            -1.638491134926412
+          ],
+          "pairs": [
+            -1.638491134926412,
+            -1.9921568176705096
+          ],
+          "delta_per_guest": {
+            "cycles": -45981.12520874791,
+            "instructions": -64666.137253627465,
+            "branches": -8885.701237987621,
+            "branch-misses": -49.64817351826481,
+            "ex_ret_ops": -61406.43682563175
+          },
+          "time_reference": "both05"
+        },
+        "rob": {
+          "wall_s": 73.32091139489785,
+          "paired_pct": 0.26983664601220037,
+          "pct_range": [
+            0.13653857412259107,
+            0.40313471790180966
+          ],
+          "pairs": [
+            0.13653857412259107,
+            0.40313471790180966
+          ],
+          "delta_per_guest": {
+            "cycles": -8905.586039139609,
+            "instructions": -1290.8510064899351,
+            "branches": 19.570489295107052,
+            "branch-misses": -7.303386966130338,
+            "ex_ret_ops": -934.7021379786202
+          },
+          "time_reference": "both05"
+        }
+      },
+      "microbench": {
+        "rob": {
+          "wall_s": 66.97752975462936,
+          "paired_pct": -0.9821028345178173,
+          "pct_range": [
+            -0.9855345583618114,
+            -0.9786711106738233
+          ],
+          "pairs": [
+            -0.9855345583618114,
+            -0.9786711106738233
+          ],
+          "delta_per_guest": {
+            "cycles": -2315.072299277007,
+            "instructions": -1127.3439115608844,
+            "branches": -12.823161768382317,
+            "branch-misses": -3.366021339786602,
+            "ex_ret_ops": -929.3753112468876
+          },
+          "time_reference": "both05"
+        },
+        "ftq": {
+          "wall_s": 66.17481583810877,
+          "paired_pct": -2.1688495120806337,
+          "pct_range": [
+            -2.1897072902655523,
+            -2.1479917338957155
+          ],
+          "pairs": [
+            -2.1479917338957155,
+            -2.1897072902655523
+          ],
+          "delta_per_guest": {
+            "cycles": -37595.465835341645,
+            "instructions": -50886.66892331077,
+            "branches": -6876.015514844851,
+            "branch-misses": -32.856961430385695,
+            "ex_ret_ops": -48368.71984780152
+          },
+          "time_reference": "both05"
+        },
+        "both05": {
+          "wall_s": 67.64184554852545,
+          "paired_pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "pairs": [
+            0.0,
+            0.0
+          ],
+          "delta_per_guest": {
+            "cycles": 0.0,
+            "instructions": 0.0,
+            "branches": 0.0,
+            "branch-misses": 0.0,
+            "ex_ret_ops": 0.0
+          },
+          "time_reference": "both05"
+        }
+      }
+    },
+    "policies": {
+      "coremark": {
+        "both05": {
+          "wall_s": 70.73049390129745,
+          "paired_pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "pairs": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "delta_per_guest": {
+            "cycles": 0.0,
+            "instructions": 0.0,
+            "branches": 0.0,
+            "branch-misses": 0.0,
+            "ex_ret_ops": 0.0
+          },
+          "time_reference": "both05"
+        },
+        "direct": {
+          "wall_s": 71.15611574007198,
+          "paired_pct": 0.6020705477812971,
+          "pct_range": [
+            0.3963263826391117,
+            0.993118249021796
+          ],
+          "pairs": [
+            0.4167670116829836,
+            0.3963263826391117,
+            0.993118249021796
+          ],
+          "delta_per_guest": {
+            "cycles": -4099.743562564374,
+            "instructions": -47398.20429129042,
+            "branches": 3419.8171418285815,
+            "branch-misses": 542.9380939523938,
+            "ex_ret_ops": -48256.938973943594
+          },
+          "time_reference": "both05"
+        },
+        "temporal": {
+          "wall_s": 72.17672656655002,
+          "paired_pct": 2.054933576052368,
+          "pct_range": [
+            1.045814918014898,
+            3.1323092040808076
+          ],
+          "pairs": [
+            3.1323092040808076,
+            1.045814918014898,
+            1.9866766060613994
+          ],
+          "delta_per_guest": {
+            "cycles": 8658.020683126502,
+            "instructions": -342.3450998823345,
+            "branches": 872.4730352696473,
+            "branch-misses": 267.469501971647,
+            "ex_ret_ops": 611.7371292953737
+          },
+          "time_reference": "both05"
+        }
+      },
+      "microbench": {
+        "temporal": {
+          "wall_s": 65.57903019501828,
+          "paired_pct": -0.5873208108063762,
+          "pct_range": [
+            -1.2600639760547039,
+            0.1276211840870456
+          ],
+          "pairs": [
+            -1.2600639760547039,
+            0.1276211840870456,
+            -0.6295196404514702
+          ],
+          "delta_per_guest": {
+            "cycles": 9214.291443752229,
+            "instructions": 682.480235197648,
+            "branches": 940.9787968786978,
+            "branch-misses": 234.79253874127926,
+            "ex_ret_ops": 1452.9017043162903
+          },
+          "time_reference": "both05"
+        },
+        "direct": {
+          "wall_s": 65.57589138462208,
+          "paired_pct": -0.5930578851347216,
+          "pct_range": [
+            -1.6836958337236974,
+            0.06492212984778867
+          ],
+          "pairs": [
+            -1.6836958337236974,
+            0.06492212984778867,
+            -0.16039995152825615
+          ],
+          "delta_per_guest": {
+            "cycles": -2326.133741995913,
+            "instructions": -35749.565687676455,
+            "branches": 3110.9614803851964,
+            "branch-misses": 443.83099169008307,
+            "ex_ret_ops": -36878.9901100989
+          },
+          "time_reference": "both05"
+        },
+        "both05": {
+          "wall_s": 65.9652389572778,
+          "paired_pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "pairs": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "delta_per_guest": {
+            "cycles": 0.0,
+            "instructions": 0.0,
+            "branches": 0.0,
+            "branch-misses": 0.0,
+            "ex_ret_ops": 0.0
+          },
+          "time_reference": "both05"
+        }
+      }
+    },
+    "structural": {
+      "coremark": {
+        "both05": {
+          "wall_s": 70.71073157301483,
+          "paired_pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "pairs": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "delta_per_guest": {
+            "cycles": 0.0,
+            "instructions": 0.0,
+            "branches": 0.0,
+            "branch-misses": 0.0,
+            "ex_ret_ops": 0.0
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 24.12477603867518
+        },
+        "dup": {
+          "wall_s": 70.06800504797138,
+          "paired_pct": -0.9064900705176034,
+          "pct_range": [
+            -1.4824894998130889,
+            -0.5031699224484321
+          ],
+          "pairs": [
+            -1.4824894998130889,
+            -0.7338107892912893,
+            -0.5031699224484321
+          ],
+          "delta_per_guest": {
+            "cycles": -19828.09517571491,
+            "instructions": -7131.757362426376,
+            "branches": -9.637076962563707,
+            "branch-misses": -5.327690056432769,
+            "ex_ret_ops": -7176.80072199278
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 22.997728574504883
+        },
+        "ftqdup": {
+          "wall_s": 69.03144499799237,
+          "paired_pct": -2.3739864139732356,
+          "pct_range": [
+            -2.7616651980158835,
+            -2.1399574895955786
+          ],
+          "pairs": [
+            -2.1399574895955786,
+            -2.7616651980158835,
+            -2.2203365543082443
+          ],
+          "delta_per_guest": {
+            "cycles": -57622.903084302496,
+            "instructions": -72421.08785578811,
+            "branches": -8930.479845201548,
+            "branch-misses": -45.68088985776809,
+            "ex_ret_ops": -69274.50406162605
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 21.1761517310845
+        },
+        "gs_pgo": {
+          "wall_s": 56.96769646500858,
+          "paired_pct": -19.43005212780671,
+          "pct_range": [
+            -20.149772242076114,
+            -18.503057624484764
+          ],
+          "pairs": [
+            -19.637326516859254,
+            -20.149772242076114,
+            -18.503057624484764
+          ],
+          "delta_per_guest": {
+            "cycles": -462922.28060719394,
+            "instructions": -735523.5804541955,
+            "branches": -131752.80751525817,
+            "branch-misses": -2293.2843038236283,
+            "ex_ret_ops": -665708.5807708589
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 0.0
+        }
+      },
+      "microbench": {
+        "gs_pgo": {
+          "wall_s": 53.43155799130909,
+          "paired_pct": -17.23671898170004,
+          "pct_range": [
+            -17.881984081975844,
+            -16.53065015793681
+          ],
+          "pairs": [
+            -16.53065015793681,
+            -17.29752270518746,
+            -17.881984081975844
+          ],
+          "delta_per_guest": {
+            "cycles": -349952.3855194781,
+            "instructions": -606313.9095042383,
+            "branches": -114634.71265954008,
+            "branch-misses": -1677.1383886161138,
+            "ex_ret_ops": -545017.0209131242
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 0.0
+        },
+        "ftqdup": {
+          "wall_s": 63.461598089973755,
+          "paired_pct": -1.7007719422711065,
+          "pct_range": [
+            -2.361074432339505,
+            -1.0965920773083115
+          ],
+          "pairs": [
+            -1.0965920773083115,
+            -1.644649317165503,
+            -2.361074432339505
+          ],
+          "delta_per_guest": {
+            "cycles": -33257.72057279427,
+            "instructions": -56932.061709382906,
+            "branches": -6947.8030153031805,
+            "branch-misses": -28.116838831611684,
+            "ex_ret_ops": -54300.90493428399
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 18.77271803132995
+        },
+        "dup": {
+          "wall_s": 65.2141173563432,
+          "paired_pct": 1.0109317337093786,
+          "pct_range": [
+            -0.18277489825289095,
+            2.341846696206207
+          ],
+          "pairs": [
+            0.8737234031748198,
+            2.341846696206207,
+            -0.18277489825289095
+          ],
+          "delta_per_guest": {
+            "cycles": 21718.18836144972,
+            "instructions": -5199.763722362776,
+            "branches": -47.788615447178856,
+            "branch-misses": 7.061682716506168,
+            "ex_ret_ops": -4830.3842528241385
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 22.0505370101915
+        },
+        "both05": {
+          "wall_s": 64.55921451801744,
+          "paired_pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "pairs": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "delta_per_guest": {
+            "cycles": 0.0,
+            "instructions": 0.0,
+            "branches": 0.0,
+            "branch-misses": 0.0,
+            "ex_ret_ops": 0.0
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 20.831924977347064
+        }
+      }
+    },
+    "emitted": {
+      "coremark": {
+        "both05": {
+          "wall_s": 70.70450339157833,
+          "paired_pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "pairs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "delta_per_guest": {
+            "cycles": 0.0,
+            "instructions": 0.0,
+            "branches": 0.0,
+            "branch-misses": 0.0,
+            "ex_ret_ops": 0.0
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 24.540175700446248
+        },
+        "generator": {
+          "wall_s": 68.97311320883455,
+          "paired_pct": -2.447633138611116,
+          "pct_range": [
+            -2.987925545769843,
+            -1.6572419359610624
+          ],
+          "pairs": [
+            -2.4549304176612496,
+            -2.987925545769843,
+            -2.6904346550523095,
+            -1.6572419359610624
+          ],
+          "delta_per_guest": {
+            "cycles": -59278.95507294928,
+            "instructions": -69435.97910270897,
+            "branches": -9867.939305606944,
+            "branch-misses": 10.26228737712623,
+            "ex_ret_ops": -65485.390068599314
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 21.488460173671072
+        },
+        "gs_pgo": {
+          "wall_s": 56.7734799492755,
+          "paired_pct": -19.701724793386994,
+          "pct_range": [
+            -20.321288651996248,
+            -18.98333410053067
+          ],
+          "pairs": [
+            -19.8706214223228,
+            -20.321288651996248,
+            -19.631654998698256,
+            -18.98333410053067
+          ],
+          "delta_per_guest": {
+            "cycles": -455557.5212222878,
+            "instructions": -734996.1974030259,
+            "branches": -131807.21796532033,
+            "branch-misses": -2302.4369106308936,
+            "ex_ret_ops": -665052.0041599585
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 0.0
+        }
+      },
+      "microbench": {
+        "gs_pgo": {
+          "wall_s": 53.744552814692724,
+          "paired_pct": -17.072643913089507,
+          "pct_range": [
+            -17.53352007703163,
+            -16.6442767833627
+          ],
+          "pairs": [
+            -16.845862324303685,
+            -16.6442767833627,
+            -17.26691646766002,
+            -17.53352007703163
+          ],
+          "delta_per_guest": {
+            "cycles": -353132.2246202538,
+            "instructions": -606712.1927580724,
+            "branches": -114910.5238097619,
+            "branch-misses": -1667.929408205918,
+            "ex_ret_ops": -545071.9459405406
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 0.0
+        },
+        "generator": {
+          "wall_s": 64.01818892877782,
+          "paired_pct": -1.2194654778010239,
+          "pct_range": [
+            -1.6198048842356316,
+            -0.7070575552313829
+          ],
+          "pairs": [
+            -1.6198048842356316,
+            -0.7070575552313829,
+            -1.0789574843464877,
+            -1.4720419873905932
+          ],
+          "delta_per_guest": {
+            "cycles": -23974.843756562434,
+            "instructions": -54944.5025099749,
+            "branches": -7666.745952540475,
+            "branch-misses": 19.92949820501795,
+            "ex_ret_ops": -51662.57099929001
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 19.118257253037783
+        },
+        "both05": {
+          "wall_s": 64.81016450107563,
+          "paired_pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "pairs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "delta_per_guest": {
+            "cycles": 0.0,
+            "instructions": 0.0,
+            "branches": 0.0,
+            "branch-misses": 0.0,
+            "ex_ret_ops": 0.0
+          },
+          "time_reference": "both05",
+          "vs_gs_pct": 20.589596527923256
+        }
+      }
+    },
+    "frontend": {
+      "microbench": {
+        "dup": {
+          "wall_s": 65.70487648660007,
+          "paired_pct": 0.32973742483150364,
+          "pct_range": [
+            -1.050561975654274,
+            1.3869468680574037
+          ],
+          "pairs": [
+            -1.050561975654274,
+            1.3869468680574037,
+            0.652827382091381
+          ],
+          "delta_per_guest": {
+            "cycles": 11998.88950777159,
+            "instructions": -5359.571880947858,
+            "de_no_dispatch_per_slot.no_ops_from_frontend": 57922.972886937794,
+            "ic_cache_fill_l2": 4.956003773295611,
+            "ic_cache_fill_sys": -490.1969746969197
+          },
+          "time_reference": "both05"
+        },
+        "both05": {
+          "wall_s": 65.48876059032045,
+          "paired_pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "pairs": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "delta_per_guest": {
+            "cycles": 0.0,
+            "instructions": 0.0,
+            "de_no_dispatch_per_slot.no_ops_from_frontend": 0.0,
+            "ic_cache_fill_l2": 0.0,
+            "ic_cache_fill_sys": 0.0
+          },
+          "time_reference": "both05"
+        }
+      }
+    },
+    "data": {
+      "microbench": {
+        "dup": {
+          "wall_s": 64.92073715066847,
+          "paired_pct": -0.619068583460225,
+          "pct_range": [
+            -0.9986778628031767,
+            -0.006807390652596723
+          ],
+          "pairs": [
+            -0.9986778628031767,
+            -0.8517204969249015,
+            -0.006807390652596723
+          ],
+          "delta_per_guest": {
+            "cycles": -6533.853391466086,
+            "instructions": -5310.119828801712,
+            "de_no_dispatch_per_slot.backend_stalls": -9974.413575864242,
+            "L1-dcache-loads": -4639.172981603518,
+            "L1-dcache-load-misses": -40.876151238487616
+          },
+          "time_reference": "both05"
+        },
+        "both05": {
+          "wall_s": 65.32660767699902,
+          "paired_pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "pairs": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "delta_per_guest": {
+            "cycles": 0.0,
+            "instructions": 0.0,
+            "de_no_dispatch_per_slot.backend_stalls": 0.0,
+            "L1-dcache-loads": 0.0,
+            "L1-dcache-load-misses": 0.0
+          },
+          "time_reference": "both05"
+        }
+      }
+    },
+    "robfactor": {
+      "coremark": {
+        "generator": {
+          "wall_s": 68.88758818797457,
+          "paired_pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "pairs": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "delta_per_guest": {
+            "cycles": 0.0,
+            "instructions": 0.0,
+            "branches": 0.0,
+            "branch-misses": 0.0,
+            "ex_ret_ops": 0.0
+          },
+          "time_reference": "generator"
+        },
+        "factorrob": {
+          "wall_s": 68.99172916302147,
+          "paired_pct": 0.15204908358029678,
+          "pct_range": [
+            -0.0005129137889858804,
+            0.4183809615510681
+          ],
+          "pairs": [
+            0.03827920297880816,
+            -0.0005129137889858804,
+            0.4183809615510681
+          ],
+          "delta_per_guest": {
+            "cycles": -1203.5022783105503,
+            "instructions": 1852.6983830161698,
+            "branches": 360.0927790722093,
+            "branch-misses": -17.13879861201388,
+            "ex_ret_ops": 1496.9024909750901
+          },
+          "time_reference": "generator"
+        }
+      },
+      "microbench": {
+        "factorrob": {
+          "wall_s": 64.96249252844912,
+          "paired_pct": 1.2400723917178613,
+          "pct_range": [
+            1.0865460437476049,
+            1.4670602161376278
+          ],
+          "pairs": [
+            1.1666109152683513,
+            1.0865460437476049,
+            1.4670602161376278
+          ],
+          "delta_per_guest": {
+            "cycles": 31093.91837414959,
+            "instructions": 2989.628073719263,
+            "branches": 641.0997190028099,
+            "branch-misses": -16.902630973690265,
+            "ex_ret_ops": 2844.7109628903713
+          },
+          "time_reference": "generator"
+        },
+        "generator": {
+          "wall_s": 64.1670538239802,
+          "paired_pct": 0.0,
+          "pct_range": [
+            0.0,
+            0.0
+          ],
+          "pairs": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "delta_per_guest": {
+            "cycles": 0.0,
+            "instructions": 0.0,
+            "branches": 0.0,
+            "branch-misses": 0.0,
+            "ex_ret_ops": 0.0
+          },
+          "time_reference": "generator"
+        }
+      }
+    }
+  },
+  "elf": {
+    "both05": {
+      "identity": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-site-pgo-v1/both05/build/emu",
+        "bytes": 97621664,
+        "sha256": "203ca1ca9b967a2eecea3eb2b2597516af8ce339617505a1afe1d826b33297d4"
+      },
+      "text": 89789890,
+      "functions": {
+        "compute": 77069881,
+        "commit": 12175988
+      }
+    },
+    "ftq": {
+      "identity": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/ftq/build/emu",
+        "bytes": 97633952,
+        "sha256": "bbaeaf15eda9c1eab4a56e29e5e2252748e17309c22af49d8bacd495ff512030"
+      },
+      "text": 89821266,
+      "functions": {
+        "compute": 76179761,
+        "commit": 13097484
+      }
+    },
+    "rob": {
+      "identity": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/rob/build/emu",
+        "bytes": 97560224,
+        "sha256": "9e322197415393a3bb80c8f323a1697c50f20727af7dcb635407dd3b1031efe0"
+      },
+      "text": 89728786,
+      "functions": {
+        "compute": 77008763,
+        "commit": 12175988
+      }
+    },
+    "direct": {
+      "identity": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/direct/build/emu",
+        "bytes": 97171104,
+        "sha256": "f2a392a2d28c17a63e4ef954ccb0332e2eee7558738c5992170e3b2d0f486db7"
+      },
+      "text": 89344642,
+      "functions": {
+        "compute": 76625994,
+        "commit": 12174696
+      }
+    },
+    "temporal": {
+      "identity": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/temporal/build/emu",
+        "bytes": 97703584,
+        "sha256": "d4d9cc34940a1349e81ae31f0a9a0b4ec479fc31d7327f6b1129431cd3f5722a"
+      },
+      "text": 89874162,
+      "functions": {
+        "compute": 77070721,
+        "commit": 12259450
+      }
+    },
+    "dup": {
+      "identity": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/dup/build/emu",
+        "bytes": 97609376,
+        "sha256": "b572cc3671618ed1244939c690722f72742470ba279e0aee8eb36a17e8e72c8a"
+      },
+      "text": 89778578,
+      "functions": {
+        "compute": 77058575,
+        "commit": 12175988
+      }
+    },
+    "ftqdup": {
+      "identity": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/ftqdup/build/emu",
+        "bytes": 97621664,
+        "sha256": "16eb187e579d7b655063f434fc4e71c1d7d70180e911c824ea2d123748f60ab8"
+      },
+      "text": 89808914,
+      "functions": {
+        "compute": 76167396,
+        "commit": 13097484
+      }
+    },
+    "gs_pgo": {
+      "identity": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-gsim-gap-v1/pgo/gsim-nodpi/use/emu",
+        "bytes": 86737152,
+        "sha256": "4d90afe83d56144ab96bf0b0504489f328f2cff02371d0f545846e6c20a93397"
+      },
+      "text": 77765538,
+      "functions": {
+        "compute": 0,
+        "commit": 0
+      }
+    },
+    "generator": {
+      "identity": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/generator/build/emu",
+        "bytes": 97670816,
+        "sha256": "3d3ab087156282a02b3fe44a86989744c50cf0e04772b780e11911bc17cea236"
+      },
+      "text": 89845234,
+      "functions": {
+        "compute": 76126070,
+        "commit": 13175120
+      }
+    },
+    "factorrob": {
+      "identity": {
+        "path": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/factorrob/build/emu",
+        "bytes": 97695392,
+        "sha256": "74fd6be7cc29c1dc3dff517fd811999c4073e9118018cff62b3767c2507d778f"
+      },
+      "text": 89871442,
+      "functions": {
+        "compute": 76152245,
+        "commit": 13175120
+      }
+    }
+  },
+  "corrected_module_values": {
+    "coremark": {
+      "gsim": {
+        "Rob": {
+          "assignments": 108680.77039229608,
+          "assigned_instructions": 93519.58803255812,
+          "cycles": 68877.44092063823
+        },
+        "VectorDecodeChannel": {
+          "assignments": 64680.058639413604,
+          "assigned_instructions": 329478.54859887995,
+          "cycles": 219191.3974251962
+        },
+        "Ftq": {
+          "assignments": 19408.950520494796,
+          "assigned_instructions": 8759.961411090773,
+          "cycles": 7108.91018676312
+        }
+      },
+      "grhsim": {
+        "Rob": {
+          "assignments": 60732.13943860561,
+          "assigned_instructions": 283586.39277290215,
+          "cycles": 166371.90017210637
+        },
+        "Ftq": {
+          "assignments": 21084.361946380537,
+          "assigned_instructions": 133421.7164355591,
+          "cycles": 82414.79438047769
+        },
+        "VectorDecodeChannel": {
+          "assignments": 45148.16692833072,
+          "assigned_instructions": 294507.46014289075,
+          "cycles": 160954.03700985806
+        }
+      }
+    },
+    "microbench": {
+      "gsim": {
+        "Rob": {
+          "assignments": 93325.0953490465,
+          "assigned_instructions": 80680.32778944423,
+          "cycles": 58234.66164326165
+        },
+        "VectorDecodeChannel": {
+          "assignments": 59797.59406405936,
+          "assigned_instructions": 307681.2500527541,
+          "cycles": 196826.64968811898
+        },
+        "Ftq": {
+          "assignments": 19271.432255677442,
+          "assigned_instructions": 7920.032177644996,
+          "cycles": 7279.332705407706
+        }
+      },
+      "grhsim": {
+        "Rob": {
+          "assignments": 48224.82334176658,
+          "assigned_instructions": 220370.58916596134,
+          "cycles": 126616.48122873255
+        },
+        "Ftq": {
+          "assignments": 16761.758122418774,
+          "assigned_instructions": 114904.36588369153,
+          "cycles": 66370.20780747941
+        },
+        "VectorDecodeChannel": {
+          "assignments": 42771.62068379316,
+          "assigned_instructions": 279007.5602216026,
+          "cycles": 152808.71411036252
+        }
+      }
+    }
+  },
+  "by_op": {
+    "coremark": {
+      "Rob": [
+        [
+          "kMux",
+          {
+            "vis": 9452.131018689674,
+            "ins": 76768.67945374348,
+            "cyc": 41088.7578509194
+          }
+        ],
+        [
+          "kOr",
+          {
+            "vis": 7750.4757152429975,
+            "ins": 76166.41470907468,
+            "cyc": 40456.0147078832
+          }
+        ],
+        [
+          "kAnd",
+          {
+            "vis": 16794.18462815175,
+            "ins": 53722.01522442988,
+            "cyc": 30885.774669459555
+          }
+        ],
+        [
+          "kLogicAnd",
+          {
+            "vis": 8825.003909960711,
+            "ins": 30715.501978092685,
+            "cyc": 22897.392488626127
+          }
+        ],
+        [
+          "kAdd",
+          {
+            "vis": 3365.762732372754,
+            "ins": 20035.340505971602,
+            "cyc": 12101.212610569144
+          }
+        ],
+        [
+          "kConcat",
+          {
+            "vis": 4199.674563254368,
+            "ins": 6263.553344552264,
+            "cyc": 4626.934233452924
+          }
+        ],
+        [
+          "kEq",
+          {
+            "vis": 3371.9143108569306,
+            "ins": 5219.627787126896,
+            "cyc": 3203.2621616212555
+          }
+        ],
+        [
+          "kLogicOr",
+          {
+            "vis": 1182.7991920080815,
+            "ins": 4818.117957347906,
+            "cyc": 4389.655554814315
+          }
+        ],
+        [
+          "kLogicNot",
+          {
+            "vis": 1552.7430925690828,
+            "ins": 2931.021757386646,
+            "cyc": 1660.950750470279
+          }
+        ],
+        [
+          "kNot",
+          {
+            "vis": 1285.3558364416522,
+            "ins": 2168.1530808065595,
+            "cyc": 1344.5791789521309
+          }
+        ],
+        [
+          "kSliceDynamic",
+          {
+            "vis": 338.4762652373485,
+            "ins": 1967.3981659170627,
+            "cyc": 1621.404304030511
+          }
+        ],
+        [
+          "kSliceArray",
+          {
+            "vis": 182.52230477695198,
+            "ins": 682.5667106242868,
+            "cyc": 395.4644643976857
+          }
+        ],
+        [
+          "kAssign",
+          {
+            "vis": 464.2848671513324,
+            "ins": 602.2647446684884,
+            "cyc": 553.6502501567599
+          }
+        ],
+        [
+          "kSliceStatic",
+          {
+            "vis": 232.33461665383285,
+            "ins": 481.8117957347906,
+            "cyc": 276.82512507838
+          }
+        ],
+        [
+          "kGt",
+          {
+            "vis": 96.31842681573184,
+            "ins": 401.5098297789922,
+            "cyc": 197.73223219884284
+          }
+        ],
+        [
+          "kLt",
+          {
+            "vis": 93.77279227207735,
+            "ins": 200.7549148894961,
+            "cyc": 79.09289287953713
+          }
+        ],
+        [
+          "kReduceOr",
+          {
+            "vis": 178.01871981280152,
+            "ins": 160.60393191159687,
+            "cyc": 316.3715715181485
+          }
+        ],
+        [
+          "kReduceAnd",
+          {
+            "vis": 71.67845321546763,
+            "ins": 120.45294893369766,
+            "cyc": 197.73223219884284
+          }
+        ],
+        [
+          "kRegisterReadPort",
+          {
+            "vis": 776.0767192328166,
+            "ins": 120.45294893369766,
+            "cyc": 79.09289287953713
+          }
+        ],
+        [
+          "kSub",
+          {
+            "vis": 116.88606113938847,
+            "ins": 40.15098297789922,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kConstant",
+          {
+            "vis": 400.88478115218965,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kXor",
+          {
+            "vis": 0.8404315956840431,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ]
+      ],
+      "Ftq": [
+        [
+          "kMux",
+          {
+            "vis": 10948.872931270791,
+            "ins": 96322.20816398022,
+            "cyc": 58370.55494509792
+          }
+        ],
+        [
+          "kLogicAnd",
+          {
+            "vis": 7135.907400925449,
+            "ins": 17827.036442187138,
+            "cyc": 12259.398396328204
+          }
+        ],
+        [
+          "kAnd",
+          {
+            "vis": 1961.8031019690222,
+            "ins": 8471.857408336706,
+            "cyc": 3954.6446439768597
+          }
+        ],
+        [
+          "kConcat",
+          {
+            "vis": 80.1807481925181,
+            "ins": 4697.6650084142075,
+            "cyc": 3519.633733139403
+          }
+        ],
+        [
+          "kLogicOr",
+          {
+            "vis": 343.5010449895494,
+            "ins": 3653.7394509888327,
+            "cyc": 2530.9725721451887
+          }
+        ],
+        [
+          "kSliceArray",
+          {
+            "vis": 280.6115338846613,
+            "ins": 762.8686765800853,
+            "cyc": 870.0218216749086
+          }
+        ],
+        [
+          "kAdd",
+          {
+            "vis": 35.78794212057879,
+            "ins": 481.8117957347906,
+            "cyc": 276.82512507838
+          }
+        ],
+        [
+          "kOr",
+          {
+            "vis": 16.64333356666433,
+            "ins": 321.20786382319375,
+            "cyc": 158.18578575907426
+          }
+        ],
+        [
+          "kSliceDynamic",
+          {
+            "vis": 87.4420055799443,
+            "ins": 281.05688084529453,
+            "cyc": 118.63933931930569
+          }
+        ],
+        [
+          "kEq",
+          {
+            "vis": 25.149898501015002,
+            "ins": 240.9058978673953,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kAssign",
+          {
+            "vis": 15.549594504054962,
+            "ins": 80.30196595579844,
+            "cyc": 118.63933931930569
+          }
+        ],
+        [
+          "kShl",
+          {
+            "vis": 0.8530514694853051,
+            "ins": 80.30196595579844,
+            "cyc": 39.546446439768566
+          }
+        ],
+        [
+          "kGt",
+          {
+            "vis": 3.9742302576974224,
+            "ins": 80.30196595579844,
+            "cyc": 39.546446439768566
+          }
+        ],
+        [
+          "kReduceAnd",
+          {
+            "vis": 19.797512024879744,
+            "ins": 80.30196595579844,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kLogicNot",
+          {
+            "vis": 37.37904620953785,
+            "ins": 40.15098297789922,
+            "cyc": 39.546446439768566
+          }
+        ],
+        [
+          "kSub",
+          {
+            "vis": 4.552374476255237,
+            "ins": 0.0,
+            "cyc": 79.09289287953713
+          }
+        ],
+        [
+          "kXor",
+          {
+            "vis": 4.204287957120428,
+            "ins": 0.0,
+            "cyc": 39.546446439768566
+          }
+        ],
+        [
+          "kNot",
+          {
+            "vis": 65.2758872411275,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kLt",
+          {
+            "vis": 1.2334776652233477,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kReduceOr",
+          {
+            "vis": 2.117828821711783,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kNe",
+          {
+            "vis": 3.4417855821441785,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kSliceStatic",
+          {
+            "vis": 9.6170238297617,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kRegisterReadPort",
+          {
+            "vis": 0.46590534094659053,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ]
+      ]
+    },
+    "microbench": {
+      "Rob": [
+        [
+          "kOr",
+          {
+            "vis": 6072.408025919791,
+            "ins": 60484.43726698387,
+            "cyc": 30536.916061047497
+          }
+        ],
+        [
+          "kMux",
+          {
+            "vis": 7068.8876711233115,
+            "ins": 58395.99720198837,
+            "cyc": 30247.27051575299
+          }
+        ],
+        [
+          "kAnd",
+          {
+            "vis": 12791.585134147252,
+            "ins": 41367.17821048692,
+            "cyc": 24164.714064568736
+          }
+        ],
+        [
+          "kLogicAnd",
+          {
+            "vis": 7171.719172809028,
+            "ins": 23816.249202736486,
+            "cyc": 18371.80315867894
+          }
+        ],
+        [
+          "kAdd",
+          {
+            "vis": 2991.4556454435897,
+            "ins": 15462.488942754604,
+            "cyc": 8813.50016396078
+          }
+        ],
+        [
+          "kEq",
+          {
+            "vis": 2580.762792372043,
+            "ins": 6064.508650275231,
+            "cyc": 3186.1009982393534
+          }
+        ],
+        [
+          "kConcat",
+          {
+            "vis": 3925.878471215372,
+            "ins": 5502.23632508415,
+            "cyc": 2482.676102524171
+          }
+        ],
+        [
+          "kLogicOr",
+          {
+            "vis": 972.8102718972726,
+            "ins": 3373.6339511464857,
+            "cyc": 3434.368608491771
+          }
+        ],
+        [
+          "kLogicNot",
+          {
+            "vis": 1203.2429575704307,
+            "ins": 1606.4923576888025,
+            "cyc": 1199.9601162200147
+          }
+        ],
+        [
+          "kNot",
+          {
+            "vis": 931.8580414195969,
+            "ins": 1245.0315772088215,
+            "cyc": 1158.582181177945
+          }
+        ],
+        [
+          "kSliceDynamic",
+          {
+            "vis": 279.52006479935244,
+            "ins": 963.8954146132812,
+            "cyc": 1199.9601162200145
+          }
+        ],
+        [
+          "kAssign",
+          {
+            "vis": 365.0533094669027,
+            "ins": 763.0838699021809,
+            "cyc": 372.40141537862513
+          }
+        ],
+        [
+          "kSliceArray",
+          {
+            "vis": 166.64731352686456,
+            "ins": 481.9477073066404,
+            "cyc": 496.5352205048335
+          }
+        ],
+        [
+          "kGt",
+          {
+            "vis": 73.0279697203028,
+            "ins": 240.9738536533202,
+            "cyc": 206.8896752103473
+          }
+        ],
+        [
+          "kReduceOr",
+          {
+            "vis": 148.2914670853292,
+            "ins": 200.81154471110017,
+            "cyc": 248.26761025241674
+          }
+        ],
+        [
+          "kSliceStatic",
+          {
+            "vis": 173.63016369836274,
+            "ins": 160.64923576888015,
+            "cyc": 124.13380512620839
+          }
+        ],
+        [
+          "kReduceAnd",
+          {
+            "vis": 55.61443385566156,
+            "ins": 120.48692682666011,
+            "cyc": 289.6455452944862
+          }
+        ],
+        [
+          "kLt",
+          {
+            "vis": 70.31435685643146,
+            "ins": 80.32461788444007,
+            "cyc": 41.37793504206946
+          }
+        ],
+        [
+          "kRegisterReadPort",
+          {
+            "vis": 706.1586984130024,
+            "ins": 40.16230894222004,
+            "cyc": 41.37793504206946
+          }
+        ],
+        [
+          "kConstant",
+          {
+            "vis": 358.8359116408789,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kXor",
+          {
+            "vis": 0.6546334536654633,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kSub",
+          {
+            "vis": 116.46683533164659,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ]
+      ],
+      "Ftq": [
+        [
+          "kMux",
+          {
+            "vis": 9667.837311626929,
+            "ins": 88196.43043711646,
+            "cyc": 48122.53845392624
+          }
+        ],
+        [
+          "kLogicAnd",
+          {
+            "vis": 4484.808781912961,
+            "ins": 11004.472650168243,
+            "cyc": 8027.319398161455
+          }
+        ],
+        [
+          "kAnd",
+          {
+            "vis": 1756.5687643123167,
+            "ins": 7309.5402274840535,
+            "cyc": 3682.6362187441873
+          }
+        ],
+        [
+          "kConcat",
+          {
+            "vis": 69.60519394806056,
+            "ins": 3855.5816584531253,
+            "cyc": 2482.6761025241694
+          }
+        ],
+        [
+          "kLogicOr",
+          {
+            "vis": 268.3756262437374,
+            "ins": 2650.7123901865243,
+            "cyc": 2441.2981674821012
+          }
+        ],
+        [
+          "kSliceArray",
+          {
+            "vis": 228.15316846831635,
+            "ins": 1044.2200324977211,
+            "cyc": 827.5587008413892
+          }
+        ],
+        [
+          "kSliceDynamic",
+          {
+            "vis": 75.95114048859514,
+            "ins": 281.13616259554027,
+            "cyc": 248.26761025241674
+          }
+        ],
+        [
+          "kEq",
+          {
+            "vis": 23.035899641003592,
+            "ins": 160.64923576888015,
+            "cyc": 206.8896752103473
+          }
+        ],
+        [
+          "kNot",
+          {
+            "vis": 58.15036849631493,
+            "ins": 120.48692682666011,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kAdd",
+          {
+            "vis": 28.099309006909895,
+            "ins": 80.32461788444007,
+            "cyc": 165.51174016827784
+          }
+        ],
+        [
+          "kOr",
+          {
+            "vis": 15.363126368736314,
+            "ins": 80.32461788444007,
+            "cyc": 41.37793504206946
+          }
+        ],
+        [
+          "kLogicNot",
+          {
+            "vis": 27.98797012029876,
+            "ins": 40.16230894222004,
+            "cyc": 41.37793504206946
+          }
+        ],
+        [
+          "kAssign",
+          {
+            "vis": 12.990670093299066,
+            "ins": 40.16230894222004,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kReduceAnd",
+          {
+            "vis": 15.162648373516259,
+            "ins": 40.16230894222004,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kSub",
+          {
+            "vis": 4.205127948720513,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kXor",
+          {
+            "vis": 4.065649343506565,
+            "ins": 0.0,
+            "cyc": 41.37793504206946
+          }
+        ],
+        [
+          "kLt",
+          {
+            "vis": 0.99980000199998,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kReduceOr",
+          {
+            "vis": 2.4205257947420526,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kShl",
+          {
+            "vis": 0.6096139038609614,
+            "ins": 0.0,
+            "cyc": 41.37793504206946
+          }
+        ],
+        [
+          "kGt",
+          {
+            "vis": 4.4381856181438195,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kNe",
+          {
+            "vis": 3.071059289407106,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kSliceStatic",
+          {
+            "vis": 9.421605783942159,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ],
+        [
+          "kRegisterReadPort",
+          {
+            "vis": 0.4365756342436576,
+            "ins": 0.0,
+            "cyc": 0.0
+          }
+        ]
+      ]
+    }
+  },
+  "ftq_and_rob": {
+    "sites": 4096,
+    "ids": 12288,
+    "leaf_slots": {
+      "bool": 26624,
+      "u8": 198
+    },
+    "commit_slot_writers": {
+      "bool": 0,
+      "u8": 0
+    },
+    "coremark": {
+      "mux_sites_visits": 2605401175,
+      "chain_assignments": 601246425,
+      "chain_samples": 1291,
+      "root_visits": 200415475,
+      "roots_active": 4096,
+      "rob_or_visits": 21853761,
+      "rob_or_samples": 422,
+      "dup_visits": 64448673,
+      "dup_samples": 14,
+      "write_visits": 3028992,
+      "writes_active": 4096,
+      "chain_instructions": 51834.91902446789,
+      "rob_or_instructions": 16943.71481667347,
+      "dup_instructions": 562.1137616905891
+    },
+    "microbench": {
+      "mux_sites_visits": 2063498346,
+      "chain_assignments": 476191926,
+      "chain_samples": 1041,
+      "root_visits": 158730642,
+      "roots_active": 4096,
+      "rob_or_visits": 15675149,
+      "rob_or_samples": 309,
+      "dup_visits": 49300052,
+      "dup_samples": 13,
+      "write_visits": 2216512,
+      "writes_active": 4096,
+      "chain_instructions": 41808.96360885106,
+      "rob_or_instructions": 12410.15346314599,
+      "dup_instructions": 522.1100162488605
+    }
+  },
+  "gs_copy": {
+    "source_lines": 4096,
+    "function": "SSimTop::subStep236()",
+    "lines_with_instructions": 64,
+    "operations": {
+      "vmovups": 232,
+      "leaq": 4,
+      "vmovdqu64": 24
+    },
+    "examples": [
+      [
+        "0x2c9a6d9",
+        "vmovups\t2041550(%rdi), %zmm3",
+        21044
+      ],
+      [
+        "0x2c9a6e3",
+        "vmovups\t2041614(%rdi), %zmm4",
+        21108
+      ],
+      [
+        "0x2c9a6ed",
+        "vmovups\t2041678(%rdi), %zmm5",
+        21172
+      ],
+      [
+        "0x2c9a6f7",
+        "vmovups\t2041742(%rdi), %zmm6",
+        21236
+      ],
+      [
+        "0x2c9a701",
+        "leaq\t2043822(%rdi), %rax",
+        21044
+      ],
+      [
+        "0x2c9a708",
+        "vmovups\t%zmm3, 2043822(%rdi)",
+        21044
+      ],
+      [
+        "0x2c9a712",
+        "vmovups\t%zmm4, 2043886(%rdi)",
+        21108
+      ],
+      [
+        "0x2c9a71c",
+        "vmovups\t%zmm5, 2043950(%rdi)",
+        21172
+      ],
+      [
+        "0x2c9a726",
+        "vmovups\t%zmm6, 2044014(%rdi)",
+        21236
+      ],
+      [
+        "0x2c9a730",
+        "vmovups\t2041806(%rdi), %zmm3",
+        21300
+      ],
+      [
+        "0x2c9a73a",
+        "vmovups\t%zmm3, 2044078(%rdi)",
+        21300
+      ],
+      [
+        "0x2c9a744",
+        "vmovups\t2041870(%rdi), %zmm3",
+        21364
+      ],
+      [
+        "0x2c9a74e",
+        "vmovups\t%zmm3, 2044142(%rdi)",
+        21364
+      ],
+      [
+        "0x2c9a758",
+        "vmovups\t2041934(%rdi), %zmm3",
+        21428
+      ],
+      [
+        "0x2c9a762",
+        "vmovups\t%zmm3, 2044206(%rdi)",
+        21428
+      ],
+      [
+        "0x2c9a76c",
+        "vmovups\t2041998(%rdi), %zmm3",
+        21492
+      ],
+      [
+        "0x2c9a776",
+        "vmovups\t%zmm3, 2044270(%rdi)",
+        21492
+      ],
+      [
+        "0x2c9a780",
+        "vmovups\t2042062(%rdi), %zmm3",
+        21556
+      ]
+    ],
+    "coremark": {
+      "visits": 410013696,
+      "probe_visits": 100101
+    },
+    "microbench": {
+      "visits": 410013696,
+      "probe_visits": 100101
+    }
+  },
+  "sequence": {
+    "coremark": {
+      "sparse/low visits": {
+        "sites": 392038,
+        "n": 1319449917,
+        "c": 88043658,
+        "t": 40206708,
+        "m": 47974101
+      },
+      "sparse/over 5%": {
+        "sites": 28948,
+        "n": 1542325622,
+        "c": 516643102,
+        "t": 346174997,
+        "m": 348862175
+      },
+      "sparse/0.5 to 5%": {
+        "sites": 47253,
+        "n": 2285547127,
+        "c": 37817452,
+        "t": 43340530,
+        "m": 52256342
+      },
+      "sparse/up to 0.5%": {
+        "sites": 131357,
+        "n": 7294844082,
+        "c": 5996732,
+        "t": 6589207,
+        "m": 8618428
+      },
+      "commit/low visits": {
+        "sites": 71158,
+        "n": 15264590,
+        "c": 4215871,
+        "t": 1647670,
+        "m": 1642930
+      },
+      "commit/0 to 20%": {
+        "sites": 26784,
+        "n": 1068690905,
+        "c": 19091019,
+        "t": 22252387,
+        "m": 21688964
+      },
+      "commit/80 to 100%": {
+        "sites": 4059,
+        "n": 61866656,
+        "c": 58014176,
+        "t": 4410503,
+        "m": 3435842
+      },
+      "commit/50 to 80%": {
+        "sites": 4138,
+        "n": 92477837,
+        "c": 57449136,
+        "t": 28835003,
+        "m": 27130003
+      },
+      "commit/20 to 50%": {
+        "sites": 7906,
+        "n": 176075470,
+        "c": 59743972,
+        "t": 52789412,
+        "m": 56547383
+      },
+      "commit/always": {
+        "sites": 1084,
+        "n": 26392216,
+        "c": 26392216,
+        "t": 0,
+        "m": 2168
+      }
+    },
+    "microbench": {
+      "sparse/low visits": {
+        "sites": 392038,
+        "n": 1184920883,
+        "c": 85891102,
+        "t": 39238183,
+        "m": 46381958
+      },
+      "sparse/over 5%": {
+        "sites": 28948,
+        "n": 1387478727,
+        "c": 462023122,
+        "t": 306345158,
+        "m": 311311053
+      },
+      "sparse/0.5 to 5%": {
+        "sites": 47253,
+        "n": 1793242759,
+        "c": 34495222,
+        "t": 38671080,
+        "m": 46688026
+      },
+      "sparse/up to 0.5%": {
+        "sites": 131357,
+        "n": 6208195428,
+        "c": 6968541,
+        "t": 7536657,
+        "m": 9444747
+      },
+      "commit/low visits": {
+        "sites": 70421,
+        "n": 17856970,
+        "c": 4599899,
+        "t": 1825275,
+        "m": 1807595
+      },
+      "commit/0 to 20%": {
+        "sites": 26712,
+        "n": 1024548751,
+        "c": 20020916,
+        "t": 20615227,
+        "m": 20327553
+      },
+      "commit/80 to 100%": {
+        "sites": 4022,
+        "n": 57184793,
+        "c": 52782910,
+        "t": 4817645,
+        "m": 3538163
+      },
+      "commit/50 to 80%": {
+        "sites": 4083,
+        "n": 84957680,
+        "c": 53463603,
+        "t": 25326333,
+        "m": 23144590
+      },
+      "commit/20 to 50%": {
+        "sites": 7892,
+        "n": 163864780,
+        "c": 51058171,
+        "t": 43390022,
+        "m": 46305355
+      },
+      "commit/always": {
+        "sites": 1075,
+        "n": 25143916,
+        "c": 25142094,
+        "t": 1955,
+        "m": 4087
+      }
+    }
+  },
+  "ibs": {
+    "coremark": {
+      "commit/low visits": {
+        "branch": 43,
+        "miss": 15
+      },
+      "commit/20 to 50%": {
+        "branch": 353,
+        "miss": 114
+      },
+      "commit/0 to 20%": {
+        "branch": 2238,
+        "miss": 83
+      },
+      "other state compares": {
+        "branch": 528,
+        "miss": 50
+      },
+      "commit/80 to 100%": {
+        "branch": 122,
+        "miss": 27
+      },
+      "commit/50 to 80%": {
+        "branch": 215,
+        "miss": 86
+      },
+      "commit/always": {
+        "branch": 60,
+        "miss": 22
+      }
+    },
+    "microbench": {
+      "commit/low visits": {
+        "branch": 58,
+        "miss": 15
+      },
+      "commit/80 to 100%": {
+        "branch": 141,
+        "miss": 47
+      },
+      "other state compares": {
+        "branch": 541,
+        "miss": 43
+      },
+      "commit/0 to 20%": {
+        "branch": 2137,
+        "miss": 45
+      },
+      "commit/50 to 80%": {
+        "branch": 227,
+        "miss": 91
+      },
+      "commit/20 to 50%": {
+        "branch": 312,
+        "miss": 103
+      },
+      "commit/always": {
+        "branch": 58,
+        "miss": 18
+      }
+    }
+  },
+  "ibs_always": [
+    {
+      "shard": "grhsim_SimTop_sched_90.cpp",
+      "line": 223566,
+      "op": 1941693,
+      "sym": "_op_7903318",
+      "text": "if (unlikely(state_logic_storage_.bool_slots_37591 != next_value)) {",
+      "pc": "0x51d654d",
+      "asm": "cmpb\t%al, 2567403(%rdi)",
+      "branch": 2,
+      "miss": 2
+    },
+    {
+      "shard": "grhsim_SimTop_sched_90.cpp",
+      "line": 54025,
+      "op": 3116568,
+      "sym": "_op_11466657",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_10142 != next_value)) {",
+      "pc": "0x51799f0",
+      "asm": "cmpq\t%rax, 2660080(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_90.cpp",
+      "line": 59182,
+      "op": 3116492,
+      "sym": "_op_11466475",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_10125 != next_value)) {",
+      "pc": "0x517c4db",
+      "asm": "cmpq\t%rax, 2660632(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_90.cpp",
+      "line": 88990,
+      "op": 4709537,
+      "sym": "_op_15187973",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_16389 != next_value)) {",
+      "pc": "0x5130301",
+      "asm": "cmpq\t%rax, 2661224(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_90.cpp",
+      "line": 89085,
+      "op": 4678927,
+      "sym": "_op_15120367",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_16388 != next_value)) {",
+      "pc": "0x5130360",
+      "asm": "cmpq\t%rax, 2661240(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 22215,
+      "op": 2724750,
+      "sym": "_op_10381740",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_8916 != next_value)) {",
+      "pc": "0x53892e7",
+      "asm": "cmpq\t%rax, 2674376(%rdi)",
+      "branch": 2,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 22239,
+      "op": 2724755,
+      "sym": "_op_10381753",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_8918 != next_value)) {",
+      "pc": "0x5389322",
+      "asm": "cmpq\t%rax, 2674392(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 22311,
+      "op": 2804453,
+      "sym": "_op_10597050",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_9050 != next_value)) {",
+      "pc": "0x53893d3",
+      "asm": "cmpq\t%rax, 2674440(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 22503,
+      "op": 3021381,
+      "sym": "_op_11212123",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_9772 != next_value)) {",
+      "pc": "0x53895ab",
+      "asm": "cmpq\t%rax, 2674568(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 22575,
+      "op": 3084421,
+      "sym": "_op_11399528",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_10037 != next_value)) {",
+      "pc": "0x538965c",
+      "asm": "cmpq\t%rax, 2674616(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 24346,
+      "op": 3104815,
+      "sym": "_op_11445093",
+      "text": "if (unlikely(state_logic_storage_.u8_slots_39924 != next_value)) {",
+      "pc": "0x538a300",
+      "asm": "jne\t460567",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 37449,
+      "op": 3359739,
+      "sym": "_op_12266401",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_11131 != next_value)) {",
+      "pc": "0x539004c",
+      "asm": "cmpq\t%rax, 2674792(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 37531,
+      "op": 3361818,
+      "sym": "_op_12271720",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_11142 != next_value)) {",
+      "pc": "0x5390111",
+      "asm": "cmpq\t%rax, 2674824(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 38269,
+      "op": 3380533,
+      "sym": "_op_12319589",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_11241 != next_value)) {",
+      "pc": "0x53907fe",
+      "asm": "cmpq\t%rax, 2675112(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 66846,
+      "op": 2080921,
+      "sym": "_op_8232178",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_1274 != next_value)) {",
+      "pc": "0x539d69c",
+      "asm": "jne\t462380",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 66921,
+      "op": 2081125,
+      "sym": "_op_8232448",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_1307 != next_value)) {",
+      "pc": "0x539d75b",
+      "asm": "cmpq\t%rcx, 2675432(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 66971,
+      "op": 2081261,
+      "sym": "_op_8232628",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_1325 != next_value)) {",
+      "pc": "0x539d7df",
+      "asm": "cmpq\t%rcx, 2675464(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 122299,
+      "op": 1116855,
+      "sym": "_op_2448788",
+      "text": "if (unlikely(state_logic_storage_.u8_slots_23290 != next_value)) {",
+      "pc": "0x53b52df",
+      "asm": "jne\t487273",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 122310,
+      "op": 1116862,
+      "sym": "_op_2448832",
+      "text": "if (unlikely(state_logic_storage_.u8_slots_23291 != next_value)) {",
+      "pc": "0x53b52eb",
+      "asm": "cmpb\t%cl, 2649218(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 122321,
+      "op": 1116869,
+      "sym": "_op_2448876",
+      "text": "if (unlikely(state_logic_storage_.u8_slots_23292 != next_value)) {",
+      "pc": "0x53b52fd",
+      "asm": "cmpb\t%cl, 2649219(%rdi)",
+      "branch": 1,
+      "miss": 1
+    },
+    {
+      "shard": "grhsim_SimTop_sched_94.cpp",
+      "line": 247562,
+      "op": 3361884,
+      "sym": "_op_12271882",
+      "text": "if (unlikely(state_logic_storage_.u64_slots_11146 != next_value)) {",
+      "pc": "0x53e5fff",
+      "asm": "cmpq\t%rax, 2676424(%rdi)",
+      "branch": 1,
+      "miss": 1
+    }
+  ],
+  "selections": {
+    "direct": {
+      "SPARSE": 149036,
+      "modified": 17679,
+      "visits": 831904298,
+      "changes": 13614768,
+      "EAGER": 17187
+    },
+    "temporal": {
+      "SPARSE": 131357,
+      "modified": 3909,
+      "visits": 76396005,
+      "changes": 72870493,
+      "flips": 1610487,
+      "misses": 1360180,
+      "EAGER": 13278
+    }
+  },
+  "clusters": {
+    "clusters-0-in1": {
+      "0": {
+        "group": 557610,
+        "source_ops": 80,
+        "readers": [
+          [
+            623548,
+            5
+          ],
+          [
+            623547,
+            1
+          ]
+        ],
+        "successors": 2,
+        "edges": [
+          [
+            623547,
+            4,
+            [
+              968274
+            ]
+          ],
+          [
+            623548,
+            75,
+            [
+              968274
+            ]
+          ]
+        ]
+      },
+      "1": {
+        "group": 392515,
+        "source_ops": 1,
+        "readers": [
+          [
+            623548,
+            5
+          ],
+          [
+            623547,
+            1
+          ]
+        ],
+        "successors": 2,
+        "edges": [
+          [
+            623547,
+            4,
+            [
+              968275
+            ]
+          ],
+          [
+            623548,
+            75,
+            [
+              968275
+            ]
+          ]
+        ]
+      },
+      "2": {
+        "group": 392516,
+        "source_ops": 1,
+        "readers": [
+          [
+            623548,
+            5
+          ],
+          [
+            623547,
+            1
+          ]
+        ],
+        "successors": 2,
+        "edges": [
+          [
+            623547,
+            4,
+            [
+              968276
+            ]
+          ],
+          [
+            623548,
+            75,
+            [
+              968276
+            ]
+          ]
+        ]
+      },
+      "3": {
+        "group": 392517,
+        "source_ops": 1,
+        "readers": [
+          [
+            623548,
+            5
+          ],
+          [
+            623547,
+            1
+          ]
+        ],
+        "successors": 2,
+        "edges": [
+          [
+            623547,
+            4,
+            [
+              968277
+            ]
+          ],
+          [
+            623548,
+            75,
+            [
+              968277
+            ]
+          ]
+        ]
+      },
+      "4": {
+        "group": 392518,
+        "source_ops": 1,
+        "readers": [
+          [
+            623548,
+            5
+          ],
+          [
+            623547,
+            1
+          ]
+        ],
+        "successors": 2,
+        "edges": [
+          [
+            623547,
+            4,
+            [
+              968278
+            ]
+          ],
+          [
+            623548,
+            75,
+            [
+              968278
+            ]
+          ]
+        ]
+      },
+      "5": {
+        "group": 392519,
+        "source_ops": 1,
+        "readers": [
+          [
+            623548,
+            5
+          ],
+          [
+            623547,
+            1
+          ]
+        ],
+        "successors": 2,
+        "edges": [
+          [
+            623547,
+            4,
+            [
+              968279
+            ]
+          ],
+          [
+            623548,
+            75,
+            [
+              968279
+            ]
+          ]
+        ]
+      },
+      "6": {
+        "group": 392520,
+        "source_ops": 1,
+        "readers": [
+          [
+            623548,
+            5
+          ],
+          [
+            623547,
+            1
+          ]
+        ],
+        "successors": 2,
+        "edges": [
+          [
+            623547,
+            4,
+            [
+              968280
+            ]
+          ],
+          [
+            623548,
+            75,
+            [
+              968280
+            ]
+          ]
+        ]
+      },
+      "7": {
+        "group": 392521,
+        "source_ops": 1,
+        "readers": [
+          [
+            623548,
+            5
+          ],
+          [
+            623547,
+            1
+          ]
+        ],
+        "successors": 2,
+        "edges": [
+          [
+            623547,
+            4,
+            [
+              968281
+            ]
+          ],
+          [
+            623548,
+            75,
+            [
+              968281
+            ]
+          ]
+        ]
+      }
+    },
+    "clusters-1-in1": {
+      "0": {
+        "group": 381038,
+        "source_ops": 80,
+        "readers": [
+          [
+            386429,
+            7
+          ],
+          [
+            386429,
+            7
+          ]
+        ],
+        "successors": 1,
+        "edges": [
+          [
+            386429,
+            80,
+            [
+              968274
+            ]
+          ]
+        ]
+      },
+      "1": {
+        "group": 253485,
+        "source_ops": 5,
+        "readers": [
+          [
+            386429,
+            7
+          ],
+          [
+            386429,
+            7
+          ]
+        ],
+        "successors": 3,
+        "edges": [
+          [
+            381038,
+            80,
+            [
+              937549
+            ]
+          ],
+          [
+            381039,
+            64,
+            [
+              937549
+            ]
+          ],
+          [
+            386429,
+            80,
+            [
+              968275
+            ]
+          ]
+        ]
+      },
+      "2": {
+        "group": 253484,
+        "source_ops": 5,
+        "readers": [
+          [
+            386429,
+            7
+          ],
+          [
+            386429,
+            7
+          ]
+        ],
+        "successors": 3,
+        "edges": [
+          [
+            381038,
+            80,
+            [
+              937551
+            ]
+          ],
+          [
+            381039,
+            64,
+            [
+              937551
+            ]
+          ],
+          [
+            386429,
+            80,
+            [
+              968276
+            ]
+          ]
+        ]
+      },
+      "3": {
+        "group": 253483,
+        "source_ops": 5,
+        "readers": [
+          [
+            386429,
+            7
+          ],
+          [
+            386429,
+            7
+          ]
+        ],
+        "successors": 3,
+        "edges": [
+          [
+            381038,
+            80,
+            [
+              937553
+            ]
+          ],
+          [
+            381039,
+            64,
+            [
+              937553
+            ]
+          ],
+          [
+            386429,
+            80,
+            [
+              968277
+            ]
+          ]
+        ]
+      },
+      "4": {
+        "group": 226545,
+        "source_ops": 5,
+        "readers": [
+          [
+            386429,
+            7
+          ],
+          [
+            386429,
+            7
+          ]
+        ],
+        "successors": 3,
+        "edges": [
+          [
+            381038,
+            80,
+            [
+              937555
+            ]
+          ],
+          [
+            381039,
+            64,
+            [
+              937555
+            ]
+          ],
+          [
+            386429,
+            80,
+            [
+              968278
+            ]
+          ]
+        ]
+      },
+      "5": {
+        "group": 226544,
+        "source_ops": 5,
+        "readers": [
+          [
+            386429,
+            7
+          ],
+          [
+            386429,
+            7
+          ]
+        ],
+        "successors": 3,
+        "edges": [
+          [
+            381038,
+            80,
+            [
+              937557
+            ]
+          ],
+          [
+            381039,
+            64,
+            [
+              937557
+            ]
+          ],
+          [
+            386429,
+            80,
+            [
+              968279
+            ]
+          ]
+        ]
+      },
+      "6": {
+        "group": 226543,
+        "source_ops": 5,
+        "readers": [
+          [
+            386429,
+            7
+          ],
+          [
+            386429,
+            7
+          ]
+        ],
+        "successors": 3,
+        "edges": [
+          [
+            381038,
+            80,
+            [
+              937559
+            ]
+          ],
+          [
+            381039,
+            64,
+            [
+              937559
+            ]
+          ],
+          [
+            386429,
+            80,
+            [
+              968280
+            ]
+          ]
+        ]
+      },
+      "7": {
+        "group": 226542,
+        "source_ops": 5,
+        "readers": [
+          [
+            386429,
+            7
+          ],
+          [
+            386429,
+            7
+          ]
+        ],
+        "successors": 3,
+        "edges": [
+          [
+            381038,
+            80,
+            [
+              937561
+            ]
+          ],
+          [
+            381039,
+            64,
+            [
+              937561
+            ]
+          ],
+          [
+            386429,
+            80,
+            [
+              968281
+            ]
+          ]
+        ]
+      }
+    },
+    "clusters-1-siblings": {
+      "0": {
+        "group": 334169,
+        "source_ops": 80,
+        "readers": [
+          [
+            339286,
+            7
+          ],
+          [
+            339286,
+            7
+          ]
+        ],
+        "successors": 1,
+        "edges": [
+          [
+            339286,
+            80,
+            [
+              968274
+            ]
+          ]
+        ]
+      },
+      "1": {
+        "group": 246439,
+        "source_ops": 160,
+        "readers": [
+          [
+            339286,
+            7
+          ],
+          [
+            339286,
+            7
+          ]
+        ],
+        "successors": 33,
+        "edges": [
+          [
+            334167,
+            80,
+            [
+              937497,
+              937499,
+              937501
+            ]
+          ],
+          [
+            334168,
+            80,
+            [
+              937523,
+              937525,
+              937527
+            ]
+          ],
+          [
+            334169,
+            80,
+            [
+              937549,
+              937551,
+              937553
+            ]
+          ]
+        ]
+      },
+      "2": {
+        "group": 246439,
+        "source_ops": 160,
+        "readers": [
+          [
+            339286,
+            7
+          ],
+          [
+            339286,
+            7
+          ]
+        ],
+        "successors": 33,
+        "edges": [
+          [
+            334167,
+            80,
+            [
+              937497,
+              937499,
+              937501
+            ]
+          ],
+          [
+            334168,
+            80,
+            [
+              937523,
+              937525,
+              937527
+            ]
+          ],
+          [
+            334169,
+            80,
+            [
+              937549,
+              937551,
+              937553
+            ]
+          ]
+        ]
+      },
+      "3": {
+        "group": 246439,
+        "source_ops": 160,
+        "readers": [
+          [
+            339286,
+            7
+          ],
+          [
+            339286,
+            7
+          ]
+        ],
+        "successors": 33,
+        "edges": [
+          [
+            334167,
+            80,
+            [
+              937497,
+              937499,
+              937501
+            ]
+          ],
+          [
+            334168,
+            80,
+            [
+              937523,
+              937525,
+              937527
+            ]
+          ],
+          [
+            334169,
+            80,
+            [
+              937549,
+              937551,
+              937553
+            ]
+          ]
+        ]
+      },
+      "4": {
+        "group": 225210,
+        "source_ops": 160,
+        "readers": [
+          [
+            339286,
+            7
+          ],
+          [
+            339286,
+            7
+          ]
+        ],
+        "successors": 27,
+        "edges": [
+          [
+            334164,
+            80,
+            [
+              937425,
+              937427,
+              937429
+            ]
+          ],
+          [
+            334165,
+            80,
+            [
+              937451,
+              937453,
+              937455,
+              937457
+            ]
+          ],
+          [
+            334166,
+            80,
+            [
+              937477,
+              937479,
+              937481,
+              937483
+            ]
+          ]
+        ]
+      },
+      "5": {
+        "group": 225210,
+        "source_ops": 160,
+        "readers": [
+          [
+            339286,
+            7
+          ],
+          [
+            339286,
+            7
+          ]
+        ],
+        "successors": 27,
+        "edges": [
+          [
+            334164,
+            80,
+            [
+              937425,
+              937427,
+              937429
+            ]
+          ],
+          [
+            334165,
+            80,
+            [
+              937451,
+              937453,
+              937455,
+              937457
+            ]
+          ],
+          [
+            334166,
+            80,
+            [
+              937477,
+              937479,
+              937481,
+              937483
+            ]
+          ]
+        ]
+      },
+      "6": {
+        "group": 225210,
+        "source_ops": 160,
+        "readers": [
+          [
+            339286,
+            7
+          ],
+          [
+            339286,
+            7
+          ]
+        ],
+        "successors": 27,
+        "edges": [
+          [
+            334164,
+            80,
+            [
+              937425,
+              937427,
+              937429
+            ]
+          ],
+          [
+            334165,
+            80,
+            [
+              937451,
+              937453,
+              937455,
+              937457
+            ]
+          ],
+          [
+            334166,
+            80,
+            [
+              937477,
+              937479,
+              937481,
+              937483
+            ]
+          ]
+        ]
+      },
+      "7": {
+        "group": 225210,
+        "source_ops": 160,
+        "readers": [
+          [
+            339286,
+            7
+          ],
+          [
+            339286,
+            7
+          ]
+        ],
+        "successors": 27,
+        "edges": [
+          [
+            334164,
+            80,
+            [
+              937425,
+              937427,
+              937429
+            ]
+          ],
+          [
+            334165,
+            80,
+            [
+              937451,
+              937453,
+              937455,
+              937457
+            ]
+          ],
+          [
+            334166,
+            80,
+            [
+              937477,
+              937479,
+              937481,
+              937483
+            ]
+          ]
+        ]
+      }
+    },
+    "clusters-2-in1": {
+      "0": {
+        "group": 335435,
+        "source_ops": 160,
+        "readers": [
+          [
+            335435,
+            18
+          ],
+          [
+            335435,
+            18
+          ]
+        ],
+        "successors": 0,
+        "edges": []
+      },
+      "1": {
+        "group": 245041,
+        "source_ops": 160,
+        "readers": [
+          [
+            335435,
+            18
+          ],
+          [
+            335435,
+            18
+          ]
+        ],
+        "successors": 22,
+        "edges": [
+          [
+            335433,
+            160,
+            [
+              937497,
+              937499,
+              937501,
+              968195
+            ]
+          ],
+          [
+            335434,
+            160,
+            [
+              937523,
+              937525,
+              937527,
+              968235
+            ]
+          ],
+          [
+            335435,
+            160,
+            [
+              937549,
+              937551,
+              937553,
+              968275
+            ]
+          ]
+        ]
+      },
+      "2": {
+        "group": 245041,
+        "source_ops": 160,
+        "readers": [
+          [
+            335435,
+            18
+          ],
+          [
+            335435,
+            18
+          ]
+        ],
+        "successors": 22,
+        "edges": [
+          [
+            335433,
+            160,
+            [
+              937497,
+              937499,
+              937501,
+              968195
+            ]
+          ],
+          [
+            335434,
+            160,
+            [
+              937523,
+              937525,
+              937527,
+              968235
+            ]
+          ],
+          [
+            335435,
+            160,
+            [
+              937549,
+              937551,
+              937553,
+              968275
+            ]
+          ]
+        ]
+      },
+      "3": {
+        "group": 245041,
+        "source_ops": 160,
+        "readers": [
+          [
+            335435,
+            18
+          ],
+          [
+            335435,
+            18
+          ]
+        ],
+        "successors": 22,
+        "edges": [
+          [
+            335433,
+            160,
+            [
+              937497,
+              937499,
+              937501,
+              968195
+            ]
+          ],
+          [
+            335434,
+            160,
+            [
+              937523,
+              937525,
+              937527,
+              968235
+            ]
+          ],
+          [
+            335435,
+            160,
+            [
+              937549,
+              937551,
+              937553,
+              968275
+            ]
+          ]
+        ]
+      },
+      "4": {
+        "group": 224202,
+        "source_ops": 160,
+        "readers": [
+          [
+            335435,
+            18
+          ],
+          [
+            335435,
+            18
+          ]
+        ],
+        "successors": 18,
+        "edges": [
+          [
+            335430,
+            160,
+            [
+              937425,
+              937427,
+              937429,
+              968078
+            ]
+          ],
+          [
+            335431,
+            160,
+            [
+              937451,
+              937453,
+              937455,
+              937457
+            ]
+          ],
+          [
+            335432,
+            160,
+            [
+              937477,
+              937479,
+              937481,
+              937483
+            ]
+          ]
+        ]
+      },
+      "5": {
+        "group": 224202,
+        "source_ops": 160,
+        "readers": [
+          [
+            335435,
+            18
+          ],
+          [
+            335435,
+            18
+          ]
+        ],
+        "successors": 18,
+        "edges": [
+          [
+            335430,
+            160,
+            [
+              937425,
+              937427,
+              937429,
+              968078
+            ]
+          ],
+          [
+            335431,
+            160,
+            [
+              937451,
+              937453,
+              937455,
+              937457
+            ]
+          ],
+          [
+            335432,
+            160,
+            [
+              937477,
+              937479,
+              937481,
+              937483
+            ]
+          ]
+        ]
+      },
+      "6": {
+        "group": 224202,
+        "source_ops": 160,
+        "readers": [
+          [
+            335435,
+            18
+          ],
+          [
+            335435,
+            18
+          ]
+        ],
+        "successors": 18,
+        "edges": [
+          [
+            335430,
+            160,
+            [
+              937425,
+              937427,
+              937429,
+              968078
+            ]
+          ],
+          [
+            335431,
+            160,
+            [
+              937451,
+              937453,
+              937455,
+              937457
+            ]
+          ],
+          [
+            335432,
+            160,
+            [
+              937477,
+              937479,
+              937481,
+              937483
+            ]
+          ]
+        ]
+      },
+      "7": {
+        "group": 224202,
+        "source_ops": 160,
+        "readers": [
+          [
+            335435,
+            18
+          ],
+          [
+            335435,
+            18
+          ]
+        ],
+        "successors": 18,
+        "edges": [
+          [
+            335430,
+            160,
+            [
+              937425,
+              937427,
+              937429,
+              968078
+            ]
+          ],
+          [
+            335431,
+            160,
+            [
+              937451,
+              937453,
+              937455,
+              937457
+            ]
+          ],
+          [
+            335432,
+            160,
+            [
+              937477,
+              937479,
+              937481,
+              937483
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "duplicated_graph_results": {
+    "coremark": {
+      "kSliceStatic": {
+        "sites": 68,
+        "visits": 1481448,
+        "changes": 682466
+      },
+      "kOr": {
+        "sites": 383,
+        "visits": 1529186,
+        "changes": 74327
+      },
+      "kAnd": {
+        "sites": 3643,
+        "visits": 158024599,
+        "changes": 909822
+      },
+      "kConcat": {
+        "sites": 17,
+        "visits": 642036,
+        "changes": 299994
+      },
+      "kXor": {
+        "sites": 1290,
+        "visits": 4655987,
+        "changes": 36046
+      },
+      "kMux": {
+        "sites": 11,
+        "visits": 349725,
+        "changes": 19176
+      },
+      "kNot": {
+        "sites": 136,
+        "visits": 5059117,
+        "changes": 4939689
+      },
+      "kEq": {
+        "sites": 126,
+        "visits": 126,
+        "changes": 126
+      },
+      "kAdd": {
+        "sites": 3,
+        "visits": 620,
+        "changes": 459
+      }
+    },
+    "microbench": {
+      "kSliceStatic": {
+        "sites": 68,
+        "visits": 1221859,
+        "changes": 510566
+      },
+      "kOr": {
+        "sites": 383,
+        "visits": 1840568,
+        "changes": 34723
+      },
+      "kAnd": {
+        "sites": 3643,
+        "visits": 126966999,
+        "changes": 725371
+      },
+      "kConcat": {
+        "sites": 17,
+        "visits": 605920,
+        "changes": 241724
+      },
+      "kXor": {
+        "sites": 1290,
+        "visits": 4504454,
+        "changes": 22518
+      },
+      "kMux": {
+        "sites": 11,
+        "visits": 341534,
+        "changes": 15886
+      },
+      "kNot": {
+        "sites": 136,
+        "visits": 4636107,
+        "changes": 4561960
+      },
+      "kEq": {
+        "sites": 126,
+        "visits": 126,
+        "changes": 126
+      },
+      "kAdd": {
+        "sites": 3,
+        "visits": 2774,
+        "changes": 2339
+      }
+    }
+  },
+  "rob_pairs": {
+    "same_group_pairs": 1051,
+    "probed": 1105,
+    "entry67": [
+      {
+        "lane": 4,
+        "entry": 67,
+        "canonical": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 13683,
+          "end": 13698,
+          "group": 14110,
+          "expr": "value_bool_slots_[199217] & grhsim_v937554_0",
+          "guards": [
+            "grhsim_any_changed_14110_4",
+            "grhsim_any_changed_14110_8"
+          ],
+          "slot": 386491,
+          "id": 937555
+        },
+        "duplicate": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 14208,
+          "end": 14222,
+          "group": 14110,
+          "expr": "value_bool_slots_[199217] & grhsim_v937554_0",
+          "guards": [
+            "grhsim_any_changed_14110_4"
+          ],
+          "slot": 386506,
+          "id": 968278
+        }
+      },
+      {
+        "lane": 5,
+        "entry": 67,
+        "canonical": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 13700,
+          "end": 13715,
+          "group": 14110,
+          "expr": "value_bool_slots_[344785] & grhsim_v937556_0",
+          "guards": [
+            "grhsim_any_changed_14110_4",
+            "grhsim_any_changed_14110_8"
+          ],
+          "slot": 386492,
+          "id": 937557
+        },
+        "duplicate": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 14224,
+          "end": 14238,
+          "group": 14110,
+          "expr": "value_bool_slots_[344785] & grhsim_v937556_0",
+          "guards": [
+            "grhsim_any_changed_14110_4"
+          ],
+          "slot": 386507,
+          "id": 968279
+        }
+      },
+      {
+        "lane": 6,
+        "entry": 67,
+        "canonical": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 13717,
+          "end": 13732,
+          "group": 14110,
+          "expr": "value_bool_slots_[165872] & grhsim_v937558_0",
+          "guards": [
+            "grhsim_any_changed_14110_4",
+            "grhsim_any_changed_14110_8"
+          ],
+          "slot": 386493,
+          "id": 937559
+        },
+        "duplicate": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 14240,
+          "end": 14254,
+          "group": 14110,
+          "expr": "value_bool_slots_[165872] & grhsim_v937558_0",
+          "guards": [
+            "grhsim_any_changed_14110_4"
+          ],
+          "slot": 386508,
+          "id": 968280
+        }
+      },
+      {
+        "lane": 7,
+        "entry": 67,
+        "canonical": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 13734,
+          "end": 13749,
+          "group": 14110,
+          "expr": "value_bool_slots_[166006] & grhsim_v937560_0",
+          "guards": [
+            "grhsim_any_changed_14110_4",
+            "grhsim_any_changed_14110_8"
+          ],
+          "slot": 386494,
+          "id": 937561
+        },
+        "duplicate": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 14256,
+          "end": 14270,
+          "group": 14110,
+          "expr": "value_bool_slots_[166006] & grhsim_v937560_0",
+          "guards": [
+            "grhsim_any_changed_14110_4"
+          ],
+          "slot": 386509,
+          "id": 968281
+        }
+      },
+      {
+        "lane": 1,
+        "entry": 67,
+        "canonical": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 159031,
+          "end": 159046,
+          "group": 19212,
+          "expr": "value_bool_slots_[344786] & grhsim_v937548_0",
+          "guards": [
+            "grhsim_any_changed_19212_10",
+            "grhsim_any_changed_19212_2"
+          ],
+          "slot": 386488,
+          "id": 937549
+        },
+        "duplicate": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 159569,
+          "end": 159583,
+          "group": 19212,
+          "expr": "value_bool_slots_[344786] & grhsim_v937548_0",
+          "guards": [
+            "grhsim_any_changed_19212_2"
+          ],
+          "slot": 386503,
+          "id": 968275
+        }
+      },
+      {
+        "lane": 2,
+        "entry": 67,
+        "canonical": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 159048,
+          "end": 159063,
+          "group": 19212,
+          "expr": "value_bool_slots_[344787] & grhsim_v937550_0",
+          "guards": [
+            "grhsim_any_changed_19212_10",
+            "grhsim_any_changed_19212_2"
+          ],
+          "slot": 386489,
+          "id": 937551
+        },
+        "duplicate": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 159585,
+          "end": 159599,
+          "group": 19212,
+          "expr": "value_bool_slots_[344787] & grhsim_v937550_0",
+          "guards": [
+            "grhsim_any_changed_19212_2"
+          ],
+          "slot": 386504,
+          "id": 968276
+        }
+      },
+      {
+        "lane": 3,
+        "entry": 67,
+        "canonical": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 159065,
+          "end": 159080,
+          "group": 19212,
+          "expr": "value_bool_slots_[193118] & grhsim_v937552_0",
+          "guards": [
+            "grhsim_any_changed_19212_10",
+            "grhsim_any_changed_19212_2"
+          ],
+          "slot": 386490,
+          "id": 937553
+        },
+        "duplicate": {
+          "path": "grhsim_SimTop_sched_21.cpp",
+          "start": 159601,
+          "end": 159615,
+          "group": 19212,
+          "expr": "value_bool_slots_[193118] & grhsim_v937552_0",
+          "guards": [
+            "grhsim_any_changed_19212_2"
+          ],
+          "slot": 386505,
+          "id": 968277
+        }
+      }
+    ]
+  },
+  "instructions": {
+    "both05": {
+      "shard-15": {
+        "tag": "both05",
+        "binary": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-site-pgo-v1/both05/build/emu",
+        "function": "GrhSIM_SimTop::eval_compute_batch_15()",
+        "bytes": 1834936,
+        "lines": [
+          152978,
+          152978
+        ],
+        "instructions": [
+          {
+            "pc": "0x10feb09",
+            "line": 152978,
+            "asm": "orb\t%r14b, %r8b"
+          },
+          {
+            "pc": "0x10feb0c",
+            "line": 152978,
+            "asm": "movzbl\t435594(%rcx), %edi"
+          },
+          {
+            "pc": "0x10feb13",
+            "line": 152978,
+            "asm": "orb\t435583(%rcx), %dil"
+          },
+          {
+            "pc": "0x10feb1a",
+            "line": 152978,
+            "asm": "orb\t435587(%rcx), %dil"
+          },
+          {
+            "pc": "0x10feb21",
+            "line": 152978,
+            "asm": "orb\t435586(%rcx), %dil"
+          },
+          {
+            "pc": "0x10feb28",
+            "line": 152978,
+            "asm": "orb\t%dil, %r8b"
+          },
+          {
+            "pc": "0x10feb2b",
+            "line": 152978,
+            "asm": "orb\t208(%rsp), %r8b"
+          },
+          {
+            "pc": "0x10feb33",
+            "line": 152978,
+            "asm": "setne\t%r14b"
+          },
+          {
+            "pc": "0x10feb37",
+            "line": 152978,
+            "asm": "orb\t435599(%rcx), %r14b"
+          },
+          {
+            "pc": "0x10feb3e",
+            "line": 152978,
+            "asm": "orb\t176(%rsp), %r14b"
+          }
+        ]
+      },
+      "shard-54": {
+        "tag": "both05",
+        "binary": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-site-pgo-v1/both05/build/emu",
+        "function": "GrhSIM_SimTop::eval_compute_batch_54()",
+        "bytes": 1527026,
+        "lines": [
+          122184,
+          122213
+        ],
+        "instructions": [
+          {
+            "pc": "0x3f79e98",
+            "line": 122190,
+            "asm": "movw\t$33, %dx"
+          },
+          {
+            "pc": "0x3f79eac",
+            "line": 122190,
+            "asm": "kmovd\t%edx, %k2"
+          },
+          {
+            "pc": "0x3f79eb8",
+            "line": 122190,
+            "asm": "vmovdqu8\t719112(%rdi), %xmm2 {%k2} {z}"
+          },
+          {
+            "pc": "0x3f79ec2",
+            "line": 122186,
+            "asm": "movzwl\t719110(%rdi), %ecx"
+          },
+          {
+            "pc": "0x3f79ed0",
+            "line": 122184,
+            "asm": "vpbroadcastw\t853370(%rdi), %xmm0"
+          },
+          {
+            "pc": "0x3f79ed9",
+            "line": 122184,
+            "asm": "movl\t853372(%rdi), %ebp"
+          },
+          {
+            "pc": "0x3f79edf",
+            "line": 122184,
+            "asm": "movq\t853368(%rdi), %r14"
+          },
+          {
+            "pc": "0x3f79ee6",
+            "line": 122184,
+            "asm": "movl\t%ebp, %r10d"
+          },
+          {
+            "pc": "0x3f79ee9",
+            "line": 122184,
+            "asm": "movb\t%bpl, 208(%rsp)"
+          },
+          {
+            "pc": "0x3f79f00",
+            "line": 122184,
+            "asm": "vmovd\t%xmm0, %r15d"
+          },
+          {
+            "pc": "0x3f79f0f",
+            "line": 122190,
+            "asm": "vmovdqu8\t719126(%rdi), %xmm2 {%k2} {z}"
+          },
+          {
+            "pc": "0x3f79f29",
+            "line": 122188,
+            "asm": "movzwl\t719118(%rdi), %ecx"
+          },
+          {
+            "pc": "0x3f79f6b",
+            "line": 122186,
+            "asm": "movl\t719124(%rdi), %ecx"
+          },
+          {
+            "pc": "0x3f79f80",
+            "line": 122190,
+            "asm": "vmovd\t%xmm2, %edx"
+          },
+          {
+            "pc": "0x3f79f99",
+            "line": 122186,
+            "asm": "movzwl\t719089(%rdi), %ecx"
+          },
+          {
+            "pc": "0x3f79fb0",
+            "line": 122188,
+            "asm": "movzwl\t719097(%rdi), %edx"
+          },
+          {
+            "pc": "0x3f79fd3",
+            "line": 122190,
+            "asm": "vmovdqu8\t719091(%rdi), %xmm1 {%k2} {z}"
+          },
+          {
+            "pc": "0x3f7a2b0",
+            "line": 122200,
+            "asm": "movl\t719132(%r8), %ebx"
+          },
+          {
+            "pc": "0x3f7a2b7",
+            "line": 122200,
+            "asm": "movzbl\t719136(%r8), %ecx"
+          },
+          {
+            "pc": "0x3f7a2bf",
+            "line": 122200,
+            "asm": "movzbl\t718141(%r8), %edi"
+          },
+          {
+            "pc": "0x3f7a2c7",
+            "line": 122196,
+            "asm": "movq\t927144(%r8), %rdx"
+          },
+          {
+            "pc": "0x3f7a2ce",
+            "line": 122196,
+            "asm": "leaq\t719140(%r8), %r10"
+          },
+          {
+            "pc": "0x3f7a313",
+            "line": 122202,
+            "asm": "movw\t$33, %bx"
+          },
+          {
+            "pc": "0x3f7a317",
+            "line": 122202,
+            "asm": "movq\t8(%rsp), %r9"
+          },
+          {
+            "pc": "0x3f7a31c",
+            "line": 122202,
+            "asm": "kmovd\t%ebx, %k1"
+          },
+          {
+            "pc": "0x3f7a320",
+            "line": 122202,
+            "asm": "vmovdqu8\t(%r10), %xmm2 {%k1} {z}"
+          },
+          {
+            "pc": "0x3f7a326",
+            "line": 122198,
+            "asm": "movzwl\t719138(%r9), %ebx"
+          },
+          {
+            "pc": "0x3f7a32e",
+            "line": 122198,
+            "asm": "movzbl\t719143(%r9), %esi"
+          },
+          {
+            "pc": "0x3f7a336",
+            "line": 122202,
+            "asm": "vpextrb\t$5, %xmm2, %r10d"
+          },
+          {
+            "pc": "0x3f7a33c",
+            "line": 122202,
+            "asm": "vmovd\t%xmm2, %r8d"
+          },
+          {
+            "pc": "0x3f7a3aa",
+            "line": 122200,
+            "asm": "movzwl\t719146(%r9), %r8d"
+          },
+          {
+            "pc": "0x3f7a3b2",
+            "line": 122200,
+            "asm": "movzbl\t719150(%r9), %ecx"
+          },
+          {
+            "pc": "0x3f7a3ba",
+            "line": 122200,
+            "asm": "movzbl\t718163(%r9), %r10d"
+          },
+          {
+            "pc": "0x3f7a3c2",
+            "line": 122200,
+            "asm": "leaq\t719154(%r9), %rbx"
+          },
+          {
+            "pc": "0x3f7a40d",
+            "line": 122202,
+            "asm": "movw\t$33, %di"
+          },
+          {
+            "pc": "0x3f7a411",
+            "line": 122202,
+            "asm": "kmovw\t%k3, 400(%rsp)"
+          },
+          {
+            "pc": "0x3f7a41a",
+            "line": 122202,
+            "asm": "kmovd\t%edi, %k2"
+          },
+          {
+            "pc": "0x3f7a41e",
+            "line": 122202,
+            "asm": "vmovdqu8\t(%rbx), %xmm3 {%k2} {z}"
+          },
+          {
+            "pc": "0x3f7a424",
+            "line": 122198,
+            "asm": "vmovdqa\t719152(%r15), %xmm2"
+          },
+          {
+            "pc": "0x3f7a42d",
+            "line": 122198,
+            "asm": "movzbl\t719157(%r15), %esi"
+          },
+          {
+            "pc": "0x3f7a435",
+            "line": 122202,
+            "asm": "vmovd\t%xmm3, %r8d"
+          },
+          {
+            "pc": "0x3f7a43a",
+            "line": 122202,
+            "asm": "vpextrb\t$5, %xmm3, %edi"
+          },
+          {
+            "pc": "0x3f7a4a9",
+            "line": 122200,
+            "asm": "movl\t719160(%r9), %r8d"
+          },
+          {
+            "pc": "0x3f7a4b0",
+            "line": 122200,
+            "asm": "movzbl\t719164(%r9), %ecx"
+          },
+          {
+            "pc": "0x3f7a4b8",
+            "line": 122200,
+            "asm": "movzbl\t718185(%r9), %esi"
+          },
+          {
+            "pc": "0x3f7a4c0",
+            "line": 122200,
+            "asm": "leaq\t719168(%r9), %rdi"
+          },
+          {
+            "pc": "0x3f7a50e",
+            "line": 122202,
+            "asm": "movw\t$17, %r9w"
+          },
+          {
+            "pc": "0x3f7a51c",
+            "line": 122202,
+            "asm": "kmovd\t%r9d, %k4"
+          },
+          {
+            "pc": "0x3f7a521",
+            "line": 122202,
+            "asm": "movl\t%r14d, %r9d"
+          },
+          {
+            "pc": "0x3f7a524",
+            "line": 122202,
+            "asm": "vmovdqu8\t(%rdi), %xmm2 {%k4} {z}"
+          },
+          {
+            "pc": "0x3f7a52a",
+            "line": 122198,
+            "asm": "movzwl\t719166(%r8), %r8d"
+          },
+          {
+            "pc": "0x3f7a53c",
+            "line": 122202,
+            "asm": "vmovd\t%xmm2, %edi"
+          },
+          {
+            "pc": "0x3f7a829",
+            "line": 122212,
+            "asm": "movb\t%r10b, 842103(%rdi)"
+          }
+        ]
+      },
+      "shard-81": {
+        "tag": "both05",
+        "binary": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-site-pgo-v1/both05/build/emu",
+        "function": "GrhSIM_SimTop::eval_commit_batch_81()",
+        "bytes": 359170,
+        "lines": [
+          3919,
+          3939
+        ],
+        "instructions": [
+          {
+            "pc": "0x4c61746",
+            "line": 3919,
+            "asm": "cmpb\t$1, 781580(%rdi)"
+          },
+          {
+            "pc": "0x4c6174d",
+            "line": 3919,
+            "asm": "je\t77889"
+          },
+          {
+            "pc": "0x4c74794",
+            "line": 3924,
+            "asm": "movb\t842103(%rdi), %al"
+          },
+          {
+            "pc": "0x4c7479a",
+            "line": 3925,
+            "asm": "cmpb\t%al, 2523988(%rdi)"
+          },
+          {
+            "pc": "0x4c747a0",
+            "line": 3934,
+            "asm": "jne\t64201"
+          },
+          {
+            "pc": "0x4c8426f",
+            "line": 3935,
+            "asm": "movb\t%al, 2523988(%rdi)"
+          },
+          {
+            "pc": "0x4c84275",
+            "line": 3936,
+            "asm": "orb\t$1, 6735(%rdi)"
+          },
+          {
+            "pc": "0x4c8427c",
+            "line": 3936,
+            "asm": "jmp\t-64219"
+          }
+        ]
+      }
+    },
+    "rob": {
+      "shard-15": {
+        "tag": "rob",
+        "binary": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/rob/build/emu",
+        "function": "GrhSIM_SimTop::eval_compute_batch_15()",
+        "bytes": 1811787,
+        "lines": [
+          152979,
+          152979
+        ],
+        "instructions": [
+          {
+            "pc": "0x10dff28",
+            "line": 152979,
+            "asm": "orq\t%rsi, %rdi"
+          },
+          {
+            "pc": "0x10dff32",
+            "line": 152979,
+            "asm": "setne\t%sil"
+          },
+          {
+            "pc": "0x10dff3d",
+            "line": 152979,
+            "asm": "sete\t%r13b"
+          }
+        ]
+      }
+    },
+    "ftq": {
+      "shard-54": {
+        "tag": "ftq",
+        "binary": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/ftq/build/emu",
+        "function": "GrhSIM_SimTop::eval_compute_batch_54()",
+        "bytes": 707363,
+        "lines": [
+          119776,
+          119805
+        ],
+        "instructions": []
+      },
+      "shard-81": {
+        "tag": "ftq",
+        "binary": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/ftq/build/emu",
+        "function": "GrhSIM_SimTop::eval_commit_batch_81()",
+        "bytes": 1035267,
+        "lines": [
+          3919,
+          3939
+        ],
+        "instructions": [
+          {
+            "pc": "0x4b97f20",
+            "line": 3919,
+            "asm": "cmpb\t$1, 781580(%rdi)"
+          },
+          {
+            "pc": "0x4b97f27",
+            "line": 3919,
+            "asm": "je\t224082"
+          },
+          {
+            "pc": "0x4bcea7f",
+            "line": 3924,
+            "asm": "movb\t719170(%rdi), %al"
+          },
+          {
+            "pc": "0x4bcea85",
+            "line": 3924,
+            "asm": "movb\t719115(%rdi), %r9b"
+          },
+          {
+            "pc": "0x4bcea8c",
+            "line": 3924,
+            "asm": "movb\t719087(%rdi), %bl"
+          },
+          {
+            "pc": "0x4bcea92",
+            "line": 3924,
+            "asm": "movb\t719143(%rdi), %sil"
+          },
+          {
+            "pc": "0x4bcea99",
+            "line": 3924,
+            "asm": "movb\t719094(%rdi), %r14b"
+          },
+          {
+            "pc": "0x4bceaa0",
+            "line": 3924,
+            "asm": "movb\t719150(%rdi), %r10b"
+          },
+          {
+            "pc": "0x4bceaa7",
+            "line": 3924,
+            "asm": "movb\t719136(%rdi), %r11b"
+          },
+          {
+            "pc": "0x4bceaae",
+            "line": 3924,
+            "asm": "movb\t719129(%rdi), %r13b"
+          },
+          {
+            "pc": "0x4bceab5",
+            "line": 3924,
+            "asm": "movb\t719122(%rdi), %r8b"
+          },
+          {
+            "pc": "0x4bceabc",
+            "line": 3924,
+            "asm": "movb\t719108(%rdi), %cl"
+          },
+          {
+            "pc": "0x4bceac2",
+            "line": 3924,
+            "asm": "movzbl\t927140(%rdi), %r15d"
+          },
+          {
+            "pc": "0x4bceaca",
+            "line": 3924,
+            "asm": "movzbl\t853370(%rdi), %ebp"
+          },
+          {
+            "pc": "0x4bcead1",
+            "line": 3924,
+            "asm": "movzbl\t853368(%rdi), %r12d"
+          },
+          {
+            "pc": "0x4bcead9",
+            "line": 3924,
+            "asm": "movb\t%al, -28(%rsp)"
+          },
+          {
+            "pc": "0x4bceadd",
+            "line": 3924,
+            "asm": "movb\t719164(%rdi), %al"
+          },
+          {
+            "pc": "0x4bceae3",
+            "line": 3924,
+            "asm": "movl\t%r9d, %edx"
+          },
+          {
+            "pc": "0x4bceae6",
+            "line": 3924,
+            "asm": "movb\t%sil, -16(%rsp)"
+          },
+          {
+            "pc": "0x4bceaeb",
+            "line": 3924,
+            "asm": "orb\t%sil, %dl"
+          },
+          {
+            "pc": "0x4bceaee",
+            "line": 3924,
+            "asm": "movzbl\t853372(%rdi), %esi"
+          },
+          {
+            "pc": "0x4bceaf5",
+            "line": 3924,
+            "asm": "movb\t%al, -36(%rsp)"
+          },
+          {
+            "pc": "0x4bceaf9",
+            "line": 3924,
+            "asm": "movb\t719157(%rdi), %al"
+          },
+          {
+            "pc": "0x4bceaff",
+            "line": 3924,
+            "asm": "movb\t%al, -32(%rsp)"
+          },
+          {
+            "pc": "0x4bceb03",
+            "line": 3924,
+            "asm": "movb\t719101(%rdi), %al"
+          },
+          {
+            "pc": "0x4bceb09",
+            "line": 3924,
+            "asm": "movb\t%al, -24(%rsp)"
+          },
+          {
+            "pc": "0x4bceb0d",
+            "line": 3924,
+            "asm": "movl\t%ebx, %eax"
+          },
+          {
+            "pc": "0x4bceb0f",
+            "line": 3924,
+            "asm": "orb\t%r14b, %al"
+          },
+          {
+            "pc": "0x4bceb12",
+            "line": 3924,
+            "asm": "orb\t%al, %dl"
+          },
+          {
+            "pc": "0x4bceb14",
+            "line": 3924,
+            "asm": "movzbl\t927142(%rdi), %edx"
+          },
+          {
+            "pc": "0x4bceb1b",
+            "line": 3924,
+            "asm": "movzbl\t927144(%rdi), %eax"
+          },
+          {
+            "pc": "0x4bceb22",
+            "line": 3924,
+            "asm": "jne\t486839"
+          },
+          {
+            "pc": "0x4bceb75",
+            "line": 3925,
+            "asm": "cmpb\t%r12b, 2523988(%rdi)"
+          },
+          {
+            "pc": "0x4bceb7c",
+            "line": 3934,
+            "asm": "jne\t441077"
+          },
+          {
+            "pc": "0x4c3a677",
+            "line": 3935,
+            "asm": "movb\t%r12b, 2523988(%rdi)"
+          },
+          {
+            "pc": "0x4c3a67e",
+            "line": 3936,
+            "asm": "orb\t$1, 6735(%rdi)"
+          },
+          {
+            "pc": "0x4c3a685",
+            "line": 3936,
+            "asm": "jmp\t-441096"
+          },
+          {
+            "pc": "0x4c45969",
+            "line": 3925,
+            "asm": "cmpb\t%al, 2523988(%rdi)"
+          },
+          {
+            "pc": "0x4c4596f",
+            "line": 3934,
+            "asm": "jne\t73170"
+          },
+          {
+            "pc": "0x4c57747",
+            "line": 3935,
+            "asm": "movb\t%al, 2523988(%rdi)"
+          },
+          {
+            "pc": "0x4c5774d",
+            "line": 3936,
+            "asm": "orb\t$1, 6735(%rdi)"
+          },
+          {
+            "pc": "0x4c57754",
+            "line": 3936,
+            "asm": "jmp\t-73188"
+          }
+        ]
+      }
+    },
+    "generator": {
+      "shard-20": {
+        "tag": "generator",
+        "binary": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/generator/build/emu",
+        "function": "GrhSIM_SimTop::eval_compute_batch_20()",
+        "bytes": 1365128,
+        "lines": [
+          238269,
+          238269
+        ],
+        "instructions": [
+          {
+            "pc": "0x1692a01",
+            "line": 238269,
+            "asm": "movl\t$348485, %ecx"
+          },
+          {
+            "pc": "0x1692a0f",
+            "line": 238269,
+            "asm": "movb\t%r10b, 48(%rsp)"
+          },
+          {
+            "pc": "0x1692a14",
+            "line": 238269,
+            "asm": "kmovd\t%ecx, %k1"
+          },
+          {
+            "pc": "0x1692a18",
+            "line": 238269,
+            "asm": "movq\t(%rsp), %rcx"
+          },
+          {
+            "pc": "0x1692a1c",
+            "line": 238269,
+            "asm": "vmovdqu8\t470423(%rcx), %ymm0 {%k1} {z}"
+          },
+          {
+            "pc": "0x1692a26",
+            "line": 238269,
+            "asm": "vpermb\t%ymm0, %ymm1, %ymm0"
+          }
+        ]
+      },
+      "shard-54": {
+        "tag": "generator",
+        "binary": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/generator/build/emu",
+        "function": "GrhSIM_SimTop::eval_compute_batch_54()",
+        "bytes": 630447,
+        "lines": [
+          114899,
+          114923
+        ],
+        "instructions": []
+      },
+      "shard-81": {
+        "tag": "generator",
+        "binary": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/generator/build/emu",
+        "function": "GrhSIM_SimTop::eval_commit_batch_81()",
+        "bytes": 1089097,
+        "lines": [
+          4283,
+          4303
+        ],
+        "instructions": [
+          {
+            "pc": "0x4b81603",
+            "line": 4283,
+            "asm": "cmpb\t$1, 781580(%rdi)"
+          },
+          {
+            "pc": "0x4b8160a",
+            "line": 4283,
+            "asm": "je\t136213"
+          },
+          {
+            "pc": "0x4ba2a25",
+            "line": 4285,
+            "asm": "cmpb\t$0, 719170(%rdi)"
+          },
+          {
+            "pc": "0x4ba2a2c",
+            "line": 4285,
+            "asm": "jne\t306985"
+          },
+          {
+            "pc": "0x4ba2a32",
+            "line": 4285,
+            "asm": "cmpb\t$0, 719164(%rdi)"
+          },
+          {
+            "pc": "0x4ba2a39",
+            "line": 4285,
+            "asm": "jne\t646988"
+          },
+          {
+            "pc": "0x4ba2a3f",
+            "line": 4285,
+            "asm": "cmpb\t$0, 719157(%rdi)"
+          },
+          {
+            "pc": "0x4ba2a46",
+            "line": 4285,
+            "asm": "movl\t$927142, %eax"
+          },
+          {
+            "pc": "0x4ba2a4b",
+            "line": 4285,
+            "asm": "jne\t57"
+          },
+          {
+            "pc": "0x4ba2a4d",
+            "line": 4285,
+            "asm": "cmpb\t$0, 719150(%rdi)"
+          },
+          {
+            "pc": "0x4ba2a54",
+            "line": 4285,
+            "asm": "jne\t624414"
+          },
+          {
+            "pc": "0x4ba2a5a",
+            "line": 4285,
+            "asm": "cmpb\t$0, 719143(%rdi)"
+          },
+          {
+            "pc": "0x4ba2a61",
+            "line": 4285,
+            "asm": "jne\t646948"
+          },
+          {
+            "pc": "0x4ba2a67",
+            "line": 4285,
+            "asm": "cmpb\t$0, 719136(%rdi)"
+          },
+          {
+            "pc": "0x4ba2a6e",
+            "line": 4285,
+            "asm": "jne\t670789"
+          },
+          {
+            "pc": "0x4ba2a74",
+            "line": 4285,
+            "asm": "cmpb\t$0, 719129(%rdi)"
+          },
+          {
+            "pc": "0x4ba2a7b",
+            "line": 4285,
+            "asm": "movl\t$927144, %eax"
+          },
+          {
+            "pc": "0x4ba2a80",
+            "line": 4285,
+            "asm": "je\t322825"
+          },
+          {
+            "pc": "0x4ba2a86",
+            "line": 4285,
+            "asm": "movb\t(%rdi,%rax), %al"
+          },
+          {
+            "pc": "0x4ba2a89",
+            "line": 4285,
+            "asm": "movl\t$853369, %ecx"
+          },
+          {
+            "pc": "0x4ba2a8e",
+            "line": 4285,
+            "asm": "andb\t$3, %al"
+          },
+          {
+            "pc": "0x4ba2a90",
+            "line": 4285,
+            "asm": "movb\t%al, 842103(%rdi)"
+          },
+          {
+            "pc": "0x4ba2a96",
+            "line": 4287,
+            "asm": "cmpb\t$0, 719164(%rdi)"
+          },
+          {
+            "pc": "0x4ba2a9d",
+            "line": 4287,
+            "asm": "jne\t306891"
+          },
+          {
+            "pc": "0x4ba2aa3",
+            "line": 4287,
+            "asm": "cmpb\t$0, 719157(%rdi)"
+          },
+          {
+            "pc": "0x4ba2aaa",
+            "line": 4287,
+            "asm": "jne\t322970"
+          },
+          {
+            "pc": "0x4ba2ab0",
+            "line": 4287,
+            "asm": "cmpb\t$0, 719150(%rdi)"
+          },
+          {
+            "pc": "0x4ba2ab7",
+            "line": 4287,
+            "asm": "jne\t306860"
+          },
+          {
+            "pc": "0x4ba2abd",
+            "line": 4287,
+            "asm": "cmpb\t$0, 719143(%rdi)"
+          },
+          {
+            "pc": "0x4ba2ac4",
+            "line": 4287,
+            "asm": "jne\t306852"
+          },
+          {
+            "pc": "0x4ba2aca",
+            "line": 4287,
+            "asm": "cmpb\t$0, 719136(%rdi)"
+          },
+          {
+            "pc": "0x4ba2ad1",
+            "line": 4287,
+            "asm": "jne\t670700"
+          },
+          {
+            "pc": "0x4ba2ad7",
+            "line": 4287,
+            "asm": "cmpb\t$0, 719129(%rdi)"
+          },
+          {
+            "pc": "0x4ba2ade",
+            "line": 4287,
+            "asm": "je\t322834"
+          },
+          {
+            "pc": "0x4ba2ae4",
+            "line": 4287,
+            "asm": "movl\t$927145, %ecx"
+          },
+          {
+            "pc": "0x4ba2ae9",
+            "line": 4287,
+            "asm": "jmp\t306816"
+          },
+          {
+            "pc": "0x4bed95b",
+            "line": 4285,
+            "asm": "movb\t927140(%rdi), %al"
+          },
+          {
+            "pc": "0x4bed961",
+            "line": 4285,
+            "asm": "andb\t$3, %al"
+          },
+          {
+            "pc": "0x4bed963",
+            "line": 4285,
+            "asm": "movb\t%al, 842103(%rdi)"
+          },
+          {
+            "pc": "0x4bed969",
+            "line": 4285,
+            "asm": "movl\t$927141, %ecx"
+          },
+          {
+            "pc": "0x4bed96e",
+            "line": 4287,
+            "asm": "movb\t(%rdi,%rcx), %cl"
+          },
+          {
+            "pc": "0x4bed971",
+            "line": 4287,
+            "asm": "andb\t$3, %cl"
+          },
+          {
+            "pc": "0x4bed974",
+            "line": 4287,
+            "asm": "movb\t%cl, 842104(%rdi)"
+          },
+          {
+            "pc": "0x4bed97a",
+            "line": 4293,
+            "asm": "cmpb\t%al, 2523988(%rdi)"
+          },
+          {
+            "pc": "0x4bed980",
+            "line": 4302,
+            "asm": "jne\t368164"
+          },
+          {
+            "pc": "0x4bf178f",
+            "line": 4285,
+            "asm": "cmpb\t$0, 719122(%rdi)"
+          },
+          {
+            "pc": "0x4bf1796",
+            "line": 4285,
+            "asm": "jne\t301532"
+          },
+          {
+            "pc": "0x4bf179c",
+            "line": 4285,
+            "asm": "cmpb\t$0, 719115(%rdi)"
+          },
+          {
+            "pc": "0x4bf17a3",
+            "line": 4285,
+            "asm": "jne\t324066"
+          },
+          {
+            "pc": "0x4bf17a9",
+            "line": 4285,
+            "asm": "cmpb\t$0, 719108(%rdi)"
+          },
+          {
+            "pc": "0x4bf17b0",
+            "line": 4285,
+            "asm": "movl\t$927142, %eax"
+          },
+          {
+            "pc": "0x4bf17b5",
+            "line": 4285,
+            "asm": "jne\t-322869"
+          },
+          {
+            "pc": "0x4bf17bb",
+            "line": 4285,
+            "asm": "cmpb\t$0, 719101(%rdi)"
+          },
+          {
+            "pc": "0x4bf17c2",
+            "line": 4285,
+            "asm": "movl\t$927140, %eax"
+          },
+          {
+            "pc": "0x4bf17c7",
+            "line": 4285,
+            "asm": "jne\t-322887"
+          },
+          {
+            "pc": "0x4bf17cd",
+            "line": 4285,
+            "asm": "cmpb\t$0, 719094(%rdi)"
+          },
+          {
+            "pc": "0x4bf17d4",
+            "line": 4285,
+            "asm": "movl\t$853368, %eax"
+          },
+          {
+            "pc": "0x4bf17d9",
+            "line": 4285,
+            "asm": "jne\t-322905"
+          },
+          {
+            "pc": "0x4bf17df",
+            "line": 4285,
+            "asm": "movzbl\t719087(%rdi), %eax"
+          },
+          {
+            "pc": "0x4bf17e6",
+            "line": 4285,
+            "asm": "xorl\t$1, %eax"
+          },
+          {
+            "pc": "0x4bf17e9",
+            "line": 4285,
+            "asm": "leaq\t853370(%rax,%rax), %rax"
+          },
+          {
+            "pc": "0x4bf17f1",
+            "line": 4285,
+            "asm": "jmp\t-322928"
+          },
+          {
+            "pc": "0x4bf17f6",
+            "line": 4287,
+            "asm": "cmpb\t$0, 719122(%rdi)"
+          },
+          {
+            "pc": "0x4bf17fd",
+            "line": 4287,
+            "asm": "jne\t-16026"
+          },
+          {
+            "pc": "0x4bf1803",
+            "line": 4287,
+            "asm": "cmpb\t$0, 719115(%rdi)"
+          },
+          {
+            "pc": "0x4bf180a",
+            "line": 4287,
+            "asm": "jne\t-16034"
+          },
+          {
+            "pc": "0x4bf1810",
+            "line": 4287,
+            "asm": "cmpb\t$0, 719108(%rdi)"
+          },
+          {
+            "pc": "0x4bf1817",
+            "line": 4287,
+            "asm": "jne\t49"
+          },
+          {
+            "pc": "0x4bf1819",
+            "line": 4287,
+            "asm": "cmpb\t$0, 719101(%rdi)"
+          },
+          {
+            "pc": "0x4bf1820",
+            "line": 4287,
+            "asm": "jne\t-16061"
+          },
+          {
+            "pc": "0x4bf1826",
+            "line": 4287,
+            "asm": "cmpb\t$0, 719094(%rdi)"
+          },
+          {
+            "pc": "0x4bf182d",
+            "line": 4287,
+            "asm": "jne\t-16069"
+          },
+          {
+            "pc": "0x4bf1833",
+            "line": 4287,
+            "asm": "movzbl\t719087(%rdi), %ecx"
+          },
+          {
+            "pc": "0x4bf183a",
+            "line": 4287,
+            "asm": "xorl\t$1, %ecx"
+          },
+          {
+            "pc": "0x4bf183d",
+            "line": 4287,
+            "asm": "leaq\t853371(%rcx,%rcx), %rcx"
+          },
+          {
+            "pc": "0x4bf1845",
+            "line": 4287,
+            "asm": "jmp\t-16092"
+          },
+          {
+            "pc": "0x4bf184a",
+            "line": 4287,
+            "asm": "movl\t$927143, %ecx"
+          },
+          {
+            "pc": "0x4bf184f",
+            "line": 4287,
+            "asm": "jmp\t-16102"
+          },
+          {
+            "pc": "0x4c3b17d",
+            "line": 4285,
+            "asm": "jmp\t-624380"
+          },
+          {
+            "pc": "0x4c3b182",
+            "line": 4285,
+            "asm": "movl\t$927224, %eax"
+          },
+          {
+            "pc": "0x4c40990",
+            "line": 4285,
+            "asm": "jmp\t-646927"
+          },
+          {
+            "pc": "0x4c40995",
+            "line": 4285,
+            "asm": "movl\t$853368, %eax"
+          },
+          {
+            "pc": "0x4c466be",
+            "line": 4285,
+            "asm": "jmp\t-670781"
+          },
+          {
+            "pc": "0x4c466c3",
+            "line": 4285,
+            "asm": "movl\t$853371, %ecx"
+          },
+          {
+            "pc": "0x4c466c8",
+            "line": 4287,
+            "asm": "jmp\t-363871"
+          },
+          {
+            "pc": "0x4c466cd",
+            "line": 4287,
+            "asm": "movl\t$853370, %eax"
+          },
+          {
+            "pc": "0x4c477aa",
+            "line": 4303,
+            "asm": "movb\t%al, 2523988(%rdi)"
+          }
+        ]
+      }
+    },
+    "factorrob": {
+      "shard-20": {
+        "tag": "factorrob",
+        "binary": "/nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-xs-value-paths-v1/factorrob/build/emu",
+        "function": "GrhSIM_SimTop::eval_compute_batch_20()",
+        "bytes": 1363988,
+        "lines": [
+          238269,
+          238269
+        ],
+        "instructions": [
+          {
+            "pc": "0x1692a55",
+            "line": 238269,
+            "asm": "movl\t$348485, %ecx"
+          },
+          {
+            "pc": "0x1692a63",
+            "line": 238269,
+            "asm": "kmovd\t%ecx, %k1"
+          },
+          {
+            "pc": "0x1692a67",
+            "line": 238269,
+            "asm": "movq\t(%rsp), %rcx"
+          },
+          {
+            "pc": "0x1692a6b",
+            "line": 238269,
+            "asm": "vmovdqu8\t470423(%rcx), %ymm0 {%k1} {z}"
+          },
+          {
+            "pc": "0x1692a75",
+            "line": 238269,
+            "asm": "vpermb\t%ymm0, %ymm1, %ymm0"
+          },
+          {
+            "pc": "0x1692c14",
+            "line": 238269,
+            "asm": "orb\t%r15b, %r9b"
+          },
+          {
+            "pc": "0x1692c17",
+            "line": 238269,
+            "asm": "orb\t32(%rsp), %r8b"
+          },
+          {
+            "pc": "0x1692c1c",
+            "line": 238269,
+            "asm": "kmovd\t%k0, %r12d"
+          },
+          {
+            "pc": "0x1692c20",
+            "line": 238269,
+            "asm": "movzbl\t440259(%rcx), %r14d"
+          },
+          {
+            "pc": "0x1692c28",
+            "line": 238269,
+            "asm": "orb\t440279(%rcx), %r10b"
+          },
+          {
+            "pc": "0x1692c2f",
+            "line": 238269,
+            "asm": "movzbl\t440192(%rcx), %ebx"
+          },
+          {
+            "pc": "0x1692c36",
+            "line": 238269,
+            "asm": "movzbl\t440196(%rcx), %r15d"
+          }
+        ]
+      }
+    }
+  },
+  "shadow": {
+    "shadow": {
+      "coremark": {
+        "expressions": 4096,
+        "guest_window": 100000
+      },
+      "microbench": {
+        "expressions": 4096,
+        "guest_window": 250000
+      }
+    },
+    "shadow-generator": {
+      "coremark": {
+        "expressions": 4352,
+        "guest_window": 100000
+      },
+      "microbench": {
+        "expressions": 4352,
+        "guest_window": 250000
+      }
+    }
+  },
+  "native_inventory": {
+    "chains": 4352,
+    "frozen_ftq": 4096,
+    "lengths": {
+      "13": 4352
+    },
+    "additional": {
+      "value_bool_slots_[144119]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_0_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144120]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_1_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144121]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_2_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144122]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_3_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144123]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_4_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144124]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_5_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144125]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_6_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144126]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_7_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144127]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_8_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144128]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_9_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144129]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_10_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144130]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_11_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144131]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_12_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144132]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_13_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144133]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_14_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144134]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_15_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144135]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_16_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144136]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_17_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144137]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_18_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144138]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_19_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144139]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_20_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144140]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_21_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144141]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_22_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144142]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_23_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144143]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_24_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144144]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_25_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144145]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_26_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144146]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_27_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144147]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_28_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144148]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_29_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144149]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_30_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144150]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_31_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144151]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_32_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144152]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_33_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144153]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_34_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144154]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_35_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144155]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_36_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144156]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_37_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144157]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_38_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144158]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_39_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144159]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_40_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144160]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_41_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144161]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_42_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144162]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_43_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144163]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_44_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144164]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_45_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144165]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_46_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144166]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_47_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144167]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_48_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144168]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_49_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144169]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_50_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144170]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_51_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144171]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_52_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144172]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_53_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144173]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_54_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144174]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_55_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144175]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_56_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144176]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_57_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144177]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_58_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144178]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_59_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144179]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_60_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144180]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_61_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144181]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_62_mispredictBranchInfo_taken"
+      ],
+      "value_bool_slots_[144182]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_63_mispredictBranchInfo_taken"
+      ],
+      "value_u8_slots_[38429]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_0_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38430]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_0_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38431]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_0_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38432]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_1_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38433]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_1_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38434]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_1_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38435]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_2_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38436]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_2_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38437]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_2_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38438]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_3_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38439]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_3_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38440]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_3_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38441]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_4_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38442]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_4_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38443]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_4_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38444]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_5_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38445]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_5_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38446]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_5_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38447]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_6_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38448]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_6_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38449]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_6_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38450]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_7_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38451]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_7_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38452]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_7_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38453]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_8_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38454]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_8_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38455]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_8_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38456]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_9_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38457]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_9_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38458]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_9_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38459]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_10_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38460]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_10_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38461]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_10_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38462]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_11_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38463]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_11_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38464]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_11_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38465]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_12_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38466]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_12_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38467]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_12_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38468]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_13_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38469]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_13_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38470]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_13_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38471]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_14_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38472]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_14_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38473]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_14_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38474]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_15_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38475]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_15_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38476]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_15_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38477]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_16_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38478]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_16_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38479]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_16_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38480]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_17_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38481]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_17_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38482]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_17_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38483]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_18_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38484]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_18_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38485]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_18_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38486]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_19_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38487]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_19_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38488]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_19_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38489]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_20_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38490]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_20_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38491]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_20_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38492]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_21_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38493]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_21_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38494]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_21_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38495]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_22_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38496]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_22_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38497]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_22_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38498]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_23_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38499]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_23_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38500]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_23_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38501]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_24_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38502]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_24_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38503]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_24_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38504]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_25_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38505]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_25_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38506]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_25_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38507]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_26_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38508]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_26_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38509]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_26_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38510]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_27_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38511]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_27_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38512]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_27_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38513]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_28_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38514]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_28_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38515]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_28_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38516]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_29_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38517]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_29_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38518]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_29_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38519]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_30_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38520]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_30_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38521]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_30_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38522]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_31_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38523]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_31_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38524]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_31_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38525]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_32_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38526]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_32_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38527]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_32_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38528]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_33_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38529]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_33_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38530]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_33_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38531]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_34_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38532]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_34_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38533]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_34_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38534]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_35_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38535]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_35_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38536]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_35_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38537]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_36_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38538]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_36_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38539]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_36_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38540]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_37_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38541]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_37_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38542]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_37_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38543]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_38_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38544]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_38_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38545]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_38_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38546]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_39_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38547]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_39_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38548]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_39_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38549]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_40_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38550]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_40_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38551]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_40_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38552]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_41_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38553]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_41_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38554]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_41_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38555]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_42_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38556]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_42_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38557]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_42_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38558]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_43_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38559]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_43_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38560]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_43_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38561]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_44_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38562]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_44_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38563]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_44_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38564]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_45_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38565]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_45_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38566]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_45_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38567]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_46_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38568]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_46_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38569]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_46_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38570]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_47_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38571]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_47_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38572]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_47_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38573]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_48_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38574]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_48_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38575]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_48_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38576]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_49_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38577]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_49_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38578]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_49_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38579]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_50_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38580]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_50_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38581]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_50_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38582]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_51_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38583]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_51_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38584]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_51_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38585]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_52_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38586]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_52_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38587]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_52_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38588]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_53_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38589]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_53_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38590]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_53_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38591]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_54_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38592]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_54_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38593]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_54_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38594]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_55_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38595]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_55_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38596]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_55_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38597]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_56_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38598]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_56_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38599]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_56_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38600]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_57_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38601]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_57_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38602]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_57_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38603]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_58_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38604]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_58_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38605]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_58_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38606]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_59_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38607]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_59_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38608]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_59_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38609]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_60_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38610]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_60_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38611]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_60_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38612]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_61_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38613]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_61_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38614]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_61_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38615]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_62_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38616]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_62_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38617]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_62_mispredictBranchInfo_attribute_rasAction"
+      ],
+      "value_u8_slots_[38618]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_63_mispredictBranchInfo_cfiPosition"
+      ],
+      "value_u8_slots_[38619]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_63_mispredictBranchInfo_attribute_branchType"
+      ],
+      "value_u8_slots_[38620]": [
+        "cpu$l_soc$core_with_l2$core$frontend$inner_ftq$perfQueue_63_mispredictBranchInfo_attribute_rasAction"
+      ]
+    }
+  },
+  "verify": {
+    "dup": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      }
+    },
+    "ftqdup": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      }
+    },
+    "direct": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      }
+    },
+    "factorrob": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      }
+    },
+    "rob": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      }
+    },
+    "temporal": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      }
+    },
+    "generator": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      }
+    },
+    "ftq": {
+      "coremark": {
+        "signature": {
+          "pc": "0x80000c1a",
+          "instr_count": 250838,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "Running CoreMark for 2 iterations\n",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 35063
+      },
+      "microbench": {
+        "signature": {
+          "pc": "0x80000446",
+          "instr_count": 138514,
+          "cycle_count": 99995,
+          "guest_cycles": 100001,
+          "stop_reason": "cycle-limit",
+          "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+          "runtime_difftest": "on"
+        },
+        "coverage": {
+          "pass_": true,
+          "records": 99999,
+          "first_cycle": 0,
+          "last_cycle": 99995,
+          "guest_cycles": 100001,
+          "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+        },
+        "counter_lines": 0
+      }
+    }
+  },
+  "full_microbench": {
+    "ftqdup": {
+      "records": 225599,
+      "first_cycle": 0,
+      "last_cycle": 225595,
+      "pass_": true
+    },
+    "factorrob": {
+      "records": 225599,
+      "first_cycle": 0,
+      "last_cycle": 225595,
+      "pass_": true
+    },
+    "generator": {
+      "records": 225599,
+      "first_cycle": 0,
+      "last_cycle": 225595,
+      "pass_": true
+    },
+    "ftq": {
+      "records": 225599,
+      "first_cycle": 0,
+      "last_cycle": 225595,
+      "pass_": true
+    }
+  },
+  "profile_check": {
+    "old_source_sha256": "d7407dfbe3d5d270133783f9e96ee1a8b1d28a951dc113eeb9e76505ba298d92",
+    "new_source_sha256": "11293509f0eceed887af8a58da98ef423b0404cb1c7df1915a31fff0fc19088b",
+    "identical_count_rows": {
+      "shards": 92,
+      "SPARSE": 599596,
+      "EAGER": 208820
+    },
+    "sha256_body": "9abceff6700de0d99791540349392e468a7337ec00b613896251e2b2ec9a1f7e"
+  },
+  "reemit": {
+    "files": 140,
+    "sha256": "4a91ee1c9621e7c418425021ed2e228e7b44ecc78bc7bc9ffa29db73e858ed4c"
+  },
+  "rob_residual": {
+    "coremark": {
+      "ids": 6080,
+      "visits": 278428766,
+      "samples": 742,
+      "attributed_ins_per_guest": 29792.02936960122
+    },
+    "microbench": {
+      "ids": 6080,
+      "visits": 209893472,
+      "samples": 598,
+      "attributed_ins_per_guest": 24017.06074744758
+    }
+  },
+  "factor_retrained": {
+    "sites": 6080,
+    "by_shard": {
+      "grhsim_SimTop_sched_43.cpp": 492,
+      "grhsim_SimTop_sched_34.cpp": 18,
+      "grhsim_SimTop_sched_49.cpp": 480,
+      "grhsim_SimTop_sched_20.cpp": 2240,
+      "grhsim_SimTop_sched_30.cpp": 1422,
+      "grhsim_SimTop_sched_42.cpp": 1428
+    },
+    "example": {
+      "file": "grhsim_SimTop_sched_20.cpp",
+      "id": 959726,
+      "line": 238269
+    }
+  },
+  "rejected_shard_profile": "warning: grhsim_SimTop_sched_20.cpp: function control flow change detected (hash mismatch) _ZN13GrhSIM_SimTop21eval_compute_batch_20Ev Hash = 383209657950046578 up to 313758503 count discarded [-Wbackend-plugin]\n1 warning generated.",
+  "ctest": "Test project /nfs/home/tanghaojin/wolvrix-SimpleTES-workspace-5/wolvrix-playground-armor/build/armor-dispatch-v1/tools\n    Start 73: emit-grhsim-cpp-priority-mux-chains\n    Start 70: emit-grhsim-cpp-commit-blocks\n    Start 74: emit-grhsim-cpp-priority-mux-commit-demand\n    Start 13: emit-grhsim-execution-plan\n1/4 Test #13: emit-grhsim-execution-plan ...................   Passed    0.15 sec\n2/4 Test #74: emit-grhsim-cpp-priority-mux-commit-demand ...   Passed   16.23 sec\n3/4 Test #70: emit-grhsim-cpp-commit-blocks ................   Passed   59.59 sec\n4/4 Test #73: emit-grhsim-cpp-priority-mux-chains ..........   Passed  197.78 sec\n\n100% tests passed, 0 tests failed out of 4\n\nTotal Test time (real) = 197.79 sec\n",
+  "generator_stats": "[GRHSIM_PRIORITY_MUX_COMMIT_DEMAND] enabled=1 chains=4352 roots=4352 compute=67314 single_root=1197 exact=374 result_not_stored=46 result_unstable=0 leaves_unstable=1345 user_mismatch=0 consumer_mismatch=0 write_mismatch=0"
+}

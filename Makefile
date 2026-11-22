@@ -566,6 +566,12 @@ xs_wolf_hier_json: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 			--log-level $(WOLF_LOG); \
 	} 2>&1 | tee -a "$(XS_BUILD_LOG_FILE)"
 
+XS_GRHSIM_SITE_PGO ?= off
+ifneq ($(strip $(PGO_WORKLOAD)),)
+ifneq ($(filter-out off,$(strip $(XS_GRHSIM_SITE_PGO))),)
+xs_wolf_grhsim_emit: private export WOLVRIX_GRHSIM_CHANGE_SITE_PGO := 1
+endif
+endif
 xs_wolf_grhsim_emit: $(XS_WOLF_FILELIST_ABS) $(XS_WOLF_DEPS)
 	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
 		$(MAKE) --no-print-directory -B xs_rtl; \
@@ -1035,6 +1041,8 @@ ifneq ($(strip $(PGO_WORKLOAD)),)
 		--model "$(XS_WOLF_GRHSIM_EMIT_DIR_ABS)" --build-dir "$(XS_GRHSIM_BUILD_ABS)" \
 		--workload "$(abspath $(PGO_WORKLOAD))" --cycles "$(or $(PGO_MAX_CYCLE),100000)" \
 		--emu-args="$(or $(PGO_EMU_ARGS),--diff $(XS_ROOT_ABS)/ready-to-run/riscv64-nemu-interpreter-so -b 0 -e 0 -s 0)" \
+		--change-sites "$(XS_GRHSIM_SITE_PGO)" --sparse-permille "$(or $(XS_GRHSIM_SPARSE_PERMILLE),5)" \
+		$(if $(XS_GRHSIM_SITE_PROFILE),--site-profile "$(abspath $(XS_GRHSIM_SITE_PROFILE))") \
 		--profdata "$(or $(LLVM_PROFDATA),llvm-profdata)" --model-flags="$$GRHSIM_MODEL_CXXFLAGS" \
 		-- $(MAKE) -C "$(XS_ROOT)/difftest" $(if $(XS_VM_BUILD_JOBS),-j$(XS_VM_BUILD_JOBS)) \
 		GEN_CSRC_DIR="$(XS_DIFFTEST_GEN_DIR_ABS)" GEN_VSRC_DIR="$(XS_DIFFTEST_GEN_DIR_ABS)" NUM_CORES=$(XS_NUM_CORES) \
@@ -1061,6 +1069,7 @@ xs_diff_clean:
 		"$(XS_GRHSIM_BUILD_ABS)/grhsim-compile" \
 		"$(XS_GRHSIM_BUILD_ABS)/emu" \
 		"$(XS_GRHSIM_BUILD_ABS)/grhsim.profdata" \
+		"$(XS_GRHSIM_BUILD_ABS)/grhsim-sites.tsv.gz" \
 		"$(XS_WOLF_EMIT_DIR_ABS)" \
 		"$(XS_WOLF_GRHSIM_EMIT_DIR_ABS)" \
 		"$(XS_WOLF_GRHSIM_POST_STATS_JSON_ABS)" \

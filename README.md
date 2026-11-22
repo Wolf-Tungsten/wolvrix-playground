@@ -121,6 +121,22 @@ Use `WOLVRIX_XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE` to override the supernode li
 PGO trains the model and harness with Clang for 100,000 cycles by default and publishes
 `emu` and `grhsim.profdata` in `XS_GRHSIM_BUILD`. Set `PGO_MAX_CYCLE` to change the
 training window and `LLVM_PROFDATA` to select the tool matching `CXX`.
+Set `XS_GRHSIM_SITE_PGO=sparse` to train conditional scalar writeback,
+`commit` to train eager scalar register updates, or `both` to combine them.
+The site-training run precedes Clang PGO training on the selected control flow.
+`XS_GRHSIM_SPARSE_PERMILLE` sets the maximum compute-site change rate in parts
+per thousand (5 means 0.5%). These sites must execute at least once per four
+requested training cycles on average. Eager commits require at least 20%
+changes, a visit count of at least 1% of the training window, and at most three
+activation writes. The build publishes `grhsim-sites.tsv.gz` alongside the
+binary. Set `XS_GRHSIM_SITE_PROFILE` to this file to reuse counts when trying
+another policy or threshold on byte-identical emitted model sources.
+To evaluate long, single-consumer mux chains under a register write enable, set
+`WOLVRIX_GRHSIM_PRIORITY_MUX_COMMIT_DEMAND=1`. The XiangShan FTQ experiment
+used `WOLVRIX_GRHSIM_PRIORITY_MUX_MIN_CHAIN_LENGTH=13` with site PGO enabled.
+The emitter checks its inputs and consumers on the actual schedule.
+[XiangShan measurements and build command](pdocs/armor_grhsim/TNO0028_xiangshan_value_paths.md)
+
 For the original PGO baseline, set `WOLVRIX_XS_GRHSIM_PGO_GROUPS=0` alongside the
 training image. With no individual overrides this selects 108 ops, disables the three
 groups and disables commit block comparisons.

@@ -1,0 +1,16 @@
+--- a/lib/transform/activity_schedule.cpp
++++ b/lib/transform/activity_schedule.cpp
+@@ -4643,6 +4643,13 @@
+                 {
+                     continue;
+                 }
++                if (view.succs[clusterId].size() == 1)
++                {
++                    const auto sourceOps = clusterOpSize(view.members[clusterId], nodeOpSizes);
++                    const auto readerOps = clusterOpSize(view.members[view.succs[clusterId].front()], nodeOpSizes);
++                    if (sourceOps <= 4 && sourceOps + readerOps <= maxOps)
++                        continue;
++                }
+                 auto &bucket = buckets[nodeSiblingPredHash(view.preds[clusterId])];
+                 auto groupIt = std::find_if(bucket.begin(),
+                                             bucket.end(),
