@@ -19,6 +19,10 @@ class BaselineLogTests(unittest.TestCase):
 
     def test_exact_cycle_limit_and_unique_measurement(self):
         result = parse_run(self.LOG, 100000)
+        paths = "The image is /models/family-mismatch/input.bin\nThe reference model is /models/family-mismatch/ref.so\n"
+        self.assertEqual(parse_run(paths + self.LOG, 100000)["guest_cycles"], result["guest_cycles"])
+        with self.assertRaisesRegex(ValueError, "functional failure"):
+            parse_run(paths + self.LOG + "\nDiffTest mismatch\n", 100000)
         self.assertEqual(result['host_ms'], 12345)
         self.assertEqual(result['pc'], '0x80000000')
         self.assertEqual(result['cycle_count'], 99996)

@@ -107,7 +107,8 @@ def parse_run(log,cycles,runtime_difftest='on',compile_difftest=None):
     banner=re.search(r'^(.*?)emu compiled at [^\n]*\n',log,re.S)
     uart_prefix=(re.sub(r'^\[(?:codepage(?:-retry)?|WOLVI|runtime-config)\][^\n]*\n','',banner[1],flags=re.M)
                  if banner else '')
-    if re.search(r'ABORT|HIT BAD TRAP|mismatch|Assertion.*failed',log,re.I):
+    failure_text = re.sub(r'^(?:The image is|The reference model is) [^\n]*$', '', log, flags=re.M)
+    if re.search(r'ABORT|HIT BAD TRAP|mismatch|Assertion.*failed',failure_text,re.I):
         raise ValueError('functional failure in emu log')
     patterns=dict(host_ms=r'Host time spent:\s*([\d,]+)ms',guest_cycles=r'Guest cycle spent:\s*([\d,]+)')
     result=dict(pc=None,instr_count=None,cycle_count=None,runtime_difftest=runtime_difftest)
