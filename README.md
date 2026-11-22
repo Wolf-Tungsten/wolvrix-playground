@@ -137,6 +137,12 @@ used `WOLVRIX_GRHSIM_PRIORITY_MUX_MIN_CHAIN_LENGTH=13` with site PGO enabled.
 The emitter checks its inputs and consumers on the actual schedule.
 [XiangShan measurements and build command](pdocs/armor_grhsim/TNO0028_xiangshan_value_paths.md)
 
+The XiangShan flow accepts `WOLVRIX_XS_GRHSIM_REG_TO_MEM_MIN_DECODED_WRITE_ALTERNATIVES`
+to vary the minimum number of decoded alternatives per register and
+`WOLVRIX_XS_GRHSIM_REG_TO_MEM_GROUP_REPORT` to export input write-port IDs and
+true-merge outcomes as JSON Lines when running the pass.
+[Pass options and report format](wolvrix/docs/transform/reg-to-mem.md)
+
 For the original PGO baseline, set `WOLVRIX_XS_GRHSIM_PGO_GROUPS=0` alongside the
 training image. With no individual overrides this selects 108 ops, disables the three
 groups and disables commit block comparisons.

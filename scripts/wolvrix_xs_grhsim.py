@@ -1046,6 +1046,12 @@ def main() -> int:
             reg_to_mem_kwargs["intent"] = False
         reg_to_mem_kwargs["ordered_writes"] = reg_to_mem_ordered_writes
         reg_to_mem_kwargs["decoded_write_storage"] = reg_to_mem_decoded_write_storage
+        min_alternatives = os.environ.get("WOLVRIX_XS_GRHSIM_REG_TO_MEM_MIN_DECODED_WRITE_ALTERNATIVES")
+        if min_alternatives is not None:
+            reg_to_mem_kwargs["min_decoded_write_alternatives"] = int(min_alternatives)
+        group_report = os.environ.get("WOLVRIX_XS_GRHSIM_REG_TO_MEM_GROUP_REPORT")
+        if group_report:
+            reg_to_mem_kwargs["group_report"] = group_report
         reg_to_mem_pipeline: list[tuple[str, dict]] = [
             ("reg-to-mem", reg_to_mem_kwargs),
         ]

@@ -31,6 +31,7 @@
 | [TNO0027](./TNO0027_xiangshan_change_site_pgo.md) | 逐站点训练的稀疏写回和寄存器提交，比较真实 ELF、指令数与预测失败，追踪 ROB 调度边界并按 RTL 模块归因。 |
 | [TNO0028](./TNO0028_xiangshan_value_paths.md) | FTQ 写使能内的 mux 求值、ROB 等价输出和字节读取，以及按实际变化序列复核两种写回策略。 |
 | [TNO0029](./TNO0029_xiangshan_rob_indexed_writeback_20261122.md) | 冻结模型上的 ROB 写回解码原型和收益上限参照。从存储队列索引追到 29 路执行单元写回和 8 路 LSQ 分配，验证多字段共享解码，比较生成代码、ELF、整机计数及 GSIM 同轮差距。 |
+| [TNO0030](./TNO0030_reg_to_mem_write_activity_20261122.md) | 全设计扫描九档解码门槛，导出逐组写口 ID，按两种负载的动态访问和真实变化对 60,900 个未转换写口归因。 |
 
 规则参考：[GrhSIM 文档管理规则](../grhsim_opt_thj/RULES.md)。评估对象是 Jiaping Tang 等发表于 MICRO 2026 的 ARMOR 论文，出处见 TNO0001。
 

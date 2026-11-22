@@ -174,7 +174,11 @@ class XsGrhsimOptionTest(unittest.TestCase):
             self.assertIn("-x86-cmov-converter-force-mem-operand=false", default_make)
             self.assertEqual((default_schedule, default_make), emit("explicit",
                 WOLVRIX_GRHSIM_LOGIC_EAGER_OPERAND_CHARS="4096", WOLVRIX_GRHSIM_KEEP_X86_MEMORY_CMOV="1"))
-            short_circuit, same_make = emit("short-circuit", WOLVRIX_GRHSIM_LOGIC_EAGER_OPERAND_CHARS="0")
+            report = root / "groups.jsonl"
+            short_circuit, same_make = emit("short-circuit", WOLVRIX_GRHSIM_LOGIC_EAGER_OPERAND_CHARS="0",
+                WOLVRIX_XS_GRHSIM_REG_TO_MEM_MIN_DECODED_WRITE_ALTERNATIVES="2",
+                WOLVRIX_XS_GRHSIM_REG_TO_MEM_GROUP_REPORT=str(report))
+            self.assertEqual(report.read_text(), "")  # No register groups in this combinational design.
             self.assertIn(") && (", short_circuit)
             self.assertNotIn("!(!(", short_circuit)
             self.assertEqual(same_make, default_make)
