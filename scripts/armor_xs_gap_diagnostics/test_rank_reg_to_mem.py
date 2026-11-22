@@ -1,11 +1,24 @@
 """Regression checks for overlapping write groups, renumbered ops and shared predicates."""
 import unittest
+import json
 from collections import Counter
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
-from rank_reg_to_mem import commit_lines, summarize
+from rank_reg_to_mem import commit_lines, load_groups, summarize
 
 
 class WriteActivityTest(unittest.TestCase):
+    def test_discarded_candidates_are_not_ranked_as_rejected_groups(self):
+        row = dict(group=1, graph="cpu", outcome="no_true_match", writes=[[4, "w", "r"]])
+        skipped = dict(row, group=2, outcome="decoded_write_overlap", overlapping_groups=[1])
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "groups.jsonl"
+            path.write_text("\n".join(map(json.dumps, (skipped, row))))
+            groups, ports = load_groups(path, "cpu")
+        self.assertEqual(groups, [row])
+        self.assertEqual(ports, {("w", "r"): 4})
+
     def test_overlap_and_renumbering(self):
         groups = [
             dict(members=2, outcome="no_true_match", consolidated_reject="mux_chain",

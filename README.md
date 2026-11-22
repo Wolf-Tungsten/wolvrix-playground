@@ -141,6 +141,9 @@ The XiangShan flow accepts `WOLVRIX_XS_GRHSIM_REG_TO_MEM_MIN_DECODED_WRITE_ALTER
 to vary the minimum number of decoded alternatives per register and
 `WOLVRIX_XS_GRHSIM_REG_TO_MEM_GROUP_REPORT` to export input write-port IDs and
 true-merge outcomes as JSON Lines when running the pass.
+Set `WOLVRIX_XS_GRHSIM_REG_TO_MEM_NORMALIZE_WRITE_CONFLICTS=1` to retry
+read-anchored write families with row-dependent common guards. This opt-in
+uses the write predicates and mux order in the graph.
 [Pass options and report format](wolvrix/docs/transform/reg-to-mem.md)
 
 For the original PGO baseline, set `WOLVRIX_XS_GRHSIM_PGO_GROUPS=0` alongside the

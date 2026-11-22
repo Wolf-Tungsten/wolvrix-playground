@@ -25,7 +25,7 @@ def load_groups(path, graph):
     with opener(path, "rt") as stream:
         for line in stream:
             group = json.loads(line)
-            if group["graph"] != graph:
+            if group["graph"] != graph or group["outcome"] == "decoded_write_overlap":
                 continue
             groups.append(group)
             for number, op, reg in group["writes"]:

@@ -1046,6 +1046,8 @@ def main() -> int:
             reg_to_mem_kwargs["intent"] = False
         reg_to_mem_kwargs["ordered_writes"] = reg_to_mem_ordered_writes
         reg_to_mem_kwargs["decoded_write_storage"] = reg_to_mem_decoded_write_storage
+        if env_flag("WOLVRIX_XS_GRHSIM_REG_TO_MEM_NORMALIZE_WRITE_CONFLICTS"):
+            reg_to_mem_kwargs["normalize_write_conflicts"] = True
         min_alternatives = os.environ.get("WOLVRIX_XS_GRHSIM_REG_TO_MEM_MIN_DECODED_WRITE_ALTERNATIVES")
         if min_alternatives is not None:
             reg_to_mem_kwargs["min_decoded_write_alternatives"] = int(min_alternatives)
