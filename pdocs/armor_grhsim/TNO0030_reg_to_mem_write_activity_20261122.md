@@ -67,3 +67,7 @@ done
 ```
 
 本轮 C++ 全量构建成功。32 项 transform CTest 和 5 项相关 emitter CTest 共通过 36/37。唯一失败的 `transform-comb-lane-pack` 期待一个打包的 `kAnd`，在冻结的旧工具上复现了相同断言。新增门槛、组报告、站点归因和顶层重命名的测试均通过。[此前的同一测试记录](./TNO0016_branch_sources_and_eager_logic_20261120.md)
+
+## 2026-11-22 口径补充
+
+上表衡量数据和使能已经就绪后的写口活动。为数组恢复选点时采用 TNO0031 的专属上游求值排序。`XS_GRHSIM_SITE_PGO` 默认 `off`，终端 mux 的独立按需规则也需显式开启。上次提交接入了这两个可选入口，当时的 CTest 从共 133 项中选择了 37 项。[TNO0031](./TNO0031_exclusive_write_upstream_20261122.md)
