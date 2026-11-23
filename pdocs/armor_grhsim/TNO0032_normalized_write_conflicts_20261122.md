@@ -51,3 +51,9 @@ case_dir=build/armor-xs-family-mismatch-v1
 mkdir -p "$case_dir"
 tar -xzf pdocs/armor_grhsim/data/TNO0032_conflict_repro.tar.gz -C "$case_dir"
 ```
+
+## 2026-11-23 补充核对
+
+TNO0028 基线有 4,352 条终端 mux 链在提交时求值。开启冲突归一化后，同一选项在 TNO0032 计时模型中选中 0 条。原来 2,240 条链的目标已合并为存储器，其余 2,112 条的目标仍是寄存器。表中的指令和墙钟变化包含这项相互作用及 PGO 重训。
+
+7,891 / 5,658 次每拍是按消费者组分摊给新增 180 组的求值量。只计所有相关消费者都已转换的值，上界为 3,004 / 2,392 次每拍（CoreMark / MicroBench）。两种口径都来自旧模型，实际执行次数随新模型的分片和调度改变。

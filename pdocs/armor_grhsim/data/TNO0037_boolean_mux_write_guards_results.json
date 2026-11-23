@@ -1,0 +1,303 @@
+{
+  "graph": {
+    "candidates": 4782,
+    "converted_before": 884,
+    "converted_after": 888,
+    "proofs": [
+      {
+        "group": 945,
+        "rows": 160,
+        "unsat": 160,
+        "width": 7,
+        "ports": 37,
+        "dropped_port": "sat"
+      },
+      {
+        "group": 946,
+        "rows": 160,
+        "unsat": 160,
+        "width": 7,
+        "ports": 37,
+        "dropped_port": "sat"
+      },
+      {
+        "group": 975,
+        "rows": 160,
+        "unsat": 160,
+        "width": 6,
+        "ports": 29,
+        "dropped_port": "sat"
+      },
+      {
+        "group": 976,
+        "rows": 160,
+        "unsat": 160,
+        "width": 6,
+        "ports": 29,
+        "dropped_port": "sat"
+      }
+    ],
+    "cv32": {
+      "0": {
+        "converted": 0,
+        "visited": 1,
+        "hash": "1e2f659d16e8bf3e67fd034456020e7cbcc2713db061dc90d35e8005791c47a8"
+      },
+      "1": {
+        "converted": 0,
+        "visited": 1,
+        "hash": "1e2f659d16e8bf3e67fd034456020e7cbcc2713db061dc90d35e8005791c47a8"
+      },
+      "identical": true
+    },
+    "post_sha256": "4aabc396ae1f0b6e1ed39b35bfb87fddd508b7971a5befc96c7651e27c6ad2fa",
+    "group_report_sha256": "ce5e077c7edc1603fd4ab56cae17790d752d8258f2fcd463f6e0478144684382"
+  },
+  "builds": {
+    "reference": {
+      "emu": "5240f4220cd97c9659501eea014c9b535d3f45b5a6726cc13fe085a05ebbd1e2",
+      "grhsim-sites.tsv.gz": "0c5221813c5de6a579eaf5faf0f0da35988dd976e06cb57fee48b329918025bd",
+      "grhsim.profdata": "7162bc73dcfcc71dd3fc32c15c63587c4e2aaf70b351c54b371a8de4b98cf740"
+    },
+    "candidate": {
+      "emu": "0f6eb277af17fd6982f3053b22a3214945f0ec9f339fddd1b898ddc59b2764e4",
+      "grhsim-sites.tsv.gz": "9c05e5803b0c8194ae8c8bcbde611e754210855d975b5b59d53c00a6044ca8d0",
+      "grhsim.profdata": "d46d2307c01677bd3e1eafebdf07a41f7f60dbbe839a1fa2c4e6d2db55851eb0"
+    }
+  },
+  "validation": {
+    "coremark": {
+      "signature": {
+        "pc": "0x80000c1a",
+        "instr_count": 250838,
+        "cycle_count": 99995,
+        "guest_cycles": 100001,
+        "stop_reason": "cycle-limit",
+        "workload_output": "Running CoreMark for 2 iterations\n",
+        "runtime_difftest": "on"
+      },
+      "coverage": {
+        "pass_": true,
+        "records": 99999,
+        "first_cycle": 0,
+        "last_cycle": 99995,
+        "guest_cycles": 100001,
+        "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+      },
+      "counter_lines": 35063,
+      "trace": {
+        "records": 99999,
+        "last_cycle": 99995,
+        "chunks": [
+          [
+            "0.bin",
+            99999,
+            "2363790b58052733557be0d2f6e16789892f01b7c20820dd512c0e848a438bfb"
+          ]
+        ]
+      }
+    },
+    "microbench": {
+      "signature": {
+        "pc": "0x80000446",
+        "instr_count": 138514,
+        "cycle_count": 99995,
+        "guest_cycles": 100001,
+        "stop_reason": "cycle-limit",
+        "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+        "runtime_difftest": "on"
+      },
+      "coverage": {
+        "pass_": true,
+        "records": 99999,
+        "first_cycle": 0,
+        "last_cycle": 99995,
+        "guest_cycles": 100001,
+        "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+      },
+      "counter_lines": 0,
+      "trace": {
+        "records": 99999,
+        "last_cycle": 99995,
+        "chunks": [
+          [
+            "0.bin",
+            99999,
+            "9d5611d7eb708e13799544b249cd9d3ce43cc997344d0eea2d74fc01d83f64ca"
+          ]
+        ]
+      }
+    },
+    "microbench_full": {
+      "guest_cycles": 225601,
+      "guest_instructions": 326377,
+      "pc": "0x80003a4e",
+      "trace": {
+        "records": 225599,
+        "last_cycle": 225595,
+        "chunks": [
+          [
+            "0.bin",
+            225599,
+            "9e19b60a78593b85c9ba89f1ed380f7187a4e67ac4b2a1ed57d1940fa0c31d3e"
+          ]
+        ]
+      }
+    }
+  },
+  "workloads": {
+    "coremark": {
+      "wall_pct": {
+        "mean": -0.403798599596078,
+        "ci95": [
+          -0.932432889857123,
+          0.12483569066496703
+        ],
+        "minimum": -1.2967108951960515,
+        "maximum": 0.8069262030988567,
+        "below_zero": 7
+      },
+      "cycles_pct": {
+        "mean": -0.6825833489680605,
+        "ci95": [
+          -1.4190237876434246,
+          0.05385708970730363
+        ],
+        "minimum": -1.6216457620813585,
+        "maximum": 1.092817341727681,
+        "below_zero": 7
+      },
+      "per_guest_cycle": {
+        "cycles": {
+          "mean": -14585.00603493965,
+          "ci95": [
+            -30330.00463140637,
+            1159.9925615270695
+          ],
+          "minimum": -34718.70733292667,
+          "maximum": 23340.812001879982,
+          "below_zero": 7
+        },
+        "instructions": {
+          "mean": -36153.601963980356,
+          "ci95": [
+            -36487.05604232283,
+            -35820.14788563788
+          ],
+          "minimum": -37052.41513584864,
+          "maximum": -35770.9565204348,
+          "below_zero": 8
+        },
+        "branches": {
+          "mean": -6550.366222587774,
+          "ci95": [
+            -6607.1358739677125,
+            -6493.596571207836
+          ],
+          "minimum": -6614.4270757292425,
+          "maximum": -6407.949090509095,
+          "below_zero": 8
+        },
+        "branch-misses": {
+          "mean": -330.08051794482054,
+          "ci95": [
+            -337.09282917438577,
+            -323.0682067152553
+          ],
+          "minimum": -342.6210937890621,
+          "maximum": -317.33353666463336,
+          "below_zero": 8
+        },
+        "ex_ret_ops": {
+          "mean": -31144.184731902682,
+          "ci95": [
+            -31494.471231931657,
+            -30793.898231873707
+          ],
+          "minimum": -32109.942640573594,
+          "maximum": -30803.47754522455,
+          "below_zero": 8
+        }
+      }
+    },
+    "microbench": {
+      "wall_pct": {
+        "mean": -1.8657022844326965,
+        "ci95": [
+          -2.4775977302764636,
+          -1.2538068385889294
+        ],
+        "minimum": -2.614357789028654,
+        "maximum": -0.4847778444543094,
+        "below_zero": 8
+      },
+      "cycles_pct": {
+        "mean": -1.4633266703755685,
+        "ci95": [
+          -2.1950160202666256,
+          -0.7316373204845112
+        ],
+        "minimum": -2.753805523995323,
+        "maximum": -0.010921708266098396,
+        "below_zero": 8
+      },
+      "per_guest_cycle": {
+        "cycles": {
+          "mean": -28831.241823831762,
+          "ci95": [
+            -43370.49216120379,
+            -14291.991486459738
+          ],
+          "minimum": -54759.91064089359,
+          "maximum": -211.09569904300957,
+          "below_zero": 8
+        },
+        "instructions": {
+          "mean": -21108.225630243698,
+          "ci95": [
+            -21550.753053352226,
+            -20665.69820713517
+          ],
+          "minimum": -22285.08275917241,
+          "maximum": -20418.490135098647,
+          "below_zero": 8
+        },
+        "branches": {
+          "mean": -4537.181823181768,
+          "ci95": [
+            -4753.1341427097705,
+            -4321.229503653765
+          ],
+          "minimum": -5020.328336716633,
+          "maximum": -4357.333586664134,
+          "below_zero": 8
+        },
+        "branch-misses": {
+          "mean": -284.8988397616024,
+          "ci95": [
+            -299.74878407532333,
+            -270.0488954478815
+          ],
+          "minimum": -312.19675803241967,
+          "maximum": -259.5417645823542,
+          "below_zero": 8
+        },
+        "ex_ret_ops": {
+          "mean": -17372.31839431606,
+          "ci95": [
+            -17758.67304055486,
+            -16985.963748077258
+          ],
+          "minimum": -18171.70403295967,
+          "maximum": -16631.875671243288,
+          "below_zero": 8
+        }
+      }
+    }
+  },
+  "min_sample_quality": {
+    "min_running_pct": 99.0,
+    "sibling_idle_pct": 100.0,
+    "cpu_fraction": 0.9991123840520293
+  }
+}

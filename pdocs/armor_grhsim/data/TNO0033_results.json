@@ -1,0 +1,342 @@
+{
+  "binary_sha256": {
+    "normalized": "68dff4afe9f38c265c8be874201b44d1b89981aed1e24f204f5e4a2ba63fc0c6",
+    "predicates": "92ac62d54356f6ee95cb41bff24c04fe9c9d5c9a0568c1fc467864e05a88d2e5",
+    "shared": "f48bbf2814156edc0b94d824bffef161e53f58722682913fbe3137ac9fdcb12c"
+  },
+  "targets": {
+    "old_roots": 4352,
+    "now_memory": 2240,
+    "remaining": 2112,
+    "predicates": {
+      "actual": 2112,
+      "missing": 0,
+      "extra": 0
+    },
+    "shared-guards": {
+      "actual": 2112,
+      "missing": 0,
+      "extra": 0
+    }
+  },
+  "guards": {
+    "all_memory_write_ports": 8644,
+    "redirected_write_enables": 1592,
+    "guard_values_before": 24363,
+    "guard_values_after": 6513,
+    "other_operations_identical": true,
+    "all_write_enable_expressions_equal": true
+  },
+  "workloads": {
+    "coremark": {
+      "trace": {
+        "normalized": {
+          "signature": {
+            "pc": "0x80000c1a",
+            "instr_count": 250838,
+            "cycle_count": 99995,
+            "guest_cycles": 100001,
+            "stop_reason": "cycle-limit",
+            "workload_output": "Running CoreMark for 2 iterations\n",
+            "runtime_difftest": "on"
+          },
+          "coverage": {
+            "pass_": true,
+            "records": 99999,
+            "first_cycle": 0,
+            "last_cycle": 99995,
+            "guest_cycles": 100001,
+            "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+          },
+          "counter_lines": 35063
+        },
+        "predicates": {
+          "signature": {
+            "pc": "0x80000c1a",
+            "instr_count": 250838,
+            "cycle_count": 99995,
+            "guest_cycles": 100001,
+            "stop_reason": "cycle-limit",
+            "workload_output": "Running CoreMark for 2 iterations\n",
+            "runtime_difftest": "on"
+          },
+          "coverage": {
+            "pass_": true,
+            "records": 99999,
+            "first_cycle": 0,
+            "last_cycle": 99995,
+            "guest_cycles": 100001,
+            "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+          },
+          "counter_lines": 35063
+        },
+        "shared": {
+          "signature": {
+            "pc": "0x80000c1a",
+            "instr_count": 250838,
+            "cycle_count": 99995,
+            "guest_cycles": 100001,
+            "stop_reason": "cycle-limit",
+            "workload_output": "Running CoreMark for 2 iterations\n",
+            "runtime_difftest": "on"
+          },
+          "coverage": {
+            "pass_": true,
+            "records": 99999,
+            "first_cycle": 0,
+            "last_cycle": 99995,
+            "guest_cycles": 100001,
+            "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+          },
+          "counter_lines": 35063
+        }
+      },
+      "comparisons": {
+        "normalized_to_predicates": {
+          "per_guest_cycle": {
+            "instructions": -24091.062509374904,
+            "cycles": 15710.973402765972,
+            "branches": -2441.500232497675,
+            "branch-misses": 200.01564734352655
+          },
+          "wall_pct": 0.7853579650687281,
+          "wall_by_round_pct": [
+            1.2720650622104257,
+            0.5344492436858639,
+            0.3805933964166508,
+            0.9543241579619721
+          ],
+          "wall_range_pct": [
+            0.3805933964166508,
+            1.2720650622104257
+          ],
+          "paired_t95_pct": [
+            0.1408157370769193,
+            1.4299001930605368
+          ],
+          "faster": 0
+        },
+        "predicates_to_shared": {
+          "per_guest_cycle": {
+            "instructions": -6802.55748692513,
+            "cycles": -14185.523189768102,
+            "branches": -702.3153993460065,
+            "branch-misses": -283.9331606683933
+          },
+          "wall_pct": -0.6097757240060758,
+          "wall_by_round_pct": [
+            0.2756570214511589,
+            -0.6986117110368673,
+            -1.2468989257682028,
+            -0.7692492806703921
+          ],
+          "wall_range_pct": [
+            -1.2468989257682028,
+            0.2756570214511589
+          ],
+          "paired_t95_pct": [
+            -1.6258522902741261,
+            0.4063008422619746
+          ],
+          "faster": 3
+        },
+        "normalized_to_shared": {
+          "per_guest_cycle": {
+            "instructions": -30893.619996300036,
+            "cycles": 1525.4502129978705,
+            "branches": -3143.8156318436813,
+            "branch-misses": -83.91751332486675
+          },
+          "wall_pct": 0.1725037573035576,
+          "wall_by_round_pct": [
+            1.5512286203229975,
+            -0.1678961923569422,
+            -0.8710511443230207,
+            0.1777337455711958
+          ],
+          "wall_range_pct": [
+            -0.8710511443230207,
+            1.5512286203229975
+          ],
+          "paired_t95_pct": [
+            -1.4465318667192113,
+            1.7915393813263267
+          ],
+          "faster": 2
+        }
+      }
+    },
+    "microbench": {
+      "trace": {
+        "normalized": {
+          "signature": {
+            "pc": "0x80000446",
+            "instr_count": 138514,
+            "cycle_count": 99995,
+            "guest_cycles": 100001,
+            "stop_reason": "cycle-limit",
+            "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+            "runtime_difftest": "on"
+          },
+          "coverage": {
+            "pass_": true,
+            "records": 99999,
+            "first_cycle": 0,
+            "last_cycle": 99995,
+            "guest_cycles": 100001,
+            "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+          },
+          "counter_lines": 0
+        },
+        "predicates": {
+          "signature": {
+            "pc": "0x80000446",
+            "instr_count": 138514,
+            "cycle_count": 99995,
+            "guest_cycles": 100001,
+            "stop_reason": "cycle-limit",
+            "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+            "runtime_difftest": "on"
+          },
+          "coverage": {
+            "pass_": true,
+            "records": 99999,
+            "first_cycle": 0,
+            "last_cycle": 99995,
+            "guest_cycles": 100001,
+            "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+          },
+          "counter_lines": 0
+        },
+        "shared": {
+          "signature": {
+            "pc": "0x80000446",
+            "instr_count": 138514,
+            "cycle_count": 99995,
+            "guest_cycles": 100001,
+            "stop_reason": "cycle-limit",
+            "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+            "runtime_difftest": "on"
+          },
+          "coverage": {
+            "pass_": true,
+            "records": 99999,
+            "first_cycle": 0,
+            "last_cycle": 99995,
+            "guest_cycles": 100001,
+            "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+          },
+          "counter_lines": 0
+        }
+      },
+      "comparisons": {
+        "normalized_to_predicates": {
+          "per_guest_cycle": {
+            "instructions": -23376.793414565855,
+            "cycles": -28080.170003299965,
+            "branches": -2134.2154103458965,
+            "branch-misses": 164.820099299007
+          },
+          "wall_pct": -1.3268249515204027,
+          "wall_by_round_pct": [
+            -1.4662395172213905,
+            -1.6977285559616195,
+            -0.7623334379044389,
+            -1.3809982949941624
+          ],
+          "wall_range_pct": [
+            -1.6977285559616195,
+            -0.7623334379044389
+          ],
+          "paired_t95_pct": [
+            -1.9623795611657378,
+            -0.6912703418750675
+          ],
+          "faster": 4
+        },
+        "predicates_to_shared": {
+          "per_guest_cycle": {
+            "instructions": -5489.343486565134,
+            "cycles": -3272.660323396766,
+            "branches": -608.8340341596584,
+            "branch-misses": -232.37321876781232
+          },
+          "wall_pct": -0.13155942167869528,
+          "wall_by_round_pct": [
+            0.6848255098695244,
+            -0.6109003615884512,
+            -0.8620457404648785,
+            0.26188290546902415
+          ],
+          "wall_range_pct": [
+            -0.8620457404648785,
+            0.6848255098695244
+          ],
+          "paired_t95_pct": [
+            -1.2880401571535098,
+            1.0249213137961193
+          ],
+          "faster": 2
+        },
+        "normalized_to_shared": {
+          "per_guest_cycle": {
+            "instructions": -28866.136901130987,
+            "cycles": -31352.83032669673,
+            "branches": -2743.0494445055547,
+            "branch-misses": -67.5531194688053
+          },
+          "wall_pct": -1.4575630451721917,
+          "wall_by_round_pct": [
+            -0.7914551896015976,
+            -2.2982574876629136,
+            -1.6178075154397176,
+            -1.1227319879845377
+          ],
+          "wall_range_pct": [
+            -2.2982574876629136,
+            -0.7914551896015976
+          ],
+          "paired_t95_pct": [
+            -2.500292660806144,
+            -0.41483342953823943
+          ],
+          "faster": 4
+        }
+      }
+    }
+  },
+  "long": {
+    "predicates": {
+      "cycles": 225601,
+      "guest_instructions": 326377,
+      "records": 225599,
+      "trace_sha256": [
+        "9e19b60a78593b85c9ba89f1ed380f7187a4e67ac4b2a1ed57d1940fa0c31d3e"
+      ]
+    },
+    "shared": {
+      "cycles": 225601,
+      "guest_instructions": 326377,
+      "records": 225599,
+      "trace_sha256": [
+        "9e19b60a78593b85c9ba89f1ed380f7187a4e67ac4b2a1ed57d1940fa0c31d3e"
+      ]
+    }
+  },
+  "codegen": [
+    {
+      "variant": "reference",
+      "returncode": 0,
+      "changed_assignments": 0,
+      "boolean_operators": 52842,
+      "text_bytes": 1083387
+    },
+    {
+      "variant": "eager",
+      "returncode": 0,
+      "changed_assignments": 2112,
+      "boolean_operators": 52842,
+      "text_bytes": 981784
+    }
+  ]
+}

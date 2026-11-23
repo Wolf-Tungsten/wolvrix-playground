@@ -1,0 +1,330 @@
+{
+  "graph": {
+    "candidates": 4782,
+    "converted_before": 876,
+    "converted_after": 884,
+    "remaining_groups": [
+      924,
+      1017,
+      1019,
+      1021,
+      1023,
+      1254
+    ],
+    "proofs": [
+      {
+        "group": 904,
+        "rows": 160,
+        "unsat": 160,
+        "width": 64,
+        "ports": 37,
+        "dropped_port": "sat"
+      },
+      {
+        "group": 905,
+        "rows": 160,
+        "unsat": 160,
+        "width": 64,
+        "ports": 37,
+        "dropped_port": "sat"
+      },
+      {
+        "group": 906,
+        "rows": 160,
+        "unsat": 160,
+        "width": 64,
+        "ports": 37,
+        "dropped_port": "sat"
+      },
+      {
+        "group": 907,
+        "rows": 160,
+        "unsat": 160,
+        "width": 64,
+        "ports": 37,
+        "dropped_port": "sat"
+      },
+      {
+        "group": 918,
+        "rows": 160,
+        "unsat": 160,
+        "width": 64,
+        "ports": 37,
+        "dropped_port": "sat"
+      },
+      {
+        "group": 919,
+        "rows": 160,
+        "unsat": 160,
+        "width": 64,
+        "ports": 37,
+        "dropped_port": "sat"
+      },
+      {
+        "group": 920,
+        "rows": 160,
+        "unsat": 160,
+        "width": 64,
+        "ports": 37,
+        "dropped_port": "sat"
+      },
+      {
+        "group": 921,
+        "rows": 160,
+        "unsat": 160,
+        "width": 64,
+        "ports": 37,
+        "dropped_port": "sat"
+      }
+    ],
+    "post_sha256": "9d46fc12a6aca3e71d43ffa55b9fdc827ab5d2fb4aa8a42a9759c9086a1e21ae",
+    "group_report_sha256": "3004e590787364fbe801cfc8f462f1975d5f80c2c4be26233625c5c2059be64b"
+  },
+  "builds": {
+    "reference": {
+      "emu": "f48bbf2814156edc0b94d824bffef161e53f58722682913fbe3137ac9fdcb12c",
+      "grhsim-sites.tsv.gz": "61c2581899d5fde61e68f52af09ada36b161f0dc58587d7299ade1e084ea47ee",
+      "grhsim.profdata": "5218d204f1496fbe0fc328fbe4640a0f1a7149fb3dade5fec9813fcdc2bc53f2"
+    },
+    "candidate": {
+      "emu": "a4bca8db665a641abce29ae68ee319a48c5b443851e1830f4fb5c7d0b7af36e4",
+      "grhsim-sites.tsv.gz": "9fa19a23cfe5fb59c8175de283b1787b0a43ca44e84b89804fa52d804d178e56",
+      "grhsim.profdata": "9f75d63a57f26b78ae445d9b1ef43b567b36270d9b43cc94c703192aaf3e28a1"
+    }
+  },
+  "validation": {
+    "coremark": {
+      "signature": {
+        "pc": "0x80000c1a",
+        "instr_count": 250838,
+        "cycle_count": 99995,
+        "guest_cycles": 100001,
+        "stop_reason": "cycle-limit",
+        "workload_output": "Running CoreMark for 2 iterations\n",
+        "runtime_difftest": "on"
+      },
+      "coverage": {
+        "pass_": true,
+        "records": 99999,
+        "first_cycle": 0,
+        "last_cycle": 99995,
+        "guest_cycles": 100001,
+        "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+      },
+      "counter_lines": 35063,
+      "trace": {
+        "records": 99999,
+        "last_cycle": 99995,
+        "chunks": [
+          [
+            "0.bin",
+            99999,
+            "2363790b58052733557be0d2f6e16789892f01b7c20820dd512c0e848a438bfb"
+          ]
+        ]
+      }
+    },
+    "microbench": {
+      "signature": {
+        "pc": "0x80000446",
+        "instr_count": 138514,
+        "cycle_count": 99995,
+        "guest_cycles": 100001,
+        "stop_reason": "cycle-limit",
+        "workload_output": "======= Running MicroBench [input *test*] =======\n[qsort] Quick sort: * Passed.\n[queen] Queen placement: * Passed.\n[bf] Brainf**k interpreter: ",
+        "runtime_difftest": "on"
+      },
+      "coverage": {
+        "pass_": true,
+        "records": 99999,
+        "first_cycle": 0,
+        "last_cycle": 99995,
+        "guest_cycles": 100001,
+        "policy": "Nonempty monotonic trace ends at the reported architectural cycle"
+      },
+      "counter_lines": 0,
+      "trace": {
+        "records": 99999,
+        "last_cycle": 99995,
+        "chunks": [
+          [
+            "0.bin",
+            99999,
+            "9d5611d7eb708e13799544b249cd9d3ce43cc997344d0eea2d74fc01d83f64ca"
+          ]
+        ]
+      }
+    },
+    "microbench_full": {
+      "guest_cycles": 225601,
+      "guest_instructions": 326377,
+      "pc": "0x80003a4e",
+      "trace": {
+        "records": 225599,
+        "last_cycle": 225595,
+        "chunks": [
+          [
+            "0.bin",
+            225599,
+            "9e19b60a78593b85c9ba89f1ed380f7187a4e67ac4b2a1ed57d1940fa0c31d3e"
+          ]
+        ]
+      }
+    }
+  },
+  "workloads": {
+    "coremark": {
+      "wall_pct": {
+        "mean": -3.0271328457825026,
+        "ci95": [
+          -4.127851642586837,
+          -1.926414048978169
+        ],
+        "minimum": -5.034134173923832,
+        "maximum": -1.0780162750132827,
+        "below_zero": 8
+      },
+      "cycles_pct": {
+        "mean": -2.9934511153862684,
+        "ci95": [
+          -4.063491655802989,
+          -1.923410574969548
+        ],
+        "minimum": -4.860796356171482,
+        "maximum": -1.0105405386782174,
+        "below_zero": 8
+      },
+      "per_guest_cycle": {
+        "cycles": {
+          "mean": -68080.99303381966,
+          "ci95": [
+            -92873.7115217458,
+            -43288.27454589352
+          ],
+          "minimum": -111807.74983250168,
+          "maximum": -22620.0207097929,
+          "below_zero": 8
+        },
+        "instructions": {
+          "mean": -22408.552143228568,
+          "ci95": [
+            -22761.254224136123,
+            -22055.850062321013
+          ],
+          "minimum": -23170.41281587184,
+          "maximum": -21634.961380386198,
+          "below_zero": 8
+        },
+        "branches": {
+          "mean": 7190.2477500224995,
+          "ci95": [
+            7147.889233888732,
+            7232.606266156267
+          ],
+          "minimum": 7096.5140948590515,
+          "maximum": 7263.233727662723,
+          "below_zero": 0
+        },
+        "branch-misses": {
+          "mean": -388.6260249897501,
+          "ci95": [
+            -400.2109046475586,
+            -377.04114533194155
+          ],
+          "minimum": -403.9434205657943,
+          "maximum": -366.49554504454954,
+          "below_zero": 8
+        },
+        "ex_ret_ops": {
+          "mean": -38175.71515284847,
+          "ci95": [
+            -38703.967620251235,
+            -37647.4626854457
+          ],
+          "minimum": -39270.815751842485,
+          "maximum": -37198.176988230116,
+          "below_zero": 8
+        }
+      }
+    },
+    "microbench": {
+      "wall_pct": {
+        "mean": -2.360128234020753,
+        "ci95": [
+          -2.8556394479812406,
+          -1.8646170200602654
+        ],
+        "minimum": -3.541621457422528,
+        "maximum": -1.5070625141714422,
+        "below_zero": 8
+      },
+      "cycles_pct": {
+        "mean": -2.2689212639992644,
+        "ci95": [
+          -2.755871393723913,
+          -1.7819711342746158
+        ],
+        "minimum": -3.466079446410908,
+        "maximum": -1.513845768640476,
+        "below_zero": 8
+      },
+      "per_guest_cycle": {
+        "cycles": {
+          "mean": -46929.81408185918,
+          "ci95": [
+            -57270.99538793915,
+            -36588.63277577921
+          ],
+          "minimum": -72280.59662403376,
+          "maximum": -31001.415935840643,
+          "below_zero": 8
+        },
+        "instructions": {
+          "mean": -27386.77614598854,
+          "ci95": [
+            -28176.261169815698,
+            -26597.291122161383
+          ],
+          "minimum": -28048.151558484416,
+          "maximum": -25075.863921360786,
+          "below_zero": 8
+        },
+        "branches": {
+          "mean": 5231.893138568614,
+          "ci95": [
+            5161.182440671544,
+            5302.603836465683
+          ],
+          "minimum": 5102.773122268777,
+          "maximum": 5335.280007199928,
+          "below_zero": 0
+        },
+        "branch-misses": {
+          "mean": -255.005058699413,
+          "ci95": [
+            -260.56952131954625,
+            -249.44059607927977
+          ],
+          "minimum": -267.02854971450284,
+          "maximum": -244.9879001209988,
+          "below_zero": 8
+        },
+        "ex_ret_ops": {
+          "mean": -41375.831884181156,
+          "ci95": [
+            -42221.66214422703,
+            -40530.00162413528
+          ],
+          "minimum": -41962.47825521745,
+          "maximum": -38902.10782892171,
+          "below_zero": 8
+        }
+      }
+    }
+  },
+  "min_sample_quality": {
+    "min_running_pct": 99.0,
+    "sibling_idle_pct": 99.98175848230572,
+    "cpu_fraction": 0.9980811406180095
+  }
+}
