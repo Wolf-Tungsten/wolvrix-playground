@@ -103,7 +103,7 @@ def firrtl_canonical_pipeline() -> list[tuple[str, dict]]:
         ("dead-code-elim", {"keep_declared_symbols": False,
                             "drop_disabled_firrtl_assertions": True}),
         ("alias-analysis", {}),
-        ("pattern-detect", {}),
+        ("pattern-detect", {"semantics": "2state"}),
         ("comm-expr", {}),
         ("dead-code-elim", {"keep_declared_symbols": False}),
     ]

@@ -784,6 +784,105 @@ capture_f33_pipeline:
 		2>&1 | tee "$(F33_WORK)/launch/$(F33_CAPTURE_MODE)-$(F33_CAPTURE_ENGINE)-$$(date -u +%Y%m%dT%H%M%S%N).log"
 
 F33_PERFORMANCE_WORK ?= $(F33_WORK)/phase5/formal-v1
+.PHONY: snapshot_f34_package
+F34_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F34
+F34_PACKAGE ?= $(F33_PERFORMANCE_WORK)/package
+F34_CANDIDATE_PACKAGE ?= $(F34_WORK)/candidate/package
+F34_GSIM_BUILD ?= $(F34_WORK)/gsim-build
+F34_GSIM_BINARY ?= $(F34_GSIM_BUILD)/gsim/gsim
+F34_INPUT ?= $(F29_FULL_INPUT)
+F34_MANIFEST ?= $(F33_MANIFEST)
+F34_MODE ?= reference
+F34_ENGINE ?= gsim
+F34_OUTPUT ?= $(F34_WORK)/$(F34_MODE)-$(F34_ENGINE)
+F34_ARGS ?=
+F34_ALIGNMENT_TABLES ?= $(F34_WORK)/alias-alignment-tables
+F34_ALIGNMENT_GRH ?= $(F34_WORK)/alias-iteration10/capture
+F34_ALIGNMENT_GSIM ?= $(F34_WORK)/r4-capture-gsim-v2
+F34_TEST_TARGETS ?= transform-f34-alias-analysis transform-f34-pattern-detect transform-f34-common-expr transform-f33-pipeline grhsim-transform-tests
+F34_TEST_REGEX ?= ^(transform-f34-.*|transform-f33-pipeline|grhsim-transform-tests)$$
+F34_PASS_TRACE_OUTPUT ?= $(F34_WORK)/pass-trace/$(F34_ENGINE)
+F34_PASS_TRACE_PACKAGE ?=
+F34_PASS_TRACE_ARGS ?=
+.PHONY: f34_gsim_build capture_f34_pipeline capture_f34_pass_trace export_f34_alignment_tables test_f34_alignment_tables test_f34_passes test_f34_contract test_f34_gsim_stop
+f34_gsim_build:
+	@$(MAKE) --no-print-directory f32_gsim_benchmark_build F32_WORK="$(F34_WORK)" \
+		F32_GSIM_BENCH_BUILD="$(F34_GSIM_BUILD)" F32_GSIM_BENCH_CXXFLAGS="-DNR_THREAD=1"
+snapshot_f34_package:
+	@$(MAKE) --no-print-directory snapshot_f30_package F30_WORK="$(F34_WORK)" \
+		F30_SNAPSHOT_OUTPUT="$(F34_CANDIDATE_PACKAGE)" \
+		F30_SNAPSHOT_ARGS='--build-cache "$(WOLVRIX_DIR)/build/skbuild/CMakeCache.txt" --source-root "$(WOLVRIX_DIR)"'
+capture_f34_pipeline:
+	@mkdir -p "$(F34_WORK)/tmp" "$(F34_WORK)/launch"
+	@set -o pipefail; TMPDIR="$(abspath $(F34_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/capture_f34_pipeline.py \
+		--mode="$(F34_MODE)" --engine="$(F34_ENGINE)" --firrtl="$(abspath $(F34_INPUT))" \
+		--manifest="$(abspath $(F34_MANIFEST))" --package="$(abspath $(F34_PACKAGE))" --binary="$(abspath $(F34_GSIM_BINARY))" \
+		--output="$(abspath $(F34_OUTPUT))" $(F34_ARGS) 2>&1 | tee "$(F34_WORK)/launch/$(F34_MODE)-$(F34_ENGINE)-$$(date -u +%Y%m%dT%H%M%S%N).log"
+capture_f34_pass_trace:
+	@mkdir -p "$(F34_WORK)/tmp" "$(F34_WORK)/launch"
+	@set -o pipefail; TMPDIR="$(abspath $(F34_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/capture_f34_pass_trace.py \
+		--engine="$(F34_ENGINE)" --firrtl="$(abspath $(F34_INPUT))" --manifest="$(abspath $(F34_MANIFEST))" \
+		--binary="$(abspath $(F34_GSIM_BINARY))" --output="$(abspath $(F34_PASS_TRACE_OUTPUT))" \
+		$(if $(strip $(F34_PASS_TRACE_PACKAGE)),--package="$(abspath $(F34_PASS_TRACE_PACKAGE))",) $(F34_PASS_TRACE_ARGS) \
+		2>&1 | tee "$(F34_WORK)/launch/pass-trace-$(F34_ENGINE)-$$(date -u +%Y%m%dT%H%M%S%N).log"
+export_f34_alignment_tables:
+	@mkdir -p "$(F34_WORK)/tmp" "$(F34_WORK)/launch"
+	@set -o pipefail; TMPDIR="$(abspath $(F34_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/export_f34_alignment_tables.py \
+		--grh-capture="$(abspath $(F34_ALIGNMENT_GRH))" --gsim-capture="$(abspath $(F34_ALIGNMENT_GSIM))" \
+		--output="$(abspath $(F34_ALIGNMENT_TABLES))" $(if $(filter 1,$(F34_ALIGNMENT_FINALIZE)),--finalize-existing,) \
+		$(if $(filter 1,$(F34_ALIGNMENT_REPAIR)),--repair-truncated,) \
+		2>&1 | tee "$(F34_WORK)/launch/export-alignment-tables-$$(date -u +%Y%m%dT%H%M%S%N).log"
+test_f34_alignment_tables:
+	@mkdir -p "$(F34_WORK)/tool-tests" "$(F34_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F34_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p 'test_export_f34_alignment_tables.py' -v 2>&1 | tee "$(F34_WORK)/tool-tests/test_f34_alignment_tables.log"
+test_f34_passes:
+	@$(MAKE) --no-print-directory test_f32_passes F32_WORK="$(F34_WORK)" F32_TEST_TARGETS="$(F34_TEST_TARGETS)" F32_TEST_REGEX='$(F34_TEST_REGEX)'
+test_f34_contract test_f34_gsim_stop:
+	@mkdir -p "$(F34_WORK)/tool-tests" "$(F34_WORK)/tmp"
+	@set -o pipefail; TMPDIR="$(abspath $(F34_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1 \
+		F34_GSIM_BINARY="$(abspath $(F34_GSIM_BINARY))" $(PYTHON) -m unittest discover -s scripts \
+		-p '$(if $(filter test_f34_gsim_stop,$@),test_f34_gsim_stop.py,test_capture_f34_pipeline.py)' -v 2>&1 | tee "$(F34_WORK)/tool-tests/$@.log"
+
+F34_RHS_WORK ?= $(F34_WORK)/culprit-ledger/f34-5b
+F34_RHS_GSIM_STAGE ?= all
+F34_RHS_BOUNDARIES ?= B0,B1,P0,P1,P2,P3,P4,Q1,R0,R1
+F34_RHS_GSIM ?= $(F34_RHS_WORK)/gsim
+F34_RHS_GRH ?= $(F34_RHS_WORK)/grh
+F34_RHS_LEDGER ?= $(F34_RHS_WORK)/ledger.tsv
+F34_RHS_SOURCES ?= $(F34_RHS_WORK)/replacement-sources.tsv
+F34_RHS_MIGRATION_INDEX ?= $(F34_WORK)/alias-capture/retained-analysis/gsim/migrations.tsv
+F34_RHS_GSIM_R0 ?= $(F34_WORK)/alias-capture/gsim-native/R0/nodes.tsv
+F34_RHS_NAMES ?=
+F34_RHS_PACKAGE ?=
+F34_RHS_ENV = TMPDIR="$(abspath $(F34_RHS_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1
+F34_RHS_NAME_ARGS = $(foreach path,$(F34_RHS_NAMES),--names="$(abspath $(path))")
+.PHONY: export_f34_rhs_gsim export_f34_rhs_grh compare_f34_rhs_signatures prepare_f34_rhs_sources test_f34_rhs_contract f34_rhs_work
+export_f34_rhs_gsim export_f34_rhs_grh compare_f34_rhs_signatures prepare_f34_rhs_sources test_f34_rhs_contract: | f34_rhs_work
+f34_rhs_work:
+	@mkdir -p "$(F34_RHS_WORK)/tmp"
+export_f34_rhs_gsim:
+	@set -o pipefail; $(F34_RHS_ENV) $(PYTHON) scripts/f34_rhs_signatures.py gsim \
+		--binary="$(abspath $(F34_GSIM_BINARY))" --firrtl="$(abspath $(F34_INPUT))" \
+		--stage="$(F34_RHS_GSIM_STAGE)" --output="$(abspath $(F34_RHS_GSIM))" $(F34_RHS_NAME_ARGS) \
+		2>&1 | tee "$(F34_RHS_WORK)/gsim-signatures.log"
+export_f34_rhs_grh:
+	@set -o pipefail; $(F34_RHS_ENV) $(PYTHON) scripts/f34_rhs_signatures.py grh \
+		--manifest="$(abspath $(F34_MANIFEST))" --boundaries="$(F34_RHS_BOUNDARIES)" \
+		$(if $(strip $(F34_RHS_PACKAGE)),--package="$(abspath $(F34_RHS_PACKAGE))",) \
+		--output="$(abspath $(F34_RHS_GRH))" $(F34_RHS_NAME_ARGS) 2>&1 | tee "$(F34_RHS_WORK)/grh-signatures.log"
+compare_f34_rhs_signatures:
+	@set -o pipefail; $(F34_RHS_ENV) $(PYTHON) scripts/f34_rhs_signatures.py compare \
+		--grh="$(abspath $(F34_RHS_GRH))" --gsim="$(abspath $(F34_RHS_GSIM))" \
+		--boundaries="$(F34_RHS_BOUNDARIES)" --output="$(abspath $(F34_RHS_LEDGER))" $(F34_RHS_NAME_ARGS) \
+		2>&1 | tee "$(F34_RHS_WORK)/compare-signatures.log"
+prepare_f34_rhs_sources:
+	@set -o pipefail; $(F34_RHS_ENV) $(PYTHON) scripts/f34_rhs_signatures.py sources \
+		--migration-index="$(abspath $(F34_RHS_MIGRATION_INDEX))" --gsim-r0="$(abspath $(F34_RHS_GSIM_R0))" \
+		--output="$(abspath $(F34_RHS_SOURCES))" $(F34_RHS_NAME_ARGS) 2>&1 | tee "$(F34_RHS_WORK)/rhs-sources.log"
+test_f34_rhs_contract:
+	@set -o pipefail; $(F34_RHS_ENV) $(PYTHON) -m unittest discover -s scripts -p 'test_f34_rhs_signatures.py' -v \
+		2>&1 | tee "$(F34_RHS_WORK)/test_f34_rhs_contract.log"
+
 F33_PERFORMANCE_PACKAGE ?= $(F33_PERFORMANCE_WORK)/package
 F33_PERFORMANCE_GSIM_BUILD ?= $(F33_PERFORMANCE_WORK)/gsim-build
 F33_PERFORMANCE_GROUP ?= $(F33_PERFORMANCE_WORK)/group

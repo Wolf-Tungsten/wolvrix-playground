@@ -1,0 +1,10 @@
+{
+  "schema": "wolvrix.xs.firrtl-inputs.v1",
+  "input_root": ".",
+  "sources": [{"language": "firrtl", "path": "f34_rhs_roots.fir", "unit": "fixture"}],
+  "tops": ["RhsRoots"],
+  "firrtl_options": {
+    "lower_threads": 1,
+    "node_annotations": true
+  }
+}

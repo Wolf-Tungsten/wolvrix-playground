@@ -1277,3 +1277,12 @@ fixture各完成三次GSIM独立新图batch16参考，GRH两pass均在2倍内并
 唯一计划与后续进展入口为
 [F33-constant-analysis-dce-alignment-plan.md](F33-constant-analysis-dce-alignment-plan.md)。
 继承F32已接受结果及未证事项；前驱修复仍需独立明确批准。
+
+## F34 第三次 DCE 后至第四次 DCE 对齐
+
+**F34.0–F34.4 已完成。** 香山 R0 和 GSIM 功能预算已冻结，三个 pass 的专项回归通过。
+以第三次 DCE 返回后的图为输入，依次执行 AliasAnalysis、
+PatternDetect、CommonExpr 和第四次 DCE。香山全图报告五界双端 Node 总数、
+唯一同名候选率和第四次 DCE 单独删除量。功能期执行逐 pass 两倍守卫，正式性能
+分别核对四个 pass 和连续窗口。
+[F34 计划](F34-post-third-dce-alignment-plan.md)

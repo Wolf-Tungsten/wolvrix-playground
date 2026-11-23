@@ -147,6 +147,29 @@ class ExchangeContractTests(unittest.TestCase):
                 stream.write('\t'.join(encode_cell(compact(row[key]) if key == 'detail_json' and row.get(key) is not None
                                                    else row.get(key)) for key in HEADERS['evolution']) + '\n')
 
+    def test_hierarchy_relocation_targets_match_both_node_inventories(self):
+        self.identity.update(engine='grh', graph_id='2')
+        self.write()
+        self.rows[0]['detail_json'].update({
+            'root_name': 'top', 'pass': 'hier-flatten', 'relocation_trace': 'hier-flatten-relocation.v1',
+        })
+        self.rows[-1]['detail_json']['relocationRecordCount'] = 3
+        self.write_rows()
+        path = self.directory / 'relocations.tsv'
+        metadata = {**self.identity, 'snapshot_id': 'after', 'stage': 'hier-flatten', 'table': 'relocations'}
+        lines = ['#meta\t' + compact(metadata), '\t'.join(HEADERS['relocations'])]
+        rows = [
+            '1\tchild\t1\t["instance"]\t2\ttop\t3\treuse-instance-port',
+            '1\tchild\t2\t["instance"]\t2\ttop\t4\tcopy',
+            '1\tchild\t3\t["instance"]\t2\ttop\t5\tcopy',
+        ]
+        path.write_text('\n'.join(lines + rows) + '\n')
+        self.assertEqual(verify_bundle(self.directory)['relocation_count'], 3)
+        rows[2] = rows[2].replace('\t5\tcopy', '\t3\tcopy')
+        path.write_text('\n'.join(lines + rows) + '\n')
+        with self.assertRaisesRegex(ValueError, 'relocation target'):
+            verify_bundle(self.directory)
+
     def set_liveness_provenance(self, records):
         self.write()
         self.rows[0]['detail_json']['liveness_provenance'] = 'dce-causality.v1'

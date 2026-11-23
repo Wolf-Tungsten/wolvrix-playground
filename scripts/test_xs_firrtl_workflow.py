@@ -161,7 +161,7 @@ class XsFirrtlWorkflowTests(unittest.TestCase):
 
     def test_f24_firrtl_pipeline_order_is_explicit(self):
         for name, options in firrtl_canonical_pipeline():
-            if name in ("expr-opt", "used-bits", "split-nodes", "constant-analysis"):
+            if name in ("expr-opt", "used-bits", "split-nodes", "constant-analysis", "pattern-detect"):
                 self.assertEqual(options["semantics"], "2state")
         pipeline = firrtl_canonical_pipeline()
         self.assertEqual([name for name, _ in pipeline], [

@@ -27,6 +27,38 @@ EVENT_SCHEMA = 'wolvrix.f33.stage-event.v1'
 MAX_EVENT_BYTES = 16 * 1024
 
 
+@dataclass(frozen=True)
+class Window:
+    name: str
+    boundary_prefix: str
+    calls: tuple[tuple[str, str, str], ...]
+
+    @property
+    def passes(self):
+        return tuple(logical for logical, _, _ in self.calls)
+
+    @property
+    def boundaries(self):
+        return {logical: self.boundary_prefix + str(i) for i, logical in enumerate(self.passes)}
+
+    @property
+    def reference_schema(self):
+        return f'wolvrix.{self.name}.reference.v1'
+
+    @property
+    def guard_schema(self):
+        return f'wolvrix.{self.name}.guard.v1'
+
+
+F33 = Window('f33', 'Q', tuple(zip(PASSES, GSIM_TIMERS.values(), ('ConstantAnalysis', 'RemoveDeadNodes2'))))
+F34 = Window('f34', 'R', (
+    ('alias-analysis#0', 'AliasAnalysis#0', 'AliasAnalysis'),
+    ('pattern-detect#0', 'PatternDetect#0', 'PatternDetect'),
+    ('common-expr#0', 'CommonExpr#0', 'CommonExpr'),
+    ('dead-code-elim#3', 'RemoveDeadNodes#2', 'RemoveDeadNodes3'),
+))
+
+
 def positive(value, name):
     if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
         raise ValueError(name + ' must be finite and strictly positive')
@@ -41,7 +73,7 @@ def validate_identity(identity):
     if not isinstance(identity, dict):
         raise ValueError('reference identity must be an object')
     if identity.get('semantics') != '2state':
-        raise ValueError('F33 paired semantics must be explicitly 2state')
+        raise ValueError('paired semantics must be explicitly 2state')
     if type(identity.get('batch_count')) is not int or identity['batch_count'] < 1:
         raise ValueError('reference requires a positive fresh-graph batch count')
     for name in ('input', 'configuration'):
@@ -71,86 +103,100 @@ def evidence_files(records):
             raise ValueError('reference artifact is missing or changed: ' + str(path))
 
 
-def sample_times(sample, identity):
+def reference_sample_identity(identity, window):
+    validate_identity(identity)
+    # GSIM measurements are independent of the GRH binary. The resulting
+    # reference still pins the complete pair for the guarded GRH run.
+    return {key: value for key, value in identity.items() if window != F34 or key != 'grh'}
+
+
+def sample_times(sample, identity, window=F33):
+    recorded_identity = sample.get('reference_identity') if isinstance(sample, dict) else None
     if (not isinstance(sample, dict) or sample.get('status') != 'completed' or
             sample.get('engine') != 'gsim' or sample.get('resource_interference') is not False or
-            sample.get('reference_identity') != identity or
+            reference_sample_identity(recorded_identity, window) != reference_sample_identity(identity, window) or
             sample.get('fresh_graphs') != identity['batch_count'] or not sample.get('run_id')):
         raise ValueError('invalid or mismatched GSIM reference sample')
     records = sample.get('reference_evidence')
     evidence_files(records)
     times = sample.get('pass_times_s')
-    if not isinstance(times, dict) or set(times) != set(PASSES):
-        raise ValueError('GSIM reference requires exactly the two F33 logical passes')
-    times = {key: positive(times[key], key + ' native reference') for key in PASSES}
+    if not isinstance(times, dict) or set(times) != set(window.passes):
+        raise ValueError('GSIM reference requires exactly the window logical passes')
+    times = {key: positive(times[key], key + ' native reference') for key in window.passes}
     artifacts = {row.get('kind'): Path(row['path']) for row in records}
     if any(sum(row.get('kind') == kind for row in records) != 1
            for kind in ('native-timing', 'stage-events', 'guard')):
         raise ValueError('reference requires unique native timer, stage-event and guard evidence')
     timers = [json.loads(line) for line in artifacts['native-timing'].read_text().splitlines() if line.strip()]
-    for key in PASSES:
+    if window == F34 and [(row.get('pass_instance'), row.get('stage')) for row in timers
+                          if row.get('scope') == 'pass'][-len(window.calls):] != [
+                              (timer, stage) for _, timer, stage in window.calls]:
+        raise ValueError('GSIM reference did not finish in the expected pass order')
+    for key, timer, expected_stage in window.calls:
         native = [row for row in timers if row.get('scope') == 'pass' and
-                  row.get('pass_instance') == GSIM_TIMERS[key]]
-        expected_stage = 'ConstantAnalysis' if key == PASSES[0] else 'RemoveDeadNodes2'
+                  row.get('pass_instance') == timer]
         if (len(native) != 1 or native[0].get('schema') != 'gsim-stage-timing.v1' or
                 native[0].get('clock') != 'steady_clock' or native[0].get('complete') is not True or
                 native[0].get('stage') != expected_stage or native[0].get('wall_s') != times[key] or
                 native[0].get('batch_count', 1) != identity['batch_count']):
             raise ValueError('reference summary is not bound to its complete native timer: ' + key)
-    tracker = PassDeadline(sample['run_id'], 'gsim', {}, identity['batch_count'])
+    tracker = PassDeadline(sample['run_id'], 'gsim', {}, identity['batch_count'], window=window)
     for line in artifacts['stage-events'].read_text().splitlines():
         tracker.consume(json.loads(line), time.monotonic())
-    if (tracker.errors or set(tracker.completed) != set(PASSES) or tracker.active or
+    if (tracker.errors or tuple(tracker.completed) != window.passes or tracker.active or
             {key: event['wall_s'] for key, event in tracker.completed.items()} != times):
         raise ValueError('reference has invalid or mismatched native start/end events')
     guard = json.loads(artifacts['guard'].read_text())
-    if (guard.get('schema') != 'wolvrix.f33.guard.v1' or guard.get('status') != 'completed' or
+    if (guard.get('schema') != window.guard_schema or guard.get('status') != 'completed' or
             guard.get('run_id') != sample['run_id'] or guard.get('engine') != 'gsim' or
-            guard.get('resource_interference') is not False or guard.get('reference_identity') != identity or
+            guard.get('resource_interference') is not False or guard.get('reference_identity') != recorded_identity or
             guard.get('pass_times_s') != times or guard.get('event_errors')):
         raise ValueError('reference did not complete with a valid independent supervisor')
     return times
 
 
-def build_reference(samples, identity):
+def build_reference(samples, identity, window=F33):
     """Lock medians from complete, independent GSIM runs without a budget floor."""
     validate_identity(identity)
     if not isinstance(samples, list) or len(samples) < 3:
         raise ValueError('at least three valid GSIM reference samples are required')
-    times = [sample_times(sample, identity) for sample in samples]
+    times = [sample_times(sample, identity, window) for sample in samples]
     if len({sample['run_id'] for sample in samples}) != len(samples):
         raise ValueError('GSIM reference samples must have distinct run identities')
     passes = {}
-    for key in PASSES:
+    for key, timer, _ in window.calls:
         raw = [row[key] for row in times]
         median = statistics.median(raw)
         tolerance = max(0.03 * median, 0.010)
-        if any(abs(value - median) > tolerance for value in raw):
+        deviation = max(abs(value - median) for value in raw)
+        if window == F33 and deviation > tolerance:
             raise ValueError('unstable GSIM reference; investigate environment or use fresh-graph calibration: ' + key)
         budget = positive(2 * median, key + ' budget')
-        passes[key] = {'input_boundary': BOUNDARIES[key], 'native_timer': GSIM_TIMERS[key],
+        passes[key] = {'input_boundary': window.boundaries[key], 'native_timer': timer,
                        'samples_s': raw, 'median_s': median, 'budget_s': budget,
                        'jitter_tolerance_s': tolerance}
-    return {'schema': REFERENCE_SCHEMA, 'identity': identity, 'passes': passes,
+        if window == F34:
+            passes[key].update(max_deviation_s=deviation, within_formal_jitter=deviation <= tolerance)
+    return {'schema': window.reference_schema, 'identity': identity, 'passes': passes,
             'samples': samples, 'multiplier': 2, 'created_at_ns': time.time_ns()}
 
 
-def validate_reference(reference, expected_identity):
+def validate_reference(reference, expected_identity, window=F33):
     validate_identity(expected_identity)
-    if (not isinstance(reference, dict) or reference.get('schema') != REFERENCE_SCHEMA or
+    if (not isinstance(reference, dict) or reference.get('schema') != window.reference_schema or
             reference.get('identity') != expected_identity or reference.get('multiplier') != 2):
-        raise ValueError('missing or mismatched F33 GSIM reference')
-    rebuilt = build_reference(reference.get('samples'), expected_identity)
+        raise ValueError(f'missing or mismatched {window.name.upper()} GSIM reference')
+    rebuilt = build_reference(reference.get('samples'), expected_identity, window)
     if reference.get('passes') != rebuilt['passes']:
         raise ValueError('GSIM reference medians/budgets/mapping were modified')
-    return {key: rebuilt['passes'][key]['budget_s'] for key in PASSES}
+    return {key: rebuilt['passes'][key]['budget_s'] for key in window.passes}
 
 
 def append_event(path, *, run_id, engine, logical_instance, event, wall_s=None, monotonic_s=None,
-                 batch_count=1):
+                 batch_count=1, window=F33):
     """Emit before/after native work; never hold exports inside the pass interval."""
-    record = {'schema': EVENT_SCHEMA, 'run_id': run_id, 'engine': engine,
-              'logical_instance': logical_instance, 'input_boundary': BOUNDARIES[logical_instance],
+    record = {'schema': f'wolvrix.{window.name}.stage-event.v1', 'run_id': run_id, 'engine': engine,
+              'logical_instance': logical_instance, 'input_boundary': window.boundaries[logical_instance],
               'event': event, 'monotonic_s': time.monotonic() if monotonic_s is None else monotonic_s,
               'batch_count': batch_count}
     if wall_s is not None:
@@ -169,10 +215,12 @@ def append_event(path, *, run_id, engine, logical_instance, event, wall_s=None, 
 
 class PassDeadline:
     """Ordered, latched logical calls; damaged progress cannot clear an active call."""
-    def __init__(self, run_id, engine, budgets, batch_count=1):
+    def __init__(self, run_id, engine, budgets, batch_count=1, *, window=F33):
         self.run_id, self.engine = run_id, engine
         self.batch_count = batch_count
         self.budgets = dict(budgets)
+        self.passes = window.passes
+        self.boundaries = window.boundaries
         self.active = None
         self.completed = {}
         self.events = []
@@ -187,14 +235,14 @@ class PassDeadline:
             key = event.get('logical_instance')
             stamp = positive(event.get('monotonic_s'), 'event monotonic_s')
             if (event.get('run_id') != self.run_id or event.get('engine') != self.engine or
-                    key not in PASSES or event.get('input_boundary') != BOUNDARIES[key] or
+                    key not in self.boundaries or event.get('input_boundary') != self.boundaries[key] or
                     event.get('batch_count', 1) != self.batch_count):
                 raise ValueError('event run/engine/logical occurrence/boundary identity mismatch')
             if stamp > now + 0.001 or (self.last_timestamp is not None and stamp < self.last_timestamp):
                 raise ValueError('stage event has an impossible/nonmonotonic timestamp')
             kind = event.get('event')
             if kind == 'start':
-                expected = PASSES[len(self.completed)] if len(self.completed) < len(PASSES) else None
+                expected = self.passes[len(self.completed)] if len(self.completed) < len(self.passes) else None
                 if self.active is not None or key != expected or key in self.completed:
                     raise ValueError('duplicate, overlapping or out-of-order pass start')
                 self.active = dict(event)
@@ -208,7 +256,7 @@ class PassDeadline:
                 self.active = None
                 if key in self.budgets and duration > self.budgets[key]:
                     self.trigger = {'kind': 'completed-pass-over-budget', 'logical_instance': key,
-                                    'input_boundary': BOUNDARIES[key], 'budget_s': self.budgets[key],
+                                    'input_boundary': self.boundaries[key], 'budget_s': self.budgets[key],
                                     'native_wall_s': duration, 'observed_monotonic_s': now}
             else:
                 raise ValueError('unknown stage event kind')
@@ -228,7 +276,7 @@ class PassDeadline:
             deadline = self.active['monotonic_s'] + self.budgets[key]
             if now >= deadline:
                 self.trigger = {'kind': 'running-pass-at-budget', 'logical_instance': key,
-                                'input_boundary': BOUNDARIES[key], 'budget_s': self.budgets[key],
+                                'input_boundary': self.boundaries[key], 'budget_s': self.budgets[key],
                                 'started_monotonic_s': self.active['monotonic_s'], 'deadline_monotonic_s': deadline,
                                 'observed_monotonic_s': now, 'observation_delay_s': now - deadline,
                                 'elapsed_s': now - self.active['monotonic_s']}
@@ -415,13 +463,15 @@ def _annotate_summary(output, report):
 
 
 def run_guarded(command, output, *, run_id, engine, identity, reference=None,
-                limits=SupervisorLimits(), sampler=None, require_passes=True):
+                limits=SupervisorLimits(), sampler=None, require_passes=True, require_reference=True,
+                window=F33):
     """Launch a private group; monitor workers cannot block deadline observation."""
     limits.validate()
     validate_identity(identity)
     if engine not in ('grh', 'gsim') or not isinstance(run_id, str) or not run_id:
         raise ValueError('guard requires an explicit engine and run_id')
-    budgets = validate_reference(reference, identity) if engine == 'grh' else {}
+    budgets = (validate_reference(reference, identity, window)
+               if engine == 'grh' and require_passes and (require_reference or reference is not None) else {})
     if reference is not None and engine == 'gsim':
         raise ValueError('GSIM reference collection must not use GRH pass budgets')
     output = Path(output)
@@ -431,7 +481,7 @@ def run_guarded(command, output, *, run_id, engine, identity, reference=None,
         if path.exists():
             raise ValueError('refusing to overwrite guard/failure evidence: ' + str(path))
     output.mkdir(parents=True, exist_ok=True)
-    report = {'schema': 'wolvrix.f33.guard.v1', 'status': 'running', 'run_id': run_id, 'engine': engine,
+    report = {'schema': window.guard_schema, 'status': 'running', 'run_id': run_id, 'engine': engine,
               'reference_identity': identity, 'budgets_s': budgets, 'command': command,
               'limits': asdict(limits), 'started_at_ns': time.time_ns(), 'supervisor_pid': os.getpid(),
               'resource_scope': 'sampled process RSS and cgroup PSI; diagnostic, not a hard memory cap',
@@ -440,7 +490,7 @@ def run_guarded(command, output, *, run_id, engine, identity, reference=None,
     with guard_path.open('x') as stream:
         stream.write(canonical(report) + '\n')
     resources_path.touch(exist_ok=False)
-    tracker = PassDeadline(run_id, engine, budgets, identity['batch_count'])
+    tracker = PassDeadline(run_id, engine, budgets, identity['batch_count'], window=window)
     pressure = PressureDeadline(limits.resources)
     workers = []
     child = None
@@ -485,10 +535,11 @@ def run_guarded(command, output, *, run_id, engine, identity, reference=None,
                     if exit_observed is None:
                         exit_observed = now
                     # Permit the isolated reader to drain final bytes after exit.
-                    if len(tracker.completed) == len(PASSES) or now - exit_observed >= 0.100:
+                    if now - exit_observed >= 0.100:
                         if code:
                             trigger = {'kind': 'child-failed', 'returncode': code}
-                        elif require_passes and (set(tracker.completed) != set(PASSES) or tracker.active):
+                        elif (tuple(tracker.completed) != (tracker.passes if require_passes else ()) or
+                              tracker.active):
                             trigger = {'kind': 'incomplete-pass-events'}
                         elif tracker.errors:
                             trigger = {'kind': 'invalid-pass-events'}
@@ -504,7 +555,7 @@ def run_guarded(command, output, *, run_id, engine, identity, reference=None,
                 if tracker.active is None:
                     count = len(tracker.completed)
                     name, bound = (('prefix', limits.prefix_s) if not count else
-                                   ('suffix', limits.suffix_s) if count == len(PASSES) else
+                                   ('suffix', limits.suffix_s) if count == len(tracker.passes) else
                                    ('between-passes', limits.between_passes_s))
                     if now - idle_started >= bound:
                         trigger = {'kind': name + '-timeout', 'limit_s': bound}
@@ -548,8 +599,9 @@ def run_guarded(command, output, *, run_id, engine, identity, reference=None,
         if trigger is not None:
             if report['status'] == 'running':
                 report['status'] = 'failed'
-            last_boundary = (BOUNDARIES[trigger['logical_instance']] if trigger.get('logical_instance') in PASSES
-                             else 'Q' + str(len(tracker.completed)))
+            last_boundary = (tracker.boundaries[trigger['logical_instance']]
+                             if trigger.get('logical_instance') in tracker.boundaries else
+                             window.boundary_prefix + str(len(tracker.completed)))
             trigger = {**trigger, 'requested_at_ns': time.time_ns(),
                        'termination_requested_monotonic_s': time.monotonic(),
                        'last_complete_boundary': last_boundary,

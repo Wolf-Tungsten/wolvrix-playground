@@ -9,6 +9,10 @@ import tempfile
 import unittest
 
 import wolvrix
+from capture_f34_pipeline import production_calls
+from f33_guard import F34
+from grhsim_flow import checked
+from wolvrix_xs_grhsim import firrtl_canonical_pipeline
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,7 +90,8 @@ class NativeBatchTests(unittest.TestCase):
         for event in observed:
             self.assertEqual((event['engine'], event['run_id'], event['logical_instance'], event['batch_count']),
                              ('grh', 'native-api-fixture', logical, len(members)))
-            self.assertEqual(event['input_boundary'], 'Q0' if name == 'constant-analysis' else 'Q1')
+            boundary = F34.boundaries.get(logical, 'Q0' if name == 'constant-analysis' else 'Q1')
+            self.assertEqual(event['input_boundary'], boundary)
             self.assertTrue(math.isfinite(event['monotonic_s']))
         self.assertAlmostEqual(observed[-1]['wall_s'], row['wall_s'], places=12)
         self.assertGreaterEqual(observed[-1]['monotonic_s'] - observed[0]['monotonic_s'] + 1e-8, row['wall_s'])
@@ -105,6 +110,28 @@ class NativeBatchTests(unittest.TestCase):
                 result, timing, events = self.invoke(members, 'dead-code-elim', 'dead-code-elim#2', stem=f'dce-{count}')
                 self.assert_success_evidence(members, 'dead-code-elim', 'dead-code-elim#2', result, timing, events)
                 self.assertEqual([member.history() for member in members], histories)
+
+    def test_f34_two_fresh_members_stop_after_fourth_dce(self):
+        members = [self.session(prefix=False) for _ in range(2)]
+        prefix, window = production_calls(firrtl_canonical_pipeline())
+        for member in members:
+            for name, _, keep, options in prefix:
+                result = member.run_pass(name, design='design.main', keep_declared_symbols=keep, **options)
+                checked(result, name)
+        for name, logical, keep, options in window:
+            result, timing, events = self.invoke(members, name, logical, stem=logical,
+                                                  keep_declared_symbols=keep, **options)
+            self.assert_success_evidence(members, logical.split('#')[0], logical, result, timing, events)
+        for index, member in enumerate(members):
+            before = self.work / f'r4-{index}-before.json'
+            after = self.work / f'r4-{index}-after.json'
+            checked(member.store_json(design='design.main', output=str(before)), 'save R4')
+            diagnostic = member.run_pass('grhsim-dialect-translate', design='design.main', top='top',
+                                         logic_domain='2state')
+            with self.assertRaisesRegex(RuntimeError, 'fourth dead-code-elim'):
+                checked(diagnostic, 'successor support gate')
+            checked(member.store_json(design='design.main', output=str(after)), 'save after rejected successor')
+            self.assertEqual(before.read_bytes(), after.read_bytes())
 
     def test_python_duplicate_session_and_capsule_reject_before_start(self):
         member = self.session()

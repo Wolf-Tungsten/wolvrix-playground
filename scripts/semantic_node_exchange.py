@@ -17,6 +17,8 @@ HEADERS = {
     'connections': ('connection_id', 'source_node_id', 'target_node_id', 'kind',
                     'resolution', 'candidate_sources_json', 'reason'),
     'evolution': ('record', 'seq', 'ordinal', 'action', 'reason', 'subject', 'side', 'object_id', 'detail_json'),
+    'relocations': ('source_graph_id', 'source_module', 'source_node_id', 'instance_path_json',
+                    'target_graph_id', 'target_module', 'target_node_id', 'action'),
 }
 KINDS = {'dependency', 'state_update', 'storage_read', 'storage_write', 'external_binding', 'unknown'}
 IDENTITY = ('schema', 'engine', 'run_id', 'graph_id', 'exchange_session_id')
@@ -1207,6 +1209,60 @@ def load_snapshot(directory, prefix, db, table_prefix):
     return {'metadata': metadata['nodes'], 'nodes': footers['nodes'], 'connections': footers['connections']}
 
 
+def verify_relocations(bundle, header, footer, after, db):
+    path = bundle / 'relocations.tsv'
+    if header.get('relocation_trace') is None:
+        if path.exists() or 'relocationRecordCount' in footer:
+            raise ValueError('native relocations are missing their header declaration')
+        return 0
+    count = footer.get('relocationRecordCount')
+    if (header['relocation_trace'] != 'hier-flatten-relocation.v1' or header['engine'] != 'grh' or
+            'hier-flatten' not in header['pass'].split(',') or
+            type(count) is not int or count <= 0):
+        raise ValueError('invalid native hierarchy relocation declaration')
+    db.execute('''CREATE TEMP TABLE relocation_targets (
+        id INTEGER PRIMARY KEY, action TEXT NOT NULL)''')
+    with path.open(encoding='utf-8', newline='') as stream:
+        first = stream.readline()
+        validate_line_ending(first)
+        if not first.startswith('#meta\t'):
+            raise ValueError('missing native hierarchy relocation identity')
+        metadata = json_value(first[len('#meta\t'):], dict)
+        if (metadata.get('table') != 'relocations' or metadata.get('stage') != 'hier-flatten' or
+                any(metadata.get(key) != after['metadata'][key] for key in (*IDENTITY, 'snapshot_id'))):
+            raise ValueError('native hierarchy relocation and after identity mismatch')
+        columns = HEADERS['relocations']
+        if stream.readline() != '\t'.join(columns) + '\n':
+            raise ValueError('invalid hierarchy relocation TSV columns')
+        actual = 0
+        for line in stream:
+            row = parsed_row(line, columns)
+            source_graph = integer(row['source_graph_id'])
+            target_graph = integer(row['target_graph_id'])
+            source = integer(row['source_node_id'])
+            target = integer(row['target_node_id'])
+            instance_path = json_value(row['instance_path_json'], list)
+            if (not source_graph or not source or not target or source_graph == target_graph or
+                    target_graph != integer(header['graph_id']) or not row['source_module'] or
+                    row['target_module'] != header.get('root_name') or not instance_path or
+                    any(not isinstance(token, str) or not token for token in instance_path) or
+                    row['action'] not in ('copy', 'reuse-instance-port')):
+                raise ValueError('invalid native hierarchy relocation')
+            db.execute('INSERT INTO relocation_targets VALUES(?,?) ON CONFLICT DO NOTHING',
+                       (target, row['action']))
+            actual += 1
+    if actual != count:
+        raise ValueError('native hierarchy relocation count mismatch')
+    if db.execute('''SELECT 1 FROM relocation_targets r
+        LEFT JOIN after_nodes a ON a.id=r.id LEFT JOIN before_nodes b ON b.id=r.id
+        WHERE a.id IS NULL OR (r.action='copy') != (b.id IS NULL)
+        UNION ALL SELECT 1 FROM after_nodes a
+        LEFT JOIN relocation_targets r ON r.id=a.id LEFT JOIN before_nodes b ON b.id=a.id
+        WHERE b.id IS NULL AND r.id IS NULL LIMIT 1''').fetchone():
+        raise ValueError('native hierarchy relocation target does not match the Node inventories')
+    return count
+
+
 def verify_bundle(bundle, database=':memory:'):
     """Reconstruct static after from before plus native full-object edits."""
     bundle = Path(bundle)
@@ -1600,10 +1656,12 @@ def verify_bundle(bundle, database=':memory:'):
             for left, right in (('current', 'after'), ('after', 'current')):
                 if db.execute(f'SELECT * FROM {left}_{table} EXCEPT SELECT * FROM {right}_{table} LIMIT 1').fetchone():
                     raise ValueError('replayed public graph differs from actual after snapshot')
+        relocation_count = verify_relocations(bundle, header, footer, after, db)
         db.commit()
         return {'schema': 'semantic-node-exchange-verification.v1', 'complete': True, 'replay_exact': True,
                 'header': header, 'footer': footer, 'before': before, 'after': after,
                 'events': events, 'decisions': decisions, 'actions': dict(actions), 'lineage_count': lineage_count,
+                'relocation_count': relocation_count,
                 'connection_evidence': connectionEvidence,
                 'liveness_provenance_count': liveness_provenance_count,
                 'boundary_retirement_count': boundary_retirement_count,
