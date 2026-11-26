@@ -843,6 +843,104 @@ test_f34_contract test_f34_gsim_stop:
 		F34_GSIM_BINARY="$(abspath $(F34_GSIM_BINARY))" $(PYTHON) -m unittest discover -s scripts \
 		-p '$(if $(filter test_f34_gsim_stop,$@),test_f34_gsim_stop.py,test_capture_f34_pipeline.py)' -v 2>&1 | tee "$(F34_WORK)/tool-tests/$@.log"
 
+F35_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F35
+F35_INPUT ?= $(F34_INPUT)
+F35_MANIFEST ?= $(F34_WORK)/alias-full-input/ingest-request.json
+F35_GSIM_BUILD ?= $(F35_WORK)/gsim-build
+F35_GSIM_BINARY ?= $(F35_GSIM_BUILD)/gsim/gsim
+F35_REFERENCE ?= $(F35_WORK)/gsim-reference
+F35_GRH_CAPTURE ?= $(F35_WORK)/grh-current
+F35_REPORT ?= $(F35_WORK)/comparison.json
+F35_GRH_R4 ?= $(F35_GRH_CAPTURE)/R4
+F35_GRH_NODES ?= $(F35_GRH_R4)/nodes.tsv
+F35_GRH_ENDPOINTS ?= $(F35_GRH_R4)/node-endpoints.tsv
+F35_GRH_CONNECTIONS ?= $(F35_GRH_R4)/connections.tsv
+F35_GSIM_NODES ?= $(F35_REFERENCE)/dce-3/after.nodes.tsv
+F35_GSIM_HISTORY ?=
+F35_COMPARE_ARGS ?=
+F35_SAMPLE_REPORT ?= $(F35_WORK)/samples.json
+F35_SAMPLE_ARGS ?=
+F35_CPUS ?= 0-31
+F35_XMR_LIMIT ?= 180
+F35_FLATTEN_LIMIT ?= 300
+F35_MEMORY_MAX_BYTES ?= 120259084288
+F35_RESOURCE_REPORT ?= $(F35_WORK)/launch/grh-resources.json
+F35_ARGS ?=
+F35_MODULE ?=
+F35_CAPTURE_OUTPUT ?=
+F35_CAPTURE_REFERENCE ?=
+F35_CAPTURE_ARGS ?=
+F35_MODULE_REPRO_OUTPUT ?= $(F35_WORK)/module-repro
+F35_MODULE_REPRO_SAMPLES ?=
+F35_MODULE_REPRO_PASSES ?=
+F35_MODULE_REPRO_ARGS ?=
+F35_MODULE_REPRO_THREADS ?= 4
+F35_ENV = TMPDIR="$(abspath $(F35_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F35_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1
+F35_CAPTURE_INPUT = --firrtl="$(abspath $(F35_INPUT))" --manifest="$(abspath $(F35_MANIFEST))"
+.PHONY: f35_gsim_build f35_work f35_gsim_reference f35_grh_capture f35_grh_capture_capped f35_capture_both f35_module_repro compare_f35_alignment trace_f35_samples test_f35_tools
+f35_gsim_build:
+	@$(MAKE) --no-print-directory f34_gsim_build F34_WORK="$(F35_WORK)" F34_GSIM_BUILD="$(F35_GSIM_BUILD)"
+f35_work:
+	@mkdir -p "$(F35_WORK)/tmp" "$(F35_WORK)/launch"
+f35_gsim_reference f35_grh_capture f35_capture_both f35_module_repro compare_f35_alignment trace_f35_samples test_f35_tools: | f35_work
+f35_capture_both:
+	@set -o pipefail; $(F35_ENV) taskset -c "$(F35_CPUS)" $(PYTHON) scripts/f35_capture_both.py \
+		$(F35_CAPTURE_INPUT) \
+		--xmr-limit="$(F35_XMR_LIMIT)" --flatten-limit="$(F35_FLATTEN_LIMIT)" \
+		$(if $(F35_MODULE),--module="$(F35_MODULE)",) \
+		$(if $(F35_CAPTURE_OUTPUT),--output="$(abspath $(F35_CAPTURE_OUTPUT))",) \
+		$(if $(F35_CAPTURE_REFERENCE),--reference="$(abspath $(F35_CAPTURE_REFERENCE))",--binary="$(abspath $(F35_GSIM_BINARY))") \
+		$(if $(F35_PACKAGE),--package="$(abspath $(F35_PACKAGE))",) $(F35_CAPTURE_ARGS) \
+		2>&1 | tee "$(F35_WORK)/launch/capture-both-$$(date -u +%Y%m%dT%H%M%S%N).log"
+f35_module_repro:
+	@set -o pipefail; $(F35_ENV) taskset -c "$(F35_CPUS)" $(PYTHON) scripts/f35_module_repro.py \
+		--firrtl="$(abspath $(F35_INPUT))" --manifest="$(abspath $(F35_MANIFEST))" \
+		--module="$(F35_MODULE)" --out="$(abspath $(F35_MODULE_REPRO_OUTPUT))" --threads="$(F35_MODULE_REPRO_THREADS)" \
+		--wolvrix-lib="$(abspath $(WOLVRIX_DIR)/build/libwolvrix-lib.so)" \
+		$(foreach sample,$(F35_MODULE_REPRO_SAMPLES),--sample="$(sample)") \
+		$(foreach pass,$(F35_MODULE_REPRO_PASSES),--pass="$(subst @hash@,#,$(pass))") $(F35_CAPTURE_ARGS) $(F35_MODULE_REPRO_ARGS) \
+		2>&1 | tee "$(F35_WORK)/launch/module-repro-$$(date -u +%Y%m%dT%H%M%S%N).log"
+f35_gsim_reference:
+	@set -o pipefail; $(F35_ENV) taskset -c "$(F35_CPUS)" $(PYTHON) scripts/capture_f35_pipeline.py gsim \
+		$(F35_CAPTURE_INPUT) --binary="$(abspath $(F35_GSIM_BINARY))" --output="$(abspath $(F35_REFERENCE))" $(F35_ARGS) \
+		2>&1 | tee "$(F35_WORK)/launch/gsim-$$(date -u +%Y%m%dT%H%M%S%N).log"
+f35_grh_capture:
+	@set -o pipefail; $(F35_ENV) taskset -c "$(F35_CPUS)" $(PYTHON) scripts/capture_f35_pipeline.py grh \
+		$(F35_CAPTURE_INPUT) --reference="$(abspath $(F35_REFERENCE))" --output="$(abspath $(F35_GRH_CAPTURE))" \
+		--xmr-limit="$(F35_XMR_LIMIT)" --flatten-limit="$(F35_FLATTEN_LIMIT)" \
+		$(if $(F35_PACKAGE),--package="$(abspath $(F35_PACKAGE))",) $(F35_ARGS) \
+		2>&1 | tee "$(F35_WORK)/launch/grh-$$(date -u +%Y%m%dT%H%M%S%N).log"
+f35_grh_capture_capped: | f35_work
+	+$(F35_ENV) $(PYTHON) scripts/run_resource_capped.py \
+		--memory-max-bytes "$(F35_MEMORY_MAX_BYTES)" --managed-oom-preference omit \
+		--output "$(abspath $(F35_RESOURCE_REPORT))" \
+		-- $(MAKE) --no-print-directory -j1 f35_grh_capture
+compare_f35_alignment:
+	@set -o pipefail; $(F35_ENV) $(PYTHON) scripts/f35_compare.py \
+		--grh-nodes="$(abspath $(F35_GRH_NODES))" --gsim-nodes="$(abspath $(F35_GSIM_NODES))" \
+		--grh-endpoints="$(abspath $(F35_GRH_ENDPOINTS))" --grh-connections="$(abspath $(F35_GRH_CONNECTIONS))" \
+		$(if $(F35_GSIM_HISTORY),--gsim-history="$(abspath $(F35_GSIM_HISTORY))",) \
+		--output="$(abspath $(F35_REPORT))" $(F35_COMPARE_ARGS) \
+		2>&1 | tee "$(F35_WORK)/launch/compare-$$(date -u +%Y%m%dT%H%M%S%N).log"
+trace_f35_samples:
+	@set -o pipefail; $(F35_ENV) $(PYTHON) scripts/f35_trace_samples.py \
+		--grh="$(abspath $(F35_GRH_CAPTURE))" --gsim="$(abspath $(F35_REFERENCE))" \
+		--comparison="$(abspath $(F35_REPORT))" --output="$(abspath $(F35_SAMPLE_REPORT))" $(F35_SAMPLE_ARGS) \
+		2>&1 | tee "$(F35_WORK)/launch/samples-$$(date -u +%Y%m%dT%H%M%S%N).log"
+test_f35_tools:
+	@set -o pipefail; $(F35_ENV) F35_GSIM_BINARY="$(abspath $(F35_GSIM_BINARY))" \
+		$(PYTHON) -m unittest discover -s scripts -p 'test_f35_*.py' -v \
+		2>&1 | tee "$(F35_WORK)/launch/tool-tests.log"
+
+F35_TIMING_REPORT ?= $(F35_WORK)/timing-report.json
+.PHONY: report_f35_timing
+report_f35_timing: | f35_work
+	@set -o pipefail; $(F35_ENV) $(PYTHON) scripts/f35_timing_report.py \
+		--grh="$(abspath $(F35_GRH_CAPTURE))" --reference="$(abspath $(F35_REFERENCE))" \
+		--xmr-limit="$(F35_XMR_LIMIT)" --flatten-limit="$(F35_FLATTEN_LIMIT)" \
+		--output="$(abspath $(F35_TIMING_REPORT))" \
+		2>&1 | tee "$(F35_WORK)/launch/timing-$$(date -u +%Y%m%dT%H%M%S%N).log"
+
 F34_RHS_WORK ?= $(F34_WORK)/culprit-ledger/f34-5b
 F34_RHS_GSIM_STAGE ?= all
 F34_RHS_BOUNDARIES ?= B0,B1,P0,P1,P2,P3,P4,Q1,R0,R1

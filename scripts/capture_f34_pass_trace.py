@@ -25,13 +25,15 @@ GSIM_BUNDLES = (
 )
 
 
-def graph_inventory(session, directory, stage, graphs):
+def graph_inventory(session, directory, stage, graphs, *, observer=None):
     for graph in graphs:
-        action(session.semantic_snapshot(design=DESIGN, top=graph, stage=stage,
-                                         output=str(directory / graph)), stage)
+        output = directory / graph
+        action(session.semantic_snapshot(design=DESIGN, top=graph, stage=stage, output=str(output)), stage)
+        if observer:
+            observer.release_snapshot_cache(output.iterdir())
 
 
-def run_grh(args, request, input_sha):
+def run_grh(args, request, input_sha, *, observer=None):
     if args.package:
         package, _ = package_identity(args.package)
         sys.meta_path[:] = [finder for finder in sys.meta_path
@@ -52,12 +54,14 @@ def run_grh(args, request, input_sha):
         session.log_level = 'error'
         print('GRH ingest', flush=True)
         action(session.read_sources(**request, out_design=DESIGN, pipeline='ingest'), 'ingest')
+        if observer:
+            observer.ingested(session)
         for name, instance, keep, options in calls:
             print('GRH ' + instance, flush=True)
             directory = args.output / instance
             graphs = session.semantic_graphs(design=DESIGN)
             if name == 'hier-flatten':
-                graph_inventory(session, directory / 'before-modules', 'before-' + instance, graphs)
+                graph_inventory(session, directory / 'before-modules', 'before-' + instance, graphs, observer=observer)
                 traced = [args.top]
             else:
                 traced = graphs
@@ -68,26 +72,38 @@ def run_grh(args, request, input_sha):
                     design=DESIGN, top=graph, output=str(directory / graph),
                     stage='before-' + instance, pass_name=instance.split('#')[0],
                     pass_instance=instance, input_sha256=input_sha), 'start ' + instance)
+                if observer:
+                    observer.release_snapshot_cache((directory / graph / name
+                                                     for name in ('before.nodes.tsv', 'before.connections.tsv')))
             pass_options = dict(options)
             if name == 'alias-analysis':
                 pass_options.update(trace_alias_migrations=str(directory / 'alias-analysis-migrations.jsonl'),
                                     trace_input_sha256=input_sha)
+            if observer:
+                pass_options.update(observer.pass_options(instance, keep, options))
             action(session.run_pass(name, design=DESIGN, keep_declared_symbols=keep, **pass_options), instance)
             for graph in traced:
                 action(session.semantic_exchange_finish(design=DESIGN, top=graph,
                                                         stage='after-' + instance), 'finish ' + instance)
+                if observer:
+                    observer.release_snapshot_cache((directory / graph).iterdir())
             if name == 'hier-flatten':
                 remaining = set(session.semantic_graphs(design=DESIGN)) - set(traced)
-                graph_inventory(session, directory / 'after-modules', 'after-' + instance, sorted(remaining))
+                graph_inventory(session, directory / 'after-modules', 'after-' + instance,
+                                sorted(remaining), observer=observer)
             stage = {'pass': instance, 'bundles': [str(directory / graph) for graph in traced]}
             if name == 'hier-flatten':
                 stage.update(before_modules=[str(directory / 'before-modules' / graph) for graph in graphs],
                              after_modules=[str(directory / 'after-modules' / graph) for graph in sorted(remaining)])
             stages.append(stage)
+            if observer:
+                observer.finished(instance)
+        if observer:
+            observer.final_inventory(session)
     return identity, stages
 
 
-def run_gsim(args, input_sha):
+def run_gsim(args, input_sha, *, extra_options=(), selection='pipeline'):
     if args.binary is None:
         raise ValueError('GSIM trace capture requires --binary')
     stop = 'CommonExpr' if args.stop_before_final_dce else 'RemoveDeadNodes3'
@@ -96,12 +112,12 @@ def run_gsim(args, input_sha):
     model.mkdir()
     command = [str(args.binary), '--dir=' + str(model), '--stop-after-stage=' + stop,
                '--semantic-node-exchange=' + str(args.output),
-               '--semantic-node-exchange-mode=trace', '--semantic-node-exchange-pass=pipeline',
+               '--semantic-node-exchange-mode=trace', '--semantic-node-exchange-pass=' + selection,
                '--trace-alias-analysis=' + str(args.output / 'alias-analysis-migrations.jsonl'),
-               '--trace-input-sha256=' + input_sha, str(args.firrtl)]
+               '--trace-input-sha256=' + input_sha, *extra_options, str(args.firrtl)]
     with (args.output / 'gsim.log').open('x') as log:
         subprocess.run(command, cwd=GSIM_ROOT, stdout=log, stderr=subprocess.STDOUT, check=True)
-    return {'path': str(args.binary), 'sha256': sha256(args.binary)}, [
+    return {'path': str(args.binary), 'sha256': sha256(args.binary), 'command': command}, [
         {'pass': name, 'bundles': [str(args.output / name)]} for name in bundles
     ]
 

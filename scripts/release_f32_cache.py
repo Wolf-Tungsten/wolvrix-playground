@@ -13,12 +13,12 @@ ROOT = Path(__file__).resolve().parents[1]
 WORK = ROOT / 'ptmp/firrtl-ingest/F32'
 
 
-def release_files(paths, *, sync=False, minimum_bytes=8 * 1024**2):
+def release_files(paths, *, sync=False, minimum_bytes=8 * 1024**2, artifact_root=WORK):
     result = {'operation': 'POSIX_FADV_DONTNEED', 'sync': sync, 'files': [], 'bytes': 0, 'errors': []}
     for path in paths:
         path = Path(path).absolute()
-        if not path.is_relative_to(WORK) or path.resolve() != path:
-            raise ValueError('cache advice requires nonsymlink F32 artifact paths')
+        if not path.is_relative_to(artifact_root) or path.resolve() != path:
+            raise ValueError(f'cache advice requires nonsymlink artifact paths under {artifact_root}')
         info = path.lstat()
         if not stat.S_ISREG(info.st_mode) or info.st_size < minimum_bytes:
             continue
