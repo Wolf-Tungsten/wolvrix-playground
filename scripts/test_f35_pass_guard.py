@@ -6,7 +6,7 @@ import sys
 import tempfile
 import unittest
 
-from f35_pass_guard import (EVENT_FD, EVENT_SCHEMA, GSIM_TIMER_ORDER, PASSES, Passes,
+from f35_pass_guard import (EVENT_FD, EVENT_SCHEMA, F36_PASSES, GSIM_TIMER_ORDER, PASSES, Passes,
                             reference_budgets, run_guarded)
 
 
@@ -45,7 +45,7 @@ with wolvrix.Session() as session:
                          out_design='design.main', pipeline='ingest',
                          firrtl_options={'node_annotations': True})
     boundary = 'ingest'
-    prefix, window = production_calls(firrtl_canonical_pipeline())
+    prefix, window = production_calls(firrtl_canonical_pipeline(remove_singleton_state_axis=False))
     for name, instance, keep, options in prefix + window:
         session.run_pass(name, design='design.main', keep_declared_symbols=keep, timing_output=sys.argv[2],
                          **stage_event_options('native', instance, boundary), **options)
@@ -94,20 +94,21 @@ class F35PassGuardTests(unittest.TestCase):
                     self.assertEqual(tracker.trigger['kind'], kind)
                     self.assertEqual(tracker.trigger['native_wall_s'], duration)
 
-    def run_child(self, directory, mode):
-        command = [sys.executable, '-c', CHILD, EVENT_FD, 'test', EVENT_SCHEMA, mode, *PASSES]
-        code = run_guarded(command, directory, run_id='test', budgets=dict.fromkeys(PASSES, 0.2))
+    def run_child(self, directory, mode, passes=PASSES):
+        command = [sys.executable, '-c', CHILD, EVENT_FD, 'test', EVENT_SCHEMA, mode, *passes]
+        code = run_guarded(command, directory, run_id='test', budgets=dict.fromkeys(passes, 0.2), passes=passes)
         return code, json.loads((directory / 'guard.json').read_text())
 
     def test_all_production_events_and_native_times_are_recorded(self):
-        with tempfile.TemporaryDirectory() as directory:
-            work = Path(directory)
-            code, report = self.run_child(work, 'normal')
-            self.assertEqual(code, 0)
-            self.assertEqual(report['status'], 'completed')
-            self.assertEqual(tuple(report['pass_times_s']), PASSES)
-            events = (work / 'stage-events.jsonl').read_text().splitlines()
-            self.assertEqual(len(events), 2 * len(PASSES))
+        for passes in (PASSES, F36_PASSES):
+            with self.subTest(passes=passes), tempfile.TemporaryDirectory() as directory:
+                work = Path(directory)
+                code, report = self.run_child(work, 'normal', passes=passes)
+                self.assertEqual(code, 0)
+                self.assertEqual(report['status'], 'completed')
+                self.assertEqual(tuple(report['pass_times_s']), passes)
+                events = (work / 'stage-events.jsonl').read_text().splitlines()
+                self.assertEqual(len(events), 2 * len(passes))
 
     def test_live_deadline_kills_private_group(self):
         with tempfile.TemporaryDirectory() as directory:

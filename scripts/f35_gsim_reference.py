@@ -89,9 +89,19 @@ def run_gsim_reference(args, input_sha):
     run_id = args.run_id
     options = ('--timing-output=' + str(args.output / TIMING),
                '--trace-init-sources=' + str(args.output), '--run-id=' + run_id)
+    export_state_actions = getattr(args, 'export_state_actions', False)
+    if export_state_actions:
+        options += ('--state-port-inventory=' + str(args.output),)
     launch = SimpleNamespace(**vars(args))
     launch.binary = Path(native['binary'])
     identity, passes = run_gsim(launch, input_sha, extra_options=options)
+    if export_state_actions:
+        write_json_atomic(args.output / 'state-port-export.json', {
+            'schema': 'wolvrix.f36.gsim-state-export.v1',
+            'complete': True,
+            'states': str(args.output / 'states.tsv'),
+            'actions': str(args.output / 'actions.tsv'),
+        })
     return finish_invocation(args, input_sha, native, native_path, identity, passes)
 
 

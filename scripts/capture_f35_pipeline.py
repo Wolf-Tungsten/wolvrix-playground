@@ -141,7 +141,11 @@ class GrhObserver:
         directory = self.args.output / 'R4'
         action(session.semantic_snapshot(design=DESIGN, top=self.args.top,
                                          output=str(directory),
-                                         stage='post-fourth-dead-code-elim'), 'final GRH classification inventory')
+                                         stage='post-fourth-dead-code-elim',
+                                         export_state_actions=self.args.export_state_actions),
+               'final GRH classification inventory')
+        if self.args.export_state_actions and not (directory / 'state-actions.jsonl').is_file():
+            raise ValueError('GRH state/action inventory was not written at R4')
         self.release_snapshot_cache(directory.iterdir())
 
 
@@ -234,6 +238,7 @@ def grh(args, inputs):
 
 
 def main():
+    global WORK
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('engine', choices=('gsim', 'grh'))
     for name in ('firrtl', 'manifest', 'output'):
@@ -243,6 +248,8 @@ def main():
     parser.add_argument('--recovery-maps', type=lambda path: Path(path).resolve())
     parser.add_argument('--verify-replay', action='store_true')
     parser.add_argument('--replace-grh', action='store_true')
+    parser.add_argument('--export-state-actions', action='store_true',
+                        help='export live GRH/GSIM state declarations and their read/write evidence at R4')
     parser.add_argument('--recovery-timing', action='store_true')
     parser.add_argument('--paired-capture', action='store_true', help=argparse.SUPPRESS)
     gsim_mode = parser.add_mutually_exclusive_group()
@@ -252,8 +259,12 @@ def main():
     parser.add_argument('--flatten-limit', type=float)
     parser.add_argument('--min-free-bytes', type=int, default=0,
                         help='stop the GRH capture if available filesystem space falls below this floor')
+    parser.add_argument('--work-root', type=lambda path: Path(path).resolve(),
+                        help='override the capture artifact root for an isolated alignment phase')
     parser.add_argument('--child-run-id', help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.work_root:
+        WORK = args.work_root
     if args.output == WORK or not args.output.is_relative_to(WORK):
         parser.error('capture output must be beneath ' + str(WORK))
     if args.min_free_bytes < 0 or (args.min_free_bytes and args.engine != 'grh'):
@@ -297,6 +308,15 @@ def main():
         if not args.binary:
             parser.error('GSIM requires --binary')
         from f35_gsim_reference import FROZEN, freeze_reference, recover_reference, resume_reference, run_gsim_reference
+
+        if args.export_state_actions and args.output != WORK / 'gsim-reference':
+            args.output.mkdir(parents=True, exist_ok=False)
+            args.run_id = args.child_run_id or f'f36-{args.engine}-{uuid.uuid4().hex}'
+            identity, stages = run_gsim_reference(args, input_sha)
+            summary = write_manifest(args, inputs, identity, stages)
+            freeze_reference(args, summary)
+            print('F36 GSIM capture frozen: ' + str(args.output), flush=True)
+            return 0
 
         if (args.output / FROZEN).exists():
             raise ValueError('GSIM reference has already been frozen: ' + str(args.output))

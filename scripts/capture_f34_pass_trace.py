@@ -45,7 +45,7 @@ def run_grh(args, request, input_sha, *, observer=None):
     identity = native_identity(wolvrix)
     if args.package:
         verify_loaded_native(args.package, package, identity)
-    prefix, window = production_calls(firrtl_canonical_pipeline())
+    prefix, window = production_calls(firrtl_canonical_pipeline(remove_singleton_state_axis=False))
     calls = prefix + window
     if args.stop_before_final_dce:
         calls = calls[:-1]
@@ -110,11 +110,13 @@ def run_gsim(args, input_sha, *, extra_options=(), selection='pipeline'):
     bundles = GSIM_BUNDLES[:-1] if args.stop_before_final_dce else GSIM_BUNDLES
     model = args.output / 'model'
     model.mkdir()
+    state_port_dir = args.output if getattr(args, 'export_state_actions', False) else None
+    state_port_options = ['--state-port-inventory=' + str(state_port_dir)] if state_port_dir else []
     command = [str(args.binary), '--dir=' + str(model), '--stop-after-stage=' + stop,
                '--semantic-node-exchange=' + str(args.output),
                '--semantic-node-exchange-mode=trace', '--semantic-node-exchange-pass=' + selection,
                '--trace-alias-analysis=' + str(args.output / 'alias-analysis-migrations.jsonl'),
-               '--trace-input-sha256=' + input_sha, *extra_options, str(args.firrtl)]
+               '--trace-input-sha256=' + input_sha, *state_port_options, *extra_options, str(args.firrtl)]
     with (args.output / 'gsim.log').open('x') as log:
         subprocess.run(command, cwd=GSIM_ROOT, stdout=log, stderr=subprocess.STDOUT, check=True)
     return {'path': str(args.binary), 'sha256': sha256(args.binary), 'command': command}, [

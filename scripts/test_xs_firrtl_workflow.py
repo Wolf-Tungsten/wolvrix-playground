@@ -145,19 +145,25 @@ class XsFirrtlWorkflowTests(unittest.TestCase):
         self.assertEqual([name for name, _ in GRH_PIPELINE].count("grh.verify"), 2)
         self.assertIn(("simplify", {"semantics": "2state"}), GRH_PIPELINE)
 
-    def test_firrtl_pipeline_inserts_static_array_split(self):
+    def test_firrtl_pipeline_inserts_array_passes(self):
         for profile in ("full", "bringup"):
             with patch.dict(os.environ, {"XS_GRHSIM_PIPELINE_PROFILE": profile}):
                 original = grh_pipeline()
                 variant = firrtl_grh_pipeline(original)
                 names = [name for name, _ in variant]
+                self.assertEqual(names.count("remove-singleton-state-axis"), 1)
                 self.assertEqual(names.count("split-static-array"), 1)
                 self.assertNotIn("dead-code-elim", names)
+                flatten = names.index("hier-flatten")
+                self.assertEqual(names[flatten + 1], "remove-singleton-state-axis")
                 elim = names.index("comb-loop-elim")
                 self.assertEqual(names[elim + 1], "split-static-array")
+                self.assertNotIn("remove-singleton-state-axis", [name for name, _ in original])
                 self.assertNotIn("split-static-array", [name for name, _ in original])
         with self.assertRaisesRegex(ValueError, "no comb-loop-elim"):
             firrtl_grh_pipeline([("hier-flatten", {})])
+        with self.assertRaisesRegex(ValueError, "no hier-flatten"):
+            firrtl_grh_pipeline([("comb-loop-elim", {})])
 
     def test_f24_firrtl_pipeline_order_is_explicit(self):
         for name, options in firrtl_canonical_pipeline():
@@ -165,7 +171,7 @@ class XsFirrtlWorkflowTests(unittest.TestCase):
                 self.assertEqual(options["semantics"], "2state")
         pipeline = firrtl_canonical_pipeline()
         self.assertEqual([name for name, _ in pipeline], [
-            "xmr-resolve", "hier-flatten", "comb-loop-elim", "split-static-array",
+            "xmr-resolve", "hier-flatten", "remove-singleton-state-axis", "comb-loop-elim", "split-static-array",
             "dead-code-elim", "expr-opt", "used-bits", "split-nodes",
             "dead-code-elim", "constant-analysis", "dead-code-elim",
             "alias-analysis", "pattern-detect", "comm-expr", "dead-code-elim",

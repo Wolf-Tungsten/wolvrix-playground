@@ -51,29 +51,38 @@ def capture(engine, common, output, extra):
 
 
 def run(args):
+    work_root = args.work_root.resolve() if args.work_root else WORK
     if args.output:
-        if not args.output.is_relative_to(WORK) or args.output == WORK:
-            raise ValueError("output must be beneath " + str(WORK))
+        if not args.output.is_relative_to(work_root) or args.output == work_root:
+            raise ValueError("output must be beneath " + str(work_root))
         args.output.mkdir(parents=True)
         output = args.output
     else:
-        captures = WORK / "captures"
+        captures = work_root / "captures"
         captures.mkdir(parents=True, exist_ok=True)
         output = Path(mkdtemp(prefix="module-" if args.module else "full-", dir=captures))
     print(f"F35 capture output: {output}", flush=True)
 
     firrtl, manifest = extract_inputs(args, output) if args.module else (args.firrtl, args.manifest)
-    common = ["--firrtl", str(firrtl), "--manifest", str(manifest), "--paired-capture"]
+    common = ["--firrtl", str(firrtl), "--manifest", str(manifest), "--paired-capture",
+              "--work-root", str(work_root)]
     if args.verify_replay:
         common.append("--verify-replay")
     gsim = args.reference or output / "gsim"
     grh = output / "grh"
     if args.reference is None:
-        capture("gsim", common, gsim, ["--binary", str(args.binary)])
+        gsim_extra = ["--binary", str(args.binary)]
+        if args.export_state_actions:
+            gsim_extra.extend(["--export-state-actions"])
+        capture("gsim", common, gsim, gsim_extra)
     extra = ["--reference", str(gsim), "--xmr-limit", str(args.xmr_limit),
              "--flatten-limit", str(args.flatten_limit)]
+    if args.export_state_actions:
+        extra.append("--binary=" + str(args.binary))
     if args.package:
         extra.extend(["--package", str(args.package)])
+    if args.export_state_actions:
+        extra.append("--export-state-actions")
     capture("grh", common, grh, extra)
 
     runs = {}
@@ -98,6 +107,9 @@ def main():
         parser.add_argument("--" + name, type=Path)
     parser.add_argument("--reference", type=Path, help="reuse a frozen GSIM reference for whole-design capture")
     parser.add_argument("--module", help="original FIRRTL module name")
+    parser.add_argument("--work-root", type=Path, help="artifact root for an isolated paired capture")
+    parser.add_argument("--export-state-actions", action="store_true",
+                        help="include the GRH R4 state/action inventory")
     parser.add_argument("--sv", action="append", default=[], type=Path, help="additional module SV helper")
     parser.add_argument("--reset-port", action="append", default=[], metavar="NAME=TYPE",
                         help="bind a module's abstract Reset input to AsyncReset or UInt<1>")

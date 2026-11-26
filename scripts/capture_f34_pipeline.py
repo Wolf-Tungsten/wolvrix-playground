@@ -115,11 +115,15 @@ def production_calls(pipeline):
     expected_prefix = ('xmr-resolve', 'hier-flatten', 'comb-loop-elim', 'split-static-array',
                        'dead-code-elim', 'expr-opt', 'used-bits', 'split-nodes', 'dead-code-elim',
                        'constant-analysis', 'dead-code-elim')
-    if tuple(name for name, _ in pipeline) != expected_prefix + GRH_NAMES:
+    singleton = ('remove-singleton-state-axis',)
+    names = tuple(name for name, _ in pipeline)
+    if names[2:3] == singleton:
+        expected_prefix = expected_prefix[:2] + singleton + expected_prefix[2:]
+    if names != expected_prefix + GRH_NAMES:
         raise ValueError('F34 requires the production prefix and four calls through fourth DCE')
-    if (pipeline[10][1] != {'keep_declared_symbols': False, 'drop_disabled_firrtl_assertions': True} or
-            pipeline[14][1] != {'keep_declared_symbols': False} or
-            pipeline[9][1].get('semantics') != '2state'):
+    if (pipeline[-5][1] != {'keep_declared_symbols': False, 'drop_disabled_firrtl_assertions': True} or
+            pipeline[-1][1] != {'keep_declared_symbols': False} or
+            pipeline[-6][1].get('semantics') != '2state'):
         raise ValueError('F34 requires the production third/fourth DCE and ConstantAnalysis options')
     seen = {}
     calls = []
@@ -128,7 +132,8 @@ def production_calls(pipeline):
         ordinal = seen.get(canonical, 0)
         seen[canonical] = ordinal + 1
         options = dict(params)
-        keep = options.pop('keep_declared_symbols', name in expected_prefix[:3])
+        keep = options.pop('keep_declared_symbols', name in (
+            'xmr-resolve', 'hier-flatten', 'remove-singleton-state-axis', 'comb-loop-elim'))
         calls.append((name, f'{canonical}#{ordinal}', keep, options))
     if tuple(logical for _, logical, _, _ in calls[-4:]) != F34.passes:
         raise ValueError('F34 production logical occurrences changed')
@@ -175,7 +180,7 @@ def grh_run(args, package, request, report, summary):
     from wolvrix_xs_grhsim import firrtl_canonical_pipeline
 
     verify_loaded_native(args.package, package, native_identity(wolvrix))
-    prefix, window = production_calls(firrtl_canonical_pipeline())
+    prefix, window = production_calls(firrtl_canonical_pipeline(remove_singleton_state_axis=False))
     if args.mode == 'alias-capture':
         window = window[:1]
     snapshots = snapshot_indices(args)

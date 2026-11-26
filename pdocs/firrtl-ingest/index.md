@@ -80,6 +80,8 @@ GRH 第三次 DCE 删除 1,009,108 个 Node，比局部规则对齐前多删除 
 
 [F35](F35-fourth-dce-alignment-plan.md) 按用户要求在第十四轮全图结果上收尾。香山第四次 DCE 后的 Node 同名率为 99.39027%，15 个生产 pass 均通过耗时门。收尾提交中的两项后续改动已在模块级验证。
 
+[F36](F36-state-port-alignment-plan.md) 修复 CHIRRTL mport 行内写索引和 588 个拆分寄存器的双路径归属。第四次 DCE 后有 145,103 / 147,100 个状态同名同形配对，其中 145,007 个读写访问形状一致。原有 128 个写侧差异全部消除。
+
 目标是在 Wolvrix 内实现不依赖 CIRCT 的 FIRRTL 前端，与现有 SV 前端共同
 构建设计。FIRRTL `node` 与 ops 的关联以 attribute 保存；普通 GRH 优化与
 仿真转换不受来源标注限制，允许跨 node CSE、内联、重关联和 DCE。分图
@@ -134,6 +136,7 @@ GRH 第三次 DCE 删除 1,009,108 个 Node，比局部规则对齐前多删除 
 | [F33-constant-analysis-dce-alignment-plan.md](F33-constant-analysis-dce-alignment-plan.md) | 第二次至第三次 DCE 窗口的实施、全图对照与正式性能结果 |
 | [F34-post-third-dce-alignment-plan.md](F34-post-third-dce-alignment-plan.md) | 第三次 DCE 后至第四次 DCE 的实现步骤、五界核对与性能验收 |
 | [F35-fourth-dce-alignment-plan.md](F35-fourth-dce-alignment-plan.md) | 第四次 DCE 后的香山全图同名率、逐 pass 耗时与收尾记录 |
+| [F36-state-port-alignment-plan.md](F36-state-port-alignment-plan.md) | 第四次 DCE 后的状态与读写访问形状，以及双端采集方法 |
 | [pass-optimization-20261101.md](pass-optimization-20261101.md) | 保留完整优化的 flatten/simplify 实现加速、严格 A/B 与 20 分钟整机复测 |
 | [F10-components.md](F10-components.md) | 真实代表模块的双路线比较、激励、记分板及当前证据 |
 | [F10-replacer.md](F10-replacer.md) | AheadBtbReplacer 独立 PLRU 记分板、四路线执行与 reference 断言缩减 |
@@ -205,6 +208,7 @@ GRH 第三次 DCE 删除 1,009,108 个 Node，比局部规则对齐前多删除 
 | [F33](F33-constant-analysis-dce-alignment-plan.md) | 第二次 DCE（不含）至第三次 DCE（含）的 ConstantAnalysis 与新 Node、组合数组更新对齐 | **香山首轮全图对照和正式性能采样已完成**。GRH Q2 共 4,616,189 个 Node，99.5743% 有唯一 GSIM 同名候选。第三次 DCE 和连续窗口通过正式门，ConstantAnalysis 超出 0.956 秒。逐项功能归因与最终验收待完成。 |
 | [F34](F34-post-third-dce-alignment-plan.md) | AliasAnalysis、PatternDetect、CommonExpr 与第四次 DCE 对齐 | 历史版本的香山五界采集及功能守卫已通过。§8 按 R0 右值根签名追踪前缀差异，并按 GSIM 判定重写 AliasAnalysis。当前 R1 唯一同名率验收门为 99.6%，同时检查双向退役差异。 |
 | [F35](F35-fourth-dce-alignment-plan.md) | 第四次 DCE 后的全图 Node 对齐 | 按用户要求收尾。第十四轮全图同名率 99.39027%，剩余 15,328 个差异，99.50% 目标暂停。 |
+| [F36](F36-state-port-alignment-plan.md) | 第四次 DCE 后的状态与读写访问对齐 | 145,007 / 145,103 个配对状态读写一致，写侧差异 0，读侧差异 96，未配对 1,997。 |
 
 F08 曾以本地 GSIM `a3ecb26` 的 `commonExpr()` 为依据保留源表达式边界。
 当前方案保留 simplify 自由：之后才按提示/MFFC 形成执行 node，再按

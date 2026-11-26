@@ -152,7 +152,7 @@ for row in rows:
             return {'success': True}
 
         modules = {'wolvrix': SimpleNamespace(Session=lambda: session, _run_pass_batch=run_pass),
-                   'wolvrix_xs_grhsim': SimpleNamespace(firrtl_canonical_pipeline=lambda: [])}
+                   'wolvrix_xs_grhsim': SimpleNamespace(firrtl_canonical_pipeline=lambda **_: [])}
         window = [(name, logical, False, {}) for name, logical in zip(capture.GRH_NAMES, F34.passes)]
         args = Namespace(mode=mode, engine='grh', output=self.directory, package=self.directory,
                          run_id='grh', batch_count=1, top=None, snapshots=False, alias_snapshots=True,

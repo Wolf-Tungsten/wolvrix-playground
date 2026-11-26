@@ -317,7 +317,7 @@ def export_grh(args, selected):
 
     if args.package:
         verify_loaded_native(args.package, package, native_identity(wolvrix))
-    prefix, window = production_calls(firrtl_canonical_pipeline())
+    prefix, window = production_calls(firrtl_canonical_pipeline(remove_singleton_state_axis=False))
     points = canonical_boundaries(args.boundaries)
     captures = {BOUNDARIES[point][0]: point for point in points}
     request = request_from_manifest(args.manifest)

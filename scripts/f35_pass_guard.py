@@ -39,6 +39,7 @@ GSIM_CALLS = {
     'dead-code-elim#3': ('RemoveDeadNodes3', 'RemoveDeadNodes#2'),
 }
 PASSES = ('xmr-resolve#0', 'hier-flatten#0', *GSIM_CALLS)
+F36_PASSES = (*PASSES[:2], 'remove-singleton-state-axis#0', *PASSES[2:])
 GSIM_TIMER_ORDER = (
     ('{strbuf = readFile(InputFileName, size, mapSize)}',
      '{strbuf = readFile(InputFileName, size, mapSize)}#0'),
@@ -78,9 +79,10 @@ def stage_event_options(run_id, instance, last_boundary):
 
 
 class Passes:
-    def __init__(self, run_id, budgets):
+    def __init__(self, run_id, budgets, passes=PASSES):
         self.run_id = run_id
         self.budgets = budgets
+        self.passes = passes
         self.completed = {}
         self.active = None
         self.trigger = None
@@ -98,7 +100,7 @@ class Passes:
         if stamp > now or stamp < self.last_timestamp:
             raise ValueError('invalid GRH monotonic stage event timestamp')
         if event.get('event') == 'start':
-            expected = PASSES[len(self.completed)] if len(self.completed) < len(PASSES) else None
+            expected = self.passes[len(self.completed)] if len(self.completed) < len(self.passes) else None
             if self.active is not None or key not in self.budgets or key != expected:
                 raise ValueError('unexpected GRH stage start: ' + repr(key))
             self.active = event
@@ -167,7 +169,7 @@ def supervise(child, pipe, tracker, events, output, min_free_bytes):
                     code = child.poll()
                     if pending:
                         return {'kind': 'invalid-pass-events', 'error': 'truncated stage event'}
-                    if len(tracker.completed) != len(PASSES):
+                    if len(tracker.completed) != len(tracker.passes):
                         return {'kind': 'incomplete-pass-events', 'returncode_at_eof': code}
                     while code is None and not shutdown:
                         try:
@@ -198,11 +200,11 @@ def supervise(child, pipe, tracker, events, output, min_free_bytes):
             signal.signal(number, handler)
 
 
-def run_guarded(command, output, *, run_id, budgets, env=None, min_free_bytes=0):
+def run_guarded(command, output, *, run_id, budgets, env=None, min_free_bytes=0, passes=PASSES):
     """Kill only the child's private group. Persist evidence after signalling."""
-    if not isinstance(run_id, str) or not run_id or set(budgets) != set(PASSES):
-        raise ValueError('GRH supervisor requires a run ID and every F35 pass budget')
-    resolved = {key: positive(budgets[key], key + ' budget') for key in PASSES}
+    if not isinstance(run_id, str) or not run_id or set(budgets) != set(passes):
+        raise ValueError('GRH supervisor requires a run ID and a budget for every pass')
+    resolved = {key: positive(budgets[key], key + ' budget') for key in passes}
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     guard_path = output / 'guard.json'
@@ -216,7 +218,7 @@ def run_guarded(command, output, *, run_id, budgets, env=None, min_free_bytes=0)
     with guard_path.open('x') as stream:
         json.dump(report, stream)
         stream.write('\n')
-    tracker = Passes(run_id, resolved)
+    tracker = Passes(run_id, resolved, passes=passes)
     receive, send = os.pipe()
     child = None
     trigger = None

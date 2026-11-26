@@ -71,25 +71,28 @@ def grh_pipeline() -> list[tuple[str, dict]]:
 
 def firrtl_grh_pipeline(pipeline: list[tuple[str, dict]]) -> list[tuple[str, dict]]:
     result = []
-    inserted = False
     for name, options in pipeline:
         result.append((name, options))
-        if name == "comb-loop-elim":
+        if name == "hier-flatten":
+            result.append(("remove-singleton-state-axis", {}))
+        elif name == "comb-loop-elim":
             result.append(("split-static-array", {}))
-            inserted = True
-    if not inserted:
+    if not any(name == "split-static-array" for name, _ in result):
         raise ValueError("FIRRTL GRH pipeline has no comb-loop-elim stage")
+    if not any(name == "remove-singleton-state-axis" for name, _ in result):
+        raise ValueError("FIRRTL GRH pipeline has no hier-flatten stage")
     return result
 
 
-def firrtl_canonical_pipeline() -> list[tuple[str, dict]]:
-    """Return the F24 FIRRTL stages before dialect translation.
+def firrtl_canonical_pipeline(*, remove_singleton_state_axis: bool = True) -> list[tuple[str, dict]]:
+    """Return the FIRRTL stages before dialect translation.
 
     Ingest itself is timed separately.  Conversion and the partition/emitter
     tail are resumed by ``finish_simulation_graph`` so checkpoint restart uses
-    the same canonical names and stage metadata.
+    the same canonical names and stage metadata. Historical captures can
+    replay the original sequence with ``remove_singleton_state_axis=False``.
     """
-    return [
+    pipeline = [
         ("xmr-resolve", {}),
         ("hier-flatten", {}),
         ("comb-loop-elim", {"fail_on_true_loop": True}),
@@ -107,6 +110,9 @@ def firrtl_canonical_pipeline() -> list[tuple[str, dict]]:
         ("comm-expr", {}),
         ("dead-code-elim", {"keep_declared_symbols": False}),
     ]
+    if remove_singleton_state_axis:
+        pipeline.insert(2, ("remove-singleton-state-axis", {}))
+    return pipeline
 
 
 def env_int(name: str, default: int, *, minimum: int = 0, maximum: int = 2147483647) -> int:

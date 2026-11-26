@@ -113,7 +113,7 @@ class NativeBatchTests(unittest.TestCase):
 
     def test_f34_two_fresh_members_stop_after_fourth_dce(self):
         members = [self.session(prefix=False) for _ in range(2)]
-        prefix, window = production_calls(firrtl_canonical_pipeline())
+        prefix, window = production_calls(firrtl_canonical_pipeline(remove_singleton_state_axis=False))
         for member in members:
             for name, _, keep, options in prefix:
                 result = member.run_pass(name, design='design.main', keep_declared_symbols=keep, **options)

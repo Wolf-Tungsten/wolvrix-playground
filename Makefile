@@ -889,6 +889,7 @@ f35_capture_both:
 		--xmr-limit="$(F35_XMR_LIMIT)" --flatten-limit="$(F35_FLATTEN_LIMIT)" \
 		$(if $(F35_MODULE),--module="$(F35_MODULE)",) \
 		$(if $(F35_CAPTURE_OUTPUT),--output="$(abspath $(F35_CAPTURE_OUTPUT))",) \
+		--work-root="$(abspath $(F35_WORK))" \
 		$(if $(F35_CAPTURE_REFERENCE),--reference="$(abspath $(F35_CAPTURE_REFERENCE))",--binary="$(abspath $(F35_GSIM_BINARY))") \
 		$(if $(F35_PACKAGE),--package="$(abspath $(F35_PACKAGE))",) $(F35_CAPTURE_ARGS) \
 		2>&1 | tee "$(F35_WORK)/launch/capture-both-$$(date -u +%Y%m%dT%H%M%S%N).log"
@@ -940,6 +941,68 @@ report_f35_timing: | f35_work
 		--xmr-limit="$(F35_XMR_LIMIT)" --flatten-limit="$(F35_FLATTEN_LIMIT)" \
 		--output="$(abspath $(F35_TIMING_REPORT))" \
 		2>&1 | tee "$(F35_WORK)/launch/timing-$$(date -u +%Y%m%dT%H%M%S%N).log"
+
+F36_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F36
+F36_INPUT ?= $(F35_INPUT)
+F36_MANIFEST ?= $(F35_MANIFEST)
+F36_REFERENCE ?= $(F35_REFERENCE)
+F36_GSIM_BUILD ?= $(F36_WORK)/phase6/gsim-build
+F36_GSIM_BINARY ?= $(F36_GSIM_BUILD)/gsim/gsim
+F36_GSIM_RECOVERY_LOG ?=
+F36_PACKAGE ?= $(F36_WORK)/package-r2
+F36_CAPTURE ?= $(F36_WORK)/capture-v2
+F36_COMPARE_GSIM ?= $(F36_CAPTURE)/gsim
+F36_REPORT ?= $(F36_WORK)/analysis-simtop-access
+F36_COMPARE_ARGS ?=
+F36_GRH_CAPTURE_ARGS ?=
+F36_CPUS ?= $(F35_CPUS)
+F36_XMR_LIMIT ?= $(F35_XMR_LIMIT)
+F36_FLATTEN_LIMIT ?= $(F35_FLATTEN_LIMIT)
+F36_ENV = TMPDIR="$(abspath $(F36_WORK))/tmp" SQLITE_TMPDIR="$(abspath $(F36_WORK))/tmp" PYTHONDONTWRITEBYTECODE=1
+.PHONY: f36_gsim_build f36_package f36_grh_install f36_work f36_gsim_inventory f36_grh_capture f36_capture f36_compare test_f36_tools test_f36_gsim_inventory
+f36_gsim_build:
+	@$(MAKE) --no-print-directory f32_gsim_benchmark_build F32_WORK="$(F36_WORK)" \
+		F32_GSIM_BENCH_BUILD="$(F36_GSIM_BUILD)" F32_GSIM_BENCH_CXXFLAGS="-DNR_THREAD=1"
+f36_grh_install:
+	@$(MAKE) --no-print-directory py_install PY_INSTALL_WORK="$(F36_WORK)/py-install"
+f36_package: f36_gsim_build
+	@$(MAKE) --no-print-directory snapshot_f30_package F30_WORK="$(F36_WORK)" \
+		F30_SNAPSHOT_OUTPUT="$(F36_PACKAGE)" \
+		F30_SNAPSHOT_ARGS='--build-cache "$(WOLVRIX_DIR)/build/skbuild/CMakeCache.txt" --source-root "$(WOLVRIX_DIR)"'
+f36_work:
+	@mkdir -p "$(F36_WORK)/tmp" "$(F36_WORK)/launch"
+f36_gsim_inventory: f36_work
+	@test -x "$(F36_GSIM_BINARY)" || (echo "Build F36_GSIM_BINARY first" >&2; exit 1)
+	@set -o pipefail; $(F36_ENV) $(PYTHON) scripts/capture_f36_gsim_inventory.py \
+		--binary "$(abspath $(F36_GSIM_BINARY))" --firrtl "$(abspath $(F36_INPUT))" \
+		--manifest "$(abspath $(F36_MANIFEST))" --output "$(abspath $(F36_CAPTURE))/gsim" \
+		$(if $(F36_GSIM_RECOVERY_LOG),--recover-launch-log "$(abspath $(F36_GSIM_RECOVERY_LOG))",) \
+		2>&1 | tee "$(F36_WORK)/launch/gsim-inventory-$$(date -u +%Y%m%dT%H%M%S%N).log"
+f36_grh_capture: f36_work f36_grh_install
+	@test -d "$(F36_PACKAGE)" || (echo "Snapshot F36_PACKAGE first" >&2; exit 1)
+	@set -o pipefail; $(F36_ENV) taskset -c "$(F36_CPUS)" $(PYTHON) scripts/capture_f36_grh_states.py \
+		--firrtl "$(abspath $(F36_INPUT))" --manifest "$(abspath $(F36_MANIFEST))" \
+		--reference "$(abspath $(F36_REFERENCE))" --package "$(abspath $(F36_PACKAGE))" \
+		--output "$(abspath $(F36_CAPTURE))/grh" --work-root "$(abspath $(F36_WORK))" \
+		--xmr-limit "$(F36_XMR_LIMIT)" --flatten-limit "$(F36_FLATTEN_LIMIT)" \
+		$(F36_GRH_CAPTURE_ARGS) \
+		2>&1 | tee "$(F36_WORK)/launch/grh-capture-$$(date -u +%Y%m%dT%H%M%S%N).log"
+f36_capture: f36_gsim_inventory f36_grh_capture
+f36_compare: f36_work
+	@set -o pipefail; $(F36_ENV) $(PYTHON) scripts/f36_state_port_compare.py \
+		--grh "$(abspath $(F36_CAPTURE))/grh/state-actions.jsonl" \
+		--gsim "$(abspath $(F36_COMPARE_GSIM))" --output "$(abspath $(F36_REPORT))" $(F36_COMPARE_ARGS) \
+		2>&1 | tee "$(F36_WORK)/launch/compare-$$(date -u +%Y%m%dT%H%M%S%N).log"
+test_f36_tools: f36_work
+	@set -o pipefail; $(F36_ENV) $(PYTHON) -m unittest discover -s scripts -p 'test_f36_*.py' -v \
+		2>&1 | tee "$(F36_WORK)/tool-tests.log"
+test_f36_gsim_inventory: f36_work
+	@set -o pipefail; CXXFLAGS="-I$(F29_GMP_ROOT)/usr/include/x86_64-linux-gnu" \
+		LIBRARY_PATH="$(F29_GMP_ROOT)/usr/lib/x86_64-linux-gnu" \
+		$(MAKE) --no-print-directory -C reference/gsim test-state-port-inventory \
+		BUILD_DIR="$(abspath $(F36_GSIM_BUILD))" FIR_TEST_OUTPUT_DIR="$(abspath $(F36_WORK))/gsim-smoke" \
+		PYTHON="$(if $(findstring /,$(PYTHON)),$(abspath $(PYTHON)),$(PYTHON))" -j4 \
+		2>&1 | tee "$(F36_WORK)/launch/gsim-inventory-test.log"
 
 F34_RHS_WORK ?= $(F34_WORK)/culprit-ledger/f34-5b
 F34_RHS_GSIM_STAGE ?= all
@@ -2513,6 +2576,13 @@ test_transform_split_static_array:
 	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
 	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-split-static-array -j 2
 	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-split-static-array$$' --output-on-failure
+
+.PHONY: test_transform_remove_singleton_state_axis
+test_transform_remove_singleton_state_axis:
+	mkdir -p $(WOLVRIX_TEST_TMP) $(WOLVRIX_TEST_CCACHE)
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target transform-remove-singleton-state-axis -j 2
+	TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^transform-remove-singleton-state-axis$$' --output-on-failure
 
 .PHONY: test_transform_shape_mapping
 test_transform_shape_mapping:
