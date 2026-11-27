@@ -10,16 +10,13 @@ import time
 
 import wolvrix
 
-from grhsim_flow import FlowOptions, checked, emit_cpp, finish_simulation_graph, store_checkpoint, validate_environment
+from grhsim_flow import (FlowOptions, checked, emit_cpp, finish_simulation_graph, simulation_stage,
+                         store_checkpoint)
 from grhsim_provenance import capture_generation, write_identity
 
 
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    try:
-        validate_environment()
-    except ValueError as error:
-        parser.error(str(error))
     parser.add_argument("--model", type=Path, required=True, help="ordinary GRH JSON, at any completed stage")
     parser.add_argument("--flow", type=Path, required=True)
     parser.add_argument("--top", help="top graph; defaults to the unique top in the checkpoint")
@@ -84,7 +81,7 @@ def main() -> int:
                 setattr(options, field.name, getattr(args, field.name))
         if args.sink_enable_guard_min_size is not None:
             options.enable_guard_min_size = args.sink_enable_guard_min_size
-        stage = metadata.get("grhsim.stage")
+        stage = simulation_stage(metadata)
         # Do not erase owners/clones or silently accept changed partition
         # settings on a later checkpoint. Resume from the stage that owns them.
         if stage in ("nonsink-partitioned", "sink-partitioned"):

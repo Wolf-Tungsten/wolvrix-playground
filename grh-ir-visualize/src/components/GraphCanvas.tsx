@@ -284,13 +284,13 @@ function nodePalette(node: SchematicNode): { light: string; dark: string; accent
   if (node.kind.includes('Memory')) {
     return { light: '#bdd7ff', dark: '#416ea6', accent: '#8ec5ff' }
   }
-  if (node.kind.includes('Latch')) {
+  if (node.kind.startsWith('grh.latch') || node.kind === 'grhsim.latchWrite') {
     return { light: '#d3c2ff', dark: '#6f59a5', accent: '#c8afff' }
   }
-  if (node.kind === 'kInstance' || node.kind === 'kBlackbox') {
+  if (node.kind === 'grh.instance' || node.kind === 'grh.blackbox') {
     return { light: '#ffe19b', dark: '#956b2c', accent: '#ffd46f' }
   }
-  if (node.kind.includes('Register')) {
+  if (node.kind.startsWith('grh.register')) {
     return { light: '#c8d9ff', dark: '#5474a2', accent: '#accbff' }
   }
   if (node.role === 'value') {
@@ -305,14 +305,14 @@ function nodeFill(node: SchematicNode, emphasis: number): string {
   return mixHex(palette.light, palette.dark, deepen)
 }
 
-const READ_PORT_KINDS = new Set(['kRegisterReadPort', 'kRegisterReadArrayPort', 'kLatchReadPort'])
+const READ_PORT_KINDS = new Set(['grh.registerReadPort', 'grh.registerReadArrayPort', 'grh.latchReadPort'])
 const WRITE_PORT_KINDS = new Set([
-  'kRegisterWritePort',
-  'kRegisterWriteMaskPort',
-  'kRegisterWriteArrayPort',
-  'kRegisterWriteArrayMaskPort',
-  'kRegisterFillPort',
-  'kLatchWritePort',
+  'grh.registerWritePort',
+  'grh.registerWriteMaskPort',
+  'grh.registerWriteArrayPort',
+  'grh.registerWriteArrayMaskPort',
+  'grh.registerFillPort',
+  'grh.latchWritePort',
 ])
 
 function isReadPortNode(node: SchematicNode): boolean {
@@ -587,7 +587,7 @@ function drawNodeDecoration(
     ctx.moveTo(left, centerY + 6)
     ctx.lineTo(right, centerY + 6)
     ctx.stroke()
-  } else if (node.kind.includes('Latch')) {
+  } else if (node.kind.startsWith('grh.latch') || node.kind === 'grhsim.latchWrite') {
     ctx.beginPath()
     ctx.moveTo(left, centerY - 7)
     ctx.lineTo(left + 10, centerY)
@@ -1307,7 +1307,7 @@ export default function GraphCanvas({
       setPortExpansion((current) => ({ ...current, outputsExpanded: true }))
       return
     }
-    if (node?.kind === 'kInstance' && node.navigationPath && node.navigationSymbol && onOpenNode) {
+    if (node?.kind === 'grh.instance' && node.navigationPath && node.navigationSymbol && onOpenNode) {
       onOpenNode(node.id)
       return
     }

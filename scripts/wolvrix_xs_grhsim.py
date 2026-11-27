@@ -16,7 +16,7 @@ import wolvrix
 
 from grhsim_flow import (FlowOptions, checked, emit_cpp, finish_simulation_graph,
                          record_stage_event, run_pass, stage_journal_scope,
-                         store_checkpoint, validate_environment)
+                         store_checkpoint)
 
 
 GRH_PIPELINE: list[tuple[str, dict]] = [
@@ -107,7 +107,7 @@ def firrtl_canonical_pipeline(*, remove_singleton_state_axis: bool = True) -> li
                             "drop_disabled_firrtl_assertions": True}),
         ("alias-analysis", {}),
         ("pattern-detect", {"semantics": "2state"}),
-        ("comm-expr", {}),
+        ("common-expr", {}),
         ("dead-code-elim", {"keep_declared_symbols": False}),
     ]
     if remove_singleton_state_axis:
@@ -139,7 +139,6 @@ def semantic_nodes() -> bool:
 
 
 def default_flow_options() -> FlowOptions:
-    validate_environment()
     return FlowOptions(
         firrtl_nodes=os.environ.get("XS_GRHSIM_FIRRTL_NODES", "auto"),
         cost_model=os.environ.get("XS_GRHSIM_COST_MODEL", "legacy"),
@@ -178,10 +177,6 @@ def timed(action: str, callback, *, check_diagnostics: bool = False):
 
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    try:
-        validate_environment()
-    except ValueError as error:
-        parser.error(str(error))
     parser.add_argument("filelist")
     parser.add_argument("top")
     parser.add_argument("flat_grh_json")
@@ -192,12 +187,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--sources-manifest", type=Path,
                         help="mixed FIRRTL/SV read_sources request; bypass the SV filelist")
     parser.add_argument("--resume-from-flat-grh", action="store_true")
-    parser.add_argument("--flat-grh-stage", choices=["auto", "pre-opt", "post-opt"], default="auto",
-                        help="prefix state for old flat checkpoints without identity; auto requires a matching sidecar")
     parser.add_argument("--roundtrip-verify", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--store-grh-checkpoints", action=argparse.BooleanOptionalAction, default=True,
                         help="write automatic flat/final GRH JSON checkpoints; explicit dumps remain independent")
-    parser.add_argument("--keep-origins", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--emit-cpp-dir", type=Path)
     parser.add_argument("--overwrite-emit-cpp", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--emit-waveform", action="store_true")
@@ -232,15 +224,11 @@ def parse_args(argv=None) -> argparse.Namespace:
     if args.sources_manifest and args.dump_pre_simplify_json:
         parser.error("--dump-pre-simplify-json is only supported by the SV route; "
                      "canonical FIRRTL has no simplify stage")
-    if args.flat_grh_stage != "auto" and not args.resume_from_flat_grh:
-        parser.error("--flat-grh-stage requires --resume-from-flat-grh")
     if not args.store_grh_checkpoints:
         if args.emit_cpp_dir is None:
             parser.error("--no-store-grh-checkpoints requires --emit-cpp-dir")
         if args.roundtrip_verify:
             parser.error("--no-store-grh-checkpoints requires --no-roundtrip-verify")
-    if not args.keep_origins:
-        parser.error("--no-keep-origins is retired; unified GRH retains origins through conversion")
     if not 0 < args.max_output_file_bytes < 2**64:
         parser.error("--max-output-file-bytes must be a positive uint64")
     for name, minimum in (("max_function_lines", 8), ("max_tu_bytes", 1), ("max_round", 1),
@@ -314,32 +302,23 @@ def flat_checkpoint_stat(path: Path) -> dict:
 def write_flat_prefix_identity(path: Path, *, top: str, stage: str) -> dict:
     from grhsim_provenance import write_identity
 
-    identity = {"schema": "wolvrix.grhsim.flat-prefix-identity.v1", "top": top,
-                "stage": stage, "checkpoint_stat": flat_checkpoint_stat(path)}
+    identity = {"top": top, "stage": stage, "checkpoint_stat": flat_checkpoint_stat(path)}
     write_identity(flat_prefix_identity_path(path), identity)
     return identity
 
 
-def resolve_flat_prefix(path: Path, *, top: str, requested: str) -> tuple[bool, dict]:
-    """Require evidence for whether a flat checkpoint completed the F24 prefix."""
+def resolve_flat_prefix(path: Path, *, top: str) -> tuple[bool, dict]:
+    """Read which preprocessing a flat checkpoint has completed."""
     marker = flat_prefix_identity_path(path)
-    if marker.is_file():
-        identity = json.loads(marker.read_text(encoding="utf-8"))
-        if (not isinstance(identity, dict) or
-                identity.get("schema") != "wolvrix.grhsim.flat-prefix-identity.v1" or
-                identity.get("stage") not in ("pre-opt", "post-opt") or identity.get("top") != top):
-            raise ValueError(f"Invalid flat GRH prefix identity: {marker}")
-        if identity.get("checkpoint_stat") != flat_checkpoint_stat(path):
-            raise ValueError(f"Stale flat GRH prefix identity does not match checkpoint: {marker}")
-        stage = identity["stage"]
-        if requested != "auto" and requested != stage:
-            raise ValueError(f"--flat-grh-stage={requested} contradicts checkpoint prefix identity ({stage})")
-        return stage == "post-opt", {**identity, "source": str(marker)}
-    if requested == "auto":
-        raise ValueError("Flat GRH checkpoint lacks prefix identity; after checking its producer, "
-                         "set --flat-grh-stage=pre-opt (legacy prefix) or "
-                         "--flat-grh-stage=post-opt (completed F24 prefix)")
-    return requested == "post-opt", {"stage": requested, "source": "explicit --flat-grh-stage"}
+    if not marker.is_file():
+        raise ValueError(f"Flat GRH checkpoint lacks prefix identity: {marker}")
+    identity = json.loads(marker.read_text(encoding="utf-8"))
+    if (not isinstance(identity, dict) or identity.get("stage") not in ("pre-opt", "post-opt")
+            or identity.get("top") != top):
+        raise ValueError(f"Invalid flat GRH prefix identity: {marker}")
+    if identity.get("checkpoint_stat") != flat_checkpoint_stat(path):
+        raise ValueError(f"Stale flat GRH prefix identity does not match checkpoint: {marker}")
+    return identity["stage"] == "post-opt", {**identity, "source": str(marker)}
 
 
 def main() -> int:
@@ -385,8 +364,7 @@ def main() -> int:
         if args.resume_from_flat_grh:
             def load_flat_grh():
                 nonlocal flat_preprocessed
-                flat_preprocessed, prefix_identity = resolve_flat_prefix(
-                    flat_path, top=args.top, requested=args.flat_grh_stage)
+                flat_preprocessed, prefix_identity = resolve_flat_prefix(flat_path, top=args.top)
                 identity["flat_grh_prefix"] = prefix_identity
                 return session.read_json_file(str(flat_path), out_design="design.main")
 
@@ -410,7 +388,7 @@ def main() -> int:
                 explicit_keep = pass_options.pop("keep_declared_symbols", None)
                 keep_declared = (explicit_keep if explicit_keep is not None else
                                  name not in {"split-static-array", "dead-code-elim", "expr-opt", "used-bits", "split-nodes",
-                                              "constant-analysis", "alias-analysis", "pattern-detect", "common-expr", "comm-expr"})
+                                              "constant-analysis", "alias-analysis", "pattern-detect", "common-expr"})
                 run_pass(session, name, design="design.main", keep_declared_symbols=keep_declared, **pass_options)
             if args.store_grh_checkpoints:
                 store_checkpoint(session, flat_path, design="design.main", top=args.top)

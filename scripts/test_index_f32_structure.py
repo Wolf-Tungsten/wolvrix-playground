@@ -226,7 +226,7 @@ class StructureReuseTests(unittest.TestCase):
 
     def test_each_mutable_cache_table_must_be_empty(self):
         records = {'pairs': (1, 1, 'input'), 'native_type_evidence': (1, 8, 0, '[]', 'inferred'),
-                   'disconnected_members': (1, 1, 'kAssign')}
+                   'disconnected_members': (1, 1, 'grh.assign')}
         for table, row in records.items():
             with self.subTest(table=table):
                 with closing(sqlite3.connect(self.database(self.source))) as db, db:

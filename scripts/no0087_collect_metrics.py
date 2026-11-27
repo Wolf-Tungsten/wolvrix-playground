@@ -6,10 +6,13 @@ from pathlib import Path
 from statistics import mean
 
 
-SOURCE_KINDS = {"kConstant", "kRegisterReadPort", "kLatchReadPort"}
-SINK_KINDS = {"kRegisterWritePort", "kLatchWritePort", "kMemoryWritePort", "kMemoryFillPort"}
-DECL_KINDS = {"kRegister", "kMemory", "kLatch", "kDpicImport"}
-HIER_KINDS = {"kInstance", "kBlackbox", "kXMRRead", "kXMRWrite"}
+SOURCE_KINDS = {"grh.constant", "grh.registerReadPort", "grh.registerReadArrayPort", "grh.latchReadPort"}
+SINK_KINDS = {
+    "grh.registerWritePort", "grh.registerWriteMaskPort", "grh.registerWriteArrayPort",
+    "grh.registerWriteArrayMaskPort", "grh.registerFillPort", "grh.latchWritePort",
+}
+DECL_KINDS = {"grh.registerDecl", "grh.latch", "grh.dpicImport"}
+HIER_KINDS = {"grh.instance", "grh.blackbox", "grh.xmrRead", "grh.xmrWrite"}
 
 
 def load_json(path: Path) -> dict:

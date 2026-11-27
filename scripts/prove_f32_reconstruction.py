@@ -260,7 +260,7 @@ def identities(rows, key='id', limit=4096):
 
 def grh_structure(frozen, record):
     native = frozen.json(record['structure'])
-    require(native.get('formatVersion') == 5 and len(native.get('graphs', [])) == 1, 'requires one native GRH v5 graph')
+    require(len(native.get('graphs', [])) == 1, 'requires one native Wolvrix IR graph')
     graph = native['graphs'][0]
     tree = graph.get('semanticTree', {})
     require(tree.get('namesFlattened') is True and isinstance(tree.get('boundaryUses'), list),
@@ -385,9 +385,9 @@ def proof(frozen, db, grh_record, gsim_record, stage, grh_id, gsim_id):
                 and op.get('attrs', {}) == {} and op.get('id') in output['ops'], 'unsupported GRH anchor expression')
         return op
 
-    assign = operation(anchor, 'kAssign', 1, 1)
-    equal = operation(assign['in'][0], 'kEq', 2, 1)
-    concat = operation(equal['in'][0], 'kConcat', 2, 256)
+    assign = operation(anchor, 'grh.assign', 1, 1)
+    equal = operation(assign['in'][0], 'grh.eq', 2, 1)
+    concat = operation(equal['in'][0], 'grh.concat', 2, 256)
     require(set(output['ops']) == {assign['id'], equal['id'], concat['id']} and len(output['ops']) == 3,
             'output owned-operation inventory differs from exact anchor expression')
     roles = (('H', concat['in'][0], concat['id'], 0, 128),

@@ -6,14 +6,13 @@ transform pass，以及单线程 C++ emitter。它是 `pdocs/` 唯一保留的�
 
 ## 1. 架构与数据边界
 
-GrhSIM 全程使用普通 GRH 的 `Design / Graph / Operation / Value / LogicalType`、
+GrhSIM 全程使用 Wolvrix IR 的 `Design / Graph / Operation / Value / LogicalType`、
 use-def 和 JSON。输入是完成层次展开、必要的数组规范化、组合环处理、verify
 和普通 `simplify` 的 flattened top Graph。仿真转换继续修改这个 Graph，
 没有独立的 GrhSimModel、CPU IR、仿真 pass registry 或 CPU planning pipeline。
 
 - 基础计算、状态声明/读取、数组、端口和 DPI import 复用基础 GRH op。
-- 仿真事件、写端口、调用和优化 op 属于 `grhsim` / `grhsim.cpu` 方言，
-  不加入基础 GRH 算子集。完整扩展列表见第 4 节。
+- 仿真事件、写端口、调用和优化 op 属于 `grhsim` 方言。完整扩展列表见第 4 节。
 - `grhsim.partition` 是 op 上的 string-vector 虚拟归属路径。它表达执行责任，
   不创建第二棵图；共享状态声明不属于执行分区。
 - `SinkSchedule` 是 pass 间首个额外分析产物，保存在外部 session 的 typed
@@ -22,12 +21,10 @@ use-def 和 JSON。输入是完成层次展开、必要的数组规范化、组�
   不把这些结果序列化成另一套可执行 CPU plan；可读文本和 code map 只是
   inspection sidecar，帮助从生成代码反查当前 GRH，不参与执行或 checkpoint 恢复。
 
-JSON 在 Design 根部使用 `formatVersion=4`；方言版本为 `grh:2`、`grhsim:1`，
-使用 CPU 优化 op 时还有 `grhsim.cpu:1`。类型、stage、归属和配置随 JSON
-保存，session 中的 schedule 和 emitter 私有分析不随 JSON 保存。旧 checkpoint
-不兼容，必须从源重新生成；局部实体 ID 和 SemanticTree 节点 ID 只在单个 Graph JSON 内表达结构关联。
+Wolvrix IR JSON 保存类型、op 分区归属及图上的流程配置。恢复时，仿真流程用这些信息
+校验图并重建 session 中的 schedule。局部实体 ID 和 SemanticTree 节点 ID 在图内表达结构关联。
 
-实现入口：[方言定义](../wolvrix/include/transform/grhsim/ops.hpp)、
+实现入口：[方言定义](../wolvrix/include/dialect/grhsim/ops.hpp)、
 [共享流程](../scripts/grhsim_flow.py)、
 [CPU emitter](../wolvrix/lib/emit/grhsim/cpu-st-cpp.cpp)。
 
@@ -65,7 +62,7 @@ eval():
 
 ### 2.2 Event：逐 round 检测事件
 
-`pEvent()` 求 Event 的纯计算/状态读取锥，然后执行 `grhsim.edge-detect`。
+`pEvent()` 求 Event 的纯计算/状态读取锥，然后执行 `grhsim.edgeDetect`。
 检测器比较当前事件值与 `prevEventStore`，产生本 round 的 fire；
 每个 round 都无条件采样、更新前值，即使相关 writer 的 enable 为假。
 因此时钟已经越过的边沿不能在之后 enable 变真时被补发。
@@ -175,7 +172,7 @@ General 抛异常时不会进入 LargeSink；重试再次执行 General 时先�
 
 `pOutput()` 求输出锥、执行时隙任务，再写公开输出端口。
 自由形式 monitor/strobe 对 callCond 和参数的变化敏感；事件形式使用本 eval
-积累的 sticky trigger。全部观察完成后，才统一提交 `grhsim.history-write`
+积累的 sticky trigger。全部观察完成后，才统一提交 `grhsim.historyWrite`
 对应的 history 快照。Output-end history 不激活本 eval 的 General 固定点循环。
 
 例如小寄存器 `q <= d`：Event 产生 fire，General 采样 d 并写 q.next，
@@ -196,7 +193,7 @@ callCond、activity 和采样策略约束。旧实现曾有在 Output 再调用 
 ## 3. Pass 划分与流水线
 
 GrhSIM 的 simulation-stage transform pass 与 C++ emitter 分开注册；F22/F23
-阶段属于 `grh-to-grhsim` 之前的 ordinary-GRH 优化边界。
+阶段属于 `grhsim-dialect-translate` 之前的 ordinary-GRH 优化边界。
 共享流程按下面的顺序推进：
 
 ```text
@@ -204,35 +201,35 @@ GrhSIM 的 simulation-stage transform pass 与 C++ emitter 分开注册；F22/F2
   → dead-code-elim → expr-opt → used-bits → split-nodes → dead-code-elim
   → constant-analysis → dead-code-elim
   → alias-analysis → pattern-detect → common-expr → dead-code-elim
-  → grh-to-grhsim
-  → grhsim-split-event-and-output
-  → grhsim-split-nonsink-and-sink
-  → grhsim-partition-nonsink
-  → grhsim-partition-sink
+  → grhsim-dialect-translate
+  → split-event-and-output
+  → split-nonsink-and-sink
+  → partition-nonsink
+  → partition-sink
   → emit grhsim-cpu-st-cpp
 ```
 
 | Pass | 主要职责 | 参数与默认值 |
 | --- | --- | --- |
-| `grh-to-grhsim` | 原地转换写端口、task/function/DPI，显式建立事件 detector、writer 顺序、调用效果和逻辑域；保留计算、声明、数组及结果身份 | `top`：唯一 top；`logic-domain=2state`，也接受 `4state` |
+| `grhsim-dialect-translate` | 原地转换写端口、task/function/DPI，显式建立事件 detector、writer 顺序、调用效果和逻辑域；保留计算、声明、数组及结果身份 | `top`：唯一 top；`logic-domain=2state`，也接受 `4state` |
 | `expr-opt` | 对齐 GSIM ExprOpt：首个 DCE 后折叠普通 GRH 上结构等价 MUX，并保留 SemanticTree 身份 | 唯一 top；默认忽略声明锚点 |
 | `used-bits` | 对齐 GSIM UsedBits：反向位需求、状态/值 prefix 收窄；DCE 由调用者显式执行 | 唯一 top；默认忽略声明锚点 |
 | `split-nodes` | F23 位段结构拆分；当前支持无符号 scalar 的安全纯表达式子集；DCE 由调用者显式执行 | 唯一 top；默认忽略声明锚点 |
-| `constant-analysis` | F23 常量传播；按生产者顺序折叠可证明为常量的纯逻辑表达式，原位改写为 `kConstant` | 唯一 top；默认忽略声明锚点 |
+| `constant-analysis` | F23 常量传播；按生产者顺序折叠可证明为常量的纯逻辑表达式，原位改写为 `grh.constant` | 唯一 top；默认忽略声明锚点 |
 | `alias-analysis` | F23 别名分析；将类型一致的 scalar assign/full static-slice view 重定向到源值 | 唯一 top；默认忽略声明锚点 |
 | `pattern-detect` | F23 模式检测；将 `concat == constant` 展开为两个窄 equality 与 AND | 唯一 top；默认忽略声明锚点 |
 | `common-expr` | F23 公共表达式；按 GSIM 阈值共享重复的纯 scalar 表达式树 | 唯一 top；默认忽略声明锚点 |
-| `grhsim-split-event-and-output` | 提取 Event/Output 纯计算和读锥；建立 held samples、效果顺序、monitor/strobe history 和 sticky trigger 语义 | `top` |
-| `grhsim-split-nonsink-and-sink` | 将 General 分成 nonsink、small-sink、large-sink；分离 writer 私有参数锥和共享 boundary | `mem-min-bytes=64` |
-| `grhsim-partition-nonsink` | 建立可激活 node/supernode DAG，做有界边界 clone，保持数据/效果依赖无环 | `max-node-work=128`、`max-supernode-work=128`、`segment-penalty=1`、`semantic-nodes=0`；clone 选项见下文 |
-| `grhsim-partition-sink` | 按 clock/fire、状态优先级和合法共享 enable 细分 sink，生成有序 General/large-commit runs，并发布 SinkSchedule | pass 自身 `enable-guard-min-size=8`，0 关闭 hoisting；共享 Python FlowOptions 默认显式传 0 |
+| `split-event-and-output` | 提取 Event/Output 纯计算和读锥；建立 held samples、效果顺序、monitor/strobe history 和 sticky trigger 语义 | `top` |
+| `split-nonsink-and-sink` | 将 General 分成 nonsink、small-sink、large-sink；分离 writer 私有参数锥和共享 boundary | `mem-min-bytes=64` |
+| `partition-nonsink` | 建立可激活 node/supernode DAG，做有界边界 clone，保持数据/效果依赖无环 | `max-supernode-nodes=128`、`segment-penalty=1`、`semantic-nodes=0`。clone 选项见下文 |
+| `partition-sink` | 按 clock/fire、状态优先级和合法共享 enable 细分 sink，生成有序 General/large-commit runs，并发布 SinkSchedule | pass 自身 `enable-guard-min-size=8`，0 关闭 hoisting；共享 Python FlowOptions 默认显式传 0 |
 
 Factory 参数沿用普通 pass 的 `-key=value` 形式；Python 使用下划线关键字。
 显式 top 必须存在；不指定时要求唯一 top。report 是诊断输出，不是执行计划。
 
 ### 3.1 转换和优化的边界
 
-`grh-to-grhsim` 只产生 `converted`：此时没有 partition、Output history
+`grhsim-dialect-translate` 只产生 `converted`：此时没有 partition、Output history
 提取、小/大状态选择或 session schedule。逻辑域转换修改真实 LogicalType、
 常量及 InitSpec，不依靠 emitter 隐式丢弃 X/Z。同域重复转换是 no-op；
 转换后半途失败的图标记 `conversion-failed`，不能继续使用。
@@ -277,7 +274,7 @@ leaf 和 supernode 的数据及 effect-order 依赖必须保持无环。
 
 ### 3.3 分区路径与 stage
 
-| `grhsim.stage` | 可执行 op 的 owner |
+| 仿真流程边界 | 可执行 op 的 owner |
 | --- | --- |
 | `converted` | 无 partition |
 | `event-output-split` | `[general]`、`[event]`、`[output]` |
@@ -304,7 +301,7 @@ clock0 group 在 run 序列中出现两次，不能把 A/C 跨过 B 强行聚合
 pass 与 emitter 使用同一个外部 session；`requireSinkSchedule` 校验 slot 类型、
 instance/top/revision/config 和当前图的归属、依赖及顺序。load、clone、freeze
 重编号、rename 或其他图修改后，旧 schedule 失效。加载 completed checkpoint
-后重跑 `grhsim-partition-sink`，在当前 session 重建 schedule 再 emit。
+后重跑 `partition-sink`，在当前 session 重建 schedule 再 emit。
 
 同配置重复 completed pass 会校验并保持图不变；sink pass 仍重建 artifact。
 修改大小阈值从 Event/Output checkpoint 重来，修改 nonsink 配置从 General-split
@@ -313,24 +310,24 @@ checkpoint 重来，修改 sink 配置从 nonsink checkpoint 重来。失败的�
 
 ## 4. GrhSIM 方言扩展 op：完整列表
 
-当前共 **14 个：13 个 `grhsim` op，1 个 `grhsim.cpu` op**。
+GRHSIM 定义 14 个 op，包括 CPU 使用的 `grhsim.cpu.maskedOr`。
 下表 operands 按真实签名顺序列出；未注明的 op 没有 result。
 状态声明、read/readArray、普通算术、assign、arrayCreate、sliceArray 和
 DPI import 都是基础 GRH op，不计入此表。
 
 | # | Op | Ordered operands | Result 与语义 |
 | --- | --- | --- | --- |
-| 1 | `grhsim.edge-detect` | `event` | unsigned scalar TwoState bit `fire`；按 edge 和前值检测事件 |
+| 1 | `grhsim.edgeDetect` | `event` | unsigned scalar TwoState bit `fire`；按 edge 和前值检测事件 |
 | 2 | `grhsim.write` | `fire, enable, data` | 完整写寄存器 |
 | 3 | `grhsim.writeMask` | `fire, enable, data, mask` | 按位掩码写寄存器 |
 | 4 | `grhsim.writeArray` | `fire, enable, index0 … indexK-1, data` | 写前 K 维索引定位的元素或子数组 |
 | 5 | `grhsim.writeArrayMask` | `fire, enable, index0 … indexK-1, data, mask` | 对所定位宽度做按位掩码写 |
 | 6 | `grhsim.fill` | `fire, enable, data` | leaf 广播或完整 packed 填充 |
 | 7 | `grhsim.latchWrite` | `enable, data, mask` | 电平敏感 latch 写；没有 fire operand |
-| 8 | `grhsim.system-task` | `fire, callCond, args…` | 执行系统任务 |
-| 9 | `grhsim.system-function` | `args…` | 一个原始类型 result；保留 pure/random/external 效果 |
-| 10 | `grhsim.dpi-call` | `fire, callCond, inputs…, inoutInputs…` | `return?, outputs…, inoutOutputs…` |
-| 11 | `grhsim.history-write` | `data` | Output 全部观察后的 history 更新 |
+| 8 | `grhsim.systemTask` | `fire, callCond, args…` | 执行系统任务 |
+| 9 | `grhsim.systemFunction` | `args…` | 一个原始类型 result；保留 pure/random/external 效果 |
+| 10 | `grhsim.dpiCall` | `fire, callCond, inputs…, inoutInputs…` | `return?, outputs…, inoutOutputs…` |
+| 11 | `grhsim.historyWrite` | `data` | Output 全部观察后的 history 更新 |
 | 12 | `grhsim.bitSelect` | `mask, whenSet, whenClear` | mask 每 bit 选择 whenSet 或 whenClear |
 | 13 | `grhsim.prioritySelect` | `c0 … cN-1, a0 … aN-1, default` | 第一个真条件对应的 arm，否则 default |
 | 14 | `grhsim.cpu.maskedOr` | `mask, dataArray`，或由 `views` 指定的源 operands | OR 所有被 mask 选中的元素；无匹配为零 |
@@ -362,7 +359,7 @@ grhsim.writeArrayMask(fire, enable, i, j, byte8, mask8)
 
 ```text
 转换前：registerWritePort @q(enable, data, clk) {eventEdge=[posedge]}
-转换后：fire = grhsim.edge-detect(clk) {
+转换后：fire = grhsim.edgeDetect(clk) {
             edge=posedge, prevInit=1'h0,
             sampleScope=event-round, historyUpdate=unconditional
         }
@@ -462,7 +459,7 @@ small-sink 的 `read(value)` 优先使用对应消费视图，writer payload 参
 large writer 读取 input/普通 boundary 或局部值，再将 index/data/mask 及有效位另存到
 `largeSink*BoundaryStore`，保证后续 LargeSink 提交不重新读取已变化的源。
 
-General的只读RHS可把真实`kConstant`的≤64位scalar Logic改为同类型literal，
+General的只读RHS可把真实`grh.constant`的≤64位scalar Logic改为同类型literal，
 不追透Assign、DPI或held sample。原constant op、counter、boundary发布、
 small role同步和activity仍在原位置。跨owner仅允许更早nonsink中、任何
 潜在throw之前的纯Logic/ReadState前缀常量；遇到External、非Logic或
@@ -472,7 +469,7 @@ Event、Output及取地址路径保留物理快照。字符串使用原op首次�
 重复init及多实例只共享不可变源，不共享实例store。嵌入NUL沿用既有
 C-string语义。TaskArg的shaped常量仍物化为可取地址对象。
 
-大型 writer 的捕获另有专用常量规则，允许直接 `kConstant` 的无 shape
+大型 writer 的捕获另有专用常量规则，允许直接 `grh.constant` 的无 shape
 TwoState Logic，包括超过 64 位的 `_BitInt`。生成原 General capture 时，
 仅在 constant 与 writer 同 execution owner，或属于更早 nonsink 的上述
 非抛异常前缀时，登记该 `(writer, operand)` 的精确 typed literal；省去该参数
@@ -501,7 +498,7 @@ General ≤64 位 scalar/string 不可变源机制已在[NO00005](grhsim-perf-op
 旧均值353.788667秒、新均值288.095000秒，原SV完整构建2183.211285秒/32路；
 CPU2单线程、无PGO，最终冻结身份通过。该成绩未分别拆分两个机制的整机贡献。
 
-`grhsim-partition-sink` 仍可依据 GRH 的 fire/priority/enable 身份建立静态 group
+`partition-sink` 仍可依据 GRH 的 fire/priority/enable 身份建立静态 group
 和 runs，分组本身不依赖 C++ store 名称。emitter 在此有序 schedule 上为
 外部动态单 bit writer enable 按 value 分配稠密 bit；共享 enable 共用一个 bit。
 input 变化、普通 producer、DPI 等发布结果时，在同一个 compare-store 分支
@@ -672,9 +669,7 @@ make reemit_grhsim
 ```
 
 `reemit_grhsim` 的 checkpoint/输出参数见根 Makefile 和对应脚本；加载后由
-共享流程校验 stage、补齐剩余 pass，并重建当前 session 的 SinkSchedule。
-旧 independent-model / CPU-plan API 和已移除选项不能继续使用，
-即使旧选项被设为 0 或空串也应显式拒绝。
+共享流程校验执行配置、补齐剩余 pass，并重建当前 session 的 SinkSchedule。
 
 FST、性能计数和原生 operation execution counts 是可选诊断。
 `execution-counters` 默认 off；开启时记录 operation、effect、writer-sample、
@@ -722,7 +717,7 @@ session.emit_grhsim_cpu_st_cpp(
 
 schedule 缺失、过期、类型不符或 stage 未完成时，文本明确输出 `status: unavailable`
 和原因，仍允许观察 GRH；不从 partition attrs 猜造一份“已验证” schedule。
-重新加载 JSON 后应在当前 session 重跑 `grhsim-partition-sink` 再导出有效 schedule。
+重新加载 JSON 后应在当前 session 重跑 `partition-sink` 再导出有效 schedule。
 本文本是 inspection 格式，不能替代 JSON 进行 round-trip，也不是新的执行 IR。
 
 CPU emitter 默认额外生成 `grhsim.txt`；`code-map.json` 始终生成，schema 为

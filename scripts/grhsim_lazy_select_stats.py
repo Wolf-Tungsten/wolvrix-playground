@@ -16,16 +16,14 @@ import time
 
 
 PURE = set("""
-kConstant kAssign kAdd kSub kMul kDiv kMod kAnd kOr kXor kXnor
-kLogicAnd kLogicOr kNot kLogicNot kMux kBitSelect kPrioritySelect
-kEq kNe kCaseEq kCaseNe kWildcardEq kWildcardNe kLt kLe kGt kGe
-kShl kLShr kAShr kReduceAnd kReduceNand kReduceOr kReduceNor
-kReduceXor kReduceXnor kConcat kReplicate kSliceStatic kSliceDynamic
-kZExt kSExt kTrunc
+grh.constant grh.assign grh.add grh.sub grh.mul grh.div grh.mod grh.bitAnd grh.bitOr grh.bitXor grh.bitXnor
+grh.logicAnd grh.logicOr grh.bitNot grh.logicNot grh.mux grhsim.bitSelect grhsim.prioritySelect
+grh.eq grh.ne grh.caseEq grh.caseNe grh.wildcardEq grh.wildcardNe grh.lt grh.le grh.gt grh.ge
+grh.shl grh.lShr grh.aShr grh.reduceAnd grh.reduceNand grh.reduceOr grh.reduceNor
+grh.reduceXor grh.reduceXnor grh.concat grh.replicate grh.sliceStatic grh.sliceDynamic
 """.split())
-LEAF_ROOTS = {"kAssign", "kConcat", "kReplicate", "kMux"}
+LEAF_ROOTS = {"grh.assign", "grh.concat", "grh.replicate", "grh.mux"}
 SCALAR = re.compile(r"(?:bool|std::(?:u?int)(?:8|16|32|64)_t)\Z")
-KIND_ALIASES = {"grhsim.bitSelect": "kBitSelect", "grhsim.prioritySelect": "kPrioritySelect"}
 
 
 def records(data, section, following, key):
@@ -80,9 +78,9 @@ def main():
     kinds = {"": 0}
     owners = {(): 0}
     value_count = 0
-    select_kinds = {"kMux", "kPrioritySelect"}
+    select_kinds = {"grh.mux", "grhsim.prioritySelect"}
     if args.include_bool_bitselect:
-        select_kinds.add("kBitSelect")
+        select_kinds.add("grhsim.bitSelect")
 
     with (args.model / "code-map.json").open("rb") as stream, mmap.mmap(
             stream.fileno(), 0, access=mmap.ACCESS_READ) as data:
@@ -109,7 +107,7 @@ def main():
             if op >= size:
                 raise ValueError("increase --max-id")
             op_ids.append(op)
-            name = KIND_ALIASES.get(item["kind"], item["kind"])
+            name = item["kind"]
             kind[op] = kinds.setdefault(name, len(kinds))
             key = tuple(item["execution_owner"])
             owner[op] = owners.setdefault(key, len(owners))
@@ -135,7 +133,7 @@ def main():
             is_general_owner = len(key) == 3 and key[0] == "general"
             owner_allowed = is_general_owner and (args.all_owners or key[1] != "nonsink")
             if eligible[op] and name in select_kinds and owner_allowed:
-                if name != "kBitSelect" or (scalar[result[op]] == 2 and all(scalar[v] == 2 for v in args_in)):
+                if name != "grhsim.bitSelect" or (scalar[result[op]] == 2 and all(scalar[v] == 2 for v in args_in)):
                     roots.append(op)
             if len(op_ids) % 1_000_000 == 0:
                 print(f"operations {len(op_ids):,}", flush=True)

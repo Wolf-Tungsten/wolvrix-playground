@@ -60,10 +60,8 @@ class Arena:
 
 class Model:
     def __init__(self, native, arena, endpoints=None, identity_rows=None):
-        require(native.get('formatVersion') == 5 and len(native.get('graphs', [])) == 1,
-                'requires one flat native GRH v5 graph')
+        require(len(native.get('graphs', [])) == 1, 'requires one native Wolvrix IR graph')
         self.graph, self.arena, self.endpoints = native['graphs'][0], arena, endpoints
-        require(self.graph.get('dialects', {}).get('grh') == 4, 'requires native grh:4')
         tree = self.graph.get('semanticTree', {})
         require(tree.get('namesFlattened') is True, 'requires flattened native SemanticTree')
         self.tree = tree
@@ -204,7 +202,7 @@ class Model:
         def resize(bits):
             return (bits + (arena.zero,) * max(0, width - len(bits)))[:width]
 
-        if kind == 'kConstant':
+        if kind == 'grh.constant':
             arity(0, ('constValue',))
             text = attr('constValue', 'string').replace('_', '').lower()
             match = re.fullmatch(r"([0-9]+)'([bhd])([0-9a-fxz]+)", text)
@@ -226,34 +224,34 @@ class Model:
             except ValueError as error:
                 raise Unsupported('invalid numeric constant') from error
             return tuple(arena.one if number >> bit & 1 else arena.zero for bit in range(width))
-        if kind == 'kAssign':
+        if kind == 'grh.assign':
             arity(1)
             return resize(arg(0))
-        if kind == 'kConcat':
+        if kind == 'grh.concat':
             if not inputs or attrs:
                 raise Unsupported('empty or attributed concat unsupported')
             joined = tuple(bit for index in reversed(range(len(inputs))) for bit in arg(index))
             return resize(joined)
-        if kind == 'kSliceStatic':
+        if kind == 'grh.sliceStatic':
             arity(1, ('sliceStart', 'sliceEnd'))
             low, high = attr('sliceStart', 'int'), attr('sliceEnd', 'int')
             if type(low) is not int or type(high) is not int or not 0 <= low <= high < len(arg(0)):
                 raise Unsupported('invalid static slice')
             return arg(0)[low:high + 1]
-        if kind == 'kNot':
+        if kind == 'grh.bitNot':
             arity(1)
             if len(arg(0)) != width:
                 raise Unsupported('width-changing bitwise not unsupported')
             return tuple(arena.term('defined-not', bit) for bit in arg(0))
-        if kind in ('kAnd', 'kOr', 'kXor'):
+        if kind in ('grh.bitAnd', 'grh.bitOr', 'grh.bitXor'):
             arity(2)
             return tuple(arena.term(kind, left, right) for left, right in zip(resize(arg(0)), resize(arg(1))))
-        if kind == 'kMux':
+        if kind == 'grh.mux':
             arity(3)
             if len(arg(0)) != 1:
                 raise Unsupported('non-bit mux control')
             return tuple(arena.mux(arg(0)[0], yes, no) for yes, no in zip(resize(arg(1)), resize(arg(2))))
-        if kind == 'kSliceArray':
+        if kind == 'grh.sliceArray':
             arity(2)
             source_shape = self.typ(inputs[0])[3]
             index = arg(1)
@@ -264,7 +262,7 @@ class Model:
             if coordinate >= source_shape[0] or shape != source_shape[1:] or width != stride:
                 raise Unsupported('array read geometry or bounds unsupported')
             return arg(0)[coordinate * stride:(coordinate + 1) * stride]
-        if kind == 'kCombArrayUpdate':
+        if kind == 'grh.combArrayUpdate':
             counts = attr('indexCounts', 'int[]')
             if (set(attrs) != {'indexCounts'} or not shape or self.typ(inputs[0]) != self.typ(output) or
                     not isinstance(counts, list) or any(type(count) is not int or not 0 <= count <= len(shape)
@@ -287,7 +285,7 @@ class Model:
                         if self.typ(inputs[operand + 1 + axis])[3]:
                             raise Unsupported('array-valued update index')
                         equal = arena.index_equal(index, leaf // stride % shape[axis])
-                        match = arena.term('kAnd', match, equal)
+                        match = arena.term('grh.bitAnd', match, equal)
                     for bit in range(leaf_width):
                         offset = leaf * leaf_width + bit
                         result[offset] = arena.mux(match, payload[(leaf % suffix) * leaf_width + bit], result[offset])

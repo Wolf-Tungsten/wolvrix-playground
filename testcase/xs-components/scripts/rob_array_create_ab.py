@@ -115,7 +115,7 @@ def audit_ir(candidate):
     symbols = {"rab$_GEN_716__DOT__" + field for field in FIELDS}
     with (candidate / "emit_flat_grh.json").open() as stream:
         for line in stream:
-            if '"kind": "kArrayCreate"' not in line:
+            if '"kind": "grh.arrayCreate"' not in line:
                 continue
             op = json.loads(line.strip().removesuffix(","))
             count += 1

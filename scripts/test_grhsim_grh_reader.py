@@ -24,14 +24,14 @@ class Fixture:
         self.graph = {"symbol": top, "ops": [], "vals": [], "declaredSymbols": ["q", "memory"],
                       "ports": {"in": [], "out": [], "inout": []}}
         self.model = {"tops": [top], "graphs": [self.graph]}
-        self.op("q", "kRegister", attrs={"width": 8, "domain": "2state"})
-        self.op("memory", "kRegister", attrs={"width": 64, "shape": [2, 4], "domain": "2state"})
+        self.op("q", "grh.registerDecl", attrs={"width": 8, "domain": "2state"})
+        self.op("memory", "grh.registerDecl", attrs={"width": 64, "shape": [2, 4], "domain": "2state"})
         self.input("fire", 1)
         self.input("enable", 1)
         self.input("address", 2)
-        self.op("one", "kConstant", out="one_value", attrs={"constValue": "8'h1"})
-        self.op("read", "kRegisterReadPort", out="current", attrs={"regSymbol": "q"})
-        self.op("xor", "kXor", ["current", "one_value"], "next")
+        self.op("one", "grh.constant", out="one_value", attrs={"constValue": "8'h1"})
+        self.op("read", "grh.registerReadPort", out="current", attrs={"regSymbol": "q"})
+        self.op("xor", "grh.bitXor", ["current", "one_value"], "next")
         self.op("write", "grhsim.writeMask", ["fire", "enable", "next", "one_value"],
                 attrs={"regSymbol": "q"})
 
@@ -124,9 +124,9 @@ class ReaderTests(unittest.TestCase):
         for index in range(2):
             name = f"bank$cell_{index}"
             fixture.graph["declaredSymbols"].append(name)
-            fixture.op(name, "kRegister", attrs={"width": 8, "domain": "2state"})
-            fixture.op(f"read{index}", "kRegisterReadPort", out=f"current{index}", attrs={"regSymbol": name})
-            fixture.op(f"xor{index}", "kXor", [f"current{index}", "one_value"], f"next{index}")
+            fixture.op(name, "grh.registerDecl", attrs={"width": 8, "domain": "2state"})
+            fixture.op(f"read{index}", "grh.registerReadPort", out=f"current{index}", attrs={"regSymbol": name})
+            fixture.op(f"xor{index}", "grh.bitXor", [f"current{index}", "one_value"], f"next{index}")
             fixture.op(f"write{index}", "grhsim.writeMask", ["fire", "enable", f"next{index}", "one_value"],
                        attrs={"regSymbol": name})
         return fixture
@@ -149,7 +149,7 @@ class ReaderTests(unittest.TestCase):
 
     def test_native_families_do_not_equate_effects_or_missing_writers(self):
         fixture = self.family_fixture()
-        fixture.op("call", "grhsim.dpi-call", ["fire", "enable"], "call_value")
+        fixture.op("call", "grhsim.dpiCall", ["fire", "enable"], "call_value")
         fixture.graph["ops"][-2]["in"][2] = "call_value"
         family = native_family_report(fixture.model)["families"][0]
         self.assertFalse(family["isomorphic"])
@@ -196,7 +196,7 @@ class ReaderTests(unittest.TestCase):
 
     def test_indexed_read_is_an_opaque_boundary(self):
         fixture = Fixture()
-        fixture.op("read_mem", "kRegisterReadArrayPort", ["address"], "mem_value", attrs={"regSymbol": "memory"})
+        fixture.op("read_mem", "grh.registerReadArrayPort", ["address"], "mem_value", attrs={"regSymbol": "memory"})
         reader, pool = GraphReader(fixture.model), Signatures()
         engine = NativeGrhSignatures(reader, {"memory": 0}, pool)
         self.assertEqual(reader.cone(["mem_value"]), {"read_mem"})
@@ -233,10 +233,10 @@ class ReaderTests(unittest.TestCase):
 
     def test_assign_requires_full_type_identity(self):
         fixture = Fixture()
-        fixture.op("identity", "kAssign", ["next"], "identity_value")
-        fixture.op("reshaped", "kAssign", ["next"], "reshaped_value", shape=[2])
-        fixture.op("signed", "kAssign", ["next"], "signed_value", signed=True)
-        fixture.op("fourstate", "kAssign", ["next"], "fourstate_value", domain="4state")
+        fixture.op("identity", "grh.assign", ["next"], "identity_value")
+        fixture.op("reshaped", "grh.assign", ["next"], "reshaped_value", shape=[2])
+        fixture.op("signed", "grh.assign", ["next"], "signed_value", signed=True)
+        fixture.op("fourstate", "grh.assign", ["next"], "fourstate_value", domain="4state")
         reader, pool = GraphReader(fixture.model), Signatures()
         engine = NativeGrhSignatures(reader, {"q": 0}, pool)
         original = engine.sig_value("next")
@@ -247,8 +247,8 @@ class ReaderTests(unittest.TestCase):
 
     def test_cycle_is_rejected_without_recursion(self):
         fixture = Fixture()
-        fixture.op("a", "kNot", ["b_value"], "a_value")
-        fixture.op("b", "kNot", ["a_value"], "b_value")
+        fixture.op("a", "grh.bitNot", ["b_value"], "a_value")
+        fixture.op("b", "grh.bitNot", ["a_value"], "b_value")
         engine = NativeGrhSignatures(GraphReader(fixture.model), {}, Signatures())
         with self.assertRaisesRegex(ValueError, "combinational cycle"):
             engine.sig_value("a_value")
@@ -280,6 +280,22 @@ class ReaderTests(unittest.TestCase):
         self.assertEqual(ROB.grhsim_summary(path)[0]["array_storage_bits"], 64)
         (work / "grhsim/post_lower.json").write_text("frozen legacy")
         self.assertEqual(ROB.conversion_checkpoint(work), path)
+
+    def test_rob_op_buckets_use_registered_names(self):
+        for kind, bucket in {
+            "grh.registerDecl": "state_declaration",
+            "grh.registerReadPort": "node_ref",
+            "grh.add": "arithmetic",
+            "grh.bitXor": "bitwise_logic",
+            "grh.lShr": "shift",
+            "grh.aShr": "shift",
+            "grhsim.writeArrayMask": "state_reg_access",
+            "grhsim.dpiCall": "special",
+            "core.compute.xor": "bitwise_logic",
+            "kXor": "other",
+        }.items():
+            with self.subTest(kind=kind):
+                self.assertEqual(ROB.kind_bucket(kind), bucket)
 
     def test_native_cone_comparison_uses_third_write_operand(self):
         work = self.directory()

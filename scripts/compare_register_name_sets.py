@@ -25,7 +25,7 @@ def extract_grh_register_names(path: Path, kind: str) -> set[str]:
         for op in graph["ops"]:
             if op.get("kind") != kind:
                 continue
-            if kind == "kRegister":
+            if kind == "grh.registerDecl":
                 names.add(op["sym"])
                 continue
             reg = op.get("attrs", {}).get("regSymbol", {}).get("v")
@@ -323,8 +323,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--gsim-json", required=True, type=Path)
     parser.add_argument("--grh-json", required=True, type=Path)
-    parser.add_argument("--grh-kind", default="kRegisterReadPort",
-                        choices=["kRegister", "kRegisterReadPort", "kRegisterWritePort"])
+    parser.add_argument("--grh-kind", default="grh.registerReadPort",
+                        choices=["grh.registerDecl", "grh.registerReadPort", "grh.registerWritePort"])
     parser.add_argument("--top", type=int, default=20)
     parser.add_argument("--json-out", type=Path)
     args = parser.parse_args()

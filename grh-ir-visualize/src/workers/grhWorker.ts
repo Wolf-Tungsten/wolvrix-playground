@@ -35,30 +35,30 @@ type NormalizedDesign = {
   graphsBySymbol: Map<string, NormalizedGraph>
 }
 
-const DECLARATION_OP_KINDS = new Set(['kRegister', 'kLatch'])
+const DECLARATION_OP_KINDS = new Set(['grh.registerDecl', 'grh.latch'])
 const STATE_SOURCE_OP_KINDS = new Set([
-  'kRegisterReadPort',
-  'kRegisterReadArrayPort',
-  'kLatchReadPort',
+  'grh.registerReadPort',
+  'grh.registerReadArrayPort',
+  'grh.latchReadPort',
 ])
 const STATE_SINK_OP_KINDS = new Set([
-  'kRegisterWritePort',
-  'kRegisterWriteMaskPort',
-  'kRegisterWriteArrayPort',
-  'kRegisterWriteArrayMaskPort',
-  'kRegisterFillPort',
-  'kLatchWritePort',
+  'grh.registerWritePort',
+  'grh.registerWriteMaskPort',
+  'grh.registerWriteArrayPort',
+  'grh.registerWriteArrayMaskPort',
+  'grh.registerFillPort',
+  'grh.latchWritePort',
 ])
 const STATE_PORT_OP_KINDS = new Set([
-  'kRegisterReadPort',
-  'kRegisterReadArrayPort',
-  'kLatchReadPort',
-  'kRegisterWritePort',
-  'kRegisterWriteMaskPort',
-  'kRegisterWriteArrayPort',
-  'kRegisterWriteArrayMaskPort',
-  'kRegisterFillPort',
-  'kLatchWritePort',
+  'grh.registerReadPort',
+  'grh.registerReadArrayPort',
+  'grh.latchReadPort',
+  'grh.registerWritePort',
+  'grh.registerWriteMaskPort',
+  'grh.registerWriteArrayPort',
+  'grh.registerWriteArrayMaskPort',
+  'grh.registerFillPort',
+  'grh.latchWritePort',
 ])
 
 let currentDesign: NormalizedDesign | null = null
@@ -84,8 +84,8 @@ function isStatePortOp(kind: string): boolean {
 }
 
 function formatOpKind(kind: string): string {
-  const raw = kind.startsWith('k') ? kind.slice(1) : kind
-  return raw.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+  const name = kind.slice(kind.lastIndexOf('.') + 1)
+  return name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (letter) => letter.toUpperCase())
 }
 
 function opSecondaryLabel(op: GrhOperation): string | null {
@@ -99,7 +99,7 @@ function opSecondaryLabel(op: GrhOperation): string | null {
 }
 
 function opPrimaryLabel(op: GrhOperation, secondaryLabel: string | null): string {
-  if (op.kind === 'kInstance' || op.kind === 'kBlackbox') {
+  if (op.kind === 'grh.instance' || op.kind === 'grh.blackbox') {
     return secondaryLabel ?? formatOpKind(op.kind)
   }
   return formatOpKind(op.kind)
@@ -277,7 +277,7 @@ function normalizeDesign(payload: GrhDesign): NormalizedDesign {
     const vals = raw.vals ?? []
     const ports = raw.ports ?? {}
     const instances = ops
-      .filter((op) => op.kind === 'kInstance' || op.kind === 'kBlackbox')
+      .filter((op) => op.kind === 'grh.instance' || op.kind === 'grh.blackbox')
       .map((op) => ({
         moduleName: attrAsString(op.attrs, 'moduleName') ?? '<unknown-module>',
         instanceName:
@@ -369,7 +369,7 @@ function buildGraphDetail(symbol: string, instancePath: string | undefined): Gra
   const instanceBasePath = instancePath ?? symbol
   const instanceOrdinalByOpSym = new Map(
     rawOps
-      .filter((op) => op.kind === 'kInstance' || op.kind === 'kBlackbox')
+      .filter((op) => op.kind === 'grh.instance' || op.kind === 'grh.blackbox')
       .map((op, index) => [op.sym, index] as const),
   )
   const valueBySymbol = new Map(vals.map((value) => [value.sym, value]))
@@ -508,7 +508,7 @@ function buildGraphDetail(symbol: string, instancePath: string | undefined): Gra
       attrAsString(op.attrs, 'instanceName') ?? (op.sym.replace(/^_+/, '') || op.sym)
     const instanceOrdinal = instanceOrdinalByOpSym.get(op.sym)
     const navigationPath =
-      op.kind === 'kInstance' && moduleName && instanceOrdinal !== undefined
+      op.kind === 'grh.instance' && moduleName && instanceOrdinal !== undefined
         ? `${instanceBasePath}/${instanceName}:${moduleName}:${instanceOrdinal}`
         : null
     const width = statePort
@@ -520,7 +520,7 @@ function buildGraphDetail(symbol: string, instancePath: string | undefined): Gra
       secondaryLabel,
       kind: op.kind,
       navigationPath,
-      navigationSymbol: op.kind === 'kInstance' ? moduleName ?? null : null,
+      navigationSymbol: op.kind === 'grh.instance' ? moduleName ?? null : null,
       role: 'op',
       layer: layers[index],
       x: 0,

@@ -433,12 +433,11 @@ FIRRTL 6 的 primitive operands 必须是 ground type。上面的聚合相等、
 若复用 SV 的小数组标量存储优化，必须保留源几何及正确访问映射，不能为了
 共用阈值而丢失 FIRRTL 的数组访问语义。
 
-## 7. node attribute schema v2
+## 7. Node 来源属性
 
-所有记录放在现有 op attrs 中，使用现有 `AttributeValue`，不增加独立 node
-IR 或 JSON 方言。带这些属性的 Graph 记录
-`metadata["firrtl.nodeSchema"]=2` 和 `firrtl.nodeScopePolicy=soft-node-v2`。中间分析可将字符串 intern 成稠密索引，
-该索引不持久化、不进入 source identity。
+来源关联使用 op 的 `AttributeValue` 保存。Graph 可以通过
+`firrtl.nodeInventory` 保存源节点清单并启用保留情况统计。中间分析可将
+字符串 intern 成仅在分析中使用的稠密索引。
 
 | 属性 | 类型 | 定义 |
 | --- | --- | --- |
@@ -459,9 +458,9 @@ fieldPath 或数组元素数当作 op 容量切分依据，真实语义冲突另
 members/origins 排序去重；roots 按 `(key,resultIndex)` 排序
 去重，rootResults 同步排列。验证器检查类型、配对长度和结果序号范围。
 
-F09 复用 F02/F08 的存储字段，但已版本化为新的可选关联语义。每 op 的
+这些字段表示可选关联。每个 op 的
 members/roots/origins 分别最多 64 项，超限清除可选属性并累计
-firrtl.nodeHintDegraded；不能拒绝变换。旧 schema 1 要求重新 ingest。
+`firrtl.nodeHintDegraded`，变换继续执行。
 属性不参与功能等价判断，也不增加 CSE、inline、重关联或 DCE 的屏障。
 普通合法 CSE 就可以合并不同源 node 的 members；多成员不意味着独占
 归属或强制同组。roots 无法准确保留时允许清除并报告，不能创建执行

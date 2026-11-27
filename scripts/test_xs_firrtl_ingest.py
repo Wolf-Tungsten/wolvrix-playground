@@ -91,7 +91,7 @@ circuit top :
             manifest.write_text(json.dumps({"schema": "wolvrix.xs.firrtl-inputs.v1",
                 "input_root": str(work), "tops": ["top"],
                 "sources": [{"language": "firrtl", "path": str(source), "unit": "unit"}],
-                "slang_args": [], "firrtl_options": {"node_annotations": True, "lower_threads": 2},
+                "slang_args": [], "firrtl_options": {"node_annotations": False, "lower_threads": 2},
                 "external_bindings": []}))
             for label, flags in (("before", "--prefix-identity"),
                                  ("after", "--prefix-identity --fused-prefix --discard-identity-json")):
@@ -110,9 +110,11 @@ circuit top :
             for stage in ("ingest", "flatten"):
                 self.assertTrue((work / "before" / f"{stage}.json").is_file())
                 self.assertFalse((work / "after" / f"{stage}.json").exists())
-            text = (work / "before/flatten.json").read_text()
-            self.assertIn('"semanticTree"', text)
-            self.assertIn('"semanticIds"', text)
+            design = json.loads((work / "before/flatten.json").read_text())
+            self.assertEqual([graph["symbol"] for graph in design["graphs"]], ["top"])
+            operations = design["graphs"][0]["ops"]
+            self.assertTrue(any(op["kind"] == "grh.bitNot" for op in operations))
+            self.assertFalse(any(op["kind"] == "grh.instance" for op in operations))
             with self.assertRaisesRegex(ValueError, "dedicated --through-flatten"):
                 summarize([work / "before"])
 
@@ -381,9 +383,15 @@ circuit top :
             self.assertTrue(report["equal"])
             document = json.loads((work / "ingest.json").read_text())
             self.assertEqual(len(document["graphs"]), 2)
-            document_text = (work / "ingest.json").read_text()
-            self.assertIn('"semanticTree"', document_text)
-            self.assertIn('"semanticIds"', document_text)
+            for graph in document["graphs"]:
+                tree = graph["semanticTree"]
+                op_ids = {operation["id"] for operation in graph["ops"]}
+                value_ids = {value["id"] for value in graph["vals"]}
+                self.assertTrue(any(node["ops"] for node in tree["nodes"]))
+                self.assertTrue(any(node["anchors"] for node in tree["nodes"]))
+                for node in tree["nodes"]:
+                    self.assertLessEqual(set(node["ops"]), op_ids)
+                    self.assertLessEqual(set(node["anchors"]), value_ids)
 
     def test_records_loaded_native_library_content(self):
         identity = native_identity()

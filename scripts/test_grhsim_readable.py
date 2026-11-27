@@ -146,7 +146,7 @@ class ReadableTest(unittest.TestCase):
                 target = attrs.get("regSymbol", {}).get("v", operation.get("sym"))
                 if target in state_origins:
                     attrs["originModules"] = {"t": "string[]", "vs": [state_origins[target]]}
-                    if operation["kind"] == "kRegister":
+                    if operation["kind"] == "grh.registerDecl":
                         annotated_states.add(target)
             self.assertEqual(annotated_states, set(state_origins))
             fixture_json.write_text(json.dumps(fixture))
@@ -158,7 +158,7 @@ class ReadableTest(unittest.TestCase):
                 path = WORK / f"{stage}.grh.txt"
                 checked(session.store_text(design="design.main", output=str(path)), f"store readable {stage}")
                 snapshot = path.read_text()
-                self.assertIn(f'grhsim.stage = "{stage}"', snapshot)
+                self.assertIn(f'workflow-stage: "{stage}"', snapshot)
                 self.assertIn("six-phase-model:", snapshot)
                 self.assertIn("hierarchy.sv", snapshot)
                 if stage == "sink-partitioned":

@@ -553,7 +553,7 @@ class F32Subgraphs(Subgraphs):
     @lru_cache(maxsize=8192)
     def operation(self, oid):
         operation = super().operation(oid)
-        if not self.two_state or operation.get('kind') != 'kConstant':
+        if not self.two_state or operation.get('kind') != 'grh.constant':
             return operation
         outputs = operation.get('out', [])
         if len(outputs) != 1:
@@ -917,7 +917,7 @@ class F32Subgraphs(Subgraphs):
         if not producer or producer[0] not in self.members:
             return super().grh_expr(vid, index)
         operation = self.operation(producer[0])
-        if operation['kind'] not in ('kCombArrayUpdate', 'kArrayUpdate'):
+        if operation['kind'] != 'grh.combArrayUpdate':
             return super().grh_expr(vid, index)
         self.step()
         width, signed, dimensions = self.geometry(self.value(vid))
@@ -1191,14 +1191,14 @@ class F32StateSubgraphs(F32Subgraphs):
             if shape or self.native_geometry(source_id) != (width, signed, ()) or self.native_geometry(next_id) != (width, signed, ()):
                 raise Unverified('state_scalar_geometry_disagreement')
             producer = self.db.execute('SELECT op FROM producers WHERE value=?', (current_value,)).fetchone()
-            if not producer or self.operation(producer[0])['kind'] != 'kRegisterReadPort':
+            if not producer or self.operation(producer[0])['kind'] != 'grh.registerReadPort':
                 raise Unverified('state_current_is_not_a_scalar_register_read')
             symbol = attr(self.operation(producer[0]), 'regSymbol')
             declaration = self.db.execute('SELECT op FROM state_declarations WHERE symbol=?', (symbol,)).fetchall()
             if len(declaration) != 1:
                 raise Unverified('state_declaration_is_not_unique')
             declaration = self.operation(declaration[0][0])
-            if (declaration['kind'] != 'kRegister' or attr(declaration, 'width') != width or
+            if (declaration['kind'] != 'grh.registerDecl' or attr(declaration, 'width') != width or
                     bool(attr(declaration, 'isSigned')) != signed or attr(declaration, 'shape', [])):
                 raise Unverified('state_declaration_geometry_disagreement')
             typ = BVType(width, signed)
@@ -1207,11 +1207,11 @@ class F32StateSubgraphs(F32Subgraphs):
             ports = [self.operation(op) for op, in self.db.execute('SELECT op FROM state_ports WHERE symbol=?', (symbol,))]
             writers, orders = [], set()
             for op in ports:
-                if op['kind'] == 'kRegisterReadPort':
+                if op['kind'] == 'grh.registerReadPort':
                     if op.get('in') or len(op.get('out', [])) != 1 or self.geometry(self.value(op['out'][0])) != (width, signed, ()):
                         raise Unverified('state_read_geometry_disagreement')
                     self.current_values.add(op['out'][0])
-                elif op['kind'] in ('kRegisterWritePort', 'kRegisterWriteMaskPort'):
+                elif op['kind'] in ('grh.registerWritePort', 'grh.registerWriteMaskPort'):
                     order = attr(op, 'writerOrder')
                     if type(order) is not int or order < 0 or order in orders:
                         raise Unverified('state_writer_order_missing_or_ambiguous')
@@ -1238,7 +1238,7 @@ class F32StateSubgraphs(F32Subgraphs):
             result = self.old_state
             for _, op in writers:
                 args = op.get('in', [])
-                masked = op['kind'] == 'kRegisterWriteMaskPort'
+                masked = op['kind'] == 'grh.registerWriteMaskPort'
                 if attr(op, 'eventEdge') != ['posedge'] or len(args) != (4 if masked else 3):
                     raise Unverified('state_requires_one_posedge_clock_without_other_events')
                 self.clock_value(args[-1], native_clock)
@@ -1356,12 +1356,10 @@ def structure_index(grh, native, output):
         for sql, rows in pending.items():
             db.executemany(sql, rows)
             rows.clear()
-    counts, flattened, version, active = Counter(), None, None, False
+    counts, flattened, active = Counter(), None, False
     with db:
         for section, row in records(grh):
-            if section == 'version':
-                version = row
-            elif section == 'graph':
+            if section == 'graph':
                 active = False
             elif section == 'flattened':
                 if flattened is not None:
@@ -1373,7 +1371,7 @@ def structure_index(grh, native, output):
                     raise ValueError('comparison requires post-flatten root-only Paths')
             elif section == 'nodes' and active:
                 if row['parent'] != 1 or 'ops' not in row:
-                    raise ValueError('requires v5 named leaf Nodes with authoritative ops')
+                    raise ValueError('requires named leaf Nodes with authoritative ops')
                 emit('INSERT INTO grh_nodes VALUES(?,?)', (row['id'], row['name']))
                 for key, table in (('ops', 'members'), ('anchors', 'anchors')):
                     refs = row.get(key, [])
@@ -1391,17 +1389,17 @@ def structure_index(grh, native, output):
                     emit('INSERT INTO producers VALUES(?,?)', (value, row['id']))
                 if STATE.search(row['kind']):
                     emit('INSERT INTO state_operations VALUES(?)', (row['id'],))
-                if row['kind'] in ('kRegister', 'kLatch'):
+                if row['kind'] in ('grh.registerDecl', 'grh.latch'):
                     emit('INSERT INTO state_declarations VALUES(?,?)', (row.get('sym'), row['id']))
-                elif row['kind'].startswith(('kRegister', 'kLatch')):
+                elif row['kind'].startswith(('grh.register', 'grh.latch')):
                     emit('INSERT INTO state_ports VALUES(?,?)', (attr(row, 'regSymbol'), row['id']))
                 counts['grh_ops'] += 1
                 if counts['grh_ops'] % 1000000 == 0:
                     flush()
                     print(f'[F32] indexed {counts["grh_ops"]:,} native GRH ops', flush=True)
         flush()
-        if version != 5 or flattened is not True or counts['paths'] != 1:
-            raise ValueError('requires JSON v5, namesFlattened=true and exactly one root Path')
+        if flattened is not True or counts['paths'] != 1:
+            raise ValueError('requires namesFlattened=true and exactly one root Path')
         for section, row in records(native):
             if section not in ('nodes', 'memories'):
                 continue

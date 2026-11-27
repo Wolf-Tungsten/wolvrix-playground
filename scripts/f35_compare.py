@@ -26,10 +26,10 @@ INDEX_SCHEMA = 'f35.unmatched-names.v1'
 INDEX_HEADER = ('name', 'node_count')
 BOUNDARY_KINDS = {'state_update', 'storage_read', 'storage_write', 'external_binding'}
 AGGREGATE_KINDS = {
-    'kConcat', 'kArrayCreate', 'kReplicate', 'kSliceStatic', 'kSliceDynamic', 'kSliceArray',
-    'kCombArrayUpdate',
+    'grh.concat', 'grh.arrayCreate', 'grh.replicate', 'grh.sliceStatic', 'grh.sliceDynamic', 'grh.sliceArray',
+    'grh.combArrayUpdate',
 }
-EFFECT_KINDS = {'kSystemTask', 'kDpicCall', 'kDpicImport', 'kBlackbox', 'kInstance', 'kXMRWrite'}
+EFFECT_KINDS = {'grh.systemTask', 'grh.dpicCall', 'grh.dpicImport', 'grh.blackbox', 'grh.instance', 'grh.xmrWrite'}
 STATE_ROLES = {'register-current', 'register-next', 'clock', 'reset', 'memory-read-address', 'memory-storage'}
 
 
@@ -202,18 +202,18 @@ def classify(name, endpoints, connections):
     if 'external_binding' in edge_kinds or kinds & EFFECT_KINDS or 'effect' in roles:
         return 'external-effects'
     if (edge_kinds & BOUNDARY_KINDS or roles & STATE_ROLES
-            or any(kind.startswith(('kRegister', 'kLatch')) for kind in kinds)):
+            or any(kind.startswith(('grh.register', 'grh.latch')) for kind in kinds)):
         return 'state-and-storage'
     if kinds == {'input'}:
         return 'input-or-unanchored'
     if len(kinds) != 1:
         return 'mixed-endpoints'
     kind = next(iter(kinds))
-    if kind == 'kAssign':
+    if kind == 'grh.assign':
         return 'assignments'
-    if kind == 'kConstant':
+    if kind == 'grh.constant':
         return 'constants'
-    if kind == 'kMux':
+    if kind == 'grh.mux':
         return 'muxes'
     if kind in AGGREGATE_KINDS or any(aggregate for _, _, _, aggregate, *_ in endpoints):
         return 'slices-and-packing'

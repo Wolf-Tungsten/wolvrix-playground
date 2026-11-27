@@ -47,7 +47,7 @@ class ComparisonTests(unittest.TestCase):
         self.directory = Path(tempfile.mkdtemp(dir=work))
         self.gsdir = self.directory / 'gsim'
         self.gsdir.mkdir()
-        self.grh = {'formatVersion': 5, 'graphs': [{'symbol': 'Top', 'semanticTree': {
+        self.grh = {'graphs': [{'symbol': 'Top', 'semanticTree': {
             'rootPath': 1, 'namesFlattened': True, 'paths': [{'id': 1, 'parent': 0, 'name': 'Top'}],
             'nodes': []}, 'vals': [], 'ops': []}]}
         self.gs = {'nodes': [], 'memories': [], 'sourceAggregates': [], 'edges': []}
@@ -107,9 +107,9 @@ class ComparisonTests(unittest.TestCase):
         self.node(3, 'y', ops=[1], anchors=[2])
         self.node(4, 'arr', ops=[2, 3], anchors=[4])
         self.graph['vals'] = [value(1, input=True), value(2), value(3), value(4, 16, [2])]
-        self.graph['ops'] = [op(1, 'kNot', [1], [2]),
-                             op(2, 'kConstant', out=[3], constValue="8'b00000101"),
-                             op(3, 'kArrayCreate', [1, 3], [4])]
+        self.graph['ops'] = [op(1, 'grh.bitNot', [1], [2]),
+                             op(2, 'grh.constant', out=[3], constValue="8'b00000101"),
+                             op(3, 'grh.arrayCreate', [1, 3], [4])]
         self.gs['nodes'] = [native(1, 'x', [], 'NODE_INP'),
                             native(2, 'alias', [tree([enode(0, 'OP_EMPTY', node='x')])]),
                             native(3, 'y', [tree([enode(0, 'OP_NOT', [1]), enode(1, 'OP_EMPTY', node='x')])]),
@@ -125,7 +125,7 @@ class ComparisonTests(unittest.TestCase):
         self.node(1, 'x', anchors=[1])
         self.node(2, 'y', ops=[1], anchors=[2])
         self.graph['vals'] = [value(1, input=True), value(2)]
-        self.graph['ops'] = [op(1, 'kNot', [1], [2])]
+        self.graph['ops'] = [op(1, 'grh.bitNot', [1], [2])]
         self.gs['nodes'] = [native(1, 'x', [], 'NODE_INP'),
                             native(2, 'y', [tree([enode(0, 'OP_EMPTY', node='x')])])]
         result = self.run_comparison()
@@ -139,7 +139,7 @@ class ComparisonTests(unittest.TestCase):
         self.graph['vals'] = [value(1, input=True), value(2)]
         for row in self.graph['vals']:
             row['domain'] = '4state'
-        self.graph['ops'] = [op(1, 'kNot', [1], [2])]
+        self.graph['ops'] = [op(1, 'grh.bitNot', [1], [2])]
         self.gs['nodes'] = [native(1, 'x', [], 'NODE_INP'),
                             native(2, 'y', [tree([enode(0, 'OP_NOT', [1]), enode(1, 'OP_EMPTY', node='x')])])]
         result = self.run_comparison()
@@ -153,7 +153,7 @@ class ComparisonTests(unittest.TestCase):
         self.node(2, 'n', ops=[1], anchors=[2])
         self.node(3, 'y', ops=[2], anchors=[3])
         self.graph['vals'] = [value(1, input=True), value(2), value(3)]
-        self.graph['ops'] = [op(1, 'kNot', [1], [2]), op(2, 'kAssign', [2], [3])]
+        self.graph['ops'] = [op(1, 'grh.bitNot', [1], [2]), op(2, 'grh.assign', [2], [3])]
         self.gs['nodes'] = [native(1, 'x', [], 'NODE_INP'),
                             native(2, 'n', [tree([enode(0, 'OP_NOT', [1], width=-1),
                                                   enode(1, 'OP_EMPTY', node='x')])], width=-1),
@@ -201,7 +201,7 @@ class ComparisonTests(unittest.TestCase):
         self.node(1, 'x', anchors=[1])
         self.node(2, 'u.ram.$storage.payload.flag', ops=[1], anchors=[2] if anchored else [])
         self.graph['vals'] = [value(1, input=True), value(3)] + ([value(2)] if anchored else [])
-        self.graph['ops'] = [op(1, 'kRegister', out=[2] if anchored else []), op(2, 'kNot', [1], [3])]
+        self.graph['ops'] = [op(1, 'grh.registerDecl', out=[2] if anchored else []), op(2, 'grh.bitNot', [1], [3])]
         row = native(2, 'native_memory', type='NODE_MEMORY')
         row['semantic'] = {'path': ['u', 'ram', 'payload', 'flag'], 'scopeDepth': 1,
                            'role': 'memory-storage'}
@@ -269,7 +269,7 @@ class ComparisonTests(unittest.TestCase):
         self.node(1, 'x', anchors=[1])
         self.node(2, 'y', ops=[1], anchors=[2])
         self.graph['vals'] = [value(1, input=True), value(2), value(3)]
-        self.graph['ops'] = [op(1, 'kNot', [1], [2]), op(2, 'kConstant', out=[3], constValue="8'b0")]
+        self.graph['ops'] = [op(1, 'grh.bitNot', [1], [2]), op(2, 'grh.constant', out=[3], constValue="8'b0")]
         self.graph['metadata'] = {'firrtl.invalidPolicy': {'t': 'string', 'v': 'zero'}}
         self.gs['nodes'] = [native(1, 'x', [], 'NODE_INP'),
                             native(2, 'y', [tree([enode(0, 'OP_NOT', [1]), enode(1, 'OP_EMPTY', node='x')])])]
@@ -377,7 +377,7 @@ class ComparisonTests(unittest.TestCase):
             'missing_member_op': lambda g: g['semanticTree']['nodes'][1].update(ops=[1, 999]),
             'missing_node': lambda g: g['semanticTree']['nodes'].pop(),
             'missing_op': lambda g: g['ops'].pop(),
-            'op_kind': lambda g: g['ops'][0].update(kind='kAssign'),
+            'op_kind': lambda g: g['ops'][0].update(kind='grh.assign'),
             'op_connection': lambda g: g['ops'][0].update(out=[3]),
             'value_width': lambda g: g['vals'][0].update(w=9),
             'value_number_type': lambda g: g['vals'][0].update(w=8.0),
@@ -400,8 +400,8 @@ class ComparisonTests(unittest.TestCase):
         self.node(4, 'reg', ops=[2], anchors=[3])
         self.node(5, 'only_grh')
         self.graph['vals'] = [value(1, input=True), value(2), value(3)]
-        self.graph['ops'] = [op(1, 'kNot', [1], [2]), op(2, 'kRegister', out=[3]),
-                             op(3, 'kConstant', constValue="1'b0")]
+        self.graph['ops'] = [op(1, 'grh.bitNot', [1], [2]), op(2, 'grh.registerDecl', out=[3]),
+                             op(3, 'grh.constant', constValue="1'b0")]
         self.gs['nodes'] = [native(1, 'x', [], 'NODE_INP'), native(2, 'y'),
                             native(3, 'shared'), native(4, 'reg', type='NODE_REG_SRC'), native(5, 'only_gsim')]
         result = self.run_comparison()
@@ -418,7 +418,7 @@ class ComparisonTests(unittest.TestCase):
         self.node(1, 'x', anchors=[1])
         self.node(2, 'y', ops=[1, 2], anchors=[2])
         self.graph['vals'] = [value(1, input=True), value(2), value(3)]
-        self.graph['ops'] = [op(1, 'kAssign', [1], [2]), op(2, 'kConstant', out=[3], constValue="8'b0")]
+        self.graph['ops'] = [op(1, 'grh.assign', [1], [2]), op(2, 'grh.constant', out=[3], constValue="8'b0")]
         self.gs['nodes'] = [native(1, 'x', [], 'NODE_INP'), native(2, 'y', [tree([enode(0, 'OP_EMPTY', node='x')])])]
         self.run_comparison()
         self.assertEqual(self.statuses()['y']['reason'], 'owned_operations_not_reached_from_anchor')
@@ -430,7 +430,7 @@ class ComparisonTests(unittest.TestCase):
             {'language': 'systemverilog', 'path': str(sv)},
             {'language': 'firrtl', 'path': str(firrtl)}]}}))
         self.node(1, 'owned_firrtl', ops=[1])
-        self.graph['ops'] = [op(index, 'kConstant', constValue="1'b0") for index in range(1, 8)]
+        self.graph['ops'] = [op(index, 'grh.constant', constValue="1'b0") for index in range(1, 8)]
         locations = [
             {'pass': 'ingest-firrtl', 'file': str(firrtl)},
             {'pass': 'ingest-firrtl', 'file': str(sv)},
@@ -458,8 +458,8 @@ class ComparisonTests(unittest.TestCase):
 
     def test_missing_source_registry_never_infers_sv_from_a_filename(self):
         self.node(1, 'arbitrary_name')
-        self.graph['ops'] = [op(1, 'kConstant', constValue="1'b0"),
-                             op(2, 'kConstant', constValue="1'b0")]
+        self.graph['ops'] = [op(1, 'grh.constant', constValue="1'b0"),
+                             op(2, 'grh.constant', constValue="1'b0")]
         self.graph['ops'][0]['loc'] = {'file': '/registered/SimJTAG.v'}
         self.graph['ops'][1]['loc'] = {'pass': 'ingest-firrtl'}
         result = self.run_comparison()

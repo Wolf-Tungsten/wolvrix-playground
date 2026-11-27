@@ -19,11 +19,11 @@ def fixture(*, changed=False):
               for identifier, width in ((1, 8), (2, 1), (3, 8), (4, 8), (5, 8), (6, 8))]
     nodes = [{'id': identifier, 'parent': 1, 'name': name, 'ops': [], 'anchors': [anchor]}
              for identifier, name, anchor in ((1, 'payload', 1), (2, 'guard', 2), (3, 'output', 5))]
-    ops = [{'id': 1, 'kind': 'kNot', 'in': [1], 'out': [3]},
-           {'id': 2, 'kind': 'kNot', 'in': [1], 'out': [4]},
-           {'id': 3, 'kind': 'kAssign' if changed else 'kMux',
+    ops = [{'id': 1, 'kind': 'grh.bitNot', 'in': [1], 'out': [3]},
+           {'id': 2, 'kind': 'grh.bitNot', 'in': [1], 'out': [4]},
+           {'id': 3, 'kind': 'grh.assign' if changed else 'grh.mux',
             'in': [3] if changed else [2, 3, 4], 'out': [5]}]
-    return {'formatVersion': 5, 'graphs': [{'symbol': 'top', 'dialects': {'grh': 4},
+    return {'graphs': [{'symbol': 'top',
         'semanticTree': {'namesFlattened': True, 'nodes': nodes, 'rootPath': 1, 'sourceUnit': 'original',
                          'circuit': 'top', 'paths': [{'id': 1, 'parent': 0, 'name': 'top'}]},
         'vals': values, 'ops': ops,
@@ -45,12 +45,12 @@ def projection_fixture(leaf_width):
     for cell, identifier in enumerate(values):
         graph['vals'].append({'id': identifier, 'w': leaf_width, 'sgn': False,
                               'type': 'logic', 'domain': '4state'})
-        graph['ops'].append({'id': cell + 1, 'kind': 'kSliceStatic', 'in': [1], 'out': [identifier],
+        graph['ops'].append({'id': cell + 1, 'kind': 'grh.sliceStatic', 'in': [1], 'out': [identifier],
             'attrs': {'sliceStart': {'t': 'int', 'v': cell * 8},
                       'sliceEnd': {'t': 'int', 'v': cell * 8 + leaf_width - 1}}})
-    graph['ops'].append({'id': 5, 'kind': 'kConcat', 'in': list(reversed(values)), 'out': [5]})
+    graph['ops'].append({'id': 5, 'kind': 'grh.concat', 'in': list(reversed(values)), 'out': [5]})
     row = {'node_id': '3', 'role': 'value', 'value_id': '1005', 'value_generation': '7',
-           'operation_id': '2005', 'operation_generation': '9', 'native_kind': 'kConcat',
+           'operation_id': '2005', 'operation_generation': '9', 'native_kind': 'grh.concat',
            'width': str(leaf_width), 'signed': '0',
            'shape_json': '[4]', 'logic_domain': '4state', 'source_width': '8', 'source_signed': '0',
            'source_shape_json': '[4]', 'source_shape_field_depths_json': '[0]', 'projection_json': '[-1]',
@@ -84,7 +84,7 @@ class ReplayContracts(unittest.TestCase):
 
     def test_selecting_different_arm_and_undefined_values_cannot_pass(self):
         before, after = fixture(), fixture(changed=True)
-        after['graphs'][0]['ops'][0]['kind'] = 'kAssign'
+        after['graphs'][0]['ops'][0]['kind'] = 'grh.assign'
         rows = self.compare(before, after)
         self.assertFalse(rows[3]['anchor_value_preservation_proved'])
         self.assertIn('lane forms differ', rows[3]['reason'])
@@ -158,7 +158,7 @@ class ReplayContracts(unittest.TestCase):
 
     def test_unknown_literal_is_never_silently_zero(self):
         before, after = fixture(), fixture(changed=True)
-        after['graphs'][0]['ops'][0] = {'id': 1, 'kind': 'kConstant', 'in': [], 'out': [3],
+        after['graphs'][0]['ops'][0] = {'id': 1, 'kind': 'grh.constant', 'in': [], 'out': [3],
                                       'attrs': {'constValue': {'t': 'string', 'v': "8'bx"}}}
         result = self.compare(before, after)[3]
         self.assertFalse(result['anchor_value_preservation_proved'])
@@ -176,7 +176,7 @@ class ReplayContracts(unittest.TestCase):
         after['graphs'][0]['vals'][4]['w'] = 4
         self.assertFalse(self.compare(fixture(), after)[3]['anchor_value_preservation_proved'])
         after = fixture(changed=True)
-        after['graphs'][0]['ops'].append({'id': 9, 'kind': 'kAssign', 'in': [1], 'out': [5]})
+        after['graphs'][0]['ops'].append({'id': 9, 'kind': 'grh.assign', 'in': [1], 'out': [5]})
         with self.assertRaisesRegex(ValueError, 'duplicate native value producer'):
             self.compare(fixture(), after)
 
@@ -192,16 +192,16 @@ class ReplayContracts(unittest.TestCase):
                 graph['vals'].append({'id': identifier, 'w': width, 'sgn': False, 'type': 'logic',
                                      'domain': '4state', 'shape': shape, 'out': identifier == 5})
             graph['ops'] = [
-                {'id': 1, 'kind': 'kConstant', 'in': [], 'out': [7], 'attrs': {'constValue': {'t': 'string', 'v': '0'}}},
-                {'id': 2, 'kind': 'kConstant', 'in': [], 'out': [6], 'attrs': {'constValue': {'t': 'string', 'v': "1'b1"}}},
-                {'id': 3, 'kind': 'kSliceStatic', 'in': [1], 'out': [8], 'attrs': {
+                {'id': 1, 'kind': 'grh.constant', 'in': [], 'out': [7], 'attrs': {'constValue': {'t': 'string', 'v': '0'}}},
+                {'id': 2, 'kind': 'grh.constant', 'in': [], 'out': [6], 'attrs': {'constValue': {'t': 'string', 'v': "1'b1"}}},
+                {'id': 3, 'kind': 'grh.sliceStatic', 'in': [1], 'out': [8], 'attrs': {
                     'sliceStart': {'t': 'int', 'v': 0}, 'sliceEnd': {'t': 'int', 'v': leaf_width - 1}}},
-                {'id': 4, 'kind': 'kConcat', 'in': [7, 8], 'out': [3]},
-                {'id': 5, 'kind': 'kCombArrayUpdate', 'in': [3, 6, 2, 8], 'out': [4],
+                {'id': 4, 'kind': 'grh.concat', 'in': [7, 8], 'out': [3]},
+                {'id': 5, 'kind': 'grh.combArrayUpdate', 'in': [3, 6, 2, 8], 'out': [4],
                  'attrs': {'indexCounts': {'t': 'int[]', 'vs': [1]}}},
-                {'id': 6, 'kind': 'kConstant', 'in': [], 'out': [9], 'attrs': {'constValue': {'t': 'string', 'v': "32'b1"}}},
-                {'id': 7, 'kind': 'kSliceArray', 'in': [4, 9], 'out': [10]},
-                {'id': 8, 'kind': 'kSliceStatic', 'in': [10], 'out': [5], 'attrs': {
+                {'id': 6, 'kind': 'grh.constant', 'in': [], 'out': [9], 'attrs': {'constValue': {'t': 'string', 'v': "32'b1"}}},
+                {'id': 7, 'kind': 'grh.sliceArray', 'in': [4, 9], 'out': [10]},
+                {'id': 8, 'kind': 'grh.sliceStatic', 'in': [10], 'out': [5], 'attrs': {
                     'sliceStart': {'t': 'int', 'v': 0}, 'sliceEnd': {'t': 'int', 'v': 2}}}]
             return native
         self.assertTrue(self.compare(array_fixture(8), array_fixture(3))[3]['anchor_value_preservation_proved'])
@@ -231,19 +231,19 @@ class ReplayContracts(unittest.TestCase):
             graph['vals'].append({'id': identifier, 'w': width, 'sgn': False, 'type': 'logic',
                                  'domain': '4state', 'shape': shape, 'out': identifier == 5})
         graph['ops'] = [
-            {'id': 1, 'kind': 'kConstant', 'in': [], 'out': [3],
+            {'id': 1, 'kind': 'grh.constant', 'in': [], 'out': [3],
              'attrs': {'constValue': {'t': 'string', 'v': '0'}}},
-            {'id': 2, 'kind': 'kConstant', 'in': [], 'out': [6],
+            {'id': 2, 'kind': 'grh.constant', 'in': [], 'out': [6],
              'attrs': {'constValue': {'t': 'string', 'v': "1'b1"}}},
-            {'id': 3, 'kind': 'kAssign', 'in': [1], 'out': [7]},
-            {'id': 4, 'kind': 'kCombArrayUpdate', 'in': [3, 6, 2, 7], 'out': [4],
+            {'id': 3, 'kind': 'grh.assign', 'in': [1], 'out': [7]},
+            {'id': 4, 'kind': 'grh.combArrayUpdate', 'in': [3, 6, 2, 7], 'out': [4],
              'attrs': {'indexCounts': {'t': 'int[]', 'vs': [1]}}},
-            {'id': 5, 'kind': 'kConstant', 'in': [], 'out': [8],
+            {'id': 5, 'kind': 'grh.constant', 'in': [], 'out': [8],
              'attrs': {'constValue': {'t': 'string', 'v': "32'b1"}}},
-            {'id': 6, 'kind': 'kSliceArray', 'in': [4, 8], 'out': [9]},
-            {'id': 7, 'kind': 'kConstant', 'in': [], 'out': [10],
+            {'id': 6, 'kind': 'grh.sliceArray', 'in': [4, 8], 'out': [9]},
+            {'id': 7, 'kind': 'grh.constant', 'in': [], 'out': [10],
              'attrs': {'constValue': {'t': 'string', 'v': "32'd2"}}},
-            {'id': 8, 'kind': 'kSliceArray', 'in': [9, 10], 'out': [5]}]
+            {'id': 8, 'kind': 'grh.sliceArray', 'in': [9, 10], 'out': [5]}]
         arena = proof.Arena()
         bits = proof.Model(native, arena).bits(5)
 
@@ -253,7 +253,7 @@ class ReplayContracts(unittest.TestCase):
                 return int(term[1])
             if term[0] == 'formal-input':
                 return ((a if term[1][0] == 1 else guard) >> term[2]) & 1
-            if term[0] == 'kAnd':
+            if term[0] == 'grh.bitAnd':
                 return evaluate(term[1], a, guard) & evaluate(term[2], a, guard)
             if term[0] == 'defined-logical-equality':
                 return int(all(evaluate(left, a, guard) == evaluate(right, a, guard)
@@ -272,9 +272,9 @@ class ReplayContracts(unittest.TestCase):
         scalar = copy.deepcopy(native)
         scalar_graph = scalar['graphs'][0]
         scalar_graph['vals'].append({'id': 11, 'w': 2, 'sgn': False, 'type': 'logic', 'domain': '4state'})
-        scalar_graph['ops'].append({'id': 9, 'kind': 'kConstant', 'in': [], 'out': [11],
+        scalar_graph['ops'].append({'id': 9, 'kind': 'grh.constant', 'in': [], 'out': [11],
                                    'attrs': {'constValue': {'t': 'string', 'v': "2'b11"}}})
-        scalar_graph['ops'][3] = {'id': 4, 'kind': 'kCombArrayUpdate', 'in': [3, 6, 8, 10, 11], 'out': [4],
+        scalar_graph['ops'][3] = {'id': 4, 'kind': 'grh.combArrayUpdate', 'in': [3, 6, 8, 10, 11], 'out': [4],
                                   'attrs': {'indexCounts': {'t': 'int[]', 'vs': [2]}}}
         arena = proof.Arena()
         scalar_bits = proof.Model(scalar, arena).bits(5)
@@ -282,7 +282,7 @@ class ReplayContracts(unittest.TestCase):
         out_of_bounds = copy.deepcopy(scalar)
         oob_graph = out_of_bounds['graphs'][0]
         oob_graph['vals'].append({'id': 12, 'w': 32, 'sgn': False, 'type': 'logic', 'domain': '4state'})
-        oob_graph['ops'].append({'id': 10, 'kind': 'kConstant', 'in': [], 'out': [12],
+        oob_graph['ops'].append({'id': 10, 'kind': 'grh.constant', 'in': [], 'out': [12],
                                 'attrs': {'constValue': {'t': 'string', 'v': "32'd3"}}})
         oob_graph['ops'][3]['in'][3] = 12
         arena = proof.Arena()
@@ -293,7 +293,7 @@ class ReplayContracts(unittest.TestCase):
         with self.assertRaisesRegex(proof.Unsupported, 'array read geometry or bounds'):
             proof.Model(invalid_read, proof.Arena()).bits(5)
         whole = copy.deepcopy(native)
-        whole['graphs'][0]['ops'][3] = {'id': 4, 'kind': 'kCombArrayUpdate', 'in': [3, 6, 3], 'out': [4],
+        whole['graphs'][0]['ops'][3] = {'id': 4, 'kind': 'grh.combArrayUpdate', 'in': [3, 6, 3], 'out': [4],
             'attrs': {'indexCounts': {'t': 'int[]', 'vs': [0]}}}
         whole_model = proof.Model(whole, proof.Arena())
         self.assertTrue(all(bit == whole_model.arena.zero for bit in whole_model.bits(5)))
@@ -301,7 +301,7 @@ class ReplayContracts(unittest.TestCase):
     def test_controls_bounds_and_symbolic_budgets_fail_closed(self):
         after = fixture(changed=False)
         graph = after['graphs'][0]
-        graph['ops'][0] = {'id': 1, 'kind': 'kConstant', 'in': [], 'out': [3],
+        graph['ops'][0] = {'id': 1, 'kind': 'grh.constant', 'in': [], 'out': [3],
                           'attrs': {'constValue': {'t': 'string', 'v': "8'bz"}}}
         self.assertFalse(self.compare(fixture(), after)[3]['anchor_value_preservation_proved'])
         graph['ops'][-1]['in'][0] = 1
@@ -363,7 +363,7 @@ class ReplayContracts(unittest.TestCase):
     def test_projection_requires_real_anchor_and_defining_operation_identity_mapping(self):
         for field, value in (('role', 'effect'), ('value_id', '1003'), ('value_id', '9999'),
                              ('value_generation', '8'), ('operation_id', '2001'), ('operation_id', '9999'),
-                             ('operation_id', '0'), ('operation_generation', '8'), ('native_kind', 'kAssign')):
+                             ('operation_id', '0'), ('operation_generation', '8'), ('native_kind', 'grh.assign')):
             old, new = projection_fixture(8), projection_fixture(3)
             new[1][0][field] = value
             arena = proof.Arena()
@@ -459,7 +459,7 @@ class FrozenCaptureContracts(unittest.TestCase):
             meta = json.loads(path.read_text().splitlines()[0].split('\t', 1)[1])
             meta['graph_id'] = '1'
             row = {'value_generation': '0', 'operation_id': '5', 'operation_generation': '0',
-                   'native_kind': 'kConcat', **endpoints[0]}
+                   'native_kind': 'grh.concat', **endpoints[0]}
             columns = reconstruction_tests.verifier.HEADERS['node-endpoints.tsv']
             record['artifacts']['node-endpoints.tsv'] = self.fixture_case.table(
                 path, meta, [tuple(row[column] for column in columns)])

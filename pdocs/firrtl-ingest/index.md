@@ -82,6 +82,8 @@ GRH 第三次 DCE 删除 1,009,108 个 Node，比局部规则对齐前多删除 
 
 [F36](F36-state-port-alignment-plan.md) 修复 CHIRRTL mport 行内写索引和 588 个拆分寄存器的双路径归属。第四次 DCE 后有 145,103 / 147,100 个状态同名同形配对，其中 145,007 个读写访问形状一致。原有 128 个写侧差异全部消除。
 
+[F37](F37-core-dialect-decoupling.md) 将 GRHSIM 的图级执行校验移到仿真流程。Wolvrix IR 通过 `OpDefination` 接入方言，GRH 和 GRHSIM 统一使用小驼峰 op 注册名。
+
 目标是在 Wolvrix 内实现不依赖 CIRCT 的 FIRRTL 前端，与现有 SV 前端共同
 构建设计。FIRRTL `node` 与 ops 的关联以 attribute 保存；普通 GRH 优化与
 仿真转换不受来源标注限制，允许跨 node CSE、内联、重关联和 DCE。分图

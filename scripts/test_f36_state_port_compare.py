@@ -10,14 +10,22 @@ from f36_state_port_compare import access_geometry, compare_accesses, grh_type
 
 class F36StatePortCompareTests(unittest.TestCase):
     def test_array_shape_uses_leaf_width(self):
-        state = {'kind': 'kRegister', 'width': 1, 'signed': False, 'shape': [64]}
+        state = {'kind': 'grh.registerDecl', 'width': 1, 'signed': False, 'shape': [64]}
         self.assertEqual(grh_type(state), ('register', 1, False, (64,)))
 
+    def test_latch_uses_registered_kind(self):
+        state = {'kind': 'grh.latch', 'width': 8, 'signed': True, 'shape': []}
+        self.assertEqual(grh_type(state), ('latch', 8, True, ()))
+
+    def test_old_state_kind_is_unknown(self):
+        state = {'kind': 'kRegister', 'width': 1, 'signed': False, 'shape': []}
+        self.assertIsNone(grh_type(state))
+
     def test_whole_and_indexed_reads_both_count(self):
-        state = {'kind': 'kRegister', 'width': 8, 'signed': False, 'shape': [4, 3]}
-        indexed = {'kind': 'kRegisterReadArrayPort', 'target_resolution': 'resolved',
+        state = {'kind': 'grh.registerDecl', 'width': 8, 'signed': False, 'shape': [4, 3]}
+        indexed = {'kind': 'grh.registerReadArrayPort', 'target_resolution': 'resolved',
                    'operands': [{'width': 2}], 'results': [{'width': 8, 'shape': [3]}]}
-        actions = [{'kind': 'kRegisterReadPort', 'target_resolution': 'resolved'},
+        actions = [{'kind': 'grh.registerReadPort', 'target_resolution': 'resolved'},
                    indexed, indexed]
         actions[0]['results'] = [{'width': 8, 'shape': [4, 3]}]
         accesses, issues = grh_accesses(state, actions)

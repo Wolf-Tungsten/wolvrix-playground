@@ -13,12 +13,12 @@ from grhsim_f21_dce_compare import SEMANTIC_IDS, load_nodes, module_name, parse_
 
 OP_KIND = re.compile(r'"kind": "([^"]+)"')
 STATE_KINDS = {
-    "kRegister", "kLatch", "kRegisterReadPort", "kRegisterReadArrayPort", "kLatchReadPort",
-    "kRegisterWritePort", "kRegisterWriteMaskPort", "kRegisterWriteArrayPort",
-    "kRegisterWriteArrayMaskPort", "kRegisterFillPort", "kLatchWritePort",
+    "grh.registerDecl", "grh.latch", "grh.registerReadPort", "grh.registerReadArrayPort", "grh.latchReadPort",
+    "grh.registerWritePort", "grh.registerWriteMaskPort", "grh.registerWriteArrayPort",
+    "grh.registerWriteArrayMaskPort", "grh.registerFillPort", "grh.latchWritePort",
 }
 EFFECT_KINDS = {
-    "kInstance", "kBlackbox", "kSystemFunction", "kSystemTask", "kDpicImport", "kDpicCall", "kXMRWrite",
+    "grh.instance", "grh.blackbox", "grh.systemFunction", "grh.systemTask", "grh.dpicImport", "grh.dpicCall", "grh.xmrWrite",
 }
 
 

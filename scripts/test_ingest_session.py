@@ -89,7 +89,7 @@ class IngestSessionTest(unittest.TestCase):
         valid = WORK / "valid-file-copy.json"
         valid.write_text(json.dumps(before))
         late = json.loads(valid.read_text())
-        late["graphs"][-1]["ops"].append({"sym": "late_bad_file_op", "kind": "kAssign",
+        late["graphs"][-1]["ops"].append({"sym": "late_bad_file_op", "kind": "grh.assign",
                                             "in": ["missing_file_value"], "out": []})
         unknown = WORK / "late-invalid-file.json"
         unknown.write_text(json.dumps(late))

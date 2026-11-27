@@ -20,6 +20,7 @@ import math
 import sys
 from collections import Counter
 from pathlib import Path
+from grhsim_flow import simulation_stage
 
 MANIFEST_SCHEMA = "grhsim-supernode-origin-manifest/v1"
 ORIGIN_MODULES_PARAM = "origin_modules"
@@ -426,7 +427,8 @@ def build_grh_manifest(model_path, model, emitted_path, top=None, op_level=False
     graphs = [graph for graph in model.get("graphs", []) if graph.get("symbol") == top]
     require(len(graphs) == 1, "GRH must contain exactly one selected top: " + str(top))
     graph = graphs[0]
-    require(graph.get("metadata", {}).get("grhsim.stage", {}).get("v") == "sink-partitioned",
+    metadata = {key: entry.get("v", entry.get("vs")) for key, entry in graph.get("metadata", {}).items()}
+    require(simulation_stage(metadata) == "sink-partitioned",
             "Origin analysis requires the emitted sink-partitioned GRH checkpoint")
     ops = {op["sym"]: op for op in graph["ops"]}
     require(len(ops) == len(graph["ops"]), "Duplicate GRH operation symbol")

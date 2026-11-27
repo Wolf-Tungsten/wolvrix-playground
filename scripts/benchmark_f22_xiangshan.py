@@ -110,8 +110,8 @@ def run_once(wolvrix, source: Path) -> dict:
             stage_cpu_before = resource.getrusage(resource.RUSAGE_SELF)
             started = time.perf_counter()
             diagnostics = checked(session.run_pass(
-                "grh-to-grhsim", design="design.main", logic_domain="2state"),
-                "grh-to-grhsim")
+                "grhsim-dialect-translate", design="design.main", logic_domain="2state"),
+                "grhsim-dialect-translate")
             stage_cpu_after = resource.getrusage(resource.RUSAGE_SELF)
             conversion = {
                 "wall_s": time.perf_counter() - started,
@@ -149,7 +149,7 @@ def main() -> int:
     parser.add_argument("--runs", type=int, default=1)
     parser.add_argument("--cpu", type=int)
     parser.add_argument("--convert", action="store_true",
-                        help="run grh-to-grhsim after F22 and record conversion timing")
+                        help="run grhsim-dialect-translate after F22 and record conversion timing")
     parser.add_argument("--store-after-f22", type=Path,
                         help="store ordinary GRH after F22 before optional conversion")
     args = parser.parse_args()
@@ -213,7 +213,7 @@ def main() -> int:
         },
         "dce_boundary": "external input checkpoint; neither F22 pass runs DCE",
         "simplify": "not run",
-        "conversion": "grh-to-grhsim after F22" if args.convert else "not run",
+        "conversion": "grhsim-dialect-translate after F22" if args.convert else "not run",
     }
     (output / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(summary["median"], sort_keys=True))

@@ -1,4 +1,4 @@
-"""Exercise retired-option rejection and retained simulation controls."""
+"""Exercise the current simulation entry points and controls."""
 
 import contextlib
 import io
@@ -9,12 +9,10 @@ import tempfile
 import unittest
 from unittest import mock
 
-from grhsim_flow import RETIRED_OPTIONS, validate_environment
 from check_remove_grhsim_ir import cpp_issues, python_issues
 from grhsim_declared_pack_census import declared_names
 from grhsim_grh_reader import graph_snapshot
 import reemit_grhsim
-import wolvrix_hdlbits_grhsim
 import wolvrix_xs_grhsim
 
 
@@ -42,7 +40,7 @@ class ToolingTest(unittest.TestCase):
         for called in ("lower_grh_to_grhsim", "run_grhsim_pass", "emit_grhsim_cpu"):
             self.assertTrue(python_issues(f'session.{called}("old")', "entry.py"))
         self.assertFalse(python_issues('session.emit_grhsim_cpu_st_cpp(design="main")', "entry.py"))
-        self.assertFalse(cpp_issues('// GrhSimModel is retired\n#include "core/grh.hpp"', "new.cpp"))
+        self.assertFalse(cpp_issues('// GrhSimModel is retired\n#include "core/wolvrix.hpp"', "new.cpp"))
         self.assertTrue(cpp_issues('#include "grhsim/ir/model.hpp"', "old.cpp"))
         self.assertTrue(cpp_issues('GrhSimModel model;', "old.cpp"))
         for name in ("lower_grhsim", "run_grhsim_pipeline", "load_grhsim", "store_grhsim", "list_grhsim_passes"):
@@ -51,59 +49,8 @@ class ToolingTest(unittest.TestCase):
         self.assertTrue(cpp_issues("void py_session_lower_grhsim();", "old.cpp"))
         self.assertFalse(cpp_issues("transform::grhsim::GrhToGrhsimPass pass;", "new.cpp"))
 
-    def test_retired_environment_including_empty_and_zero(self):
-        validate_environment({})
-        for name in RETIRED_OPTIONS:
-            for value in ("", "0", "1"):
-                with self.subTest(name=name, value=value):
-                    with self.assertRaisesRegex(ValueError, name):
-                        validate_environment({name: value})
-        for entry in (wolvrix_xs_grhsim.parse_args, reemit_grhsim.parse_args,
-                      wolvrix_hdlbits_grhsim.parse_args):
-            with mock.patch.dict(os.environ, {"XS_WOLF_GRHSIM_IR_COMB_PACK": "0"}, clear=True):
-                error = io.StringIO()
-                with contextlib.redirect_stderr(error), self.assertRaises(SystemExit) as status:
-                    entry(["--help"])
-                self.assertEqual(status.exception.code, 2)
-                self.assertIn("Retired GrhSIM options", error.getvalue())
-
-    def test_make_rejects_all_retired_settings(self):
-        env = {k: v for k, v in os.environ.items() if k not in RETIRED_OPTIONS and k != "MAKEFLAGS"}
-        env["WOLF_ENV_SOURCED"] = "1"
-        makefile = (ROOT / "Makefile").read_text()
-        self.assertNotIn("XS_WOLF_GRHSIM_IR", makefile)
-        self.assertNotIn("REMOVE_GRHSIM_IR_RETIRED_OPTIONS", makefile)
-        for name in RETIRED_OPTIONS:
-            for value in ("", "0"):
-                with self.subTest(name=name, value=value):
-                    result = subprocess.run(
-                        ["make", "--no-print-directory", "-n", "check_remove_grhsim_ir_options", f"{name}={value}"],
-                        cwd=ROOT, env=env, capture_output=True, text=True, check=False,
-                    )
-                    self.assertNotEqual(result.returncode, 0)
-                    self.assertIn(f"Retired GrhSIM option {name}", result.stderr)
-
-    def test_make_rejects_retired_xs_wolf_namespace(self):
-        env = {k: v for k, v in os.environ.items() if k != "MAKEFLAGS"}
-        env["WOLF_ENV_SOURCED"] = "1"
-        result = subprocess.run(
-            ["make", "--no-print-directory", "-n", "check_remove_grhsim_ir_options",
-             "XS_WOLF_FILELIST=old.f"],
-            cwd=ROOT, env=env, capture_output=True, text=True, check=False,
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("Retired GrhSIM option XS_WOLF_FILELIST", result.stderr)
-
-    def test_make_entry_guards(self):
-        makefile = (ROOT / "Makefile").read_text()
-        for entry in ("run_hdlbits_grhsim", "run_xs_bugcase_grhsim", "reemit_grhsim",
-                      "xs_grhsim", "xs_grhsim_reemit", "xs_firrtl_grhsim"):
-            with self.subTest(entry=entry):
-                self.assertRegex(makefile, rf"(?m)^{entry}:.*\bcheck_remove_grhsim_ir_options\b")
-
     def test_make_reemit_forwards_explicit_controls(self):
-        env = {k: v for k, v in os.environ.items()
-               if k not in RETIRED_OPTIONS and k not in ("MAKEFLAGS", "MFLAGS")}
+        env = {k: v for k, v in os.environ.items() if k not in ("MAKEFLAGS", "MFLAGS")}
         env["WOLF_ENV_SOURCED"] = "1"
         result = subprocess.run(
             ["make", "--no-print-directory", "-n", "reemit_grhsim", "SKIP_PY_INSTALL=1",
@@ -194,7 +141,7 @@ class ToolingTest(unittest.TestCase):
     def test_reemit_skips_redundant_sink_checkpoint(self):
         work = ROOT / "ptmp/remove-grhsim-ir"
         work.mkdir(parents=True, exist_ok=True)
-        metadata = {"grhsim.stage": "sink-partitioned", "grhsim.memMinBytes": "64"}
+        metadata = {"grhsim.sinkConfig": "0", "grhsim.memMinBytes": "64"}
         with tempfile.TemporaryDirectory(prefix="tooling-", dir=work) as directory:
             for store in (False, True):
                 argv = ["reemit", "--model", "unused.json", "--flow", directory]

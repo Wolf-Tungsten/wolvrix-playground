@@ -27,18 +27,18 @@ REG_SYMBOL = re.compile(r'"(?:reg|latch)Symbol": \{"t": "string", "v": ("(?:\\.|
 UNSET32 = 0xFFFFFFFF
 UNSET64 = 0xFFFFFFFFFFFFFFFF
 BOUNDARY_KINDS = {
-    "kInstance", "kBlackbox", "kSystemFunction", "kSystemTask",
-    "kDpicImport", "kDpicCall", "kXMRWrite",
+    "grh.instance", "grh.blackbox", "grh.systemFunction", "grh.systemTask",
+    "grh.dpicImport", "grh.dpicCall", "grh.xmrWrite",
 }
-STATE_DECL_KINDS = {"kRegister", "kLatch"}
-STATE_READ_KINDS = {"kRegisterReadPort", "kRegisterReadArrayPort", "kLatchReadPort"}
+STATE_DECL_KINDS = {"grh.registerDecl", "grh.latch"}
+STATE_READ_KINDS = {"grh.registerReadPort", "grh.registerReadArrayPort", "grh.latchReadPort"}
 STATE_WRITE_KINDS = {
-    "kRegisterWritePort", "kRegisterWriteMaskPort", "kRegisterWriteArrayPort",
-    "kRegisterWriteArrayMaskPort", "kRegisterFillPort", "kLatchWritePort",
+    "grh.registerWritePort", "grh.registerWriteMaskPort", "grh.registerWriteArrayPort",
+    "grh.registerWriteArrayMaskPort", "grh.registerFillPort", "grh.latchWritePort",
 }
 KIND_CODES = {name: index for index, name in enumerate(sorted(
     BOUNDARY_KINDS | STATE_DECL_KINDS | STATE_READ_KINDS | STATE_WRITE_KINDS |
-    {"kAssign", "kConstant", "kOther"}
+    {"grh.assign", "grh.constant", "other"}
 ), start=1)}
 KIND_NAMES = {index: name for name, index in KIND_CODES.items()}
 KIND_NAMES[0] = "missing"
@@ -94,9 +94,9 @@ def trace_grh(source: Path, candidates: Path, unmatched: Path, names_path: Path,
         for gid in groups & target_gids.keys():
             name = target_gids[gid]
             target_tokens.setdefault(token, []).append(name)
-            if kind == "kRegisterReadArrayPort":
+            if kind == "grh.registerReadArrayPort":
                 state_array_targets.add(name)
-            elif kind == "kSliceArray":
+            elif kind == "grh.sliceArray":
                 slice_array_targets.add(name)
 
     with source.open("r", encoding="utf-8") as stream:
@@ -128,7 +128,7 @@ def trace_grh(source: Path, candidates: Path, unmatched: Path, names_path: Path,
             if kind_match is None:
                 raise ValueError(f"operation {record_id} lacks kind")
             kind = kind_match.group(1)
-            op_kinds[record_id] = KIND_CODES.get(kind, KIND_CODES["kOther"])
+            op_kinds[record_id] = KIND_CODES.get(kind, KIND_CODES["other"])
             op_offsets.append(len(operands))
             inputs = int_array(OPERANDS, line)
             if inputs is None:
@@ -144,7 +144,7 @@ def trace_grh(source: Path, candidates: Path, unmatched: Path, names_path: Path,
             if kind in BOUNDARY_KINDS:
                 root_ops.add(record_id)
                 label = kind
-                if kind == "kSystemTask":
+                if kind == "grh.systemTask":
                     effect_match = EFFECT_KIND.search(line)
                     effect = json.loads(effect_match.group(1)) if effect_match else "unspecified"
                     label = f"{kind}:{effect}"
@@ -251,7 +251,7 @@ def trace_grh(source: Path, candidates: Path, unmatched: Path, names_path: Path,
             "schema": "wolvrix.f21.root-summary.v1",
             "mode": "port/effect roots and state-family propagation; declared-symbol anchors disabled",
             "rootSelection": "one first-discovered root per target; not unique root-causality proof",
-            "directGroupPriority": ["kRegisterReadArrayPort", "kSliceArray or clock/Clock in name", "other"],
+            "directGroupPriority": ["grh.registerReadArrayPort", "grh.sliceArray or clock/Clock in name", "other"],
             "input": str(source),
             "tree": tree_stats,
             "entities": {"values": value_records, "ops": operation_records, "operands": len(operands)},

@@ -377,7 +377,7 @@ class RawFirrtlDcePipelineTests(unittest.TestCase):
                         self.assertIn(expected_context, contexts)
                         expected_reason = ('array_update_group_pruning' if expected_context == 'named'
                                            else 'undemanded_operand_defined_zero')
-                        expected_kind = 'kCombArrayUpdate' if expected_context == 'named' else 'kConcat'
+                        expected_kind = 'grh.combArrayUpdate' if expected_context == 'named' else 'grh.concat'
                         self.assertTrue(any(reasons[support['mutation_id']] == expected_reason and
                                             expected_kind in target_kinds[support['target_node_id']]
                                             for support in context_supports))
@@ -387,7 +387,7 @@ class RawFirrtlDcePipelineTests(unittest.TestCase):
                         self.assertEqual(len(supported_connections), 13)
                         self.assertTrue(all(len(support['path']) == 1 and
                                             reasons[support['mutation_id']] == 'undemanded_operand_defined_zero' and
-                                            'kConcat' in target_kinds[support['target_node_id']]
+                                            'grh.concat' in target_kinds[support['target_node_id']]
                                             for support in evidence))
                     reports.append({'fixture': str(fixture), 'sha256': fixture_sha,
                                     'support_contexts': sorted(contexts), 'supports': evidence,

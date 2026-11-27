@@ -141,7 +141,7 @@ class XsFirrtlWorkflowTests(unittest.TestCase):
                 ("memory-init-check", {}),
             ])
         # This profile controls only ordinary GRH cleanup. The shared simulation
-        # pipeline still owns grh-to-grhsim and its internal full verification.
+        # pipeline still owns grhsim-dialect-translate and its internal full verification.
         self.assertEqual([name for name, _ in GRH_PIPELINE].count("grh.verify"), 2)
         self.assertIn(("simplify", {"semantics": "2state"}), GRH_PIPELINE)
 
@@ -174,7 +174,7 @@ class XsFirrtlWorkflowTests(unittest.TestCase):
             "xmr-resolve", "hier-flatten", "remove-singleton-state-axis", "comb-loop-elim", "split-static-array",
             "dead-code-elim", "expr-opt", "used-bits", "split-nodes",
             "dead-code-elim", "constant-analysis", "dead-code-elim",
-            "alias-analysis", "pattern-detect", "comm-expr", "dead-code-elim",
+            "alias-analysis", "pattern-detect", "common-expr", "dead-code-elim",
         ])
         dce = [options for name, options in pipeline if name == "dead-code-elim"]
         self.assertNotIn("drop_disabled_firrtl_assertions", dce[0])
@@ -214,29 +214,26 @@ class XsFirrtlWorkflowTests(unittest.TestCase):
         ])
         self.assertTrue(all(row["scope"] == "pipeline" for row in rows))
 
-    def test_flat_prefix_identity_rejects_stale_or_contradictory_state(self):
+    def test_flat_prefix_identity_rejects_stale_or_mismatched_state(self):
         checkpoint = self.work / "flat.json"
         checkpoint.write_text('{"graphs": []}\n')
         write_flat_prefix_identity(checkpoint, top="SimTop", stage="post-opt")
-        preprocessed, identity = resolve_flat_prefix(checkpoint, top="SimTop", requested="auto")
+        preprocessed, identity = resolve_flat_prefix(checkpoint, top="SimTop")
         self.assertTrue(preprocessed)
         self.assertEqual(identity["stage"], "post-opt")
-        with self.assertRaisesRegex(ValueError, "contradicts"):
-            resolve_flat_prefix(checkpoint, top="SimTop", requested="pre-opt")
         with self.assertRaisesRegex(ValueError, "Invalid flat GRH prefix identity"):
-            resolve_flat_prefix(checkpoint, top="OtherTop", requested="auto")
+            resolve_flat_prefix(checkpoint, top="OtherTop")
         checkpoint.write_text('{"graphs": []}\n \n')
-        for requested in ("auto", "post-opt"):
-            with self.subTest(requested=requested), self.assertRaisesRegex(ValueError, "Stale"):
-                resolve_flat_prefix(checkpoint, top="SimTop", requested=requested)
+        with self.assertRaisesRegex(ValueError, "Stale"):
+            resolve_flat_prefix(checkpoint, top="SimTop")
 
-    def test_legacy_flat_prefix_requires_explicit_stage(self):
-        checkpoint = self.work / "legacy-flat.json"
+    def test_flat_prefix_requires_identity(self):
+        checkpoint = self.work / "flat.json"
         checkpoint.write_text('{"graphs": []}\n')
         with self.assertRaisesRegex(ValueError, "lacks prefix identity"):
-            resolve_flat_prefix(checkpoint, top="SimTop", requested="auto")
-        self.assertFalse(resolve_flat_prefix(checkpoint, top="SimTop", requested="pre-opt")[0])
-        self.assertTrue(resolve_flat_prefix(checkpoint, top="SimTop", requested="post-opt")[0])
+            resolve_flat_prefix(checkpoint, top="SimTop")
+        write_flat_prefix_identity(checkpoint, top="SimTop", stage="pre-opt")
+        self.assertFalse(resolve_flat_prefix(checkpoint, top="SimTop")[0])
 
     def test_unknown_grh_profile_is_rejected(self):
         with patch.dict(os.environ, {"XS_GRHSIM_PIPELINE_PROFILE": "quick"}):
@@ -866,7 +863,9 @@ circuit SimTop :
             self.assertFalse((model / "grhsim.txt").exists())
             explicit = json.loads((self.work / "explicit-converted.json").read_text())
             self.assertTrue(explicit["graphs"])
-            self.assertEqual(explicit["graphs"][0]["metadata"]["grhsim.stage"]["v"], "converted")
+            metadata = explicit["graphs"][0]["metadata"]
+            self.assertNotIn("grhsim.stage", metadata)
+            self.assertEqual(metadata["grhsim.logicDomain"]["v"], "2state")
             self.assertFalse(any("grhsim.partition" in op.get("attrs", {})
                                  for op in explicit["graphs"][0]["ops"]))
             self.assertEqual((self.work / "explicit-converted.json").read_bytes(),

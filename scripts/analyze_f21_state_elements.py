@@ -20,12 +20,12 @@ CONST_VALUE = re.compile(r'"constValue": \{"t": "string", "v": ("(?:\\.|[^"\\])*
 CONST_LITERAL = re.compile(r"(\d+)?'([sS]?)([bBoOdDhH])([0-9a-fA-F]+)")
 UNSET32 = 0xFFFFFFFF
 STATE_PORT_KINDS = {
-    "kRegisterReadPort", "kRegisterReadArrayPort", "kRegisterWritePort",
-    "kRegisterWriteMaskPort", "kRegisterWriteArrayPort", "kRegisterWriteArrayMaskPort",
-    "kRegisterFillPort",
+    "grh.registerReadPort", "grh.registerReadArrayPort", "grh.registerWritePort",
+    "grh.registerWriteMaskPort", "grh.registerWriteArrayPort", "grh.registerWriteArrayMaskPort",
+    "grh.registerFillPort",
 }
-READ_KINDS = {"kRegisterReadPort", "kRegisterReadArrayPort"}
-ARRAY_WRITE_KINDS = {"kRegisterWriteArrayPort", "kRegisterWriteArrayMaskPort"}
+READ_KINDS = {"grh.registerReadPort", "grh.registerReadArrayPort"}
+ARRAY_WRITE_KINDS = {"grh.registerWriteArrayPort", "grh.registerWriteArrayMaskPort"}
 
 
 def log(message: str) -> None:
@@ -105,7 +105,7 @@ def collect_grh(source: Path):
             if kind_match is None:
                 raise ValueError("operation without kind")
             kind = kind_match.group(1)
-            if kind == "kRegister":
+            if kind == "grh.registerDecl":
                 record = json.loads(line.strip().rstrip(","))
                 shape = attr_value(record.get("attrs", {}), "shape", [])
                 stats["registers"] += 1
@@ -134,12 +134,12 @@ def collect_grh(source: Path):
                 if inputs is None:
                     raise ValueError(f"state port without operands: {kind}")
                 index_values = []
-                if kind == "kRegisterReadArrayPort":
+                if kind == "grh.registerReadArrayPort":
                     index_values = inputs
                 elif kind in ARRAY_WRITE_KINDS:
                     record = json.loads(line.strip().rstrip(","))
                     event_edges = attr_value(record.get("attrs", {}), "eventEdge", [])
-                    payload_count = 2 if kind == "kRegisterWriteArrayMaskPort" else 1
+                    payload_count = 2 if kind == "grh.registerWriteArrayMaskPort" else 1
                     index_count = len(inputs) - len(event_edges) - payload_count - 1
                     if index_count <= 0:
                         raise ValueError(f"invalid array write operands for {symbol}: {len(inputs)}")
@@ -151,7 +151,7 @@ def collect_grh(source: Path):
                 })
                 stats[f"port:{kind}"] += 1
                 continue
-            if kind == "kAssign":
+            if kind == "grh.assign":
                 inputs = int_array(OPERANDS, line)
                 results = int_array(RESULTS, line)
                 if inputs is None or results is None:
@@ -163,7 +163,7 @@ def collect_grh(source: Path):
                     assign_source[result] = inputs[0]
                 stats["assigns"] += 1
                 continue
-            if kind == "kConstant":
+            if kind == "grh.constant":
                 literal_match = CONST_VALUE.search(line)
                 results = int_array(RESULTS, line)
                 if literal_match is None or results is None or len(results) != 1:
@@ -199,12 +199,12 @@ def resolve_constant(value: int, constants: dict[int, int], assign_source: array
 def classify_access(family: dict, port: dict, constants: dict[int, int], assign_source: array):
     kind = port["kind"]
     is_read = kind in READ_KINDS
-    if kind in {"kRegisterReadPort", "kRegisterWritePort", "kRegisterWriteMaskPort", "kRegisterFillPort"}:
+    if kind in {"grh.registerReadPort", "grh.registerWritePort", "grh.registerWriteMaskPort", "grh.registerFillPort"}:
         form = {
-            "kRegisterReadPort": "whole_read",
-            "kRegisterWritePort": "whole_write",
-            "kRegisterWriteMaskPort": "whole_mask_write",
-            "kRegisterFillPort": "fill_write",
+            "grh.registerReadPort": "whole_read",
+            "grh.registerWritePort": "whole_write",
+            "grh.registerWriteMaskPort": "whole_mask_write",
+            "grh.registerFillPort": "fill_write",
         }[kind]
         family["read_forms" if is_read else "write_forms"][form] += 1
         if not is_read:
@@ -309,9 +309,9 @@ def write_group(family: dict) -> str:
     forms = set(family["write_forms"])
     if not kinds:
         return "none"
-    if kinds == {"kRegisterWritePort"}:
+    if kinds == {"grh.registerWritePort"}:
         return "whole"
-    if kinds == {"kRegisterWriteMaskPort"}:
+    if kinds == {"grh.registerWriteMaskPort"}:
         return "whole_mask"
     if kinds <= ARRAY_WRITE_KINDS:
         if forms == {"static_leaf"}:
@@ -319,7 +319,7 @@ def write_group(family: dict) -> str:
         if forms <= {"static_leaf", "static_partial"}:
             return "array_static_partial"
         return "array_dynamic_or_mixed"
-    if kinds == {"kRegisterFillPort"}:
+    if kinds == {"grh.registerFillPort"}:
         return "fill"
     return "mixed"
 
@@ -476,7 +476,7 @@ def compare_state_elements(grh: Path, gsim_init: Path, gsim_split: Path,
             "gsim_post_dce": str(gsim_after),
         },
         "semantics": {
-            "grhRetainedElements": "All elements of each surviving aggregate kRegister; structural retention, not proven necessary.",
+            "grhRetainedElements": "All elements of each surviving aggregate grh.registerDecl; structural retention, not proven necessary.",
             "gsimRetainedElements": "VALID_NODE split members in the GSIM post-RemoveDeadNodes dump, mapped by memberId.",
             "coarseSurplusElements": "GrhSIM aggregate elements minus GSIM surviving members; an upper-bound representation gap, not a predicted safe DCE deletion count.",
             "grhStaticReadElements": "Unique leaf elements touched by statically resolved full or partial reads; dynamic reads are excluded.",
@@ -518,7 +518,7 @@ def collect_register_names(source: Path):
     registers = set()
     with source.open("r", encoding="utf-8") as stream:
         for line in stream:
-            if not line.startswith('        {"id":') or '"kind": "kRegister"' not in line:
+            if not line.startswith('        {"id":') or '"kind": "grh.registerDecl"' not in line:
                 continue
             record = json.loads(line.strip().rstrip(","))
             name = record["sym"]

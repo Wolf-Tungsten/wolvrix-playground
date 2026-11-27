@@ -4,8 +4,8 @@ from collections import Counter, defaultdict
 import math
 
 
-STATE_KINDS = {"kRegister", "kLatch"}
-READ_KINDS = {"kRegisterReadPort", "kRegisterReadArrayPort", "kLatchReadPort"}
+STATE_KINDS = {"grh.registerDecl", "grh.latch"}
+READ_KINDS = {"grh.registerReadPort", "grh.registerReadArrayPort", "grh.latchReadPort"}
 WRITE_KINDS = {"grhsim.write", "grhsim.writeMask", "grhsim.writeArray",
                "grhsim.writeArrayMask", "grhsim.fill", "grhsim.latchWrite"}
 
@@ -185,7 +185,7 @@ class GraphReader:
                    "register_bits": sum(row["width"] for row in registers.values()),
                    "array_states": len(arrays), "array_storage_bits": sum(row["width"] for row in arrays.values()),
                    "event_states": 0,
-                   "edge_detectors": sum(op["kind"] == "grhsim.edge-detect" for op in self.ops.values()),
+                   "edge_detectors": sum(op["kind"] == "grhsim.edgeDetect" for op in self.ops.values()),
                    "declared_registers": sum(row["declared"] for row in registers.values()),
                    "declared_register_bits": sum(row["width"] for row in registers.values() if row["declared"])}
         return summary, registers, arrays

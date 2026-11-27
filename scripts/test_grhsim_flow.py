@@ -75,7 +75,7 @@ int main() {
                 # The removed whole-node optimization no longer emits FIRRTL
                 # node-scope metadata; annotation input is accepted but does
                 # not create a backend policy record.
-                self.assertFalse("firrtl.nodeScopePolicy" in metadata)
+                self.assertNotIn("firrtl.nodeInventory", metadata)
                 with mock.patch.dict(os.environ, {"XS_GRHSIM_PIPELINE_PROFILE": "bringup"}):
                     for name, pass_options in firrtl_grh_pipeline(grh_pipeline()):
                         checked(session.run_pass(name, design="design.main", **pass_options), name)
@@ -92,7 +92,7 @@ int main() {
                              "partition-sink"):
                     self.assertIn(name, executed)
                 for name in ("dead-code-elim", "expr-opt", "used-bits", "split-nodes", "constant-analysis",
-                             "alias-analysis", "pattern-detect", "comm-expr"):
+                             "alias-analysis", "pattern-detect", "common-expr"):
                     self.assertIn(name, executed)
                 self.assertEqual(executed.count("dead-code-elim"), 4)
                 for call in passes.call_args_list:
@@ -105,15 +105,15 @@ int main() {
                 self.assertLess(executed.index("constant-analysis"), executed.index("grhsim-dialect-translate"))
                 self.assertLess(executed.index("constant-analysis"), executed.index("alias-analysis"))
                 self.assertLess(executed.index("alias-analysis"), executed.index("pattern-detect"))
-                self.assertLess(executed.index("pattern-detect"), executed.index("comm-expr"))
-                self.assertLess(executed.index("comm-expr"), executed.index("grhsim-dialect-translate"))
+                self.assertLess(executed.index("pattern-detect"), executed.index("common-expr"))
+                self.assertLess(executed.index("common-expr"), executed.index("grhsim-dialect-translate"))
                 self.assertLess(executed.index("split-nodes"), executed.index("grhsim-dialect-translate"))
                 f22_start = executed.index("dead-code-elim")
                 f22_end = executed.index("grhsim-dialect-translate")
                 self.assertEqual(executed[f22_start:f22_end],
                                  ["dead-code-elim", "expr-opt", "used-bits", "split-nodes",
                                   "dead-code-elim", "constant-analysis", "dead-code-elim",
-                                  "alias-analysis", "pattern-detect", "comm-expr", "dead-code-elim"])
+                                  "alias-analysis", "pattern-detect", "common-expr", "dead-code-elim"])
                 metadata = session.graph_metadata(design="design.main", top="top")["metadata"]
                 emit_cpp(session, design="design.main", top="top", output=case / "model",
                          overwrite=True, waveform=False, readable_names=profile != "one-round-bytes")
@@ -129,17 +129,14 @@ int main() {
     def test_nonsink_semantic_tree_configuration_validation(self):
         for policy in ("off", "prefer", "auto"):
             for cost in ("legacy", "bytes"):
-                config = f"v4/4/1/0/1/8/250000/1/{policy}/{cost}/semantic-tree-mffc-v1"
+                config = f"4/1/0/1/8/250000/1/{policy}/{cost}"
                 restored = FlowOptions.from_metadata({"grhsim.nonsinkConfig": config})
                 self.assertEqual((restored.firrtl_nodes, restored.cost_model, restored.max_supernode_nodes), (policy, cost, 4))
-        for config in ("v2/2/4/1/0/1/8/250000/1/must/legacy/0/op-hints-v1",
-                       "v2/2/4/1/0/1/8/250000/1/off/unknown/0/op-hints-v1",
-                       "v2/2/4/1/0/1/8/250000/1/prefer/legacy/0/op-hints-v1",
-                       "v3/4/1/0/1/8/250000/1/prefer/legacy/hint-mffc-v1",
-                       "v4/0/1/0/1/8/250000/1/prefer/legacy/semantic-tree-mffc-v1",
-                       "v4/4/1/2/1/8/250000/1/prefer/legacy/semantic-tree-mffc-v1",
-                       "v4/4/1/0/1/8/250000/1/must/legacy/semantic-tree-mffc-v1",
-                       "v4/4/1/0/1/8/250000/1/off/unknown/semantic-tree-mffc-v1"):
+        for config in ("",
+                       "0/1/0/1/8/250000/1/prefer/legacy",
+                       "4/1/2/1/8/250000/1/prefer/legacy",
+                       "4/1/0/1/8/250000/1/must/legacy",
+                       "4/1/0/1/8/250000/1/off/unknown"):
             with self.assertRaises(ValueError):
                 FlowOptions.from_metadata({"grhsim.nonsinkConfig": config})
         class Checkpoint:
@@ -147,19 +144,12 @@ int main() {
                 self.metadata = metadata
             def graph_metadata(self, **kwargs):
                 return {"metadata": self.metadata}
-        with self.assertRaisesRegex(ValueError, "Legacy nonsink"):
-            finish_simulation_graph(Checkpoint({"grhsim.stage": "sink-partitioned",
-                "grhsim.nonsinkConfig": "2/4/1/0/1/8/250000/1"}), design="test", top="top")
-        for stage in ("nonsink-partitioned", "sink-partitioned"):
-            with self.subTest(stage=stage), mock.patch("grhsim_flow.run_pass") as run:
-                with self.assertRaisesRegex(ValueError, "SemanticTree node ownership"):
-                    finish_simulation_graph(Checkpoint({"grhsim.stage": stage,
-                        "grhsim.nonsinkConfig": "v3/4/1/0/1/8/250000/1/prefer/legacy/hint-mffc-v1"}),
-                        design="test", top="top")
+        for extra in ({}, {"grhsim.sinkConfig": "0"}):
+            with self.subTest(metadata=extra), mock.patch("grhsim_flow.run_pass") as run:
+                with self.assertRaisesRegex(ValueError, "Invalid nonsink configuration"):
+                    finish_simulation_graph(Checkpoint({"grhsim.nonsinkConfig": "missing-fields", **extra}),
+                                            design="test", top="top")
                 run.assert_not_called()
-        with self.assertRaisesRegex(ValueError, "soft-node-v2"):
-            finish_simulation_graph(Checkpoint({"grhsim.stage": "converted", "firrtl.nodeSchema": 1,
-                "firrtl.nodeScopePolicy": "source-node-v1", "firrtl.nodeInventory": []}), design="test", top="top")
 
     def test_retired_api_is_absent(self):
         for name in ("lower_grhsim", "run_grhsim_pass", "run_grhsim_pipeline", "load_grhsim", "store_grhsim"):
@@ -218,6 +208,7 @@ endmodule
         final = checkpoints["sink-partitioned"].read_bytes()
         for stage, path in checkpoints.items():
             graph = json.loads(path.read_bytes())["graphs"][0]
+            self.assertNotIn("grhsim.stage", graph.get("metadata", {}))
             if stage == "converted":
                 self.assertFalse(any("grhsim.partition" in op.get("attrs", {}) for op in graph["ops"]))
             if stage == "event-output-split":

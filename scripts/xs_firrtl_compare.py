@@ -96,7 +96,7 @@ def observation_source_evidence(firrtl, sv, top, specifications):
 def observe_register_data_checkpoint(source, destination, specifications):
     """Add output views of existing scalar register nextValue operands only.
 
-    kRegisterWritePort operands are [updateCond, nextValue, events...]. The
+    grh.registerWritePort operands are [updateCond, nextValue, events...]. The
     checkpoint is streamed so the large ROB graph need not be duplicated in
     Python. Every operation, state declaration and existing port stays intact.
     """
@@ -105,7 +105,7 @@ def observe_register_data_checkpoint(source, destination, specifications):
     matches = {spec["reg_symbol"]: [] for spec in specifications}
     with source.open() as stream:
         for line in stream:
-            if '"kind": "kRegisterWritePort"' not in line:
+            if '"kind": "grh.registerWritePort"' not in line:
                 continue
             op = json.loads(line.strip().removesuffix(","))
             symbol = op.get("attrs", {}).get("regSymbol", {}).get("v")

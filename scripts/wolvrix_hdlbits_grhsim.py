@@ -6,7 +6,7 @@ from pathlib import Path
 
 import wolvrix
 
-from grhsim_flow import checked, emit_cpp, finish_simulation_graph, store_checkpoint, validate_environment
+from grhsim_flow import checked, emit_cpp, finish_simulation_graph, store_checkpoint
 from wolvrix_xs_grhsim import default_flow_options
 
 
@@ -74,10 +74,6 @@ def run_pipeline(dut_path: Path, out_dir: Path, waveform_mode: str | None, perf_
 
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    try:
-        validate_environment()
-    except ValueError as error:
-        parser.error(str(error))
     parser.add_argument("dut")
     parser.add_argument("out_dir")
     parser.add_argument("--waveform", choices=["off", "declared-symbols"], default="off")

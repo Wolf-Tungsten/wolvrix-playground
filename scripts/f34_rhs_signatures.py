@@ -8,7 +8,7 @@ all other fields null in the ledger, with no synthetic row in the snapshot.
 
 root_op preserves the GRH anchor's defining kind or GSIM assignTree[0]'s
 opType (suffix :nodePtr for a native pointer). Only root_class is compared.
-The classes are reference, array_index, sign_view, kSliceStatic, kConstant,
+The classes are reference, array_index, sign_view, grh.sliceStatic, grh.constant,
 the explicitly mapped computational kinds, and other:<native>.
 GRH skips same-type assign wrappers around internal, unbound, non-port
 values, stopping at a named boundary or the first computation. A same-type
@@ -17,7 +17,7 @@ sign_view. GSIM takes the operand of a sign cast when it is a direct nodePtr.
 named_source records the direct name at that boundary, never the names
 under a computation. constant_indices records array indices in operand/child
 order, [] for no indices and null entries for dynamic or unsupported indices.
-For example, kAssign(kSliceArray(bank, 1)) and a GSIM node pointer bank
+For example, grh.assign(grh.sliceArray(bank, 1)) and a GSIM node pointer bank
 with OP_INDEX_INT(1) both yield array_index, named_source=bank, indices=[1].
 
 width, signed and shape use the GRH anchor's leaf width, sign and shape or

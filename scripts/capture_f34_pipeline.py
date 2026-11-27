@@ -32,7 +32,7 @@ GSIM_ROOT = ROOT / 'reference/gsim'
 GRH_STAGES = ('post-third-dead-code-elim', 'post-alias-analysis',
               'post-pattern-detect', 'post-common-expr', 'post-fourth-dead-code-elim')
 GSIM_STAGES = ('RemoveDeadNodes2', *(stage for _, _, stage in F34.calls))
-GRH_NAMES = ('alias-analysis', 'pattern-detect', 'comm-expr', 'dead-code-elim')
+GRH_NAMES = ('alias-analysis', 'pattern-detect', 'common-expr', 'dead-code-elim')
 GSIM_STOP = GSIM_STAGES[-1]
 ALIAS_WINDOW = Window('f34-alias', 'R', F34.calls[:1])
 BASELINE = {'repository': 'fbeeeb57bb4a05831d474af8c381946777d3d77d',
@@ -128,7 +128,7 @@ def production_calls(pipeline):
     seen = {}
     calls = []
     for name, params in pipeline:
-        canonical = 'common-expr' if name == 'comm-expr' else name
+        canonical = name
         ordinal = seen.get(canonical, 0)
         seen[canonical] = ordinal + 1
         options = dict(params)

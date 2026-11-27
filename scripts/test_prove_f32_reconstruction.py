@@ -106,20 +106,20 @@ class ReconstructionContracts(unittest.TestCase):
                                'domain': '4state', 'shape': []}
                               for identifier, width in ((101, 128), (102, 128), (103, 256),
                                                         (104, 1), (105, 256), (106, 1))]
-                    structure = {'formatVersion': 5, 'graphs': [{'semanticTree': {
+                    structure = {'graphs': [{'semanticTree': {
                         'rootPath': 1, 'namesFlattened': True, 'paths': [{'id': 1, 'parent': 0}], 'nodes': nodes,
                         'boundaryUses': [
                             {'source': 6, 'target': target_id, 'value': 101, 'user': concat, 'operandIndex': 0, 'kind': 'data'},
                             {'source': 5, 'target': target_id, 'value': low_value, 'user': concat, 'operandIndex': 1, 'kind': 'data'},
                             {'source': 2, 'target': target_id, 'value': 103, 'user': 0, 'operandIndex': 2**32 - 1, 'kind': 'data'}]},
                         'vals': values, 'ops': [
-                            {'id': concat, 'kind': 'kConcat', 'in': [101, low_value], 'out': [105]},
-                            {'id': equal, 'kind': 'kEq', 'in': [105, 103], 'out': [106]},
-                            {'id': assign, 'kind': 'kAssign', 'in': [106], 'out': [104]}]}]}
+                            {'id': concat, 'kind': 'grh.concat', 'in': [101, low_value], 'out': [105]},
+                            {'id': equal, 'kind': 'grh.eq', 'in': [105, 103], 'out': [106]},
+                            {'id': assign, 'kind': 'grh.assign', 'in': [106], 'out': [104]}]}]}
                     ids = sorted(self.pairs)
                     typed_rows = [(identifier, 'value', anchors[identifier] + 1000, 0,
                         assign + 1000 if identifier == target_id else 0, 0,
-                        'kAssign' if identifier == target_id else 'input', widths[identifier], False, [], '4state',
+                        'grh.assign' if identifier == target_id else 'input', widths[identifier], False, [], '4state',
                         -1, False, [], [], [], 0, -1, 'anchor-candidate') for identifier in ids]
                     typed_name = 'node-endpoints.tsv'
                 else:
@@ -373,7 +373,7 @@ class ReconstructionContracts(unittest.TestCase):
         def extra(native):
             graph = native['graphs'][0]
             graph['vals'].append({'id': 999, 'w': 128, 'sgn': False, 'type': 'logic', 'domain': '4state'})
-            graph['ops'].append({'id': 999, 'kind': 'kAssign', 'in': [101], 'out': [999]})
+            graph['ops'].append({'id': 999, 'kind': 'grh.assign', 'in': [101], 'out': [999]})
             next(node for node in graph['semanticTree']['nodes'] if node['id'] == 3)['ops'].append(999)
         self.mutate_structure('grh', extra)
         self.assert_unverified(self.run_proof(), 'owned-operation inventory')

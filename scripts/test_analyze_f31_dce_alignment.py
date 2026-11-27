@@ -604,7 +604,7 @@ class DceAlignmentTests(unittest.TestCase):
         self.write()
         self.add_grh_provenance([
             {'relation': 'root', 'entity_kind': 'operation', 'entity_id': 77, 'generation': 0,
-             'root_kind': 'observable_operation', 'operation_kind': 'kSystemTask',
+             'root_kind': 'observable_operation', 'operation_kind': 'grh.systemTask',
              'root_identity': 77, 'root_identity_generation': 0, 'clock_operand': 2},
             {'relation': 'edge', 'edge_kind': 'operation_operand', 'from_kind': 'operation',
              'from_id': 77, 'from_generation': 0, 'to_kind': 'value', 'to_id': 13,
@@ -619,13 +619,13 @@ class DceAlignmentTests(unittest.TestCase):
         self.assertTrue(report['complete'])
         self.assertTrue(report['passed'], report['issues'])
         proof = json.loads(self.rows('node-retention-explanations.tsv')[0]['evidence_json'])
-        self.assertEqual(proof['root']['operation_kind'], 'kSystemTask')
+        self.assertEqual(proof['root']['operation_kind'], 'grh.systemTask')
         self.assertEqual(proof['boundary_operand_edge']['slot'], 2)
 
         self.output = self.work / 'wrong-system-task-target-owner'
         self.add_grh_provenance([
             {'relation': 'root', 'entity_kind': 'operation', 'entity_id': 77, 'generation': 0,
-             'root_kind': 'observable_operation', 'operation_kind': 'kSystemTask',
+             'root_kind': 'observable_operation', 'operation_kind': 'grh.systemTask',
              'root_identity': 77, 'root_identity_generation': 0, 'clock_operand': 2},
             {'relation': 'edge', 'edge_kind': 'operation_operand', 'from_kind': 'operation',
              'from_id': 77, 'from_generation': 0, 'to_kind': 'value', 'to_id': 13,
@@ -644,7 +644,7 @@ class DceAlignmentTests(unittest.TestCase):
         self.output = self.work / 'wrong-system-task-operand-slot'
         self.add_grh_provenance([
             {'relation': 'root', 'entity_kind': 'operation', 'entity_id': 77, 'generation': 0,
-             'root_kind': 'observable_operation', 'operation_kind': 'kSystemTask',
+             'root_kind': 'observable_operation', 'operation_kind': 'grh.systemTask',
              'root_identity': 77, 'root_identity_generation': 0, 'clock_operand': 2},
             {'relation': 'edge', 'edge_kind': 'operation_operand', 'from_kind': 'operation',
              'from_id': 77, 'from_generation': 0, 'to_kind': 'value', 'to_id': 13,
@@ -663,7 +663,7 @@ class DceAlignmentTests(unittest.TestCase):
         self.output = self.work / 'wrong-system-task-clock-value'
         self.add_grh_provenance([
             {'relation': 'root', 'entity_kind': 'operation', 'entity_id': 77, 'generation': 0,
-             'root_kind': 'observable_operation', 'operation_kind': 'kSystemTask',
+             'root_kind': 'observable_operation', 'operation_kind': 'grh.systemTask',
              'root_identity': 77, 'root_identity_generation': 0, 'clock_operand': 2},
             {'relation': 'edge', 'edge_kind': 'operation_operand', 'from_kind': 'operation',
              'from_id': 77, 'from_generation': 0, 'to_kind': 'value', 'to_id': 14,
@@ -741,7 +741,7 @@ class DceAlignmentTests(unittest.TestCase):
         self.write()
         self.add_grh_provenance([
             {'relation': 'root', 'entity_kind': 'operation', 'entity_id': 66, 'generation': 0,
-             'root_kind': 'observable_operation', 'operation_kind': 'kSystemTask',
+             'root_kind': 'observable_operation', 'operation_kind': 'grh.systemTask',
              'root_identity': 66, 'root_identity_generation': 0, 'clock_operand': 1},
             {'relation': 'edge', 'edge_kind': 'operation_operand', 'from_kind': 'operation',
              'from_id': 66, 'from_generation': 0, 'to_kind': 'value', 'to_id': 99,
@@ -773,7 +773,7 @@ class DceAlignmentTests(unittest.TestCase):
         self.write()
         self.add_grh_provenance([
             {'relation': 'root', 'entity_kind': 'operation', 'entity_id': 77, 'generation': 0,
-             'root_kind': 'observable_operation', 'operation_kind': 'kSystemTask',
+             'root_kind': 'observable_operation', 'operation_kind': 'grh.systemTask',
              'root_identity': 77, 'root_identity_generation': 0, 'clock_operand': 1},
             {'relation': 'edge', 'edge_kind': 'operation_operand', 'from_kind': 'operation',
              'from_id': 77, 'from_generation': 0, 'to_kind': 'value', 'to_id': 13,

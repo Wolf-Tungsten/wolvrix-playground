@@ -75,7 +75,7 @@ def grh_fixture() -> str:
         '        {"id": 1, "sym": "y", "semanticIds": [10]}',
         '    ],',
         '      "ops": [',
-        '        {"id": 1, "kind": "kNot", "out": [1], "semanticIds": [8]}',
+        '        {"id": 1, "kind": "grh.bitNot", "out": [1], "semanticIds": [8]}',
         '    ]',
         '  }]',
         '}',
@@ -198,13 +198,13 @@ class F21DceToolsTest(unittest.TestCase):
             '        {"id": 5, "out": true, "semanticIds": [3]}',
             '      ],',
             '      "ops": [',
-            '        {"id": 1, "sym": "r", "kind": "kRegister", "in": [], "out": []},',
-            '        {"id": 2, "kind": "kRegisterReadPort", "in": [], "out": [2], "semanticIds": [3], '
+            '        {"id": 1, "sym": "r", "kind": "grh.registerDecl", "in": [], "out": []},',
+            '        {"id": 2, "kind": "grh.registerReadPort", "in": [], "out": [2], "semanticIds": [3], '
             '"attrs": {"regSymbol": {"t": "string", "v": "r"}}},',
-            '        {"id": 3, "kind": "kRegisterWritePort", "in": [4, 1], "out": [], '
+            '        {"id": 3, "kind": "grh.registerWritePort", "in": [4, 1], "out": [], '
             '"attrs": {"regSymbol": {"t": "string", "v": "r"}}},',
-            '        {"id": 4, "kind": "kConstant", "in": [], "out": [4], "semanticIds": [2]},',
-            '        {"id": 5, "kind": "kAssign", "in": [2], "out": [5], "semanticIds": [3]}',
+            '        {"id": 4, "kind": "grh.constant", "in": [], "out": [4], "semanticIds": [2]},',
+            '        {"id": 5, "kind": "grh.assign", "in": [2], "out": [5], "semanticIds": [3]}',
             '      ]',
             '  }]',
             '}',
@@ -218,8 +218,8 @@ class F21DceToolsTest(unittest.TestCase):
         self.assertEqual(first["root"], "port")
         self.assertIn(self.first, first["path"][0]["semanticPaths"])
         kinds = {row.get("kind") for row in first["path"]}
-        self.assertIn("kRegisterReadPort", kinds)
-        self.assertIn("kRegisterWritePort", kinds)
+        self.assertIn("grh.registerReadPort", kinds)
+        self.assertIn("grh.registerWritePort", kinds)
         storage_symbols = {row.get("storageSymbol") for row in first["path"]}
         self.assertIn("r", storage_symbols)
         self.assertEqual(report["targets"][self.second]["root"], "port")
@@ -249,18 +249,18 @@ class F21DceToolsTest(unittest.TestCase):
             '        {"id": 5}',
             '      ],',
             '      "ops": [',
-            '        {"id": 1, "sym": "r", "kind": "kRegister", "in": [], "out": [], '
+            '        {"id": 1, "sym": "r", "kind": "grh.registerDecl", "in": [], "out": [], '
             '"attrs": {"shape": {"t": "int[]", "vs": [3]}, "width": {"t": "int", "v": 3}}},',
-            '        {"id": 2, "kind": "kConstant", "in": [], "out": [1], '
+            '        {"id": 2, "kind": "grh.constant", "in": [], "out": [1], '
             '"attrs": {"constValue": {"t": "string", "v": "4\'d0"}}},',
-            '        {"id": 3, "kind": "kConstant", "in": [], "out": [2], '
+            '        {"id": 3, "kind": "grh.constant", "in": [], "out": [2], '
             '"attrs": {"constValue": {"t": "string", "v": "4\'d1"}}},',
-            '        {"id": 4, "kind": "kAssign", "in": [2], "out": [3]},',
-            '        {"id": 5, "kind": "kRegisterReadArrayPort", "in": [1], "out": [4], '
+            '        {"id": 4, "kind": "grh.assign", "in": [2], "out": [3]},',
+            '        {"id": 5, "kind": "grh.registerReadArrayPort", "in": [1], "out": [4], '
             '"attrs": {"regSymbol": {"t": "string", "v": "r"}}},',
-            '        {"id": 6, "kind": "kRegisterReadArrayPort", "in": [3], "out": [5], '
+            '        {"id": 6, "kind": "grh.registerReadArrayPort", "in": [3], "out": [5], '
             '"attrs": {"regSymbol": {"t": "string", "v": "r"}}},',
-            '        {"id": 7, "kind": "kRegisterWritePort", "in": [], "out": [], '
+            '        {"id": 7, "kind": "grh.registerWritePort", "in": [], "out": [], '
             '"attrs": {"regSymbol": {"t": "string", "v": "r"}}}',
             '      ]',
             '  }]',
@@ -315,9 +315,9 @@ class F21DceToolsTest(unittest.TestCase):
             '    "symbol": "top",',
             '      "vals": [],',
             '      "ops": [',
-            '        {"id": 1, "sym": "r_0", "kind": "kRegister", "in": [], "out": [], '
+            '        {"id": 1, "sym": "r_0", "kind": "grh.registerDecl", "in": [], "out": [], '
             '"attrs": {"width": {"t": "int", "v": 1}}},',
-            '        {"id": 2, "sym": "r_1", "kind": "kRegister", "in": [], "out": [], '
+            '        {"id": 2, "sym": "r_1", "kind": "grh.registerDecl", "in": [], "out": [], '
             '"attrs": {"width": {"t": "int", "v": 1}}}',
             '      ]',
             '  }]',
@@ -366,7 +366,7 @@ class F21DceToolsTest(unittest.TestCase):
             return {
                 "id": next(counter), "name": name, "aliases": [name] if named else [],
                 "shape": shape, "width": width, "elementWidth": element_width,
-                "sign": sign, "nodeType": node_type, "producerKind": "kAssign",
+                "sign": sign, "nodeType": node_type, "producerKind": "grh.assign",
             }
 
         gsim = [
@@ -443,9 +443,9 @@ class F21DceToolsTest(unittest.TestCase):
         self.assertIn("budget 2", result["reason"])
 
     def test_reachability_mechanism_uses_firrtl_shape(self):
-        self.assertEqual(mechanism("kConcat", "node x = cat(a, b)"),
+        self.assertEqual(mechanism("grh.concat", "node x = cat(a, b)"),
                          "concat_to_static_slice_liveness")
-        self.assertEqual(mechanism("kMux", "when cond"),
+        self.assertEqual(mechanism("grh.mux", "when cond"),
                          "mux_with_constant_or_known_select")
 
     def test_direct_state_symbol_trace(self):
@@ -463,9 +463,9 @@ class F21DceToolsTest(unittest.TestCase):
             '        {"id": 1}',
             '      ],',
             '      "ops": [',
-            '        {"id": 1, "kind": "kRegisterReadPort", "in": [], "out": [1], '
+            '        {"id": 1, "kind": "grh.registerReadPort", "in": [], "out": [1], '
             '"attrs": {"regSymbol": {"t": "string", "v": "r_0"}}},',
-            '        {"id": 2, "kind": "kSystemTask", "in": [1], "out": []}',
+            '        {"id": 2, "kind": "grh.systemTask", "in": [1], "out": []}',
             '    ]',
             '  }]',
             '}',
@@ -473,7 +473,7 @@ class F21DceToolsTest(unittest.TestCase):
         ]), encoding="utf-8")
         report = trace_grh(self.grh, self.candidates, self.unmatched, names,
                            self.work / "state-trace.json", 10, direct_state_symbols=True)
-        self.assertEqual(report["targets"]["r_0"]["root"], "kSystemTask")
+        self.assertEqual(report["targets"]["r_0"]["root"], "grh.systemTask")
         self.assertEqual(report["targets"]["r_0"]["entities"], 3)
         self.assertFalse(report["targets"]["r_0"]["truncated"])
 
@@ -490,9 +490,9 @@ class F21DceToolsTest(unittest.TestCase):
             '        {"id": 1}',
             '      ],',
             '      "ops": [',
-            '        {"id": 1, "kind": "kRegisterReadPort", "in": [], "out": [1], '
+            '        {"id": 1, "kind": "grh.registerReadPort", "in": [], "out": [1], '
             '"attrs": {"regSymbol": {"t": "string", "v": "r_0"}}},',
-            '        {"id": 2, "sym": "top$_op_0", "kind": "kSystemTask", '
+            '        {"id": 2, "sym": "top$_op_0", "kind": "grh.systemTask", '
             '"in": [1], "out": []}',
             '    }]',
             '}',
@@ -525,7 +525,7 @@ class F21DceToolsTest(unittest.TestCase):
                     "firrtl.effectKind": {"t": "string", "v": "printf"},
                 },
             }],
-            "dpi_calls": [{"id": 2, "kind": "kDpicCall", "attrs": {}}],
+            "dpi_calls": [{"id": 2, "kind": "grh.dpicCall", "attrs": {}}],
             "dpi_imports": [], "instances": [], "blackboxes": [],
         }
         grh_after = {"system_tasks": grh_before["system_tasks"],
@@ -574,7 +574,7 @@ class F21DceToolsTest(unittest.TestCase):
             '{"id": 1, "w": 1}\n'
             '],\n'
             '"ops": [\n'
-            '{"id": 2, "kind": "kSystemTask", "attrs": {"name": {"t": "string", "v": "write"}}}\n'
+            '{"id": 2, "kind": "grh.systemTask", "attrs": {"name": {"t": "string", "v": "write"}}}\n'
             ']\n]}]}\n',
             encoding="utf-8")
         v14.write_text(
@@ -583,7 +583,7 @@ class F21DceToolsTest(unittest.TestCase):
             '{"id": 1, "w": 1}\n'
             '],\n'
             '"ops": [\n'
-            '{"id": 2, "kind": "kSystemTask", "attrs": {"name": {"t": "string", "v": "write"}, '
+            '{"id": 2, "kind": "grh.systemTask", "attrs": {"name": {"t": "string", "v": "write"}, '
             '"firrtl.line": {"t": "int", "v": 7}}}\n'
             ']\n]}]}\n',
             encoding="utf-8")
@@ -595,8 +595,8 @@ class F21DceToolsTest(unittest.TestCase):
     def test_srcline_compare_reports_structural_difference(self):
         v13 = self.work / "v13-diff.json"
         v14 = self.work / "v14-diff.json"
-        v13.write_text('{"graphs": [{\n"vals": [],\n"ops": [\n{"id": 1, "kind": "kAssign"}\n]\n]}]}\n', encoding="utf-8")
-        v14.write_text('{"graphs": [{\n"vals": [],\n"ops": [\n{"id": 1, "kind": "kMux"}\n]\n]}]}\n', encoding="utf-8")
+        v13.write_text('{"graphs": [{\n"vals": [],\n"ops": [\n{"id": 1, "kind": "grh.assign"}\n]\n]}]}\n', encoding="utf-8")
+        v14.write_text('{"graphs": [{\n"vals": [],\n"ops": [\n{"id": 1, "kind": "grh.mux"}\n]\n]}]}\n', encoding="utf-8")
         result = compare_stage(v13, v14)
         self.assertFalse(result["structurally_equal"])
         self.assertEqual(result["structural_mismatches"], 1)
@@ -623,18 +623,18 @@ class F21DceToolsTest(unittest.TestCase):
 
     def test_mechanism_representatives_cover_low_frequency_buckets(self):
         rows = [
-            {"mechanism": "gsim_dependency_unresolved:kAssign",
-             "grh_name": "assign_name", "divergence_kind": "kAssign",
+            {"mechanism": "gsim_dependency_unresolved:grh.assign",
+             "grh_name": "assign_name", "divergence_kind": "grh.assign",
              "divergence_op_id": 7, "divergence_semantic_id": 9,
              "divergence_lineno": 11},
             {"mechanism": "root_mapping_unresolved",
-             "grh_name": "root_name", "divergence_kind": "kMux"},
-            {"mechanism": "gsim_dependency_unresolved:kAssign",
+             "grh_name": "root_name", "divergence_kind": "grh.mux"},
+            {"mechanism": "gsim_dependency_unresolved:grh.assign",
              "grh_name": "later_assign"},
         ]
         representatives = mechanism_representatives(rows)
         self.assertEqual(
-            representatives["gsim_dependency_unresolved:kAssign"]["name"],
+            representatives["gsim_dependency_unresolved:grh.assign"]["name"],
             "assign_name",
         )
         self.assertEqual(
@@ -642,7 +642,7 @@ class F21DceToolsTest(unittest.TestCase):
             "root_name",
         )
         self.assertEqual(set(representatives), {
-            "gsim_dependency_unresolved:kAssign", "root_mapping_unresolved",
+            "gsim_dependency_unresolved:grh.assign", "root_mapping_unresolved",
         })
 
     def test_state_family_report_filters_split_map_by_exact_parent(self):

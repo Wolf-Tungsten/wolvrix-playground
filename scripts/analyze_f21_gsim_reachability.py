@@ -212,17 +212,17 @@ def forward_reachable(index: GraphIndex, start: int, budget: int) -> dict:
 
 def mechanism(kind: str, source: str) -> str:
     text = source.lower()
-    if kind in {"kConcat", "kSliceStatic"}:
+    if kind in {"grh.concat", "grh.sliceStatic"}:
         return "concat_to_static_slice_liveness"
-    if kind == "kSliceArray":
+    if kind == "grh.sliceArray":
         return "whole_vector_consumer_of_split_members"
-    if kind == "kMux":
+    if kind == "grh.mux":
         if "when" in text or "mux" in text or "node" in text:
             return "mux_with_constant_or_known_select"
         return "mux_liveness_overapproximation"
-    if kind == "kAssign":
+    if kind == "grh.assign":
         return "assign_alias_chain"
-    if kind in {"kAnd", "kOr", "kEq", "kNeq", "kNot"}:
+    if kind in {"grh.bitAnd", "grh.bitOr", "grh.eq", "grh.ne", "grh.bitNot"}:
         return "guard_enable_or_compare_not_simplified"
     if "register" in kind.lower() or "latch" in kind.lower():
         return "state_write_dependency_overapproximation"

@@ -65,7 +65,7 @@ DEFAULT_WIDTH_MODEL = [
 
 # Ground-truth base[kind] used by --selftest; recovery by the NNLS fit is one
 # of the asserted properties.
-SELFTEST_BASE = {"kAnd": 3.0, "kAdd": 5.0, "kMux": 8.0}
+SELFTEST_BASE = {"grh.bitAnd": 3.0, "grh.add": 5.0, "grh.mux": 8.0}
 
 
 class AttributionError(Exception):
@@ -927,7 +927,7 @@ def build_selftest_inputs():
 
     3 modules (u_top$u_a, u_top$u_b, u_top$u_c), 3 kinds with ground-truth
     base[kind] from SELFTEST_BASE, 8 supernodes (one multi-origin). Module B
-    carries kAdd-heavy wide ops and provably dominates total cycles. Timing
+    carries grh.add-heavy wide ops and provably dominates total cycles. Timing
     rows are exact: cycles = fires * t_s with t_s = sum_i w_i, so the NNLS fit
     recovers the ground truth.
     """
@@ -946,23 +946,23 @@ def build_selftest_inputs():
     A, B, C = 0, 1, 2
     # (groups, fires, fire count); t_s = sum count*base*widthFactor, cycles = fires*t_s.
     specs = [
-        # 0: module A only, light kAnd ops
-        ([group("kAnd", 8, [A], 4), group("kMux", 32, [A], 1)], 100),
-        # 1: module B only, kAdd-heavy
-        ([group("kAdd", 64, [B], 6), group("kMux", 32, [B], 2)], 100),
+        # 0: module A only, light grh.bitAnd ops
+        ([group("grh.bitAnd", 8, [A], 4), group("grh.mux", 32, [A], 1)], 100),
+        # 1: module B only, grh.add-heavy
+        ([group("grh.add", 64, [B], 6), group("grh.mux", 32, [B], 2)], 100),
         # 2: module B only, wide ops (widthFactor 2.0 and 4.0)
-        ([group("kAdd", 128, [B], 3), group("kMux", 256, [B], 1)], 50),
+        ([group("grh.add", 128, [B], 3), group("grh.mux", 256, [B], 1)], 50),
         # 3: module C only
-        ([group("kAnd", 16, [C], 3), group("kAdd", 32, [C], 1)], 100),
+        ([group("grh.bitAnd", 16, [C], 3), group("grh.add", 32, [C], 1)], 100),
         # 4: multi-origin supernode shared by A and B (equal split); the
         #    dominant view must still rank B first overall
-        ([group("kAdd", 64, [A, B], 4), group("kMux", 32, [B], 2)], 20),
+        ([group("grh.add", 64, [A, B], 4), group("grh.mux", 32, [B], 2)], 20),
         # 5: module B only, very wide ops (per-limb regime >256)
-        ([group("kAdd", 512, [B], 2)], 40),
+        ([group("grh.add", 512, [B], 2)], 40),
         # 6: never fired (no timing row)
-        ([group("kAnd", 8, [C], 2)], 0),
+        ([group("grh.bitAnd", 8, [C], 2)], 0),
         # 7: module A only, moderate
-        ([group("kMux", 64, [A], 3)], 30),
+        ([group("grh.mux", 64, [A], 3)], 30),
     ]
     supernodes = []
     timing_rows = []

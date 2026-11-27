@@ -221,17 +221,17 @@ def validate_liveness_provenance(row, detail, identifier):
         elif detail['root_kind'] == 'declared_storage':
             if (entity_kind != 'operation' or not isinstance(detail.get('operation_kind'), str) or
                     detail['operation_kind'] not in (
-                        'kRegister', 'kLatch', 'kRegisterWritePort', 'kRegisterWriteMaskPort',
-                        'kRegisterWriteArrayPort', 'kRegisterWriteArrayMaskPort',
-                        'kRegisterFillPort', 'kLatchWritePort') or
+                        'grh.registerDecl', 'grh.latch', 'grh.registerWritePort', 'grh.registerWriteMaskPort',
+                        'grh.registerWriteArrayPort', 'grh.registerWriteArrayMaskPort',
+                        'grh.registerFillPort', 'grh.latchWritePort') or
                     not isinstance(detail.get('storage_symbol'), str) or not detail['storage_symbol'] or
                     'root_identity' not in detail or 'clock_operand' in detail):
                 raise ValueError('incomplete DCE declared-storage root identity')
         else:
             if (entity_kind != 'operation' or not isinstance(detail.get('operation_kind'), str) or
                     detail['operation_kind'] not in (
-                        'kInstance', 'kBlackbox', 'kSystemFunction', 'kSystemTask',
-                        'kDpicImport', 'kDpicCall', 'kXMRWrite') or 'storage_symbol' in detail or
+                        'grh.instance', 'grh.blackbox', 'grh.systemFunction', 'grh.systemTask',
+                        'grh.dpicImport', 'grh.dpicCall', 'grh.xmrWrite') or 'storage_symbol' in detail or
                     'root_identity' not in detail or detail['root_identity'] != entity_id or
                     detail['root_identity_generation'] != generation):
                 raise ValueError('invalid DCE observable-operation root identity')
@@ -239,7 +239,7 @@ def validate_liveness_provenance(row, detail, identifier):
                                             not isinstance(detail['operation_kind'], str) or
                                             not detail['operation_kind']):
             raise ValueError('invalid DCE liveness root operation kind')
-        if detail.get('operation_kind') == 'kSystemTask':
+        if detail.get('operation_kind') == 'grh.systemTask':
             if ('clock_operand' not in detail or detail['root_kind'] != 'observable_operation' or
                     detail.get('root_identity') != entity_id or
                     detail.get('root_identity_generation') != generation):
@@ -248,7 +248,7 @@ def validate_liveness_provenance(row, detail, identifier):
                                            not isinstance(detail['storage_symbol'], str) or
                                            not detail['storage_symbol']):
             raise ValueError('invalid DCE declared-storage root symbol')
-        if 'clock_operand' in detail and (detail.get('operation_kind') != 'kSystemTask' or
+        if 'clock_operand' in detail and (detail.get('operation_kind') != 'grh.systemTask' or
                                            type(detail['clock_operand']) is not int or
                                            not 0 <= detail['clock_operand'] <= 2**32 - 1):
             raise ValueError('invalid DCE SystemTask clock operand')

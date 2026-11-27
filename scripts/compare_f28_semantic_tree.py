@@ -29,7 +29,7 @@ from semantic_bitvector import (BVType, Unverified, cast, concatenate, constant,
 ROOT = Path(__file__).resolve().parents[1]
 SECTION = re.compile(r'^"(paths|nodes|memories|vals|values|ops)":\s*\[\s*$')
 STRINGS = re.compile(r'"(?:[^"\\]|\\.)*"')
-STATE = re.compile(r'Register|Latch|Memory|System|Dpic|Blackbox|Instance|XMR|Xmr')
+STATE = re.compile(r'^grh\.(?:register|latch|system|dpic|blackbox|instance|xmr)')
 
 
 def qualified(tokens):
@@ -54,8 +54,6 @@ def records(path):
                     continue
                 if text.startswith('"namesFlattened":'):
                     yield 'flattened', json.loads(text.split(':', 1)[1].rstrip(','))
-                if text.startswith('"formatVersion":'):
-                    yield 'version', json.loads(text.split(':', 1)[1].rstrip(','))
                 if text.startswith(('"sourceUnit":', '"circuit":', '"rootPath":')):
                     key = text[1:text.index('"', 1)]
                     yield 'context', (key, json.loads(text.split(':', 1)[1].rstrip(',')))
@@ -169,12 +167,10 @@ def create_index(grh, native, output):
         CREATE TABLE native_type_evidence(id INTEGER PRIMARY KEY,width INTEGER,signed INTEGER,shape TEXT,evidence TEXT);
         CREATE TABLE disconnected_members(node INTEGER,op INTEGER,kind TEXT,PRIMARY KEY(node,op));
     ''')
-    counts, flattened, version, active_tree = Counter(), None, None, False
+    counts, flattened, active_tree = Counter(), None, False
     with db:
         for section, row in records(grh):
-            if section == 'version':
-                version = row
-            elif section == 'graph':
+            if section == 'graph':
                 active_tree = False
             elif section == 'flattened':
                 if flattened is not None:
@@ -191,7 +187,7 @@ def create_index(grh, native, output):
                 if not active_tree:
                     continue
                 if row['parent'] != 1 or 'ops' not in row:
-                    raise ValueError('requires v5 named leaf Nodes with authoritative ops')
+                    raise ValueError('requires named leaf Nodes with authoritative ops')
                 db.execute('INSERT INTO grh_nodes VALUES(?,?)', (row['id'], row['name']))
                 for key, table, column in (('ops', 'members', 'op'), ('anchors', 'anchors', 'value')):
                     refs = row.get(key, [])
@@ -213,8 +209,8 @@ def create_index(grh, native, output):
                 counts['grh_ops'] += 1
                 if counts['grh_ops'] % 1000000 == 0:
                     print(f'[F28] indexed {counts["grh_ops"]:,} native GRH ops', flush=True)
-        if version != 5 or flattened is not True or counts['paths'] != 1:
-            raise ValueError('requires JSON v5, namesFlattened=true and exactly one root Path')
+        if flattened is not True or counts['paths'] != 1:
+            raise ValueError('requires namesFlattened=true and exactly one root Path')
         for section, row in records(native):
             if section not in ('nodes', 'memories'):
                 continue
@@ -416,19 +412,19 @@ class Subgraphs:
         kind, args, typ = op['kind'], op.get('in', []), BVType(width, signed)
         self.active.add(key)
         try:
-            if kind == 'kArrayCreate':
+            if kind == 'grh.arrayCreate':
                 if not shape or len(args) != shape[0]:
                     raise Unverified('array_create_geometry_disagreement')
                 return self.grh_expr(args[index[0]], index[1:])
-            if kind == 'kAssign':
+            if kind == 'grh.assign':
                 if len(args) != 1 or self.geometry(self.value(args[0])) != (width, signed, shape):
                     raise Unverified('assign_geometry_disagreement')
                 return self.grh_expr(args[0], index)
-            if kind == 'kMux':
+            if kind == 'grh.mux':
                 if len(args) != 3:
                     raise Unverified('mux_arity')
                 return mux(self.grh_expr(args[0]), self.grh_expr(args[1], index), self.grh_expr(args[2], index), typ)
-            if kind == 'kSliceArray':
+            if kind == 'grh.sliceArray':
                 parent_shape = self.geometry(self.value(args[0]))[2]
                 indices = []
                 for value in args[1:]:
@@ -440,7 +436,7 @@ class Subgraphs:
                     raise Unverified('array_slice_geometry_disagreement')
                 return self.grh_expr(args[0], tuple(indices) + index)
             if shape:
-                if kind == 'kConstant':
+                if kind == 'grh.constant':
                     packed = normalize_grh(kind, BVType(row['w'], False), (), op.get('attrs'))
                     flat = 0
                     for axis, value in enumerate(index):
@@ -746,18 +742,16 @@ def refresh_candidates(db):
 
 
 def semantic_context(path):
-    graph, version, context, result = None, None, {}, None
+    graph, context, result = None, {}, None
     for section, row in records(path):
-        if section == 'version':
-            version = row
-        elif section == 'graph':
+        if section == 'graph':
             graph, context = row, {}
         elif section == 'context':
             context[row[0]] = row[1]
         elif section == 'flattened':
             if result is not None:
                 raise ValueError('expected one native SemanticTree context')
-            result = {'graph': graph, 'version': version, 'flattened': row, **context, 'paths': []}
+            result = {'graph': graph, 'flattened': row, **context, 'paths': []}
         elif section == 'paths' and result is not None:
             result['paths'].append(row)
         elif section in ('nodes', 'vals', 'values', 'ops') and result is not None:
@@ -806,8 +800,8 @@ def verify_native_refresh(db, grh, old_grh, counts, expected_added=None):
     """Stage only additions and loc changes after checking every native object."""
     expected_context = semantic_context(old_grh)
     expected_metadata = semantic_graph_metadata(old_grh)
-    if expected_context.get('version') != 5 or expected_context.get('flattened') is not True:
-        raise ValueError('native refresh requires the original flattened v5 context')
+    if expected_context.get('flattened') is not True:
+        raise ValueError('native refresh requires the original flattened context')
     db.executescript('''
         CREATE TEMP TABLE member_additions(node INTEGER,op INTEGER,PRIMARY KEY(node,op));
         CREATE TEMP TABLE changed_pairs(grh INTEGER PRIMARY KEY);
@@ -815,13 +809,11 @@ def verify_native_refresh(db, grh, old_grh, counts, expected_added=None):
                                          PRIMARY KEY(kind,id));
     ''')
     checked, last = Counter(), Counter()
-    graph, version, pending_context, tree_context, active_tree = None, None, {}, None, False
+    graph, pending_context, tree_context, active_tree = None, {}, None, False
     metadata_changes, saw_metadata, checked_context = {}, False, False
     with db:
         for section, row in records(grh):
-            if section == 'version':
-                version = row
-            elif section == 'graph':
+            if section == 'graph':
                 graph, pending_context, active_tree = row, {}, False
             elif section == 'context':
                 pending_context[row[0]] = row[1]
@@ -831,7 +823,7 @@ def verify_native_refresh(db, grh, old_grh, counts, expected_added=None):
                 if row is not True:
                     raise ValueError('new native SemanticTree is not flattened')
                 active_tree = True
-                tree_context = {'graph': graph, 'version': version, 'flattened': row,
+                tree_context = {'graph': graph, 'flattened': row,
                                 **pending_context, 'paths': []}
             elif section == 'paths' and active_tree:
                 if type(row.get('id')) is not int or type(row.get('parent')) is not int:

@@ -15,7 +15,7 @@ from capture_f32_pipeline import action
 from semantic_node_exchange import compact, decode_cell
 
 
-GRH_ALIAS = ('true', 'kAssign', 'reference', 8, 'false', '[]', 'source', '[]', 1, 1, 'false')
+GRH_ALIAS = ('true', 'grh.assign', 'reference', 8, 'false', '[]', 'source', '[]', 1, 1, 'false')
 GSIM_ALIAS = ('true', 'OP_EMPTY:nodePtr', 'reference', 8, 'false', '[]', 'source', '[]', 1, 1, 'false')
 
 
@@ -130,7 +130,7 @@ class RhsContract(unittest.TestCase):
         points = ('B0', 'P1', 'P2', 'P3')
         for point in points:
             grh = GRH_ALIAS if point != 'P2' else with_fields(
-                GRH_ALIAS, root_class='kConcat', named_source=None, predecessor_count=2)
+                GRH_ALIAS, root_class='grh.concat', named_source=None, predecessor_count=2)
             self.table('grh', point, [('x', 3, grh)])
             self.table('gsim', point, [('x', 2, GSIM_ALIAS)])
         row = self.run_ledger(points, {'x': {'B'}})['x']
@@ -165,7 +165,7 @@ class RhsContract(unittest.TestCase):
             canonical_boundaries('Q0,P4')
 
     def test_indexed_node_root_mapping_preserves_indices(self):
-        grh = (True, 'kAssign', 'array_index', 8, False, [], 'elements', [1], 1, 1, False)
+        grh = (True, 'grh.assign', 'array_index', 8, False, [], 'elements', [1], 1, 1, False)
         gsim = with_fields(grh, root_op='OP_EMPTY:nodePtr')
         self.assertEqual(differences(grh, gsim), ([], []))
         self.assertEqual(differences(grh, with_fields(gsim, constant_indices=[None])), (['constant_indices'], []))
@@ -221,10 +221,10 @@ class RhsContract(unittest.TestCase):
         rows, _ = read_table(self.work / (TABLE + '.tsv'), 'grh', 'B0',
                              {'indexed', 'partialBits', 'signedView', 'state', 'state$NEXT'})
         gsim_indexed = (True, 'OP_EMPTY:nodePtr', 'array_index', 8, False, [], 'elements', [1], 1, 1, False)
-        self.assertEqual(rows['indexed'][1], 'kAssign')
+        self.assertEqual(rows['indexed'][1], 'grh.assign')
         self.assertEqual(differences(rows['indexed'], gsim_indexed), ([], []))
-        self.assertEqual(rows['partialBits'][1:3], ('kAssign', 'kSliceStatic'))
-        self.assertEqual(rows['signedView'][1:3], ('kAssign', 'sign_view'))
+        self.assertEqual(rows['partialBits'][1:3], ('grh.assign', 'grh.sliceStatic'))
+        self.assertEqual(rows['signedView'][1:3], ('grh.assign', 'sign_view'))
         self.assertEqual(rows['signedView'][6], 'namedAlias')
         predecessor = FIELDS.index('predecessor_count')
         self.assertEqual(rows['state'][predecessor], 0)

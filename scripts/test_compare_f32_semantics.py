@@ -266,7 +266,7 @@ class NativeComparisonTests(unittest.TestCase):
                 rows = []
                 for identifier, _ in frame['nodes']:
                     row = dict(zip(ENDPOINT_COLUMNS, (identifier, 'value', identifier, 0,
-                        identifier if identifier > 1 else 0, 0, 'kAssign' if identifier > 1 else 'input',
+                        identifier if identifier > 1 else 0, 0, 'grh.assign' if identifier > 1 else 'input',
                         frame['widths'].get(identifier, 8), 'false', frame['shapes'].get(identifier, []),
                         '2state', frame['widths'].get(identifier, 8), 'false',
                         frame['shapes'].get(identifier, []), [], [], 0, -1, 'native-binding')))
@@ -330,7 +330,7 @@ class NativeComparisonTests(unittest.TestCase):
         self.attach_structure(four_state=True)
         for stage in range(5):
             op = self.frames['grh'][stage]['structure']['graphs'][0]['ops'][0]
-            op.update(kind='kConstant', **{'in': [], 'attrs': {'constValue': "8'b0x1z10xz"}})
+            op.update(kind='grh.constant', **{'in': [], 'attrs': {'constValue': "8'b0x1z10xz"}})
             tree = self.frames['gsim'][stage]['structure']['nodes'][1]['assignTrees'][0]
             tree['nodes'][0].update(op='OP_INT', children=[], strVal='0h28')
         grh, gsim = self.write_capture('grh'), self.write_capture('gsim')
@@ -346,7 +346,7 @@ class NativeComparisonTests(unittest.TestCase):
         self.attach_structure(four_state=True)
         for stage in range(5):
             op = self.frames['grh'][stage]['structure']['graphs'][0]['ops'][0]
-            op.update(kind='kConstant', **{'in': [], 'attrs': {'constValue': '0'}})
+            op.update(kind='grh.constant', **{'in': [], 'attrs': {'constValue': '0'}})
             tree = self.frames['gsim'][stage]['structure']['nodes'][1]['assignTrees'][0]
             tree['nodes'][0].update(op='OP_INT', children=[], strVal='0')
         grh, gsim = self.write_capture('grh'), self.write_capture('gsim')
@@ -359,7 +359,7 @@ class NativeComparisonTests(unittest.TestCase):
         self.attach_structure(four_state=True)
         for stage in range(5):
             op = self.frames['grh'][stage]['structure']['graphs'][0]['ops'][0]
-            op.update(kind='kConstant', **{'in': [], 'attrs': {'constValue': "8'h28"}})
+            op.update(kind='grh.constant', **{'in': [], 'attrs': {'constValue': "8'h28"}})
             tree = self.frames['gsim'][stage]['structure']['nodes'][1]['assignTrees'][0]
             tree['nodes'][0].update(op='OP_INT', children=[], strVal='0b0x1z10xz')
         grh, gsim = self.write_capture('grh'), self.write_capture('gsim')
@@ -374,7 +374,7 @@ class NativeComparisonTests(unittest.TestCase):
         self.attach_structure(four_state=True)
         for stage in range(5):
             op = self.frames['grh'][stage]['structure']['graphs'][0]['ops'][0]
-            op.update(kind='kConstant', **{'in': [], 'attrs': {'constValue': "8'b0x1z10xz"}})
+            op.update(kind='grh.constant', **{'in': [], 'attrs': {'constValue': "8'b0x1z10xz"}})
             tree = self.frames['gsim'][stage]['structure']['nodes'][1]['assignTrees'][0]
             tree['nodes'][0].update(op='OP_INT', children=[], strVal='0h08')
         grh, gsim = self.write_capture('grh'), self.write_capture('gsim')
@@ -391,15 +391,15 @@ class NativeComparisonTests(unittest.TestCase):
 
     def attach_structure(self, *, unsupported=False, four_state=False):
         for stage in range(5):
-            self.frames['grh'][stage]['structure'] = {'formatVersion': 5, 'graphs': [{'symbol': 'top',
+            self.frames['grh'][stage]['structure'] = {'graphs': [{'symbol': 'top',
                 'semanticTree': {'rootPath': 1, 'namesFlattened': True, 'paths': [{'id': 1, 'parent': 0}],
                     'nodes': [{'id': 1, 'parent': 1, 'name': 'input', 'ops': [], 'anchors': [1]},
                               {'id': 2, 'parent': 1, 'name': 'middle', 'ops': [1], 'anchors': [2]},
                               {'id': 3, 'parent': 1, 'name': 'out', 'ops': [2], 'anchors': [3]}]},
                 'vals': [{'id': i, 'w': 8, 'sgn': False, 'shape': [], 'type': 'logic',
                           'domain': '4state' if four_state else '2state', 'in': i == 1} for i in range(1, 4)],
-                'ops': [{'id': 1, 'kind': 'kMystery' if unsupported else 'kNot', 'in': [1], 'out': [2], 'attrs': {}},
-                        {'id': 2, 'kind': 'kAssign', 'in': [2], 'out': [3], 'attrs': {}}]}]}
+                'ops': [{'id': 1, 'kind': 'kMystery' if unsupported else 'grh.bitNot', 'in': [1], 'out': [2], 'attrs': {}},
+                        {'id': 2, 'kind': 'grh.assign', 'in': [2], 'out': [3], 'attrs': {}}]}]}
             def tree(operation, source):
                 entries = [{'id': 0, 'op': operation, 'width': 8, 'sign': False, 'children': [1]},
                            {'id': 1, 'op': 'OP_EMPTY', 'width': 8, 'sign': False, 'children': [], 'node': source},
@@ -594,7 +594,7 @@ class NativeComparisonTests(unittest.TestCase):
                 value['w'] = width
             graph['vals'].append({**graph['vals'][0], 'id': 4, 'in': False})
             graph['ops'][0]['in'] = [4]
-            graph['ops'].append({'id': 3, 'kind': 'kNot', 'in': [1], 'out': [4], 'attrs': {}})
+            graph['ops'].append({'id': 3, 'kind': 'grh.bitNot', 'in': [1], 'out': [4], 'attrs': {}})
             graph['semanticTree']['nodes'][1]['ops'].append(3)
             for node in self.frames['gsim'][stage]['structure']['nodes']:
                 node['width'] = width
@@ -689,13 +689,13 @@ class NativeComparisonTests(unittest.TestCase):
         for stage in range(5):
             graph = self.frames['grh'][stage]['structure']['graphs'][0]
             graph['vals'].append({**graph['vals'][0], 'id': 99, 'in': False})
-            graph['ops'].append({'id': 99, 'kind': 'kConstant', 'in': [], 'out': [99], 'attrs': {'constValue': "8'b1"}})
+            graph['ops'].append({'id': 99, 'kind': 'grh.constant', 'in': [], 'out': [99], 'attrs': {'constValue': "8'b1"}})
             for identifier in range(4, 14):
                 name = 'extra' + str(identifier)
                 for engine in ('grh', 'gsim'):
                     self.frames[engine][stage]['nodes'].append((identifier, name))
                 graph['vals'].append({**graph['vals'][0], 'id': identifier, 'in': False})
-                graph['ops'].append({'id': identifier, 'kind': 'kAssign', 'in': [1], 'out': [identifier], 'attrs': {}})
+                graph['ops'].append({'id': identifier, 'kind': 'grh.assign', 'in': [1], 'out': [identifier], 'attrs': {}})
                 graph['semanticTree']['nodes'].append({'id': identifier, 'parent': 1, 'name': name,
                                                       'ops': [identifier], 'anchors': [identifier]})
                 native = deepcopy(self.frames['gsim'][stage]['structure']['nodes'][2])
@@ -739,7 +739,7 @@ class NativeComparisonTests(unittest.TestCase):
             graph = self.frames['grh'][stage]['structure']['graphs'][0]
             graph['semanticTree']['nodes'][1]['ops'].append(99)
             graph['vals'].append({**graph['vals'][0], 'id': 99, 'in': False})
-            graph['ops'].append({'id': 99, 'kind': 'kNot', 'in': [1], 'out': [99], 'attrs': {}})
+            graph['ops'].append({'id': 99, 'kind': 'grh.bitNot', 'in': [1], 'out': [99], 'attrs': {}})
         report = self.run_comparison(structure=True)
         self.assertFalse(report['semantic_acceptance'])
         self.assertEqual(report['boundaries']['P0']['structure']['separately_proved_anchors_with_uncovered_members'], 1)
@@ -750,7 +750,7 @@ class NativeComparisonTests(unittest.TestCase):
         self.assertFalse(diagnosis['anchor_expression_proof']['membership_coverage_proved'])
         self.assertEqual(diagnosis['anchor_expression_proof']['paired_boundary_premises'][0]['grh_node_id'], 1)
         with sqlite3.connect(self.work / 'comparison' / 'structure' / 'P0' / 'comparison.sqlite') as db:
-            self.assertEqual(db.execute('SELECT * FROM disconnected_members').fetchall(), [(2, 99, 'kNot')])
+            self.assertEqual(db.execute('SELECT * FROM disconnected_members').fetchall(), [(2, 99, 'grh.bitNot')])
 
     def test_both_sides_unsupported_never_become_equal(self):
         self.attach_structure(unsupported=True)
@@ -774,7 +774,7 @@ class NativeComparisonTests(unittest.TestCase):
         self.attach_structure(four_state=True)
         for stage in range(5):
             op = self.frames['grh'][stage]['structure']['graphs'][0]['ops'][0]
-            op.update(kind='kConstant', **{'in': [], 'attrs': {'constValue': "8'b0x1z10xz"}})
+            op.update(kind='grh.constant', **{'in': [], 'attrs': {'constValue': "8'b0x1z10xz"}})
             tree = self.frames['gsim'][stage]['structure']['nodes'][1]['assignTrees'][0]
             tree['nodes'][0].update(op='OP_INT', children=[], strVal='0hxx')
         report = self.run_comparison(structure=True)
@@ -909,7 +909,7 @@ class NativeComparisonTests(unittest.TestCase):
     @unittest.skipUnless(os.environ.get('F32_GSIM_STRUCTURE'), 'optional actual native GSIM partial assignment integration')
     def test_actual_native_null_slots_and_ordered_partial_assignments(self):
         native = Path(os.environ['F32_GSIM_STRUCTURE'])
-        fixture = {'formatVersion': 5, 'graphs': [{'symbol': 'top', 'semanticTree': {
+        fixture = {'graphs': [{'symbol': 'top', 'semanticTree': {
             'rootPath': 1, 'namesFlattened': True, 'paths': [{'id': 1, 'parent': 0}],
             'nodes': [{'id': identifier, 'parent': 1, 'name': name, 'ops': [], 'anchors': [identifier]}
                       for identifier, name in ((10, 'c0'), (11, 'c1'), (12, 'a'), (13, 'b'))]},
@@ -1009,7 +1009,7 @@ class OrderedArrayFixture(unittest.TestCase):
         self.db.execute('INSERT INTO values_ir VALUES(?,?)', (100, compact(
             {'id': 100, 'w': size, 'sgn': False, 'shape': list(shape), 'type': 'logic', 'domain': '2state'})))
         self.db.execute('INSERT INTO ops VALUES(?,?)', (100, compact(
-            {'id': 100, 'kind': 'kCombArrayUpdate', 'in': args, 'out': [100], 'attrs': {'indexCounts': counts}})))
+            {'id': 100, 'kind': 'grh.combArrayUpdate', 'in': args, 'out': [100], 'attrs': {'indexCounts': counts}})))
         self.db.execute('INSERT INTO producers VALUES(?,?)', (100, 100))
         self.db.execute('INSERT INTO members VALUES(?,?)', (100, 100))
         self.db.execute('INSERT INTO anchors VALUES(?,?)', (100, 100))
@@ -1082,7 +1082,7 @@ class OrderedArrayExpressionTests(OrderedArrayFixture):
         self.db.execute('INSERT INTO values_ir VALUES(?,?)', (6, compact(
             {'id': 6, 'w': 2, 'sgn': False, 'shape': [], 'type': 'logic', 'domain': '2state'})))
         self.db.execute('INSERT INTO ops VALUES(?,?)', (6, compact(
-            {'id': 6, 'kind': 'kConstant', 'in': [], 'out': [6], 'attrs': {'constValue': "2'h3"}})))
+            {'id': 6, 'kind': 'grh.constant', 'in': [], 'out': [6], 'attrs': {'constValue': "2'h3"}})))
         self.db.execute('INSERT INTO producers VALUES(?,?)', (6, 6))
         self.db.execute('INSERT INTO members VALUES(?,?)', (100, 6))
         static = self.tree(self.ref('payload'), self.expression('OP_INDEX_INT', width=2, values=[3]))
@@ -1210,26 +1210,26 @@ class ScalarStateTransferTests(OrderedArrayFixture):
         self.db.execute('INSERT INTO values_ir VALUES(?,?)', (100, compact(current)))
         self.db.execute('INSERT INTO anchors VALUES(?,?)', (100, 100))
         self.db.executemany('INSERT INTO pairs VALUES(?,?,?)', ((100, 100, 'state'), (101, 101, 'state$NEXT')))
-        declaration = {'id': 1000, 'sym': 'state', 'kind': 'kRegister', 'in': [], 'out': [], 'attrs': {
+        declaration = {'id': 1000, 'sym': 'state', 'kind': 'grh.registerDecl', 'in': [], 'out': [], 'attrs': {
             'width': 8, 'isSigned': False, 'initSpecKinds': ['const'], 'initSpecValues': ["8'bx"]}}
         self.db.execute('INSERT INTO ops VALUES(?,?)', (1000, compact(declaration)))
         self.db.execute('INSERT INTO state_declarations VALUES(?,?)', ('state', 1000))
         self.db.execute('INSERT INTO members VALUES(?,?)', (100, 1000))
-        self.op(1001, 'kRegisterReadPort', [], [100], {'regSymbol': 'state'}, owner=100)
+        self.op(1001, 'grh.registerReadPort', [], [100], {'regSymbol': 'state'}, owner=100)
         self.db.execute('INSERT INTO state_ports VALUES(?,?)', ('state', 1001))
         enabled = 2
         if reset:
             self.value(7, 1)
-            self.op(1002, 'kNot', [4], [7])
+            self.op(1002, 'grh.bitNot', [4], [7])
             self.value(8, 1)
-            self.op(1003, 'kAnd', [7, 2], [8])
+            self.op(1003, 'grh.bitAnd', [7, 2], [8])
             enabled = 8
         args = [enabled, 3, 6, 1] if masked else [enabled, 3, 1]
-        self.op(1010, 'kRegisterWriteMaskPort' if masked else 'kRegisterWritePort', args, [],
+        self.op(1010, 'grh.registerWriteMaskPort' if masked else 'grh.registerWritePort', args, [],
                 {'regSymbol': 'state', 'eventEdge': ['posedge'], 'writerOrder': 0})
         self.db.execute('INSERT INTO state_ports VALUES(?,?)', ('state', 1010))
         if reset:
-            self.op(1011, 'kRegisterWritePort', [4, 5, 1], [],
+            self.op(1011, 'grh.registerWritePort', [4, 5, 1], [],
                 {'regSymbol': 'state', 'eventEdge': ['posedge'], 'writerOrder': 1})
             self.db.execute('INSERT INTO state_ports VALUES(?,?)', ('state', 1011))
         q, payload = self.ref('state'), self.ref('data')
@@ -1345,11 +1345,11 @@ class ScalarStateTransferTests(OrderedArrayFixture):
     def test_all_writer_rhs_read_old_state_instead_of_intermediate_update(self):
         self.fixture()
         self.value(7, 8)
-        self.op(1002, 'kNot', [100], [7])
+        self.op(1002, 'grh.bitNot', [100], [7])
         operation = json.loads(self.db.execute('SELECT payload FROM ops WHERE id=1010').fetchone()[0])
         operation['in'][1] = 7
         self.db.execute('UPDATE ops SET payload=? WHERE id=1010', (compact(operation),))
-        self.op(1011, 'kRegisterWritePort', [2, 7, 1], [],
+        self.op(1011, 'grh.registerWritePort', [2, 7, 1], [],
                 {'regSymbol': 'state', 'eventEdge': ['posedge'], 'writerOrder': 1})
         self.db.execute('INSERT INTO state_ports VALUES(?,?)', ('state', 1011))
         native = json.loads(self.db.execute('SELECT payload FROM gs_nodes WHERE id=101').fetchone()[0])

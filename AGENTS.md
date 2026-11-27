@@ -4,7 +4,7 @@
 - Core sources live in `wolvrix/lib/core/` with public headers in `wolvrix/include/`; the Python bindings live under `wolvrix/app/pybind` and package `wolvrix`.
 - Wolvrix tests sit under `wolvrix/tests/{grh,ingest,transform,emit,store}` with module fixtures under `wolvrix/tests/<module>/data`; shared suites live in `testcase/{hdlbits,openc910,xiangshan,xs-bugcase}`. Test-only artifacts are written to `wolvrix/build/artifacts` (created by CMake).
 - Source files:
-  - `wolvrix/lib/core/grh.cpp` - GRH (Graph RTL Hierarchy) implementation
+  - `wolvrix/lib/core/wolvrix.cpp` - Wolvrix IR core implementation
   - `wolvrix/lib/ingest/sv.cpp` - Convert SystemVerilog AST to GRH
   - `wolvrix/lib/ingest/driver.cpp` - Shared ingest requests and frontend dispatch
   - `wolvrix/lib/ingest/firrtl.cpp` - FIRRTL frontend entry points

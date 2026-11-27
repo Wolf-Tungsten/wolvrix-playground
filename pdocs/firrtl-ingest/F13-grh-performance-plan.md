@@ -45,7 +45,7 @@ FIRRTL node attributes 的长字符串会放大这些成本，优先修正访问
 `eliminateDeadConstants` / `simplifyUnsignedComparisons`；
 [dead_code_elim.cpp](../../wolvrix/lib/transform/dead_code_elim.cpp) 的 OpInfo
 构造、storage 分类和相关活性遍历；
-[grh.cpp](../../wolvrix/lib/core/grh.cpp) 的 `operationFromView` / `operationFromBuilder`。
+[grh.cpp](https://github.com/Wolf-Tungsten/wolvrix/blob/c134542659e46bc029d5485c82171d2c5304cb7a/lib/core/grh.cpp#L5271) 的 `operationFromView` / `operationFromBuilder`。
 
 实施前多处全图循环先调用 `getOperation()`，复制 symbol、operands、results、
 全部 attributes 和 SrcLoc，随后才按 kind 筛选。DCE 构造 OpInfo 时还再次
@@ -60,7 +60,7 @@ FIRRTL node attributes 的长字符串会放大这些成本，优先修正访问
 
 位置：[const_fold.cpp](../../wolvrix/lib/transform/const_fold.cpp) 的
 `isValuePortBound` / `eliminateDeadConstants`；
-[grh.cpp](../../wolvrix/lib/core/grh.cpp) 的 `Value::users()`。
+[grh.cpp](https://github.com/Wolf-Tungsten/wolvrix/blob/c134542659e46bc029d5485c82171d2c5304cb7a/lib/core/grh.cpp#L3376) 的 `Value::users()`。
 
 实施前每个常量结果都会扫描全部 input/output/inout ports，形成
 O(constant results × ports) 查询；`getValue(...).users().empty()` 又为
@@ -88,7 +88,7 @@ vectors、改写字符串，再 normalize 和写回；write 的 const 引用参�
 
 ## F13.5：core 增加消耗式 freeze
 
-位置：[grh.cpp](../../wolvrix/lib/core/grh.cpp) 的
+位置：[grh.cpp](https://github.com/Wolf-Tungsten/wolvrix/blob/c134542659e46bc029d5485c82171d2c5304cb7a/lib/core/grh.cpp#L2244) 的
 `GraphBuilder::freeze() const` / `Graph::freeze()`。
 
 实施前 const freeze 深复制 attributes、op/value SrcLoc 等拥有数据的负载；

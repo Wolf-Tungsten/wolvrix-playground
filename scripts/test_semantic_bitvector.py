@@ -7,7 +7,7 @@ from semantic_bitvector import (BVType, Term, Unverified, boolean, cast, compare
 class TypedBitvectorTests(unittest.TestCase):
     def test_mux_slots_are_ordered_and_swapping_branches_has_counterexample(self):
         select, a, b = source("s", BVType(1)), source("a", BVType(2)), source("b", BVType(2))
-        grh = normalize_grh("kMux", BVType(2), (select, a, b))
+        grh = normalize_grh("grh.mux", BVType(2), (select, a, b))
         gs = normalize_gsim("OP_MUX", BVType(2), (select, a, b))
         self.assertEqual(compare(grh, gs)["status"], "proved_typed_structural_equality")
         swapped = normalize_gsim("OP_MUX", BVType(2), (select, b, a))
@@ -15,7 +15,7 @@ class TypedBitvectorTests(unittest.TestCase):
 
     def test_add_to_sub_mutation_is_rejected(self):
         a, b = source("a", BVType(2)), source("b", BVType(2))
-        grh = normalize_grh("kAdd", BVType(3), (resize(a, BVType(3)), resize(b, BVType(3))))
+        grh = normalize_grh("grh.add", BVType(3), (resize(a, BVType(3)), resize(b, BVType(3))))
         gs = normalize_gsim("OP_ADD", BVType(3), (a, b))
         self.assertEqual(compare(grh, gs)["status"], "proved_typed_structural_equality")
         changed = normalize_gsim("OP_SUB", BVType(3), (a, b))
@@ -42,21 +42,21 @@ class TypedBitvectorTests(unittest.TestCase):
         for signed in (False, True):
             with self.subTest(signed=signed):
                 a = source("a", BVType(3, signed))
-                high = normalize_grh("kReplicate", BVType(2), (slice_bits(a, 2, 1),), {"rep": 2}) if signed else constant(0, BVType(2))
+                high = normalize_grh("grh.replicate", BVType(2), (slice_bits(a, 2, 1),), {"rep": 2}) if signed else constant(0, BVType(2))
                 grh = concatenate((high, a), BVType(5, signed))
                 gs = normalize_gsim("OP_PAD", BVType(5, signed), (a,), (5,))
                 self.assertEqual(compare(grh, gs)["status"], "proved_typed_structural_equality")
 
     def test_truncation_preserves_low_bits_and_static_slice(self):
         a = source("a", BVType(5))
-        grh = normalize_grh("kSliceStatic", BVType(3), (a,), {"sliceStart": 0, "sliceEnd": 2})
+        grh = normalize_grh("grh.sliceStatic", BVType(3), (a,), {"sliceStart": 0, "sliceEnd": 2})
         gs = normalize_gsim("OP_BITS", BVType(3), (a,), (2, 0))
         self.assertEqual(compare(grh, gs)["status"], "proved_typed_structural_equality")
         self.assertEqual(evaluate(grh, {"a": 29}), 5)
 
     def test_signed_comparison_extends_before_comparison(self):
         a, b = source("a", BVType(2, True)), source("b", BVType(4, True))
-        grh = normalize_grh("kLt", BVType(1), (resize(a, BVType(4, True)), b))
+        grh = normalize_grh("grh.lt", BVType(1), (resize(a, BVType(4, True)), b))
         gs = normalize_gsim("OP_LT", BVType(1), (a, b))
         self.assertEqual(compare(grh, gs)["status"], "proved_typed_structural_equality")
         self.assertEqual(evaluate(gs, {"a": 2, "b": 1}), 1)
@@ -117,25 +117,25 @@ class TypedBitvectorTests(unittest.TestCase):
         with self.assertRaises(Unverified):
             source("x", BVType(2, domain="four"))
         with self.assertRaises(Unverified):
-            normalize_grh("kConstant", BVType(2), (), {"constValue": "2'bx"})
+            normalize_grh("grh.constant", BVType(2), (), {"constValue": "2'bx"})
 
     def test_boolean_nested_mux_guard_rewrite_has_exhaustive_proof(self):
         a, b = source("a", BVType(1)), source("b", BVType(1))
         nested = mux(a, b, constant(0, BVType(1)), BVType(1))
-        conjunction = normalize_grh("kAnd", BVType(1), (a, b))
+        conjunction = normalize_grh("grh.bitAnd", BVType(1), (a, b))
         self.assertEqual(compare(nested, conjunction)["status"], "proved_exhaustive_two_state_equality")
 
     def test_large_nonidentical_expression_is_unverified_not_claimed_unequal(self):
         a = source("a", BVType(16))
-        expression = normalize_grh("kAdd", BVType(16), (a, constant(0, BVType(16))))
+        expression = normalize_grh("grh.add", BVType(16), (a, constant(0, BVType(16))))
         self.assertEqual(compare(expression, a)["status"], "unverified")
 
     def test_huge_shift_amounts_are_masked_without_creating_huge_python_integers(self):
         x = source("x", BVType(8))
         amount = constant((1 << 32) - 1, BVType(32))
-        for kind in ("kShl", "kLShr", "kAShr"):
+        for kind in ("grh.shl", "grh.lShr", "grh.aShr"):
             term = normalize_grh(kind, BVType(8), (x, amount))
-            self.assertEqual(evaluate(term, {"x": 128}), 255 if kind == "kAShr" else 0)
+            self.assertEqual(evaluate(term, {"x": 128}), 255 if kind == "grh.aShr" else 0)
 
     def test_deep_shared_DAG_hash_equality_and_commutative_order_preserve_sharing(self):
         left, right = source("x", BVType(1)), source("x", BVType(1))
@@ -146,8 +146,8 @@ class TypedBitvectorTests(unittest.TestCase):
         self.assertEqual(hash(left), hash(right))
         self.assertEqual(compare(left, right)["status"], "proved_typed_structural_equality")
         leaf = source("y", BVType(1))
-        a = normalize_grh("kAnd", BVType(1), (left, leaf))
-        b = normalize_grh("kAnd", BVType(1), (leaf, right))
+        a = normalize_grh("grh.bitAnd", BVType(1), (left, leaf))
+        b = normalize_grh("grh.bitAnd", BVType(1), (leaf, right))
         self.assertEqual(a, b)
         changed = Term("or", BVType(1), (left, leaf))
         self.assertEqual(compare(a, changed)["status"], "counterexample")

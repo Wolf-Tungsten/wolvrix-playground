@@ -429,8 +429,11 @@ def member_pairs(groups):
 class NativeGrhSignatures:
     """Structural diagnostics directly over GRH values and operation records."""
 
-    classes = {"k" + key.rsplit(".", 1)[1][0].upper() + key.rsplit(".", 1)[1][1:]: value
-               for key, value in GRH_CLASS.items()}
+    classes = {
+        "grh." + key.removeprefix("core.compute."): value
+        for key, value in GRH_CLASS.items()
+        if value not in {"and", "or", "xor", "not"}
+    } | {"grh.bitAnd": "and", "grh.bitOr": "or", "grh.bitXor": "xor", "grh.bitNot": "not"}
 
     def __init__(self, reader, keys, pool):
         self.reader, self.keys, self.pool = reader, keys, pool
@@ -445,7 +448,7 @@ class NativeGrhSignatures:
                 return []
             raise ValueError(f"missing value producer for {value!r}")
         op = self.reader.ops[name]
-        if op["kind"] in READ_KINDS or op["kind"] == "grhsim.edge-detect":
+        if op["kind"] in READ_KINDS or op["kind"] == "grhsim.edgeDetect":
             return []
         return op["in"]
 
@@ -489,36 +492,36 @@ class NativeGrhSignatures:
         params = {key: attribute(op, key) for key in op.get("attrs", {})}
         if kind in READ_KINDS:
             target = reader.target(op)
-            if kind == "kRegisterReadArrayPort" or logical_type(reader.states[target], True)[4]:
+            if kind == "grh.registerReadArrayPort" or logical_type(reader.states[target], True)[4]:
                 return pool.add("grh_mem", width, (target, name))
             if target in self.keys:
                 return pool.add("reg", width, (self.keys[target],))
             return pool.add("grh_reg", width, (target,))
-        if kind == "grhsim.edge-detect":
+        if kind == "grhsim.edgeDetect":
             return pool.add("grh_event", width, (name,))
-        if kind == "kConstant":
+        if kind == "grh.constant":
             parsed = parse_const_literal(params.get("constValue"), width)
             if parsed is not None:
                 return pool.add("const", width, (parsed[0],))
             return pool.add("grh_const", width, (str(params.get("constValue")),))
-        if kind == "kAssign" and logical_type(reader.values[op["in"][0]]) == typ:
+        if kind == "grh.assign" and logical_type(reader.values[op["in"][0]]) == typ:
             return children[0]
-        if kind == "kMux":
+        if kind == "grh.mux":
             return pool.select(width, children[:1], children[1:2], children[2])
         if kind == "grhsim.prioritySelect":
             n = (len(children) - 1) // 2
             return pool.select(width, children[:n], children[n:2*n], children[-1])
-        if kind == "kSliceStatic":
+        if kind == "grh.sliceStatic":
             return pool.node("slice", width, children, (int(params["sliceStart"]), int(params["sliceEnd"])))
-        if kind in ("kSliceDynamic", "kSliceArray"):
-            return pool.node("slice_dyn" if kind == "kSliceDynamic" else "index_dyn", width,
+        if kind in ("grh.sliceDynamic", "grh.sliceArray"):
+            return pool.node("slice_dyn" if kind == "grh.sliceDynamic" else "index_dyn", width,
                              children, (int(params.get("sliceWidth", width)),))
-        if kind in ("kShl", "kLShr", "kAShr"):
-            tag = {"kShl": "shl", "kLShr": "lshr", "kAShr": "ashr"}[kind]
+        if kind in ("grh.shl", "grh.lShr", "grh.aShr"):
+            tag = {"grh.shl": "shl", "grh.lShr": "lshr", "grh.aShr": "ashr"}[kind]
             amount = pool.keys[children[1]]
             return (pool.node(tag, width, children[:1], (amount[2][0],)) if amount[0] == "const"
                     else pool.node(tag, width, children))
-        if kind == "kReplicate":
+        if kind == "grh.replicate":
             return pool.node("replicate", width, children, (int(params["rep"]),))
         if kind in self.classes:
             signs = tuple(int(reader.values[arg].get("sgn", False)) for arg in op["in"])

@@ -174,10 +174,6 @@ XS_GRHSIM_JSON ?= $(XS_GRHSIM_BUILD)/xiangshan_grhsim.json
 XS_GRHSIM_ROUNDTRIP_JSON ?= $(XS_GRHSIM_BUILD)/xiangshan_grhsim_roundtrip.json
 XS_GRHSIM_MEM_MIN_BYTES ?=
 XS_GRHSIM_RESUME_FROM_FLAT_GRH_JSON ?= 0
-# Old flat checkpoints without a prefix identity require an explicit pre-opt or
-# post-opt choice. New checkpoints resolve this automatically from the sidecar.
-XS_GRHSIM_FLAT_GRH_STAGE ?=
-XS_GRHSIM_KEEP_ORIGINS ?= 1
 XS_GRHSIM_EMIT_CPP_DIR ?= $(XS_GRHSIM_BUILD)/model
 XS_GRHSIM_OVERWRITE_CPP ?= 1
 XS_GRHSIM_READABLE_NAMES ?= 1
@@ -731,8 +727,8 @@ test_f30_array_update:
 	@set -o pipefail; TMPDIR=$(WOLVRIX_TEST_TMP) CCACHE_DIR=$(WOLVRIX_TEST_CCACHE) ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '$(F30_TEST_REGEX)' --output-on-failure --timeout 120 2>&1 | tee "$(F30_WORK)/tests/test.log"
 
 F32_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F32
-F32_TEST_TARGETS ?= transform-f32-foundation transform-f32-used-bits transform-f32-used-bits-array-state transform-f32-observable-boundaries transform-f32-split-nodes transform-f32-split-unknown-literals transform-f32-pipeline array-update-tests op-descriptor-tests grh-semantic-tree grh-semantic-node-details store-semantic-tree-json transform-pass-manager grhsim-dialect-tests grhsim-transform-tests transform-verify transform-dead-code-elim transform-dce-array-update firrtl-array-update store-json
-F32_TEST_REGEX ?= ^(transform-f32-(foundation|used-bits|used-bits-array-state|observable-boundaries|split-nodes|split-unknown-literals|pipeline)|array-update-tests|op-descriptor-tests|grh-semantic-tree|grh-semantic-node-details|store-semantic-tree-json|transform-pass-manager|grhsim-dialect-tests|grhsim-transform-tests|transform-verify|transform-dead-code-elim|transform-dce-array-update|firrtl-array-update|store-json)$$
+F32_TEST_TARGETS ?= transform-f32-foundation transform-f32-used-bits transform-f32-used-bits-array-state transform-f32-observable-boundaries transform-f32-split-nodes transform-f32-split-unknown-literals transform-f32-pipeline array-update-tests op-definition-tests grh-semantic-tree grh-semantic-node-details store-semantic-tree-json transform-pass-manager grhsim-dialect-tests grhsim-transform-tests transform-verify transform-dead-code-elim transform-dce-array-update firrtl-array-update store-json
+F32_TEST_REGEX ?= ^(transform-f32-(foundation|used-bits|used-bits-array-state|observable-boundaries|split-nodes|split-unknown-literals|pipeline)|array-update-tests|op-definition-tests|grh-semantic-tree|grh-semantic-node-details|store-semantic-tree-json|transform-pass-manager|grhsim-dialect-tests|grhsim-transform-tests|transform-verify|transform-dead-code-elim|transform-dce-array-update|firrtl-array-update|store-json)$$
 .PHONY: test_f32_foundation test_f32_passes test_f32_used_bits test_f32_split_nodes
 test_f32_used_bits:
 	@$(MAKE) --no-print-directory test_f32_passes F32_TEST_TARGETS=transform-f32-used-bits F32_TEST_REGEX='^transform-f32-used-bits$$' F32_WORK="$(F32_WORK)/used-bits"
@@ -1003,6 +999,21 @@ test_f36_gsim_inventory: f36_work
 		BUILD_DIR="$(abspath $(F36_GSIM_BUILD))" FIR_TEST_OUTPUT_DIR="$(abspath $(F36_WORK))/gsim-smoke" \
 		PYTHON="$(if $(findstring /,$(PYTHON)),$(abspath $(PYTHON)),$(PYTHON))" -j4 \
 		2>&1 | tee "$(F36_WORK)/launch/gsim-inventory-test.log"
+
+.PHONY: test_f37_core_dialects
+F37_WORK ?= $(REPO_ROOT)/ptmp/firrtl-ingest/F37
+F37_TEST_TARGETS ?= op-definition-tests grh-tests grh-roundtrip-tests grh-sim-foundation-tests array-update-tests firrtl-array-update store-json store-json-ir store-load-origin-attrs load-json-file store-semantic-tree-json transform-pass-manager transform-verify grh-to-grhsim-tests grhsim-dialect-tests grhsim-virtual-partition-tests grhsim-sink-schedule-tests grhsim-readable-store transform-f32-pipeline grhsim-transform-tests transform-f33-pipeline grhsim-firrtl-nodes grhsim-cpu-st-cpp-tests
+F37_EMPTY :=
+F37_SPACE := $(F37_EMPTY) $(F37_EMPTY)
+F37_TEST_REGEX ?= ^($(subst $(F37_SPACE),|,$(strip $(F37_TEST_TARGETS))))$$
+test_f37_core_dialects:
+	@$(MAKE) --no-print-directory test_f32_foundation F32_WORK="$(F37_WORK)/native" \
+		F32_TEST_TARGETS='$(F37_TEST_TARGETS)' F32_TEST_REGEX='$(subst $$,$$$$,$(F37_TEST_REGEX))'
+
+.PHONY: build_grh_ir_visualize
+GRH_IR_VISUALIZE_BUILD ?= $(REPO_ROOT)/ptmp/grh-ir-visualize/dist
+build_grh_ir_visualize:
+	npm --prefix "$(REPO_ROOT)/grh-ir-visualize" run build -- --outDir "$(abspath $(GRH_IR_VISUALIZE_BUILD))"
 
 F34_RHS_WORK ?= $(F34_WORK)/culprit-ledger/f34-5b
 F34_RHS_GSIM_STAGE ?= all
@@ -1824,7 +1835,7 @@ FIRRTL_PARTITION_COST ?= legacy
 FIRRTL_PARTITION_MAX_NODES ?= 128
 FIRRTL_PARTITION_CLONE ?= 0
 .PHONY: inspect_firrtl_partitions
-inspect_firrtl_partitions: check_remove_grhsim_ir_options
+inspect_firrtl_partitions:
 	mkdir -p "$(FIRRTL_F09_TEST_WORK)/tmp" "$(FIRRTL_F09_TEST_WORK)/ccache"
 	TMPDIR="$(FIRRTL_F09_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F09_TEST_WORK)/ccache" $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
 	TMPDIR="$(FIRRTL_F09_TEST_WORK)/tmp" CCACHE_DIR="$(FIRRTL_F09_TEST_WORK)/ccache" $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target inspect-firrtl-nodes -j 4
@@ -2396,8 +2407,8 @@ GRHSIM_CPU_ST_CPP_CASES ?= run
 test_grhsim_readable_store:
 	mkdir -p $(CURDIR)/ptmp/grhsim-readable/build-tmp $(CURDIR)/ptmp/grhsim-readable/ccache
 	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache $(CMAKE) -S $(WOLVRIX_DIR) -B $(WOLVRIX_BUILD_DIR)
-	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target store-text store-json store-load-origin-attrs load-json-file -j 4
-	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(store-text|store-json|store-load-origin-attrs|load-json-file)$$' --output-on-failure
+	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache $(CMAKE) --build $(WOLVRIX_BUILD_DIR) --target grhsim-readable-store store-json store-load-origin-attrs load-json-file -j 4
+	TMPDIR=$(CURDIR)/ptmp/grhsim-readable/build-tmp CCACHE_DIR=$(CURDIR)/ptmp/grhsim-readable/ccache ctest --test-dir $(WOLVRIX_BUILD_DIR) -R '^(grhsim-readable-store|store-json|store-load-origin-attrs|load-json-file)$$' --output-on-failure
 
 .PHONY: test_grhsim_readable_python
 test_grhsim_readable_python:
@@ -2440,34 +2451,16 @@ run_grhsim_cpu_st_cpp:
 GRHSIM_FLOW_TEST_WORK ?= $(CURDIR)/ptmp/remove-grhsim-ir/r6-flow-tests
 GRHSIM_FLOW_TEST_TMP ?= $(CURDIR)/ptmp/remove-grhsim-ir/build-tmp
 test_grhsim_flow: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+	@mkdir -p "$(GRHSIM_FLOW_TEST_TMP)"
 	PYTHONDONTWRITEBYTECODE=1 GRHSIM_FLOW_TEST_WORK="$(GRHSIM_FLOW_TEST_WORK)" $(PYTHON) -m unittest discover -s scripts -p test_grhsim_flow.py
-	TMPDIR=$(GRHSIM_FLOW_TEST_TMP) $(MAKE) -C "$(GRHSIM_FLOW_TEST_WORK)" -j 4 run
+	TMPDIR="$(abspath $(GRHSIM_FLOW_TEST_TMP))" $(MAKE) -C "$(GRHSIM_FLOW_TEST_WORK)" -j 4 run
 
-# Check even explicitly empty/zero settings: retired controls must never be
-# mistaken for accepted options. The exact historical names live in the
-# shared Python entry-point guard; this Makefile only rejects stale command-line
-# variables by namespace, so the production route contains no legacy aliases.
-_GRHSIM_REEMIT_ALLOWED := \
-	GRHSIM_REEMIT_MODEL GRHSIM_REEMIT_FLOW GRHSIM_REEMIT_MAX_FUNCTION_LINES \
-	GRHSIM_REEMIT_MAX_TU_BYTES GRHSIM_REEMIT_MAX_OUTPUT_FILE_BYTES GRHSIM_REEMIT_MEM_WRITE_ACTIVATE \
-	GRHSIM_REEMIT_EXECUTION_COUNTERS GRHSIM_REEMIT_OVERWRITE \
-	GRHSIM_REEMIT_MEM_ENABLE_BITMAP \
-	GRHSIM_REEMIT_MAX_SUPERNODE_NODES GRHSIM_REEMIT_SEGMENT_PENALTY \
-	GRHSIM_REEMIT_SINK_GUARD_MIN_SIZE GRHSIM_REEMIT_SEMANTIC_NODES \
-	GRHSIM_REEMIT_FIRRTL_NODES \
-	GRHSIM_REEMIT_COST_MODEL GRHSIM_REEMIT_NONSINK_REPORT
-.PHONY: check_remove_grhsim_ir_options test_remove_grhsim_ir_tooling
+.PHONY: check_remove_grhsim_ir test_remove_grhsim_ir_tooling
 REMOVE_GRHSIM_IR_AUDIT_REPORT ?= $(CURDIR)/ptmp/remove-grhsim-ir/production-audit.json
-.PHONY: check_remove_grhsim_ir
-check_remove_grhsim_ir: check_remove_grhsim_ir_options
+check_remove_grhsim_ir:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/check_remove_grhsim_ir.py --build "$(WOLVRIX_BUILD_DIR)" \
 		--report "$(REMOVE_GRHSIM_IR_AUDIT_REPORT)" $(if $(strip $(REMOVE_GRHSIM_IR_AUDIT_MODEL)),--model-dir "$(REMOVE_GRHSIM_IR_AUDIT_MODEL)",)
-check_remove_grhsim_ir_options:
-	$(foreach option,XS_GRHSIM_SEMANTIC_NODE_MAX_OP XS_GRHSIM_COARSEN_MAX_OP XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE XS_GRHSIM_MAX_NODE_WORK XS_GRHSIM_MAX_SUPERNODE_WORK XS_GRHSIM_FUSE_LEAVES FIRRTL_PARTITION_FUSE XS_GRHSIM_SIMPLIFY XS_GRHSIM_SIMPLIFY_MAX_ROUNDS XS_GRHSIM_PHASE_SIMPLIFY XS_GRHSIM_MASKED_OR XS_GRHSIM_MASKED_OR_MIN_TERMS XS_GRHSIM_MASKED_OR_REPORT XS_GRHSIM_FIRRTL_NODE_CSE XS_GRHSIM_PACK_BIT_REGISTERS XS_GRHSIM_PACK_BIT_REGISTERS_REPORT XS_GRHSIM_DUMP_PRE_SIMPLIFY_JSON,$(if $(filter undefined,$(origin $(option))),,$(error Retired GrhSIM option $(option); see pdocs/grhsim.md for the canonical pipeline and supported controls)))
-	$(foreach option,$(.VARIABLES),$(if $(filter XS_WOLF_%,$(option)),$(error Retired GrhSIM option $(option); use the XS_GRHSIM_* interface),))
-	$(foreach option,$(.VARIABLES),$(if $(findstring GRHSIM_IR,$(option)),$(if $(filter XS_%,$(option)),$(error Retired GrhSIM option $(option); see pdocs/grhsim.md),)))
-	$(foreach option,$(filter GRHSIM_REEMIT_%,$(.VARIABLES)),$(if $(filter $(option),$(_GRHSIM_REEMIT_ALLOWED)),,$(error Retired GrhSIM option $(option); see pdocs/grhsim.md)))
-	@:
+
 test_remove_grhsim_ir_tooling:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s scripts -p test_remove_grhsim_ir_tooling.py
 
@@ -2651,7 +2644,7 @@ GRHSIM_REEMIT_MAX_FUNCTION_LINES ?= 1024
 GRHSIM_REEMIT_MAX_TU_BYTES ?= 1048576
 GRHSIM_REEMIT_MAX_OUTPUT_FILE_BYTES ?= 4294967296
 GRHSIM_REEMIT_MEM_WRITE_ACTIVATE ?= on-write
-reemit_grhsim: check_remove_grhsim_ir_options $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+reemit_grhsim: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/reemit_grhsim.py \
 		--model "$(GRHSIM_REEMIT_MODEL)" --flow "$(GRHSIM_REEMIT_FLOW)" \
 		--max-function-lines "$(GRHSIM_REEMIT_MAX_FUNCTION_LINES)" --max-tu-bytes "$(GRHSIM_REEMIT_MAX_TU_BYTES)" \
@@ -3473,7 +3466,7 @@ py_install:
 
 .PHONY: run_xs_bugcase_grhsim
 XS_BUGCASE_GRHSIM_WORK ?= $(REPO_ROOT)/ptmp/xs-bugcase-grhsim
-run_xs_bugcase_grhsim: check_remove_grhsim_ir_options $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
+run_xs_bugcase_grhsim: $(if $(filter 1,$(SKIP_PY_INSTALL)),,py_install)
 	@mkdir -p "$(XS_BUGCASE_GRHSIM_WORK)/ccache"
 	@set +e; passed=0; failed=0; \
 	  export CCACHE_DIR="$(XS_BUGCASE_GRHSIM_WORK)/ccache"; \
@@ -3527,7 +3520,7 @@ run_all_hdlbits_tests:
 		$(MAKE) --no-print-directory run_hdlbits_test DUT=$$dut SKIP_PY_INSTALL=1 || exit $$?; \
 	done
 
-run_hdlbits_grhsim: check_remove_grhsim_ir_options
+run_hdlbits_grhsim:
 ifneq ($(strip $(DUT)),)
   ifeq ($(DUT),$(filter $(DUT),$(HDLBITS_GRHSIM_DUTS)))
 	@if [ "$(SKIP_PY_INSTALL)" != "1" ]; then \
@@ -3705,7 +3698,7 @@ xs_firrtl_pipeline_manifest: xs_firrtl_inputs
 		echo '    "ingest-firrtl", "xmr-resolve", "hier-flatten", "comb-loop-elim",'; \
 		echo '    "split-static-array", "dead-code-elim", "expr-opt", "used-bits",'; \
 		echo '    "split-nodes", "dead-code-elim", "constant-analysis", "dead-code-elim",'; \
-		echo '    "alias-analysis", "pattern-detect", "comm-expr", "dead-code-elim",'; \
+		echo '    "alias-analysis", "pattern-detect", "common-expr", "dead-code-elim",'; \
 		echo '    "grhsim-dialect-translate", "split-event-and-output",'; \
 		echo '    "split-nonsink-and-sink", "partition-nonsink", "partition-sink",'; \
 		echo '    "emit-grhsim-cpp"'; \
@@ -3826,10 +3819,8 @@ XS_GRHSIM_FLAGS = \
 	--cost-model $(XS_GRHSIM_COST_MODEL) \
 	$(if $(strip $(XS_GRHSIM_NONSINK_REPORT)),--nonsink-report "$(abspath $(XS_GRHSIM_NONSINK_REPORT))",) \
 	$(if $(filter 1,$(XS_GRHSIM_RESUME_FROM_FLAT_GRH_JSON)),--resume-from-flat-grh,) \
-	$(if $(strip $(XS_GRHSIM_FLAT_GRH_STAGE)),--flat-grh-stage "$(XS_GRHSIM_FLAT_GRH_STAGE)",) \
 	$(if $(filter 1,$(XS_GRHSIM_ROUNDTRIP_VERIFY)),,--no-roundtrip-verify) \
 	$(if $(filter 0,$(XS_GRHSIM_STORE_GRH_CHECKPOINTS)),--no-store-grh-checkpoints,) \
-	$(if $(filter 0,$(XS_GRHSIM_KEEP_ORIGINS)),--no-keep-origins,) \
 	$(if $(strip $(XS_GRHSIM_MEM_MIN_BYTES)),--mem-min-bytes $(XS_GRHSIM_MEM_MIN_BYTES),) \
 	$(if $(filter 0,$(XS_GRHSIM_CLONE_SHARED_COMPUTE)),--no-clone-shared-compute,) \
 	$(if $(filter-out 250000,$(XS_GRHSIM_CLONE_SHARED_COMPUTE_MAX_CLONES)),--clone-shared-compute-max-clones $(XS_GRHSIM_CLONE_SHARED_COMPUTE_MAX_CLONES),) \
@@ -3848,7 +3839,7 @@ XS_GRHSIM_FLAGS = \
 	$(if $(strip $(XS_GRHSIM_DUMP_POST_CONVERSION_JSON)),--dump-post-conversion-json "$(abspath $(XS_GRHSIM_DUMP_POST_CONVERSION_JSON))",) \
 	$(if $(strip $(XS_GRHSIM_DUMP_PRE_PARTITION_JSON)),--dump-pre-partition-json "$(abspath $(XS_GRHSIM_DUMP_PRE_PARTITION_JSON))",)
 
-xs_grhsim: check_remove_grhsim_ir_options $(XS_GRHSIM_FILELIST_ABS) $(XS_GRHSIM_DEPS)
+xs_grhsim: $(XS_GRHSIM_FILELIST_ABS) $(XS_GRHSIM_DEPS)
 	@if [ ! -f "$(XS_DIFFTEST_MACROS)" ]; then \
 		$(MAKE) --no-print-directory -B xs_rtl; \
 	fi
@@ -3880,7 +3871,7 @@ xs_grhsim: check_remove_grhsim_ir_options $(XS_GRHSIM_FILELIST_ABS) $(XS_GRHSIM_
 xs_firrtl_grhsim: XS_GRHSIM_MODEL_OUTPUT = $(XS_FIRRTL_BUILD)/model
 xs_firrtl_grhsim: private XS_GRHSIM_MAX_TU_BYTES := $(XS_FIRRTL_GRHSIM_MAX_TU_BYTES)
 xs_firrtl_grhsim: private XS_GRHSIM_MAX_OUTPUT_FILE_BYTES := $(XS_FIRRTL_GRHSIM_MAX_OUTPUT_FILE_BYTES)
-xs_firrtl_grhsim: xs_firrtl_inputs xs_firrtl_pipeline_manifest check_remove_grhsim_ir_options $(XS_GRHSIM_DEPS)
+xs_firrtl_grhsim: xs_firrtl_inputs xs_firrtl_pipeline_manifest $(XS_GRHSIM_DEPS)
 	@mkdir -p "$(abspath $(XS_FIRRTL_BUILD))" "$(XS_LOG_DIR_ABS)" "$(dir $(abspath $(XS_FIRRTL_STAGE_LOG)))"
 	@set -o pipefail; stage_log="$(abspath $(XS_FIRRTL_STAGE_LOG))"; \
 	read -r started_uptime unused_uptime < /proc/uptime; \
@@ -4001,7 +3992,7 @@ clean_xs_rtl:
 	@echo "[CLEAN] $(XS_RTL_BUILD_ABS)"
 	@rm -rf -- "$(XS_RTL_BUILD_ABS)"
 
-xs_grhsim_reemit: check_remove_grhsim_ir_options check_xs_aggregate_rtl
+xs_grhsim_reemit: check_xs_aggregate_rtl
 	@$(PYTHON) scripts/reemit_grhsim.py \
 		--model "$(XS_GRHSIM_JSON_ABS)" --flow "$(XS_GRHSIM_BUILD_ABS)" \
 		--overwrite --mem-write-activate "$(XS_GRHSIM_MEM_WRITE_ACTIVATE)" \

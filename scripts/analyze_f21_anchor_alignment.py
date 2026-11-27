@@ -25,9 +25,9 @@ MEMORY_TYPE = "NODE_MEMORY"
 REG_SRC_TYPE = "NODE_REG_SRC"
 TOP_IO_TYPES = {"NODE_INP", "NODE_OUT"}
 EXT_TYPES = {"NODE_EXT", "NODE_EXT_IN", "NODE_EXT_OUT"}
-SYSTEM_TASK_KINDS = {"kSystemTask"}
-DPI_KINDS = {"kDpicCall", "kDpicImport"}
-LATCH_KINDS = {"kLatch"}
+SYSTEM_TASK_KINDS = {"grh.systemTask"}
+DPI_KINDS = {"grh.dpicCall", "grh.dpicImport"}
+LATCH_KINDS = {"grh.latch"}
 MEMORY_PIPELINE_ATTR = "firrtl.memoryPipeline"
 MEMORY_ATTR = "firrtl.memory"
 
@@ -92,7 +92,7 @@ def shape_count(shape) -> int:
 def shape_width_match(grh_record: dict | None, gsim_record: dict | None) -> tuple[bool | None, bool | None]:
     """Compare packed GRH shape/width with a GSIM element width/dimension.
 
-    GRH kRegister widths include every packed array dimension.  GSIM REG_SRC
+    GRH grh.registerDecl widths include every packed array dimension.  GSIM REG_SRC
     records expose the element width and keep dimensions separately.  The
     comparison therefore divides the GRH packed width by its shape product
     before comparing widths, while the GRH shape is compared with the GSIM
@@ -406,7 +406,7 @@ def collect_grh(source: Path) -> dict:
                 continue
             if section != "ops" or not line.lstrip().startswith('{"id":'):
                 continue
-            if '"kind": "kRegister"' in line:
+            if '"kind": "grh.registerDecl"' in line:
                 record = record_from_line(line)
                 name = record.get("sym", "")
                 key = normalize(name)
@@ -414,11 +414,11 @@ def collect_grh(source: Path) -> dict:
                     result["register_duplicates"].append(record)
                 else:
                     result["registers"][key] = record
-                result["stats"]["kRegister"] += 1
+                result["stats"]["grh.registerDecl"] += 1
                 continue
             kind = None
-            for candidate in ("kLatch", "kSystemTask", "kSystemFunction",
-                              "kDpicCall", "kDpicImport", "kInstance", "kBlackbox"):
+            for candidate in ("grh.latch", "grh.systemTask", "grh.systemFunction",
+                              "grh.dpicCall", "grh.dpicImport", "grh.instance", "grh.blackbox"):
                 if f'"kind": "{candidate}"' in line:
                     kind = candidate
                     break
@@ -426,17 +426,17 @@ def collect_grh(source: Path) -> dict:
                 continue
             record = record_from_line(line)
             result["stats"][kind] += 1
-            if kind == "kLatch":
+            if kind == "grh.latch":
                 result["latches"].append(record)
-            elif kind == "kSystemTask":
+            elif kind == "grh.systemTask":
                 result["system_tasks"].append(record)
-            elif kind == "kSystemFunction":
+            elif kind == "grh.systemFunction":
                 result["system_functions"].append(record)
-            elif kind == "kDpicCall":
+            elif kind == "grh.dpicCall":
                 result["dpi_calls"].append(record)
-            elif kind == "kDpicImport":
+            elif kind == "grh.dpicImport":
                 result["dpi_imports"].append(record)
-            elif kind == "kInstance":
+            elif kind == "grh.instance":
                 result["instances"].append(record)
             else:
                 result["blackboxes"].append(record)
@@ -928,7 +928,7 @@ def build_effect_identity(grh_before: dict, grh_after: dict,
                           gsim_before: dict, gsim_after: dict) -> tuple[list[dict], dict]:
     """Pair FIRRTL effects by module path, statement line, and effect kind.
 
-    GRH kSystemTask carries ``firrtl.line`` and ``firrtl.effectKind``. GSIM
+    GRH grh.systemTask carries ``firrtl.line`` and ``firrtl.effectKind``. GSIM
     special nodes carry the same parser line in ``lineno`` and encode the
     effect kind in their ASSERT/PRINTF/STOP suffix. DPI and ext-boundary rows
     without that evidence remain explicit, non-pairable rows.
@@ -1148,7 +1148,7 @@ def _map_grh_root(trace: dict, catalog: dict) -> dict:
         else:
             result["root_mapping"] = "unresolved:GRH port has no GSIM top-I/O name"
         return result
-    if root_kind == "kSystemTask":
+    if root_kind == "grh.systemTask":
         matches = catalog["special_by_prefix"].get(prefix, [])
         if matches:
             names = [normalize(row.get("name", "")) for row in matches]
@@ -1157,14 +1157,14 @@ def _map_grh_root(trace: dict, catalog: dict) -> dict:
                 "gsim_root_kind": "NODE_SPECIAL",
                 "gsim_root_name": ",".join(alive or names[:8]),
                 "gsim_root_alive": bool(alive),
-                "root_mapping": "GSIM NODE_SPECIAL prefix matched GRH kSystemTask module/op prefix",
+                "root_mapping": "GSIM NODE_SPECIAL prefix matched GRH grh.systemTask module/op prefix",
             })
         else:
             result["root_mapping"] = (
-                "unresolved:no GSIM NODE_SPECIAL with the GRH kSystemTask module/op prefix"
+                "unresolved:no GSIM NODE_SPECIAL with the GRH grh.systemTask module/op prefix"
             )
         return result
-    if root_kind in {"kDpicCall", "kDpicImport", "kSystemFunction", "kInstance", "kBlackbox"}:
+    if root_kind in {"grh.dpicCall", "grh.dpicImport", "grh.systemFunction", "grh.instance", "grh.blackbox"}:
         matches = catalog["ext_by_prefix"].get(prefix, [])
         if matches:
             names = [normalize(row.get("name", "")) for row in matches]
@@ -1208,10 +1208,10 @@ def _path_divergence_probe(trace: dict) -> dict:
     """
     path = trace.get("path", []) or []
     state_kinds = {
-        "kRegister", "kRegisterReadPort", "kRegisterReadArrayPort",
-        "kRegisterWritePort", "kRegisterWriteMaskPort",
-        "kRegisterWriteArrayPort", "kRegisterWriteArrayMaskPort",
-        "kRegisterFillPort", "kLatch", "kLatchReadPort", "kLatchWritePort",
+        "grh.registerDecl", "grh.registerReadPort", "grh.registerReadArrayPort",
+        "grh.registerWritePort", "grh.registerWriteMaskPort",
+        "grh.registerWriteArrayPort", "grh.registerWriteArrayMaskPort",
+        "grh.registerFillPort", "grh.latch", "grh.latchReadPort", "grh.latchWritePort",
     }
     first_op = next(
         (entry for entry in path
@@ -1434,15 +1434,15 @@ def build_grh_extra_justification(grh_after_path: Path, rows: list[dict],
             for item in justified
         ][:50],
         "mechanism_locations": {
-            "gsim_dependency_unresolved:kConcat": "wolvrix/lib/transform/split_static_array.cpp:483-544; wolvrix/lib/transform/dead_code_elim.cpp:664-690",
-            "gsim_dependency_unresolved:kSliceStatic": "wolvrix/lib/transform/split_static_array.cpp:188-214, 483-544; wolvrix/lib/transform/simplify.cpp:90-122",
-            "gsim_dependency_unresolved:kMux": "wolvrix/lib/transform/simplify.cpp:90-122; wolvrix/lib/transform/dead_code_elim.cpp:664-690",
-            "gsim_dependency_unresolved:kAssign": "wolvrix/lib/transform/dead_code_elim.cpp:664-690",
-            "gsim_dependency_unresolved:kAnd": "wolvrix/lib/transform/simplify.cpp:90-122; wolvrix/lib/transform/dead_code_elim.cpp:664-690",
-            "gsim_dependency_unresolved:kRegisterReadPort": "wolvrix/lib/transform/dead_code_elim.cpp:664-690",
-            "gsim_dependency_unresolved:kRegisterReadArrayPort": "wolvrix/lib/transform/dead_code_elim.cpp:664-690",
-            "gsim_dependency_unresolved:kEq": "wolvrix/lib/transform/simplify.cpp:90-122; wolvrix/lib/transform/dead_code_elim.cpp:664-690",
-            "gsim_dependency_unresolved:kOr": "wolvrix/lib/transform/simplify.cpp:90-122; wolvrix/lib/transform/dead_code_elim.cpp:664-690",
+            "gsim_dependency_unresolved:grh.concat": "wolvrix/lib/transform/split_static_array.cpp:483-544; wolvrix/lib/transform/dead_code_elim.cpp:664-690",
+            "gsim_dependency_unresolved:grh.sliceStatic": "wolvrix/lib/transform/split_static_array.cpp:188-214, 483-544; wolvrix/lib/transform/simplify.cpp:90-122",
+            "gsim_dependency_unresolved:grh.mux": "wolvrix/lib/transform/simplify.cpp:90-122; wolvrix/lib/transform/dead_code_elim.cpp:664-690",
+            "gsim_dependency_unresolved:grh.assign": "wolvrix/lib/transform/dead_code_elim.cpp:664-690",
+            "gsim_dependency_unresolved:grh.bitAnd": "wolvrix/lib/transform/simplify.cpp:90-122; wolvrix/lib/transform/dead_code_elim.cpp:664-690",
+            "gsim_dependency_unresolved:grh.registerReadPort": "wolvrix/lib/transform/dead_code_elim.cpp:664-690",
+            "gsim_dependency_unresolved:grh.registerReadArrayPort": "wolvrix/lib/transform/dead_code_elim.cpp:664-690",
+            "gsim_dependency_unresolved:grh.eq": "wolvrix/lib/transform/simplify.cpp:90-122; wolvrix/lib/transform/dead_code_elim.cpp:664-690",
+            "gsim_dependency_unresolved:grh.bitOr": "wolvrix/lib/transform/simplify.cpp:90-122; wolvrix/lib/transform/dead_code_elim.cpp:664-690",
             "root_mapping_unresolved": "wolvrix/lib/transform/dead_code_elim.cpp:598-704 (root-mask propagation)",
         },
     }
@@ -1665,14 +1665,14 @@ def make_report(args) -> dict:
     # are the corresponding effect operations, but names/roles are not stable.
     add_rule("system_task_special_root", "system_task_effect",
              grh_before["system_tasks"], gsim_before["special"],
-             "GRH kSystemTask ↔ GSIM NODE_SPECIAL root; equal count is count-only and does not prove task identity",
+             "GRH grh.systemTask ↔ GSIM NODE_SPECIAL root; equal count is count-only and does not prove task identity",
              grh_after["system_tasks"], gsim_after["special"],
              grh_key=lambda row: str(row.get("id")),
              gsim_key=lambda row: str(row.get("id")))
 
     add_rule("dpi_call_ext_module", "dpi_effect",
              grh_before["dpi_calls"], gsim_before["ext"].get("NODE_EXT", []),
-             "GRH kDpicCall is represented through GSIM external-module roots; call/module counts differ and no stable 1:1 key is serialized",
+             "GRH grh.dpicCall is represented through GSIM external-module roots; call/module counts differ and no stable 1:1 key is serialized",
              grh_after["dpi_calls"], gsim_after["ext"].get("NODE_EXT", []),
              grh_key=lambda row: str(row.get("id")),
              gsim_key=lambda row: str(row.get("id")))
@@ -1680,7 +1680,7 @@ def make_report(args) -> dict:
     ext_boundary_post = gsim_after["ext"].get("NODE_EXT_IN", []) + gsim_after["ext"].get("NODE_EXT_OUT", [])
     add_rule("dpi_import_ext_boundary", "dpi_boundary",
              grh_before["dpi_imports"], ext_boundary_pre,
-             "GRH kDpicImport declarations and GSIM NODE_EXT_IN/OUT boundary ports are different granularity; listed as known n:m representation",
+             "GRH grh.dpicImport declarations and GSIM NODE_EXT_IN/OUT boundary ports are different granularity; listed as known n:m representation",
              grh_after["dpi_imports"], ext_boundary_post,
              grh_key=lambda row: str(row.get("id")),
              gsim_key=lambda row: str(row.get("id")))
@@ -1702,7 +1702,7 @@ def make_report(args) -> dict:
     # Latches have no direct GSIM NODE_LATCH representation in this dump.
     for record in grh_before["latches"]:
         add_one_sided("latch", "grh", record,
-                      "GRH kLatch has no direct GSIM NODE_LATCH anchor type")
+                      "GRH grh.latch has no direct GSIM NODE_LATCH anchor type")
 
     # Anything left in the known GRH register set is a reportable unexplained
     # anchor rather than silently dropping it from the closure.
@@ -1713,7 +1713,7 @@ def make_report(args) -> dict:
     known_grh_names |= grh_state_name_sets(grh_before, split)[1]
     for record in grh_before_groups["other_array"]:
         add_unexplained("register_array", "grh", record,
-                        "shape-bearing kRegister is outside the 4,832 explicit state families, memory storage, and pipeline rules")
+                        "shape-bearing grh.registerDecl is outside the 4,832 explicit state families, memory storage, and pipeline rules")
 
     # Assign the 15 known SV residuals as one-sided-known only when the F20
     # cardinality is exactly the established 15; otherwise preserve them as
@@ -2088,7 +2088,7 @@ def _physical_grh_inventory(grh: dict, groups: dict, split: dict) -> dict:
     }
     total = sum(categories.values())
     return {
-        "kRegister": len(grh["registers"]),
+        "grh.registerDecl": len(grh["registers"]),
         "categories": categories,
         "category_sum": total,
         "closed": total == len(grh["registers"]),
@@ -2112,7 +2112,7 @@ def _write_anchor_report_md(path: Path, report: dict) -> None:
         "",
         "Anchors include plain registers, 4,832 split-array state families (58,255 members), memory storage, memory read pipeline registers, latches, top-level I/O, GRH system tasks and DPI operations, and GSIM special/external-module boundary roots. GSIM reader/writer nodes and memory port members are supporting graph nodes and are not counted as independent storage/effect anchors.",
         "",
-        "Width and shape fields are emitted for every mapped row and width checks are summarized in `summary.json`. The serialized kRegister and REG_SRC anchor records do not expose direct clock/reset fields, so clock/reset presence is not used as an identity key.",
+        "Width and shape fields are emitted for every mapped row and width checks are summarized in `summary.json`. The serialized grh.registerDecl and REG_SRC anchor records do not expose direct clock/reset fields, so clock/reset presence is not used as an identity key.",
         "",
         "## F20 ordinary-register baseline",
         "",
@@ -2158,7 +2158,7 @@ def _write_anchor_report_md(path: Path, report: dict) -> None:
         "",
         "| Side | Physical inventory | Category sum | Closed |",
         "| --- | ---: | ---: | --- |",
-        f"| GRH kRegister | {physical['grh']['kRegister']} | {physical['grh']['category_sum']} | {physical['grh']['closed']} |",
+        f"| GRH grh.registerDecl | {physical['grh']['grh.registerDecl']} | {physical['grh']['category_sum']} | {physical['grh']['closed']} |",
         f"| GSIM REG_SRC | {physical['gsim']['reg_src']} | {physical['gsim']['reg_src_category_sum']} | {physical['gsim']['reg_src_closed']} |",
         "",
         "The GRH physical categories retain state member and aggregate representations separately. GSIM REG_SRC categories retain exact plain rows, generated rows, and the 488 address-pipeline role; NODE_MEMORY is listed in the n:m rule inventory.",
@@ -2215,7 +2215,7 @@ def _write_anchor_report_md(path: Path, report: dict) -> None:
         "",
         "## FIRRTL-line effect identity",
         "",
-        "GRH `kSystemTask` rows carry `firrtl.line` and `firrtl.effectKind`; GSIM `NODE_SPECIAL` rows carry the same parser line in `lineno` and an ASSERT/PRINTF/STOP suffix. The identity key is normalized module path + FIRRTL line + effect kind. `effect-identity.tsv` contains every pair and every unmatched GRH/GSIM effect row.",
+        "GRH `grh.systemTask` rows carry `firrtl.line` and `firrtl.effectKind`; GSIM `NODE_SPECIAL` rows carry the same parser line in `lineno` and an ASSERT/PRINTF/STOP suffix. The identity key is normalized module path + FIRRTL line + effect kind. `effect-identity.tsv` contains every pair and every unmatched GRH/GSIM effect row.",
         "",
         "| Effect identity metric | Count |",
         "| --- | ---: |",
@@ -2935,13 +2935,13 @@ def make_report(args) -> dict:
         one_sided.append(_single_side_row(
             "latch", "grh", str(record.get("id")), record, True,
             str(record.get("id")) in latch_after_ids,
-            "GRH kLatch has no direct GSIM NODE_LATCH anchor type", "one-sided-known"))
+            "GRH grh.latch has no direct GSIM NODE_LATCH anchor type", "one-sided-known"))
     latch_function_after_ids = {str(record.get("id")) for record in grh_after["system_functions"]}
     for record in grh_before["system_functions"]:
         one_sided.append(_single_side_row(
             "grh_system_function", "grh", str(record.get("id")), record, True,
             str(record.get("id")) in latch_function_after_ids,
-            "GRH kSystemFunction is not a NODE_SPECIAL identity in this dump", "one-sided-known"))
+            "GRH grh.systemFunction is not a NODE_SPECIAL identity in this dump", "one-sided-known"))
 
     for record in grh_before_groups["other_array"]:
         key = normalize(record.get("sym", ""))
@@ -2950,7 +2950,7 @@ def make_report(args) -> dict:
         one_sided_or_post = key in grh_after["registers"]
         unexplained.append(_single_side_row(
             "register_array", "grh", key, record, True, one_sided_or_post,
-            "shape-bearing kRegister is outside the explicit split-state, memory-storage, and pipeline rules",
+            "shape-bearing grh.registerDecl is outside the explicit split-state, memory-storage, and pipeline rules",
             "unexplained"))
 
     # Logical bucket closure.  Exact state rows intentionally count members;
@@ -3279,7 +3279,7 @@ def make_report(args) -> dict:
             "exact_1to1_width": counter_dict(width_check),
             "clock_reset_presence": {
                 "status": "unavailable_in_anchor_records",
-                "reason": "The serialized GRH kRegister and GSIM REG_SRC anchor records contain no direct clock/reset fields; clock/reset presence is not used as an identity key.",
+                "reason": "The serialized GRH grh.registerDecl and GSIM REG_SRC anchor records contain no direct clock/reset fields; clock/reset presence is not used as an identity key.",
             },
         },
         "verdict": {

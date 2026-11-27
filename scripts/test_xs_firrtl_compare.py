@@ -123,7 +123,7 @@ class ComponentCompareTests(unittest.TestCase):
     def checkpoint(self, duplicate_write=False):
         value = {"sym": "next", "w": 1, "in": False, "out": False, "inout": False}
         output = {"sym": "shared", "w": 2, "in": False, "out": True, "inout": False}
-        write = {"sym": "write", "kind": "kRegisterWritePort", "in": ["enable", "next", "clock"],
+        write = {"sym": "write", "kind": "grh.registerWritePort", "in": ["enable", "next", "clock"],
                  "out": [], "attrs": {"regSymbol": {"t": "string", "v": "r"},
                                        "eventEdge": {"t": "string[]", "vs": ["posedge"]}}}
         path = self.args.output / "checkpoint.json"

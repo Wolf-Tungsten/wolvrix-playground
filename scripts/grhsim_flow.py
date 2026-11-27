@@ -18,20 +18,6 @@ from pathlib import Path
 from grhsim_provenance import capture_generation, generated_identity, write_identity
 
 
-# F24 names describe the operation rather than its implementation family.
-# Keep the old spellings as a fallback so a frozen Python extension can still
-# replay an existing checkpoint while a freshly built extension advertises the
-# canonical names.
-PASS_NAME_ALIASES = {
-    "grhsim-dialect-translate": "grh-to-grhsim",
-    "split-event-and-output": "grhsim-split-event-and-output",
-    "split-nonsink-and-sink": "grhsim-split-nonsink-and-sink",
-    "partition-nonsink": "grhsim-partition-nonsink",
-    "partition-sink": "grhsim-partition-sink",
-    "comm-expr": "common-expr",
-}
-
-
 _STAGE_JOURNAL_SCOPE = ContextVar("grhsim_stage_journal_scope", default="pipeline")
 
 
@@ -88,78 +74,27 @@ def record_stage_event(stage: str, event: str, *, elapsed_s: float | None = None
 STAGES = ("converted", "event-output-split", "nonsink-sink-split",
           "nonsink-partitioned", "sink-partitioned")
 
-RETIRED_OPTIONS = {
-    "XS_GRHSIM_SEMANTIC_NODE_MAX_OP": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
-    "XS_GRHSIM_COARSEN_MAX_OP": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
-    "XS_GRHSIM_MAX_OP_IN_COMPUTE_SUPERNODE": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
-    "XS_GRHSIM_MAX_NODE_WORK": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
-    "XS_GRHSIM_MAX_SUPERNODE_WORK": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
-    "XS_GRHSIM_FUSE_LEAVES": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
-    "XS_GRHSIM_SIMPLIFY": "grhsim-simplify was removed; use the canonical optimization stages",
-    "XS_GRHSIM_SIMPLIFY_MAX_ROUNDS": "grhsim-simplify was removed; canonical optimization stages do not accept simplify rounds",
-    "XS_GRHSIM_PHASE_SIMPLIFY": "partition-local simplify was removed; use the canonical optimization stages",
-    "XS_GRHSIM_MASKED_OR": "recover-masked-or was removed; use pattern-detect",
-    "XS_GRHSIM_MASKED_OR_MIN_TERMS": "recover-masked-or was removed; use pattern-detect",
-    "XS_GRHSIM_MASKED_OR_REPORT": "recover-masked-or was removed; inspect canonical stage checkpoints",
-    "XS_GRHSIM_FIRRTL_NODE_CSE": "node-cse was removed; use comm-expr",
-    "XS_GRHSIM_PACK_BIT_REGISTERS": "pack-bit-registers was removed; state layout is owned by the emitter",
-    "XS_GRHSIM_PACK_BIT_REGISTERS_REPORT": "pack-bit-registers was removed; use the emitter manifest",
-    "XS_GRHSIM_DUMP_PRE_SIMPLIFY_JSON": "use explicit SV --dump-pre-simplify-json; canonical FIRRTL has no simplify stage",
-    "GRHSIM_REEMIT_MAX_NODE_WORK": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
-    "GRHSIM_REEMIT_MAX_SUPERNODE_WORK": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
-    "GRHSIM_REEMIT_MAX_OP_IN_COMPUTE_SUPERNODE": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
-    "GRHSIM_REEMIT_FUSE_LEAVES": "use max-supernode-nodes with an explicit node count; rebuild from nonsink-sink-split",
-    "XS_WOLF_GRHSIM_IR_COMB_PACK": "comb-pack was removed",
-    "XS_WOLF_GRHSIM_IR_COMB_PACK_REPORT": "comb-pack was removed",
-    "XS_WOLF_GRHSIM_IR_SELECT_STATE_STORES": "state layout is owned by the emitter",
-    "XS_WOLF_GRHSIM_IR_STATE_STORE_REPORT": "use the emitter manifest",
-    "XS_WOLF_GRHSIM_IR_CPU_TARGET_BATCH_COUNT": "use XS_WOLF_GRHSIM_IR_MAX_TU_BYTES",
-    "XS_WOLF_GRHSIM_IR_DUMP_POST_LOWER_JSON": "use XS_WOLF_GRHSIM_IR_DUMP_POST_CONVERSION_JSON",
-    "GRHSIM_REEMIT_CPU_TARGET_BATCH_COUNT": "use GRHSIM_REEMIT_MAX_TU_BYTES",
-    "GRHSIM_REEMIT_REMAP": "resume an ordinary GRH checkpoint",
-    "GRHSIM_REEMIT_USED_BITS": "use the integrated used-bits stage",
-    "GRHSIM_REEMIT_HELPER_MAX_ESTIMATED_LINES": "use GRHSIM_REEMIT_MAX_FUNCTION_LINES",
-    "GRHSIM_REEMIT_SEMANTIC_NODE_MAX_OP": "use GRHSIM_REEMIT_MAX_SUPERNODE_NODES (node count)",
-    "GRHSIM_REEMIT_COARSEN_MAX_OP": "use GRHSIM_REEMIT_MAX_SUPERNODE_NODES (node count)",
-}
 
-
-def validate_environment(environ=None) -> None:
-    environ = os.environ if environ is None else environ
-    retired = [f"{name}: {replacement}" for name, replacement in RETIRED_OPTIONS.items() if name in environ]
-    if retired:
-        raise ValueError("Retired GrhSIM options: " + "; ".join(retired))
-
+def simulation_stage(metadata):
+    """Return the completed simulation step described by checkpoint metadata."""
+    if "grhsim.executionFailed" in metadata:
+        raise ValueError("Cannot resume a failed GRHSIM checkpoint")
+    for key, stage in (
+        ("grhsim.sinkConfig", "sink-partitioned"),
+        ("grhsim.nonsinkConfig", "nonsink-partitioned"),
+        ("grhsim.memMinBytes", "nonsink-sink-split"),
+        ("grhsim.effectPolicy", "event-output-split"),
+        ("grhsim.logicDomain", "converted"),
+    ):
+        if key in metadata:
+            return stage
+    return None
 
 def checked(diagnostics: list[dict], action: str) -> list[dict]:
     errors = [entry for entry in diagnostics if str(entry.get("kind", "")).lower() == "error"]
     if errors:
         raise RuntimeError(f"{action}: " + json.dumps(errors, ensure_ascii=False))
     return diagnostics
-
-
-def _run_named_pass(session, name: str, pass_kwargs: dict):
-    """Run a canonical pass, falling back only for an unknown legacy build."""
-    legacy = PASS_NAME_ALIASES.get(name)
-    candidates = (name, legacy) if legacy else (name,)
-    for candidate in candidates:
-        try:
-            diagnostics = session.run_pass(candidate, **pass_kwargs)
-        except (RuntimeError, ValueError, TypeError) as error:
-            message = str(error).lower()
-            if candidate != candidates[-1] and ("unknown pass" in message or
-                                                "does not accept named" in message):
-                continue
-            raise
-        unknown = any(
-            str(entry.get("kind", "")).lower() == "error" and
-            "unknown pass" in str(entry.get("message", "")).lower()
-            for entry in diagnostics
-            if isinstance(entry, dict)
-        )
-        if not unknown or candidate == candidates[-1]:
-            return diagnostics
-    raise AssertionError("unreachable pass alias fallback")
 
 
 def run_pass(session, name: str, *, design: str, top: str | None = None, **options):
@@ -170,7 +105,7 @@ def run_pass(session, name: str, *, design: str, top: str | None = None, **optio
         pass_kwargs = {"design": design, **options}
         if top is not None:
             pass_kwargs["top"] = top
-        diagnostics = _run_named_pass(session, name, pass_kwargs)
+        diagnostics = session.run_pass(name, **pass_kwargs)
         checked(diagnostics, name)
         session.print_diagnostics(diagnostics, min_level="info")
     except BaseException as error:
@@ -204,16 +139,18 @@ class FlowOptions:
         if "grhsim.memMinBytes" in metadata:
             result.mem_min_bytes = int(metadata["grhsim.memMinBytes"])
         if "grhsim.nonsinkConfig" in metadata:
-            fields = metadata["grhsim.nonsinkConfig"].split("/")
-            if len(fields) != 11 or fields[0] != "v4" or fields[-1] != "semantic-tree-mffc-v1":
-                raise ValueError("Legacy nonsink checkpoint: rebuild from nonsink-sink-split; "
-                                 "SemanticTree node ownership requires v4/semantic-tree-mffc-v1")
-            result.firrtl_nodes, result.cost_model = fields[8:10]
+            config = metadata["grhsim.nonsinkConfig"]
+            if not isinstance(config, str):
+                raise ValueError("Invalid nonsink configuration")
+            fields = config.split("/")
+            if len(fields) != 9:
+                raise ValueError("Invalid nonsink configuration")
+            result.firrtl_nodes, result.cost_model = fields[7:]
             if result.firrtl_nodes not in ("off", "prefer", "auto") or result.cost_model not in ("legacy", "bytes"):
                 raise ValueError("Unrecognized nonsink hint/cost policy")
             keys = ("max_supernode_nodes", "segment_penalty", "semantic_nodes",
                     "clone_shared", "clone_max_fanout", "max_clones", "clone_lossy_compare")
-            for key, raw in zip(keys, fields[1:8]):
+            for key, raw in zip(keys, fields[:7]):
                 if isinstance(getattr(result, key), bool) and raw not in ("0", "1"):
                     raise ValueError("Invalid nonsink boolean configuration")
                 value = int(raw)
@@ -240,38 +177,30 @@ def finish_simulation_graph(session, *, design: str, top: str,
     """Resume completed graph stages and always rebuild the revision-local schedule."""
     info = session.graph_metadata(design=design, top=top)
     metadata = info["metadata"]
-    stage = metadata.get("grhsim.stage")
-    if stage is not None and stage not in STAGES:
-        raise ValueError(f"Cannot resume incomplete or unknown GRH stage: {stage!r}")
+    stage = simulation_stage(metadata)
     if stop_after not in STAGES:
         raise ValueError(f"Unknown stop stage: {stop_after}")
     options = options or FlowOptions.from_metadata(metadata)
     if options.firrtl_nodes not in ("off", "prefer", "auto") or options.cost_model not in ("legacy", "bytes"):
         raise ValueError("Invalid nonsink hint/cost policy")
-    has_nodes = "firrtl.nodeSchema" in metadata or "firrtl.nodeScopePolicy" in metadata
-    if has_nodes:
-        if metadata.get("firrtl.nodeSchema") != 2 or metadata.get("firrtl.nodeScopePolicy") != "soft-node-v2" or "firrtl.nodeInventory" not in metadata:
-            raise ValueError("FIRRTL checkpoint lacks soft-node-v2 provenance; re-ingest the source")
     if stage is not None and STAGES.index(stage) > STAGES.index(stop_after):
         raise ValueError("Checkpoint has already passed the requested stop stage")
     if stage in ("nonsink-partitioned", "sink-partitioned"):
         restored = FlowOptions.from_metadata(metadata)
         if options.nonsink_options() != restored.nonsink_options():
             raise ValueError("Changed activity configuration requires the nonsink-sink-split checkpoint")
-        if not metadata["grhsim.nonsinkConfig"].startswith("v4/"):
-            raise ValueError("Legacy nonsink checkpoint: rebuild from nonsink-sink-split")
 
     def run(name, **kwargs):
         # DCE and the whole-graph F22/F23 passes have no -top parameter;
         # partitioned simulation passes are graph-selectable.
         if name in {"dead-code-elim", "expr-opt", "used-bits", "split-nodes", "constant-analysis",
-                    "alias-analysis", "pattern-detect", "common-expr", "comm-expr"}:
+                    "alias-analysis", "pattern-detect", "common-expr"}:
             return run_pass(session, name, design=design, **kwargs)
         return run_pass(session, name, design=design, top=top, **kwargs)
 
     def saved():
         if checkpoint:
-            checkpoint(session.graph_metadata(design=design, top=top)["metadata"]["grhsim.stage"])
+            checkpoint(stage)
 
     if stage is None and not preprocessed:
         # GSIM's F22/F23 passes operate on the ordinary GRH node graph. Keep
@@ -290,13 +219,13 @@ def finish_simulation_graph(session, *, design: str, top: str,
         run("dead-code-elim", keep_declared_symbols=False)
         run("alias-analysis")
         run("pattern-detect")
-        run("comm-expr")
+        run("common-expr")
         run("dead-code-elim", keep_declared_symbols=False)
         run("grhsim-dialect-translate", logic_domain="2state")
         stage = "converted"
     elif stage is None and preprocessed:
         # F24 executes the complete ordinary-GRH prefix explicitly so its
-        # stage journal matches ingest-firrtl → ... → comm-expr.  Conversion
+        # stage journal matches the explicit ordinary-GRH prefix. Conversion
         # is still owned by this shared tail and establishes the checkpoint
         # stage used by restart and round-trip verification.
         run("grhsim-dialect-translate", logic_domain="2state")
@@ -327,6 +256,7 @@ def finish_simulation_graph(session, *, design: str, top: str,
     # Running this on an already completed checkpoint validates its stored
     # configuration and reconstructs SinkSchedule in the current session.
     run("partition-sink", enable_guard_min_size=options.enable_guard_min_size)
+    stage = "sink-partitioned"
     saved()
 
 
@@ -348,7 +278,7 @@ def emit_cpp(session, *, design: str, top: str, output: Path, overwrite: bool = 
             **identity, "emit": {"top": top, "options": options},
             "firrtl_node_policy": {key: value for key, value in
                 session.graph_metadata(design=design, top=top)["metadata"].items()
-                if key in ("firrtl.nodeSchema", "firrtl.nodeScopePolicy", "firrtl.nodeOptimization",
+                if key in ("firrtl.nodeOptimization",
                            "grhsim.nonsinkConfig", "grhsim.nonsinkHintStats")},
             "generated": generated_identity(candidate)})
         if output.exists():

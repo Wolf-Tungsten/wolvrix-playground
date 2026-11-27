@@ -62,7 +62,7 @@ class FakeSession:
                 return [{'kind': 'error', 'message': 'deliberate diagnostic store failure'}]
             Path(kwargs['output']).write_text('{"physicalGraph":"mutated failed state"}\n')
             return []
-        Path(kwargs['output']).write_text('{"formatVersion":5,"graphs":[]}\n')
+        Path(kwargs['output']).write_text('{"graphs":[]}\n')
         return []
 
 
@@ -197,7 +197,7 @@ class CaptureContractTests(unittest.TestCase):
                 'kind\tserialized_id\tnative_index\tnative_generation\nvalue\t1\t100\t7\n' +
                 '#footer\t' + json.dumps({'complete': True, 'rowCount': 1}) + '\n')
             structure = directory / 'design.json'
-            structure.write_text('{"formatVersion":5,"graphs":[]}\n')
+            structure.write_text('{"graphs":[]}\n')
             report['snapshots'][f'P{index}'] = {'directory': str(directory), 'stage': stage, 'structure': str(structure)}
         args = self.args(engine='grh', serialization_id_map=True)
         capture.finalize_snapshots(args, report)

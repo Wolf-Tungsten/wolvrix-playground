@@ -199,8 +199,8 @@ def parse_grh_constant(text, typ):
         raise Unverified("four_state_or_invalid_GRH_constant") from error
 
 
-GRH_BINARY = {"kAdd": "add", "kSub": "sub", "kMul": "mul", "kAnd": "and", "kOr": "or", "kXor": "xor",
-              "kEq": "eq", "kNe": "ne", "kLt": "lt", "kLe": "le", "kGt": "gt", "kGe": "ge"}
+GRH_BINARY = {"grh.add": "add", "grh.sub": "sub", "grh.mul": "mul", "grh.bitAnd": "and", "grh.bitOr": "or", "grh.bitXor": "xor",
+              "grh.eq": "eq", "grh.ne": "ne", "grh.lt": "lt", "grh.le": "le", "grh.gt": "gt", "grh.ge": "ge"}
 GSIM_BINARY = {"OP_ADD": "add", "OP_SUB": "sub", "OP_MUL": "mul", "OP_AND": "and", "OP_OR": "or", "OP_XOR": "xor",
                "OP_EQ": "eq", "OP_NEQ": "ne", "OP_LT": "lt", "OP_LEQ": "le", "OP_GT": "gt", "OP_GEQ": "ge"}
 
@@ -209,24 +209,24 @@ def normalize_grh(kind, typ, args, attrs=None):
     typ.check()
     attrs = attrs or {}
     args = tuple(args)
-    if kind == "kConstant":
+    if kind == "grh.constant":
         return parse_grh_constant(_attr(attrs, "constValue"), typ)
-    if kind == "kAssign":
+    if kind == "grh.assign":
         if len(args) != 1 or args[0].type.width != typ.width:
             raise Unverified("assign_width_changes_without_explicit_resize")
         return cast(args[0], typ)
-    if kind == "kMux":
+    if kind == "grh.mux":
         if len(args) != 3:
             raise Unverified("invalid_mux_arity")
         return mux(*args, typ)
-    if kind == "kSliceStatic":
+    if kind == "grh.sliceStatic":
         low, end = int(_attr(attrs, "sliceStart", -1)), int(_attr(attrs, "sliceEnd", -1))
         if len(args) != 1 or end - low + 1 != typ.width:
             raise Unverified("slice_result_width_disagreement")
         return slice_bits(args[0], low, typ.width, typ.signed)
-    if kind == "kConcat":
+    if kind == "grh.concat":
         return concatenate(args, typ)
-    if kind == "kReplicate":
+    if kind == "grh.replicate":
         count = int(_attr(attrs, "rep", -1))
         if len(args) != 1 or count < 1 or args[0].type.width * count != typ.width:
             raise Unverified("replicate_width_disagreement")
@@ -235,17 +235,17 @@ def normalize_grh(kind, typ, args, attrs=None):
         if len(args) != 2:
             raise Unverified("binary_arity_disagreement")
         return binary(GRH_BINARY[kind], typ, *args)
-    if kind == "kNot" and len(args) == 1:
+    if kind == "grh.bitNot" and len(args) == 1:
         return Term("not", typ, (resize(args[0], typ),))
-    reductions = {"kReduceAnd": "reduce_and", "kReduceOr": "reduce_or", "kReduceXor": "reduce_xor"}
+    reductions = {"grh.reduceAnd": "reduce_and", "grh.reduceOr": "reduce_or", "grh.reduceXor": "reduce_xor"}
     if kind in reductions and len(args) == 1 and typ.width == 1:
         return Term(reductions[kind], typ, args)
-    if kind in ("kLogicAnd", "kLogicOr") and len(args) == 2 and typ.width == 1:
-        return binary("and" if kind == "kLogicAnd" else "or", typ, *(boolean(arg) for arg in args))
-    if kind == "kLogicNot" and len(args) == 1 and typ.width == 1:
+    if kind in ("grh.logicAnd", "grh.logicOr") and len(args) == 2 and typ.width == 1:
+        return binary("and" if kind == "grh.logicAnd" else "or", typ, *(boolean(arg) for arg in args))
+    if kind == "grh.logicNot" and len(args) == 1 and typ.width == 1:
         return Term("not", typ, (boolean(args[0]),))
-    if kind in ("kShl", "kLShr", "kAShr") and len(args) == 2:
-        return Term({"kShl": "shl", "kLShr": "lshr", "kAShr": "ashr"}[kind], typ, args)
+    if kind in ("grh.shl", "grh.lShr", "grh.aShr") and len(args) == 2:
+        return Term({"grh.shl": "shl", "grh.lShr": "lshr", "grh.aShr": "ashr"}[kind], typ, args)
     raise Unverified("unsupported_GRH_operation:" + kind)
 
 

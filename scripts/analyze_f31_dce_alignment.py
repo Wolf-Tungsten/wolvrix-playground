@@ -580,7 +580,7 @@ def explain_retained_node_from_provenance(db, node_id, context):
                 # consumed by a different observable operation. Only a direct
                 # SystemTask consumer must match that root's own clock slot.
                 if (root.get('root_kind') == 'observable_operation' and
-                        root.get('operation_kind') == 'kSystemTask' and
+                        root.get('operation_kind') == 'grh.systemTask' and
                         root.get('root_identity') == boundary['user'] and
                         root.get('root_identity_generation') == boundary['user_generation'] and
                         root.get('clock_operand') != boundary['operand_index']):

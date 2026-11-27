@@ -116,13 +116,17 @@ def grh_type(state):
         return None
     if any(not isinstance(dim, int) or dim < 1 for dim in shape):
         return None
-    kind = state['kind']
+    state_kind = state['kind']
+    if state_kind == 'grh.latch':
+        kind = 'latch'
+    elif state_kind == 'grh.registerDecl':
+        kind = 'register'
+    else:
+        return None
     depth = attr_value(attrs, 'firrtl.memoryDepth')
-    if (attr_value(attrs, 'firrtl.memory') and isinstance(depth, int)
+    if (kind == 'register' and attr_value(attrs, 'firrtl.memory') and isinstance(depth, int)
             and depth > 0 and shape and shape[0] == depth):
         kind = 'memory'
-    else:
-        kind = 'latch' if kind == 'kLatch' else 'register'
     signed = state.get('signed', attr_value(attrs, 'isSigned'))
     return kind, width, signed, tuple(shape)
 

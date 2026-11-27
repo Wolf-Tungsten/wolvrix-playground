@@ -19,8 +19,8 @@ SCHEMA = "grhsim-execution-counts.v1"
 MAX_COUNT = (1 << 64) - 1
 CATEGORIES = {"operation", "effect", "writer-sample", "writer-commit", "history-write"}
 NON_COMPUTE = READ_KINDS | WRITE_KINDS | {
-    "kConstant", "kRegister", "kLatch", "kDpicImport", "grhsim.edge-detect",
-    "grhsim.system-task", "grhsim.system-function", "grhsim.dpi-call", "grhsim.history-write"}
+    "grh.constant", "grh.registerDecl", "grh.latch", "grh.dpicImport", "grhsim.edgeDetect",
+    "grhsim.systemTask", "grhsim.systemFunction", "grhsim.dpiCall", "grhsim.historyWrite"}
 
 
 def binding(snapshot, sites, program_files=None):
@@ -89,9 +89,9 @@ class NativeExecutionCounts:
                 raise ValueError("unknown native execution operation/category")
             kind = self.reader.ops[name]["kind"]
             if ((category.startswith("writer-") and kind not in WRITE_KINDS) or
-                    (category == "history-write" and kind != "grhsim.history-write") or
+                    (category == "history-write" and kind != "grhsim.historyWrite") or
                     (category == "effect" and kind not in
-                     {"grhsim.system-task", "grhsim.system-function", "grhsim.dpi-call"})):
+                     {"grhsim.systemTask", "grhsim.systemFunction", "grhsim.dpiCall"})):
                 raise ValueError("execution category disagrees with native operation")
             if category == "effect":
                 effects.add(name)
@@ -99,7 +99,7 @@ class NativeExecutionCounts:
                 primary.add(name)
         elided = metadata.get("elided_operations", [])
         if not isinstance(elided, list) or len(elided) != len(set(elided)) or any(
-                name not in self.reader.ops or self.reader.ops[name]["kind"] != "kAssign" for name in elided):
+                name not in self.reader.ops or self.reader.ops[name]["kind"] != "grh.assign" for name in elided):
             raise ValueError("invalid native view elisions")
         executable = {name for name, op in self.reader.ops.items() if attribute(op, "grhsim.partition")}
         if primary & set(elided) or primary | set(elided) != executable or effects - primary:

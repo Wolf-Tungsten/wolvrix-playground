@@ -258,13 +258,13 @@ class WindowOriginTests(unittest.TestCase):
 
     def test_operation_only_state_next_parent_has_unknown_geometry_before_real_split_children(self):
         # The closed v7 smoke sidecar has this P0-P2 row: value_id=0,
-        # native_kind=kConstant, width=0, logic_domain=none, operation-only.
+        # native_kind=grh.constant, width=0, logic_domain=none, operation-only.
         for stage in range(3):
             self.node('grh', stage, 14, 'state$NEXT', 0)
             payload = {'source_geometry_schema': 'grh.semantic-node-endpoints.v2',
                 'source_geometry_complete': False, 'node_id': '14', 'role': 'value',
                 'value_id': '0', 'value_generation': '0', 'operation_id': '11',
-                'operation_generation': '0', 'native_kind': 'kConstant', 'width': '0',
+                'operation_generation': '0', 'native_kind': 'grh.constant', 'width': '0',
                 'signed': '0', 'shape_json': '[]', 'logic_domain': 'none',
                 'source_width': '0', 'source_signed': '0', 'source_shape_json': '[]',
                 'source_shape_field_depths_json': '[]', 'projection_json': '[]',

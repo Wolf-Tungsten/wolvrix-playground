@@ -18,10 +18,13 @@ def summarize_compute_ops_from_post_stats(post_stats_json: Path, top_name: str) 
         ops = graph.get("ops")
         if ops is None:
             ops = graph.get("operations", [])
-        source_kinds = {"kConstant", "kRegisterReadPort", "kLatchReadPort"}
-        sink_kinds = {"kRegisterWritePort", "kLatchWritePort", "kMemoryWritePort", "kMemoryFillPort"}
-        decl_kinds = {"kRegister", "kMemory", "kLatch", "kDpicImport"}
-        hier_kinds = {"kInstance", "kBlackbox", "kXMRRead", "kXMRWrite"}
+        source_kinds = {"grh.constant", "grh.registerReadPort", "grh.registerReadArrayPort", "grh.latchReadPort"}
+        sink_kinds = {
+            "grh.registerWritePort", "grh.registerWriteMaskPort", "grh.registerWriteArrayPort",
+            "grh.registerWriteArrayMaskPort", "grh.registerFillPort", "grh.latchWritePort",
+        }
+        decl_kinds = {"grh.registerDecl", "grh.latch", "grh.dpicImport"}
+        hier_kinds = {"grh.instance", "grh.blackbox", "grh.xmrRead", "grh.xmrWrite"}
         total_ops = len(ops)
         source_ops = sum(1 for op in ops if op.get("kind") in source_kinds)
         sink_ops = sum(1 for op in ops if op.get("kind") in sink_kinds)

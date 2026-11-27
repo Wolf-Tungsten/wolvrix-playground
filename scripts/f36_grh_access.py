@@ -5,10 +5,10 @@ from __future__ import annotations
 from math import prod
 
 
-READ_PORTS = {'kRegisterReadPort', 'kRegisterReadArrayPort', 'kLatchReadPort'}
-WRITE_HEADS = {'kRegisterWritePort': 2, 'kRegisterWriteMaskPort': 3,
-               'kRegisterFillPort': 2, 'kLatchWritePort': 3}
-INDEXED_WRITE_HEADS = {'kRegisterWriteArrayPort': 2, 'kRegisterWriteArrayMaskPort': 3}
+READ_PORTS = {'grh.registerReadPort', 'grh.registerReadArrayPort', 'grh.latchReadPort'}
+WRITE_HEADS = {'grh.registerWritePort': 2, 'grh.registerWriteMaskPort': 3,
+               'grh.registerFillPort': 2, 'grh.latchWritePort': 3}
+INDEXED_WRITE_HEADS = {'grh.registerWriteArrayPort': 2, 'grh.registerWriteArrayMaskPort': 3}
 
 
 def _event_count(action):
@@ -34,7 +34,7 @@ def grh_accesses(state, actions):
         if kind in READ_PORTS:
             direction = 'read'
             results = action.get('results', [])
-            if len(results) != 1 or (kind == 'kRegisterReadArrayPort') != bool(operands):
+            if len(results) != 1 or (kind == 'grh.registerReadArrayPort') != bool(operands):
                 uncertainty.add('read-operand-layout')
                 continue
             index_count = len(operands)
@@ -63,7 +63,7 @@ def grh_accesses(state, actions):
         projection = shape[index_count:]
         payload_shape = tuple(payload.get('shape', []))
         payload_width = payload.get('width')
-        expected_width = leaf_width if kind == 'kRegisterFillPort' else leaf_width * prod(projection)
+        expected_width = leaf_width if kind == 'grh.registerFillPort' else leaf_width * prod(projection)
         if (payload_width is None or payload_width * prod(payload_shape) != expected_width
                 or (direction == 'read' and index_count and payload_shape and payload_shape != projection)):
             uncertainty.add(f'{direction}-projection-shape')

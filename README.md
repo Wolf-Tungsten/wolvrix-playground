@@ -2,6 +2,9 @@
 
 This repository is the development and integration workspace for Wolvrix.
 
+Wolvrix IR provides the shared graph framework. GRH is its RTL dialect, and
+GRHSIM adds operations for simulation.
+
 It contains:
 
 - the Wolvrix source tree itself
@@ -99,9 +102,8 @@ and direct aggregate row copies are enabled by default. The standard GrhSIM
 build uses `-O3 -march=native -fno-strict-aliasing` without PGO; the resulting
 emulator targets the build host's CPU.
 
-Simulation now uses the same GRH design through conversion, optimization,
-virtual partitioning and C++ emission. The independent GrhSIM IR and Python
-model APIs have been removed. The active XiangShan route is `xs_grhsim_emu`
+Simulation uses the same Wolvrix IR design through dialect translation,
+optimization, virtual partitioning, and C++ emission. The XiangShan route is `xs_grhsim_emu`
 and `run_xs_grhsim_emu`. See the [simulation workflow](wolvrix/docs/grhsim.md)
 and [current implementation](pdocs/grhsim.md)
 for the six scheduling phases, passes, dialect operations and emitter layout.

@@ -28,10 +28,10 @@ class ExecutionCountsTests(unittest.TestCase):
         directory = Path(temporary.name)
         fixture = fixture or Fixture()
         for op in fixture.graph["ops"]:
-            if op["kind"] != "kRegister":
+            if op["kind"] != "grh.registerDecl":
                 op["attrs"]["grhsim.partition"] = {"vs": ["general", "nonsink", "0", "0"]}
         sites = [{"operation": op["sym"], "category": "writer-sample" if op["kind"].startswith("grhsim.write") else "operation",
-                  "function": "sn_0"} for op in fixture.graph["ops"] if op["kind"] != "kRegister"]
+                  "function": "sn_0"} for op in fixture.graph["ops"] if op["kind"] != "grh.registerDecl"]
         snapshot = json.dumps(fixture.model).encode()
         program = {"model.hpp": b"// native test header\n", "tu.cpp": (
             "\n".join(f"++opExecCounts_[{i}];" for i in range(len(sites))) +
@@ -175,8 +175,8 @@ class ExecutionCountsTests(unittest.TestCase):
             self.assertTrue(all(any(key.startswith(prefix) for key in owners) for prefix in
                                 ("event", "output", "general/nonsink")))
             effects = counts.visits["effect"]
-            dpi = [name for name, op in counts.reader.ops.items() if op["kind"] == "grhsim.dpi-call"]
-            random = [name for name, op in counts.reader.ops.items() if op["kind"] == "grhsim.system-function"]
+            dpi = [name for name, op in counts.reader.ops.items() if op["kind"] == "grhsim.dpiCall"]
+            random = [name for name, op in counts.reader.ops.items() if op["kind"] == "grhsim.systemFunction"]
             self.assertEqual([effects[name] for name in dpi], [4])
             self.assertEqual([effects[name] for name in random], [12])
             # Function placement can change with the emission budget. Each

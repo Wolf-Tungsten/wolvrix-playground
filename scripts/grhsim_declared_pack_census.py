@@ -889,8 +889,8 @@ def native_family_report(model, *, final_model=None, pack_members=None, executio
     forms = classify_forms(universe["members"], final_names, packed_names if words is not None else None, None)
     rows = []
     supported = set(NativeGrhSignatures.classes) | {
-        "kConstant", "kRegisterReadPort", "kLatchReadPort", "kRegisterReadArrayPort", "kAssign", "kMux",
-        "kSliceStatic", "kSliceDynamic", "kSliceArray", "kReplicate", "kShl", "kLShr", "kAShr",
+        "grh.constant", "grh.registerReadPort", "grh.latchReadPort", "grh.registerReadArrayPort", "grh.assign", "grh.mux",
+        "grh.sliceStatic", "grh.sliceDynamic", "grh.sliceArray", "grh.replicate", "grh.shl", "grh.lShr", "grh.aShr",
         "grhsim.bitSelect", "grhsim.prioritySelect"}
     for (module, stem), members in sorted(grouped.items()):
         if len(members) < 2:

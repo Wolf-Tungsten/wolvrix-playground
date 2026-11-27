@@ -526,7 +526,7 @@ class ExchangeContractTests(unittest.TestCase):
 
     def test_liveness_provenance_records_are_strictly_validated(self):
         root = {'relation': 'root', 'entity_kind': 'operation', 'entity_id': 31, 'generation': 0,
-                'root_kind': 'observable_operation', 'operation_kind': 'kSystemTask',
+                'root_kind': 'observable_operation', 'operation_kind': 'grh.systemTask',
                 'root_identity': 31, 'root_identity_generation': 0, 'clock_operand': 2}
         edge = {'relation': 'edge', 'edge_kind': 'operation_operand', 'from_kind': 'operation',
                 'from_id': 31, 'from_generation': 0, 'to_kind': 'value', 'to_id': 44,
@@ -536,7 +536,7 @@ class ExchangeContractTests(unittest.TestCase):
                  'boundary': {'source': 2, 'target': 3, 'value': 44, 'value_generation': 0,
                               'user': 31, 'user_generation': 0, 'operand_index': 2, 'kind': 'clock'}}
         storage_root = {'relation': 'root', 'entity_kind': 'operation', 'entity_id': 32, 'generation': 0,
-                        'root_kind': 'declared_storage', 'operation_kind': 'kRegisterWritePort',
+                        'root_kind': 'declared_storage', 'operation_kind': 'grh.registerWritePort',
                         'root_identity': 0, 'root_identity_generation': 0, 'storage_symbol': 'state'}
         self.set_liveness_provenance([root, edge, start, storage_root])
         self.assertEqual(verify_bundle(self.directory)['liveness_provenance_count'], 4)
@@ -549,14 +549,14 @@ class ExchangeContractTests(unittest.TestCase):
                 {**start, 'boundary': {**start['boundary'], 'user': 99}},
                 {**root, 'entity_kind': 'value'},
                 {**root, 'root_kind': 'declared_storage'},
-                {**root, 'operation_kind': 'kAdd'},
+                {**root, 'operation_kind': 'grh.add'},
                 {**root, 'operation_kind': 'unknown_effect'},
                 {**storage_root, 'entity_kind': 'value'},
-                {**storage_root, 'operation_kind': 'kRegisterReadPort'},
-                {**storage_root, 'operation_kind': 'kAssign'},
+                {**storage_root, 'operation_kind': 'grh.registerReadPort'},
+                {**storage_root, 'operation_kind': 'grh.assign'},
                 {key: value for key, value in storage_root.items() if key != 'storage_symbol'},
                 {key: value for key, value in storage_root.items() if key != 'root_identity'},
-                {**root, 'operation_kind': 'kSystemTask', 'clock_operand': 2,
+                {**root, 'operation_kind': 'grh.systemTask', 'clock_operand': 2,
                  'root_identity': 32, 'root_identity_generation': 0},
                 {**edge, 'slot': -1},
                 {**root, 'root_kind': 'system_task'},

@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from f35_compare import ENDPOINT_HEADER, ENDPOINT_SCHEMA, compare, last_seen_in_gsim
+from f35_compare import ENDPOINT_HEADER, ENDPOINT_SCHEMA, classify, compare, last_seen_in_gsim
 from benchmark_f29_pass_trace import sha256
 from semantic_node_exchange import HEADERS, SCHEMA, encode_cell
 
@@ -69,9 +69,9 @@ class CompareTest(unittest.TestCase):
             node(5, ['core', 'effect']), node(6, ['core', 'state']), node(7, ['other', 'packed']),
             node(8, ['other', 'assign']), node(9, ['other', 'mixed']), node(10, ['other', 'constant']),
         ], [
-            endpoint(3, 'kConstant'), endpoint(4, 'kMux'), endpoint(5, 'kSystemTask', 'operation-only'),
-            endpoint(6, 'kAssign'), endpoint(7, 'kSliceStatic'), endpoint(8, 'kAssign'),
-            endpoint(9, 'kAssign'), endpoint(9, 'kOr'), endpoint(10, 'kConstant'),
+            endpoint(3, 'grh.constant'), endpoint(4, 'grh.mux'), endpoint(5, 'grh.systemTask', 'operation-only'),
+            endpoint(6, 'grh.registerReadPort'), endpoint(7, 'grh.sliceStatic'), endpoint(8, 'grh.assign'),
+            endpoint(9, 'grh.assign'), endpoint(9, 'grh.bitOr'), endpoint(10, 'grh.constant'),
         ], [
             (1, 6, 4, 'state_update', 'resolved', '[]', None),
             (2, 4, 8, 'dependency', 'resolved', '[]', None),
@@ -89,18 +89,22 @@ class CompareTest(unittest.TestCase):
         })
         self.assertFalse(report['target_met'])
 
+    def test_registered_port_kind_classifies_without_boundary_edges(self):
+        port = ('value', 'grh.registerReadPort', 8, False, 'anchor-candidate', True)
+        self.assertEqual(classify('state', [port], {}), 'state-and-storage')
+
     def test_cross_round_deltas_count_same_name_multiplicity(self):
         old = self.grh('old', [
             node(1, ['mod', 'back\\slash\tfield']), node(2, ['mod', 'gone']),
             node(3, ['mod', 'gone']), node(4, None),
-        ], [endpoint(2, 'kMux'), endpoint(3, 'kMux'), endpoint(4, 'kAssign')], [])
+        ], [endpoint(2, 'grh.mux'), endpoint(3, 'grh.mux'), endpoint(4, 'grh.assign')], [])
         index = self.root / 'unmatched.tsv'
         previous = self.root / 'previous.json'
         previous.write_text(json.dumps(self.compare(old, unmatched_index=index)), encoding='utf-8')
         new = self.grh('new', [
             node(1, ['mod', 'back\\slash\tfield']), node(2, ['mod', 'gone']),
             node(5, ['core', 'new\\name\t']), node(6, ['mod', 'gsim-only']),
-        ], [endpoint(2, 'kMux'), endpoint(5, 'kAssign')], [])
+        ], [endpoint(2, 'grh.mux'), endpoint(5, 'grh.assign')], [])
         report = self.compare(new, previous_index=index, previous_report=previous)
         self.assertEqual(report['change_pp'], 25)
         self.assertEqual(report['change_by_category'], {'anonymous': -1, 'assignments': 1, 'muxes': -1})
@@ -116,7 +120,7 @@ class CompareTest(unittest.TestCase):
             'stage': 'RemoveDeadNodes3', 'pass_instance': 'RemoveDeadNodes#2',
         }, HEADERS['nodes'], [matched[0]], nodeInventoryComplete=True)
         missing = node(200, ['mod', 'missing'])
-        shapes = [endpoint(200, 'kAssign')]
+        shapes = [endpoint(200, 'grh.assign')]
         at_target = self.compare(self.grh('at-target', [*matched, missing], shapes, []))
         below_target = self.compare(self.grh('below-target', [*matched[:-1], missing], shapes, []))
 

@@ -26,7 +26,7 @@ def census(path: Path) -> dict:
     arrays = {
         op["sym"]: Counter()
         for op in graph["ops"]
-        if op["kind"] == "kRegister" and attr(op, "shape")
+        if op["kind"] == "grh.registerDecl" and attr(op, "shape")
     }
 
     def is_constant(value: str) -> bool:
@@ -34,10 +34,10 @@ def census(path: Path) -> dict:
             op = definitions.get(value)
             if not op:
                 return False
-            if op["kind"] in ("kAssign", "kConcat") and len(op["in"]) == 1:
+            if op["kind"] in ("grh.assign", "grh.concat") and len(op["in"]) == 1:
                 value = op["in"][0]
                 continue
-            return op["kind"] == "kConstant"
+            return op["kind"] == "grh.constant"
         return False
 
     for op in graph["ops"]:
@@ -45,11 +45,11 @@ def census(path: Path) -> dict:
         if symbol not in arrays:
             continue
         kind = op["kind"]
-        if kind == "kRegisterReadArrayPort":
+        if kind == "grh.registerReadArrayPort":
             key = "static_reads" if is_constant(op["in"][0]) else "dynamic_reads"
-        elif kind == "kRegisterWriteArrayPort":
+        elif kind == "grh.registerWriteArrayPort":
             key = "static_writes" if is_constant(op["in"][1]) else "dynamic_writes"
-        elif kind == "kRegisterWritePort":
+        elif kind == "grh.registerWritePort":
             key = "whole_writes"
         else:
             continue

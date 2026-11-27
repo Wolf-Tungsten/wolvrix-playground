@@ -25,6 +25,36 @@ from grhsim_residual_write_cones import cone, tree_summary
 INSTANCE = "cpu$l_soc$core_with_l2$core$backend$inner_ctrlBlock$rob"
 GSIM_INSTANCE = "cpu__DOT__l_soc__DOT__core_with_l2__DOT__core__DOT__backend__DOT__inner__DOT__ctrlBlock__DOT__rob"
 
+NATIVE_KIND_BUCKETS = {
+    kind: bucket
+    for bucket, kinds in {
+        "state_declaration": STATE_KINDS,
+        "node_ref": READ_KINDS,
+        "const": {"grh.constant"},
+        "arithmetic": {"grh.add", "grh.sub", "grh.mul", "grh.div", "grh.mod"},
+        "compare": {"grh.eq", "grh.ne", "grh.caseEq", "grh.caseNe", "grh.wildcardEq",
+                    "grh.wildcardNe", "grh.lt", "grh.le", "grh.gt", "grh.ge"},
+        "bitwise_logic": {"grh.bitAnd", "grh.bitOr", "grh.bitXor", "grh.bitXnor", "grh.bitNot",
+                          "grh.logicAnd", "grh.logicOr", "grh.logicNot", "grh.reduceAnd",
+                          "grh.reduceOr", "grh.reduceXor", "grh.reduceNor", "grh.reduceNand",
+                          "grh.reduceXnor", "grhsim.cpu.maskedOr"},
+        "mux_control": {"grh.mux", "grhsim.prioritySelect"},
+        "shift": {"grh.shl", "grh.lShr", "grh.aShr"},
+        "slice_index": {"grh.sliceStatic", "grh.sliceDynamic", "grh.sliceArray", "grhsim.bitSelect"},
+        "aggregate_concat": {"grh.concat", "grh.replicate", "grh.arrayCreate"},
+        "statement": {"grh.assign", "grh.combArrayUpdate"},
+        "state_reg_access": {"grh.registerWritePort", "grh.registerWriteMaskPort",
+                             "grh.registerWriteArrayPort", "grh.registerWriteArrayMaskPort",
+                             "grh.registerFillPort", "grh.latchWritePort", "grhsim.write",
+                             "grhsim.writeMask", "grhsim.writeArray", "grhsim.writeArrayMask",
+                             "grhsim.fill", "grhsim.latchWrite", "grhsim.historyWrite"},
+        "special": {"grh.instance", "grh.blackbox", "grh.xmrRead", "grh.xmrWrite",
+                    "grh.systemTask", "grh.systemFunction", "grh.dpicImport", "grh.dpicCall",
+                    "grhsim.edgeDetect", "grhsim.systemTask", "grhsim.systemFunction", "grhsim.dpiCall"},
+    }.items()
+    for kind in kinds
+}
+
 
 def log(message):
     print(message, flush=True)
@@ -48,14 +78,7 @@ def conversion_checkpoint(work):
 
 
 def kind_bucket(kind):
-    if kind in STATE_KINDS:
-        return "state_declaration"
-    if kind in READ_KINDS:
-        return "node_ref"
-    if kind.startswith("k"):
-        suffix = kind[1:2].lower() + kind[2:]
-        return GRHSIM_KIND_BUCKETS.get("core.compute." + suffix, "other")
-    return GRHSIM_KIND_BUCKETS.get(kind, "other")
+    return NATIVE_KIND_BUCKETS.get(kind) or GRHSIM_KIND_BUCKETS.get(kind, "other")
 
 
 def parse_type(tokens, pos=0):
@@ -398,8 +421,8 @@ def compare_grh_cones(reader, graph, pairs, output):
 
     def compute(name):
         kind = reader.ops[name]["kind"]
-        return (kind.startswith("k") and kind not in READ_KINDS | STATE_KINDS |
-                {"kConstant", "kDpicImport", "kInstance", "kBlackbox"}) or kind in {
+        return (kind.startswith("grh.") and kind not in READ_KINDS | STATE_KINDS |
+                {"grh.constant", "grh.dpicImport", "grh.instance", "grh.blackbox"}) or kind in {
                     "grhsim.bitSelect", "grhsim.prioritySelect", "grhsim.cpu.maskedOr"}
 
     for pair in pairs:
